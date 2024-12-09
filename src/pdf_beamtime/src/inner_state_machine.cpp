@@ -65,6 +65,7 @@ moveit::core::MoveItErrorCode InnerStateMachine::move_robot_cartesian(
   switch (internal_state_enum_) {
     case Internal_State::RESTING:
     case Internal_State::CLEANUP: {
+        mgi.setStartStateToCurrentState();
         // Create a plan to that target pose
         auto const [planing_success, plan] = [&mgi, target_pose] {
             moveit::planning_interface::MoveGroupInterface::Plan plan;
