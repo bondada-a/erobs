@@ -23,7 +23,7 @@ RUN mkdir /root/ws -p
 
 WORKDIR /root/ws
 
-RUN git clone https://github.com/maffettone/erobs.git -b humble
+RUN git clone https://github.com/bondada-a/erobs.git -b humble
 
 WORKDIR /root/ws/erobs/
 RUN /bin/bash -c ". ./setup.sh"
