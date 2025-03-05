@@ -1,7 +1,7 @@
 FROM osrf/ros:humble-desktop-full
 
 # Set display
-ENV DISPLAY :1
+ENV DISPLAY=:0
 
 RUN apt-get update \
         && apt-get -y install \
