@@ -2,8 +2,8 @@
 
 echo "Starting VNC server..."
 # Setup VNC server
-Xvfb :1 -screen 0 2560x1440x16 &
-x11vnc -rfbport 5901 -bg -quiet -forever -shared -display :1
+Xvfb :0 -screen 0 2560x1440x16 &
+x11vnc -rfbport 5901 -bg -quiet -forever -shared -display :0
 
 
 echo "Starting rviz and moveit with ur_type ${UR_TYPE}..."
