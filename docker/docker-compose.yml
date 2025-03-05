@@ -43,15 +43,36 @@ services:
     depends_on:
       - urdriver
 
+  moveit-test:
+    image: moveit-test:latest
+    container_name: moveit-test
+    privileged: true
+    network_mode: host
+    command: /bin/bash
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - $XAUTHORITY:/root/.Xauthority
+    environment:
+      - ROBOT_IP=192.168.56.101
+      - LAUNCH_RVIZ=true
+      - QT_X11_NO_MITSHM=1
+      - DISPLAY=$DISPLAY
+      
+    depends_on:
+      - urdriver
+
 
   urexample:
     image: ur-example:latest
     environment:
       - ROBOT_IP=192.168.56.101
     networks:
-      - ursim_net
+      ursim_net:
+        ipv4_address: 192.168.56.104
     depends_on:
       - urdriver
+
+
 
 networks:
   ursim_net:
