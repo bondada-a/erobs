@@ -75,7 +75,7 @@ def main(args=None):
     rclpy.init(args=args)
 
     client = SimpleClient()
-    # client.send_pickup_goal()
+    client.send_pickup_goal()
     client.send_return_sample_goal()
 
     rclpy.spin(client)
