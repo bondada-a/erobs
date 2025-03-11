@@ -31,7 +31,7 @@ RUN mkdir /root/ws/src -p
 
 WORKDIR /root/ws/src
 
-RUN git clone https://github.com/bondada-a/erobs.git -b humble
+RUN git clone https://github.com/bondada-a/erobs.git -b ur5e
 
 WORKDIR /root/ws/
 
