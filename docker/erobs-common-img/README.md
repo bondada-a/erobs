@@ -11,11 +11,11 @@ Several containers need to be running for our application. Once running, clients
 
 ```bash
 export ROBOT_IP=192.168.1.100
-export UR_TYPE="ur3e"
+export UR_TYPE="ur5e"
 export LAUNCH_RVIZ="false"
-export DESCRIPTION_PKG="ur3e_hande_robot_description"
+export DESCRIPTION_PKG="ur5e_hande_robot_description"
 export DESCRIPTION_FILE="ur_with_camera_hande.xacro"
-export CONFIG_PKG="ur3e_hande_moveit_config"
+export CONFIG_PKG="ur5e_hande_moveit_config"
 export CONFIG_FILE="ur.srdf"
 export ROS_DISTRO=humble
 export ROS_DOMAIN_ID=10

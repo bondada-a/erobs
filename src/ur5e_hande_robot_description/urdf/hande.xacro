@@ -6,8 +6,8 @@
     tf_prefix
     parent" >
 
-  <xacro:property name="hande_kinematics_params" value="$(find ur3e_hande_robot_description)/config/hande/default_kinematics.yaml"/>
-  <xacro:property name="hande_physical_params" value="$(find ur3e_hande_robot_description)/config/hande/physical_parameters.yaml"/>
+  <xacro:property name="hande_kinematics_params" value="$(find ur5e_hande_robot_description)/config/hande/default_kinematics.yaml"/>
+  <xacro:property name="hande_physical_params" value="$(find ur5e_hande_robot_description)/config/hande/physical_parameters.yaml"/>
 
   <xacro:macro name="cylinder_inertial" params="radius length mass *origin">
     <inertial>
@@ -59,13 +59,13 @@
 
       <collision>
         <geometry>
-          <mesh filename="package://ur3e_hande_robot_description/meshes/hande/collision/coupler.stl" scale="${scaling_factor_cp} ${scaling_factor_cp} ${scaling_factor_cp}" />
+          <mesh filename="package://ur5e_hande_robot_description/meshes/hande/collision/coupler.stl" scale="${scaling_factor_cp} ${scaling_factor_cp} ${scaling_factor_cp}" />
         </geometry>
       </collision>
 
       <visual>
         <geometry>
-          <mesh filename="package://ur3e_hande_robot_description/meshes/hande/visual/coupler.dae" scale="${scaling_factor_cp} ${scaling_factor_cp} ${scaling_factor_cp}" />
+          <mesh filename="package://ur5e_hande_robot_description/meshes/hande/visual/coupler.dae" scale="${scaling_factor_cp} ${scaling_factor_cp} ${scaling_factor_cp}" />
         </geometry>
         <material name="Gazebo/Black">
           <color rgba="0.1 0.1 0.1 1" />
@@ -78,7 +78,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 -1.570796 -1.570796" />
         <geometry>
-          <mesh filename="package://ur3e_hande_robot_description/meshes/hande/visual/hande.dae" scale="1 1 1" />
+          <mesh filename="package://ur5e_hande_robot_description/meshes/hande/visual/hande.dae" scale="1 1 1" />
         </geometry>
         <material name="Gazebo/Black">
           <color rgba="0.1 0.1 0.1 1" />
@@ -86,7 +86,7 @@
       </visual>
       <collision>
         <geometry>
-          <mesh filename="package://ur3e_hande_robot_description/meshes/hande/collision/hande.stl" scale="1 1 1"/>
+          <mesh filename="package://ur5e_hande_robot_description/meshes/hande/collision/hande.stl" scale="1 1 1"/>
         </geometry>
       </collision>
       <xacro:cylinder_inertial radius="${hande_base_inertia_radius}" length="${hande_base_inertia_length}"  mass="${hande_base_mass}">
@@ -98,7 +98,7 @@
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur3e_hande_robot_description/meshes/hande/visual/finger_1.dae" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://ur5e_hande_robot_description/meshes/hande/visual/finger_1.dae" scale="0.001 0.001 0.001"/>
         </geometry>
         <material name="Gazebo/Grey">
           <color rgba="0.1 0.1 0.1 1"/>
@@ -107,7 +107,7 @@
       <collision>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur3e_hande_robot_description/meshes/hande/collision/finger_1.stl" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://ur5e_hande_robot_description/meshes/hande/collision/finger_1.stl" scale="0.001 0.001 0.001"/>
         </geometry>
       </collision>
       <xacro:cylinder_inertial radius="${left_finger_inertia_radius}" length="${left_finger_inertia_length}"  mass="${left_finger_mass}">
@@ -119,7 +119,7 @@
       <visual>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur3e_hande_robot_description/meshes/hande/visual/finger_2.dae" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://ur5e_hande_robot_description/meshes/hande/visual/finger_2.dae" scale="0.001 0.001 0.001"/>
         </geometry>
         <material name="Gazebo/Grey">
           <color rgba="0.1 0.1 0.1 1"/>
@@ -128,7 +128,7 @@
       <collision>
         <origin rpy="0 0 0" xyz="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur3e_hande_robot_description/meshes/hande/collision/finger_2.stl" scale="0.001 0.001 0.001"/>
+          <mesh filename="package://ur5e_hande_robot_description/meshes/hande/collision/finger_2.stl" scale="0.001 0.001 0.001"/>
         </geometry>
       </collision>
       <xacro:cylinder_inertial radius="${right_finger_inertia_radius}" length="${right_finger_inertia_length}"  mass="${right_finger_mass}">

@@ -3,7 +3,7 @@
 
 <xacro:macro name="camera_mount">
 
-  <xacro:property name="mount_physical_params_file" value="$(find ur3e_hande_robot_description)/config/camera_mount/physical_parameters.yaml"/>
+  <xacro:property name="mount_physical_params_file" value="$(find ur5e_hande_robot_description)/config/camera_mount/physical_parameters.yaml"/>
   <xacro:property name="mount_physical_parameters" value="${xacro.load_yaml(mount_physical_params_file)}"/>
 
   <!-- Mass and Inertial properties -->
@@ -44,7 +44,7 @@
     <visual>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur3e_hande_robot_description/meshes/camera_mount/visual/ur3e_flange_camera_mount.dae" scale="${scaling_factor} ${scaling_factor} ${scaling_factor}"/>
+        <mesh filename="package://ur5e_hande_robot_description/meshes/camera_mount/visual/ur5e_flange_camera_mount.dae" scale="${scaling_factor} ${scaling_factor} ${scaling_factor}"/>
       </geometry>
       <material name="mat">
         <color rgba="0.7 0.7 0.7 1"/>
@@ -54,7 +54,7 @@
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur3e_hande_robot_description/meshes/camera_mount/collision/ur3e_flange_camera_mount.stl" scale="${scaling_factor} ${scaling_factor} ${scaling_factor}"/>
+        <mesh filename="package://ur5e_hande_robot_description/meshes/camera_mount/collision/ur5e_flange_camera_mount.stl" scale="${scaling_factor} ${scaling_factor} ${scaling_factor}"/>
       </geometry>
     </collision>
 
@@ -69,7 +69,7 @@
   <link name="camera_base">
     <visual>
         <geometry>
-          <mesh filename="package://ur3e_hande_robot_description/meshes/camera_mount/visual/azure_kinect.dae" scale="${scaling_factor_cm} ${scaling_factor_cm} ${scaling_factor_cm}" />
+          <mesh filename="package://ur5e_hande_robot_description/meshes/camera_mount/visual/azure_kinect.dae" scale="${scaling_factor_cm} ${scaling_factor_cm} ${scaling_factor_cm}" />
         </geometry>
         <material name="Gazebo/Black">
           <color rgba="0.1 0.1 0.1 1" />
@@ -78,7 +78,7 @@
 
     <collision>
       <geometry>
-        <mesh filename="package://ur3e_hande_robot_description/meshes/camera_mount/collision/azure_kinect.stl" scale="${scaling_factor_cm} ${scaling_factor_cm} ${scaling_factor_cm}" />
+        <mesh filename="package://ur5e_hande_robot_description/meshes/camera_mount/collision/azure_kinect.stl" scale="${scaling_factor_cm} ${scaling_factor_cm} ${scaling_factor_cm}" />
       </geometry>
     </collision>
 

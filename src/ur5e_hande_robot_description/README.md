@@ -1,9 +1,9 @@
-## ur3e_hande_robot_description
+## ur5e_hande_robot_description
 
 This package contains 
   - descriptions files for the hand-e robotic gripper by *Robotiq*,
-  - description file for integrating the gripper to ur3e robotic arm by Universal Robotics, and
-  - four configuration files to be passed when initiating the ur3e robotic arm. 
+  - description file for integrating the gripper to ur5e robotic arm by Universal Robotics, and
+  - four configuration files to be passed when initiating the ur5e robotic arm. 
 
 
 **config/hande**
@@ -14,9 +14,9 @@ These files contain the physical properties of the hand-e gripper and pointers t
 **config/camera_mount**
 Physical_parameters.yaml file includes the physical measurements for the camera and the mount. These are derived both from physically measuring them and extracting from official Robotiq & Azure Kinect webpages. 
 
-**config/ur3e**
+**config/ur5e**
 
-Configuration files for the ur3e robot are directly copied from the humble version of the package [*Universal_Robots_ROS2_Description*](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description/tree/29e90d5095fdf4af99eba3c3eae153d7d5d769c0/config/ur3e).
+Configuration files for the ur5e robot are directly copied from the humble version of the package [*Universal_Robots_ROS2_Description*](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description/tree/29e90d5095fdf4af99eba3c3eae153d7d5d769c0/config/ur5e).
 These configurations are free to be adjusted. 
 
 **meshes/hande**
@@ -29,7 +29,7 @@ The previous version of the description file for the hand-e gripper base and fin
 
 **urdf/ur_with_hande.xacro**
 
-This file creates the description for the ur3e robot and attaches the hande gripper. Ur3e robot module is created to be directly compatible with the humble version of the the package [ur_description](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description/blob/29e90d5095fdf4af99eba3c3eae153d7d5d769c0/urdf/ur.urdf.xacro) by the following line 
+This file creates the description for the ur5e robot and attaches the hande gripper. Ur3e robot module is created to be directly compatible with the humble version of the the package [ur_description](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description/blob/29e90d5095fdf4af99eba3c3eae153d7d5d769c0/urdf/ur.urdf.xacro) by the following line 
 ```xml
 <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
 ```

@@ -1,9 +1,9 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ur3e_hande_robot_description</name>
+  <name>ur5e_hande_robot_description</name>
   <version>0.0.0</version>
-  <description>This package creates a custom desription for the hande gripper attached to ur3e robot arm</description>
+  <description>This package creates a custom desription for the hande gripper attached to ur5e robot arm</description>
   <maintainer email="wfernando1@bnl.gov">wfernando1</maintainer>
   <license>BSD-3</license>
 
