@@ -61,7 +61,7 @@ RUN apt-get autoremove -y \
 
 ENV ROBOT_IP=192.168.56.101
 ENV REVERSE_IP=192.168.56.102
-ENV UR_TYPE="ur3e"
+ENV UR_TYPE="ur5e"
 
 # Start a shell session when the container runs by default
 CMD ["/bin/bash"]

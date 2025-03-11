@@ -25,12 +25,12 @@ RUN git clone https://github.com/bondada-a/erobs.git -b humble
 WORKDIR /root/ws/
 
 RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && \
-        colcon build --symlink-install --packages-select ur3e_hande_robot_description"
+        colcon build --symlink-install --packages-select ur5e_hande_robot_description"
 
 ENV ROBOT_IP=192.168.56.101
 ENV REVERSE_IP=192.168.56.102
-ENV UR_TYPE="ur3e"
-ENV DESCRIPTION_PKG="ur3e_hande_robot_description"
+ENV UR_TYPE="ur5e"
+ENV DESCRIPTION_PKG="ur5e_hande_robot_description"
 ENV DESCRIPTION_FILE="ur_with_hande.xacro"
 
 # Copy entrypoint script
