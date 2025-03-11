@@ -1,7 +1,7 @@
 #!/bin/bash
 # Launch Docker container for ur-driver
 ROS_DISTRO=humble
-UR_TYPE="ur3e"
+UR_TYPE="ur5e"
 ROBOT_IP=10.66.218.141
 REVERSE_IP=10.66.218.39
 
