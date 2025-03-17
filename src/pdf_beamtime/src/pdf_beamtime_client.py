@@ -2,6 +2,8 @@
 
 import math
 import time
+import json
+import os
 
 import rclpy
 from rclpy.action import ActionClient
@@ -19,21 +21,39 @@ class SimpleClient(Node):
         self._action_client = ActionClient(self, PickPlaceControlMsg, "pdf_beamtime_action_server")
         self._goal_handle = None
 
+        # Load positions from recorded_poses.json
+        self.positions = self.load_positions()
+
+    def load_positions(self):
+        """Load positions from recorded_poses.json."""
+        current_directory = os.getcwd()
+        filename = os.path.join(current_directory, "recorded_poses.json")
+
+        try:
+            with open(filename, "r") as f:
+                positions = json.load(f)
+                self.get_logger().info(f"Loaded positions from {filename}: {positions}")
+                return positions
+        except FileNotFoundError:
+            self.get_logger().error(f"File {filename} not found!")
+            return None
+        except json.JSONDecodeError:
+            self.get_logger().error(f"Failed to decode JSON from {filename}!")
+            return None
+
     def send_pickup_goal(self):
         """Send a working goal."""
+        if not self.positions:
+            self.get_logger().error("No positions loaded. Cannot send pickup goal.")
+            return
+
         goal_msg = PickPlaceControlMsg.Goal()
 
-        goal_msg.pickup_approach = [241.41, -59.73, 130.19, -68.36, 99.66, 180.0]
-        goal_msg.pickup_approach = [x / 180 * math.pi for x in goal_msg.pickup_approach]
-
-        goal_msg.pickup = [238.27, -50.99, 106.60, -53.53, 96.54, 180.0]
-        goal_msg.pickup = [x / 180 * math.pi for x in goal_msg.pickup]
-
-        goal_msg.place_approach = [55.10, -51.78, 124.84, -73.16, 52.24, 180.0]
-        goal_msg.place_approach = [x / 180 * math.pi for x in goal_msg.place_approach]
-
-        goal_msg.place = [63.84, -43.13, 98.29, -55.25, 61.00, 180.0]
-        goal_msg.place = [x / 180 * math.pi for x in goal_msg.place]
+        # Use positions loaded from recorded_poses.json
+        goal_msg.pickup_approach = [x / 180 * math.pi for x in self.positions["pickup_approach"]]
+        goal_msg.pickup = [x / 180 * math.pi for x in self.positions["pickup"]]
+        goal_msg.place_approach = [x / 180 * math.pi for x in self.positions["place_approach"]]
+        goal_msg.place = [x / 180 * math.pi for x in self.positions["place"]]
 
         self._action_client.wait_for_server()
         self._send_goal_future = self._action_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
@@ -52,19 +72,19 @@ class SimpleClient(Node):
 
     def send_return_sample_goal(self):
         """Send a working goal."""
+        if not self.positions:
+            self.get_logger().error("No positions loaded. Cannot send return sample goal.")
+            return
+
         goal_msg = PickPlaceControlMsg.Goal()
 
-        goal_msg.pickup_approach = [49.73, -67.14, 135.71, -72.66, 76.18, 180.0]
-        goal_msg.pickup_approach = [x / 180 * math.pi for x in goal_msg.pickup_approach]
-
-        # goal_msg.pickup = [63.84, -43.13, 98.29, -55.25, 61.00, 180.0]
-        # goal_msg.pickup = [x / 180 * math.pi for x in goal_msg.pickup]
-
-        # goal_msg.place_approach = [241.41, -59.73, 130.19, -68.36, 99.66, 180.0]
-        # goal_msg.place_approach = [x / 180 * math.pi for x in goal_msg.place_approach]
-
-        # goal_msg.place = [238.27, -50.99, 106.60, -53.53, 96.54, 180.0]
-        # goal_msg.place = [x / 180 * math.pi for x in goal_msg.place]
+        # Example: Modify this if you want to use different positions for return sample
+        goal_msg.pickup_approach = [x / 180 * math.pi for x in self.positions["pickup_approach"]]
+        
+        # Uncomment and modify these if needed:
+        # goal_msg.pickup = [x / 180 * math.pi for x in self.positions["pickup"]]
+        # goal_msg.place_approach = [x / 180 * math.pi for x in self.positions["place_approach"]]
+        # goal_msg.place = [x / 180 * math.pi for x in self.positions["place"]]
 
         self._action_client.wait_for_server()
         self._send_goal_future = self._action_client.send_goal_async(goal_msg, feedback_callback=self.feedback_callback)
@@ -75,8 +95,10 @@ def main(args=None):
     rclpy.init(args=args)
 
     client = SimpleClient()
-    # client.send_pickup_goal()
-    client.send_return_sample_goal()
+
+    # Example: Send pickup or return sample goals based on your requirements
+    client.send_pickup_goal()
+    # client.send_return_sample_goal()
 
     rclpy.spin(client)
 
