@@ -1,0 +1,25 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: ur5e_hande_moveit_config
+    relative_path: urdf/ur_with_2fg7.urdf
+  srdf:
+    relative_path: config/ur.srdf
+  package_settings:
+    author_name: adityabondada
+    author_email: abondada@bnl.gov
+    generated_timestamp: 1741799454
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
