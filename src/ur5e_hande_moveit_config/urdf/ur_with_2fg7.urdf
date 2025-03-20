@@ -58,8 +58,8 @@
           package. Users CANNOT rely on this file being available, or stored in
           this location. Nor can they rely on the existence of the macro.
   -->
-  <!-- create link fixed to the "world" -->
-  <link name="world"/>
+  <!-- create link fixed to the "map" -->
+  <link name="map"/>
   <ros2_control name="ur" type="system">
     <hardware>
       <plugin>ur_robot_driver/URPositionHardwareInterface</plugin>
@@ -497,7 +497,7 @@
   <!-- base_joint fixes base_link to the environment -->
   <joint name="base_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
-    <parent link="world"/>
+    <parent link="map"/>
     <child link="base_link"/>
   </joint>
   <!-- joints - main serial chain -->
@@ -594,7 +594,7 @@
   </joint>
   <joint name="_base_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0 0 0"/>
-    <parent link="world"/>
+    <parent link="map"/>
     <child link="_base_link"/>
   </joint>
   <!-- BASE LINK -->

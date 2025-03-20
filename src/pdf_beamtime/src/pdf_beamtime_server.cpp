@@ -236,7 +236,7 @@ std::vector<moveit_msgs::msg::CollisionObject> PdfBeamtimeServer::create_env()
     moveit_msgs::msg::CollisionObject obj;    // collision object
     geometry_msgs::msg::Pose pose;    // object pose
     obj.id = name;
-    obj.header.frame_id = "world";
+    obj.header.frame_id = "map";
 
     // Map to the correct int
     switch (obstacle_type_map_[node_->get_parameter("objects." + name + ".type").as_string()]) {

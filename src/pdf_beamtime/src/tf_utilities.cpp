@@ -23,7 +23,7 @@ TFUtilities::TFUtilities(const rclcpp::Node::SharedPtr node)
   pre_pickup_approach_point_frame_suffix_ = parameters_client_->get_parameter<std::string>(
     "pre_pickup_location.name");
 
-  world_frame = "world";
+  world_frame = "map";
   grasping_point_on_gripper_frame = "grasping_point_link";
   wrist_2_frame = "wrist_2_link";
 }
