@@ -16,3 +16,16 @@ repositories:
     type: git
     url: https://github.com/UniversalRobots/Universal_Robots_ROS2_Description.git
     version: humble
+  moveit2_calibration:
+    type: git
+    url: https://github.com/AndrejOrsula/moveit2_calibration.git
+    version: ros2_port
+  ros2_aruco:
+    type: git
+    url: https://github.com/JMU-ROBOTICS-VIVA/ros2_aruco.git
+    version: humble
+  zed-ros2-wrapper:
+    type: git
+    url: https://github.com/stereolabs/zed-ros2-wrapper.git
+    version: master
+
