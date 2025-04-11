@@ -1,0 +1,25 @@
+moveit_setup_assistant_config:
+  urdf:
+    package: ur5e_with_gripper_description
+    relative_path: urdf/ur_with_hande.urdf
+  srdf:
+    relative_path: config/ur.srdf
+  package_settings:
+    author_name: AdityaBondada
+    author_email: abondada@bnl.gov
+    generated_timestamp: 1744042030
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
+  modified_urdf:
+    xacros:
+      - control_xacro
+  control_xacro:
+    command:
+      - position
+    state:
+      - position
+      - velocity
