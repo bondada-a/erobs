@@ -70,7 +70,7 @@ class ArUcoPickPlaceClient(Node):
         z = self.marker_pose.position.z
 
         # Calculate approach position (a few centimeters above the marker)
-        approach_z = z + 0.05  # Adjust standoff distance as needed
+        approach_z = z + 0.04  # Adjust standoff distance as needed
 
         # Example joint angles (replace with your robot's IK solution)
         pickup_approach_joints = [math.atan2(y, x) * 180 / math.pi, -45.0 + (approach_z * 10), 90.0, 0.0, 90.0, 0.0]

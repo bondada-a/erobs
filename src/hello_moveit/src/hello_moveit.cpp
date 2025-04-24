@@ -22,10 +22,18 @@ public:
     // Hardcoded transformation matrix from frame C to frame M
     transform_MC_ = Eigen::Matrix4d();
     transform_MC_ << 
-      -0.424,  0.034, -0.905,  0.807,
-       0.906, -0.004, -0.424,  0.417,
-      -0.018, -0.999, -0.029,  0.257,
+    // ros2 run tf2_ros tf2_echo map zed_left_camera_optical_frame
+
+      // -0.424,  0.034, -0.905,  0.807,
+      //  0.906, -0.004, -0.424,  0.417,
+      // -0.018, -0.999, -0.029,  0.257,
+      //  0.000,  0.000,  0.000,  1.000;
+       
+      -0.447, -0.368,  0.815, -0.930,
+      -0.894,  0.210, -0.396,  0.639,
+      -0.026, -0.906, -0.423,  0.757,
        0.000,  0.000,  0.000,  1.000;
+
     
     // Create subscription to aruco_poses
     subscription_ = this->create_subscription<geometry_msgs::msg::PoseArray>(
