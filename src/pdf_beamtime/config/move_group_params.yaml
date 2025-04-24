@@ -1,0 +1,6 @@
+move_group:
+  ros__parameters:
+    octomap_frame: "map"  # change if your OctoMap uses a different frame
+    octomap_topic: "/octomap_binary"  # or /octomap_full
+    max_range: 5.0
+    point_cloud_topic: ""  # not used in this setup
