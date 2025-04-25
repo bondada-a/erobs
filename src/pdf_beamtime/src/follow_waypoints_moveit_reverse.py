@@ -6,7 +6,7 @@ import json
 import os
 import math
 import time
-from ur_msgs.srv import SetPayload
+
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from rclpy.publisher import Publisher
 
@@ -40,9 +40,9 @@ class WaypointExecutor(Node):
 
     
     def execute_waypoints(self):
-        sorted_keys = sorted(self.waypoints.keys(), key=lambda k: int(k.split('_')[-1]))
+        sorted_keys = sorted(self.waypoints.keys(), key=lambda k: int(k.split('_')[-1]), reverse=True)
 
-        for idx, key in enumerate(sorted_keys):
+        for key in sorted_keys:
             waypoint_deg = self.waypoints[key]
             waypoint_rad = [math.radians(j) for j in waypoint_deg]
 
@@ -51,18 +51,15 @@ class WaypointExecutor(Node):
 
             point = JointTrajectoryPoint()
             point.positions = waypoint_rad
-            point.time_from_start.sec = 2
+            point.time_from_start.sec = 2  # this is required but won’t control timing here
 
             traj_msg.points = [point]
 
             self.get_logger().info(f"Sending {key}: {waypoint_deg}")
             self.publisher.publish(traj_msg)
 
+            # ✅ Wait until robot reaches goal
             self.wait_until_reached(waypoint_rad)
-
-            if idx == 1:  # After reaching the second waypoint
-                self.set_payload(1.160)
-
 
 
     def wait_until_reached(self, target_positions, threshold=0.001, timeout=50.0):
@@ -98,29 +95,6 @@ class WaypointExecutor(Node):
                 break
 
         self.destroy_subscription(sub)
-
-    def set_payload(self, mass: float):
-        from ur_msgs.srv import SetPayload
-
-        client = self.create_client(SetPayload, '/io_and_status_controller/set_payload')
-
-        if not client.wait_for_service(timeout_sec=5.0):
-            self.get_logger().error("SetPayload service not available")
-            return
-
-        req = SetPayload.Request()
-        req.mass = mass
-        
-
-        future = client.call_async(req)
-        rclpy.spin_until_future_complete(self, future)
-
-        if future.result() is not None and future.result().success:
-            self.get_logger().info(f"Payload set to {mass} kg successfully")
-        else:
-            self.get_logger().error("Failed to set payload")
-
-
 
 
 def main(args=None):
