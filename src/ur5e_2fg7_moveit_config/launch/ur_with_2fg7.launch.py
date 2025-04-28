@@ -7,6 +7,7 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 import launch_ros.descriptions
 from launch.conditions import IfCondition
+from launch_ros.parameter_descriptions import ParameterFile
 
 def generate_launch_description():
     # Declare launch arguments
@@ -17,7 +18,7 @@ def generate_launch_description():
     declared_arguments.append(DeclareLaunchArgument("description_file", default_value="ur_with_2fg7.xacro"))
     declared_arguments.append(DeclareLaunchArgument("moveit_config_package", default_value="ur5e_2fg7_moveit_config"))
     declared_arguments.append(DeclareLaunchArgument("moveit_config_file", default_value="srdf/ur.srdf"))
-
+    declared_arguments.append(DeclareLaunchArgument("moveit_controllers_config", default_value="config/moveit_controllers.yaml"))
     # Launch configurations
     launch_rviz = LaunchConfiguration("launch_rviz")
     description_package = LaunchConfiguration("description_package")
@@ -58,6 +59,15 @@ def generate_launch_description():
         )
     }
 
+    moveit_controllers = ParameterFile(
+        PathJoinSubstitution([
+            FindPackageShare(moveit_config_package),
+            LaunchConfiguration("moveit_controllers_config"),
+        ]),
+        allow_substs=True
+    )
+
+    
 
     # Move Group node
     move_group_node = Node(
@@ -67,6 +77,7 @@ def generate_launch_description():
         parameters=[
             robot_description,
             robot_description_semantic,
+            moveit_controllers,    
             {"use_sim_time": False},
         ],
     )
