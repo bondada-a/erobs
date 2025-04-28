@@ -3,16 +3,16 @@
 
     <xacro:property name="M_PI" value="3.1415926535897931" />
   
-    <xacro:macro name="onrobot_2fg7_gripper" params="tf_prefix parent *origin">
+    <xacro:macro name="onrobot_2fg7_gripper" params="parent *origin">
         
-        <joint name="${tf_prefix}_base_joint" type="fixed">
+        <joint name="gripper_base_joint" type="fixed">
             <xacro:insert_block name="origin"/>
             <parent link="${parent}"/>
-            <child link="${tf_prefix}_base_link"/>
+            <child link="gripper_base_link"/>
         </joint>
 
         <!-- BASE LINK -->
-        <link name="${tf_prefix}_base_link">
+        <link name="gripper_base_link">
             <inertial>
                 <mass value="0.25" />
                 <origin xyz="0 0 0" />
@@ -38,7 +38,7 @@
             </collision>
         </link>
 
-        <gazebo reference="${tf_prefix}_base_link">
+        <gazebo reference="gripper_base_link">
             <material>Gazebo/Grey</material>
             <turnGravityOff>false</turnGravityOff>
         </gazebo>
@@ -66,27 +66,27 @@
 
         <!-- FINGER LEFT -->
 
-        <joint name="${tf_prefix}_left_finger_joint" type="prismatic">
+        <joint name="gripper_left_finger_joint" type="prismatic">
             <limit lower="0.0" upper="0.019" effort="1.0" velocity="0.6"/> 
             <axis xyz="0 1 0"/>
             <origin xyz="0.10972 0.0175 0" rpy="0.0 0.0 0.0" /> 
-            <parent link="${tf_prefix}_base_link"/>
-            <child link="${tf_prefix}_left_finger" />
+            <parent link="gripper_base_link"/>
+            <child link="gripper_left_finger" />
             <dynamics damping="0" friction="0"/>
         </joint>
 
-        <transmission name="${tf_prefix}_base_trans_left">
+        <transmission name="gripper_base_trans_left">
             <type>transmission_interface/SimpleTransmission</type>
-            <actuator name="${tf_prefix}_base_motor_left">
+            <actuator name="gripper_base_motor_left">
                 <mechanicalReduction>1</mechanicalReduction>
                 <motorTorqueConstant>1</motorTorqueConstant>
             </actuator>
-            <joint name="${tf_prefix}_left_finger_joint" >
+            <joint name="gripper_left_finger_joint" >
                 <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
             </joint>
         </transmission>
 
-        <link name="${tf_prefix}_left_finger">
+        <link name="gripper_left_finger">
             <inertial>
                 <mass value="0.1" />
                 <origin xyz="0 0 0" />
@@ -114,7 +114,7 @@
             <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
         </link>
 
-        <gazebo reference="${tf_prefix}_left_finger">
+        <gazebo reference="gripper_left_finger">
             <material>Gazebo/White</material>
             <turnGravityOff>false</turnGravityOff>
         </gazebo>
@@ -123,20 +123,20 @@
 
         <!-- FINGER RIGHT -->
 
-        <joint name="${tf_prefix}_right_finger_joint" type="prismatic">
+        <joint name="gripper_right_finger_joint" type="prismatic">
             <limit lower="0.0" upper="0.019" effort="1.0" velocity="0.6"/> 
             <axis xyz="0 -1 0"/>
             <origin xyz="0.10972 -0.0175 0" rpy="0.0 0.0 0.0" /> 
-            <parent link="${tf_prefix}_base_link"/>
-            <child link="${tf_prefix}_right_finger" />
+            <parent link="gripper_base_link"/>
+            <child link="gripper_right_finger" />
             <dynamics damping="0" friction="0"/>
-            <mimic joint="${tf_prefix}_left_finger_joint" multiplier="1.0" offset="0"/> 
+            <mimic joint="gripper_left_finger_joint" multiplier="1.0" offset="0"/> 
         </joint>
 
-        <xacro:mimic_joint_plugin_gazebo parent_joint="${tf_prefix}_left_finger_joint" 
-                                         mimic_joint="${tf_prefix}_right_finger_joint" has_pid="false" multiplier="1.0" max_effort="10.0" />
+        <xacro:mimic_joint_plugin_gazebo parent_joint="gripper_left_finger_joint" 
+                                         mimic_joint="gripper_right_finger_joint" has_pid="false" multiplier="1.0" max_effort="10.0" />
 
-        <link name="${tf_prefix}_right_finger">
+        <link name="gripper_right_finger">
             <inertial>
                 <mass value="0.1" />
                 <origin xyz="0 0 0" />
@@ -164,7 +164,7 @@
             <contact_coefficients kd="1.0" kp="1000.0" mu="0"/>
         </link>
 
-        <gazebo reference="${tf_prefix}_right_finger">
+        <gazebo reference="gripper_right_finger">
             <material>Gazebo/White</material>
             <turnGravityOff>false</turnGravityOff>
         </gazebo>
