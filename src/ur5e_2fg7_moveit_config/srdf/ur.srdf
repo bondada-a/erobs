@@ -9,7 +9,7 @@
     <!--JOINTS When a joint is specified, the child link of that joint (which will always exist) is automatically included-->
     <!--CHAINS When a chain is specified, all the links along the chain (including endpoints) are included in the group. Additionally, all the joints that are parents to included links are also included. This means that joints along the chain and the parent joint of the base link are included in the group-->
     <!--SUBGROUPS Groups can also be formed by referencing to already defined group names-->
-    <group name="arm">
+    <!-- <group name="arm">
         <joint name="base_joint"/>
         <joint name="base_link-base_fixed_joint"/>
         <joint name="base_link-base_link_inertia"/>
@@ -21,7 +21,11 @@
         <joint name="wrist_3_joint"/>
         <joint name="wrist_3-flange"/>
         <joint name="flange-tool0"/>
+    </group> -->
+    <group name="arm">
+        <chain base_link="base_link" tip_link="tool0"/>
     </group>
+
     <group name="gripper">
         <link name="gripper_base_link"/>
         <link name="gripper_left_finger"/>
@@ -49,7 +53,7 @@
     </group_state>
     <!--END EFFECTOR Purpose Represent information about an end effector.-->
     <end_effector name="gripper" parent_link="flange" group="gripper"/>
-    <!--VIRTUAL JOINT Purpose this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
+    <!--VIRTUAL JOINT    Purpose this element defines a virtual joint between a robot link and an external frame of reference (considered fixed with respect to the robot)-->
     <virtual_joint name="virtual_joint" type="fixed" parent_frame="map" child_link="base_link"/>
     <!--DISABLE COLLISIONS By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
     <disable_collisions link1="base_link_inertia" link2="shoulder_link" reason="Adjacent"/>
