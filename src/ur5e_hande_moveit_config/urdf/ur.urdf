@@ -684,20 +684,20 @@
     <parent link="robotiq_coupler"/>
     <child link="robotiq_hande_base_link"/>
   </joint>
-  <joint name="joint_finger" type="fixed">
+  <joint name="joint_finger" type="prismatic">
     <origin rpy="0 0 1.5707963267948966" xyz="0 0 0.05"/>
     <parent link="robotiq_hande_base_link"/>
     <child link="left_finger"/>
-    <axis xyz="-1 0 0"/>
-    <limit effort="130" lower="0" upper="0.025" velocity="0.15"/>
+    <axis xyz="-1 0 0"/> 
+    <limit effort="100" lower="0.0" upper="0.025" velocity="0.15"/>
   </joint>
-  <joint name="robotiq_hande_base_to_right_finger" type="fixed">
+  <joint name="robotiq_hande_base_to_right_finger" type="prismatic">
     <origin rpy="0 0 1.5707963267948966" xyz="0 0 0.05"/>
     <parent link="robotiq_hande_base_link"/>
     <child link="right_finger"/>
-    <axis xyz="1 0 0"/>
-    <limit effort="130" lower="0" upper="0.025" velocity="0.15"/>
-    <mimic joint="joint_finger" multiplier="1" offset="0"/>
+    <axis xyz="1 0 0"/> 
+    <limit effort="100" lower="0.0" upper="0.025" velocity="0.15"/>
+    <mimic joint="joint_finger" multiplier="1.0" offset="0.0"/>
   </joint>
   <joint name="grasping_point" type="fixed">
     <origin rpy="0 0 0" xyz="0.0 0.0 0.09"/>
