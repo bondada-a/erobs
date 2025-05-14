@@ -72,7 +72,8 @@ def main(args=None):
     for label, pose in poses.items():
         print(f"{label}: {pose}")
 
-    with open("waypoints.json", "w") as f:
+    filename = input("Enter filename to save waypoints (e.g., 'dock_gripper.json'): ")
+    with open(filename, "w") as f:
         json.dump(poses, f, indent=4)
     print("Waypoints saved to 'waypoints.json'.")
 
