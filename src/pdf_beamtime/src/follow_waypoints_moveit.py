@@ -59,13 +59,14 @@ class WaypointExecutor(Node):
             self.publisher.publish(traj_msg)
 
             self.wait_until_reached(waypoint_rad)
+            time.sleep(1)
 
             if idx == 1:  # After reaching the second waypoint
-                self.set_payload(1.160)
+                self.set_payload(1.80)
 
 
 
-    def wait_until_reached(self, target_positions, threshold=0.001, timeout=50.0):
+    def wait_until_reached(self, target_positions, threshold=0.001, timeout=30.0):
         """Waits until the robot's joint positions are within a threshold of the target."""
         from sensor_msgs.msg import JointState
 
