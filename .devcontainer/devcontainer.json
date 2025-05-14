@@ -4,7 +4,8 @@
 	"build": {
 		"args": {
 			"WORKSPACE": "${containerWorkspaceFolder}"
-		}
+		},
+		"platform": "linux/amd64"
 	},
 	"remoteUser": "ros",
 	"runArgs": [
@@ -16,8 +17,8 @@
 		"--security-opt=apparmor:unconfined",
 		"--volume=/tmp/.X11-unix:/tmp/.X11-unix",
 		// "--volume=/mnt/wslg:/mnt/wslg",
-		"--ipc=host",
-		"--pid=host"
+		"--ipc=host"
+		// "--pid=host"  // unsure why this was here, but breaks dev containers on mac silicon.
 	],
 	"containerEnv": {
 		"DISPLAY": "${localEnv:DISPLAY}", // Needed for GUI try ":0" for windows
@@ -38,17 +39,14 @@
 				"ms-vscode.cpptools",
 				"ms-vscode.cpptools-extension-pack",
 				"ms-iot.vscode-ros",
-				"ms-python.black-formatter",
-				"ms-python.flake8",
-				"ms-python.isort",
+				"charliermarsh.ruff",
 				"redhat.vscode-yaml",
 				"smilerobotics.urdf",
 				"streetsidesoftware.code-spell-checker",
 				"twxs.cmake",
 				"yzhang.markdown-all-in-one",
 				"zachflower.uncrustify",
-				"github.copilot",
-				"eamodio.gitlens"
+				"github.copilot"
 			]
 		}
 	}
