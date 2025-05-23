@@ -1,3 +1,5 @@
+# Extracted calibration information from the UR5e robot
+# for steps to extract the calibration information, see: https://docs.universal-robots.com/Universal_Robots_ROS2_Documentation/doc/ur_robot_driver/ur_robot_driver/doc/installation/robot_setup.html
 kinematics:
   shoulder:
     x: 0
