@@ -247,7 +247,44 @@ class PdfBeamtimeServer(Node):
             elif self.current_state == State.PICKUP_APPROACH:
                 if self.inner_sm.move_robot(goal.pickup):
                     self.set_current_state(State.PICKUP)
-            # ... continue all cases up to PLACE_RETREAT
+                if self.inner_sm.move_robot(goal.pickup):
+                    self.set_current_state(State.PICKUP)
+                    
+            elif self.current_state == State.PICKUP:
+                # close the gripper
+                if self.inner_sm.close_gripper():
+                    self.set_current_state(State.GRASP_SUCCESS)
+
+            elif self.current_state == State.GRASP_SUCCESS:
+                # retreat from pickup
+                if self.inner_sm.move_robot(goal.pickup_approach):
+                    self.set_current_state(State.PICKUP_RETREAT)
+
+            elif self.current_state == State.PICKUP_RETREAT:
+                # move into place approach
+                if self.inner_sm.move_robot(goal.place_approach):
+                    self.set_current_state(State.PLACE_APPROACH)
+
+            elif self.current_state == State.PLACE_APPROACH:
+                # actually place
+                if self.inner_sm.move_robot(goal.place):
+                    self.set_current_state(State.PLACE)
+
+            elif self.current_state == State.PLACE:
+                # open the gripper
+                if self.inner_sm.open_gripper():
+                    self.set_current_state(State.RELEASE_SUCCESS)
+
+            elif self.current_state == State.RELEASE_SUCCESS:
+                # back away from the place location
+                if self.inner_sm.move_robot(goal.place_approach):
+                    self.set_current_state(State.PLACE_RETREAT)
+
+            elif self.current_state == State.PLACE_RETREAT:
+                # done! go home
+                if self.inner_sm.move_robot(home):
+                    self.set_current_state(State.HOME)
+            
 
             feedback.status = (list(State).index(self.current_state) + 1) / total * 100.0
             goal_handle.publish_feedback(feedback)
