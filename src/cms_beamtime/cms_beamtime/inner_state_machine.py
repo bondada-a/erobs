@@ -1,5 +1,5 @@
 # inner_state_machine.py
-# Full Python port of inner_state_machine.hpp/cpp for ROS 2 Humble without moveit_py
+# Python port of inner_state_machine.hpp/cpp for ROS 2 Humble without moveit_py
 # Uses ROS 2 service & action clients to call underlying MoveIt2 C++ nodes
 
 from enum import Enum, auto
@@ -52,7 +52,7 @@ class InnerStateMachine:
         self.internal_state: InternalState = InternalState.RESTING
         self.joint_goal: List[float] = []
 
-                # Robot configuration (fixed for UR5e)
+        # Robot configuration (fixed for UR5e)
         self.planning_group = 'ur_arm'
         self.joint_names = [
             'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
@@ -60,18 +60,25 @@ class InnerStateMachine:
         ]
         self.world_frame = 'world'
 
-        # Clients & actions
+        # Gripper client
         self.gripper_client = gripper_node.create_client(
             GripperControlMsg, 'gripper_service')
+
+        # MoveIt clients
         self.plan_client = node.create_client(
             GetMotionPlan, '/plan_kinematic_path')
         self.cart_client = node.create_client(
             GetCartesianPath, '/compute_cartesian_path')
-        self.exec_client = ActionClient(
-            node, FollowJointTrajectory, '/execute_trajectory',
-            callback_group=ReentrantCallbackGroup())
 
-        # External workflow sequence
+        # Execution action client for trajectories
+        self._traj_client = ActionClient(
+            node,
+            FollowJointTrajectory,
+            '/scaled_joint_trajectory_controller/follow_joint_trajectory',
+            callback_group=ReentrantCallbackGroup()
+        )
+
+        # Internal workflow indices
         self.external_sequence: List[ExternalState] = list(ExternalState)
         self.external_index: int = 0
 
@@ -110,19 +117,29 @@ class InnerStateMachine:
             return False
 
         # Execute
-        goal_msg = FollowJointTrajectory.Goal()
-        robot_traj = resp.motion_plan_response.trajectory        # moveit_msgs/RobotTrajectory
-        joint_traj = robot_traj.joint_trajectory                # trajectory_msgs/JointTrajectory
-        goal_msg.trajectory = joint_traj                        
+        # Extract JointTrajectory from RobotTrajectory
+        robot_traj = resp.motion_plan_response.trajectory  # moveit_msgs/RobotTrajectory
+        joint_traj = robot_traj.joint_trajectory          # trajectory_msgs/JointTrajectory
 
-        send_goal = self.exec_client.send_goal_async(goal_msg)
+        from control_msgs.action import FollowJointTrajectory
+        goal_msg = FollowJointTrajectory.Goal()
+        goal_msg.trajectory = joint_traj
+
+        # Send goal
+        send_goal = self._traj_client.send_goal_async(goal_msg)
         rclpy.spin_until_future_complete(self.node, send_goal)
         goal_handle = send_goal.result()
-        result_future = goal_handle.get_result_async()
-        rclpy.spin_until_future_complete(self.node, result_future)
-        result = result_future.result().result
-        return result.error_code == result.SUCCESS
+        if not goal_handle.accepted:
+            self.node.get_logger().error('Trajectory goal rejected')
+            return False
 
+        # Wait for result
+        get_res = goal_handle.get_result_async()
+        rclpy.spin_until_future_complete(self.node, get_res)
+        result = get_res.result().result
+        return result.error_code == 0
+
+    
     def move_robot_cartesian(self, waypoints: List[Pose]) -> bool:
         """Plan & execute a Cartesian path via MoveIt2 Cartesian service."""
         if self.internal_state != InternalState.RESTING:
@@ -145,15 +162,23 @@ class InnerStateMachine:
         if resp.fraction < 0.99999:
             return False
 
+        from control_msgs.action import FollowJointTrajectory
         goal_msg = FollowJointTrajectory.Goal()
-        goal_msg.trajectory = resp.solution
-        send_goal = self.exec_client.send_goal_async(goal_msg)
+        # Extract JointTrajectory: resp.solution is RobotTrajectory
+        goal_msg.trajectory = resp.solution.joint_trajectory
+
+        send_goal = self._traj_client.send_goal_async(goal_msg)
         rclpy.spin_until_future_complete(self.node, send_goal)
         goal_handle = send_goal.result()
-        result_future = goal_handle.get_result_async()
-        rclpy.spin_until_future_complete(self.node, result_future)
-        result = result_future.result().result
-        return result.error_code == result.SUCCESS
+        if not goal_handle.accepted:
+            self.node.get_logger().error('Cartesian trajectory rejected')
+            return False
+
+        get_res = goal_handle.get_result_async()
+        rclpy.spin_until_future_complete(self.node, get_res)
+        result = get_res.result().result
+        return result.error_code == 0
+
 
     def open_gripper(self) -> bool:
         return self._call_gripper('OPEN')
@@ -179,17 +204,17 @@ class InnerStateMachine:
     def pause(self) -> None:
         """Cancel current trajectory and go to PAUSED state."""
         if self.internal_state in (InternalState.RESTING, InternalState.MOVING):
-            self.exec_client.cancel_all_goals_async()
+            self._traj_client.cancel_all_goals_async()
             self.internal_state = InternalState.PAUSED
 
     def abort(self) -> None:
         """Emergency stop: cancel all and go to ABORT state."""
-        self.exec_client.cancel_all_goals_async()
+        self._traj_client.cancel_all_goals_async()
         self.internal_state = InternalState.ABORT
 
     def halt(self) -> None:
         """Immediate halt and go to HALT state."""
-        self.exec_client.cancel_all_goals_async()
+        self._traj_client.cancel_all_goals_async()
         self.internal_state = InternalState.HALT
 
     def rewind(self) -> None:

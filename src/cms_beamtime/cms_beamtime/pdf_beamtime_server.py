@@ -74,14 +74,26 @@ class PdfBeamtimeServer(Node):
         safe_declare('joint_constraints.joint_name',     ParameterType.PARAMETER_STRING)
         safe_declare('joint_constraints.joint_position', ParameterType.PARAMETER_DOUBLE)
 
+        # TF utilities and FSM
         self.tf_utils = TFUtilities(self)
         self.inner_sm = InnerStateMachine(self, self)
+
         # MoveIt service clients
         self.plan_client = self.create_client(GetMotionPlan, '/plan_kinematic_path')
         self.cart_client = self.create_client(GetCartesianPath, '/compute_cartesian_path')
         self.ps_client = self.create_client(ApplyPlanningScene, '/apply_planning_scene')
 
-        # Build initial planning scene
+        # Execution action client
+        from control_msgs.action import FollowJointTrajectory
+        from rclpy.action import ActionClient
+        self._traj_client = ActionClient(
+            self,
+            FollowJointTrajectory,
+            '/scaled_joint_trajectory_controller/follow_joint_trajectory',
+            callback_group=ReentrantCallbackGroup()
+        )
+
+        # Build initial planning scenea
         self.apply_planning_scene(self.create_env())
 
         # Obstacle services
@@ -214,11 +226,12 @@ class PdfBeamtimeServer(Node):
 
         # Home position
         home = self.get_parameter('home_angles').value
-        code = self.inner_sm.move_robot(home)
-        if code != code.SUCCESS:
+        success = self.inner_sm.move_robot(home)
+        if not success:
             result.success = False
             goal_handle.abort()
             return result
+
         self.set_current_state(State.HOME)
 
         # FSM loop (mirrors C++ run_fsm)
@@ -229,19 +242,17 @@ class PdfBeamtimeServer(Node):
                 continue
 
             if self.current_state == State.HOME:
-                code = self.inner_sm.move_robot(goal.pickup_approach)
-                if code == code.SUCCESS:
+                if self.inner_sm.move_robot(goal.pickup_approach):
                     self.set_current_state(State.PICKUP_APPROACH)
             elif self.current_state == State.PICKUP_APPROACH:
-                code = self.inner_sm.move_robot(self, goal.pickup)
-                if code == code.SUCCESS:
+                if self.inner_sm.move_robot(goal.pickup):
                     self.set_current_state(State.PICKUP)
             # ... continue all cases up to PLACE_RETREAT
 
-            feedback.percent_complete = (list(State).index(self.current_state) + 1) / total * 100.0
+            feedback.status = (list(State).index(self.current_state) + 1) / total * 100.0
             goal_handle.publish_feedback(feedback)
 
-            if goal_handle.is_canceling():
+            if goal_handle.is_cancel_requested:
                 self.reset_fsm()
                 result.success = False
                 goal_handle.canceled()
