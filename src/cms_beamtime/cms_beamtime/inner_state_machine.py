@@ -15,7 +15,7 @@ from moveit_msgs.srv import GetMotionPlan, GetCartesianPath
 from control_msgs.action import FollowJointTrajectory
 from moveit_msgs.msg import Constraints, JointConstraint
 from geometry_msgs.msg import Pose
-from pdf_beamtime_interfaces.srv import GripperControlMsg
+from cms_beamtime_interfaces.srv import GripperControlMsg
 
 
 class ExternalState(Enum):

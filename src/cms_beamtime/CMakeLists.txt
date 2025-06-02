@@ -12,7 +12,7 @@ ament_python_install_package(${PROJECT_NAME})
 # If you prefer not to use setup.py, install your node scripts directly:
 # Place executable Python scripts (with shebang) in scripts/
 install(PROGRAMS
-  cms_beamtime/pdf_beamtime_server.py
+  cms_beamtime/cms_beamtime_server.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
