@@ -284,9 +284,9 @@ class PdfBeamtimeServer(Node):
                 # done! go home
                 if self.inner_sm.move_robot(home):
                     self.set_current_state(State.HOME)
-            
 
-            feedback.status = (list(State).index(self.current_state) + 1) / total * 100.0
+
+            feedback.status = (list(State).index(self.current_state) + 1) / total 
             goal_handle.publish_feedback(feedback)
 
             if goal_handle.is_cancel_requested:
@@ -295,11 +295,11 @@ class PdfBeamtimeServer(Node):
                 goal_handle.canceled()
                 return result
 
-        # complete
-        self.reset_fsm()
-        result.success = True
-        goal_handle.succeed()
-        return result
+            # complete
+            self.reset_fsm()
+            result.success = True
+            goal_handle.succeed()
+            return result
 
     def set_current_state(self, state: State):
         self.get_logger().info(f"[{self.current_state.name}] Current state changed to {state.name}.")
