@@ -58,7 +58,7 @@ class InnerStateMachine:
             'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
             'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
         ]
-        self.world_frame = 'world'
+        self.world_frame = 'map'
 
         # Gripper client
         self.gripper_client = gripper_node.create_client(
