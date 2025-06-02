@@ -30,7 +30,7 @@ class TFUtilities:
         self.pre_pickup_approach_point_frame_suffix = param.value
 
         # Fixed frame names
-        self.world_frame = 'world'
+        self.world_frame = 'map'
         self.grasping_point_on_gripper_frame = 'grasping_point_link'
         self.wrist_2_frame = 'wrist_2_link'
 
