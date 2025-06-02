@@ -244,6 +244,7 @@ class PdfBeamtimeServer(Node):
             if self.current_state == State.HOME:
                 if self.inner_sm.move_robot(goal.pickup_approach):
                     self.set_current_state(State.PICKUP_APPROACH)
+            
             elif self.current_state == State.PICKUP_APPROACH:
                 if self.inner_sm.move_robot(goal.pickup):
                     self.set_current_state(State.PICKUP)
@@ -284,6 +285,7 @@ class PdfBeamtimeServer(Node):
                 # done! go home
                 if self.inner_sm.move_robot(home):
                     self.set_current_state(State.HOME)
+                    break
 
 
             feedback.status = (list(State).index(self.current_state) + 1) / total 
@@ -295,11 +297,11 @@ class PdfBeamtimeServer(Node):
                 goal_handle.canceled()
                 return result
 
-            # complete
-            self.reset_fsm()
-            result.success = True
-            goal_handle.succeed()
-            return result
+        # complete
+        self.reset_fsm()
+        result.success = True
+        goal_handle.succeed()
+        return result
 
     def set_current_state(self, state: State):
         self.get_logger().info(f"[{self.current_state.name}] Current state changed to {state.name}.")
