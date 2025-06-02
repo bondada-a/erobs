@@ -92,7 +92,7 @@ class InnerStateMachine:
         req = GetMotionPlan.Request()
         mp_req = req.motion_plan_request
         mp_req.group_name = self.planning_group
-        mp_req.allowed_planning_time = 5.0
+        mp_req.allowed_planning_time = 10.0
         mp_req.max_velocity_scaling_factor     = 0.10
         mp_req.max_acceleration_scaling_factor = 0.10
         # Goal constraints
