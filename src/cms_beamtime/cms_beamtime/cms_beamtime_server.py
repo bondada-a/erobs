@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Python port of the pdf_beamtime_server C++ node.
+Python port of the cms_beamtime_server C++ node.
 Implements ROS2 action server, obstacle management services, and FSM-driven pick-and-place.
 """
 import threading
@@ -18,8 +18,8 @@ from moveit_msgs.msg import CollisionObject
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
 from rcl_interfaces.msg import ParameterValue, ParameterType
-from pdf_beamtime_interfaces.action import PickPlaceControlMsg
-from pdf_beamtime_interfaces.srv import (
+from cms_beamtime_interfaces.action import PickPlaceControlMsg
+from cms_beamtime_interfaces.srv import (
     BoxObstacleMsg,
     CylinderObstacleMsg,
     UpdateObstacleMsg,
@@ -56,10 +56,10 @@ class InternalState(Enum):
     CLEANUP = auto()
 
 
-class PdfBeamtimeServer(Node):
+class cmsBeamtimeServer(Node):
     def __init__(self):
         super().__init__(
-            'pdf_beamtime_server',
+            'cms_beamtime_server',
             allow_undeclared_parameters=True,
             automatically_declare_parameters_from_overrides=True
         )
@@ -97,10 +97,10 @@ class PdfBeamtimeServer(Node):
         self.apply_planning_scene(self.create_env())
 
         # Obstacle services
-        self.create_service(BoxObstacleMsg,      'pdf_new_box_obstacle',      self.new_obstacle_cb)
-        self.create_service(CylinderObstacleMsg, 'pdf_new_cylinder_obstacle', self.new_obstacle_cb)
-        self.create_service(UpdateObstacleMsg,   'pdf_update_obstacles',      self.update_obstacles_cb)
-        self.create_service(DeleteObstacleMsg,   'pdf_remove_obstacle',       self.remove_obstacle_cb)
+        self.create_service(BoxObstacleMsg,      'cms_new_box_obstacle',      self.new_obstacle_cb)
+        self.create_service(CylinderObstacleMsg, 'cms_new_cylinder_obstacle', self.new_obstacle_cb)
+        self.create_service(UpdateObstacleMsg,   'cms_update_obstacles',      self.update_obstacles_cb)
+        self.create_service(DeleteObstacleMsg,   'cms_remove_obstacle',       self.remove_obstacle_cb)
         
         # Bluesky interrupt
         self.create_service(BlueskyInterruptMsg, 'bluesky_interrupt',         self.bluesky_interrupt_cb)
@@ -109,7 +109,7 @@ class PdfBeamtimeServer(Node):
         self._action_server = ActionServer(
             self,
             PickPlaceControlMsg,
-            'pdf_beamtime_action_server',
+            'cms_beamtime_action_server',
             execute_callback=self.execute_cb,
             goal_callback=self.handle_goal,
             cancel_callback=self.handle_cancel,
@@ -123,7 +123,7 @@ class PdfBeamtimeServer(Node):
         self.joint_constraints = {'name': jc_name, 'position': jc_pos}
 
         self.current_state = State.HOME
-        self.get_logger().info('PDF Beamtime Server initialized.')
+        self.get_logger().info('cms Beamtime Server initialized.')
 
     # Environment builder (create_env)
     def create_env(self) -> List[CollisionObject]:
@@ -321,7 +321,7 @@ class PdfBeamtimeServer(Node):
 
 def main():
     rclpy.init()
-    server = PdfBeamtimeServer()
+    server = cmsBeamtimeServer()
     rclpy.spin(server)
     rclpy.shutdown()
 

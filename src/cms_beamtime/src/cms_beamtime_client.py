@@ -9,7 +9,7 @@ import rclpy
 from rclpy.action import ActionClient
 from rclpy.node import Node
 
-from pdf_beamtime_interfaces.action import PickPlaceControlMsg
+from cms_beamtime_interfaces.action import PickPlaceControlMsg
 
 
 class SimpleClient(Node):
@@ -17,8 +17,8 @@ class SimpleClient(Node):
 
     def __init__(self):
         """Python init."""
-        super().__init__("pdf_beamtime_client")
-        self._action_client = ActionClient(self, PickPlaceControlMsg, "pdf_beamtime_action_server")
+        super().__init__("cms_beamtime_client")
+        self._action_client = ActionClient(self, PickPlaceControlMsg, "cms_beamtime_action_server")
         self._goal_handle = None
 
         # Load positions from recorded_poses.json

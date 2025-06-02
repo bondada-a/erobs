@@ -5,7 +5,7 @@ import time
 import rclpy
 from rclpy.node import Node
 
-from pdf_beamtime_interfaces.srv import BlueskyInterruptMsg
+from cms_beamtime_interfaces.srv import BlueskyInterruptMsg
 
 
 class BlueskyInterrupt(Node):
