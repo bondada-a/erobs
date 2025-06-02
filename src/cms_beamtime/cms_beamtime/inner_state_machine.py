@@ -93,8 +93,8 @@ class InnerStateMachine:
         mp_req = req.motion_plan_request
         mp_req.group_name = self.planning_group
         mp_req.allowed_planning_time = 10.0
-        mp_req.max_velocity_scaling_factor     = 0.10
-        mp_req.max_acceleration_scaling_factor = 0.10
+        mp_req.max_velocity_scaling_factor     = 0.20
+        mp_req.max_acceleration_scaling_factor = 0.20
         # Goal constraints
         goal_cons = Constraints()
         for name, pos in zip(self.joint_names, joint_goal):
