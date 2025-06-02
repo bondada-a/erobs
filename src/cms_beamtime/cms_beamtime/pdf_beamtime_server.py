@@ -101,6 +101,7 @@ class PdfBeamtimeServer(Node):
         self.create_service(CylinderObstacleMsg, 'pdf_new_cylinder_obstacle', self.new_obstacle_cb)
         self.create_service(UpdateObstacleMsg,   'pdf_update_obstacles',      self.update_obstacles_cb)
         self.create_service(DeleteObstacleMsg,   'pdf_remove_obstacle',       self.remove_obstacle_cb)
+        
         # Bluesky interrupt
         self.create_service(BlueskyInterruptMsg, 'bluesky_interrupt',         self.bluesky_interrupt_cb)
 
@@ -145,14 +146,20 @@ class PdfBeamtimeServer(Node):
                 sp.type = SolidPrimitive.BOX
                 sp.dimensions = [
                     self.get_parameter(f'objects.{nm}.w').value,
-                    self.get_parameter(f'objects.{nm}.h').value,
-                    self.get_parameter(f'objects.{nm}.d').value
+                    self.get_parameter(f'objects.{nm}.d').value,
+                    self.get_parameter(f'objects.{nm}.h').value
                 ]
             obj.primitives = [sp]
             pose = Pose()
+             
             pose.position.x = self.get_parameter(f'objects.{nm}.x').value
             pose.position.y = self.get_parameter(f'objects.{nm}.y').value
             pose.position.z = self.get_parameter(f'objects.{nm}.z').value
+            pose.orientation.x= 0.0
+            pose.orientation.y = 0.0
+            pose.orientation.z = 0.0
+            pose.orientation.w = 1.0
+            
             obj.primitive_poses = [pose]
             obj.operation = CollisionObject.ADD
             objs.append(obj)
