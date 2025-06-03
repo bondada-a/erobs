@@ -36,13 +36,11 @@
   "sequence": [
     {
       "type": "move",
-      "pose_waypoints": ["pickup_approach", "pickup"],
-      "speed": 1.0
+      "pose_waypoints": ["pickup_approach", "pickup"]
     },
     {
       "type": "move",
-      "pose_waypoints": ["pickup", "pickup_approach", "place_approach", "place"],
-      "speed": 0.5
+      "pose_waypoints": ["pickup", "pickup_approach", "place_approach", "place"]
     },
     {
       "type": "end_effector",
@@ -57,8 +55,7 @@
     },
     {
       "type": "move",
-      "pose_waypoints": ["place", "place_approach", "pickup_approach"],
-      "speed": 0.5
+      "pose_waypoints": ["place", "place_approach", "pickup_approach"]
     }
   ]
 }

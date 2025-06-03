@@ -1,6 +1,3 @@
-# inner_state_machine.py
-# Python port of inner_state_machine.hpp/cpp for ROS 2 Humble
-
 from enum import Enum, auto
 from typing import List, Optional
 import time
@@ -17,20 +14,6 @@ from geometry_msgs.msg import Pose
 from cms_beamtime_interfaces.srv import GripperControlMsg
 
 
-class ExternalState(Enum):
-    HOME = auto()
-    PICKUP_APPROACH = auto()
-    PICKUP = auto()
-    GRASP_SUCCESS = auto()
-    GRASP_FAILURE = auto()
-    PICKUP_RETREAT = auto()
-    PLACE_APPROACH = auto()
-    PLACE = auto()
-    RELEASE_SUCCESS = auto()
-    RELEASE_FAILURE = auto()
-    PLACE_RETREAT = auto()
-
-
 class InternalState(Enum):
     RESTING = auto()
     MOVING = auto()
@@ -43,15 +26,12 @@ class InternalState(Enum):
 
 class InnerStateMachine:
     def __init__(self, node: Node, gripper_node: Node):
-        # ROS nodes
         self.node = node
         self.gripper_node = gripper_node
 
-        # FSM states
         self.internal_state: InternalState = InternalState.RESTING
         self.joint_goal: List[float] = []
 
-        # Robot configuration (fixed for UR5e)
         self.planning_group = 'ur_arm'
         self.joint_names = [
             'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
@@ -59,17 +39,14 @@ class InnerStateMachine:
         ]
         self.world_frame = 'map'
 
-        # Gripper client
         self.gripper_client = gripper_node.create_client(
             GripperControlMsg, 'gripper_service')
 
-        # MoveIt clients
         self.plan_client = node.create_client(
             GetMotionPlan, '/plan_kinematic_path')
         self.cart_client = node.create_client(
             GetCartesianPath, '/compute_cartesian_path')
 
-        # Execution action client for trajectories
         self._traj_client = ActionClient(
             node,
             FollowJointTrajectory,
@@ -77,14 +54,8 @@ class InnerStateMachine:
             callback_group=ReentrantCallbackGroup()
         )
 
-        # ================================
-        # CHANGED: keep track of the current in-flight GoalHandle
         self._current_goal_handle = None
-        # ================================
 
-        # Internal workflow indices (not used by JSON mode, but kept)
-        self.external_sequence: List[ExternalState] = list(ExternalState)
-        self.external_index: int = 0
 
     def move_robot(self, joint_goal: List[float]) -> bool:
         """Plan & execute a joint-space trajectory via MoveIt2 services/actions."""
@@ -92,7 +63,6 @@ class InnerStateMachine:
             return False
         self.joint_goal = joint_goal
 
-        # Build planning request
         req = GetMotionPlan.Request()
         mp_req = req.motion_plan_request
         mp_req.group_name = self.planning_group
@@ -111,7 +81,6 @@ class InnerStateMachine:
             goal_cons.joint_constraints.append(jc)
         mp_req.goal_constraints.append(goal_cons)
 
-        # Plan
         if not self.plan_client.wait_for_service(timeout_sec=5.0):
             self.node.get_logger().error('Planning service unavailable')
             return False
@@ -135,20 +104,13 @@ class InnerStateMachine:
             self.node.get_logger().error('Trajectory goal rejected')
             return False
 
-        # ================================
-        # CHANGED: store the returned GoalHandle so we can cancel it if needed
         self._current_goal_handle = goal_handle
-        # ================================
 
         get_res = goal_handle.get_result_async()
         rclpy.spin_until_future_complete(self.node, get_res)
         result = get_res.result().result
 
-        # ================================
-        # CHANGED: clear the stored handle once the motion is done
         self._current_goal_handle = None
-        # ================================
-
         return result.error_code == 0
 
     def move_robot_cartesian(self, waypoints: List[Pose]) -> bool:
@@ -183,20 +145,15 @@ class InnerStateMachine:
             self.node.get_logger().error('Cartesian trajectory rejected')
             return False
 
-        # ================================
-        # CHANGED: store the returned GoalHandle
+        
         self._current_goal_handle = goal_handle
-        # ================================
-
+        
         get_res = goal_handle.get_result_async()
         rclpy.spin_until_future_complete(self.node, get_res)
         result = get_res.result().result
 
-        # ================================
-        # CHANGED: clear the stored handle
         self._current_goal_handle = None
-        # ================================
-
+        
         return result.error_code == 0
 
     def open_gripper(self) -> bool:
@@ -221,35 +178,22 @@ class InnerStateMachine:
         return False
 
     def pause(self) -> None:
-        """Cancel current trajectory and go to PAUSED state."""
         if self.internal_state in (InternalState.RESTING, InternalState.MOVING):
-            # ================================
-            # CHANGED: cancel the stored goal handle
             if self._current_goal_handle is not None:
                 self._current_goal_handle.cancel_goal_async()
-            # ================================
             self.internal_state = InternalState.PAUSED
 
     def abort(self) -> None:
-        """Emergency stop: cancel current trajectory and go to ABORT state."""
-        # ================================
-        # CHANGED: cancel the stored goal handle
         if self._current_goal_handle is not None:
             self._current_goal_handle.cancel_goal_async()
-        # ================================
         self.internal_state = InternalState.ABORT
 
     def halt(self) -> None:
-        """Immediate halt and go to HALT state."""
-        # ================================
-        # CHANGED: cancel the stored goal handle
         if self._current_goal_handle is not None:
             self._current_goal_handle.cancel_goal_async()
-        # ================================
         self.internal_state = InternalState.HALT
 
     def rewind(self) -> None:
-        """From PAUSED, return to RESTING."""
         if self.internal_state == InternalState.PAUSED:
             self.internal_state = InternalState.RESTING
 
@@ -262,9 +206,3 @@ class InnerStateMachine:
     def get_internal_state(self) -> InternalState:
         return self.internal_state
 
-    def step_external(self) -> Optional[ExternalState]:
-        self.external_index = (self.external_index + 1) % len(self.external_sequence)
-        return self.external_sequence[self.external_index]
-
-    def current_external_state(self) -> ExternalState:
-        return self.external_sequence[self.external_index]
