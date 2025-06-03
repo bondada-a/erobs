@@ -91,6 +91,17 @@ class cmsBeamtimeServer(Node):
         jc_name = self.get_parameter('joint_constraints.joint_name').value
         jc_pos  = self.get_parameter('joint_constraints.joint_position').value
         self.joint_constraints = {'name': jc_name, 'position': jc_pos}
+        # Cleanup strategy: 'step' follows the path back, 'home' goes straight home
+        if not self.has_parameter('cleanup_mode'):
+            self.declare_parameter('cleanup_mode', 'step')
+        self.cleanup_mode = self.get_parameter('cleanup_mode').value
+
+        # Track the currently executing external state
+        self.current_state = None
+        # Record executed poses for cleanup
+        self.executed_moves: List[str] = []
+        # Track last gripper action ('open' or 'close')
+        self.last_gripper_action = 'open'
 
         self.get_logger().info('cms Beamtime Server initialized.')
 
@@ -206,6 +217,50 @@ class cmsBeamtimeServer(Node):
         self.get_logger().info('Cancel requested by client.')
         self.inner_sm.abort()
         return CancelResponse.ACCEPT
+   # ---------------------------------------------------
+    def execute_cleanup(self, mode: str | None = None):
+        """Attempt to return the robot to a safe configuration.
+
+        Parameters
+        ----------
+        mode : str, optional
+            Either ``"step"`` to unwind the executed poses back to ``home`` or
+            ``"home"`` to move directly to ``home``.  If ``None`` the value of
+            the ``cleanup_mode`` parameter is used.
+        """
+
+        if mode is None:
+            mode = self.cleanup_mode
+
+        pose_map = getattr(self, "pose_map", {})
+        home = self.get_parameter('home_angles').value
+        state_name = self.current_state.name if self.current_state else "UNKNOWN"
+        self.get_logger().info(
+            f"[Cleanup] Mode={mode} handling state {state_name}")
+
+        self.inner_sm.set_internal_state(InternalState.CLEANUP)
+
+        if mode == 'home':
+            self.inner_sm.move_robot(home)
+            if self.last_gripper_action == 'close':
+                self.inner_sm.open_gripper()
+                self.last_gripper_action = 'open'
+            self.inner_sm.set_internal_state(InternalState.RESTING)
+            self.executed_moves = []
+            return
+
+        executed = getattr(self, 'executed_moves', [])
+        for pname in reversed(executed):
+            if pname in pose_map:
+                self.inner_sm.move_robot(pose_map[pname])
+
+        if self.last_gripper_action == 'close':
+            self.inner_sm.open_gripper()
+            self.last_gripper_action = 'open'
+
+        self.inner_sm.move_robot(home)
+        self.inner_sm.set_internal_state(InternalState.RESTING)
+        self.executed_moves = []
 
     def execute_cb(self, goal_handle):
         goal = goal_handle.request
@@ -235,6 +290,11 @@ class cmsBeamtimeServer(Node):
             result.success = False
             goal_handle.abort()
             return result
+
+        self.pose_map = pose_map
+        ExternalState = Enum('ExternalState', {k.upper(): auto() for k in pose_map.keys()})
+        self.executed_moves = []
+        self.last_gripper_action = 'open'
 
         sequence_steps = []
         for step in raw_sequence:
@@ -270,6 +330,8 @@ class cmsBeamtimeServer(Node):
         self.get_logger().info(f"[Action Server]  moving to HOME = {home}")
         if not self.inner_sm.move_robot(home):
             self.get_logger().error("[Action Server]  failed to move HOME.")
+            self.execute_cleanup()
+
             result.success = False
             goal_handle.abort()
             return result
@@ -281,6 +343,7 @@ class cmsBeamtimeServer(Node):
             if goal_handle.is_cancel_requested:
                 self.get_logger().info("[Action Server]  goal canceled by client.")
                 self.inner_sm.abort()
+                self.execute_cleanup()
                 result.success = False
                 goal_handle.canceled()
                 return result
@@ -298,8 +361,13 @@ class cmsBeamtimeServer(Node):
                     self.get_logger().info(
                         f"[Action Server]  Step {idx+1}/{total} → move to '{pname}' = {joint_goal}"
                     )
+                    
+                    self.current_state = ExternalState[pname.upper()]
+
                     if not self.inner_sm.move_robot(joint_goal):
                         raise RuntimeError(f"move_robot failed for pose '{pname}'")
+                    self.executed_moves.append(pname)
+
 
                 elif stype == "end_effector":
                     device = step["device"].lower()
@@ -311,9 +379,15 @@ class cmsBeamtimeServer(Node):
                         if action == "open":
                             if not self.inner_sm.open_gripper():
                                 raise RuntimeError("gripper open failed")
+                            self.last_gripper_action = 'open'
+                            if hasattr(ExternalState, "PLACE_RETREAT"):
+                                self.current_state = ExternalState.PLACE_RETREAT
                         elif action == "close":
                             if not self.inner_sm.close_gripper():
                                 raise RuntimeError("gripper close failed")
+                            self.last_gripper_action = 'close'
+                            if hasattr(ExternalState, "GRASP_SUCCESS"):
+                                self.current_state = ExternalState.GRASP_SUCCESS
                         else:
                             raise KeyError(f"Unknown gripper action '{action}'")
                     else:
@@ -325,6 +399,8 @@ class cmsBeamtimeServer(Node):
             except Exception as e:
                 self.get_logger().error(f"[Action Server] error at step {idx}: {e}")
                 self.inner_sm.abort()
+                self.execute_cleanup()
+
                 result.success = False
                 goal_handle.abort()
                 return result
@@ -336,6 +412,8 @@ class cmsBeamtimeServer(Node):
         self.get_logger().info("[Action Server]  sequence completed successfully.")
         result.success = True
         self.inner_sm.set_internal_state(InternalState.RESTING)
+        self.executed_moves = []
+        self.last_gripper_action = 'open'
         goal_handle.succeed()
         return result
 
