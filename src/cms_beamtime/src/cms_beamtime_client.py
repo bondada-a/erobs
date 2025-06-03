@@ -1,34 +1,8 @@
 #!/usr/bin/env python3
-"""
-cms_beamtime_client.py
-
-Sends a JSON-driven sequence (with joint angles in degrees) to cms_beamtime_server,
-converting all "poses" values from degrees to radians before sending. Expects a file
-named recorded_poses.json in the current working directory with the following structure:
-
-{
-  "poses": {
-    "<pose_name>": [6-joint-array-in-degrees],
-    ...
-  },
-  "sequence": [
-    { "type":"move", "pose_waypoints":["A","B","C"], "speed":0.5 },
-    { "type":"end_effector", "device":"gripper", "action":"open" },
-    ...
-  ]
-}
-
-The client:
-1. Reads recorded_poses.json,
-2. Converts each pose array from degrees → radians,
-3. Re-serializes the modified dict to a JSON string,
-4. Sends that JSON string as goal.json_string to the action server.
-Feedback (0–100%) prints to the console. If the goal is accepted, it waits for completion or cancellation.
-"""
-
 import json
 import os
 import math
+import sys
 
 import rclpy
 from rclpy.node import Node
@@ -38,18 +12,13 @@ from cms_beamtime_interfaces.action import PickPlaceControlMsg
 
 
 class SimpleClient(Node):
-    """Client to send a JSON sequence (degrees → radians) to the cms_beamtime action server."""
-
     def __init__(self):
         super().__init__("cms_beamtime_client")
         self._action_client = ActionClient(self, PickPlaceControlMsg, "cms_beamtime_action_server")
         self._goal_handle = None
 
     def load_and_convert_json(self, filename: str) -> str:
-        """
-        Load JSON from filename, convert every joint angle in 'poses' from degrees to radians,
-        re-serialize, and return the resulting JSON string. If any error, returns an empty string.
-        """
+        
         if not os.path.isfile(filename):
             self.get_logger().error(f"File '{filename}' not found.")
             return ""
@@ -72,28 +41,26 @@ class SimpleClient(Node):
             self.get_logger().error(f"JSON missing 'sequence' list.")
             return ""
 
-        # Convert each pose's joint array from degrees to radians
         try:
             for pose_name, angles_deg in data["poses"].items():
                 if not isinstance(angles_deg, list) or len(angles_deg) != 6:
                     raise ValueError(f"Pose '{pose_name}' does not have a 6-element list.")
-                # Convert in-place
+                # Convert angles from degrees to radians
                 data["poses"][pose_name] = [math.radians(angle) for angle in angles_deg]
         except Exception as e:
             self.get_logger().error(f"Error converting poses to radians: {e}")
             return ""
-
-        # Re-serialize to JSON string
+        # Convert back to JSON string
         try:
             converted_raw = json.dumps(data)
-            self.get_logger().info(f"Loaded and converted JSON from {filename}")
+            self.get_logger().info(f"Loaded JSON from {filename}")
             return converted_raw
         except Exception as e:
-            self.get_logger().error(f"Error serializing converted JSON: {e}")
+            self.get_logger().error(f"Error converting JSON: {e}")
             return ""
 
     def send_json_sequence(self, json_filepath: str):
-        """Read a JSON file, convert poses from degrees to radians, and send its contents as goal.json_string."""
+        
         raw_converted_json = self.load_and_convert_json(json_filepath)
         if not raw_converted_json:
             return
@@ -112,13 +79,12 @@ class SimpleClient(Node):
         send_goal_future.add_done_callback(self.goal_response_callback)
 
     def feedback_callback(self, feedback_msg):
-        """Display feedback percentage."""
         feedback = feedback_msg.feedback
         pct = math.ceil(feedback.status * 100)
         self.get_logger().info(f"Completion percentage: {pct} %")
 
     def goal_response_callback(self, future):
-        """Called when the server accepts or rejects the goal."""
+        
         self._goal_handle = future.result()
         if not self._goal_handle.accepted:
             self.get_logger().error("Goal rejected by server.")
@@ -128,7 +94,6 @@ class SimpleClient(Node):
         get_result_future.add_done_callback(self.result_callback)
 
     def result_callback(self, future):
-        """Called when the action is complete (succeeded or aborted)."""
         result = future.result().result
         if result.success:
             self.get_logger().info("Sequence completed successfully!")
@@ -139,8 +104,19 @@ class SimpleClient(Node):
 def main(args=None):
     rclpy.init(args=args)
     client = SimpleClient()
-    # Send the JSON sequence using the same filename as before
-    client.send_json_sequence("recorded_poses.json")
+
+    if len(sys.argv) < 2:
+        print(
+            "Error: You must supply a JSON file path.\n"
+            "Usage: ros2 run <your_package> cms_beamtime_client <path_to_json_file>"
+        )
+        sys.exit(1)
+
+    json_file = sys.argv[1]
+
+    client.send_json_sequence(json_file)
+
+
     rclpy.spin(client)
     client.destroy_node()
     rclpy.shutdown()
@@ -148,3 +124,5 @@ def main(args=None):
 
 if __name__ == "__main__":
     main()
+
+
