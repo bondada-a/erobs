@@ -37,7 +37,7 @@
     {
       "type": "move",
       "pose_waypoints": ["pickup_approach", "pickup"],
-      "speed": 0.5
+      "speed": 1.0
     },
     {
       "type": "move",

@@ -13,6 +13,7 @@ ament_python_install_package(${PROJECT_NAME})
 # Place executable Python scripts (with shebang) in scripts/
 install(PROGRAMS
   cms_beamtime/cms_beamtime_server.py
+  src/cms_beamtime_client.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
