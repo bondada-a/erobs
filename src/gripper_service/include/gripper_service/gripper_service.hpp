@@ -10,7 +10,7 @@ BSD 3 Clause License. See LICENSE.txt for details.*/
 
 #include <rclcpp/rclcpp.hpp>
 
-#include "pdf_beamtime_interfaces/srv/gripper_control_msg.hpp"
+#include "cms_beamtime_interfaces/srv/gripper_control_msg.hpp"
 
 #include <robotiq_driver/robotiq_gripper_interface.hpp>
 
@@ -21,7 +21,7 @@ private:
   const char * kComPort = "/tmp/ttyUR";
   const int kSlaveID = 0x09;
 
-  rclcpp::Service<pdf_beamtime_interfaces::srv::GripperControlMsg>::SharedPtr service;
+  rclcpp::Service<cms_beamtime_interfaces::srv::GripperControlMsg>::SharedPtr service;
   // rclcpp::Node::SharedPtr node_;
   RobotiqGripperInterface gripper_;
 
@@ -38,8 +38,8 @@ private:
 
   /// @brief callback function for the gripper service
   void gripper_controller(
-    const std::shared_ptr<pdf_beamtime_interfaces::srv::GripperControlMsg::Request> request,
-    std::shared_ptr<pdf_beamtime_interfaces::srv::GripperControlMsg::Response> response);
+    const std::shared_ptr<cms_beamtime_interfaces::srv::GripperControlMsg::Request> request,
+    std::shared_ptr<cms_beamtime_interfaces::srv::GripperControlMsg::Response> response);
 
 public:
   GripperService();
