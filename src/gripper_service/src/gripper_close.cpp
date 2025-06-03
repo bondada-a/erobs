@@ -5,7 +5,7 @@ BSD 3 Clause License. See LICENSE.txt for details.*/
 #include <memory>
 
 #include "rclcpp/rclcpp.hpp"
-#include "pdf_beamtime_interfaces/srv/gripper_control_msg.hpp"
+#include "cms_beamtime_interfaces/srv/gripper_control_msg.hpp"
 
 using namespace std::chrono_literals;
 
@@ -15,10 +15,10 @@ int main(int argc, char ** argv)
 
 
   std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("gripper_close");
-  rclcpp::Client<pdf_beamtime_interfaces::srv::GripperControlMsg>::SharedPtr client =
-    node->create_client<pdf_beamtime_interfaces::srv::GripperControlMsg>("gripper_service");
+  rclcpp::Client<cms_beamtime_interfaces::srv::GripperControlMsg>::SharedPtr client =
+    node->create_client<cms_beamtime_interfaces::srv::GripperControlMsg>("gripper_service");
 
-  auto request = std::make_shared<pdf_beamtime_interfaces::srv::GripperControlMsg::Request>();
+  auto request = std::make_shared<cms_beamtime_interfaces::srv::GripperControlMsg::Request>();
   request->command = "CLOSE";
   request->grip = 50;
 

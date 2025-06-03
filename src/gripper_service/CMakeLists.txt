@@ -9,7 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
-find_package(pdf_beamtime_interfaces REQUIRED)
+find_package(cms_beamtime_interfaces REQUIRED)
 find_package(robotiq_driver REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
@@ -18,7 +18,7 @@ find_package(robotiq_driver REQUIRED)
 set(dependencies
   rclcpp
   rclcpp_components
-  pdf_beamtime_interfaces
+  cms_beamtime_interfaces
   robotiq_driver
 )
 

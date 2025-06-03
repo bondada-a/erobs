@@ -19,7 +19,7 @@ GripperService::GripperService()
   RCLCPP_INFO(this->get_logger(), "Activation is successful");
 
   service =
-    this->create_service<pdf_beamtime_interfaces::srv::GripperControlMsg>(
+    this->create_service<cms_beamtime_interfaces::srv::GripperControlMsg>(
     "gripper_service",
     std::bind(
       &GripperService::gripper_controller, this, _1, _2));
@@ -35,8 +35,8 @@ GripperService::GripperService()
 }
 
 void GripperService::gripper_controller(
-  const std::shared_ptr<pdf_beamtime_interfaces::srv::GripperControlMsg::Request> request,
-  std::shared_ptr<pdf_beamtime_interfaces::srv::GripperControlMsg::Response> response)
+  const std::shared_ptr<cms_beamtime_interfaces::srv::GripperControlMsg::Request> request,
+  std::shared_ptr<cms_beamtime_interfaces::srv::GripperControlMsg::Response> response)
 {
   int status = 0;
   try {
