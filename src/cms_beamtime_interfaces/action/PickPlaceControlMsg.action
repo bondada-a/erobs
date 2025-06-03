@@ -1,8 +1,5 @@
-float64[] pickup_approach
-float64[] pickup
-float64[] place_approach
-float64[] place
+string json_string
 ---
 bool success
 ---
-float64 status
+float32 status  # or whatever feedback fields you prefer
