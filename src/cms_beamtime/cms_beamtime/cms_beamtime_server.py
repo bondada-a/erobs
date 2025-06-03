@@ -92,6 +92,9 @@ class cmsBeamtimeServer(Node):
         jc_pos  = self.get_parameter('joint_constraints.joint_position').value
         self.joint_constraints = {'name': jc_name, 'position': jc_pos}
 
+        # Track the currently executing external state
+        self.current_state = None
+
         self.get_logger().info('cms Beamtime Server initialized.')
 
     # ---------------------------------------------------
@@ -207,6 +210,38 @@ class cmsBeamtimeServer(Node):
         self.inner_sm.abort()
         return CancelResponse.ACCEPT
 
+    # ---------------------------------------------------
+    def execute_cleanup(self):
+        """Attempt to return the robot to a safe configuration based on
+        the last known state."""
+
+        pose_map = getattr(self, "pose_map", {})
+        home = self.get_parameter('home_angles').value
+        state_name = self.current_state.name if self.current_state else "UNKNOWN"
+        self.get_logger().info(f"[Cleanup] Handling state {state_name}")
+
+        if self.current_state is None:
+            self.inner_sm.move_robot(home)
+            self.inner_sm.open_gripper()
+            return
+
+        if state_name == 'GRASP_SUCCESS':
+            if 'pickup' in pose_map:
+                self.inner_sm.move_robot(pose_map['pickup'])
+            self.inner_sm.open_gripper()
+            if 'pickup_approach' in pose_map:
+                self.inner_sm.move_robot(pose_map['pickup_approach'])
+        elif state_name in ('PICKUP_APPROACH', 'PICKUP'):
+            if 'pickup_approach' in pose_map:
+                self.inner_sm.move_robot(pose_map['pickup_approach'])
+        elif state_name in ('RELEASE_SUCCESS', 'RELEASE_FAILURE', 'PLACE_APPROACH', 'PLACE'):
+            if 'place_approach' in pose_map:
+                self.inner_sm.move_robot(pose_map['place_approach'])
+
+        self.inner_sm.move_robot(home)
+        self.inner_sm.open_gripper()
+        self.inner_sm.set_internal_state(InternalState.RESTING)
+
     def execute_cb(self, goal_handle):
         goal = goal_handle.request
         feedback = PickPlaceControlMsg.Feedback()
@@ -235,6 +270,10 @@ class cmsBeamtimeServer(Node):
             result.success = False
             goal_handle.abort()
             return result
+
+        # Store poses for potential cleanup and build ExternalState enum
+        self.pose_map = pose_map
+        ExternalState = Enum('ExternalState', {k.upper(): auto() for k in pose_map.keys()})
 
         sequence_steps = []
         for step in raw_sequence:
@@ -270,6 +309,7 @@ class cmsBeamtimeServer(Node):
         self.get_logger().info(f"[Action Server]  moving to HOME = {home}")
         if not self.inner_sm.move_robot(home):
             self.get_logger().error("[Action Server]  failed to move HOME.")
+            self.execute_cleanup()
             result.success = False
             goal_handle.abort()
             return result
@@ -281,6 +321,7 @@ class cmsBeamtimeServer(Node):
             if goal_handle.is_cancel_requested:
                 self.get_logger().info("[Action Server]  goal canceled by client.")
                 self.inner_sm.abort()
+                self.execute_cleanup()
                 result.success = False
                 goal_handle.canceled()
                 return result
@@ -291,13 +332,14 @@ class cmsBeamtimeServer(Node):
             try:
                 if stype == "move_single":
                     pname = step["pose_name"]
-                    
+
                     if pname not in pose_map:
                         raise KeyError(f"Pose '{pname}' not found in JSON 'poses'")
                     joint_goal = pose_map[pname]
                     self.get_logger().info(
                         f"[Action Server]  Step {idx+1}/{total} → move to '{pname}' = {joint_goal}"
                     )
+                    self.current_state = ExternalState[pname.upper()]
                     if not self.inner_sm.move_robot(joint_goal):
                         raise RuntimeError(f"move_robot failed for pose '{pname}'")
 
@@ -311,9 +353,13 @@ class cmsBeamtimeServer(Node):
                         if action == "open":
                             if not self.inner_sm.open_gripper():
                                 raise RuntimeError("gripper open failed")
+                            if hasattr(ExternalState, "PLACE_RETREAT"):
+                                self.current_state = ExternalState.PLACE_RETREAT
                         elif action == "close":
                             if not self.inner_sm.close_gripper():
                                 raise RuntimeError("gripper close failed")
+                            if hasattr(ExternalState, "GRASP_SUCCESS"):
+                                self.current_state = ExternalState.GRASP_SUCCESS
                         else:
                             raise KeyError(f"Unknown gripper action '{action}'")
                     else:
@@ -325,6 +371,7 @@ class cmsBeamtimeServer(Node):
             except Exception as e:
                 self.get_logger().error(f"[Action Server] error at step {idx}: {e}")
                 self.inner_sm.abort()
+                self.execute_cleanup()
                 result.success = False
                 goal_handle.abort()
                 return result
