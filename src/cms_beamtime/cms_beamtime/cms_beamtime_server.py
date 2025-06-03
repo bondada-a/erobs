@@ -56,7 +56,6 @@ class cmsBeamtimeServer(Node):
 
         safe_declare('home_angles',            ParameterType.PARAMETER_DOUBLE_ARRAY)
         safe_declare('object_names',           ParameterType.PARAMETER_STRING_ARRAY)
-        safe_declare('gripper_present',        ParameterType.PARAMETER_BOOL)
         safe_declare('joint_constraints.joint_name',     ParameterType.PARAMETER_STRING)
         safe_declare('joint_constraints.joint_position', ParameterType.PARAMETER_DOUBLE)
 
@@ -88,8 +87,7 @@ class cmsBeamtimeServer(Node):
             cancel_callback=self.handle_cancel,
             callback_group=ReentrantCallbackGroup()
         )
-
-        self.gripper_present = self.get_parameter('gripper_present').value
+        ## Joint constraints for wrist mov
         jc_name = self.get_parameter('joint_constraints.joint_name').value
         jc_pos  = self.get_parameter('joint_constraints.joint_position').value
         self.joint_constraints = {'name': jc_name, 'position': jc_pos}
