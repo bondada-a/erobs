@@ -10,7 +10,7 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from rcl_interfaces.msg import ParameterValue, ParameterType
 
 from moveit_msgs.srv import GetMotionPlan, GetCartesianPath, ApplyPlanningScene
-from moveit_msgs.msg import CollisionObject
+from moveit_msgs.msg import CollisionObject, Constraints, JointConstraint
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import Pose
 
@@ -58,9 +58,19 @@ class cmsBeamtimeServer(Node):
         safe_declare('object_names',           ParameterType.PARAMETER_STRING_ARRAY)
         safe_declare('joint_constraints.joint_name',     ParameterType.PARAMETER_STRING)
         safe_declare('joint_constraints.joint_position', ParameterType.PARAMETER_DOUBLE)
+        safe_declare('joint_constraints.upper_limit',    ParameterType.PARAMETER_DOUBLE)
+        safe_declare('joint_constraints.lower_limit',    ParameterType.PARAMETER_DOUBLE)
 
         self.tf_utils = TFUtilities(self)
         self.inner_sm = InnerStateMachine(self, self)
+
+        # MoveGroupInterface for path constraints
+        try:
+            from moveit_py.move_group_interface import MoveGroupInterface
+        except ImportError:
+            from moveit2 import MoveGroupInterface  # type: ignore
+
+        self.move_group_interface = MoveGroupInterface(self, 'ur_arm')
 
         self.plan_client = self.create_client(GetMotionPlan,    '/plan_kinematic_path')
         self.cart_client = self.create_client(GetCartesianPath, '/compute_cartesian_path')
@@ -90,7 +100,20 @@ class cmsBeamtimeServer(Node):
         ## Joint constraints for wrist mov
         jc_name = self.get_parameter('joint_constraints.joint_name').value
         jc_pos  = self.get_parameter('joint_constraints.joint_position').value
-        self.joint_constraints = {'name': jc_name, 'position': jc_pos}
+        jc_upper = self.get_parameter('joint_constraints.upper_limit').value
+        jc_lower = self.get_parameter('joint_constraints.lower_limit').value
+
+        jc = JointConstraint()
+        jc.joint_name = jc_name
+        jc.position = jc_pos
+        jc.tolerance_above = jc_upper - jc.position
+        jc.tolerance_below = jc.position - jc_lower
+        jc.weight = 1.0
+
+        constraints = Constraints()
+        constraints.joint_constraints = [jc]
+
+        self.joint_constraints = constraints
         # Cleanup strategy: 'step' follows the path back, 'home' goes straight home
         if not self.has_parameter('cleanup_mode'):
             self.declare_parameter('cleanup_mode', 'step')
@@ -241,7 +264,9 @@ class cmsBeamtimeServer(Node):
         self.inner_sm.set_internal_state(InternalState.CLEANUP)
 
         if mode == 'home':
+            self.move_group_interface.set_path_constraints(self.joint_constraints)
             self.inner_sm.move_robot(home)
+            self.move_group_interface.clear_path_constraints()
             if self.last_gripper_action == 'close':
                 self.inner_sm.open_gripper()
                 self.last_gripper_action = 'open'
@@ -252,13 +277,17 @@ class cmsBeamtimeServer(Node):
         executed = getattr(self, 'executed_moves', [])
         for pname in reversed(executed):
             if pname in pose_map:
+                self.move_group_interface.set_path_constraints(self.joint_constraints)
                 self.inner_sm.move_robot(pose_map[pname])
+                self.move_group_interface.clear_path_constraints()
 
         if self.last_gripper_action == 'close':
             self.inner_sm.open_gripper()
             self.last_gripper_action = 'open'
 
+        self.move_group_interface.set_path_constraints(self.joint_constraints)
         self.inner_sm.move_robot(home)
+        self.move_group_interface.clear_path_constraints()
         self.inner_sm.set_internal_state(InternalState.RESTING)
         self.executed_moves = []
 
@@ -328,7 +357,10 @@ class cmsBeamtimeServer(Node):
         # Move to HOME first
         home = self.get_parameter('home_angles').value
         self.get_logger().info(f"[Action Server]  moving to HOME = {home}")
-        if not self.inner_sm.move_robot(home):
+        self.move_group_interface.set_path_constraints(self.joint_constraints)
+        success = self.inner_sm.move_robot(home)
+        self.move_group_interface.clear_path_constraints()
+        if not success:
             self.get_logger().error("[Action Server]  failed to move HOME.")
             self.execute_cleanup()
 
@@ -364,7 +396,10 @@ class cmsBeamtimeServer(Node):
                     
                     self.current_state = ExternalState[pname.upper()]
 
-                    if not self.inner_sm.move_robot(joint_goal):
+                    self.move_group_interface.set_path_constraints(self.joint_constraints)
+                    move_success = self.inner_sm.move_robot(joint_goal)
+                    self.move_group_interface.clear_path_constraints()
+                    if not move_success:
                         raise RuntimeError(f"move_robot failed for pose '{pname}'")
                     self.executed_moves.append(pname)
 
