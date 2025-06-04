@@ -105,7 +105,6 @@ class cmsBeamtimeServer(Node):
         constraints = Constraints()
         constraints.joint_constraints = [jc]
 
-        # Store Constraints message for path planning
         self.path_constraints = constraints
         # Cleanup strategy: 'step' follows the path back, 'home' goes straight home
         if not self.has_parameter("cleanup_mode"):
@@ -271,7 +270,6 @@ class cmsBeamtimeServer(Node):
         if self.last_gripper_action == "close":
             self.inner_sm.open_gripper()
             self.last_gripper_action = "open"
-
         self.inner_sm.move_robot(home, self.path_constraints)
         self.inner_sm.set_internal_state(InternalState.RESTING)
         self.executed_moves = []
@@ -376,7 +374,6 @@ class cmsBeamtimeServer(Node):
                     self.get_logger().info(f"[Action Server]  Step {idx+1}/{total} → move to '{pname}' = {joint_goal}")
 
                     self.current_state = ExternalState[pname.upper()]
-
                     move_success = self.inner_sm.move_robot(joint_goal, self.path_constraints)
                     if not move_success:
                         raise RuntimeError(f"move_robot failed for pose '{pname}'")
