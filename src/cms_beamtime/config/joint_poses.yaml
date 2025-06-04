@@ -1,6 +1,7 @@
 cms_beamtime_server:
   ros__parameters:
     home_angles: [0.0, -1.5708, 0.00, -1.5708, 0.0, 3.14159] # Home angles for the robot
+    use_joint_constraints: true
     joint_constraints:
       joint_name: 'wrist_3_joint'
       joint_position: 3.14159
