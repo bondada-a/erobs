@@ -69,3 +69,18 @@ pdf_beamtime is a work-in-progress package aiming to deploy the UR3e robot arm +
 This package depends on pdf_beamtime_interfaces. Follow the link below for information on the package and for the commands to call the servers implemented in the package.
 
 [Link to pdf_beamtime README](./src/pdf_beamtime/README.md)
+
+## Running tests
+
+This repository uses `colcon` for building and running tests. Install the common
+extensions package:
+
+```bash
+sudo apt install python3-colcon-common-extensions
+```
+
+Then execute the test script:
+
+```bash
+bash test.sh
+```
