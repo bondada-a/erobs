@@ -60,6 +60,8 @@ class cmsBeamtimeServer(Node):
         safe_declare("joint_constraints.joint_position", ParameterType.PARAMETER_DOUBLE)
         safe_declare("joint_constraints.upper_limit", ParameterType.PARAMETER_DOUBLE)
         safe_declare("joint_constraints.lower_limit", ParameterType.PARAMETER_DOUBLE)
+        if not self.has_parameter("use_joint_constraints"):
+            self.declare_parameter("use_joint_constraints", True)
 
         self.tf_utils = TFUtilities(self)
         self.inner_sm = InnerStateMachine(self, self)
@@ -89,23 +91,26 @@ class cmsBeamtimeServer(Node):
             cancel_callback=self.handle_cancel,
             callback_group=ReentrantCallbackGroup(),
         )
-        ## Joint constraints for wrist mov
-        jc_name = self.get_parameter("joint_constraints.joint_name").value
-        jc_pos = self.get_parameter("joint_constraints.joint_position").value
-        jc_upper = self.get_parameter("joint_constraints.upper_limit").value
-        jc_lower = self.get_parameter("joint_constraints.lower_limit").value
+        ## Joint constraints for wrist mov (optional)
+        use_constraints = self.get_parameter("use_joint_constraints").value
+        if use_constraints:
+            jc_name = self.get_parameter("joint_constraints.joint_name").value
+            jc_pos = self.get_parameter("joint_constraints.joint_position").value
+            jc_upper = self.get_parameter("joint_constraints.upper_limit").value
+            jc_lower = self.get_parameter("joint_constraints.lower_limit").value
 
-        jc = JointConstraint()
-        jc.joint_name = jc_name
-        jc.position = jc_pos
-        jc.tolerance_above = jc_upper - jc.position
-        jc.tolerance_below = jc.position - jc_lower
-        jc.weight = 1.0
+            jc = JointConstraint()
+            jc.joint_name = jc_name
+            jc.position = jc_pos
+            jc.tolerance_above = jc_upper - jc.position
+            jc.tolerance_below = jc.position - jc_lower
+            jc.weight = 1.0
 
-        constraints = Constraints()
-        constraints.joint_constraints = [jc]
-
-        self.path_constraints = constraints
+            constraints = Constraints()
+            constraints.joint_constraints = [jc]
+            self.path_constraints = constraints
+        else:
+            self.path_constraints = None
         # Cleanup strategy: 'step' follows the path back, 'home' goes straight home
         if not self.has_parameter("cleanup_mode"):
             self.declare_parameter("cleanup_mode", "step")

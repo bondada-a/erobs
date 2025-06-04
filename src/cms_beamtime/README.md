@@ -3,7 +3,13 @@
 Node pdf_beamtime_server is implemented in pdf_beamtime_server.cpp. This nodes,
  - Performs motion planning for the robot through a Finite State Machine (FSM)
  - Reads the parameter server and creates the obstacles,
- - Implements servers for creating new obstacles, deleting and updating existing ones. 
+ - Implements servers for creating new obstacles, deleting and updating existing ones.
+
+### Parameters
+
+`use_joint_constraints` *(bool)* – when set to `true` (default), the server applies
+a joint constraint to the wrist during motion planning. Set this parameter to
+`false` to disable the constraint entirely.
 
 Services can be called by following the examples below:
 
