@@ -22,7 +22,7 @@
         wrist_3_joint: {trajectory: 0.1, goal: 0.1}
 
     gripper_controller:
-      type: joint_trajectory_controller/JointTrajectoryController
+      type: gripper_service_trajectory_controller/GripperServiceTrajectoryController
       joints:
         - joint_finger
       state_publish_rate: 50
