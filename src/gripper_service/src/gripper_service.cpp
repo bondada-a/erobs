@@ -18,6 +18,9 @@ GripperService::GripperService()
 
   RCLCPP_INFO(this->get_logger(), "Activation is successful");
 
+  joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
+    "/joint_states", 10);
+
   service =
     this->create_service<cms_beamtime_interfaces::srv::GripperControlMsg>(
     "gripper_service",
@@ -50,12 +53,28 @@ void GripperService::gripper_controller(
         gripper_.activateGripper();
         RCLCPP_INFO(this->get_logger(), "Activation is successful");
 
+        {
+          sensor_msgs::msg::JointState js;
+          js.header.stamp = this->now();
+          js.name = {"joint_finger"};
+          js.position = {0.0};
+          joint_state_pub_->publish(js);
+        }
+
         break;
 
       case Gripper_Command::DEACTIVE:
         // Deactivate the gripper
         gripper_.deactivateGripper();
         RCLCPP_INFO(this->get_logger(), "Gripper is Deactivated");
+
+        {
+          sensor_msgs::msg::JointState js;
+          js.header.stamp = this->now();
+          js.name = {"joint_finger"};
+          js.position = {0.0};
+          joint_state_pub_->publish(js);
+        }
 
         break;
 
@@ -65,6 +84,13 @@ void GripperService::gripper_controller(
           uint8_t val = request->grip * 2.55;  // convert the scales from 01-100 to 0-255
           gripper_.setGripperPosition(val);
           RCLCPP_INFO(this->get_logger(), "Gripper is Open");
+
+          double pos = static_cast<double>(val) / 255.0 * 0.025;
+          sensor_msgs::msg::JointState js;
+          js.header.stamp = this->now();
+          js.name = {"joint_finger"};
+          js.position = {pos};
+          joint_state_pub_->publish(js);
         }
         break;
 
@@ -72,12 +98,28 @@ void GripperService::gripper_controller(
         //  Open the gripper fully
         gripper_.setGripperPosition(0x00);
         RCLCPP_INFO(this->get_logger(), "Gripper is Open");
+
+        {
+          sensor_msgs::msg::JointState js;
+          js.header.stamp = this->now();
+          js.name = {"joint_finger"};
+          js.position = {0.0};
+          joint_state_pub_->publish(js);
+        }
         break;
 
       case Gripper_Command::CLOSE:
         //  Close the gripper fully
         gripper_.setGripperPosition(0xFF);
         RCLCPP_INFO(this->get_logger(), "Gripper is Close");
+
+        {
+          sensor_msgs::msg::JointState js;
+          js.header.stamp = this->now();
+          js.name = {"joint_finger"};
+          js.position = {0.025};
+          joint_state_pub_->publish(js);
+        }
         break;
 
       default:

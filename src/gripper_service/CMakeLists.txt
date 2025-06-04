@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(cms_beamtime_interfaces REQUIRED)
 find_package(robotiq_driver REQUIRED)
+find_package(sensor_msgs REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -20,6 +21,7 @@ set(dependencies
   rclcpp_components
   cms_beamtime_interfaces
   robotiq_driver
+  sensor_msgs
 )
 
 include_directories(include)  # This makes sure the libraries are visible
