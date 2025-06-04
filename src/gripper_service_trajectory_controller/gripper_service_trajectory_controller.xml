@@ -1,0 +1,5 @@
+<library path="gripper_service_trajectory_controller">
+  <class name="gripper_service_trajectory_controller/GripperServiceTrajectoryController" type="gripper_service_trajectory_controller::GripperServiceTrajectoryController" base_class_type="controller_interface::ControllerInterface">
+    <description>Translate joint trajectories into gripper service calls.</description>
+  </class>
+</library>
