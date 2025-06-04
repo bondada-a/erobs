@@ -13,6 +13,7 @@ BSD 3 Clause License. See LICENSE.txt for details.*/
 #include "cms_beamtime_interfaces/srv/gripper_control_msg.hpp"
 
 #include <robotiq_driver/robotiq_gripper_interface.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 
 class GripperService : public rclcpp::Node
 {
@@ -24,6 +25,7 @@ private:
   rclcpp::Service<cms_beamtime_interfaces::srv::GripperControlMsg>::SharedPtr service;
   // rclcpp::Node::SharedPtr node_;
   RobotiqGripperInterface gripper_;
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr joint_state_pub_;
 
 /// @brief Gripper commands as enums for ease of use
   enum class Gripper_Command {OPEN, CLOSE, PARTIAL, ACTIVE, DEACTIVE};
