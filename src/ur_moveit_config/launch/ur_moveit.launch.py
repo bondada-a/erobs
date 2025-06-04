@@ -290,14 +290,7 @@ def launch_setup(context, *args, **kwargs):
         output="screen",
     )
 
-    gripper_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["gripper_controller"],
-        output="screen",
-    )
-
-    nodes_to_start = [move_group_node, rviz_node, servo_node, gripper_spawner]
+    nodes_to_start = [move_group_node, rviz_node, servo_node]
 
     return nodes_to_start
 
