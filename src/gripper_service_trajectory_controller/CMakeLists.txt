@@ -15,6 +15,7 @@ find_package(pluginlib REQUIRED)
 find_package(trajectory_msgs REQUIRED)
 find_package(cms_beamtime_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(realtime_tools REQUIRED)
 
 include_directories(include)
 
@@ -24,6 +25,7 @@ add_library(${PROJECT_NAME} SHARED
 
 ament_target_dependencies(${PROJECT_NAME}
   rclcpp
+  realtime_tools
   rclcpp_action
   rclcpp_components
   controller_interface
