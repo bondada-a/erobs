@@ -18,8 +18,20 @@ GripperService::GripperService()
 
   RCLCPP_INFO(this->get_logger(), "Activation is successful");
 
+  rclcpp::QoS qos(rclcpp::KeepLast(1));
+  qos.transient_local();
   joint_state_pub_ = this->create_publisher<sensor_msgs::msg::JointState>(
-    "/joint_states", 10);
+    "/joint_states", qos);
+
+  // Publish an initial joint state so that other nodes know the
+  // gripper joint exists before any commands are sent.
+  {
+    sensor_msgs::msg::JointState js;
+    js.header.stamp = this->now();
+    js.name = {"joint_finger"};
+    js.position = {0.0};
+    joint_state_pub_->publish(js);
+  }
 
   // Publish an initial joint state so that other nodes know the
   // gripper joint exists before any commands are sent.
