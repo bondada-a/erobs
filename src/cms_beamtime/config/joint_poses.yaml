@@ -4,5 +4,5 @@ cms_beamtime_server:
     joint_constraints:
       joint_name: 'wrist_3_joint'
       joint_position: 3.14159
-      upper_limit: 0.78539
-      lower_limit: 0.78539
+      upper_limit: 3.3161
+      lower_limit: 2.9671
