@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import List, Optional
+from typing import List
 import time
 
 import rclpy
@@ -32,33 +32,33 @@ class InnerStateMachine:
         self.internal_state: InternalState = InternalState.RESTING
         self.joint_goal: List[float] = []
 
-        self.planning_group = 'ur_arm'
+        self.planning_group = "ur_arm"
         self.joint_names = [
-            'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
-            'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
+            "shoulder_pan_joint",
+            "shoulder_lift_joint",
+            "elbow_joint",
+            "wrist_1_joint",
+            "wrist_2_joint",
+            "wrist_3_joint",
         ]
-        self.world_frame = 'map'
+        self.world_frame = "map"
 
-        self.gripper_client = gripper_node.create_client(
-            GripperControlMsg, 'gripper_service')
+        self.gripper_client = gripper_node.create_client(GripperControlMsg, "gripper_service")
 
-        self.plan_client = node.create_client(
-            GetMotionPlan, '/plan_kinematic_path')
-        self.cart_client = node.create_client(
-            GetCartesianPath, '/compute_cartesian_path')
+        self.plan_client = node.create_client(GetMotionPlan, "/plan_kinematic_path")
+        self.cart_client = node.create_client(GetCartesianPath, "/compute_cartesian_path")
 
         self._traj_client = ActionClient(
             node,
             FollowJointTrajectory,
-            '/scaled_joint_trajectory_controller/follow_joint_trajectory',
-            callback_group=ReentrantCallbackGroup()
+            "/scaled_joint_trajectory_controller/follow_joint_trajectory",
+            callback_group=ReentrantCallbackGroup(),
         )
 
         self._current_goal_handle = None
 
-
-    def move_robot(self, joint_goal: List[float]) -> bool:
-        """Plan & execute a joint-space trajectory via MoveIt2 services/actions."""
+    def move_robot(self, joint_goal: List[float], path_constraints: Constraints | None = None) -> bool:
+        """Plan & execute a joint-space trajectory via MoveIt services/actions."""
         if self.internal_state != InternalState.RESTING:
             return False
         self.joint_goal = joint_goal
@@ -67,8 +67,10 @@ class InnerStateMachine:
         mp_req = req.motion_plan_request
         mp_req.group_name = self.planning_group
         mp_req.allowed_planning_time = 10.0
-        mp_req.max_velocity_scaling_factor     = 0.20
+        mp_req.max_velocity_scaling_factor = 0.20
         mp_req.max_acceleration_scaling_factor = 0.20
+        if path_constraints is not None:
+            mp_req.path_constraints = path_constraints
 
         goal_cons = Constraints()
         for name, pos in zip(self.joint_names, joint_goal):
@@ -82,7 +84,7 @@ class InnerStateMachine:
         mp_req.goal_constraints.append(goal_cons)
 
         if not self.plan_client.wait_for_service(timeout_sec=5.0):
-            self.node.get_logger().error('Planning service unavailable')
+            self.node.get_logger().error("Planning service unavailable")
             return False
         future = self.plan_client.call_async(req)
         rclpy.spin_until_future_complete(self.node, future)
@@ -92,7 +94,7 @@ class InnerStateMachine:
 
         # Execute
         robot_traj = resp.motion_plan_response.trajectory  # moveit_msgs/RobotTrajectory
-        joint_traj = robot_traj.joint_trajectory          # trajectory_msgs/JointTrajectory
+        joint_traj = robot_traj.joint_trajectory  # trajectory_msgs/JointTrajectory
 
         goal_msg = FollowJointTrajectory.Goal()
         goal_msg.trajectory = joint_traj
@@ -101,7 +103,7 @@ class InnerStateMachine:
         rclpy.spin_until_future_complete(self.node, send_goal)
         goal_handle = send_goal.result()
         if not goal_handle.accepted:
-            self.node.get_logger().error('Trajectory goal rejected')
+            self.node.get_logger().error("Trajectory goal rejected")
             return False
 
         self._current_goal_handle = goal_handle
@@ -127,7 +129,7 @@ class InnerStateMachine:
         req.reuse_last_path = False
 
         if not self.cart_client.wait_for_service(timeout_sec=5.0):
-            self.node.get_logger().error('Cartesian path service unavailable')
+            self.node.get_logger().error("Cartesian path service unavailable")
             return False
         future = self.cart_client.call_async(req)
         rclpy.spin_until_future_complete(self.node, future)
@@ -142,25 +144,24 @@ class InnerStateMachine:
         rclpy.spin_until_future_complete(self.node, send_goal)
         goal_handle = send_goal.result()
         if not goal_handle.accepted:
-            self.node.get_logger().error('Cartesian trajectory rejected')
+            self.node.get_logger().error("Cartesian trajectory rejected")
             return False
 
-        
         self._current_goal_handle = goal_handle
-        
+
         get_res = goal_handle.get_result_async()
         rclpy.spin_until_future_complete(self.node, get_res)
         result = get_res.result().result
 
         self._current_goal_handle = None
-        
+
         return result.error_code == 0
 
     def open_gripper(self) -> bool:
-        return self._call_gripper('OPEN')
+        return self._call_gripper("OPEN")
 
     def close_gripper(self) -> bool:
-        return self._call_gripper('CLOSE')
+        return self._call_gripper("CLOSE")
 
     def _call_gripper(self, command: str) -> bool:
         if self.internal_state != InternalState.RESTING:
@@ -198,11 +199,8 @@ class InnerStateMachine:
             self.internal_state = InternalState.RESTING
 
     def set_internal_state(self, new_state: InternalState) -> None:
-        self.node.get_logger().info(
-            f'Internal state changed from {self.internal_state.name} to {new_state.name}'
-        )
+        self.node.get_logger().info(f"Internal state changed from {self.internal_state.name} to {new_state.name}")
         self.internal_state = new_state
 
     def get_internal_state(self) -> InternalState:
         return self.internal_state
-
