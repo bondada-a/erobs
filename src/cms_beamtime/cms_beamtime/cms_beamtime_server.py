@@ -88,7 +88,7 @@ class cmsBeamtimeServer(Node):
             "cms_beamtime_action_server",
             execute_callback=self.execute_cb,
             goal_callback=self.handle_goal,
-            cancel_callback=self.handle_cancel,
+            cancel_callback=self.cancel_callback,
             callback_group=ReentrantCallbackGroup(),
         )
         ## Joint constraints for wrist mov (optional)
@@ -111,6 +111,7 @@ class cmsBeamtimeServer(Node):
             self.path_constraints = constraints
         else:
             self.path_constraints = None
+        
         # Cleanup strategy: 'step' follows the path back, 'home' goes straight home
         if not self.has_parameter("cleanup_mode"):
             self.declare_parameter("cleanup_mode", "step")
@@ -231,7 +232,7 @@ class cmsBeamtimeServer(Node):
     def handle_goal(self, goal_request) -> GoalResponse:
         return GoalResponse.ACCEPT
 
-    def handle_cancel(self, goal_handle) -> CancelResponse:
+    def cancel_callback(self, goal_handle) -> CancelResponse:
         self.get_logger().info("Cancel requested by client.")
         self.inner_sm.abort()
         return CancelResponse.ACCEPT
