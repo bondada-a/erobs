@@ -46,6 +46,14 @@ install(TARGETS
 
 install(DIRECTORY DESTINATION share/${PROJECT_NAME})
 
+
+
+install (PROGRAMS
+src/gripper_joint_bridge.py
+DESTINATION lib/${PROJECT_NAME}
+)
+
+
 install(
   DIRECTORY include/
   DESTINATION include

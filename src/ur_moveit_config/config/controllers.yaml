@@ -16,7 +16,6 @@ scaled_joint_trajectory_controller:
     - wrist_2_joint
     - wrist_3_joint
 
-
 joint_trajectory_controller:
   action_ns: follow_joint_trajectory
   type: FollowJointTrajectory

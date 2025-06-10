@@ -82,7 +82,7 @@ class SimpleClient(Node):
         feedback = feedback_msg.feedback
         pct = math.ceil(feedback.status * 100)
         self.get_logger().info(f"Completion percentage: {pct} %")
-
+        
     def goal_response_callback(self, future):
         
         self._goal_handle = future.result()
