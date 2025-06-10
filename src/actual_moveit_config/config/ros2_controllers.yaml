@@ -1,0 +1,74 @@
+# This config file is used by ros2_control
+controller_manager:
+  ros__parameters:
+    update_rate: 100  # Hz
+
+    ur_arm_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
+    hande_controller:
+      type: joint_trajectory_controller/JointTrajectoryController
+
+
+    joint_state_broadcaster:
+      type: joint_state_broadcaster/JointStateBroadcaster
+
+ur_arm_controller:
+  ros__parameters:
+    joints:
+      - shoulder_pan_joint
+      - shoulder_lift_joint
+      - elbow_joint
+      - wrist_1_joint
+      - wrist_2_joint
+      - wrist_3_joint
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+hande_controller:
+  ros__parameters:
+    joints:
+      - joint_finger
+    command_interfaces:
+      - position
+    state_interfaces:
+      - position
+      - velocity
+
+## old ros2_controllers.yaml
+# /controller_manager:
+#   ros__parameters:
+#     scaled_joint_trajectory_controller:
+#       type: joint_trajectory_controller/JointTrajectoryController
+#       joints:
+#         - shoulder_pan_joint
+#         - shoulder_lift_joint
+#         - elbow_joint
+#         - wrist_1_joint
+#         - wrist_2_joint
+#         - wrist_3_joint
+#       state_publish_rate: 50
+#       action_monitor_rate: 20
+#       constraints:
+#         goal_time: 0.5
+#         stopped_velocity_tolerance: 0.01
+#         shoulder_pan_joint: {trajectory: 0.1, goal: 0.1}
+#         shoulder_lift_joint: {trajectory: 0.1, goal: 0.1}
+#         elbow_joint: {trajectory: 0.1, goal: 0.1}
+#         wrist_1_joint: {trajectory: 0.1, goal: 0.1}
+#         wrist_2_joint: {trajectory: 0.1, goal: 0.1}
+#         wrist_3_joint: {trajectory: 0.1, goal: 0.1}
+
+#     gripper_controller:
+#       type: gripper_service_trajectory_controller/GripperServiceTrajectoryController
+#       joints:
+#         - joint_finger
+#       state_publish_rate: 50
+#       action_monitor_rate: 20
+#       constraints:
+#         goal_time: 0.5
+#         stopped_velocity_tolerance: 0.01
+#         joint_finger: {trajectory: 0.01, goal: 0.01}
