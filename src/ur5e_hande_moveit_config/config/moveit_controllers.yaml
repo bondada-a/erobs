@@ -19,28 +19,8 @@ moveit_simple_controller_manager:
     action_ns: follow_joint_trajectory
     default: true
   hande_controller:
-    type: FollowJointTrajectory
+    type: GripperCommand
     joints:
       - joint_finger
-    action_ns: follow_joint_trajectory
+    action_ns: gripper_cmd
     default: true
-
-# ## old moveit_controllers.yaml
-# controller_names:
-#   - scaled_joint_trajectory_controller
-#   - gripper_controller
-
-# scaled_joint_trajectory_controller:
-#   type: FollowJointTrajectory
-#   joints:
-#     - shoulder_pan_joint
-#     - shoulder_lift_joint
-#     - elbow_joint
-#     - wrist_1_joint
-#     - wrist_2_joint
-#     - wrist_3_joint
-
-# gripper_controller:
-#   type: FollowJointTrajectory
-#   joints:
-#     - joint_finger
