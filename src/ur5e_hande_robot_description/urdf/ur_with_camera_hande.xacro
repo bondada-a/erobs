@@ -60,6 +60,8 @@
    <!-- create link fixed to the "map" -->
    <link name="map" />
 
+   <!-- mock_hardware for gripper  -->
+   <xacro:arg name="mock_hardware" default="false" />
    <!-- arm -->
    <xacro:ur_robot
      name="$(arg name)"
@@ -101,11 +103,7 @@
      <origin xyz="0 0 0" rpy="0 0 0" />          <!-- position robot in the map -->
    </xacro:ur_robot>
 
-    <!-- Call the robot gripper -->
-    <xacro:robotiq_hande 
-     tf_prefix="$(arg tf_prefix)"
-     parent="map"
-   />
+
 
     <xacro:camera_mount
     />
@@ -117,12 +115,8 @@
       <origin xyz="0 0 -0.001" rpy="${pi} 0 -${pi/2}" />
     </joint>
     
-    <!-- attach the gripper to the arm -->
-    <joint name="$(arg tf_prefix)hande_to_wrist_flange" type="fixed">
-      <parent link="mount" />
-      <child link="$(arg tf_prefix)robotiq_coupler" />
-      <origin xyz="0 -0.013 0" rpy="-${pi/2.0} -${pi} 0" />
-    </joint>
+    <!-- Call the robot gripper -->
+    <xacro:hande parent="mount" tf_prefix="$(arg tf_prefix)" mock_hardware="$(arg mock_hardware)"/>
 
 
 </robot>
