@@ -3,11 +3,11 @@ moveit_setup_assistant_config:
     package: ur5e_hande_moveit_config
     relative_path: urdf/ur.urdf
   srdf:
-    relative_path: config/ur.srdf
+    relative_path: srdf/ur.srdf
   package_settings:
     author_name: Aditya
     author_email: abondada@bnl.gov
-    generated_timestamp: 1749577522
+    generated_timestamp: 1749583484
   control_xacro:
     command:
       - position
