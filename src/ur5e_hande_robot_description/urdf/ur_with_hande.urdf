@@ -597,7 +597,15 @@
   </joint>
   <ros2_control name="robotiq_hande_gripper" type="system">
     <hardware>
-      <plugin>mock_components/GenericSystem</plugin>
+      <plugin>robotiq_hande_driver/RobotiqHandeHardwareInterface</plugin>
+      <param name="grip_pos_min">0</param>
+      <param name="grip_pos_max">0.025</param>
+      <param name="tty">/tmp/ttyUR</param>
+      <param name="baudrate">115200</param>
+      <param name="parity">N</param>
+      <param name="data_bits">8</param>
+      <param name="stop_bit">1</param>
+      <param name="slave_id">9</param>
     </hardware>
     <!-- The right finger joint uses the mimic feature -->
     <joint name="robotiq_hande_left_finger_joint">
@@ -625,7 +633,7 @@
   <link name="robotiq_hande_coupler">
     <visual>
       <geometry>
-        <mesh filename="package://ur5e_hande_robot_description/meshes/hande/visual/io_coupler.dae"/>
+        <mesh filename="package://robotiq_hande_description/meshes/io_coupler.dae"/>
       </geometry>
     </visual>
     <collision>
@@ -649,7 +657,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur5e_hande_robot_description/meshes/hande/visual/hande.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://robotiq_hande_description/meshes/hande.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </visual>
     <collision>
@@ -675,13 +683,13 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur5e_hande_robot_description/meshes/hande/visual/finger.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://robotiq_hande_description/meshes/finger.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur5e_hande_robot_description/meshes/hande/visual/finger_collision.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://robotiq_hande_description/meshes/finger_collision.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
     <inertial>
@@ -702,13 +710,13 @@
     <visual>
       <origin rpy="0 0 3.141592653589793" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur5e_hande_robot_description/meshes/hande/visual/finger.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://robotiq_hande_description/meshes/finger.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </visual>
     <collision>
       <origin rpy="0 0 3.141592653589793" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur5e_hande_robot_description/meshes/hande/visual/finger_collision.dae" scale="1.0 1.0 1.0"/>
+        <mesh filename="package://robotiq_hande_description/meshes/finger_collision.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
     <inertial>
