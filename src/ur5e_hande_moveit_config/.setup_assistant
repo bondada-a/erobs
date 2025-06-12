@@ -1,7 +1,7 @@
 moveit_setup_assistant_config:
   urdf:
     package: ur5e_hande_robot_description
-    relative_path: srdf/ur_with_hande.urdf
+    relative_path: urdf/ur_with_hande.urdf
   srdf:
     relative_path: config/ur.srdf
   package_settings:

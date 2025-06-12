@@ -4,10 +4,10 @@ moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControll
 
 moveit_simple_controller_manager:
   controller_names:
-    - ur_arm_controller
+    - scaled_joint_trajectory_controller
     - gripper_action_controller
 
-  ur_arm_controller:
+  scaled_joint_trajectory_controller:
     type: FollowJointTrajectory
     joints:
       - shoulder_pan_joint
