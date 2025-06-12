@@ -100,14 +100,14 @@
      <origin xyz="0 0 0" rpy="0 0 0" />          <!-- position robot in the map -->
    </xacro:ur_robot>
 
-    <xacro:arg name="mock_hardware" default="false" />
+    <xacro:arg name="mock_hardware" default="true" />
 
 
     <!-- Call the robot gripper -->
     <xacro:hande
      parent="$(arg tf_prefix)flange" 
-     tf_prefix="$(arg tf_prefix)"
-     mock_hardware="$(arg mock_hardware)">
+     prefix="$(arg tf_prefix)"
+     mock_hardware="$(arg use_fake_hardware)">
     </xacro:hande>
 
 

@@ -10,13 +10,13 @@
   <xacro:arg name="slave_id" default="9"/>
   <xacro:arg name="tf_prefix" default="" />
 
-  <xacro:include filename="$(find ur5e_hande_robot_description)/urdf/robotiq_hande_gripper.xacro"/>
+  <xacro:include filename="$(find robotiq_hande_description)/urdf/robotiq_hande_gripper.xacro"/>
 
   <!-- TODO(issue#34): pass initial position from the YAML file analogous to the ur_definition -->
-  <xacro:macro name="hande" params="parent tf_prefix mock_hardware">
+  <xacro:macro name="hande" params="parent prefix mock_hardware">
     <xacro:robotiq_hande_gripper
       name="robotiq_hande_gripper"
-      tf_prefix="$(arg tf_prefix)"
+      prefix="${prefix}"
       parent="${parent}"
       grip_pos_min="$(arg grip_pos_min)"
       grip_pos_max="$(arg grip_pos_max)"
