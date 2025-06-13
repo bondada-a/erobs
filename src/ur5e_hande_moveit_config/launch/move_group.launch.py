@@ -21,9 +21,9 @@ def generate_launch_description():
     description_package = DeclareLaunchArgument('description_package', default_value='ur5e_hande_robot_description')
     description_file = DeclareLaunchArgument('description_file', default_value='ur_with_hande.xacro')
     controllers_file = DeclareLaunchArgument('controllers_file', default_value=os.path.join(get_package_share_directory("ur5e_hande_moveit_config"), "config", "ur_hande_controllers.yaml"))
-    mock_hardware_arg = DeclareLaunchArgument('mock_hardware',default="false")
+    mock_hardware_arg = DeclareLaunchArgument('mock_hardware',default_value="false")
 
-    xacro_args = {"name": "ur", "ur_type": LaunchConfiguration("ur_type"), "tf_prefix": "", "mock_hardware": LaunchConfiguration("mock_hardware_arg")}
+    xacro_args = {"name": "ur", "ur_type": LaunchConfiguration("ur_type"), "tf_prefix": "", "mock_hardware": LaunchConfiguration("mock_hardware")}
 
     ## ur_driver 
     ur_control_launch = IncludeLaunchDescription(
@@ -38,7 +38,7 @@ def generate_launch_description():
             "description_file": LaunchConfiguration("description_file"),
             "controllers_file": LaunchConfiguration("controllers_file"),
             "tool_voltage": "24",
-            "mock_hardware": LaunchConfiguration("mock_hardware_arg"),
+            "mock_hardware": LaunchConfiguration("mock_hardware"),
         }.items()
     )
 
