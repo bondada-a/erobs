@@ -1,5 +1,5 @@
 from moveit_configs_utils import MoveItConfigsBuilder
-from launch.substitutions import PathJoinSubstitution, LaunchConfiguration, Command
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument
@@ -12,7 +12,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 
 
 def generate_launch_description():
-    ## Arguments
+    ## Arguments  
+    ## mock_hardware is for gripper sim , currently can only be setup through the xacro file, launch file arg doesn't work
 
     ur_type = DeclareLaunchArgument('ur_type', default_value='ur5e')
     robot_ip = DeclareLaunchArgument('robot_ip', default_value='192.168.56.101')
@@ -20,25 +21,11 @@ def generate_launch_description():
     description_package = DeclareLaunchArgument('description_package', default_value='ur5e_hande_robot_description')
     description_file = DeclareLaunchArgument('description_file', default_value='ur_with_hande.xacro')
     controllers_file = DeclareLaunchArgument('controllers_file', default_value=os.path.join(get_package_share_directory("ur5e_hande_moveit_config"), "config", "ur_hande_controllers.yaml"))
-    mock_hardware_arg = DeclareLaunchArgument('mock_hardware',default_value="false")
+    mock_hardware_arg = DeclareLaunchArgument('mock_hardware',default="false")
 
-    xacro_args = {"name": "ur", "ur_type": LaunchConfiguration("ur_type"), "tf_prefix": "", "mock_hardware": LaunchConfiguration("mock_hardware")}
+    xacro_args = {"name": "ur", "ur_type": LaunchConfiguration("ur_type"), "tf_prefix": "", "mock_hardware": LaunchConfiguration("mock_hardware_arg")}
 
-    # Prepare robot description from xacro with runtime parameters
-    xacro_file = PathJoinSubstitution([
-        FindPackageShare("ur5e_hande_robot_description"), "urdf", "ur_with_hande.xacro"
-    ])
-    robot_description_content = Command(
-        [
-            "xacro",
-            xacro_file,
-            "name:=ur",
-            "ur_type:=", LaunchConfiguration("ur_type"),
-            "tf_prefix:=",
-            "mock_hardware:=", LaunchConfiguration("mock_hardware"),
-        ]
-    )
-
+    ## ur_driver 
     ur_control_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([FindPackageShare("ur_robot_driver"), "launch", "ur_control.launch.py"])
@@ -51,19 +38,15 @@ def generate_launch_description():
             "description_file": LaunchConfiguration("description_file"),
             "controllers_file": LaunchConfiguration("controllers_file"),
             "tool_voltage": "24",
-            "mock_hardware": LaunchConfiguration("mock_hardware"),
+            "mock_hardware": LaunchConfiguration("mock_hardware_arg"),
         }.items()
     )
 
 
     # Load MoveIt! configuration
     moveit_config = (
-        MoveItConfigsBuilder("ur_moveit", package_name="ur5e_hande_moveit_config")
-        .robot_description(file_path=os.path.join(
-            get_package_share_directory("ur5e_hande_robot_description"),
-            "urdf",
-            "ur_with_hande.xacro",
-        ), mappings=xacro_args)
+        MoveItConfigsBuilder("ur_moveit",package_name="ur5e_hande_moveit_config")
+        .robot_description(file_path=os.path.join(get_package_share_directory("ur5e_hande_robot_description"), "urdf", "ur_with_hande.xacro"),mappings=xacro_args)
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .planning_scene_monitor(
             publish_robot_description=True, publish_robot_description_semantic=True
@@ -71,9 +54,6 @@ def generate_launch_description():
         .planning_pipelines(pipelines=["ompl", "pilz_industrial_motion_planner"])
         .to_moveit_configs()
     )
-
-    # Override robot description to ensure launch arguments are expanded at runtime
-    moveit_config.robot_description = {"robot_description": robot_description_content}
 
     run_move_group_node = Node(
         package="moveit_ros_move_group",
