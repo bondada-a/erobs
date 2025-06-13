@@ -1,5 +1,5 @@
 from moveit_configs_utils import MoveItConfigsBuilder
-from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration, Command
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
 from launch.actions import DeclareLaunchArgument
@@ -24,6 +24,21 @@ def generate_launch_description():
 
     xacro_args = {"name": "ur", "ur_type": LaunchConfiguration("ur_type"), "tf_prefix": "", "mock_hardware": LaunchConfiguration("mock_hardware")}
 
+    # Prepare robot description from xacro with runtime parameters
+    xacro_file = PathJoinSubstitution([
+        FindPackageShare("ur5e_hande_robot_description"), "urdf", "ur_with_hande.xacro"
+    ])
+    robot_description_content = Command(
+        [
+            "xacro",
+            xacro_file,
+            "name:=ur",
+            "ur_type:=", LaunchConfiguration("ur_type"),
+            "tf_prefix:=",
+            "mock_hardware:=", LaunchConfiguration("mock_hardware"),
+        ]
+    )
+
     ur_control_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([FindPackageShare("ur_robot_driver"), "launch", "ur_control.launch.py"])
@@ -43,8 +58,12 @@ def generate_launch_description():
 
     # Load MoveIt! configuration
     moveit_config = (
-        MoveItConfigsBuilder("ur_moveit",package_name="ur5e_hande_moveit_config")
-        .robot_description(file_path=os.path.join(get_package_share_directory("ur5e_hande_robot_description"), "urdf", "ur_with_hande.xacro"),mappings=xacro_args)
+        MoveItConfigsBuilder("ur_moveit", package_name="ur5e_hande_moveit_config")
+        .robot_description(file_path=os.path.join(
+            get_package_share_directory("ur5e_hande_robot_description"),
+            "urdf",
+            "ur_with_hande.xacro",
+        ), mappings=xacro_args)
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .planning_scene_monitor(
             publish_robot_description=True, publish_robot_description_semantic=True
@@ -52,6 +71,9 @@ def generate_launch_description():
         .planning_pipelines(pipelines=["ompl", "pilz_industrial_motion_planner"])
         .to_moveit_configs()
     )
+
+    # Override robot description to ensure launch arguments are expanded at runtime
+    moveit_config.robot_description = {"robot_description": robot_description_content}
 
     run_move_group_node = Node(
         package="moveit_ros_move_group",
