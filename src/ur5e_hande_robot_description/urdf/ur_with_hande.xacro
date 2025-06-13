@@ -50,6 +50,8 @@
    <xacro:arg name="sim_ignition" default="false" />
    <xacro:arg name="simulation_controllers" default="" />
 
+   <xacro:arg name="mock_hardware" default="true" />
+
    <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
    <xacro:arg name="initial_positions_file" default="$(find ur_description)/config/initial_positions.yaml"/>
 
@@ -100,15 +102,14 @@
      <origin xyz="0 0 0" rpy="0 0 0" />          <!-- position robot in the map -->
    </xacro:ur_robot>
 
-    <xacro:arg name="mock_hardware" default="true" />
-
-
     <!-- Call the robot gripper -->
     <xacro:hande
      parent="$(arg tf_prefix)flange" 
      prefix="$(arg tf_prefix)"
-     mock_hardware="$(arg use_fake_hardware)">
+     mock_hardware="$(arg mock_hardware)">
     </xacro:hande>
+    <xacro:property name="print_mock_hardware" value="${xacro:log('mock_hardware: ' + str(mock_hardware))}"/>
+
 
 
 </robot>
