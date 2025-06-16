@@ -15,6 +15,7 @@ find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(yaml-cpp REQUIRED)
 find_package(geometry_msgs)
+find_package(control_msgs REQUIRED)
 
 
 # Install the Python package directory
@@ -28,6 +29,7 @@ set(dependencies
   rclcpp_components
   yaml-cpp
   geometry_msgs
+  control_msgs
 )
 
 include_directories(include)  # This makes sure the libraries are visible

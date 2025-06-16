@@ -10,10 +10,15 @@ InnerStateMachine::InnerStateMachine(
 {
   internal_state_enum_ = Internal_State::RESTING;
 
-  // Create gripper client
-  gripper_client_ =
-    gripper_node_->create_client<cms_beamtime_interfaces::srv::GripperControlMsg>(
-    "gripper_service");
+  // // Create gripper client
+  // gripper_client_ =
+  //   gripper_node_->create_client<cms_beamtime_interfaces::srv::GripperControlMsg>(
+  //   "gripper_service");
+
+    // Create Hand-E GripperCommand action client
+  gripper_action_client_ =
+    rclcpp_action::create_client<control_msgs::action::GripperCommand>(
+      gripper_node_, "/gripper_action_controller/gripper_cmd");
 }
 
 moveit::core::MoveItErrorCode InnerStateMachine::move_robot(
@@ -106,106 +111,213 @@ moveit::core::MoveItErrorCode InnerStateMachine::move_robot_cartesian(
   return return_error_code;
 }
 
+// moveit::core::MoveItErrorCode InnerStateMachine::close_gripper()
+// {
+//   moveit::core::MoveItErrorCode return_error_code = moveit::core::MoveItErrorCode::FAILURE;
+//   switch (internal_state_enum_) {
+//     case Internal_State::RESTING:
+//     case Internal_State::CLEANUP: {
+//         auto request = std::make_shared<cms_beamtime_interfaces::srv::GripperControlMsg::Request>();
+//         request->command = "CLOSE";
+//         request->grip = 100;
+
+//         if (!gripper_client_->wait_for_service(10s)) {
+//           return_error_code = moveit::core::MoveItErrorCode::FAILURE;
+//           break;
+//         } else {
+//           set_internal_state(Internal_State::MOVING);
+//           auto result = gripper_client_->async_send_request(request);
+//           // if (rclcpp::spin_until_future_complete(gripper_node_, result) ==
+//           //   rclcpp::FutureReturnCode::SUCCESS)
+//           //   set_internal_state(Internal_State::RESTING);
+
+//           // {
+//           //   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Gripper open: %d", result.get()->results);
+//           //   std::this_thread::sleep_for(3s);
+//           //   return_error_code = moveit::core::MoveItErrorCode::SUCCESS;
+//           //   set_internal_state(Internal_State::RESTING);
+//           // } else {
+//           //   RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service");
+//           //   return_error_code = moveit::core::MoveItErrorCode::FAILURE;
+//           // }
+//           if (rclcpp::spin_until_future_complete(gripper_node_, result) ==
+//               rclcpp::FutureReturnCode::SUCCESS)
+//           {
+//             set_internal_state(Internal_State::RESTING);
+//             RCLCPP_INFO(
+//               rclcpp::get_logger("rclcpp"),
+//               "Gripper result: %d", result.get()->results);
+//             std::this_thread::sleep_for(3s);
+//             return_error_code = moveit::core::MoveItErrorCode::SUCCESS;
+//           }
+//           else
+//           {
+//             RCLCPP_ERROR(
+//               rclcpp::get_logger("rclcpp"),
+//               "Failed to call gripper service");
+//             return_error_code = moveit::core::MoveItErrorCode::FAILURE;
+//           }
+
+//         }
+//       }
+//       break;
+
+//     default:
+//       RCLCPP_ERROR(
+//         node_->get_logger(), "Robot's current internal state is %s ",
+//         internal_state_names[static_cast<int>(internal_state_enum_)].c_str());
+//       return_error_code = moveit::core::MoveItErrorCode::FAILURE;
+//       break;
+//   }
+//   return return_error_code;
+// }
 moveit::core::MoveItErrorCode InnerStateMachine::close_gripper()
 {
-  moveit::core::MoveItErrorCode return_error_code = moveit::core::MoveItErrorCode::FAILURE;
-  switch (internal_state_enum_) {
-    case Internal_State::RESTING:
-    case Internal_State::CLEANUP: {
-        auto request = std::make_shared<cms_beamtime_interfaces::srv::GripperControlMsg::Request>();
-        request->command = "CLOSE";
-        request->grip = 100;
+  using GripperCmd = control_msgs::action::GripperCommand;
 
-        if (!gripper_client_->wait_for_service(10s)) {
-          return_error_code = moveit::core::MoveItErrorCode::FAILURE;
-          break;
-        } else {
-          set_internal_state(Internal_State::MOVING);
-          auto result = gripper_client_->async_send_request(request);
-          // if (rclcpp::spin_until_future_complete(gripper_node_, result) ==
-          //   rclcpp::FutureReturnCode::SUCCESS)
-          //   set_internal_state(Internal_State::RESTING);
-
-          // {
-          //   RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Gripper open: %d", result.get()->results);
-          //   std::this_thread::sleep_for(3s);
-          //   return_error_code = moveit::core::MoveItErrorCode::SUCCESS;
-          //   set_internal_state(Internal_State::RESTING);
-          // } else {
-          //   RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service");
-          //   return_error_code = moveit::core::MoveItErrorCode::FAILURE;
-          // }
-          if (rclcpp::spin_until_future_complete(gripper_node_, result) ==
-              rclcpp::FutureReturnCode::SUCCESS)
-          {
-            set_internal_state(Internal_State::RESTING);
-            RCLCPP_INFO(
-              rclcpp::get_logger("rclcpp"),
-              "Gripper result: %d", result.get()->results);
-            std::this_thread::sleep_for(3s);
-            return_error_code = moveit::core::MoveItErrorCode::SUCCESS;
-          }
-          else
-          {
-            RCLCPP_ERROR(
-              rclcpp::get_logger("rclcpp"),
-              "Failed to call gripper service");
-            return_error_code = moveit::core::MoveItErrorCode::FAILURE;
-          }
-
-        }
-      }
-      break;
-
-    default:
-      RCLCPP_ERROR(
-        node_->get_logger(), "Robot's current internal state is %s ",
-        internal_state_names[static_cast<int>(internal_state_enum_)].c_str());
-      return_error_code = moveit::core::MoveItErrorCode::FAILURE;
-      break;
+  // only valid from RESTING or CLEANUP
+  if (internal_state_enum_ != Internal_State::RESTING &&
+      internal_state_enum_ != Internal_State::CLEANUP)
+  {
+    RCLCPP_ERROR(node_->get_logger(),
+      "Invalid internal state for close_gripper()");
+    return moveit::core::MoveItErrorCode::FAILURE;
   }
-  return return_error_code;
+
+  // Build the goal: fully closed = position 0.0
+  GripperCmd::Goal goal_msg;
+  goal_msg.command.position   = 0.0;
+  goal_msg.command.max_effort = 100.0;
+
+  // Wait for the Hand-E action server
+  if (!gripper_action_client_->wait_for_action_server(10s)) {
+    RCLCPP_ERROR(node_->get_logger(),
+      "GripperCommand action server not available");
+    return moveit::core::MoveItErrorCode::FAILURE;
+  }
+
+  // Send the goal
+  set_internal_state(Internal_State::MOVING);
+  auto send_opts = typename rclcpp_action::Client<GripperCmd>::SendGoalOptions();
+  auto gh_future = gripper_action_client_->async_send_goal(goal_msg, send_opts);
+
+  if (rclcpp::spin_until_future_complete(gripper_node_, gh_future)
+      != rclcpp::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(node_->get_logger(),
+      "Failed to send gripper close goal");
+    return moveit::core::MoveItErrorCode::FAILURE;
+  }
+
+  auto goal_handle = gh_future.get();
+  if (!goal_handle) {
+    RCLCPP_ERROR(node_->get_logger(),
+      "Gripper close goal was rejected");
+    return moveit::core::MoveItErrorCode::FAILURE;
+  }
+
+  // Wait for result
+  auto result_future = gripper_action_client_->async_get_result(goal_handle);
+  if (rclcpp::spin_until_future_complete(gripper_node_, result_future)
+      != rclcpp::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(node_->get_logger(),
+      "Failed to get gripper close result");
+    return moveit::core::MoveItErrorCode::FAILURE;
+  }
+
+  // Completed
+  set_internal_state(Internal_State::RESTING);
+  return moveit::core::MoveItErrorCode::SUCCESS;
 }
 
+// moveit::core::MoveItErrorCode InnerStateMachine::open_gripper()
+// {
+//   moveit::core::MoveItErrorCode return_error_code = moveit::core::MoveItErrorCode::FAILURE;
+
+//   switch (internal_state_enum_) {
+//     case Internal_State::RESTING:
+//     case Internal_State::CLEANUP: {
+//         auto request = std::make_shared<cms_beamtime_interfaces::srv::GripperControlMsg::Request>();
+//         request->command = "OPEN";
+//         request->grip = 100;
+
+//         if (!gripper_client_->wait_for_service(10s)) {
+//           return_error_code = moveit::core::MoveItErrorCode::FAILURE;
+//           break;
+//         } else {
+//           set_internal_state(Internal_State::MOVING);
+//           auto result = gripper_client_->async_send_request(request);
+//           if (rclcpp::spin_until_future_complete(gripper_node_, result) ==
+//             rclcpp::FutureReturnCode::SUCCESS)
+//           {
+//             RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Gripper open: %d", result.get()->results);
+//             std::this_thread::sleep_for(3s);
+//             return_error_code = moveit::core::MoveItErrorCode::SUCCESS;
+//           } else {
+//             RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service");
+//             return_error_code = moveit::core::MoveItErrorCode::FAILURE;
+//           }
+//         }
+//       }
+//       break;
+
+//     default:
+//       RCLCPP_ERROR(
+//         node_->get_logger(), "Robot's current internal state is %s ",
+//         internal_state_names[static_cast<int>(internal_state_enum_)].c_str());
+//       return_error_code = moveit::core::MoveItErrorCode::FAILURE;
+//       break;
+//   }
+//   return return_error_code;
+// }
 moveit::core::MoveItErrorCode InnerStateMachine::open_gripper()
 {
-  moveit::core::MoveItErrorCode return_error_code = moveit::core::MoveItErrorCode::FAILURE;
+  using GripperCmd = control_msgs::action::GripperCommand;
 
-  switch (internal_state_enum_) {
-    case Internal_State::RESTING:
-    case Internal_State::CLEANUP: {
-        auto request = std::make_shared<cms_beamtime_interfaces::srv::GripperControlMsg::Request>();
-        request->command = "OPEN";
-        request->grip = 100;
-
-        if (!gripper_client_->wait_for_service(10s)) {
-          return_error_code = moveit::core::MoveItErrorCode::FAILURE;
-          break;
-        } else {
-          set_internal_state(Internal_State::MOVING);
-          auto result = gripper_client_->async_send_request(request);
-          if (rclcpp::spin_until_future_complete(gripper_node_, result) ==
-            rclcpp::FutureReturnCode::SUCCESS)
-          {
-            RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Gripper open: %d", result.get()->results);
-            std::this_thread::sleep_for(3s);
-            return_error_code = moveit::core::MoveItErrorCode::SUCCESS;
-          } else {
-            RCLCPP_ERROR(rclcpp::get_logger("rclcpp"), "Failed to call service");
-            return_error_code = moveit::core::MoveItErrorCode::FAILURE;
-          }
-        }
-      }
-      break;
-
-    default:
-      RCLCPP_ERROR(
-        node_->get_logger(), "Robot's current internal state is %s ",
-        internal_state_names[static_cast<int>(internal_state_enum_)].c_str());
-      return_error_code = moveit::core::MoveItErrorCode::FAILURE;
-      break;
+  if (internal_state_enum_ != Internal_State::RESTING &&
+      internal_state_enum_ != Internal_State::CLEANUP)
+  {
+    RCLCPP_ERROR(node_->get_logger(),
+      "Invalid internal state for open_gripper()");
+    return moveit::core::MoveItErrorCode::FAILURE;
   }
-  return return_error_code;
+
+  // Build the goal: fully open = max width (e.g. 0.085 m)
+  GripperCmd::Goal goal_msg;
+  goal_msg.command.position   = 0.025;  
+  goal_msg.command.max_effort = 100.0;
+
+  if (!gripper_action_client_->wait_for_action_server(10s)) {
+    RCLCPP_ERROR(node_->get_logger(),
+      "GripperCommand action server not available");
+    return moveit::core::MoveItErrorCode::FAILURE;
+  }
+
+  set_internal_state(Internal_State::MOVING);
+  auto send_opts = typename rclcpp_action::Client<GripperCmd>::SendGoalOptions();
+  auto gh_future = gripper_action_client_->async_send_goal(goal_msg, send_opts);
+
+  if (rclcpp::spin_until_future_complete(gripper_node_, gh_future)
+      != rclcpp::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(node_->get_logger(),
+      "Failed to send gripper open goal");
+    return moveit::core::MoveItErrorCode::FAILURE;
+  }
+
+  auto goal_handle = gh_future.get();
+  auto result_future = gripper_action_client_->async_get_result(goal_handle);
+  if (rclcpp::spin_until_future_complete(gripper_node_, result_future)
+      != rclcpp::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(node_->get_logger(),
+      "Failed to get gripper open result");
+    return moveit::core::MoveItErrorCode::FAILURE;
+  }
+
+  set_internal_state(Internal_State::RESTING);
+  return moveit::core::MoveItErrorCode::SUCCESS;
 }
 
 void InnerStateMachine::pause(moveit::planning_interface::MoveGroupInterface & mgi)

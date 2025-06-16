@@ -11,7 +11,9 @@ BSD 3 Clause License. See LICENSE.txt for details.*/
 #include <vector>
 #include <rclcpp/node.hpp>
 #include <cms_beamtime/state_enum.hpp>
-#include <cms_beamtime_interfaces/srv/gripper_control_msg.hpp>
+// #include <cms_beamtime_interfaces/srv/gripper_control_msg.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
+#include <control_msgs/action/gripper_command.hpp>
 
 class InnerStateMachine
 {
@@ -23,7 +25,10 @@ private:
   /// @brief Holds the passed joint target
   std::vector<double> joint_goal_;
 
-  rclcpp::Client<cms_beamtime_interfaces::srv::GripperControlMsg>::SharedPtr gripper_client_;
+  // rclcpp::Client<cms_beamtime_interfaces::srv::GripperControlMsg>::SharedPtr gripper_client_;
+
+   // Hand-E driver action client
+  rclcpp_action::Client<control_msgs::action::GripperCommand>::SharedPtr gripper_action_client_;
 
   std::vector<std::string> external_state_names_ =
   {"HOME", "PICKUP_APPROACH", "PICKUP", "GRASP_SUCCESS", "GRASP_FAILURE", "PICKUP_RETREAT",
