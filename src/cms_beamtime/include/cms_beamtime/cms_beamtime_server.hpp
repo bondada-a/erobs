@@ -129,6 +129,10 @@ protected:
   /// total_states_ = sequence_.size() + 2  (initial + final home)
   size_t total_states_{ 0 };
 
+  // ─── Labels for logging each external step ───────────────────────
+  // size == total_states_; [0]="Home", [1..N]=JSON steps, [N+1]="Home"
+  std::vector<std::string> external_step_labels_;
+
   /// Load the JSON sequence file at startup
   void load_sequence_from_json(const std::string & file_path);
 

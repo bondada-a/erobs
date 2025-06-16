@@ -559,6 +559,18 @@ float cmsBeamtimeServer::get_action_completion_percentage()
 moveit::core::MoveItErrorCode cmsBeamtimeServer::run_fsm(
   std::shared_ptr<const PickPlaceControlMsg::Goal> /*goal*/)
 {
+
+  // Announce which external step we’re about to execute
+  int next = external_index_ + 1;
+  if (next >= 0 && next < static_cast<int>(external_step_labels_.size())) {
+    RCLCPP_INFO(
+      node_->get_logger(),
+      "== External FSM Step [%d/%zu]: %s ==",
+      next,
+      total_states_,
+      external_step_labels_[next].c_str());
+  }
+
   using MIEC = moveit::core::MoveItErrorCode;
   MIEC result = MIEC::FAILURE;
 
@@ -570,18 +582,40 @@ moveit::core::MoveItErrorCode cmsBeamtimeServer::run_fsm(
   } else if (external_index_ < static_cast<int>(sequence_.size())) {
     // one JSON step
     auto & step = sequence_[external_index_];
+
     if (step.type == SequenceStep::Type::MOVE) {
       for (auto & name : step.pose_waypoints) {
+        // ←—— NEW LOG: show each pose name as we execute it
+        RCLCPP_INFO(
+          node_->get_logger(),
+          "  → Executing pose: %s", name.c_str());
+
         auto it = poses_map_.find(name);
         if (it == poses_map_.end()) {
-          RCLCPP_ERROR(node_->get_logger(),
+          RCLCPP_ERROR(
+            node_->get_logger(),
             "Unknown pose '%s' in JSON sequence", name.c_str());
           return MIEC::FAILURE;
         }
-        result = inner_state_machine_->move_robot(move_group_interface_, it->second);
+        result = inner_state_machine_->move_robot(
+          move_group_interface_, it->second);
         if (result != MIEC::SUCCESS) break;
       }
-    } else {
+    }
+
+
+    // if (step.type == SequenceStep::Type::MOVE) {
+    //   for (auto & name : step.pose_waypoints) {
+    //     auto it = poses_map_.find(name);
+    //     if (it == poses_map_.end()) {
+    //       RCLCPP_ERROR(node_->get_logger(),
+    //         "Unknown pose '%s' in JSON sequence", name.c_str());
+    //       return MIEC::FAILURE;
+    //     }
+    //     result = inner_state_machine_->move_robot(move_group_interface_, it->second);
+    //     if (result != MIEC::SUCCESS) break;
+    //   }
+    else {
       // end_effector
       if (step.device == "gripper") {
         if (step.action == "close")
@@ -764,21 +798,41 @@ void cmsBeamtimeServer::load_sequence_from_json(const std::string & file_path)
   if (auto it = poses_map_.find("home"); it != poses_map_.end()) {
     default_home_ = it->second;
   }
+  // load sequence steps
+  sequence_.clear();
+  external_step_labels_.clear();
+  // initial home
+  external_step_labels_.push_back("Home");
 
   // load sequence steps
-  for (auto & step_j : j["sequence"]) {
+ for (auto & step_j : j["sequence"]) {
     SequenceStep s;
     std::string t = step_j["type"].get<std::string>();
     s.type = (t == "move")
       ? SequenceStep::Type::MOVE
       : SequenceStep::Type::END_EFFECTOR;
+
+    // **Declare the label before using it**
+    std::string label;
+
     if (s.type == SequenceStep::Type::MOVE) {
-      for (auto & name : step_j["pose_waypoints"])
-        s.pose_waypoints.push_back(name.get<std::string>());
+      for (auto & name : step_j["pose_waypoints"]) {
+        auto nm = name.get<std::string>();
+        s.pose_waypoints.push_back(nm);
+        label += nm + " → ";
+      }
+      if (!label.empty()) {
+        label.resize(label.size() - 4);  // remove trailing arrow
+      }
+      label = "Move: " + label;
     } else {
       s.device = step_j["device"].get<std::string>();
       s.action = step_j["action"].get<std::string>();
+      label = "Gripper " + s.action;
     }
+
     sequence_.push_back(std::move(s));
+    external_step_labels_.push_back(label);
   }
+
 }
