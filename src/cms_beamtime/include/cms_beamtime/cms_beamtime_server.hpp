@@ -1,7 +1,7 @@
 /*Copyright 2023 Brookhaven National Laboratory
 BSD 3 Clause License. See LICENSE.txt for details.*/
-#ifndef PDF_BEAMTIME__PDF_BEAMTIME_SERVER_HPP_
-#define PDF_BEAMTIME__PDF_BEAMTIME_SERVER_HPP_
+#ifndef cms_BEAMTIME__cms_BEAMTIME_SERVER_HPP_
+#define cms_BEAMTIME__cms_BEAMTIME_SERVER_HPP_
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
@@ -18,28 +18,28 @@ BSD 3 Clause License. See LICENSE.txt for details.*/
 #include <cmath>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <pdf_beamtime_interfaces/action/pick_place_control_msg.hpp>
-#include <pdf_beamtime_interfaces/srv/update_obstacle_msg.hpp>
-#include <pdf_beamtime_interfaces/srv/delete_obstacle_msg.hpp>
-#include <pdf_beamtime_interfaces/srv/box_obstacle_msg.hpp>
-#include <pdf_beamtime_interfaces/srv/cylinder_obstacle_msg.hpp>
-#include <pdf_beamtime_interfaces/srv/bluesky_interrupt_msg.hpp>
-#include <pdf_beamtime_interfaces/srv/gripper_control_msg.hpp>
-#include <pdf_beamtime/inner_state_machine.hpp>
-#include <pdf_beamtime/state_enum.hpp>
+#include <cms_beamtime_interfaces/action/pick_place_control_msg.hpp>
+#include <cms_beamtime_interfaces/srv/update_obstacle_msg.hpp>
+#include <cms_beamtime_interfaces/srv/delete_obstacle_msg.hpp>
+#include <cms_beamtime_interfaces/srv/box_obstacle_msg.hpp>
+#include <cms_beamtime_interfaces/srv/cylinder_obstacle_msg.hpp>
+#include <cms_beamtime_interfaces/srv/bluesky_interrupt_msg.hpp>
+#include <cms_beamtime_interfaces/srv/gripper_control_msg.hpp>
+#include <cms_beamtime/inner_state_machine.hpp>
+#include <cms_beamtime/state_enum.hpp>
 
 /// @brief Create the obstacle environment and an simple action server for the robot to move
-class PdfBeamtimeServer
+class cmsBeamtimeServer
 {
 public:
-  using PickPlaceControlMsg = pdf_beamtime_interfaces::action::PickPlaceControlMsg;
-  using BoxObstacleMsg = pdf_beamtime_interfaces::srv::BoxObstacleMsg;
-  using CylinderObstacleMsg = pdf_beamtime_interfaces::srv::CylinderObstacleMsg;
-  using UpdateObstaclesMsg = pdf_beamtime_interfaces::srv::UpdateObstacleMsg;
-  using DeleteObstacleMsg = pdf_beamtime_interfaces::srv::DeleteObstacleMsg;
-  using BlueskyInterruptMsg = pdf_beamtime_interfaces::srv::BlueskyInterruptMsg;
+  using PickPlaceControlMsg = cms_beamtime_interfaces::action::PickPlaceControlMsg;
+  using BoxObstacleMsg = cms_beamtime_interfaces::srv::BoxObstacleMsg;
+  using CylinderObstacleMsg = cms_beamtime_interfaces::srv::CylinderObstacleMsg;
+  using UpdateObstaclesMsg = cms_beamtime_interfaces::srv::UpdateObstacleMsg;
+  using DeleteObstacleMsg = cms_beamtime_interfaces::srv::DeleteObstacleMsg;
+  using BlueskyInterruptMsg = cms_beamtime_interfaces::srv::BlueskyInterruptMsg;
 
-  explicit PdfBeamtimeServer(
+  explicit cmsBeamtimeServer(
     const std::string & move_group_name, const rclcpp::NodeOptions & options,
     std::string action_name);
   rclcpp::node_interfaces::NodeBaseInterface::SharedPtr getNodeBaseInterface();
@@ -57,8 +57,12 @@ protected:
     const std::shared_ptr<rclcpp_action::ServerGoalHandle<PickPlaceControlMsg>> goal_handle);
 
   /// @brief Performs the transitions for each State
+  // virtual moveit::core::MoveItErrorCode run_fsm(
+  //   std::shared_ptr<const cms_beamtime_interfaces::action::PickPlaceControlMsg_Goal> goal);
+
+    /// @brief Performs the JSON‐driven sequence of steps
   virtual moveit::core::MoveItErrorCode run_fsm(
-    std::shared_ptr<const pdf_beamtime_interfaces::action::PickPlaceControlMsg_Goal> goal);
+    std::shared_ptr<const PickPlaceControlMsg::Goal> goal);
 
   rclcpp::Node::SharedPtr interrupt_node_;
 
@@ -94,9 +98,10 @@ protected:
     {"RESUME", Internal_State::MOVING}
   };
 
-  std::vector<std::string> external_state_names_ =
-  {"HOME", "PICKUP_APPROACH", "PICKUP", "GRASP_SUCCESS", "GRASP_FAILURE", "PICKUP_RETREAT",
-    "PLACE_APPROACH", "PLACE", "RELEASE_SUCCESS", "RELEASE_FAILURE", "PLACE_RETREAT"};
+  // old external state names
+  // std::vector<std::string> external_state_names_ =
+  // {"HOME", "PICKUP_APPROACH", "PICKUP", "GRASP_SUCCESS", "GRASP_FAILURE", "PICKUP_RETREAT",
+  //   "PLACE_APPROACH", "PLACE", "RELEASE_SUCCESS", "RELEASE_FAILURE", "PLACE_RETREAT"};
 
   std::vector<std::string> internal_state_names =
   {"RESTING", "MOVING", "PAUSED", "ABORT", "HALT", "STOP", "CLEANUP"};
@@ -104,11 +109,34 @@ protected:
   /// @brief current state of the robot
   State current_state_;
 
+  //+  // ─── JSON-DRIVEN EXTERNAL FSM ───────
+  /// One step in the JSON “sequence” block
+  struct SequenceStep {
+    enum class Type { MOVE, END_EFFECTOR } type;
+    std::vector<std::string> pose_waypoints;  // for MOVE
+    std::string device;  // e.g. "gripper"      // for END_EFFECTOR
+    std::string action;  // e.g. "close"/"open"  // for END_EFFECTOR
+  };
+
+  /// Named poses from JSON “poses” → joint vectors
+  std::map<std::string, std::vector<double>> poses_map_;
+  /// Sequence of steps loaded from JSON
+  std::vector<SequenceStep> sequence_;
+  /// Home pose: default from “home_angles” param or overridden by JSON["poses"]["home"]
+  std::vector<double> default_home_;
+  /// Which external step we’re on: -1=initial home, [0..N-1]=JSON steps, N=final home
+  int external_index_{ -1 };
+  /// total_states_ = sequence_.size() + 2  (initial + final home)
+  size_t total_states_{ 0 };
+
+  /// Load the JSON sequence file at startup
+  void load_sequence_from_json(const std::string & file_path);
+
   /// @brief holds the current goal to be used by return_sample() function
-  std::shared_ptr<const pdf_beamtime_interfaces::action::PickPlaceControlMsg_Goal> goal;
+  std::shared_ptr<const cms_beamtime_interfaces::action::PickPlaceControlMsg_Goal> goal;
 
   /// @brief used to calculate the completion precentage
-  const float total_states_ = 9.0;
+  /// progress_ tracks (external_index_+1)/total_states_
   float progress_ = 0.0;
 
 /// @todo @ChandimaFernando Implement to see if gripper is attached
@@ -177,4 +205,4 @@ protected:
   void set_current_state(State state);
 };
 
-#endif  // PDF_BEAMTIME__PDF_BEAMTIME_SERVER_HPP_
+#endif  // cms_BEAMTIME__cms_BEAMTIME_SERVER_HPP_

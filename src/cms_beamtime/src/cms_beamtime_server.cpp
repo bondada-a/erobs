@@ -1,78 +1,114 @@
 /*Copyright 2024 Brookhaven National Laboratory
 BSD 3 Clause License. See LICENSE.txt for details.*/
-#include <pdf_beamtime/pdf_beamtime_server.hpp>
+#include <cms_beamtime/cms_beamtime_server.hpp>
+#include <nlohmann/json.hpp>
+#include <fstream>
 
 using moveit::planning_interface::MoveGroupInterface;
 using namespace std::placeholders;
 
-PdfBeamtimeServer::PdfBeamtimeServer(
+cmsBeamtimeServer::cmsBeamtimeServer(
   const std::string & move_group_name = "ur_manipulator",
   const rclcpp::NodeOptions & options = rclcpp::NodeOptions(),
-  std::string action_name = "pdf_beamtime_action_server")
-: node_(std::make_shared<rclcpp::Node>("pdf_beamtime_server", options)),
+  std::string action_name = "cms_beamtime_action_server")
+: node_(std::make_shared<rclcpp::Node>("cms_beamtime_server", options)),
   interrupt_node_(std::make_shared<rclcpp::Node>("interrupt_server")),
   gripper_node_(std::make_shared<rclcpp::Node>("gripper_node_client")),
   move_group_interface_(node_, move_group_name),
   planning_scene_interface_()
 {
+
+  // Declare object_names so create_env() won't throw
+  node_->declare_parameter("object_names", std::vector<std::string>{});
+
   // Add the obstacles
   planning_scene_interface_.applyCollisionObjects(create_env());
 
   // // Create the services
   new_box_obstacle_service_ = node_->create_service<BoxObstacleMsg>(
-    "pdf_new_box_obstacle",
+    "cms_new_box_obstacle",
     std::bind(
-      &PdfBeamtimeServer::new_obstacle_service_cb<BoxObstacleMsg::Request,
+      &cmsBeamtimeServer::new_obstacle_service_cb<BoxObstacleMsg::Request,
       BoxObstacleMsg::Response>, this, _1, _2));
 
   new_cylinder_obstacle_service_ = node_->create_service<CylinderObstacleMsg>(
-    "pdf_new_cylinder_obstacle",
+    "cms_new_cylinder_obstacle",
     std::bind(
-      &PdfBeamtimeServer::new_obstacle_service_cb<CylinderObstacleMsg::Request,
+      &cmsBeamtimeServer::new_obstacle_service_cb<CylinderObstacleMsg::Request,
       CylinderObstacleMsg::Response>, this, _1, _2));
 
   update_obstacles_service_ = node_->create_service<UpdateObstaclesMsg>(
-    "pdf_update_obstacles",
+    "cms_update_obstacles",
     std::bind(
-      &PdfBeamtimeServer::update_obstacles_service_cb, this, _1, _2));
+      &cmsBeamtimeServer::update_obstacles_service_cb, this, _1, _2));
 
   remove_obstacles_service_ = node_->create_service<DeleteObstacleMsg>(
-    "pdf_remove_obstacle",
+    "cms_remove_obstacle",
     std::bind(
-      &PdfBeamtimeServer::remove_obstacles_service_cb, this, _1, _2));
+      &cmsBeamtimeServer::remove_obstacles_service_cb, this, _1, _2));
 
   // Create the action server
   action_server_ = rclcpp_action::create_server<PickPlaceControlMsg>(
     this->node_,
     action_name,
-    std::bind(&PdfBeamtimeServer::handle_goal, this, _1, _2),
-    std::bind(&PdfBeamtimeServer::handle_cancel, this, _1),
-    std::bind(&PdfBeamtimeServer::handle_accepted, this, _1));
+    std::bind(&cmsBeamtimeServer::handle_goal, this, _1, _2),
+    std::bind(&cmsBeamtimeServer::handle_cancel, this, _1),
+    std::bind(&cmsBeamtimeServer::handle_accepted, this, _1));
 
   // Initialize to home
-  current_state_ = State::HOME;
-  gripper_present_ = node_->get_parameter("gripper_present").as_bool();
+  // current_state_ = State::HOME;
+
+  // ─── JSON-DRIVEN EXTERNAL FSM SETUP ────────────────────────────
+  // 1) read default home from existing parameter
+
+  node_->declare_parameter<std::vector<double>>(
+    "home_angles",
+    std::vector<double>{0.0, -1.5708, 0.0, -1.5708, 0.0, 3.14159}
+  );
+
+
+  default_home_ = node_->get_parameter("home_angles").as_double_array();
+  // 2) declare and read JSON sequence file path
+  std::string seq_file;
+  node_->get_parameter_or("sequence_file", seq_file, std::string{});
+  load_sequence_from_json(seq_file);
+  // 3) initialize counters
+  total_states_   = sequence_.size() + 2;
+  external_index_ = -1;
+
+ // (we’ll ignore current_state_ and external_state_names_ entirely)
+
+  node_->get_parameter_or("gripper_present", gripper_present_, false);
   inner_state_machine_ = new InnerStateMachine(node_, gripper_node_);
 
   bluesky_interrupt_service_ = interrupt_node_->create_service<BlueskyInterruptMsg>(
     "bluesky_interrupt",
     std::bind(
-      &PdfBeamtimeServer::bluesky_interrupt_cb, this, _1, _2));
+      &cmsBeamtimeServer::bluesky_interrupt_cb, this, _1, _2));
 
   // define constraints to restrict wrist movement
   moveit_msgs::msg::JointConstraint jc;
-  jc.joint_name = node_->get_parameter("joint_constraints.joint_name").as_string();
-  jc.position = node_->get_parameter("joint_constraints.joint_position").as_double();
-  jc.tolerance_above = node_->get_parameter("joint_constraints.upper_limit").as_double();
-  jc.tolerance_below = node_->get_parameter("joint_constraints.lower_limit").as_double();
+  // jc.joint_name = node_->get_parameter("joint_constraints.joint_name").as_string();
+  // jc.position = node_->get_parameter("joint_constraints.joint_position").as_double();
+  // jc.tolerance_above = node_->get_parameter("joint_constraints.upper_limit").as_double();
+  // jc.tolerance_below = node_->get_parameter("joint_constraints.lower_limit").as_double();
+  // Safely read parameters (or use these defaults):
+  node_->get_parameter_or<std::string>(
+    "joint_constraints.joint_name", jc.joint_name, "wrist_3_joint");
+  node_->get_parameter_or<double>(
+    "joint_constraints.joint_position", jc.position, 0.0);
+  node_->get_parameter_or<double>(
+    "joint_constraints.upper_limit", jc.tolerance_above, 0.1);
+  node_->get_parameter_or<double>(
+    "joint_constraints.lower_limit", jc.tolerance_below, 0.1);
   jc.weight = 1.0;
 
   moveit_msgs::msg::Constraints constraints_;
   constraints_.joint_constraints.push_back(jc);
-  move_group_interface_.setPathConstraints(constraints_);
+  // move_group_interface_.setPathConstraints(constraints_);
 }
 
-void PdfBeamtimeServer::bluesky_interrupt_cb(
+void cmsBeamtimeServer::bluesky_interrupt_cb(
   const std::shared_ptr<BlueskyInterruptMsg::Request> request,
   std::shared_ptr<BlueskyInterruptMsg::Response> response)
 {
@@ -111,13 +147,13 @@ void PdfBeamtimeServer::bluesky_interrupt_cb(
       break;
   }
 }
-rclcpp::node_interfaces::NodeBaseInterface::SharedPtr PdfBeamtimeServer::getNodeBaseInterface()
+rclcpp::node_interfaces::NodeBaseInterface::SharedPtr cmsBeamtimeServer::getNodeBaseInterface()
 // Expose the node base interface so that the node can be added to a component manager.
 {
   return node_->get_node_base_interface();
 }
 
-rclcpp::node_interfaces::NodeBaseInterface::SharedPtr PdfBeamtimeServer::
+rclcpp::node_interfaces::NodeBaseInterface::SharedPtr cmsBeamtimeServer::
 getInterruptNodeBaseInterface()
 // Expose the node base interface of the bluesky interrupt node
 // so that the node can be added to a component manager.
@@ -125,7 +161,7 @@ getInterruptNodeBaseInterface()
   return interrupt_node_->get_node_base_interface();
 }
 
-rclcpp_action::GoalResponse PdfBeamtimeServer::handle_goal(
+rclcpp_action::GoalResponse cmsBeamtimeServer::handle_goal(
   const rclcpp_action::GoalUUID & uuid,
   std::shared_ptr<const PickPlaceControlMsg::Goal> goal)
 {
@@ -133,17 +169,17 @@ rclcpp_action::GoalResponse PdfBeamtimeServer::handle_goal(
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
-void PdfBeamtimeServer::handle_accepted(
+void cmsBeamtimeServer::handle_accepted(
   const std::shared_ptr<rclcpp_action::ServerGoalHandle<PickPlaceControlMsg>> goal_handle)
 {
   using namespace std::placeholders;
 
   // this needs to return quickly to avoid blocking the executor, so spin up a new thread
-  std::thread{std::bind(&PdfBeamtimeServer::execute, this, _1), goal_handle}.detach();
+  std::thread{std::bind(&cmsBeamtimeServer::execute, this, _1), goal_handle}.detach();
 }
 
 // Receiving the cancel request.
-rclcpp_action::CancelResponse PdfBeamtimeServer::handle_cancel(
+rclcpp_action::CancelResponse cmsBeamtimeServer::handle_cancel(
   const std::shared_ptr<rclcpp_action::ServerGoalHandle<PickPlaceControlMsg>> goal_handle)
 {
   RCLCPP_INFO(node_->get_logger(), "Received request to cancel goal");
@@ -151,7 +187,7 @@ rclcpp_action::CancelResponse PdfBeamtimeServer::handle_cancel(
   return rclcpp_action::CancelResponse::ACCEPT;
 }
 
-void PdfBeamtimeServer::execute(
+void cmsBeamtimeServer::execute(
   const std::shared_ptr<rclcpp_action::ServerGoalHandle<PickPlaceControlMsg>> goal_handle)
 {
   goal = goal_handle->get_goal();
@@ -163,10 +199,10 @@ void PdfBeamtimeServer::execute(
   goal_home_ = node_->get_parameter("home_angles").as_double_array();
   feedback->status = get_action_completion_percentage();
 
-  RCLCPP_INFO(
-    node_->get_logger(), "Current state is %s.",
-    external_state_names_[static_cast<int>(current_state_)].c_str());
-
+  // RCLCPP_INFO(
+  //   node_->get_logger(), "Current state is %s.",
+  //   // external_state_names_[static_cast<int>(current_state_)].c_str());
+  // );
   // Reset inner_state_machine at new goal
   inner_state_machine_->set_internal_state(Internal_State::RESTING);
 
@@ -218,7 +254,7 @@ void PdfBeamtimeServer::execute(
   }
 }
 
-std::vector<moveit_msgs::msg::CollisionObject> PdfBeamtimeServer::create_env()
+std::vector<moveit_msgs::msg::CollisionObject> cmsBeamtimeServer::create_env()
 // Builds a vector of obstacle as defined in the .yaml file and returns the vector
 {
   obstacle_type_map_.insert(std::pair<std::string, int>("CYLINDER", 1));
@@ -280,7 +316,7 @@ std::vector<moveit_msgs::msg::CollisionObject> PdfBeamtimeServer::create_env()
   return all_obstacles;
 }
 
-void PdfBeamtimeServer::update_obstacles_service_cb(
+void cmsBeamtimeServer::update_obstacles_service_cb(
   const std::shared_ptr<UpdateObstaclesMsg::Request> request,
   std::shared_ptr<UpdateObstaclesMsg::Response> response)
 {
@@ -302,7 +338,7 @@ void PdfBeamtimeServer::update_obstacles_service_cb(
   planning_scene_interface_.applyCollisionObjects(create_env());
 }
 
-void PdfBeamtimeServer::remove_obstacles_service_cb(
+void cmsBeamtimeServer::remove_obstacles_service_cb(
   const std::shared_ptr<DeleteObstacleMsg::Request> request,
   std::shared_ptr<DeleteObstacleMsg::Response> response)
 {
@@ -327,7 +363,7 @@ void PdfBeamtimeServer::remove_obstacles_service_cb(
 }
 
 template<typename RequestT, typename ResponseT>
-void PdfBeamtimeServer::new_obstacle_service_cb(
+void cmsBeamtimeServer::new_obstacle_service_cb(
   const typename RequestT::SharedPtr request,
   typename ResponseT::SharedPtr response)
 {
@@ -366,156 +402,211 @@ void PdfBeamtimeServer::new_obstacle_service_cb(
   planning_scene_interface_.applyCollisionObjects(create_env());
 }
 
-float PdfBeamtimeServer::get_action_completion_percentage()
+float cmsBeamtimeServer::get_action_completion_percentage()
 {
-  return progress_ / total_states_;
+  // return progress_ / total_states_;
+  // external_index_ runs from -1…total_states_-1
+  return double(external_index_ + 1) / double(total_states_);
 }
 
-moveit::core::MoveItErrorCode PdfBeamtimeServer::run_fsm(
-  std::shared_ptr<const pdf_beamtime_interfaces::action::PickPlaceControlMsg_Goal> goal)
+// old hardcoded FSM
+// moveit::core::MoveItErrorCode cmsBeamtimeServer::run_fsm(
+//   std::shared_ptr<const cms_beamtime_interfaces::action::PickPlaceControlMsg_Goal> goal)
+// {
+//   RCLCPP_INFO(
+//     node_->get_logger(), "Executing state %s",
+//     external_state_names_[static_cast<int>(current_state_)].c_str());
+//   moveit::core::MoveItErrorCode motion_results = moveit::core::MoveItErrorCode::FAILURE;
+//   switch (current_state_) {
+//     case State::HOME:
+//       // Moves the robot to pickup approach.
+//       // If success: change state, increment progress, reset internel state
+//       motion_results = inner_state_machine_->move_robot(
+//         move_group_interface_,
+//         goal->pickup_approach);
+//       if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
+//         set_current_state(State::PICKUP_APPROACH);
+//         inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         progress_ = progress_ + 1.0;
+//       }
+//       break;
+
+//     case State::PICKUP_APPROACH:
+//       // Moves the robot to pickup.
+//       // If success: change state, increment progress, reset internel state
+//       motion_results = inner_state_machine_->move_robot(
+//         move_group_interface_,
+//         goal->pickup);
+//       if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
+//         set_current_state(State::PICKUP);
+//         inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         progress_ = progress_ + 1.0;
+//       }
+//       break;
+
+//     case State::PICKUP:
+//       // Pick up object by closing gripper. If success: move to grasp success with progress.
+//       // if fails, move to grasp_failure
+//       if (this->gripper_present_) {
+//         motion_results = inner_state_machine_->close_gripper();
+//         if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
+//           progress_ = progress_ + 1.0;
+//           set_current_state(State::GRASP_SUCCESS);
+//           inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         } else {
+//           set_current_state(State::GRASP_FAILURE);
+//           inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         }
+//       }
+//       break;
+
+//     case State::GRASP_SUCCESS:
+//       // Successfully grasped. Do pickup retreat
+//       motion_results = inner_state_machine_->move_robot(
+//         move_group_interface_,
+//         goal->pickup_approach);
+
+//       if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
+//         set_current_state(State::PICKUP_RETREAT);
+//         inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         progress_ = progress_ + 1.0;
+//       }
+//       break;
+
+//     case State::GRASP_FAILURE:
+//       // Gripper did not close. failed. move to Pickup approach
+//       motion_results = inner_state_machine_->move_robot(
+//         move_group_interface_,
+//         goal->pickup_approach);
+//       if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
+//         set_current_state(State::PICKUP_APPROACH);
+//         inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//       }
+//       progress_ = progress_ - 1.0;
+//       break;
+
+//     case State::PICKUP_RETREAT:
+//       // Sample in hand. Move to place approach.
+//       motion_results = inner_state_machine_->move_robot(
+//         move_group_interface_,
+//         goal->place_approach);
+//       if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
+//         set_current_state(State::PLACE_APPROACH);
+//         inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         progress_ = progress_ + 1.0;
+//       }
+//       break;
+
+//     case State::PLACE_APPROACH:
+//       // Move sample to place
+//       motion_results = inner_state_machine_->move_robot(
+//         move_group_interface_,
+//         goal->place);
+//       if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
+//         set_current_state(State::PLACE);
+//         inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         progress_ = progress_ + 1.0;
+//       }
+//       break;
+
+//     case State::PLACE:
+//       // Place the sample.
+//       if (this->gripper_present_) {
+//         motion_results = inner_state_machine_->open_gripper();
+//         if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
+//           progress_ = progress_ + 1.0;
+//           set_current_state(State::RELEASE_SUCCESS);
+//           inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         } else {
+//           set_current_state(State::RELEASE_FAILURE);
+//           inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         }
+//       }
+//       break;
+
+//     case State::RELEASE_SUCCESS:
+//       // Sample was successfully released.
+//       motion_results = inner_state_machine_->move_robot(
+//         move_group_interface_,
+//         goal->place_approach);
+//       if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
+//         set_current_state(State::PLACE_RETREAT);
+//         inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         progress_ = progress_ + 1.0;
+//       }
+//       break;
+
+//     case State::PLACE_RETREAT:
+//       // Move back to rest/home position
+//       motion_results = inner_state_machine_->move_robot(
+//         move_group_interface_, goal_home_);
+//       if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
+//         set_current_state(State::HOME);
+//         inner_state_machine_->set_internal_state(Internal_State::RESTING);
+//         progress_ = progress_ + 1.0;
+//       }
+//       break;
+
+//     default:
+//       break;
+//   }
+
+//   return motion_results;
+// }
+
+
+
+moveit::core::MoveItErrorCode cmsBeamtimeServer::run_fsm(
+  std::shared_ptr<const PickPlaceControlMsg::Goal> /*goal*/)
 {
-  RCLCPP_INFO(
-    node_->get_logger(), "Executing state %s",
-    external_state_names_[static_cast<int>(current_state_)].c_str());
-  moveit::core::MoveItErrorCode motion_results = moveit::core::MoveItErrorCode::FAILURE;
-  switch (current_state_) {
-    case State::HOME:
-      // Moves the robot to pickup approach.
-      // If success: change state, increment progress, reset internel state
-      motion_results = inner_state_machine_->move_robot(
-        move_group_interface_,
-        goal->pickup_approach);
-      if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
-        set_current_state(State::PICKUP_APPROACH);
-        inner_state_machine_->set_internal_state(Internal_State::RESTING);
-        progress_ = progress_ + 1.0;
-      }
-      break;
+  using MIEC = moveit::core::MoveItErrorCode;
+  MIEC result = MIEC::FAILURE;
 
-    case State::PICKUP_APPROACH:
-      // Moves the robot to pickup.
-      // If success: change state, increment progress, reset internel state
-      motion_results = inner_state_machine_->move_robot(
-        move_group_interface_,
-        goal->pickup);
-      if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
-        set_current_state(State::PICKUP);
-        inner_state_machine_->set_internal_state(Internal_State::RESTING);
-        progress_ = progress_ + 1.0;
-      }
-      break;
+  if (external_index_ == -1) {
+    // initial HOME
+    result = inner_state_machine_->move_robot(move_group_interface_, default_home_);
+    external_index_++;
 
-    case State::PICKUP:
-      // Pick up object by closing gripper. If success: move to grasp success with progress.
-      // if fails, move to grasp_failure
-      if (this->gripper_present_) {
-        motion_results = inner_state_machine_->close_gripper();
-        if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
-          progress_ = progress_ + 1.0;
-          set_current_state(State::GRASP_SUCCESS);
-          inner_state_machine_->set_internal_state(Internal_State::RESTING);
-        } else {
-          set_current_state(State::GRASP_FAILURE);
-          inner_state_machine_->set_internal_state(Internal_State::RESTING);
+  } else if (external_index_ < static_cast<int>(sequence_.size())) {
+    // one JSON step
+    auto & step = sequence_[external_index_];
+    if (step.type == SequenceStep::Type::MOVE) {
+      for (auto & name : step.pose_waypoints) {
+        auto it = poses_map_.find(name);
+        if (it == poses_map_.end()) {
+          RCLCPP_ERROR(node_->get_logger(),
+            "Unknown pose '%s' in JSON sequence", name.c_str());
+          return MIEC::FAILURE;
         }
+        result = inner_state_machine_->move_robot(move_group_interface_, it->second);
+        if (result != MIEC::SUCCESS) break;
       }
-      break;
-
-    case State::GRASP_SUCCESS:
-      // Successfully grasped. Do pickup retreat
-      motion_results = inner_state_machine_->move_robot(
-        move_group_interface_,
-        goal->pickup_approach);
-
-      if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
-        set_current_state(State::PICKUP_RETREAT);
-        inner_state_machine_->set_internal_state(Internal_State::RESTING);
-        progress_ = progress_ + 1.0;
+    } else {
+      // end_effector
+      if (step.device == "gripper") {
+        if (step.action == "close")
+          result = inner_state_machine_->close_gripper();
+        else
+          result = inner_state_machine_->open_gripper();
       }
-      break;
+    }
+    external_index_++;
 
-    case State::GRASP_FAILURE:
-      // Gripper did not close. failed. move to Pickup approach
-      motion_results = inner_state_machine_->move_robot(
-        move_group_interface_,
-        goal->pickup_approach);
-      if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
-        set_current_state(State::PICKUP_APPROACH);
-        inner_state_machine_->set_internal_state(Internal_State::RESTING);
-      }
-      progress_ = progress_ - 1.0;
-      break;
-
-    case State::PICKUP_RETREAT:
-      // Sample in hand. Move to place approach.
-      motion_results = inner_state_machine_->move_robot(
-        move_group_interface_,
-        goal->place_approach);
-      if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
-        set_current_state(State::PLACE_APPROACH);
-        inner_state_machine_->set_internal_state(Internal_State::RESTING);
-        progress_ = progress_ + 1.0;
-      }
-      break;
-
-    case State::PLACE_APPROACH:
-      // Move sample to place
-      motion_results = inner_state_machine_->move_robot(
-        move_group_interface_,
-        goal->place);
-      if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
-        set_current_state(State::PLACE);
-        inner_state_machine_->set_internal_state(Internal_State::RESTING);
-        progress_ = progress_ + 1.0;
-      }
-      break;
-
-    case State::PLACE:
-      // Place the sample.
-      if (this->gripper_present_) {
-        motion_results = inner_state_machine_->open_gripper();
-        if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
-          progress_ = progress_ + 1.0;
-          set_current_state(State::RELEASE_SUCCESS);
-          inner_state_machine_->set_internal_state(Internal_State::RESTING);
-        } else {
-          set_current_state(State::RELEASE_FAILURE);
-          inner_state_machine_->set_internal_state(Internal_State::RESTING);
-        }
-      }
-      break;
-
-    case State::RELEASE_SUCCESS:
-      // Sample was successfully released.
-      motion_results = inner_state_machine_->move_robot(
-        move_group_interface_,
-        goal->place_approach);
-      if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
-        set_current_state(State::PLACE_RETREAT);
-        inner_state_machine_->set_internal_state(Internal_State::RESTING);
-        progress_ = progress_ + 1.0;
-      }
-      break;
-
-    case State::PLACE_RETREAT:
-      // Move back to rest/home position
-      motion_results = inner_state_machine_->move_robot(
-        move_group_interface_, goal_home_);
-      if (motion_results == moveit::core::MoveItErrorCode::SUCCESS) {
-        set_current_state(State::HOME);
-        inner_state_machine_->set_internal_state(Internal_State::RESTING);
-        progress_ = progress_ + 1.0;
-      }
-      break;
-
-    default:
-      break;
+  } else if (external_index_ == static_cast<int>(sequence_.size())) {
+    // final HOME
+    result = inner_state_machine_->move_robot(move_group_interface_, default_home_);
+    external_index_++;
   }
 
-  return motion_results;
+  // progress_ is used by the execute() loop to detect completion
+  progress_ = double(external_index_ + 1) / double(total_states_);
+  return result;
 }
 
-bool PdfBeamtimeServer::reset_fsm()
+
+
+
+bool cmsBeamtimeServer::reset_fsm()
 {
   bool reset_results = false;
   // This prevents the internal state reset while in clean up
@@ -538,7 +629,7 @@ bool PdfBeamtimeServer::reset_fsm()
   return reset_results;
 }
 
-moveit::core::MoveItErrorCode PdfBeamtimeServer::return_sample()
+moveit::core::MoveItErrorCode cmsBeamtimeServer::return_sample()
 {
   moveit::core::MoveItErrorCode motion_results = moveit::core::MoveItErrorCode::FAILURE;
 
@@ -560,19 +651,19 @@ moveit::core::MoveItErrorCode PdfBeamtimeServer::return_sample()
   return motion_results;
 }
 
-void PdfBeamtimeServer::handle_pause()
+void cmsBeamtimeServer::handle_pause()
 {
   RCLCPP_INFO(node_->get_logger(), "PAUSED command received");
   inner_state_machine_->pause(move_group_interface_);
 }
 
-void PdfBeamtimeServer::handle_stop()
+void cmsBeamtimeServer::handle_stop()
 {
   RCLCPP_INFO(node_->get_logger(), "STOP command received");
   execute_cleanup();
 }
 
-void PdfBeamtimeServer::execute_cleanup()
+void cmsBeamtimeServer::execute_cleanup()
 {
   inner_state_machine_->set_internal_state(Internal_State::CLEANUP);
   RCLCPP_INFO(node_->get_logger(), "Cleanup is in progress");
@@ -612,29 +703,82 @@ void PdfBeamtimeServer::execute_cleanup()
   RCLCPP_INFO(node_->get_logger(), "Cleanup is complete");
 }
 
-void PdfBeamtimeServer::handle_abort()
+void cmsBeamtimeServer::handle_abort()
 {
   RCLCPP_INFO(node_->get_logger(), "ABORT command received");
   execute_cleanup();
 }
 
-void PdfBeamtimeServer::handle_halt()
+void cmsBeamtimeServer::handle_halt()
 {
   RCLCPP_INFO(node_->get_logger(), "HALT command received");
   inner_state_machine_->halt(move_group_interface_);
 }
 
-void PdfBeamtimeServer::handle_resume()
+void cmsBeamtimeServer::handle_resume()
 {
   RCLCPP_INFO(node_->get_logger(), "RESUME command received");
   inner_state_machine_->set_internal_state(Internal_State::RESTING);
 }
 
-void PdfBeamtimeServer::set_current_state(State state)
+void cmsBeamtimeServer::set_current_state(State state)
 {
-  RCLCPP_INFO(
-    node_->get_logger(), "[%s] Current state changed to %s.",
-    external_state_names_[static_cast<int>(current_state_)].c_str(),
-    external_state_names_[static_cast<int>(state)].c_str());
+  // JSON-driven mode has no hard-coded state names.
   current_state_ = state;
+}
+// void cmsBeamtimeServer::set_current_state(State state)
+// {
+//   RCLCPP_INFO(
+//     node_->get_logger(), "[%s] Current state changed to %s.",
+//     // external_state_names_[static_cast<int>(current_state_)].c_str(),
+//     // external_state_names_[static_cast<int>(state)].c_str());
+//   current_state_ = state;
+// }
+
+void cmsBeamtimeServer::load_sequence_from_json(const std::string & file_path)
+{
+  if (file_path.empty()) {
+    RCLCPP_WARN(node_->get_logger(),
+      "No sequence_file provided—external FSM will just go HOME→HOME");
+    return;
+  }
+  std::ifstream f(file_path);
+  nlohmann::json j;
+  f >> j;
+
+  // load named poses (and auto-convert degrees→radians if needed)
+  for (auto & kv : j["poses"].items()) {
+    // 1) read raw
+    auto angles = kv.value().get<std::vector<double>>();
+    // 2) detect+convert degrees
+    for (auto & a : angles) {
+      if (std::abs(a) > 2.0 * M_PI) {
+        a = a * M_PI / 180.0;
+      }
+    }
+    // 3) store
+    poses_map_[kv.key()] = std::move(angles);
+  }
+
+  // optional JSON home override
+  if (auto it = poses_map_.find("home"); it != poses_map_.end()) {
+    default_home_ = it->second;
+  }
+
+  // load sequence steps
+  for (auto & step_j : j["sequence"]) {
+    SequenceStep s;
+    std::string t = step_j["type"].get<std::string>();
+    s.type = (t == "move")
+      ? SequenceStep::Type::MOVE
+      : SequenceStep::Type::END_EFFECTOR;
+    if (s.type == SequenceStep::Type::MOVE) {
+      for (auto & name : step_j["pose_waypoints"])
+        s.pose_waypoints.push_back(name.get<std::string>());
+    } else {
+      s.device = step_j["device"].get<std::string>();
+      s.action = step_j["action"].get<std::string>();
+    }
+    sequence_.push_back(std::move(s));
+  }
 }
