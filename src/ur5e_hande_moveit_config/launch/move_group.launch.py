@@ -16,7 +16,7 @@ def generate_launch_description():
     ## mock_hardware is for gripper sim , currently can only be setup through the xacro file, launch file arg doesn't work
 
     ur_type = DeclareLaunchArgument('ur_type', default_value='ur5e')
-    robot_ip = DeclareLaunchArgument('robot_ip', default_value='192.168.56.101')
+    robot_ip = DeclareLaunchArgument('robot_ip', default_value='192.168.1.10')
     use_fake_hardware = DeclareLaunchArgument('use_fake_hardware', default_value='false')
     description_package = DeclareLaunchArgument('description_package', default_value='ur5e_hande_robot_description')
     description_file = DeclareLaunchArgument('description_file', default_value='ur_with_hande.xacro')
@@ -54,12 +54,19 @@ def generate_launch_description():
         .planning_pipelines(pipelines=["ompl", "pilz_industrial_motion_planner"])
         .to_moveit_configs()
     )
+    # Load  ExecuteTaskSolutionCapability so we can execute found solutions in simulation
+    move_group_capabilities = {
+        "capabilities": "move_group/ExecuteTaskSolutionCapability"
+    }
 
     run_move_group_node = Node(
         package="moveit_ros_move_group",
         executable="move_group",
         output="screen",
-        parameters=[moveit_config.to_dict()],
+        parameters=[
+            moveit_config.to_dict(),
+            move_group_capabilities,
+        ],
     )
 
     # RViz

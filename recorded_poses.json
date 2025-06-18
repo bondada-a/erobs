@@ -1,12 +1,12 @@
 {
   "poses": {
     "pickup_approach": [
-      1.29,
-      -107.95,
-      -126.93,
-      -121.6,
-      35.1,
-      180.0
+      -27.90,
+      -94.54,
+      -130.85,
+      -125.52,
+      27.27,
+      172.26
     ],
     "pickup": [
       -7.49,
@@ -25,7 +25,7 @@
       180.0
     ],
     "place": [
-      -127.24,
+      -33.24,
       -65.97,
       -107.91,
       -189.77,
@@ -36,11 +36,7 @@
   "sequence": [
     {
       "type": "move",
-      "pose_waypoints": ["pickup_approach", "pickup"]
-    },
-    {
-      "type": "move",
-      "pose_waypoints": ["pickup", "pickup_approach", "place_approach", "place"]
+      "pose_waypoints": ["pickup_approach"]
     },
     {
       "type": "end_effector",
@@ -49,13 +45,13 @@
     },
     
     {
+      "type": "move",
+      "pose_waypoints": ["place"]
+    },
+    {
       "type": "end_effector",
       "device": "gripper",
       "action": "open"
-    },
-    {
-      "type": "move",
-      "pose_waypoints": ["place", "place_approach", "pickup_approach"]
     }
   ]
 }
