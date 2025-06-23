@@ -10,7 +10,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
   <build_depend>control_msgs</build_depend>
-
+  <build_depend>nlohmann_json3_dev</build_depend>
   <!-- Runtime dependencies -->
   <exec_depend>rclpy</exec_depend>
   <exec_depend>tf2_ros</exec_depend>
