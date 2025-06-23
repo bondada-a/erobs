@@ -14,6 +14,6 @@ source /opt/ros/${ROS_DISTRO}/setup.bash && colcon build \
 colcon build \
         --merge-install \
         --symlink-install \
-        --packages-skip zed_components zed_wrapper zed_interfaces \
+        --packages-skip zed_ros2_wrapper \
         --cmake-args "-DCMAKE_BUILD_TYPE=$BUILD_TYPE" "-DCMAKE_EXPORT_COMPILE_COMMANDS=On" \
         -Wall -Wextra -Wpedantic
