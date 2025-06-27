@@ -31,8 +31,8 @@ RUN /bin/bash -c ". ./setup.sh"
 WORKDIR /root/ws/
 RUN /bin/bash -c ". ./erobs/build.sh"
 
-ENV ROBOT_IP=192.168.56.101
-ENV REVERSE_IP=192.168.56.102
+ENV ROBOT_IP=10.69.26.90
+ENV REVERSE_IP=10.69.26.42
 ENV UR_TYPE="ur5e"
 ENV LAUNCH_RVIZ="false"
 ENV DESCRIPTION_PKG="ur5e_hande_robot_description"

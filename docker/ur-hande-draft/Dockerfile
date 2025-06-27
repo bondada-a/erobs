@@ -59,7 +59,7 @@ RUN apt-get autoremove -y \
   && apt-get clean -y \
   && rm -rf /var/lib/apt/lists/*
 
-ENV ROBOT_IP=192.168.56.101
+ENV ROBOT_IP=10.69.26.90
 ENV REVERSE_IP=192.168.56.102
 ENV UR_TYPE="ur5e"
 

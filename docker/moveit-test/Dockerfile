@@ -41,7 +41,7 @@ RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && \
 
 WORKDIR /root/ws/
 
-ENV ROBOT_IP=192.168.56.101
+ENV ROBOT_IP=10.69.26.90
 ENV REVERSE_IP=192.168.56.102
 ENV UR_TYPE="ur5e"
 ENV LAUNCH_RVIZ="true"

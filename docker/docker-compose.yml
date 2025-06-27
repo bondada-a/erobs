@@ -11,7 +11,7 @@ services:
       - ROBOT_MODEL=UR5
     networks:
       ursim_net:
-        ipv4_address: 192.168.56.101
+        ipv4_address: 10.69.26.90
     volumes:
       - ./ursim/programs:/ursim/programs
 
@@ -23,10 +23,10 @@ services:
       - 50003:50003
       - 50004:50004
     environment:
-      - ROBOT_IP=192.168.56.101
+      - ROBOT_IP=10.69.26.90
     networks:
       ursim_net:
-        ipv4_address: 192.168.56.102
+        ipv4_address: 10.69.26.42
     depends_on:
       - ursim
 
@@ -35,11 +35,11 @@ services:
     ports:
       - 5901:5901
     environment:
-      - ROBOT_IP=192.168.56.101
+      - ROBOT_IP=10.69.26.90
       - LAUNCH_RVIZ=true
     networks:
       ursim_net:
-        ipv4_address: 192.168.56.103
+        ipv4_address: 10.69.26.43
     depends_on:
       - urdriver
 
@@ -53,7 +53,7 @@ services:
       - /tmp/.X11-unix:/tmp/.X11-unix
       - $XAUTHORITY:/root/.Xauthority
     environment:
-      - ROBOT_IP=192.168.56.101
+      - ROBOT_IP=10.69.26.90
       - LAUNCH_RVIZ=true
       - QT_X11_NO_MITSHM=1
       - DISPLAY=$DISPLAY
@@ -65,10 +65,10 @@ services:
   urexample:
     image: ur-example:latest
     environment:
-      - ROBOT_IP=192.168.56.101
+      - ROBOT_IP=10.69.26.90
     networks:
       ursim_net:
-        ipv4_address: 192.168.56.104
+        ipv4_address: 10.69.26.44
     depends_on:
       - urdriver
 
@@ -78,7 +78,7 @@ networks:
   ursim_net:
     ipam:
       config:
-        - subnet: 192.168.56.0/24
+        - subnet: 10.69.26.42/24
 
 # Can be configured to use extrernal network as well
 # https://stackoverflow.com/questions/46461977/docker-compose-v3-static-ip
