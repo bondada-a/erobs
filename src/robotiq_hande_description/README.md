@@ -1,10 +1,3 @@
-#### This description is a copy from : [repo](https://github.com/AGH-CEAI/robotiq_hande_description)
-
-The following changes have been made :
-- in robotiq_hande_gripper.xacro - connection to the robot has been modified to correct orientation
-- removed ':' character from the comments in xacro files - causes the error - "Unable to parse the value of parameter robot_description as yaml."
-
-
 # robotiq_hande_description
 ### For the driver, check the [robotiq_hande_driver](https://github.com/AGH-CEAI/robotiq_hande_driver/) package from AGH UST.
 ---
