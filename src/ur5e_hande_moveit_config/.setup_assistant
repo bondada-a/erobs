@@ -5,9 +5,9 @@ moveit_setup_assistant_config:
   srdf:
     relative_path: config/ur.srdf
   package_settings:
-    author_name: Aditya
+    author_name: Aditya Bondada
     author_email: abondada@bnl.gov
-    generated_timestamp: 1749684249
+    generated_timestamp: 1751322971
   control_xacro:
     command:
       - position

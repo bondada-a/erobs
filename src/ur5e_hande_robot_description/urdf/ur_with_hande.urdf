@@ -597,15 +597,7 @@
   </joint>
   <ros2_control name="robotiq_hande_gripper" type="system">
     <hardware>
-      <plugin>robotiq_hande_driver/RobotiqHandeHardwareInterface</plugin>
-      <param name="grip_pos_min">0</param>
-      <param name="grip_pos_max">0.025</param>
-      <param name="tty">/tmp/ttyUR</param>
-      <param name="baudrate">115200</param>
-      <param name="parity">N</param>
-      <param name="data_bits">8</param>
-      <param name="stop_bit">1</param>
-      <param name="slave_id">9</param>
+      <plugin>mock_components/GenericSystem</plugin>
     </hardware>
     <!-- The right finger joint uses the mimic feature -->
     <joint name="robotiq_hande_left_finger_joint">
@@ -626,7 +618,7 @@
   <!--  + Height added by the Hand-E: 99.0mm -->
   <!--  + Coupler mass includes the bolts -->
   <joint name="robotiq_hande_coupler_joint" type="fixed">
-    <origin rpy="-1.5707963267948966 0 -1.5707963267948966" xyz="0 0 0"/>
+    <origin rpy="-1.5708 0 -1.5708" xyz="0 0 0"/>
     <parent link="flange"/>
     <child link="robotiq_hande_coupler"/>
   </joint>
