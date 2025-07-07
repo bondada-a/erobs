@@ -14,13 +14,16 @@ find_package(rclcpp REQUIRED)
 # find_package(<dependency> REQUIRED)
 
 add_executable(mtc_tutorial src/mtc_tutorial.cpp)
+add_executable(mtc_simple  src/mtc_simple.cpp)
+ament_target_dependencies(mtc_simple moveit_task_constructor_core rclcpp)
 ament_target_dependencies(mtc_tutorial moveit_task_constructor_core rclcpp)
 target_include_directories(mtc_tutorial PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
 $<INSTALL_INTERFACE:include>)
 target_compile_features(mtc_tutorial PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+target_compile_features(mtc_simple PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
-install(TARGETS mtc_tutorial
+install(TARGETS mtc_tutorial mtc_simple
 DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 

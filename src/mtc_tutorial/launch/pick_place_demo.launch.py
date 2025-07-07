@@ -21,7 +21,7 @@ def generate_launch_description():
     # MTC Demo node
     pick_place_demo = Node(
         package="mtc_tutorial",
-        executable="mtc_tutorial",
+        executable="mtc_simple",
         output="screen",
         parameters=[
             moveit_config.to_dict(),
