@@ -50,7 +50,6 @@
    <xacro:arg name="sim_ignition" default="false" />
    <xacro:arg name="simulation_controllers" default="" />
 
-   <xacro:arg name="mock_hardware" default="true" />
 
    <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
    <xacro:arg name="initial_positions_file" default="$(find ur_description)/config/initial_positions.yaml"/>
@@ -125,7 +124,7 @@
       data_bits="$(arg data_bits)"
       stop_bit="$(arg stop_bit)"
       slave_id="$(arg slave_id)"
-      use_fake_hardware="$(arg mock_hardware)"
+      use_fake_hardware="$(arg use_fake_hardware)"
       xyz="0 0 0"
       rpy="-1.5708 0 -1.5708"/>
 
