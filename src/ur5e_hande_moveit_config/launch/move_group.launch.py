@@ -49,7 +49,7 @@ def generate_launch_description():
         .planning_scene_monitor(
             publish_robot_description=True, publish_robot_description_semantic=True
         )
-        .planning_pipelines(pipelines=["ompl", "pilz_industrial_motion_planner"])
+        .planning_pipelines(pipelines=["ompl"])
         .to_moveit_configs()
     )
     # Load  ExecuteTaskSolutionCapability so we can execute found solutions in simulation
@@ -70,7 +70,7 @@ def generate_launch_description():
     # RViz
     rviz_arg = DeclareLaunchArgument(
         "rviz_config",
-        default_value="view_robot.rviz",
+        default_value="view_robot_mtc.rviz",
         description="RViz config file"
     )
 

@@ -15,13 +15,14 @@ def generate_launch_description():
     moveit_config = (
         MoveItConfigsBuilder("ur5e_hande")
         .robot_description(file_path="config/ur.urdf.xacro")
+        .planning_pipelines(pipelines=["ompl"])
         .to_moveit_configs()
     )
 
     # MTC Demo node
     pick_place_demo = Node(
         package="mtc_tutorial",
-        executable="mtc_simple",
+        executable="mtc_complex",
         output="screen",
         parameters=[
             moveit_config.to_dict(),

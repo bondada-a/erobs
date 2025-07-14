@@ -9,42 +9,42 @@ default_acceleration_scaling_factor: 0.1
 # Joint limits can be turned off with [has_velocity_limits, has_acceleration_limits]
 joint_limits:
   elbow_joint:
-    # has_velocity_limits: true
-    # max_velocity: 1.499999999999999
+    has_velocity_limits: true
+    max_velocity: 3.1415926535897931
     has_acceleration_limits: false
-    max_acceleration: 1.0
+    max_acceleration: 0
   robotiq_hande_left_finger_joint:
     has_velocity_limits: true
     max_velocity: 0.14999999999999999
     has_acceleration_limits: false
-    max_acceleration: 1.0
+    max_acceleration: 0
   robotiq_hande_right_finger_joint:
     has_velocity_limits: true
     max_velocity: 0.14999999999999999
     has_acceleration_limits: false
-    max_acceleration: 1.0
+    max_acceleration: 0
   shoulder_lift_joint:
-    # has_velocity_limits: true
-    # max_velocity: 1.499999999999999
+    has_velocity_limits: true
+    max_velocity: 3.1415926535897931
     has_acceleration_limits: false
-    max_acceleration: 1.0
+    max_acceleration: 0
   shoulder_pan_joint:
-    # has_velocity_limits: true
-    # max_velocity: 1.499999999999999
+    has_velocity_limits: true
+    max_velocity: 3.1415926535897931
     has_acceleration_limits: false
-    max_acceleration: 1.0
+    max_acceleration: 0
   wrist_1_joint:
-    # has_velocity_limits: true
-    # max_velocity: 1.499999999999999
+    has_velocity_limits: true
+    max_velocity: 3.1415926535897931
     has_acceleration_limits: false
-    max_acceleration: 1.0
+    max_acceleration: 0
   wrist_2_joint:
-    # has_velocity_limits: true
-    # max_velocity: 1.499999999999999
+    has_velocity_limits: true
+    max_velocity: 3.1415926535897931
     has_acceleration_limits: false
-    max_acceleration: 1.0
+    max_acceleration: 0
   wrist_3_joint:
-    # has_velocity_limits: true
-    # max_velocity: 1.499999999999999
+    has_velocity_limits: true
+    max_velocity: 3.1415926535897931
     has_acceleration_limits: false
-    max_acceleration: 1.0
+    max_acceleration: 0

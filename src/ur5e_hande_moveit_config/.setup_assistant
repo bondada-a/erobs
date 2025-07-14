@@ -7,19 +7,4 @@ moveit_setup_assistant_config:
   package_settings:
     author_name: Aditya Bondada
     author_email: abondada@bnl.gov
-    generated_timestamp: 1751322971
-  control_xacro:
-    command:
-      - position
-    state:
-      - position
-      - velocity
-  modified_urdf:
-    xacros:
-      - control_xacro
-  control_xacro:
-    command:
-      - position
-    state:
-      - position
-      - velocity
+    generated_timestamp: 1752179994
