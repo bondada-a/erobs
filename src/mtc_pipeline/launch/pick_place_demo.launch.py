@@ -6,9 +6,7 @@ from launch.actions import DeclareLaunchArgument
 from launch import LaunchDescription
 from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
-import os
-from launch.actions import IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+
 
 
 def generate_launch_description():
@@ -18,15 +16,22 @@ def generate_launch_description():
         .planning_pipelines(pipelines=["ompl"])
         .to_moveit_configs()
     )
+    
+    poses_file_arg = DeclareLaunchArgument(
+        'poses_file',
+        default_value='/home/user/poses.json',
+        description='Full path to the JSON file with poses'
+    )
 
     # MTC Demo node
     pick_place_demo = Node(
-        package="mtc_tutorial",
+        package="mtc_pipeline",
         executable="mtc_complex",
         output="screen",
         parameters=[
             moveit_config.to_dict(),
+            {'poses_file': LaunchConfiguration('poses_file')}
         ],
     )
 
-    return LaunchDescription([pick_place_demo])
+    return LaunchDescription([poses_file_arg, pick_place_demo])

@@ -1,14 +1,14 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-<name>mtc_tutorial</name>
+<name>mtc_pipeline</name>
 <version>0.0.0</version>
-<description>TODO: Package description</description>
+<description>Motion planning pipeline</description>
 <maintainer email="youremail@domain.com">user</maintainer>
 <license>TODO: License declaration</license>
 
 <buildtool_depend>ament_cmake</buildtool_depend>
-
+<depend>nlohmann_json</depend>
 <depend>moveit_task_constructor_core</depend>
 <depend>rclcpp</depend>
 

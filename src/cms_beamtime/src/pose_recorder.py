@@ -42,11 +42,14 @@ class PoseRecorder(Node):
             self.get_logger().error("No joint state received yet!")
             return None
 
-        # Reorder joints: move the last entry to the start
-        reordered_positions_rad = [self.joint_positions[-1]] + list(self.joint_positions[:-1])
+        # 1) drop the gripper joint (index 0)
+        arm_joint_positions_rad = list(self.joint_positions)[1:]
 
-        # Convert radians to degrees using math.degrees()
-        pose_in_degrees = [round(math.degrees(x), 2) for x in reordered_positions_rad]
+        # 2) rotate so the shoulder_pan (formerly last) comes first
+        ordered_arm_positions_rad = [arm_joint_positions_rad[-1]] + arm_joint_positions_rad[:-1]
+
+        # 3) convert radians to degrees
+        pose_in_degrees = [round(math.degrees(x), 2) for x in ordered_arm_positions_rad]
 
         self.get_logger().info(f"Recorded pose for '{label}': {pose_in_degrees}")
         return pose_in_degrees
@@ -79,7 +82,7 @@ def main(args=None):
     for label, pose in poses.items():
         print(f"{label}: {pose}")
 
-    # Save the poses to a file
+    # Save the poses to a file, wrapped under "poses"
     save_to_file(poses)
 
     recorder.destroy_node()
@@ -88,8 +91,9 @@ def main(args=None):
 def save_to_file(poses):
     import json
     filename = "recorded_poses.json"
+    data = { "poses": poses }
     with open(filename, "w") as f:
-        json.dump(poses, f, indent=4)
+        json.dump(data, f, indent=4)
     print(f"Poses saved to {filename}")
 
 if __name__ == '__main__':

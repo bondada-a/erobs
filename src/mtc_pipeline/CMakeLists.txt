@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(mtc_tutorial)
+project(mtc_pipeline)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 add_compile_options(-Wall -Wextra -Wpedantic)
@@ -9,6 +9,7 @@ endif()
 find_package(ament_cmake REQUIRED)
 find_package(moveit_task_constructor_core REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(nlohmann_json REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -16,10 +17,14 @@ find_package(rclcpp REQUIRED)
 add_executable(mtc_tutorial src/mtc_tutorial.cpp)
 add_executable(mtc_simple  src/mtc_simple.cpp)
 add_executable(mtc_complex  src/mtc_complex.cpp)
+add_executable(mtc_pickplace  src/mtc_pickplace.cpp)
 
 ament_target_dependencies(mtc_simple moveit_task_constructor_core rclcpp)
 ament_target_dependencies(mtc_tutorial moveit_task_constructor_core rclcpp)
 ament_target_dependencies(mtc_complex moveit_task_constructor_core rclcpp)
+ament_target_dependencies(mtc_pickplace moveit_task_constructor_core rclcpp)
+
+target_link_libraries(mtc_pickplace nlohmann_json::nlohmann_json)
 
 target_include_directories(mtc_tutorial PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -27,8 +32,9 @@ $<INSTALL_INTERFACE:include>)
 target_compile_features(mtc_tutorial PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_compile_features(mtc_simple PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_compile_features(mtc_complex PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+target_compile_features(mtc_pickplace PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
-install(TARGETS mtc_tutorial mtc_simple mtc_complex
+install(TARGETS mtc_tutorial mtc_simple mtc_complex mtc_pickplace
 DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 

@@ -22,7 +22,7 @@
 
 
 
-static const rclcpp::Logger LOGGER = rclcpp::get_logger("mtc_tutorial");
+static const rclcpp::Logger LOGGER = rclcpp::get_logger("mtc_pipeline");
 namespace mtc = moveit::task_constructor;
 
 class MTCTaskNode
