@@ -10,6 +10,7 @@ find_package(ament_cmake REQUIRED)
 find_package(moveit_task_constructor_core REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(nlohmann_json REQUIRED)
+find_package(ur_msgs REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -21,10 +22,10 @@ add_executable(mtc_pickplace  src/mtc_pickplace.cpp)
 add_executable(mtc_toolexchange  src/mtc_toolexchange.cpp)
 
 ament_target_dependencies(mtc_tutorial moveit_task_constructor_core rclcpp)
-ament_target_dependencies(mtc_simple moveit_task_constructor_core rclcpp)
-ament_target_dependencies(mtc_complex moveit_task_constructor_core rclcpp)
-ament_target_dependencies(mtc_pickplace moveit_task_constructor_core rclcpp)
-ament_target_dependencies(mtc_toolexchange moveit_task_constructor_core rclcpp)
+ament_target_dependencies(mtc_simple moveit_task_constructor_core rclcpp ur_msgs) 
+ament_target_dependencies(mtc_complex moveit_task_constructor_core rclcpp ur_msgs)
+ament_target_dependencies(mtc_pickplace moveit_task_constructor_core rclcpp ur_msgs)
+ament_target_dependencies(mtc_toolexchange moveit_task_constructor_core rclcpp ur_msgs)
 
 target_link_libraries(mtc_pickplace nlohmann_json::nlohmann_json)
 target_link_libraries(mtc_toolexchange nlohmann_json::nlohmann_json)
