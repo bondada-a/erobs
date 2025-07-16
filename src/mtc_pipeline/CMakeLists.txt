@@ -18,13 +18,16 @@ add_executable(mtc_tutorial src/mtc_tutorial.cpp)
 add_executable(mtc_simple  src/mtc_simple.cpp)
 add_executable(mtc_complex  src/mtc_complex.cpp)
 add_executable(mtc_pickplace  src/mtc_pickplace.cpp)
+add_executable(mtc_toolexchange  src/mtc_toolexchange.cpp)
 
-ament_target_dependencies(mtc_simple moveit_task_constructor_core rclcpp)
 ament_target_dependencies(mtc_tutorial moveit_task_constructor_core rclcpp)
+ament_target_dependencies(mtc_simple moveit_task_constructor_core rclcpp)
 ament_target_dependencies(mtc_complex moveit_task_constructor_core rclcpp)
 ament_target_dependencies(mtc_pickplace moveit_task_constructor_core rclcpp)
+ament_target_dependencies(mtc_toolexchange moveit_task_constructor_core rclcpp)
 
 target_link_libraries(mtc_pickplace nlohmann_json::nlohmann_json)
+target_link_libraries(mtc_toolexchange nlohmann_json::nlohmann_json)
 
 target_include_directories(mtc_tutorial PUBLIC
 $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -33,8 +36,9 @@ target_compile_features(mtc_tutorial PUBLIC c_std_99 cxx_std_17)  # Require C99 
 target_compile_features(mtc_simple PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_compile_features(mtc_complex PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 target_compile_features(mtc_pickplace PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
+target_compile_features(mtc_toolexchange PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
 
-install(TARGETS mtc_tutorial mtc_simple mtc_complex mtc_pickplace
+install(TARGETS mtc_tutorial mtc_simple mtc_complex mtc_pickplace mtc_toolexchange
 DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 

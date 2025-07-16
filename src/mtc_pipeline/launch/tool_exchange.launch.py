@@ -22,16 +22,23 @@ def generate_launch_description():
         default_value='/home/user/poses.json',
         description='Full path to the JSON file with poses'
     )
+    operation_arg = DeclareLaunchArgument(
+        'operation',
+        default_value='load',
+        description='Operation: "load" (attach EE) or "dock" (detach EE)'
+    )
+
 
     # MTC Demo node
     pick_place_demo = Node(
         package="mtc_pipeline",
-        executable="mtc_pickplace",
+        executable="mtc_toolexchange",
         output="screen",
         parameters=[
             moveit_config.to_dict(),
-            {'poses_file': LaunchConfiguration('poses_file')}
+            {'poses_file': LaunchConfiguration('poses_file')},
+            {'operation': LaunchConfiguration('operation')}
         ],
     )
 
-    return LaunchDescription([poses_file_arg, pick_place_demo])
+    return LaunchDescription([poses_file_arg, operation_arg, pick_place_demo])

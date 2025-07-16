@@ -124,7 +124,7 @@
       data_bits="$(arg data_bits)"
       stop_bit="$(arg stop_bit)"
       slave_id="$(arg slave_id)"
-      use_fake_hardware="$(arg use_fake_hardware)"
+      use_fake_hardware="true"
       xyz="0 0 0"
       rpy="-1.5708 0 -1.5708"/>
 
