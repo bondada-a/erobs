@@ -41,6 +41,9 @@ public:
   
   std::string operation_; 
 
+  int    dock_number_{3};      // 1-5, default centre
+  double dock_offset_y_{0.0}; 
+
   void doTask();
 
   
@@ -75,6 +78,13 @@ private:
     mtc::solvers::CartesianPathPtr          cartesian;
   };
   Planners initCommon(mtc::Task& task);
+
+  // ─── lateral dock-shift helper ────────────────────────────────
+  std::unique_ptr<mtc::stages::MoveRelative>
+  makeDockShiftStage(double offset,
+                     const std::string& name,
+                     const Planners& planners) const;
+
 
 };
 
@@ -168,6 +178,18 @@ MTCTaskNode::MTCTaskNode(const rclcpp::NodeOptions& options)
   node_->get_parameter_or("poses_file", cfg_file, std::string("/home/user/poses.json"));
   node_->get_parameter_or("operation", operation_, std::string("load"));
   
+  // ─── read dock_number (defaults to 3) ────────────────────────────────────
+  
+  node_->get_parameter_or("dock_number", dock_number_, 3);
+
+  if (dock_number_ < 1 || dock_number_ > 5) {
+    RCLCPP_FATAL(LOGGER, "dock_number must be 1-5, got %d", dock_number_);
+    throw std::runtime_error("invalid dock_number");
+  }
+  constexpr double DOCK_SPACING = 0.1524;               // m
+  dock_offset_y_ = DOCK_SPACING * static_cast<double>(3 - dock_number_);
+
+
   // 2) load the JSON
   try
   {
@@ -214,6 +236,25 @@ void MTCTaskNode::addNamedMoveStage(
         stage->setPathConstraints(*path_constraints);
 
     task.add(std::move(stage));
+}
+
+std::unique_ptr<mtc::stages::MoveRelative>
+MTCTaskNode::makeDockShiftStage(double offset,
+                                const std::string& name,
+                                const MTCTaskNode::Planners& planners) const
+
+{
+  auto stage = std::make_unique<mtc::stages::MoveRelative>(name, planners.cartesian);
+  stage->properties().set("marker_ns", "dock_shift");
+  stage->properties().set("link", hand_frame);
+  stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group"});
+  stage->setMinMaxDistance(std::abs(offset), std::abs(offset));
+
+  geometry_msgs::msg::Vector3Stamped vec;
+  vec.header.frame_id = hand_frame;
+  vec.vector.y = (offset >= 0.0) ? 1.0 : -1.0;   // direction
+  stage->setDirection(vec);
+  return stage;
 }
 
 
@@ -274,6 +315,11 @@ mtc::Task MTCTaskNode::createLoadTask()
 
 // 3. move to load_approach from JSON
   addNamedMoveStage(task,"move to load approach", "load_approach",planners.sampling);
+
+// ─── lateral shift to selected dock ───────────────────────────────
+  if (std::abs(dock_offset_y_) > 1e-4)
+    task.add( makeDockShiftStage(dock_offset_y_, "shift to dock", planners) );
+
 
 // attach to dock
   {
@@ -361,6 +407,9 @@ mtc::Task MTCTaskNode::createDockTask()
 
 
   addNamedMoveStage(task,"move to dock approach", "dock_approach",planners.sampling);
+  if (std::abs(dock_offset_y_) > 1e-4)
+    task.add( makeDockShiftStage(dock_offset_y_, "shift to dock", planners) );
+
 
 // align with holder
   {

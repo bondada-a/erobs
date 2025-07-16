@@ -28,6 +28,12 @@ def generate_launch_description():
         description='Operation: "load" (attach EE) or "dock" (detach EE)'
     )
 
+    dock_number_arg = DeclareLaunchArgument(
+    "dock_number",
+    default_value="3",                     # centre dock
+    description="Dock index (1–5)"
+    )
+
 
     # MTC Demo node
     pick_place_demo = Node(
@@ -37,8 +43,9 @@ def generate_launch_description():
         parameters=[
             moveit_config.to_dict(),
             {'poses_file': LaunchConfiguration('poses_file')},
-            {'operation': LaunchConfiguration('operation')}
+            {'operation': LaunchConfiguration('operation')},
+            {"dock_number": LaunchConfiguration("dock_number")}, 
         ],
     )
 
-    return LaunchDescription([poses_file_arg, operation_arg, pick_place_demo])
+    return LaunchDescription([poses_file_arg, operation_arg, pick_place_demo, dock_number_arg])  # Add dock_number_arg to the launch description
