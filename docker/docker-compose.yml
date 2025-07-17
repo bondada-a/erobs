@@ -1,6 +1,10 @@
 version: '3'
 
 services:
+  bsui:
+    image: bsui:latest
+    container_name: bsui
+    command: ["/bin/bsui"]
   ursim:
     image: ursim:latest
     command: tail -f /dev/null
