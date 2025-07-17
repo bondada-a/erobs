@@ -61,7 +61,7 @@
    <link name="map" />
 
    <!-- mock_hardware for gripper  -->
-   <xacro:arg name="mock_hardware" default="false" />
+   <xacro:arg name="mock_hardware" default="true" />
    <!-- arm -->
    <xacro:ur_robot
      name="$(arg name)"
