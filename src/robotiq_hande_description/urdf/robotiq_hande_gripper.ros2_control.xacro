@@ -9,6 +9,7 @@
 
         <xacro:unless value="${use_fake_hardware}">
           <plugin>robotiq_hande_driver/RobotiqHandeHardwareInterface</plugin>
+
           <param name="grip_pos_min">${grip_pos_min}</param>
           <param name="grip_pos_max">${grip_pos_max}</param>
           <param name="tty">${tty}</param>

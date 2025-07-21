@@ -38,6 +38,7 @@
       stop_bit="${stop_bit}"
       slave_id="${slave_id}"
       use_fake_hardware="${use_fake_hardware}"
+
     />
 
     <!-- Robotiq Hand-E specs -->

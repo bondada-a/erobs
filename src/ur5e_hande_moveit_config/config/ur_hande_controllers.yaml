@@ -44,7 +44,7 @@
       tool_contact_controller:
         type: ur_controllers/ToolContactController
       
-      #### adding gripper controller
+      ### adding gripper controller
       gripper_action_controller:
         type: position_controllers/GripperActionController
 
@@ -58,7 +58,7 @@
 
   speed_scaling_state_broadcaster:
     ros__parameters:
-      state_publish_rate: 500.0
+      state_publish_rate: 100.0
       tf_prefix: "$(var tf_prefix)"
 
   io_and_status_controller:
@@ -97,7 +97,7 @@
       state_interfaces:
         - position
         - velocity
-      state_publish_rate: 500.0
+      state_publish_rate: 100.0
       action_monitor_rate: 20.0
       allow_partial_joints_goal: false
       constraints:
@@ -125,7 +125,7 @@
       state_interfaces:
         - position
         - velocity
-      state_publish_rate: 500.0
+      state_publish_rate: 100.0
       action_monitor_rate: 20.0
       allow_partial_joints_goal: false
       constraints:
