@@ -119,12 +119,12 @@ def generate_launch_description():
         parameters=[moveit_config.robot_description],
     )
 
-    # Hand controller spawner
-    hand_controller_spawner = Node(
-        package="controller_manager",
-        executable="spawner",
-        arguments=["gripper_action_controller", "-c", "/controller_manager"],
-    )
+    # # Hand controller spawner
+    # hand_controller_spawner = Node(
+    #     package="controller_manager",
+    #     executable="spawner",
+    #     arguments=["gripper_action_controller", "-c", "/controller_manager"],
+    # )
 
 
     return LaunchDescription([
@@ -145,7 +145,7 @@ def generate_launch_description():
         rviz_node,
         static_tf,
         robot_state_publisher,
-        hand_controller_spawner,
+        # hand_controller_spawner,
     ])
 
     

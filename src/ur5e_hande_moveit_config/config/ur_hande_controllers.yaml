@@ -1,6 +1,9 @@
 /**:
   controller_manager:
     ros__parameters:
+      hardware_components_initial_state:
+        unconfigured:
+          - "robotiq_hande_gripper"
 
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
