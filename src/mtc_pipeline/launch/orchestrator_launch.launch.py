@@ -20,7 +20,7 @@ def generate_launch_description():
 
     mtc_orchestrator_node = Node(
         package="mtc_pipeline",
-        executable="mtc_orchestrator",   # <--- change to your new executable!
+        executable="mtc_orchestrator",   
         output="screen",
         parameters=[
             moveit_config.to_dict(),

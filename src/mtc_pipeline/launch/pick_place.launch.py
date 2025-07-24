@@ -23,8 +23,8 @@ def generate_launch_description():
         description='Full path to the JSON file with poses'
     )
 
-    # MTC Demo node
-    pick_place_demo = Node(
+    # MTC pick_place node
+    pick_place = Node(
         package="mtc_pipeline",
         executable="mtc_pickplace",
         output="screen",
@@ -34,4 +34,4 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription([poses_file_arg, pick_place_demo])
+    return LaunchDescription([poses_file_arg, pick_place])

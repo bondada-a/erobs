@@ -35,8 +35,8 @@ def generate_launch_description():
     )
 
 
-    # MTC Demo node
-    pick_place_demo = Node(
+    # MTC pick_place node
+    pick_place = Node(
         package="mtc_pipeline",
         executable="mtc_toolexchange",
         output="screen",
@@ -48,4 +48,4 @@ def generate_launch_description():
         ],
     )
 
-    return LaunchDescription([poses_file_arg, operation_arg, pick_place_demo, dock_number_arg])  # Add dock_number_arg to the launch description
+    return LaunchDescription([poses_file_arg, operation_arg, pick_place, dock_number_arg])  # Add dock_number_arg to the launch description
