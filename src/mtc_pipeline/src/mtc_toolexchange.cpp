@@ -24,9 +24,6 @@
 #include <moveit_msgs/msg/constraints.hpp>
 #include <moveit_msgs/msg/joint_constraint.hpp>
 
-#include <ur_msgs/srv/set_payload.hpp> //depending on your driver
-#include <future>
-
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("mtc_logger");
 
 namespace mtc = moveit::task_constructor;
@@ -64,7 +61,7 @@ private:
         const mtc::solvers::PlannerInterfacePtr& planner,
         const moveit_msgs::msg::Constraints* path_constraints = nullptr
     );
-  void changePayload(double mass, const geometry_msgs::msg::Vector3& cog);
+  
   
   // constants or parameters
   std::string arm_group_name   = "ur_arm";
@@ -132,38 +129,6 @@ MTCTaskNode::Planners MTCTaskNode::initCommon(mtc::Task& task)
 }
 
 
-void MTCTaskNode::changePayload(double mass, const geometry_msgs::msg::Vector3& cog)
-{
-  auto client = node_->create_client<ur_msgs::srv::SetPayload>(
-    "/io_and_status_controller/set_payload");
-  if (!client->wait_for_service(std::chrono::seconds(2))) {
-    RCLCPP_WARN(LOGGER, "set_payload service not available");
-    return;
-  }
-  auto req = std::make_shared<ur_msgs::srv::SetPayload::Request>();
-  req->mass              = static_cast<float>(mass);
-  req->center_of_gravity = cog;
-
-  // send the request (returns a std::shared_future)
-  auto result_fut = client->async_send_request(req);
-
-  // wait up to 2s for the response; we do NOT spin here
-  if (result_fut.wait_for(std::chrono::seconds(2))
-        != std::future_status::ready)
-  {
-    RCLCPP_ERROR(LOGGER, "set_payload service call timed out");
-    return;
-  }
-
-  // future is ready—get() will not block
-  auto response = result_fut.get();
-  if (response->success)
-    RCLCPP_INFO(LOGGER,
-      "Payload updated: mass=%.3f, cog=(%.3f,%.3f,%.3f)",
-      mass, cog.x, cog.y, cog.z);
-  else
-    RCLCPP_ERROR(LOGGER, "set_payload returned success=false");
-}
 
 
 
@@ -339,17 +304,6 @@ mtc::Task MTCTaskNode::createLoadTask()
   }
 
 
-  // — payload change: read desired values from your JSON or hard-code —
-  // double new_mass = config_["gripper_mass"].get<double>();
-  // auto cog_arr = config_["gripper_cog"];
-  // geometry_msgs::msg::Vector3 cog;
-  // cog.x = cog_arr[0].get<double>();
-  // cog.y = cog_arr[1].get<double>();
-  // cog.z = cog_arr[2].get<double>();
-
-  // // call the helper to update the UR driver
-  // changePayload(new_mass, cog);
-
   // detach from holder
   {
     auto stage_dock_detach =
@@ -444,16 +398,6 @@ mtc::Task MTCTaskNode::createDockTask()
     stage_dock_detach->setDirection(vec);
     task.add(std::move(stage_dock_detach));
   }
-  // back to default -   // todo  - this should be added as a stage , currently does before plan
-  // double default_mass = config_["default_payload_mass"].get<double>();
-  // auto default_cog_arr = config_["default_payload_cog"];
-  // geometry_msgs::msg::Vector3 cog;
-  // cog.x = default_cog_arr[0].get<double>();
-  // cog.y = default_cog_arr[1].get<double>();
-  // cog.z = default_cog_arr[2].get<double>();
-
-  // // Pass the Vector3, not the JSON array:
-  // changePayload(default_mass, cog);
 
   {
     auto stage_move_up =
@@ -474,10 +418,6 @@ mtc::Task MTCTaskNode::createDockTask()
   
   return task;
 }
-
-
-
-
 
 
 
