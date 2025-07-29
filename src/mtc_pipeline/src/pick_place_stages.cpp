@@ -1,13 +1,18 @@
 #include "mtc_pipeline/pick_place_stages.hpp"
+#include <nlohmann/json.hpp>
+#include <rclcpp/rclcpp.hpp>
+#include <moveit/task_constructor/task.h>
 #include <moveit/task_constructor/solvers.h>
 #include <moveit/task_constructor/stages/modify_planning_scene.h>
 #include <moveit_msgs/msg/constraints.hpp>
 #include <moveit_msgs/msg/joint_constraint.hpp>
-#include <cmath>
-#include <map>
-#include <stdexcept>
-#include <vector>
+#include <moveit_msgs/msg/move_it_error_codes.hpp>
 #include <string>
+#include <vector>
+#include <map>
+#include <memory>
+#include <cmath>
+#include <stdexcept>
 
 namespace mtc = moveit::task_constructor;
 
@@ -51,14 +56,40 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(
 }
 
 std::vector<std::unique_ptr<mtc::Stage>> PickPlaceStages::makePickStages() {
+  // Not needed by orchestrator but required for legacy interface
   std::vector<std::unique_ptr<mtc::Stage>> stages;
+  return stages;
+}
+
+std::vector<std::unique_ptr<mtc::Stage>> PickPlaceStages::makePlaceStages() {
+  // Not needed by orchestrator but required for legacy interface
+  std::vector<std::unique_ptr<mtc::Stage>> stages;
+  return stages;
+}
+
+bool PickPlaceStages::run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node)
+{
+  if (!step.contains("pick_poses") || !step.contains("place_poses")) {
+    RCLCPP_ERROR(node->get_logger(), "Step must contain pick_poses and place_poses");
+    return false;
+  }
+  std::vector<std::string> pick_poses = step["pick_poses"].get<std::vector<std::string>>();
+  std::vector<std::string> place_poses = step["place_poses"].get<std::vector<std::string>>();
+
+  nlohmann::json temp_config = config_;
+  temp_config["poses"] = poses;
+
+  PickPlaceStages stages_helper(node, temp_config);
+
+  moveit::task_constructor::Task task;
+  task.stages()->setName("Pick and Place Modular Task");
+  task.loadRobotModel(node);
 
   const std::string arm_group_name = "ur_arm";
   const std::string hand_group_name = "hande_gripper";
   const std::string hand_frame = "flange";
 
-  // Planners
-  auto sampling_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_);
+  auto sampling_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node);
   sampling_planner->setMaxVelocityScalingFactor(0.2);
   sampling_planner->setMaxAccelerationScalingFactor(0.2);
 
@@ -72,19 +103,11 @@ std::vector<std::unique_ptr<mtc::Stage>> PickPlaceStages::makePickStages() {
   cartesian_planner->setStepSize(0.001);
   cartesian_planner->setMinFraction(0.95);
 
-  // 1. Current State
-  stages.emplace_back(std::make_unique<mtc::stages::CurrentState>("current"));
-
-  // 2. Open Gripper
-  stages.emplace_back(makeGripperStage("Open Gripper", hand_group_name, "hande_open", interpolation_planner));
-
-  // 3a. Move to pickup_approach from JSON
-  stages.emplace_back(makeMoveToNamedStage("move to pickup approach", "pickup_approach", sampling_planner, arm_group_name));
-    
-  // 3b. Move to actual pickup pose
-  stages.emplace_back(makeMoveToNamedStage("move to pickup", "pickup", cartesian_planner, arm_group_name));
-
-  // 4. Allow collision between gripper and object
+  // --- Pick Stages ---
+  task.add(std::make_unique<mtc::stages::CurrentState>("current"));
+  task.add(makeGripperStage("Open Gripper", hand_group_name, "hande_open", interpolation_planner));
+  task.add(makeMoveToNamedStage("move to pickup approach", pick_poses[0], sampling_planner, arm_group_name));
+  task.add(makeMoveToNamedStage("move to pickup", pick_poses[1], cartesian_planner, arm_group_name));
   {
     auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("allow collision");
     stage->allowCollisions(
@@ -92,92 +115,72 @@ std::vector<std::unique_ptr<mtc::Stage>> PickPlaceStages::makePickStages() {
       std::vector<std::string>{ "hand_ee_link", "hand_tool0", "hande_finger_left_link", "hande_finger_right_link" },
       true
     );
-    stages.emplace_back(std::move(stage));
+    task.add(std::move(stage));
   }
-
-  // 5. Close Gripper
-  stages.emplace_back(makeGripperStage("close gripper", hand_group_name, "hande_closed", interpolation_planner));
-
-  // 6. Attach Object
+  task.add(makeGripperStage("close gripper", hand_group_name, "hande_closed", interpolation_planner));
   {
     auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("attach object");
     stage->attachObject("sample_holder", hand_frame);
-    stages.emplace_back(std::move(stage));
+    task.add(std::move(stage));
   }
+  task.add(makeMoveToNamedStage("pickup retreat", pick_poses[0], cartesian_planner, arm_group_name));
 
-  // 7. Retreat
-  stages.emplace_back(makeMoveToNamedStage("pickup retreat", "pickup_approach", cartesian_planner, arm_group_name));
-
-  return stages;
-}
-
-std::vector<std::unique_ptr<mtc::Stage>> PickPlaceStages::makePlaceStages() {
-  std::vector<std::unique_ptr<mtc::Stage>> stages;
-
-  const std::string arm_group_name = "ur_arm";
-  const std::string hand_group_name = "hande_gripper";
-  const std::string hand_frame = "flange";
-
-  // Planners
-  auto sampling_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_);
-  sampling_planner->setMaxVelocityScalingFactor(0.2);
-  sampling_planner->setMaxAccelerationScalingFactor(0.2);
-
-  auto interpolation_planner = std::make_shared<mtc::solvers::JointInterpolationPlanner>();
-  interpolation_planner->setMaxVelocityScalingFactor(0.2);
-  interpolation_planner->setMaxAccelerationScalingFactor(0.2);
-
-  auto cartesian_planner = std::make_shared<mtc::solvers::CartesianPath>();
-  cartesian_planner->setMaxVelocityScalingFactor(0.2);
-  cartesian_planner->setMaxAccelerationScalingFactor(0.2);
-  cartesian_planner->setStepSize(0.001);
-  cartesian_planner->setMinFraction(0.95);
-
-  // 1. Move to place approach (with joint constraint)
-moveit_msgs::msg::Constraints wrist3_constraint;
-{
-  moveit_msgs::msg::JointConstraint jc;
-  jc.joint_name      = "wrist_3_joint";
-  jc.position        = 0.0;
-  jc.tolerance_above = 0.01;
-  jc.tolerance_below = 0.01;
-  jc.weight          = 1.0;
-  wrist3_constraint.joint_constraints.push_back(jc);
-}
-{
-  auto stage = makeMoveToNamedStage("move to place", "place_approach", sampling_planner, arm_group_name);
-  auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get());
-  if (move_to_stage) {
+  // --- Place Stages ---
+  moveit_msgs::msg::Constraints wrist3_constraint;
+  {
+    moveit_msgs::msg::JointConstraint jc;
+    jc.joint_name      = "wrist_3_joint";
+    jc.position        = 0.0;
+    jc.tolerance_above = 0.01;
+    jc.tolerance_below = 0.01;
+    jc.weight          = 1.0;
+    wrist3_constraint.joint_constraints.push_back(jc);
+  }
+  {
+    auto stage = makeMoveToNamedStage("move to place", place_poses[0], sampling_planner, arm_group_name);
+    auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get());
+    if (move_to_stage) {
       move_to_stage->setPathConstraints(wrist3_constraint);
+    }
+    task.add(std::move(stage));
   }
-  stages.emplace_back(std::move(stage));
-}
-
-
-  // 2. Move to place
-  stages.emplace_back(makeMoveToNamedStage("place", "place", sampling_planner, arm_group_name));
-
-  // 3. Open Gripper
-  stages.emplace_back(makeGripperStage("open gripper", hand_group_name, "hande_open", interpolation_planner));
-
-  // 4. Detach Object
+  task.add(makeMoveToNamedStage("place", place_poses[1], sampling_planner, arm_group_name));
+  task.add(makeGripperStage("open gripper", hand_group_name, "hande_open", interpolation_planner));
   {
     auto stage = std::make_unique<mtc::stages::ModifyPlanningScene>("detach object");
     stage->detachObject("sample_holder", hand_frame);
-    stages.emplace_back(std::move(stage));
+    task.add(std::move(stage));
   }
-
-  // 5. Retreat from place
-  stages.emplace_back(makeMoveToNamedStage("place retreat", "place_approach", cartesian_planner, arm_group_name));
-
-  // 6. Move arm to home ("moveit_home" named target)
+  task.add(makeMoveToNamedStage("place retreat", place_poses[0], cartesian_planner, arm_group_name));
   {
     auto stage = std::make_unique<mtc::stages::MoveTo>("move home", sampling_planner);
     stage->setGroup(arm_group_name);
-    stage->setGoal("moveit_home");  // assumes this is a named target in SRDF
-    stages.emplace_back(std::move(stage));
+    stage->setGoal("moveit_home");
+    task.add(std::move(stage));
   }
 
+  try {
+    task.init();
+  } catch (const moveit::task_constructor::InitStageException& e) {
+    RCLCPP_ERROR(node->get_logger(), "Stage initialization failed: %s", e.what());
+    return false;
+  }
 
-  return stages;
+  if (!task.plan(5)) {
+    RCLCPP_ERROR(node->get_logger(), "Task planning failed");
+    return false;
+  }
+
+  if (task.solutions().empty()) {
+    RCLCPP_ERROR(node->get_logger(), "No solutions found to execute");
+    return false;
+  }
+
+  auto result = task.execute(*task.solutions().front());
+  if (result.val != moveit_msgs::msg::MoveItErrorCodes::SUCCESS) {
+    RCLCPP_ERROR(node->get_logger(), "Task execution failed");
+    return false;
+  }
+
+  return true;
 }

@@ -45,7 +45,7 @@
    <xacro:arg name="tool_tcp_port" default="54321" />
 
      <!-- Simulation parameters -->
-   <xacro:arg name="use_fake_hardware" default="false" />
+   <xacro:arg name="use_fake_hardware" default="true" />
    <xacro:arg name="fake_sensor_commands" default="false" />
    <xacro:arg name="sim_gazebo" default="false" />
    <xacro:arg name="sim_ignition" default="false" />

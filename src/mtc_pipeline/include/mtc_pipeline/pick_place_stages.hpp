@@ -14,13 +14,14 @@ namespace mtc = moveit::task_constructor;
 
 class PickPlaceStages {
 public:
+  // Constructor
   PickPlaceStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
 
   // Modular stage creators:
   std::vector<std::unique_ptr<mtc::Stage>> makePickStages();
   std::vector<std::unique_ptr<mtc::Stage>> makePlaceStages();
 
-  // For custom named moves, e.g. "move to pickup_approach" or "move to place_approach"
+  // For custom named moves
   std::unique_ptr<mtc::Stage> makeMoveToNamedStage(
     const std::string& label,
     const std::string& pose_key,
@@ -28,13 +29,16 @@ public:
     const std::string& arm_group_name
   );
 
-  // Optionally: helpers for gripper open/close
+  // Helper for gripper open/close
   std::unique_ptr<mtc::Stage> makeGripperStage(
     const std::string& label,
     const std::string& hand_group_name,
-    const std::string& goal_state,  // e.g. "hande_open" or "hande_close"
+    const std::string& goal_state,
     const mtc::solvers::PlannerInterfacePtr& planner
   );
+
+  // Orchestrator step runner
+  bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node);
 
 private:
   rclcpp::Node::SharedPtr node_;

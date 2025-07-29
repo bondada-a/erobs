@@ -15,6 +15,7 @@ find_package(ur_msgs REQUIRED)
 # === Create a library for shared logic ===
 add_library(mtc_pipeline_core
   src/pick_place_stages.cpp
+  src/tool_exchange_stages.cpp    # <-- Added this line
 )
 ament_target_dependencies(mtc_pipeline_core
   moveit_task_constructor_core
@@ -51,9 +52,8 @@ target_link_libraries(mtc_orchestrator nlohmann_json::nlohmann_json)
 
 # === Link mtc_pipeline_core library to relevant executables ===
 target_link_libraries(mtc_orchestrator mtc_pipeline_core)
-# Add to others if needed:
-# target_link_libraries(mtc_pickplace mtc_pipeline_core)
-# target_link_libraries(mtc_toolexchange mtc_pipeline_core)
+target_link_libraries(mtc_toolexchange mtc_pipeline_core)   # <-- Add this if mtc_toolexchange uses tool exchange logic
+# target_link_libraries(mtc_pickplace mtc_pipeline_core)    # Uncomment if needed
 
 target_include_directories(mtc_tutorial PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

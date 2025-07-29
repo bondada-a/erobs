@@ -595,9 +595,44 @@
     <parent link="flange"/>
     <child link="tool0"/>
   </joint>
+  <link name="tool_exchanger">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ur5e_hande_robot_description/meshes/tool_exchanger/TE_assembly.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+      <material name="grey">
+        <color rgba="0.5 0.5 0.5 1.0"/>
+      </material>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ur5e_hande_robot_description/meshes/tool_exchanger/TE_assembly.stl" scale="0.001 0.001 0.001"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value="0.5"/>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+    </inertial>
+  </link>
+  <joint name="tool_exchanger_joint" type="fixed">
+    <parent link="flange"/>
+    <child link="tool_exchanger"/>
+    <origin rpy="0 0 1.5707963267948966" xyz="0.010 0 0"/>
+  </joint>
   <ros2_control name="robotiq_hande_gripper" type="system">
     <hardware>
-      <plugin>mock_components/GenericSystem</plugin>
+      <plugin>robotiq_hande_driver/RobotiqHandeHardwareInterface</plugin>
+      <param name="grip_pos_min">0</param>
+      <param name="grip_pos_max">0.025</param>
+      <param name="tty">/tmp/ttyUR</param>
+      <param name="baudrate">115200</param>
+      <param name="parity">N</param>
+      <param name="data_bits">8</param>
+      <param name="stop_bit">1</param>
+      <param name="slave_id">9</param>
     </hardware>
     <!-- The right finger joint uses the mimic feature -->
     <joint name="robotiq_hande_left_finger_joint">
@@ -618,8 +653,8 @@
   <!--  + Height added by the Hand-E: 99.0mm -->
   <!--  + Coupler mass includes the bolts -->
   <joint name="robotiq_hande_coupler_joint" type="fixed">
-    <origin rpy="-1.5708 0 -1.5708" xyz="0 0 0"/>
-    <parent link="flange"/>
+    <origin rpy="1.5708 0 0" xyz="0.0 -0.019 0.0"/>
+    <parent link="tool_exchanger"/>
     <child link="robotiq_hande_coupler"/>
   </joint>
   <link name="robotiq_hande_coupler">
