@@ -191,12 +191,12 @@ void sigint_handler(int)
 std::string launch_cmd_for_gripper(const std::string& g)
 {
     if (g == "none")
-        return "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=192.168.56.101";
+        return "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=192.168.1.101";
     if (g == "epick")
         return "ros2 launch ur_epick_moveit_config move_group.launch.py";
     if (g == "hande") {
         std::this_thread::sleep_for(std::chrono::seconds(5));
-        return "ros2 launch ur_hande_moveit_config move_group.launch.py robot_ip:=192.168.56.101";
+        return "ros2 launch ur_hande_moveit_config move_group.launch.py robot_ip:=192.168.1.101";
     }
     return "";
 }
