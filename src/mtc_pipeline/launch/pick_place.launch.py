@@ -11,7 +11,7 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     moveit_config = (
-        MoveItConfigsBuilder("ur5e_hande")
+        MoveItConfigsBuilder("ur_moveit",package_name="ur_hande_moveit_config")
         .robot_description(file_path="config/ur.urdf.xacro")
         .planning_pipelines(pipelines=["ompl"])
         .to_moveit_configs()

@@ -5,21 +5,30 @@
     "pickup": [12.08, -135.05, -79.9, -144.83, 67.25, 0.41],
     "place_approach": [-28.2, -114.77, -60.94, -183.92, 26.37, -1.08],
     "place": [-43.22, -112.27, -64.52, -182.26, 11.36, -1.62],
-    "load_approach": [-28.98, -140.17, -73.32, -236.59, -90.12, -175.04]
+    "load_approach": [-28.98, -140.17, -73.32, -236.59, -90.12, -175.04],
+    "dock_approach": [-29.96 , -159.18, -20.73, -270.17, -90.11, -176.02]
+    
   },
   "sequence": [
+     {
+      "action": "tool_exchange",
+      "operation": "dock",
+      "gripper": "epick",           
+      "dock_number": 3,
+      "poses": ["dock_approach"]
+    },
     {
       "action": "tool_exchange",
       "operation": "load",
-      "gripper": "hande",           
-      "dock_number": 2,
+      "gripper": "epick",           
+      "dock_number": 3,
       "poses": ["load_approach"]
     },
     {
       "action": "pick_and_place",
       "pick_poses": ["pickup_approach", "pickup"],
       "place_poses": ["place_approach", "place"],
-      "gripper": "hande"
+      "gripper": "epick"
     }
   ]
 }

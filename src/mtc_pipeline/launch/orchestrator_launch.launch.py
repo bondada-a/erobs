@@ -40,6 +40,7 @@ def generate_launch_description():
         output="screen",
         parameters=[
             moveit_config.to_dict(),
+            {'robot_ip': LaunchConfiguration('robot_ip')},
             {'poses_file': LaunchConfiguration('poses_file')}
         ],
     )
