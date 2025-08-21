@@ -13,15 +13,160 @@
 #include <chrono>
 #include <thread>
 #include <std_srvs/srv/trigger.hpp>
+#include <control_msgs/action/follow_joint_trajectory.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
+#include <moveit_msgs/msg/planning_scene.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 
-/* ============================================================
- *  helpers
- * ============================================================
- */
+// Declares a parameter if it doesn't exist
 void declare_if_needed(rclcpp::Node::SharedPtr node, const std::string& name)
 {
     if (!node->has_parameter(name))
         node->declare_parameter(name, std::string{""});
+}
+
+// Wait for a service to become available with timeout
+bool wait_for_service(rclcpp::Node::SharedPtr node, const std::string& service_name, 
+                     std::chrono::seconds timeout = std::chrono::seconds(30))
+{
+    auto client = node->create_client<std_srvs::srv::Trigger>(service_name);
+    return client->wait_for_service(timeout);
+}
+
+// Wait for robot to reach a stable state (joint velocities near zero)
+bool wait_for_robot_stable(rclcpp::Node::SharedPtr node, 
+                          std::chrono::seconds timeout = std::chrono::seconds(30),
+                          double velocity_threshold = 0.01)
+{
+    using namespace std::chrono_literals;
+    
+    std::promise<bool> promise;
+    auto future = promise.get_future();
+    
+    auto subscription = node->create_subscription<sensor_msgs::msg::JointState>(
+        "joint_states", 10,
+        [&promise, velocity_threshold](const sensor_msgs::msg::JointState::SharedPtr msg) {
+            bool stable = true;
+            for (const auto& velocity : msg->velocity) {
+                if (std::abs(velocity) > velocity_threshold) {
+                    stable = false;
+                    break;
+                }
+            }
+            if (stable) {
+                promise.set_value(true);
+            }
+        });
+    
+    // Spin the node to process messages
+    auto start_time = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start_time < timeout) {
+        rclcpp::spin_some(node);
+        if (future.wait_for(100ms) == std::future_status::ready) {
+            return true;
+        }
+    }
+    
+    return false;
+}
+
+// Wait for MoveIt to be ready (multiple conditions)
+bool wait_for_moveit_ready(rclcpp::Node::SharedPtr node, 
+                          std::chrono::seconds timeout = std::chrono::seconds(30))
+{
+    using namespace std::chrono_literals;
+    
+    RCLCPP_INFO(node->get_logger(), "Waiting for MoveIt to become ready...");
+    
+    auto start_time = std::chrono::steady_clock::now();
+    
+    while (std::chrono::steady_clock::now() - start_time < timeout) {
+        // Check if move_group node is running
+        FILE* pipe = popen("ros2 node list", "r");
+        if (!pipe) continue;
+        
+        char buf[128];
+        bool move_group_found = false;
+        while (fgets(buf, 128, pipe)) {
+            if (std::string(buf).find("move_group") != std::string::npos) {
+                move_group_found = true;
+                break;
+            }
+        }
+        pclose(pipe);
+        
+        if (!move_group_found) {
+            std::this_thread::sleep_for(100ms);
+            continue;
+        }
+        
+        // Check if joint_states topic is publishing
+        pipe = popen("ros2 topic list | grep joint_states", "r");
+        if (!pipe) continue;
+        
+        bool joint_states_found = false;
+        while (fgets(buf, 128, pipe)) {
+            if (std::string(buf).find("joint_states") != std::string::npos) {
+                joint_states_found = true;
+                break;
+            }
+        }
+        pclose(pipe);
+        
+        if (!joint_states_found) {
+            std::this_thread::sleep_for(100ms);
+            continue;
+        }
+        
+        // Check if planning scene topic is publishing
+        pipe = popen("ros2 topic list | grep planning_scene", "r");
+        if (!pipe) continue;
+        
+        bool planning_scene_found = false;
+        while (fgets(buf, 128, pipe)) {
+            if (std::string(buf).find("planning_scene") != std::string::npos) {
+                planning_scene_found = true;
+                break;
+            }
+        }
+        pclose(pipe);
+        
+        if (!planning_scene_found) {
+            std::this_thread::sleep_for(100ms);
+            continue;
+        }
+        
+        // Try to get a message from joint_states to confirm it's actually publishing
+        std::promise<bool> joint_states_promise;
+        auto joint_states_future = joint_states_promise.get_future();
+        
+        auto subscription = node->create_subscription<sensor_msgs::msg::JointState>(
+            "joint_states", 10,
+            [&joint_states_promise](const sensor_msgs::msg::JointState::SharedPtr) {
+                joint_states_promise.set_value(true);
+            });
+        
+        // Wait for joint states message with short timeout
+        auto check_start = std::chrono::steady_clock::now();
+        bool got_joint_states = false;
+        while (std::chrono::steady_clock::now() - check_start < 2s) {
+            rclcpp::spin_some(node);
+            if (joint_states_future.wait_for(100ms) == std::future_status::ready) {
+                got_joint_states = true;
+                break;
+            }
+        }
+        
+        if (got_joint_states) {
+            RCLCPP_INFO(node->get_logger(), "MoveIt is ready!");
+            return true;
+        }
+        
+        std::this_thread::sleep_for(100ms);
+    }
+    
+    RCLCPP_ERROR(node->get_logger(), "MoveIt failed to become ready within timeout!");
+    return false;
 }
 
 bool update_robot_description_from(const std::string& source_node,
@@ -74,20 +219,34 @@ bool update_robot_description_from(const std::string& source_node,
 
 bool play_dashboard_client(rclcpp::Node::SharedPtr node)
 {
-    std::this_thread::sleep_for(std::chrono::seconds(15));
-    auto client = node->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
-    if (!client->wait_for_service(std::chrono::seconds(10))) {
+    // Wait for dashboard service to be available instead of hardcoded sleep
+    RCLCPP_INFO(node->get_logger(), "Waiting for dashboard service...");
+    if (!wait_for_service(node, "/dashboard_client/play", std::chrono::seconds(30))) {
         RCLCPP_ERROR(node->get_logger(), "Dashboard 'play' service not available!");
         return false;
     }
-    auto fut = client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
-    if (rclcpp::spin_until_future_complete(node, fut, std::chrono::seconds(10)) !=
-        rclcpp::FutureReturnCode::SUCCESS || !fut.get()->success) {
-        RCLCPP_ERROR(node->get_logger(), "Dashboard 'play' call failed!");
-        return false;
+    
+    // Try multiple times with increasing delays
+    for (int attempt = 1; attempt <= 3; ++attempt) {
+        RCLCPP_INFO(node->get_logger(), "Attempting dashboard 'play' (attempt %d/3)...", attempt);
+        
+        auto client = node->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
+        auto fut = client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
+        
+        if (rclcpp::spin_until_future_complete(node, fut, std::chrono::seconds(5)) ==
+            rclcpp::FutureReturnCode::SUCCESS && fut.get()->success) {
+            RCLCPP_INFO(node->get_logger(), "Dashboard 'play' called successfully.");
+            return true;
+        } else {
+            RCLCPP_WARN(node->get_logger(), "Dashboard 'play' attempt %d failed, retrying...", attempt);
+            if (attempt < 3) {
+                std::this_thread::sleep_for(std::chrono::seconds(2));
+            }
+        }
     }
-    RCLCPP_INFO(node->get_logger(), "Dashboard 'play' called.");
-    return true;
+    
+    RCLCPP_ERROR(node->get_logger(), "Dashboard 'play' call failed after 3 attempts!");
+    return false;
 }
 
 /* ============================================================
@@ -114,8 +273,25 @@ public:
     {
         for (pid_t pid : active_pids_)
             ::kill(-pid, SIGINT);
-        std::this_thread::sleep_for(std::chrono::seconds(10));
+        
+        // Wait for processes to terminate gracefully
+        auto start_time = std::chrono::steady_clock::now();
+        const auto timeout = std::chrono::seconds(10);
+        
+        while (std::chrono::steady_clock::now() - start_time < timeout) {
+            bool all_terminated = true;
+            for (pid_t pid : active_pids_) {
+                int status;
+                if (waitpid(pid, &status, WNOHANG) == 0) {
+                    all_terminated = false;
+                    break;
+                }
+            }
+            if (all_terminated) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
 
+        // Force kill any remaining processes
         for (pid_t pid : active_pids_) {
             int status;
             if (waitpid(pid, &status, WNOHANG) == 0) {
@@ -176,19 +352,20 @@ std::string launch_cmd_for_gripper(const std::string& g, const std::string& ip)
 int main(int argc, char** argv)
 {
     rclcpp::init(argc, argv);
-    auto node = rclcpp::Node::make_shared("mtc_orchestrator",
-                                          rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true));
-
-    Orchestrator orch; global_orch = &orch;
-    signal(SIGINT, sigint_handler);
+    auto node = std::make_shared<rclcpp::Node>("mtc_orchestrator",
+                                               rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true));
 
     /* ---------- read JSON script ---------- */
     std::string cfg_file = "./script.json";
     node->get_parameter("poses_file", cfg_file);
     std::ifstream ifs(cfg_file);
-    if (!ifs) { RCLCPP_ERROR(node->get_logger(), "Cannot open %s", cfg_file.c_str()); return 1; }
+    if (!ifs) { 
+        RCLCPP_ERROR(node->get_logger(), "Cannot open %s", cfg_file.c_str()); 
+        return 1; 
+    }
 
-    nlohmann::json cfg; ifs >> cfg;
+    nlohmann::json cfg; 
+    ifs >> cfg;
     const auto& poses    = cfg.at("poses");
     const auto& sequence = cfg.at("sequence");
 
@@ -198,16 +375,40 @@ int main(int argc, char** argv)
 
     std::string start_gripper = cfg.value("start_gripper", "none");
 
+    /* ---------- setup orchestrator ---------- */
+    Orchestrator orch;
+    global_orch = &orch;
+    signal(SIGINT, sigint_handler);
+
     /* ---------- launch first MoveIt stack ---------- */
     orch.kill_all_and_wait();
     orch.launch(launch_cmd_for_gripper(start_gripper, robot_ip));
-    orch.wait_for_node("move_group");
-    if (!play_dashboard_client(node) ||
-        !update_robot_description_from("move_group", node))
+    
+    // Wait for move_group node and ensure it's fully ready
+    if (!orch.wait_for_node("move_group")) {
+        RCLCPP_ERROR(node->get_logger(), "move_group node failed to start!");
+        return 1;
+    }
+    
+    // Wait for MoveIt to be fully ready instead of hardcoded sleep
+    if (!wait_for_moveit_ready(node, std::chrono::seconds(30))) {
+        RCLCPP_ERROR(node->get_logger(), "MoveIt failed to become ready!");
+        return 1;
+    }
+    
+    if (!play_dashboard_client(node)) {
+        RCLCPP_WARN(node->get_logger(), "Dashboard play failed, but continuing - robot may already be running.");
+    }
+    
+    if (!update_robot_description_from("move_group", node))
         return 1;
 
     orch.set_current_gripper(start_gripper);
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    
+    // Wait for robot to be in stable state instead of hardcoded sleep
+    if (!wait_for_robot_stable(node, std::chrono::seconds(30))) {
+        RCLCPP_WARN(node->get_logger(), "Robot did not reach stable state, continuing anyway...");
+    }
 
     /* ---------- build MTC modules ---------- */
     PickPlaceStages    pick_place(node, cfg);
@@ -239,10 +440,13 @@ int main(int argc, char** argv)
                 else {
                     orch.kill_all_and_wait();
                     orch.launch(launch_cmd_for_gripper("none", robot_ip));
-                    orch.wait_for_node("move_group");
-                    if (!play_dashboard_client(node) ||
+                    if (!orch.wait_for_node("move_group") ||
+                        !wait_for_moveit_ready(node, std::chrono::seconds(30)) ||
                         !update_robot_description_from("move_group", node))
                         goto failed;
+                    if (!play_dashboard_client(node)) {
+                        RCLCPP_WARN(node->get_logger(), "Dashboard play failed during tool exchange, but continuing...");
+                    }
                     orch.set_current_gripper("none");
                 }
             }
@@ -253,10 +457,13 @@ int main(int argc, char** argv)
                 } else {
                     orch.kill_all_and_wait();
                     orch.launch(launch_cmd_for_gripper(requested_tool, robot_ip));
-                    orch.wait_for_node("move_group");
-                    if (!play_dashboard_client(node) ||
+                    if (!orch.wait_for_node("move_group") ||
+                        !wait_for_moveit_ready(node, std::chrono::seconds(30)) ||
                         !update_robot_description_from("move_group", node))
                         goto failed;
+                    if (!play_dashboard_client(node)) {
+                        RCLCPP_WARN(node->get_logger(), "Dashboard play failed during tool load, but continuing...");
+                    }
                     orch.set_current_gripper(requested_tool);
                 }
             }
@@ -269,10 +476,13 @@ int main(int argc, char** argv)
             if (need != orch.get_current_gripper()) {
                 orch.kill_all_and_wait();
                 orch.launch(launch_cmd_for_gripper(need, robot_ip));
-                orch.wait_for_node("move_group");
-                if (!play_dashboard_client(node) ||
+                if (!orch.wait_for_node("move_group") ||
+                    !wait_for_moveit_ready(node, std::chrono::seconds(30)) ||
                     !update_robot_description_from("move_group", node))
                     goto failed;
+                if (!play_dashboard_client(node)) {
+                    RCLCPP_WARN(node->get_logger(), "Dashboard play failed during pick_and_place, but continuing...");
+                }
                 orch.set_current_gripper(need);
             }
 
@@ -286,7 +496,9 @@ int main(int argc, char** argv)
         if (!success) {
         failed:
             RCLCPP_ERROR(node->get_logger(), "%s step failed – aborting.", action.c_str());
-            std::this_thread::sleep_for(std::chrono::seconds(60));
+            // Reduced failure timeout and added user prompt
+            RCLCPP_INFO(node->get_logger(), "Press Enter to continue or Ctrl+C to exit...");
+            std::cin.get();
             orch.kill_all_and_wait();
             rclcpp::shutdown();
             return 1;

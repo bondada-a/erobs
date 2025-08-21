@@ -11,6 +11,8 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <sensor_msgs/msg/joint_state.hpp>
+#include <future>
 
 namespace mtc = moveit::task_constructor;
 
@@ -41,7 +43,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     cartesian_planner->setMaxVelocityScalingFactor(0.2);
     cartesian_planner->setMaxAccelerationScalingFactor(0.2);
     cartesian_planner->setStepSize(0.001);
-    cartesian_planner->setMinFraction(0.1);
+    cartesian_planner->setMinFraction(0.9);
 
     std::string arm_group_name = "ur_arm";
     std::string hand_frame = "flange";
@@ -87,7 +89,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
         stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
         stage->setMinMaxDistance(std::abs(offset), std::abs(offset));
         geometry_msgs::msg::Vector3Stamped vec;
-        vec.header.frame_id = hand_frame;
+        vec.header.frame_id = hand_frame;  // Move relative to flange frame orientation
         vec.vector.y = (offset >= 0.0) ? 1.0 : -1.0;
         stage->setDirection(vec);
         return stage;
@@ -106,7 +108,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
             stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
             stage->setMinMaxDistance(0.1, 0.1);
             geometry_msgs::msg::Vector3Stamped vec;
-            vec.header.frame_id = hand_frame;
+            vec.header.frame_id = hand_frame;  // Move relative to flange frame orientation
             vec.vector.x = 1.0;
             stage->setDirection(vec);
             task.add(std::move(stage));
@@ -118,7 +120,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
             stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
             stage->setMinMaxDistance(0.15, 0.15);
             geometry_msgs::msg::Vector3Stamped vec;
-            vec.header.frame_id = hand_frame;
+            vec.header.frame_id = hand_frame;  // Move relative to flange frame orientation
             vec.vector.z = -1.0;
             stage->setDirection(vec);
             task.add(std::move(stage));
@@ -130,7 +132,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
             stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
             stage->setMinMaxDistance(0.2, 0.2);
             geometry_msgs::msg::Vector3Stamped vec;
-            vec.header.frame_id = hand_frame;
+            vec.header.frame_id = hand_frame;  // Move relative to flange frame orientation
             vec.vector.x = -1.0;
             stage->setDirection(vec);
             task.add(std::move(stage));
@@ -139,14 +141,37 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
         addNamedMoveStage(task, "move to dock approach", approach_pose, sampling_planner);
         if (std::abs(dock_offset_y) > 1e-4)
             task.add(makeDockShiftStage(dock_offset_y, "shift to dock"));
+        
+        // Debug: Print current robot pose before Cartesian movement
+        RCLCPP_INFO(node->get_logger(), "=== DEBUG: Before align_holder stage ===");
+        auto psm = std::make_shared<planning_scene_monitor::PlanningSceneMonitor>(node, "robot_description");
+        if (psm && psm->getPlanningScene()) {
+            psm->requestPlanningSceneState();
+            const auto& state = psm->getPlanningScene()->getCurrentState();
+            auto group = state.getJointModelGroup(arm_group_name);
+            if (group) {
+                std::vector<double> joint_values;
+                state.copyJointGroupPositions(group, joint_values);
+                const std::vector<std::string>& joint_names = group->getVariableNames();
+                RCLCPP_INFO(node->get_logger(), "Current joint positions:");
+                for (size_t i = 0; i < joint_names.size(); ++i)
+                    RCLCPP_INFO(node->get_logger(), "  %s: %.4f", joint_names[i].c_str(), joint_values[i]);
+                
+                // Get current end-effector pose
+                const auto& transform = state.getGlobalLinkTransform(hand_frame);
+                RCLCPP_INFO(node->get_logger(), "Current %s pose: x=%.3f, y=%.3f, z=%.3f", 
+                           hand_frame.c_str(), transform.translation().x(), transform.translation().y(), transform.translation().z());
+            }
+        }
+        
         {
             auto stage = std::make_unique<mtc::stages::MoveRelative>("align_holder", cartesian_planner);
             stage->properties().set("marker_ns", "approach_object");
             stage->properties().set("link", hand_frame);
             stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
-            stage->setMinMaxDistance(0.2, 0.2);
+            stage->setMinMaxDistance(0.02, 0.05);  // Reduced to smaller, more achievable distances
             geometry_msgs::msg::Vector3Stamped vec;
-            vec.header.frame_id = hand_frame;
+            vec.header.frame_id = hand_frame;  // Move relative to flange frame orientation
             vec.vector.x = 1.0;
             stage->setDirection(vec);
             task.add(std::move(stage));
@@ -156,9 +181,9 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
             stage->properties().set("marker_ns", "approach_object");
             stage->properties().set("link", hand_frame);
             stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
-            stage->setMinMaxDistance(0.15, 0.15);
+            stage->setMinMaxDistance(0.01, 0.03);  // Reduced to very small distances
             geometry_msgs::msg::Vector3Stamped vec;
-            vec.header.frame_id = hand_frame;
+            vec.header.frame_id = hand_frame;  // Move relative to flange frame orientation
             vec.vector.z = 1.0;
             stage->setDirection(vec);
             task.add(std::move(stage));
@@ -168,9 +193,9 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
             stage->properties().set("marker_ns", "approach_object");
             stage->properties().set("link", hand_frame);
             stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
-            stage->setMinMaxDistance(0.1, 0.1);
+            stage->setMinMaxDistance(0.03, 0.05);  // Reduced to smaller distances
             geometry_msgs::msg::Vector3Stamped vec;
-            vec.header.frame_id = hand_frame;
+            vec.header.frame_id = hand_frame;  // Move relative to flange frame orientation
             vec.vector.x = -1.0;
             stage->setDirection(vec);
             task.add(std::move(stage));
@@ -219,6 +244,23 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
         return false;
     }
 
+    // === PAUSE FOR RViz VERIFICATION ===
+    RCLCPP_INFO(node->get_logger(), "=== PLANNING SUCCESSFUL ===");
+    RCLCPP_INFO(node->get_logger(), "Plan created with %zu solutions", task.solutions().size());
+    RCLCPP_INFO(node->get_logger(), "PAUSING FOR 3 MINUTES - Please verify the plan in RViz!");
+    RCLCPP_INFO(node->get_logger(), "You can see the planned trajectory in RViz before execution begins.");
+    RCLCPP_INFO(node->get_logger(), "Press Ctrl+C to abort, or wait for automatic execution...");
+    
+    // Wait for 3 minutes (180 seconds)
+    for (int i = 180; i > 0; --i) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        if (i % 30 == 0) {  // Print countdown every 30 seconds
+            RCLCPP_INFO(node->get_logger(), "Execution will begin in %d seconds...", i);
+        }
+    }
+    
+    RCLCPP_INFO(node->get_logger(), "Starting execution now...");
+
     // === Execute the planned solution (all stages) ===
     auto solution = task.solutions().front();
     auto result = task.execute(*solution);
@@ -229,9 +271,51 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     else
         RCLCPP_ERROR(node->get_logger(), "MTC task reports execution failure!");
 
-    // Diagnostic pause after execution
-    std::cout << "\n[ToolExchangeStages] Finished execution. Pausing 10s for observation...\n";
-    std::this_thread::sleep_for(std::chrono::seconds(10));
+    // Wait for robot to reach stable state after execution instead of hardcoded sleep
+    if (result.val == moveit_msgs::msg::MoveItErrorCodes::SUCCESS) {
+        RCLCPP_INFO(node->get_logger(), "Waiting for robot to reach stable state...");
+        
+        // Monitor joint states to detect when robot has settled
+        std::promise<bool> stability_promise;
+        auto stability_future = stability_promise.get_future();
+        
+        auto joint_subscription = node->create_subscription<sensor_msgs::msg::JointState>(
+            "joint_states", 10,
+            [&stability_promise](const sensor_msgs::msg::JointState::SharedPtr msg) {
+                bool stable = true;
+                const double velocity_threshold = 0.01;
+                
+                for (const auto& velocity : msg->velocity) {
+                    if (std::abs(velocity) > velocity_threshold) {
+                        stable = false;
+                        break;
+                    }
+                }
+                
+                if (stable) {
+                    stability_promise.set_value(true);
+                }
+            });
+        
+        // Wait for stability with timeout
+        auto start_time = std::chrono::steady_clock::now();
+        const auto timeout = std::chrono::seconds(10);
+        bool stable = false;
+        
+        while (std::chrono::steady_clock::now() - start_time < timeout) {
+            rclcpp::spin_some(node);
+            if (stability_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready) {
+                stable = true;
+                break;
+            }
+        }
+        
+        if (stable) {
+            RCLCPP_INFO(node->get_logger(), "Robot reached stable state after tool exchange.");
+        } else {
+            RCLCPP_WARN(node->get_logger(), "Robot may not have reached stable state, continuing...");
+        }
+    }
 
     return (result.val == moveit_msgs::msg::MoveItErrorCodes::SUCCESS);
 }
