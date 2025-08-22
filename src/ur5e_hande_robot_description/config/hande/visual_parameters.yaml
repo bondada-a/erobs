@@ -13,6 +13,22 @@ mesh_files:
         package: ur5e_hande_robot_description
         path: meshes/hande/collision/hand-e.stl
 
+  # Simplified visual models for better performance
+  hande_base_simple:
+    visual:
+      geometry:
+        cylinder:
+          radius: 0.0385
+          length: 0.1069
+      material:
+        name: "LightGrey"
+        color: "0.7 0.7 0.7 1.0"
+    collision:
+      geometry:
+        cylinder:
+          radius: 0.0385
+          length: 0.1069
+
   left_finger:
     visual:
       mesh:
@@ -26,6 +42,20 @@ mesh_files:
         package: ur5e_hande_robot_description
         path: meshes/hande/collision/finger_1.stl
 
+  # Simplified finger models
+  left_finger_simple:
+    visual:
+      geometry:
+        box:
+          size: [0.05, 0.02, 0.08]
+      material:
+        name: "LightGrey"
+        color: "0.7 0.7 0.7 1.0"
+    collision:
+      geometry:
+        box:
+          size: [0.05, 0.02, 0.08]
+
   right_finger:
     visual:
       mesh:
@@ -38,3 +68,17 @@ mesh_files:
       mesh:
         package: ur5e_hande_robot_description
         path: meshes/hande/collision/finger_2.stl
+
+  # Simplified finger models
+  right_finger_simple:
+    visual:
+      geometry:
+        box:
+          size: [0.05, 0.02, 0.08]
+      material:
+        name: "LightGrey"
+        color: "0.7 0.7 0.7 1.0"
+    collision:
+      geometry:
+        box:
+          size: [0.05, 0.02, 0.08]

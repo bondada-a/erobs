@@ -49,7 +49,7 @@ def generate_launch_description():
         .planning_scene_monitor(
             publish_robot_description=True, publish_robot_description_semantic=True
         )
-        .planning_pipelines(pipelines=["ompl","pilz_industrial_motion_planner"])
+        .planning_pipelines(pipelines=["ompl"])
         .to_moveit_configs()
     )
     # Load  ExecuteTaskSolutionCapability so we can execute found solutions in simulation
@@ -92,14 +92,14 @@ def generate_launch_description():
         ],
     )
 
-    # Tool Communication Node
-    tool_communication = Node(
-        package="ur_robot_driver",
-        executable="tool_communication.py",
-        name="tool_communication_node",
-        output="screen",
-        parameters=[{"robot_ip": LaunchConfiguration("robot_ip")}]
-    )
+    # # Tool Communication Node
+    # tool_communication = Node(
+    #     package="ur_robot_driver",
+    #     executable="tool_communication.py",
+    #     name="tool_communication_node",
+    #     output="screen",
+    #     parameters=[{"robot_ip": LaunchConfiguration("robot_ip")}]
+    # )
 
     # Static TF
     static_tf = Node(
@@ -139,7 +139,7 @@ def generate_launch_description():
 
 
         ## Nodes
-        tool_communication,
+        # tool_communication,
         ur_control_launch,
         run_move_group_node,
         rviz_node,

@@ -340,7 +340,7 @@ void sigint_handler(int)
 std::string launch_cmd_for_gripper(const std::string& g, const std::string& ip)
 {
     if (g == "none")  return "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=" + ip;
-    if (g == "epick") return "ros2 launch ur_epick_moveit_config      move_group.launch.py robot_ip:=" + ip;
+    if (g == "epick") return "ros2 launch ur_zivid_epick_moveit_config      move_group.launch.py robot_ip:=" + ip;
     if (g == "hande") return "ros2 launch ur_hande_moveit_config      move_group.launch.py robot_ip:=" + ip;
     return "";
 }
