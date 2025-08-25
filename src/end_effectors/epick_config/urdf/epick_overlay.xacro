@@ -1,0 +1,21 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- Overlay that pins pose and serial port for epick -->
+  <xacro:include filename="$(find-pkg-share ros2_epick_gripper)/epick_description/urdf/epick_single_suction_cup.xacro"/>
+  <!-- Arguments for parent link and optional prefix -->
+  <xacro:macro name="epick_overlay" params="parent prefix:=''
+                                 origin_xyz:='0 -0.019 0'
+                                 origin_rpy:='1.5708 0 0'
+                                 suction_cup_height:=0.020
+                                 use_fake_hardware:=false
+                                 usb_port:=/tmp/ttyUR">
+    <xacro:epick_single_suction_cup
+      parent="${parent}"
+      prefix="${prefix}"
+      origin_xyz="${origin_xyz}"
+      origin_rpy="${origin_rpy}"
+      suction_cup_height="${suction_cup_height}"
+      use_fake_hardware="${use_fake_hardware}"
+      usb_port="${usb_port}"/>
+  </xacro:macro>
+</robot>

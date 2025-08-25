@@ -6,7 +6,7 @@
    <!-- import main macro -->
    <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
    <xacro:include filename="$(find ur5e_hande_robot_description)/urdf/tool_exchanger.xacro"/>
-   <xacro:include filename="$(find epick_description)/urdf/epick_single_suction_cup.xacro"/>
+   <xacro:include filename="$(find epick_config)/urdf/epick_overlay.xacro"/>
 
    <!-- possible 'ur_type' values: ur3, ur5e, ur5, ur5e, ur10, ur10e, ur16e, ur20 -->
    <!-- the default value should raise an error in case this was called without defining the type -->
@@ -103,9 +103,9 @@
      <origin xyz="0 0 0" rpy="0 0 0" />          <!-- position robot in the map -->
    </xacro:ur_robot>
 
-  <xacro:tool_exchanger parent_link="$(arg tf_prefix)flange"/>    
-  
-  <xacro:epick_single_suction_cup parent="tool_exchanger" use_fake_hardware="true"/>
+  <xacro:tool_exchanger parent_link="$(arg tf_prefix)flange"/>
+
+  <xacro:epick_overlay parent="tool_exchanger" use_fake_hardware="true" usb_port="/tmp/ttyUR"/>
 
 
 
