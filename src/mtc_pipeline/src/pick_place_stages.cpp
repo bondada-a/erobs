@@ -19,6 +19,7 @@ namespace mtc = moveit::task_constructor;
 PickPlaceStages::PickPlaceStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
   : node_(node), config_(config) {}
 
+// Create move stage to named pose
 std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
   const std::string& label,
   const std::string& pose_key,
@@ -33,6 +34,7 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
     "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
     "wrist_1_joint",      "wrist_2_joint",      "wrist_3_joint"
   };
+  
   std::map<std::string, double> joint_goal;
   for (size_t i = 0; i < 6; ++i)
     joint_goal[joint_names[i]] = angles_deg[i].get<double>() * M_PI / 180.0;
@@ -43,6 +45,7 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
   return stage;
 }
 
+// Create gripper control stage
 std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(
   const std::string& label,
   const std::string& hand_group_name,
@@ -55,18 +58,7 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(
   return stage;
 }
 
-std::vector<std::unique_ptr<mtc::Stage>> PickPlaceStages::makePickStages() {
-  // Not needed by orchestrator but required for legacy interface
-  std::vector<std::unique_ptr<mtc::Stage>> stages;
-  return stages;
-}
-
-std::vector<std::unique_ptr<mtc::Stage>> PickPlaceStages::makePlaceStages() {
-  // Not needed by orchestrator but required for legacy interface
-  std::vector<std::unique_ptr<mtc::Stage>> stages;
-  return stages;
-}
-
+// Execute pick and place task
 bool PickPlaceStages::run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node)
 {
   if (!step.contains("pick_poses") || !step.contains("place_poses")) {
@@ -76,10 +68,8 @@ bool PickPlaceStages::run(const nlohmann::json& step, const nlohmann::json& pose
   std::vector<std::string> pick_poses = step["pick_poses"].get<std::vector<std::string>>();
   std::vector<std::string> place_poses = step["place_poses"].get<std::vector<std::string>>();
 
-  nlohmann::json temp_config = config_;
-  temp_config["poses"] = poses;
-
-  PickPlaceStages stages_helper(node, temp_config);
+  // Update config with poses
+  config_["poses"] = poses;
 
   moveit::task_constructor::Task task;
   task.stages()->setName("Pick and Place Modular Task");
@@ -88,21 +78,21 @@ bool PickPlaceStages::run(const nlohmann::json& step, const nlohmann::json& pose
   const std::string arm_group_name = "ur_arm";
   const std::string hand_group_name = "hande_gripper";
 
-  auto sampling_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node);
-  sampling_planner->setMaxVelocityScalingFactor(0.2);
-  sampling_planner->setMaxAccelerationScalingFactor(0.2);
+  // Helper function to configure planners
+  auto configurePlanner = [](auto planner, double vel_scale = 0.2, double acc_scale = 0.2) {
+    planner->setMaxVelocityScalingFactor(vel_scale);
+    planner->setMaxAccelerationScalingFactor(acc_scale);
+    return planner;
+  };
 
-  auto interpolation_planner = std::make_shared<mtc::solvers::JointInterpolationPlanner>();
-  interpolation_planner->setMaxVelocityScalingFactor(0.2);
-  interpolation_planner->setMaxAccelerationScalingFactor(0.2);
-
-  auto cartesian_planner = std::make_shared<mtc::solvers::CartesianPath>();
-  cartesian_planner->setMaxVelocityScalingFactor(0.2);
-  cartesian_planner->setMaxAccelerationScalingFactor(0.2);
+  // Setup planners
+  auto sampling_planner = configurePlanner(std::make_shared<mtc::solvers::PipelinePlanner>(node));
+  auto interpolation_planner = configurePlanner(std::make_shared<mtc::solvers::JointInterpolationPlanner>());
+  auto cartesian_planner = configurePlanner(std::make_shared<mtc::solvers::CartesianPath>());
   cartesian_planner->setStepSize(0.001);
   cartesian_planner->setMinFraction(0.95);
 
-  // --- Pick Stages ---
+  // Pick sequence
   task.add(std::make_unique<mtc::stages::CurrentState>("current"));
   task.add(makeGripperStage("Open Gripper", hand_group_name, "hande_open", interpolation_planner));
   task.add(makeMoveToNamedStage("move to pickup approach", pick_poses[0], sampling_planner, arm_group_name));
@@ -110,7 +100,7 @@ bool PickPlaceStages::run(const nlohmann::json& step, const nlohmann::json& pose
   task.add(makeGripperStage("close gripper", hand_group_name, "hande_closed", interpolation_planner));
   task.add(makeMoveToNamedStage("pickup retreat", pick_poses[0], cartesian_planner, arm_group_name));
 
-  // --- Place Stages ---
+  // Place sequence with wrist constraint
   moveit_msgs::msg::Constraints wrist3_constraint;
   {
     moveit_msgs::msg::JointConstraint jc;
@@ -125,20 +115,21 @@ bool PickPlaceStages::run(const nlohmann::json& step, const nlohmann::json& pose
     auto stage = makeMoveToNamedStage("move to place", place_poses[0], sampling_planner, arm_group_name);
     auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get());
     if (move_to_stage) {
-      // move_to_stage->setPathConstraints(wrist3_constraint);
+      move_to_stage->setPathConstraints(wrist3_constraint);
     }
     task.add(std::move(stage));
   }
   task.add(makeMoveToNamedStage("place", place_poses[1], sampling_planner, arm_group_name));
   task.add(makeGripperStage("open gripper", hand_group_name, "hande_open", interpolation_planner));
   task.add(makeMoveToNamedStage("place retreat", place_poses[0], cartesian_planner, arm_group_name));
-  {
-    auto stage = std::make_unique<mtc::stages::MoveTo>("move home", sampling_planner);
-    stage->setGroup(arm_group_name);
-    stage->setGoal("moveit_home");
-    task.add(std::move(stage));
-  }
+  
+  // Move to home
+  auto home_stage = std::make_unique<mtc::stages::MoveTo>("move home", sampling_planner);
+  home_stage->setGroup(arm_group_name);
+  home_stage->setGoal("moveit_home");
+  task.add(std::move(home_stage));
 
+  // Execute task with error handling
   try {
     task.init();
   } catch (const moveit::task_constructor::InitStageException& e) {
