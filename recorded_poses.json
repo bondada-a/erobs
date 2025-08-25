@@ -12,12 +12,6 @@
   "sequence": [
        
     {
-      "action": "pick_and_place",
-      "pick_poses": ["pickup_approach", "pickup"],
-      "place_poses": ["place_approach", "place"],
-      "gripper": "hande"
-    },
-    {
       "action": "tool_exchange",
       "operation": "dock",
       "gripper": "epick",           
@@ -42,6 +36,12 @@
       "action": "end_effector",
       "end_effector_type": "hande",
       "end_effector_action": "close"
+    },
+    {
+      "action": "pick_and_place",
+      "pick_poses": ["pickup_approach", "pickup"],
+      "place_poses": ["place_approach", "place"],
+      "gripper": "hande"
     }
   ]
 }
