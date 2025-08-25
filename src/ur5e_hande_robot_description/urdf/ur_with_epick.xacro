@@ -105,7 +105,7 @@
 
   <xacro:tool_exchanger parent_link="$(arg tf_prefix)flange"/>    
   
-  <xacro:epick_single_suction_cup parent="tool_exchanger" use_fake_hardware="false"/>
+  <xacro:epick_single_suction_cup parent="tool_exchanger" use_fake_hardware="true"/>
 
 
 

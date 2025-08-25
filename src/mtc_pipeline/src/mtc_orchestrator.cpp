@@ -33,6 +33,63 @@ bool wait_for_service(rclcpp::Node::SharedPtr node, const std::string& service_n
     return client->wait_for_service(timeout);
 }
 
+// Ensure scaled_joint_trajectory_controller is active
+bool ensure_controller_active(rclcpp::Node::SharedPtr node, 
+                             std::chrono::seconds timeout = std::chrono::seconds(30))
+{
+    using namespace std::chrono_literals;
+    
+    RCLCPP_INFO(node->get_logger(), "Ensuring scaled_joint_trajectory_controller is active...");
+    
+    auto start_time = std::chrono::steady_clock::now();
+    
+    while (std::chrono::steady_clock::now() - start_time < timeout) {
+        // Check current controller state
+        FILE* pipe = popen("ros2 control list_controllers | grep scaled_joint_trajectory_controller", "r");
+        if (!pipe) {
+            std::this_thread::sleep_for(500ms);
+            continue;
+        }
+        
+        char buf[128];
+        std::string controller_state;
+        while (fgets(buf, 128, pipe)) {
+            std::string line(buf);
+            if (line.find("scaled_joint_trajectory_controller") != std::string::npos) {
+                controller_state = line;
+                break;
+            }
+        }
+        pclose(pipe);
+        
+        if (controller_state.find("active") != std::string::npos) {
+            RCLCPP_INFO(node->get_logger(), "scaled_joint_trajectory_controller is already active!");
+            return true;
+        }
+        
+        if (controller_state.find("inactive") != std::string::npos) {
+            RCLCPP_INFO(node->get_logger(), "Attempting to activate scaled_joint_trajectory_controller...");
+            
+            // Try to activate the controller
+            std::string activate_cmd = "ros2 control switch_controllers --activate scaled_joint_trajectory_controller";
+            int result = system(activate_cmd.c_str());
+            
+            if (result == 0) {
+                RCLCPP_INFO(node->get_logger(), "Controller activation command sent successfully");
+                // Wait a bit for the activation to take effect
+                std::this_thread::sleep_for(1s);
+            } else {
+                RCLCPP_WARN(node->get_logger(), "Failed to activate controller, retrying...");
+            }
+        }
+        
+        std::this_thread::sleep_for(500ms);
+    }
+    
+    RCLCPP_ERROR(node->get_logger(), "Failed to ensure controller is active within timeout!");
+    return false;
+}
+
 // Wait for robot to reach a stable state (joint velocities near zero)
 bool wait_for_robot_stable(rclcpp::Node::SharedPtr node, 
                           std::chrono::seconds timeout = std::chrono::seconds(30),
@@ -132,6 +189,27 @@ bool wait_for_moveit_ready(rclcpp::Node::SharedPtr node,
         pclose(pipe);
         
         if (!planning_scene_found) {
+            std::this_thread::sleep_for(100ms);
+            continue;
+        }
+        
+        // NEW: Check if scaled_joint_trajectory_controller is running
+        pipe = popen("ros2 control list_controllers | grep scaled_joint_trajectory_controller", "r");
+        if (!pipe) continue;
+        
+        bool controller_running = false;
+        while (fgets(buf, 128, pipe)) {
+            std::string line(buf);
+            if (line.find("scaled_joint_trajectory_controller") != std::string::npos && 
+                line.find("active") != std::string::npos) {
+                controller_running = true;
+                break;
+            }
+        }
+        pclose(pipe);
+        
+        if (!controller_running) {
+            RCLCPP_INFO(node->get_logger(), "Waiting for scaled_joint_trajectory_controller to be active...");
             std::this_thread::sleep_for(100ms);
             continue;
         }
@@ -340,7 +418,7 @@ void sigint_handler(int)
 std::string launch_cmd_for_gripper(const std::string& g, const std::string& ip)
 {
     if (g == "none")  return "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=" + ip;
-    if (g == "epick") return "ros2 launch ur_zivid_epick_moveit_config      move_group.launch.py robot_ip:=" + ip;
+    if (g == "epick") return "ros2 launch ur_epick_moveit_config      move_group.launch.py robot_ip:=" + ip;
     if (g == "hande") return "ros2 launch ur_hande_moveit_config      move_group.launch.py robot_ip:=" + ip;
     return "";
 }
@@ -396,6 +474,12 @@ int main(int argc, char** argv)
         return 1;
     }
     
+    // Ensure the controller is active before proceeding
+    if (!ensure_controller_active(node, std::chrono::seconds(30))) {
+        RCLCPP_ERROR(node->get_logger(), "Failed to ensure controller is active!");
+        return 1;
+    }
+    
     if (!play_dashboard_client(node)) {
         RCLCPP_WARN(node->get_logger(), "Dashboard play failed, but continuing - robot may already be running.");
     }
@@ -442,6 +526,7 @@ int main(int argc, char** argv)
                     orch.launch(launch_cmd_for_gripper("none", robot_ip));
                     if (!orch.wait_for_node("move_group") ||
                         !wait_for_moveit_ready(node, std::chrono::seconds(30)) ||
+                        !ensure_controller_active(node, std::chrono::seconds(30)) ||
                         !update_robot_description_from("move_group", node))
                         goto failed;
                     if (!play_dashboard_client(node)) {
@@ -457,8 +542,10 @@ int main(int argc, char** argv)
                 } else {
                     orch.kill_all_and_wait();
                     orch.launch(launch_cmd_for_gripper(requested_tool, robot_ip));
+                    
                     if (!orch.wait_for_node("move_group") ||
                         !wait_for_moveit_ready(node, std::chrono::seconds(30)) ||
+                        !ensure_controller_active(node, std::chrono::seconds(30)) ||
                         !update_robot_description_from("move_group", node))
                         goto failed;
                     if (!play_dashboard_client(node)) {
@@ -478,6 +565,7 @@ int main(int argc, char** argv)
                 orch.launch(launch_cmd_for_gripper(need, robot_ip));
                 if (!orch.wait_for_node("move_group") ||
                     !wait_for_moveit_ready(node, std::chrono::seconds(30)) ||
+                    !ensure_controller_active(node, std::chrono::seconds(30)) ||
                     !update_robot_description_from("move_group", node))
                     goto failed;
                 if (!play_dashboard_client(node)) {

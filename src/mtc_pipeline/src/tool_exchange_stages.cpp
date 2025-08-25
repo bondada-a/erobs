@@ -43,7 +43,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     cartesian_planner->setMaxVelocityScalingFactor(0.2);
     cartesian_planner->setMaxAccelerationScalingFactor(0.2);
     cartesian_planner->setStepSize(0.001);
-    cartesian_planner->setMinFraction(0.9);
+    cartesian_planner->setMinFraction(0.8);
 
     std::string arm_group_name = "ur_arm";
     std::string hand_frame = "flange";
@@ -252,9 +252,9 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     RCLCPP_INFO(node->get_logger(), "Press Ctrl+C to abort, or wait for automatic execution...");
     
     // Wait for 3 minutes (180 seconds)
-    for (int i = 180; i > 0; --i) {
+    for (int i = 10; i > 0; --i) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
-        if (i % 30 == 0) {  // Print countdown every 30 seconds
+        if (i % 1 == 0) {  // Print countdown every 30 seconds
             RCLCPP_INFO(node->get_logger(), "Execution will begin in %d seconds...", i);
         }
     }

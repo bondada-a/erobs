@@ -1,5 +1,5 @@
 {
-  "start_gripper": "hande",    
+  "start_gripper": "epick",    
   "poses": {
     "pickup_approach": [14.76, -143.77, -62.81, -153.21, 69.87, 0.4],
     "pickup": [12.08, -135.05, -79.9, -144.83, 67.25, 0.41],
@@ -10,12 +10,6 @@
     
   },
   "sequence": [
-    {
-      "action": "pick_and_place",
-      "pick_poses": ["pickup_approach", "pickup"],
-      "place_poses": ["place_approach", "place"],
-      "gripper": "hande"
-    },
      {
       "action": "tool_exchange",
       "operation": "dock",
@@ -29,7 +23,12 @@
       "gripper": "epick",           
       "dock_number": 3,
       "poses": ["load_approach"]
+    },
+    {
+      "action": "pick_and_place",
+      "pick_poses": ["pickup_approach", "pickup"],
+      "place_poses": ["place_approach", "place"],
+      "gripper": "hande"
     }
-    
   ]
 }
