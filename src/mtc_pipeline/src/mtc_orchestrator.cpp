@@ -54,6 +54,8 @@ namespace {
                 continue; 
             }
             
+            std::this_thread::sleep_for(5s);
+            
             RCLCPP_INFO(node->get_logger(), "MoveIt is ready!");
             return true;
         }
@@ -62,29 +64,27 @@ namespace {
         return false;
     }
 
-    // Copy robot description parameters from one ROS2 node to another
-    // This is needed because different gripper configurations have different robot descriptions
+    // Sync robot description 
     bool update_robot_description_from(const std::string& source_node, rclcpp::Node::SharedPtr node) {
-        // Create a client to get parameters from the source node
         auto client = std::make_shared<rclcpp::SyncParametersClient>(node, source_node);
         if (!client->wait_for_service(5s)) {
             RCLCPP_ERROR(node->get_logger(), "Could not contact parameter service of %s", source_node.c_str());
             return false;
         }
 
-        // Get the essential robot description parameters
-        auto urdf = client->get_parameter<std::string>("robot_description"); // Robot geometry
-        auto srdf = client->get_parameter<std::string>("robot_description_semantic"); // Robot semantics
-
-        // Set these parameters in our own node
-        std::vector<rclcpp::Parameter> params{{"robot_description", urdf}, {"robot_description_semantic", srdf}};
-        node->set_parameters(params);
-        RCLCPP_INFO(node->get_logger(), "Robot/planning params synced from [%s].", source_node.c_str());
-        return true;
+        try {
+            auto urdf = client->get_parameter<std::string>("robot_description");
+            auto srdf = client->get_parameter<std::string>("robot_description_semantic");
+            node->set_parameters({{"robot_description", urdf}, {"robot_description_semantic", srdf}});
+            RCLCPP_INFO(node->get_logger(), "Robot params synced from [%s]", source_node.c_str());
+            return true;
+        } catch (...) {
+            RCLCPP_ERROR(node->get_logger(), "Failed to get robot description from %s", source_node.c_str());
+            return false;
+        }
     }
 
     // Send a "play" command to the robot's dashboard
-    // This tells the robot to start accepting motion commands
     bool play_dashboard_client(rclcpp::Node::SharedPtr node) {
         RCLCPP_INFO(node->get_logger(), "Waiting for dashboard service...");
         if (!wait_for_service(node, "/dashboard_client/play", 30s)) {
@@ -106,8 +106,6 @@ namespace {
         return false;
     }
 
-    // Generate the launch command for different gripper configurations
-    // Each gripper type (none, epick, hande) has its own MoveIt configuration
     std::string launch_cmd_for_gripper(const std::string& g, const std::string& ip) {
         if (g == "none") return "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=" + ip;
         if (g == "epick") return "ros2 launch ur_epick_moveit_config move_group.launch.py robot_ip:=" + ip;
@@ -116,22 +114,18 @@ namespace {
     }
 }
 
-// The Orchestrator class manages the lifecycle of ROS2 nodes and processes
-// It can start, stop, and monitor different MoveIt configurations
+
 class Orchestrator {
-    std::vector<pid_t> active_pids_; // List of running process IDs
-    std::string current_gripper_ = "none"; // Which gripper is currently active
+    std::vector<pid_t> active_pids_; 
+    std::string current_gripper_ = "none"; 
     
 public:
-    // Start a new process (like launching a MoveIt configuration)
     pid_t launch(const std::string& cmd) {
-        pid_t pid = fork(); // Create a copy of the current process
+        pid_t pid = fork(); 
         if (pid == 0) {
-            // This is the child process - execute the command
-            execl("/usr/bin/setsid", "setsid", "bash", "-c", cmd.c_str(), (char*)nullptr);
-            exit(1); // If exec fails, exit
+            execl("/usr/bin/setsid", "setsid", "bash", "-c", cmd.c_str(), (char*)nullptr); // launch required gripper config
+            exit(1); 
         }
-        // This is the parent process - remember the child's ID
         active_pids_.push_back(pid);
         return pid;
     }
@@ -141,9 +135,8 @@ public:
         for (pid_t pid : active_pids_)
             ::kill(-pid, SIGINT);
         
-        // Wait for processes to terminate gracefully
         auto start_time = std::chrono::steady_clock::now();
-        const auto timeout = std::chrono::seconds(10);
+        const auto timeout = std::chrono::seconds(15);
         
         while (std::chrono::steady_clock::now() - start_time < timeout) {
             bool all_terminated = true;
@@ -157,7 +150,8 @@ public:
             if (all_terminated) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-
+        
+       
         // Force kill any remaining processes
         for (pid_t pid : active_pids_) {
             int status;
@@ -269,36 +263,32 @@ bool execute_step(const std::string& action, const nlohmann::json& step, const n
 
 // Main function - this is where the program starts
 int main(int argc, char** argv) {
-    // Initialize ROS2
+    
     rclcpp::init(argc, argv);
-    // Create our main node
-    auto node = std::make_shared<rclcpp::Node>("mtc_orchestrator",
-                                               rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true));
+    auto node = std::make_shared<rclcpp::Node>("mtc_orchestrator", rclcpp::NodeOptions().automatically_declare_parameters_from_overrides(true));
 
-    // Read the task configuration from JSON file
+    // Read from JSON file
     std::string cfg_file = "./script.json";
-    node->get_parameter("poses_file", cfg_file); // Allow override via parameter
+    node->get_parameter("poses_file", cfg_file);
     std::ifstream ifs(cfg_file);
     if (!ifs) { 
         RCLCPP_ERROR(node->get_logger(), "Cannot open %s", cfg_file.c_str()); 
         return 1; 
     }
 
-    // Parse the JSON configuration
     nlohmann::json cfg; 
     ifs >> cfg;
-    const auto& poses = cfg.at("poses"); // Robot positions/poses
-    const auto& sequence = cfg.at("sequence"); // List of tasks to execute
+    const auto& poses = cfg.at("poses");
+    const auto& sequence = cfg.at("sequence");
 
-    // Get robot configuration
-    std::string robot_ip = "192.168.1.101"; // Default robot IP
-    node->get_parameter("robot_ip", robot_ip); // Allow override via parameter
-    std::string start_gripper = cfg.value("start_gripper", "none"); // Which gripper to start with
+    std::string robot_ip = "192.168.1.101";
+    node->get_parameter("robot_ip", robot_ip);
+    std::string start_gripper = cfg.value("start_gripper", "none");
 
-    // Create the orchestrator to manage processes
+
     Orchestrator orch;
     global_orch = &orch;
-    signal(SIGINT, sigint_handler); // Set up Ctrl+C handler
+    signal(SIGINT, sigint_handler); 
 
     // Start the initial MoveIt configuration
     orch.kill_all_and_wait(); // Clean up any existing processes

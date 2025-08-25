@@ -11,18 +11,6 @@
   },
   "sequence": [
     {
-      "action": "moveto",
-      "target_type": "pose",
-      "target": "pickup",
-      "planning_type": "joint",
-      "arm_group": "ur_arm"
-    },
-    {
-      "action": "end_effector",
-      "end_effector_type": "hande",
-      "end_effector_action": "close"
-    },
-     {
       "action": "tool_exchange",
       "operation": "dock",
       "gripper": "epick",           
@@ -36,6 +24,19 @@
       "dock_number": 3,
       "poses": ["load_approach"]
     },
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "pickup",
+      "planning_type": "joint",
+      "arm_group": "ur_arm"
+    },
+    {
+      "action": "end_effector",
+      "end_effector_type": "hande",
+      "end_effector_action": "close"
+    },
+    
     {
       "action": "pick_and_place",
       "pick_poses": ["pickup_approach", "pickup"],
