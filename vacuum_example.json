@@ -1,0 +1,55 @@
+{
+  "start_gripper": "epick",
+  "end_effector": {
+    "type": "epick",
+    "vacuum_topic": "/vacuum_control",
+    "vacuum_pressure": 0.8
+  },
+  "poses": {
+    "home": [0.0, -90.0, 0.0, -90.0, 0.0, 0.0],
+    "pickup_pose": [30.0, -60.0, 30.0, -60.0, 30.0, 0.0],
+    "place_pose": [-30.0, -60.0, 30.0, -60.0, 30.0, 0.0]
+  },
+  "sequence": [
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "home",
+      "planning_type": "joint",
+      "arm_group": "ur_arm"
+    },
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "pickup_pose",
+      "planning_type": "joint",
+      "arm_group": "ur_arm"
+    },
+    {
+      "action": "end_effector",
+      "end_effector_type": "epick",
+      "action": "on",
+      "pressure": 0.8
+    },
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "place_pose",
+      "planning_type": "joint",
+      "arm_group": "ur_arm"
+    },
+    {
+      "action": "end_effector",
+      "end_effector_type": "epick",
+      "action": "off"
+    },
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "home",
+      "planning_type": "joint",
+      "arm_group": "ur_arm"
+    }
+  ]
+}
+

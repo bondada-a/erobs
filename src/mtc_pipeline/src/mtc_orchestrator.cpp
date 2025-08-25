@@ -1,6 +1,7 @@
 #include "mtc_pipeline/pick_place_stages.hpp"
 #include "mtc_pipeline/tool_exchange_stages.hpp"
 #include "mtc_pipeline/moveto_stages.hpp"
+#include "mtc_pipeline/end_effector_stages.hpp"
 #include <fstream>
 #include <nlohmann/json.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -499,6 +500,7 @@ int main(int argc, char** argv)
     PickPlaceStages    pick_place(node, cfg);
     ToolExchangeStages tool_exch(node, cfg);
     MoveToStages       moveto(node, cfg);
+    EndEffectorStages  end_effector(node, cfg);
 
     /* =====================================================
      *  Main sequence loop
@@ -587,6 +589,14 @@ int main(int argc, char** argv)
         {
             if (!update_robot_description_from("move_group", node) ||
                 !moveto.run(step, poses, node))
+                goto failed;
+
+            success = true;
+        }
+
+        else if (action == "end_effector")
+        {
+            if (!end_effector.run(step, poses, node))
                 goto failed;
 
             success = true;
