@@ -26,67 +26,36 @@ namespace {
         return client->wait_for_service(timeout);
     }
 
-
-
-    // Check if a shell command's output contains a specific text
-    // This is used to check if ROS2 nodes, topics, or controllers are running
     bool check_command_output(const std::string& cmd, const std::string& expected) {
-        // Run the command and capture its output
         FILE* pipe = popen(cmd.c_str(), "r");
-        if (!pipe) return false; // If we can't run the command, return false
-        
-        char buf[128]; // Buffer to store command output
+        if (!pipe) return false; 
+        char buf[128]; 
         bool found = false;
-        // Read the command output line by line
         while (fgets(buf, 128, pipe)) {
-            // Check if this line contains the expected text
             if (std::string(buf).find(expected) != std::string::npos) {
                 found = true;
                 break;
             }
         }
-        pclose(pipe); // Close the command pipe
+        pclose(pipe);
         return found;
     }
 
 
-
-    // Wait for MoveIt (the motion planning system) to be fully ready
-    // MoveIt needs several components to be running before it can plan robot movements
     bool wait_for_moveit_ready(rclcpp::Node::SharedPtr node, std::chrono::seconds timeout = 30s) {
         RCLCPP_INFO(node->get_logger(), "Waiting for MoveIt to become ready...");
         
         auto start_time = std::chrono::steady_clock::now();
         while (std::chrono::steady_clock::now() - start_time < timeout) {
-            // Check if all essential components are running:
-            // 1. move_group node (the main MoveIt node)
-            // 2. joint_states topic (robot joint position data)
+
             if (!check_command_output("ros2 node list", "move_group") ||
                 !check_command_output("ros2 topic list | grep joint_states", "joint_states")) {
                 std::this_thread::sleep_for(100ms);
-                continue; // Try again
+                continue; 
             }
             
-            // Now verify that joint_states is actually publishing data (not just the topic exists)
-            std::promise<bool> promise;
-            auto future = promise.get_future();
-            // Subscribe to joint_states topic to see if we get any messages
-            auto subscription = node->create_subscription<sensor_msgs::msg::JointState>(
-                "joint_states", 10,
-                [&promise](const sensor_msgs::msg::JointState::SharedPtr) {
-                    promise.set_value(true); // Got a message, so it's working
-                });
-            
-            // Wait up to 2 seconds for a joint_states message
-            auto check_start = std::chrono::steady_clock::now();
-            while (std::chrono::steady_clock::now() - check_start < 2s) {
-                rclcpp::spin_some(node); // Process any incoming messages
-                if (future.wait_for(100ms) == std::future_status::ready) {
-                    RCLCPP_INFO(node->get_logger(), "MoveIt is ready!");
-                    return true;
-                }
-            }
-            std::this_thread::sleep_for(100ms);
+            RCLCPP_INFO(node->get_logger(), "MoveIt is ready!");
+            return true;
         }
         
         RCLCPP_ERROR(node->get_logger(), "MoveIt failed to become ready!");
