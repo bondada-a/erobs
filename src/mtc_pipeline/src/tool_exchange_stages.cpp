@@ -252,7 +252,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     RCLCPP_INFO(node->get_logger(), "Press Ctrl+C to abort, or wait for automatic execution...");
     
     // Wait for 3 minutes (180 seconds)
-    for (int i = 10; i > 0; --i) {
+    for (int i = 2; i > 0; --i) {
         std::this_thread::sleep_for(std::chrono::seconds(1));
         if (i % 1 == 0) {  // Print countdown every 30 seconds
             RCLCPP_INFO(node->get_logger(), "Execution will begin in %d seconds...", i);

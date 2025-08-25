@@ -1,5 +1,5 @@
 {
-  "start_gripper": "epick",    
+  "start_gripper": "none",    
   "poses": {
     "pickup_approach": [14.76, -143.77, -62.81, -153.21, 69.87, 0.4],
     "pickup": [12.08, -135.05, -79.9, -144.83, 67.25, 0.41],
@@ -10,11 +10,39 @@
     
   },
   "sequence": [
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "pickup",
+      "planning_type": "joint",
+      "arm_group": "ur_arm"
+    },
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "load_approach",
+      "planning_type": "cartesian",
+      "arm_group": "ur_arm"
+    },
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "dock_approach",
+      "planning_type": "cartesian",
+      "arm_group": "ur_arm"
+    },
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "place_approach",
+      "planning_type": "cartesian",
+      "arm_group": "ur_arm"
+    },
      {
       "action": "tool_exchange",
       "operation": "dock",
       "gripper": "epick",           
-      "dock_number": 3,
+      "dock_number": 4,
       "poses": ["dock_approach"]
     },
     {

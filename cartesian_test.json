@@ -1,0 +1,23 @@
+{
+  "start_gripper": "none",    
+  "poses": {
+    "pickup": [14.76, -143.77, -62.81, -153.21, 69.87, 0.4],
+    "load_approach": [-29.96, -159.18, -20.73, -270.17, -90.11, -176.02]
+  },
+  "sequence": [
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "pickup",
+      "planning_type": "joint",
+      "arm_group": "ur_arm"
+    },
+    {
+      "action": "moveto",
+      "target_type": "pose",
+      "target": "load_approach",
+      "planning_type": "cartesian",
+      "arm_group": "ur_arm"
+    }
+  ]
+}

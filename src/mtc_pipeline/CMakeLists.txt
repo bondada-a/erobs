@@ -16,6 +16,7 @@ find_package(ur_msgs REQUIRED)
 add_library(mtc_pipeline_core
   src/pick_place_stages.cpp
   src/tool_exchange_stages.cpp
+  src/moveto_stages.cpp
 )
 ament_target_dependencies(mtc_pipeline_core
   moveit_task_constructor_core
