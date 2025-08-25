@@ -84,7 +84,7 @@ namespace {
         }
     }
 
-    // Send a "play" command to the robot's dashboard
+    // Send "play" command to the robot's dashboard
     bool play_dashboard_client(rclcpp::Node::SharedPtr node) {
         RCLCPP_INFO(node->get_logger(), "Waiting for dashboard service...");
         if (!wait_for_service(node, "/dashboard_client/play", 30s)) {
@@ -92,17 +92,15 @@ namespace {
             return false;
         }
         
-        // Create a client and send the play request
         auto client = node->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
         auto fut = client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
         
-        // Wait for the response
         if (rclcpp::spin_until_future_complete(node, fut, 5s) == rclcpp::FutureReturnCode::SUCCESS && fut.get()->success) {
             RCLCPP_INFO(node->get_logger(), "Dashboard 'play' called successfully.");
             return true;
         }
         
-        RCLCPP_WARN(node->get_logger(), "Dashboard 'play' failed, but continuing...");
+        RCLCPP_WARN(node->get_logger(), "Dashboard 'play' failed");
         return false;
     }
 
@@ -151,16 +149,8 @@ public:
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
         
-       
-        // Force kill any remaining processes
         for (pid_t pid : active_pids_) {
-            int status;
-            if (waitpid(pid, &status, WNOHANG) == 0) {
-                ::kill(-pid, SIGKILL);
-                waitpid(pid, nullptr, 0);
-            } else {
-                waitpid(pid, nullptr, 0);
-            }
+            waitpid(pid, nullptr, WNOHANG);
         }
         active_pids_.clear();
     }
@@ -174,12 +164,10 @@ public:
         return false;
     }
 
-    // Getter and setter for current gripper
     void set_current_gripper(const std::string& g) { current_gripper_ = g; }
     const std::string& get_current_gripper() const { return current_gripper_; }
 };
 
-// Global orchestrator for signal handling
 Orchestrator* global_orch = nullptr;
 void sigint_handler(int) {
     std::cerr << "\n[Orchestrator] SIGINT received. Shutting down...\n";
