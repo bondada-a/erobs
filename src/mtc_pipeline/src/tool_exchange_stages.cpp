@@ -52,7 +52,6 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     mtc::Task task;
     task.stages()->setName(operation == "load" ? "Load Tool Task" : 
                           operation == "dock" ? "Dock Tool Task" : "Tool Exchange Task");
-    task.loadRobotModel(node);
 
     task.setProperty("group", arm_group_name);
     geometry_msgs::msg::PoseStamped ik_frame_pose;

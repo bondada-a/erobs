@@ -172,7 +172,6 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
     // Create task
     mtc::Task task;
     task.stages()->setName("MoveTo Task");
-    task.loadRobotModel(node);
     
     task.setProperty("group", arm_group_name);
     

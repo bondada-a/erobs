@@ -73,7 +73,6 @@ bool PickPlaceStages::run(const nlohmann::json& step, const nlohmann::json& pose
 
   moveit::task_constructor::Task task;
   task.stages()->setName("Pick and Place Modular Task");
-  task.loadRobotModel(node);
 
   const std::string arm_group_name = "ur_arm";
   const std::string hand_group_name = "hande_gripper";

@@ -141,7 +141,6 @@ bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& /*
         // Create MTC task for gripper control
         moveit::task_constructor::Task task;
         task.stages()->setName("Gripper Control Task");
-        task.loadRobotModel(node);
         
         const std::string hand_group_name = "hande_gripper";
         

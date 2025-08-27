@@ -1,0 +1,17 @@
+# Goal
+string task_script_json    # JSON string containing the task sequence and poses
+string robot_ip           # Robot IP address (optional, can use default)
+string start_gripper      # Initial gripper configuration (optional, can use default)
+---
+# Result
+bool success
+string error_message
+int32 completed_steps
+int32 total_steps
+---
+# Feedback
+int32 current_step
+string current_action
+float32 progress_percentage
+string status_message
+string current_gripper
