@@ -171,6 +171,7 @@ bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& /*
         
         // Initialize and execute task
         try {
+            task.loadRobotModel(node);
             task.init();
         } catch (const moveit::task_constructor::InitStageException& e) {
             RCLCPP_ERROR(node->get_logger(), "Stage initialization failed: %s", e.what());

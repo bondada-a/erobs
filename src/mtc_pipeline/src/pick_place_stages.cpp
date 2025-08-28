@@ -130,6 +130,7 @@ bool PickPlaceStages::run(const nlohmann::json& step, const nlohmann::json& pose
 
   // Execute task with error handling
   try {
+    task.loadRobotModel(node);
     task.init();
   } catch (const moveit::task_constructor::InitStageException& e) {
     RCLCPP_ERROR(node->get_logger(), "Stage initialization failed: %s", e.what());

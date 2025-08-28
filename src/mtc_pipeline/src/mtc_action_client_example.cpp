@@ -31,12 +31,10 @@ public:
      * Send a task execution goal to the MTC action server
      * @param json_file_path Path to the JSON task file
      * @param robot_ip IP address of the robot
-     * @param start_gripper Type of gripper to use (hande, epick, none)
      * @return true if goal was sent successfully, false otherwise
      */
     bool send_goal(const std::string& json_file_path, 
-                   const std::string& robot_ip = "192.168.1.101",
-                   const std::string& start_gripper = "none") {
+                   const std::string& robot_ip = "192.168.1.101") {
         
         // Read and parse the JSON task file
         std::ifstream file(json_file_path);
@@ -53,7 +51,7 @@ public:
         auto goal_msg = MTCExecution::Goal();
         goal_msg.task_script_json = json_string;
         goal_msg.robot_ip = robot_ip;
-        goal_msg.start_gripper = start_gripper;
+        // Note: start_gripper is read from the JSON file by the action server
         
         RCLCPP_INFO(this->get_logger(), "Sending goal...");
         
@@ -146,14 +144,14 @@ int main(int argc, char** argv) {
     
     // Parse command line arguments
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <json_file_path> [robot_ip] [start_gripper]" << std::endl;
-        std::cout << "Example: " << argv[0] << " ./script.json 192.168.1.101 none" << std::endl;
+        std::cout << "Usage: " << argv[0] << " <json_file_path> [robot_ip]" << std::endl;
+        std::cout << "Example: " << argv[0] << " ./script.json 192.168.1.101" << std::endl;
+        std::cout << "Note: Gripper type is specified in the JSON file" << std::endl;
         return 1;
     }
     
     std::string json_file = argv[1];
     std::string robot_ip = (argc > 2) ? argv[2] : "192.168.1.101";
-    std::string start_gripper = (argc > 3) ? argv[3] : "none";
     
     // Create the action client
     auto client = std::make_shared<MTCActionClient>();
@@ -164,7 +162,7 @@ int main(int argc, char** argv) {
     }
     
     // Send the task goal and wait for completion
-    bool success = client->send_goal(json_file, robot_ip, start_gripper);
+    bool success = client->send_goal(json_file, robot_ip);
     
     rclcpp::shutdown();
     return success ? 0 : 1;

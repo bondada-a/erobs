@@ -139,6 +139,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
 
     // Initialize and execute task
     try {
+        task.loadRobotModel(node);
         task.init();
     } catch (const mtc::InitStageException& e) {
         RCLCPP_ERROR_STREAM(node->get_logger(), "Stage initialization failed: " << e);

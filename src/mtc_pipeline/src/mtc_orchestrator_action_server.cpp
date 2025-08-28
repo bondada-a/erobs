@@ -15,6 +15,8 @@
 #include <iostream>
 #include <std_srvs/srv/trigger.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <linux/limits.h>
+#include <cstdlib>
 
 #include "mtc_pipeline/action/mtc_execution.hpp"
 #include "mtc_pipeline/pick_place_stages.hpp"
@@ -222,9 +224,19 @@ namespace {
 
     // Get launch command for gripper type
     std::string launch_cmd_for_gripper(const std::string& g, const std::string& ip) {
-        if (g == "none") return "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=" + ip;
-        if (g == "epick") return "ros2 launch ur_epick_moveit_config move_group.launch.py robot_ip:=" + ip;
-        if (g == "hande") return "ros2 launch ur_hande_moveit_config move_group.launch.py robot_ip:=" + ip;
+        // Get the current working directory to find the workspace
+        char cwd[PATH_MAX];
+        if (getcwd(cwd, sizeof(cwd)) == nullptr) {
+            return "";
+        }
+        std::string workspace_path = std::string(cwd);
+        
+        // Create the setup command that sources the workspace
+        std::string setup_cmd = "source " + workspace_path + "/install/setup.bash && ";
+        
+        if (g == "none") return setup_cmd + "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=" + ip;
+        if (g == "epick") return setup_cmd + "ros2 launch ur_epick_moveit_config move_group.launch.py robot_ip:=" + ip;
+        if (g == "hande") return setup_cmd + "ros2 launch ur_hande_moveit_config move_group.launch.py robot_ip:=" + ip;
         return "";
     }
 }

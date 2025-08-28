@@ -79,12 +79,18 @@ target_compile_features(mtc_orchestrator_action_server PUBLIC c_std_99 cxx_std_1
 target_compile_features(mtc_action_client_example PUBLIC c_std_99 cxx_std_17)
 
 # === Install targets ===
+# Install executables to lib/${PROJECT_NAME} (ROS2 standard)
 install(TARGETS
   mtc_orchestrator
   mtc_orchestrator_action_server
   mtc_action_client_example
-  mtc_pipeline_core
   DESTINATION lib/${PROJECT_NAME}
+)
+
+# Install library to lib/ (for runtime linking)
+install(TARGETS
+  mtc_pipeline_core
+  DESTINATION lib
 )
 
 # === Install launch files ===

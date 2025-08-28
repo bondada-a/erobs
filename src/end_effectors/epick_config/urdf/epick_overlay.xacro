@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
   <!-- Overlay that pins pose and serial port for epick -->
-  <xacro:include filename="$(find-pkg-share ros2_epick_gripper)/epick_description/urdf/epick_single_suction_cup.xacro"/>
+  <xacro:include filename="$(find epick_description)/urdf/epick_single_suction_cup.xacro"/>
   <!-- Arguments for parent link and optional prefix -->
   <xacro:macro name="epick_overlay" params="parent prefix:=''
                                  origin_xyz:='0 -0.019 0'
