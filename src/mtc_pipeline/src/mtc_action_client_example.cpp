@@ -8,12 +8,17 @@
 using MTCExecution = mtc_pipeline::action::MTCExecution;
 using GoalHandleMTCExecution = rclcpp_action::ClientGoalHandle<MTCExecution>;
 
+/**
+ * Client node that sends task execution requests to the MTC action server
+ * Reads JSON task files and sends them as action goals
+ */
 class MTCActionClient : public rclcpp::Node {
 private:
     rclcpp_action::Client<MTCExecution>::SharedPtr action_client_;
 
 public:
     MTCActionClient() : Node("mtc_action_client") {
+        // Create action client to communicate with the MTC action server
         action_client_ = rclcpp_action::create_client<MTCExecution>(
             this, "mtc_execution");
     }
@@ -22,11 +27,18 @@ public:
         return action_client_;
     }
 
+    /**
+     * Send a task execution goal to the MTC action server
+     * @param json_file_path Path to the JSON task file
+     * @param robot_ip IP address of the robot
+     * @param start_gripper Type of gripper to use (hande, epick, none)
+     * @return true if goal was sent successfully, false otherwise
+     */
     bool send_goal(const std::string& json_file_path, 
                    const std::string& robot_ip = "192.168.1.101",
                    const std::string& start_gripper = "none") {
         
-        // Read JSON file
+        // Read and parse the JSON task file
         std::ifstream file(json_file_path);
         if (!file.is_open()) {
             RCLCPP_ERROR(this->get_logger(), "Could not open file: %s", json_file_path.c_str());
@@ -37,7 +49,7 @@ public:
         file >> config;
         std::string json_string = config.dump();
         
-        // Create goal
+        // Create the action goal with task data
         auto goal_msg = MTCExecution::Goal();
         goal_msg.task_script_json = json_string;
         goal_msg.robot_ip = robot_ip;
@@ -45,15 +57,17 @@ public:
         
         RCLCPP_INFO(this->get_logger(), "Sending goal...");
         
-        // Send goal
+        // Set up callbacks for feedback and results
         auto send_goal_options = rclcpp_action::Client<MTCExecution>::SendGoalOptions();
         send_goal_options.feedback_callback = 
             std::bind(&MTCActionClient::feedback_callback, this, std::placeholders::_1, std::placeholders::_2);
         send_goal_options.result_callback = 
             std::bind(&MTCActionClient::result_callback, this, std::placeholders::_1);
         
+        // Send the goal to the action server
         auto goal_handle_future = action_client_->async_send_goal(goal_msg, send_goal_options);
         
+        // Wait for the goal to be accepted or rejected
         if (rclcpp::spin_until_future_complete(this->shared_from_this(), goal_handle_future) != 
             rclcpp::FutureReturnCode::SUCCESS) {
             RCLCPP_ERROR(this->get_logger(), "Failed to send goal");
@@ -68,7 +82,7 @@ public:
         
         RCLCPP_INFO(this->get_logger(), "Goal accepted, waiting for result...");
         
-        // Wait for result
+        // Wait for the task execution to complete
         auto result_future = action_client_->async_get_result(goal_handle);
         if (rclcpp::spin_until_future_complete(this->shared_from_this(), result_future) != 
             rclcpp::FutureReturnCode::SUCCESS) {
@@ -76,6 +90,7 @@ public:
             return false;
         }
         
+        // Process the final result
         auto result = result_future.get();
         if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
             RCLCPP_INFO(this->get_logger(), "Task completed successfully!");
@@ -89,18 +104,24 @@ public:
     }
 
 private:
+    /**
+     * Callback for receiving progress updates during task execution
+     */
     void feedback_callback(GoalHandleMTCExecution::SharedPtr,
                           const std::shared_ptr<const MTCExecution::Feedback> feedback) {
         RCLCPP_INFO(this->get_logger(), 
                    "Progress: %.1f%% - Step %d/%d - Action: %s - Status: %s - Gripper: %s",
                    feedback->progress_percentage,
                    feedback->current_step,
-                   feedback->current_step, // This should be total_steps, but it's not in feedback
+                   feedback->current_step, // TODO: Should be total_steps, but it's not in feedback
                    feedback->current_action.c_str(),
                    feedback->status_message.c_str(),
                    feedback->current_gripper.c_str());
     }
     
+    /**
+     * Callback for receiving the final result when task completes
+     */
     void result_callback(const GoalHandleMTCExecution::WrappedResult& result) {
         switch (result.code) {
             case rclcpp_action::ResultCode::SUCCEEDED:
@@ -123,6 +144,7 @@ private:
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
     
+    // Parse command line arguments
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " <json_file_path> [robot_ip] [start_gripper]" << std::endl;
         std::cout << "Example: " << argv[0] << " ./script.json 192.168.1.101 none" << std::endl;
@@ -133,13 +155,15 @@ int main(int argc, char** argv) {
     std::string robot_ip = (argc > 2) ? argv[2] : "192.168.1.101";
     std::string start_gripper = (argc > 3) ? argv[3] : "none";
     
+    // Create the action client
     auto client = std::make_shared<MTCActionClient>();
     
-    // Wait for action server
+    // Wait for the action server to become available
     while (!client->get_action_client()->wait_for_action_server(std::chrono::seconds(5))) {
         RCLCPP_INFO(client->get_logger(), "Waiting for action server...");
     }
     
+    // Send the task goal and wait for completion
     bool success = client->send_goal(json_file, robot_ip, start_gripper);
     
     rclcpp::shutdown();
