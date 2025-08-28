@@ -1,5 +1,5 @@
 {
-  "start_gripper": "hande",    
+  "start_gripper": "epick",    
   "poses": {
     "pickup_approach": [14.76, -143.77, -62.81, -153.21, 69.87, 0.4],
     "pickup": [12.08, -135.05, -79.9, -144.83, 67.25, 0.41],
@@ -21,14 +21,14 @@
     {
       "action": "tool_exchange",
       "operation": "load",
-      "gripper": "epick",           
+      "gripper": "hande",           
       "dock_number": 3,
       "poses": ["load_approach"]
     },
     {
       "action": "moveto",
       "target_type": "pose",
-      "target": "pickup",
+      "target": "place",
       "planning_type": "joint",
       "arm_group": "ur_arm"
     },
