@@ -7,6 +7,7 @@
 #include <moveit_msgs/msg/move_it_error_codes.hpp>
 #include <control_msgs/action/gripper_command.hpp>
 #include <std_srvs/srv/set_bool.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
 #include <memory>
 #include <string>
 
@@ -99,29 +100,56 @@ bool EndEffectorStages::controlGripper(const std::string& action, double positio
     }
 }
 
-// Control vacuum using service
-bool EndEffectorStages::controlVacuum(const std::string& action, double /* pressure */) {
-    std::string end_effector_type = getEndEffectorType();
+// Control vacuum using action client for EPick
+bool EndEffectorStages::controlVacuum(const std::string& action, const std::string& end_effector_type, double /* pressure */) {
     
     if (end_effector_type == "epick") {
-        static auto vacuum_service_client = node_->create_client<std_srvs::srv::SetBool>(getVacuumActionTopic());
+        // EPick gripper uses action server, not service
+        auto gripper_action_client = rclcpp_action::create_client<control_msgs::action::GripperCommand>(
+            node_, "/epick_gripper_action_controller/gripper_cmd");
         
-        if (!vacuum_service_client->wait_for_service(std::chrono::seconds(5))) {
-            RCLCPP_ERROR(node_->get_logger(), "Vacuum service not available");
+        if (!gripper_action_client->wait_for_action_server(std::chrono::seconds(10))) {
+            RCLCPP_ERROR(node_->get_logger(), "EPick gripper action server not available");
             return false;
         }
         
-        auto request = std::make_shared<std_srvs::srv::SetBool::Request>();
-        request->data = (action == "on");
+        // Create and send goal
+        auto goal = control_msgs::action::GripperCommand::Goal();
         
-        auto future = vacuum_service_client->async_send_request(request);
-        if (rclcpp::spin_until_future_complete(node_, future, std::chrono::seconds(5)) != rclcpp::FutureReturnCode::SUCCESS) {
-            RCLCPP_ERROR(node_->get_logger(), "Vacuum service call failed");
+        // Set target position based on action
+        if (action == "on") {
+            goal.command.position = 1.0;  // Close/grip
+        } else if (action == "off") {
+            goal.command.position = 0.0;  // Open/release
+        } else {
+            RCLCPP_ERROR(node_->get_logger(), "Unknown vacuum action: %s", action.c_str());
             return false;
         }
         
-        auto response = future.get();
-        return response->success;
+        goal.command.max_effort = 100.0;  // Default effort
+        
+        auto goal_handle_future = gripper_action_client->async_send_goal(goal);
+        
+        if (rclcpp::spin_until_future_complete(node_, goal_handle_future) != rclcpp::FutureReturnCode::SUCCESS) {
+            RCLCPP_ERROR(node_->get_logger(), "Failed to send EPick gripper goal");
+            return false;
+        }
+        
+        auto goal_handle = goal_handle_future.get();
+        if (!goal_handle) {
+            RCLCPP_ERROR(node_->get_logger(), "EPick gripper goal was rejected");
+            return false;
+        }
+        
+        // Wait for result
+        auto result_future = gripper_action_client->async_get_result(goal_handle);
+        if (rclcpp::spin_until_future_complete(node_, result_future, std::chrono::seconds(10)) != rclcpp::FutureReturnCode::SUCCESS) {
+            RCLCPP_ERROR(node_->get_logger(), "EPick gripper action timed out");
+            return false;
+        }
+        
+        auto result = result_future.get();
+        return result.result->reached_goal;
         
     } else {
         RCLCPP_ERROR(node_->get_logger(), "Vacuum control not supported for end effector type: %s", end_effector_type.c_str());
@@ -198,9 +226,64 @@ bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& /*
         return true;
         
     } else if (end_effector_type == "epick" || end_effector_type == "vacuum") {
-        // Handle vacuum control
-        double pressure = step.value("pressure", 0.0);
-        return controlVacuum(action, pressure);
+        // Create MTC task for EPick gripper control using group states
+        moveit::task_constructor::Task task;
+        task.stages()->setName("EPick Gripper Control Task");
+        
+        const std::string epick_group_name = "epick_gripper";
+        
+        // Setup planner
+        auto interpolation_planner = std::make_shared<mtc::solvers::JointInterpolationPlanner>();
+        interpolation_planner->setMaxVelocityScalingFactor(0.2);
+        interpolation_planner->setMaxAccelerationScalingFactor(0.2);
+        
+        // Add current state
+        task.add(std::make_unique<mtc::stages::CurrentState>("current"));
+        
+        // Set goal state based on action
+        std::string goal_state;
+        if (action == "vacuum_on" || action == "on") {
+            goal_state = "vacuum_on";
+        } else if (action == "vacuum_off" || action == "off") {
+            goal_state = "vacuum_off";
+        } else {
+            RCLCPP_ERROR(node->get_logger(), "Unknown EPick action: %s", action.c_str());
+            return false;
+        }
+        
+        // Create and add gripper stage
+        auto gripper_stage = std::make_unique<mtc::stages::MoveTo>("epick_control", interpolation_planner);
+        gripper_stage->setGroup(epick_group_name);
+        gripper_stage->setGoal(goal_state);
+        task.add(std::move(gripper_stage));
+        
+        // Initialize and execute task
+        try {
+            task.loadRobotModel(node);
+            task.init();
+        } catch (const moveit::task_constructor::InitStageException& e) {
+            RCLCPP_ERROR(node->get_logger(), "Stage initialization failed: %s", e.what());
+            return false;
+        }
+        
+        if (!task.plan(5)) {
+            RCLCPP_ERROR(node->get_logger(), "Task planning failed");
+            return false;
+        }
+        
+        if (task.solutions().empty()) {
+            RCLCPP_ERROR(node->get_logger(), "No solutions found to execute");
+            return false;
+        }
+        
+        auto result = task.execute(*task.solutions().front());
+        if (result.val != moveit_msgs::msg::MoveItErrorCodes::SUCCESS) {
+            RCLCPP_ERROR(node->get_logger(), "Task execution failed");
+            return false;
+        }
+        
+        RCLCPP_INFO(node->get_logger(), "EPick gripper control successful: %s", action.c_str());
+        return true;
         
     } else {
         // Handle custom end effectors

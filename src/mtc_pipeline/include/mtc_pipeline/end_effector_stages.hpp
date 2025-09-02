@@ -22,7 +22,7 @@ public:
     
     // End effector control methods
     bool controlGripper(const std::string& action, double position = 0.0, double force = 0.0);
-    bool controlVacuum(const std::string& action, double pressure = 0.0);
+    bool controlVacuum(const std::string& action, const std::string& end_effector_type, double pressure = 0.0);
     bool controlCustom(const std::string& end_effector_type, const std::string& action, const nlohmann::json& params);
 
 private:
