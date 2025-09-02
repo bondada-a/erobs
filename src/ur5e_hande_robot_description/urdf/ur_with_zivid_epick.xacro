@@ -112,7 +112,7 @@
   <!-- Tool block attached to the Zivid camera -->
   <xacro:tool_block parent_link="zivid_camera" xyz="0 -0.105 0.03" rpy="-1.5708 0 0"/>
 
-  <xacro:epick_overlay parent="tool_block"
+  <xacro:epick_overlay use_fake_hardware="false" parent="tool_block"
                   origin_xyz="0 -0.02 0"
                   origin_rpy="-1.5708 0 3.1416"/>
 </robot>

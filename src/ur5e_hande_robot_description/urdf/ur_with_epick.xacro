@@ -105,7 +105,7 @@
 
   <xacro:tool_exchanger parent_link="$(arg tf_prefix)flange"/>
 
-  <xacro:epick_overlay parent="tool_exchanger" use_fake_hardware="true" usb_port="/tmp/ttyUR"/>
+  <xacro:epick_overlay parent="tool_exchanger" use_fake_hardware="false" usb_port="/tmp/ttyUR"/>
 
 
 
