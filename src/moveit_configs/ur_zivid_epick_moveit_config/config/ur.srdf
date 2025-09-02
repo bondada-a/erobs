@@ -13,7 +13,7 @@
         <chain base_link="base_link" tip_link="flange"/>
     </group>
     <group name="epick_gripper">
-        <link name="tool_exchanger"/>
+        <link name="tool_block"/>
         <link name="epick_base_link"/>
         <link name="epick_body"/>
         <link name="epick_suction_cup"/>
@@ -43,11 +43,11 @@
     <!--DISABLE COLLISIONS: By default it is assumed that any link of the robot could potentially come into collision with any other link in the robot. This tag disables collision checking between a specified pair of links. -->
     <disable_collisions link1="base_link_inertia" link2="shoulder_link" reason="Adjacent"/>
     <disable_collisions link1="epick_body" link2="epick_suction_cup" reason="Adjacent"/>
-    <disable_collisions link1="epick_body" link2="tool_exchanger" reason="Adjacent"/>
+    <disable_collisions link1="epick_body" link2="tool_block" reason="Adjacent"/>
     <disable_collisions link1="epick_body" link2="wrist_1_link" reason="Never"/>
     <disable_collisions link1="epick_body" link2="wrist_2_link" reason="Never"/>
     <disable_collisions link1="epick_body" link2="wrist_3_link" reason="Never"/>
-    <disable_collisions link1="epick_suction_cup" link2="tool_exchanger" reason="Never"/>
+    <disable_collisions link1="epick_suction_cup" link2="tool_block" reason="Never"/>
     <disable_collisions link1="epick_suction_cup" link2="wrist_1_link" reason="Never"/>
     <disable_collisions link1="epick_suction_cup" link2="wrist_2_link" reason="Never"/>
     <disable_collisions link1="epick_suction_cup" link2="wrist_3_link" reason="Never"/>
@@ -55,8 +55,8 @@
     <disable_collisions link1="forearm_link" link2="wrist_1_link" reason="Adjacent"/>
     <disable_collisions link1="forearm_link" link2="wrist_2_link" reason="Never"/>
     <disable_collisions link1="shoulder_link" link2="upper_arm_link" reason="Adjacent"/>
-    <disable_collisions link1="tool_exchanger" link2="wrist_2_link" reason="Never"/>
-    <disable_collisions link1="tool_exchanger" link2="wrist_3_link" reason="Adjacent"/>
+    <disable_collisions link1="tool_block" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="tool_block" link2="wrist_3_link" reason="Adjacent"/>
     <disable_collisions link1="wrist_1_link" link2="wrist_2_link" reason="Adjacent"/>
     <disable_collisions link1="wrist_1_link" link2="wrist_3_link" reason="Never"/>
     <disable_collisions link1="wrist_2_link" link2="wrist_3_link" reason="Adjacent"/>

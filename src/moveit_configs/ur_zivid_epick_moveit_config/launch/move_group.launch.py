@@ -92,14 +92,14 @@ def generate_launch_description():
         ],
     )
 
-    # # Tool Communication Node
-    # tool_communication = Node(
-    #     package="ur_robot_driver",
-    #     executable="tool_communication.py",
-    #     name="tool_communication_node",
-    #     output="screen",
-    #     parameters=[{"robot_ip": LaunchConfiguration("robot_ip")}]
-    # )
+    # Tool Communication Node
+    tool_communication = Node(
+        package="ur_robot_driver",
+        executable="tool_communication.py",
+        name="tool_communication_node",
+        output="screen",
+        parameters=[{"robot_ip": LaunchConfiguration("robot_ip")}]
+    )
 
 
 
@@ -143,7 +143,7 @@ def generate_launch_description():
 
     return LaunchDescription([
         ## arguments 
-        # tool_communication,
+        tool_communication,
 
         robot_ip,
         ur_type,

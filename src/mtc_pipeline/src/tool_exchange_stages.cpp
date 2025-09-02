@@ -129,9 +129,9 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     else if (operation == "dock") {
         addNamedMoveStage("move to dock approach", approach_pose);
         addDockShiftStage(dock_offset_y);
-        addRelativeMoveStage("align_holder", 0.035, 1.0, 0.0, 0.0);   
-        addRelativeMoveStage("detach_tool", 0.02, 0.0, 0.0, 1.0);     
-        addRelativeMoveStage("dock connect", 0.04, -1.0, 0.0, 0.0);   
+        addRelativeMoveStage("align_holder", 0.2, 1.0, 0.0, 0.0);   
+        addRelativeMoveStage("detach_tool", 0.15, 0.0, 0.0, 1.0);     
+        addRelativeMoveStage("dock connect", 0.1, -1.0, 0.0, 0.0);   
     } else {
         RCLCPP_ERROR(node->get_logger(), "Unknown operation: %s", operation.c_str());
         return false;

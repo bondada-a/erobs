@@ -235,8 +235,8 @@ namespace {
         std::string setup_cmd = "source " + workspace_path + "/install/setup.bash && ";
         
         if (g == "none") return setup_cmd + "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=" + ip;
-        if (g == "epick") return setup_cmd + "ros2 launch ur_epick_moveit_config move_group.launch.py robot_ip:=" + ip;
-        if (g == "hande") return setup_cmd + "ros2 launch ur_hande_moveit_config move_group.launch.py robot_ip:=" + ip;
+        if (g == "epick") return setup_cmd + "ros2 launch ur_zivid_epick_moveit_config move_group.launch.py robot_ip:=" + ip;
+        if (g == "hande") return setup_cmd + "ros2 launch ur_zivid_hande_moveit_config move_group.launch.py robot_ip:=" + ip;
         return "";
     }
 }
