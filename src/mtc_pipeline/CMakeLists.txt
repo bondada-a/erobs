@@ -14,11 +14,20 @@ find_package(nlohmann_json REQUIRED)
 find_package(ur_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 
-# Generate actions
+# Generate actions and Python modules
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/MTCExecution.action"
   DEPENDENCIES std_srvs
+  ADD_LINTER_TESTS
 )
+
+# Install Python modules if they exist
+if(EXISTS ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_py/${PROJECT_NAME})
+  install(DIRECTORY
+    ${CMAKE_CURRENT_BINARY_DIR}/rosidl_generator_py/${PROJECT_NAME}
+    DESTINATION lib/python3*/site-packages/
+  )
+endif()
 
 # === Create a library for shared logic ===
 add_library(mtc_pipeline_core
@@ -95,6 +104,12 @@ install(TARGETS
 
 # === Install launch files ===
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
+
+# === Install Python scripts ===
+# Note: GUI components have been moved to the mtc_gui package
+
+# === Install test script ===
+# Note: GUI test script has been moved to the mtc_gui package
 
 # === Testing (optional) ===
 if(BUILD_TESTING)
