@@ -19,7 +19,7 @@ moveit_simple_controller_manager:
     action_ns: follow_joint_trajectory
     default: true
   epick_gripper_action_controller:
-      type: GripperCommand
+      type: GripperAction
       joints:
         - gripper  
       action_ns: gripper_cmd 
