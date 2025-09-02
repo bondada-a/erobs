@@ -5,7 +5,7 @@ moveit_controller_manager: moveit_simple_controller_manager/MoveItSimpleControll
 moveit_simple_controller_manager:
   controller_names:
     - scaled_joint_trajectory_controller
-    - epick_gripper_action_controller     
+    - epick_gripper_action_controller
 
   scaled_joint_trajectory_controller:
     type: FollowJointTrajectory
@@ -19,8 +19,8 @@ moveit_simple_controller_manager:
     action_ns: follow_joint_trajectory
     default: true
   epick_gripper_action_controller:
-      type: GripperCommand
-      joints:
-        - gripper  
-      action_ns: gripper_cmd 
-      default: true
+    type: GripperCommand
+    joints:
+      - gripper
+    action_ns: gripper_cmd
+    default: true
