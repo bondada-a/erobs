@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <boost/algorithm/string/join.hpp>
 
 namespace mtc = moveit::task_constructor;
 
@@ -44,14 +45,21 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToNamedStage(
     const std::string& arm_group_name,
     bool is_named_state) {
     
-    auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-    stage->setGroup(arm_group_name);
-    stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
-    stage->setIKFrame("flange");
-    
     if (is_named_state) {
+        // For named states, use MoveTo with the named state as goal
+        auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
+        stage->setGroup(arm_group_name);
+        stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
+        stage->setIKFrame("flange");
         stage->setGoal(pose_key);
+        return stage;
     } else {
+        // For joint poses, use MoveTo with planner
+        auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
+        stage->setGroup(arm_group_name);
+        stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
+        stage->setIKFrame("flange");
+        
         auto& angles_deg = config_["poses"][pose_key];
         if (!angles_deg.is_array() || angles_deg.size() != 6) {
             throw std::runtime_error(pose_key + " must be an array of 6 numbers");
@@ -64,9 +72,8 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToNamedStage(
         
         auto joint_goal = convertDegreesToRadians(angles_vec);
         stage->setGoal(joint_goal);
+        return stage;
     }
-    
-    return stage;
 }
 
 // Create move stage to specific joint angles
@@ -203,7 +210,27 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
     
     // Initialize and execute task
     try {
+        // Load robot model
         task.loadRobotModel(node);
+        
+        // Debug: Print available groups and states
+        auto robot_model = task.getRobotModel();
+        if (robot_model) {
+            RCLCPP_INFO(node->get_logger(), "Robot model loaded successfully");
+            RCLCPP_INFO(node->get_logger(), "Available groups: %s", 
+                       boost::algorithm::join(robot_model->getJointModelGroupNames(), ", ").c_str());
+            
+            if (target_type == "named_state") {
+                std::string named_state = step["target"];
+                auto group = robot_model->getJointModelGroup(arm_group_name);
+                if (group) {
+                    RCLCPP_INFO(node->get_logger(), "Group '%s' found", arm_group_name.c_str());
+                    // Check if named state exists in SRDF
+                    // This would require access to the SRDF model which is more complex
+                }
+            }
+        }
+        
         task.init();
     } catch (const mtc::InitStageException& e) {
         RCLCPP_ERROR_STREAM(node->get_logger(), "Stage initialization failed: " << e);

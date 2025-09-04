@@ -70,3 +70,4 @@ This package integrates with the `mtc_pipeline` package by:
 - Calling MTC executables for task processing
 - Sharing configuration formats (JSON)
 - Providing a user-friendly interface to MTC capabilities
+

@@ -167,3 +167,4 @@ The GUI is built with tkinter and can be customized:
 ## License
 
 This GUI client is part of the mtc_pipeline package and follows the same license terms.
+
