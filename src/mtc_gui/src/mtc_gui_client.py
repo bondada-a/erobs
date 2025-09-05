@@ -295,11 +295,23 @@ class MTCGUIClient:
         """Create edit form for moveto steps"""
         ttk.Label(dialog, text="MoveTo Configuration", font=("Arial", 12, "bold")).pack(pady=10)
         
-        # Target pose
-        ttk.Label(dialog, text="Target Pose:").pack(anchor="w", padx=20)
+        # Target type
+        ttk.Label(dialog, text="Target Type:").pack(anchor="w", padx=20)
+        target_type_var = tk.StringVar(value=step.get("target_type", "pose"))
+        target_type_combo = ttk.Combobox(dialog, textvariable=target_type_var, 
+                                       values=["pose", "named_state"], width=30)
+        target_type_combo.pack(padx=20, pady=(0, 10))
+        
+        # Target pose/state
+        ttk.Label(dialog, text="Target:").pack(anchor="w", padx=20)
         target_var = tk.StringVar(value=step.get("target", "home"))
         target_entry = ttk.Entry(dialog, textvariable=target_var, width=30)
         target_entry.pack(padx=20, pady=(0, 10))
+        
+        # Add help text for named states
+        help_text = ttk.Label(dialog, text="For named_state: use 'moveit_home', 'hande_open', 'hande_closed'", 
+                            font=("Arial", 8), foreground="gray")
+        help_text.pack(padx=20, pady=(0, 10))
         
         # Planning type
         ttk.Label(dialog, text="Planning Type:").pack(anchor="w", padx=20)
@@ -315,6 +327,7 @@ class MTCGUIClient:
         arm_group_entry.pack(padx=20, pady=(0, 20))
         
         def save_changes():
+            step["target_type"] = target_type_var.get()
             step["target"] = target_var.get()
             step["planning_type"] = planning_var.get()
             step["arm_group"] = arm_group_var.get()
@@ -432,7 +445,9 @@ class MTCGUIClient:
             # Create details string
             details = ""
             if action == "moveto":
-                details = f"Move to {step.get('target', 'unknown')}"
+                target_type = step.get('target_type', 'pose')
+                target = step.get('target', 'unknown')
+                details = f"Move to {target} ({target_type})"
             elif action == "pick_and_place":
                 details = f"Pick & Place with {step.get('gripper', 'unknown')}"
             elif action == "tool_exchange":
@@ -473,13 +488,21 @@ class MTCGUIClient:
         poses = self.current_config.get("poses", {})
         sequence = self.current_config.get("sequence", [])
         
+        # Define known named states (from SRDF)
+        known_named_states = {
+            "moveit_home", "hande_open", "hande_closed"
+        }
+        
         # Collect all referenced pose names
         referenced_poses = set()
         for step in sequence:
             if step["action"] == "moveto":
                 target = step.get("target")
+                target_type = step.get("target_type", "pose")
                 if target:
-                    referenced_poses.add(target)
+                    # Only check poses, not named states
+                    if target_type != "named_state":
+                        referenced_poses.add(target)
             elif step["action"] == "pick_and_place":
                 pickup_poses = step.get("pickup_poses", [])
                 place_poses = step.get("place_poses", [])
@@ -489,7 +512,7 @@ class MTCGUIClient:
                 step_poses = step.get("poses", [])
                 referenced_poses.update(step_poses)
         
-        # Check if all referenced poses exist
+        # Check if all referenced poses exist (excluding named states)
         missing_poses = referenced_poses - set(poses.keys())
         if missing_poses:
             return {

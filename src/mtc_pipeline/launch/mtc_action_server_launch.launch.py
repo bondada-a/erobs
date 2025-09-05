@@ -34,8 +34,7 @@ def generate_launch_description():
         executable="mtc_orchestrator_action_server",   
         output="screen",
         parameters=[
-            moveit_config.to_dict(),
-            {'robot_ip': LaunchConfiguration('robot_ip')}
+            moveit_config.to_dict()
         ],
     )
 

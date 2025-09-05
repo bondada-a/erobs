@@ -234,6 +234,9 @@ namespace {
         // Create the setup command that sources the workspace
         std::string setup_cmd = "source " + workspace_path + "/install/setup.bash && ";
         
+        // Debug: Print the ip parameter
+        std::cout << "DEBUG: launch_cmd_for_gripper called with ip: '" << ip << "'" << std::endl;
+        
         if (g == "none") return setup_cmd + "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=" + ip;
         if (g == "epick") return setup_cmd + "ros2 launch ur_zivid_epick_moveit_config move_group.launch.py robot_ip:=" + ip;
         if (g == "hande") return setup_cmd + "ros2 launch ur_zivid_hande_moveit_config move_group.launch.py robot_ip:=" + ip;
@@ -443,6 +446,9 @@ private:
             // Get task parameters
             std::string robot_ip = goal->robot_ip.empty() ? "192.168.1.101" : goal->robot_ip;
             std::string start_gripper = task_script.value("start_gripper", "none");
+            
+            // Debug: Print the robot_ip value
+            RCLCPP_INFO(this->get_logger(), "DEBUG: robot_ip from goal: '%s'", robot_ip.c_str());
             
             const auto& sequence = task_script["sequence"];
             const auto& poses = task_script["poses"];

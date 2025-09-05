@@ -46,13 +46,9 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToNamedStage(
     bool is_named_state) {
     
     if (is_named_state) {
-        // For named states, use MoveTo with the named state as goal
-        auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-        stage->setGroup(arm_group_name);
-        stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
-        stage->setIKFrame("flange");
-        stage->setGoal(pose_key);
-        return stage;
+        // For named states, we need to get the joint values from the robot model
+        // This will be handled in the run function where we have access to the robot model
+        throw std::runtime_error("Named states should be handled in the run function, not in makeMoveToNamedStage");
     } else {
         // For joint poses, use MoveTo with planner
         auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
@@ -194,7 +190,8 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
     // Add movement stage based on target type
     if (target_type == "named_state") {
         std::string named_state = step["target"];
-        task.add(makeMoveToNamedStage("move_to_" + named_state, named_state, planner, arm_group_name, true));
+        // For named states, we'll handle this after loading the robot model
+        // to get the actual joint values
     } else if (target_type == "joints") {
         std::vector<double> joint_angles = step["target"].get<std::vector<double>>();
         task.add(makeMoveToJointStage("move_to_joints", joint_angles, planner, arm_group_name));
@@ -225,8 +222,35 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
                 auto group = robot_model->getJointModelGroup(arm_group_name);
                 if (group) {
                     RCLCPP_INFO(node->get_logger(), "Group '%s' found", arm_group_name.c_str());
-                    // Check if named state exists in SRDF
-                    // This would require access to the SRDF model which is more complex
+                    
+                    // Get the named state from the robot model
+                    // For now, we'll use hardcoded values for common named states
+                    std::map<std::string, double> joint_goal;
+                    if (named_state == "moveit_home") {
+                        // These values are from the SRDF file we saw earlier
+                        joint_goal["shoulder_pan_joint"] = 0.0;
+                        joint_goal["shoulder_lift_joint"] = -1.578;
+                        joint_goal["elbow_joint"] = 0.0;
+                        joint_goal["wrist_1_joint"] = 0.0;
+                        joint_goal["wrist_2_joint"] = 0.0;
+                        joint_goal["wrist_3_joint"] = -1.5782;
+                        
+                        // Create and add the move stage
+                        auto stage = std::make_unique<mtc::stages::MoveTo>("move_to_" + named_state, planner);
+                        stage->setGroup(arm_group_name);
+                        stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
+                        stage->setIKFrame("flange");
+                        stage->setGoal(joint_goal);
+                        task.add(std::move(stage));
+                        
+                        RCLCPP_INFO(node->get_logger(), "Added move stage for named state: %s", named_state.c_str());
+                    } else {
+                        RCLCPP_ERROR(node->get_logger(), "Named state '%s' not implemented", named_state.c_str());
+                        return false;
+                    }
+                } else {
+                    RCLCPP_ERROR(node->get_logger(), "Group '%s' not found in robot model", arm_group_name.c_str());
+                    return false;
                 }
             }
         }
