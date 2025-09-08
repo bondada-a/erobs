@@ -40,7 +40,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     };
 
     // Setup planners
-    auto sampling_planner = configurePlanner(std::make_shared<mtc::solvers::PipelinePlanner>(node));
+    auto sampling_planner = configurePlanner(std::make_shared<mtc::solvers::PipelinePlanner>(node, "ompl"));
     auto interpolation_planner = configurePlanner(std::make_shared<mtc::solvers::JointInterpolationPlanner>());
     auto cartesian_planner = configurePlanner(std::make_shared<mtc::solvers::CartesianPath>());
     cartesian_planner->setStepSize(0.001);
