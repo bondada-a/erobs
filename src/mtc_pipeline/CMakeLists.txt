@@ -18,6 +18,9 @@ find_package(std_srvs REQUIRED)
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/MTCExecution.action"
   "action/MoveToAction.action"
+  "action/EndEffectorAction.action"
+  "action/ToolExchangeAction.action"
+  "action/PickPlaceAction.action"
   DEPENDENCIES std_srvs
   ADD_LINTER_TESTS
 )
