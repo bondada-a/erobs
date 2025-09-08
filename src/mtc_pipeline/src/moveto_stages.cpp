@@ -166,7 +166,7 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
         cartesian_planner->setMinFraction(0.8);
         planner = cartesian_planner;
     } else {
-        auto joint_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node);
+        auto joint_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node, "ompl");
         joint_planner->setMaxVelocityScalingFactor(0.2);
         joint_planner->setMaxAccelerationScalingFactor(0.2);
         planner = joint_planner;

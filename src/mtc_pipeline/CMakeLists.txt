@@ -17,6 +17,7 @@ find_package(std_srvs REQUIRED)
 # Generate actions and Python modules
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/MTCExecution.action"
+  "action/MoveToAction.action"
   DEPENDENCIES std_srvs
   ADD_LINTER_TESTS
 )
@@ -52,24 +53,29 @@ target_compile_features(mtc_pipeline_core PUBLIC c_std_99 cxx_std_17)
 add_executable(mtc_orchestrator  src/mtc_orchestrator.cpp)
 add_executable(mtc_orchestrator_action_server  src/mtc_orchestrator_action_server.cpp)
 add_executable(mtc_action_client_example  src/mtc_action_client_example.cpp)
+# moveto_action_server removed - now embedded in orchestrator
 
 # === Link executables to dependencies ===
 ament_target_dependencies(mtc_orchestrator moveit_task_constructor_core rclcpp ur_msgs)
 ament_target_dependencies(mtc_orchestrator_action_server moveit_task_constructor_core rclcpp rclcpp_action ur_msgs std_srvs)
 ament_target_dependencies(mtc_action_client_example rclcpp rclcpp_action)
+# moveto_action_server dependencies removed
 
 # Make executables depend on generated interfaces
 rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
 target_link_libraries(mtc_orchestrator_action_server "${cpp_typesupport_target}")
 target_link_libraries(mtc_action_client_example "${cpp_typesupport_target}")
+# moveto_action_server typesupport removed
 
 target_link_libraries(mtc_orchestrator nlohmann_json::nlohmann_json)
 target_link_libraries(mtc_orchestrator_action_server nlohmann_json::nlohmann_json)
 target_link_libraries(mtc_action_client_example nlohmann_json::nlohmann_json)
+# moveto_action_server nlohmann_json removed
 
 # === Link mtc_pipeline_core library to relevant executables ===
 target_link_libraries(mtc_orchestrator mtc_pipeline_core)
 target_link_libraries(mtc_orchestrator_action_server mtc_pipeline_core)
+# moveto_action_server core library removed
 
 # === Include directories ===
 target_include_directories(mtc_orchestrator PUBLIC
@@ -81,11 +87,13 @@ target_include_directories(mtc_orchestrator_action_server PUBLIC
 target_include_directories(mtc_action_client_example PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
+# moveto_action_server include directories removed
 
 # === C++ Standards ===
 target_compile_features(mtc_orchestrator PUBLIC c_std_99 cxx_std_17)
 target_compile_features(mtc_orchestrator_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(mtc_action_client_example PUBLIC c_std_99 cxx_std_17)
+# moveto_action_server compile features removed
 
 # === Install targets ===
 # Install executables to lib/${PROJECT_NAME} (ROS2 standard)
@@ -93,6 +101,7 @@ install(TARGETS
   mtc_orchestrator
   mtc_orchestrator_action_server
   mtc_action_client_example
+  # moveto_action_server removed - now embedded
   DESTINATION lib/${PROJECT_NAME}
 )
 

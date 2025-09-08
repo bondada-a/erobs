@@ -4,6 +4,8 @@
 #include <memory>
 #include <thread>
 #include <chrono>
+#include <future>
+#include <atomic>
 #include <nlohmann/json.hpp>
 #include <fstream>
 #include <sstream>
@@ -19,6 +21,7 @@
 #include <cstdlib>
 
 #include "mtc_pipeline/action/mtc_execution.hpp"
+#include "mtc_pipeline/action/move_to_action.hpp"
 #include "mtc_pipeline/pick_place_stages.hpp"
 #include "mtc_pipeline/tool_exchange_stages.hpp"
 #include "mtc_pipeline/moveto_stages.hpp"
@@ -27,6 +30,7 @@
 using namespace std::chrono_literals;
 using MTCExecution = mtc_pipeline::action::MTCExecution;
 using GoalHandleMTCExecution = rclcpp_action::ServerGoalHandle<MTCExecution>;
+using MoveToAction = mtc_pipeline::action::MoveToAction;
 
 namespace {
     // Wait for ROS2 service to become available
@@ -139,10 +143,11 @@ namespace {
         
         while (std::chrono::steady_clock::now() - start_time < param_timeout) {
             try {
-                RCLCPP_INFO(node->get_logger(), "Getting robot_description parameter from %s", source_node.c_str());
+                RCLCPP_INFO(node->get_logger(), "Getting robot and OMPL parameters from %s", source_node.c_str());
                 auto urdf_future = client->get_parameters({"robot_description"});
-                RCLCPP_INFO(node->get_logger(), "Getting robot_description_semantic parameter from %s", source_node.c_str());
                 auto srdf_future = client->get_parameters({"robot_description_semantic"});
+                auto ompl_plugin_future = client->get_parameters({"ompl.planning_plugin"});
+                auto ompl_adapters_future = client->get_parameters({"ompl.request_adapters"});
                 
                 // Wait for both futures to complete
                 auto future_start_time = std::chrono::steady_clock::now();
@@ -150,10 +155,14 @@ namespace {
                 
                 while (std::chrono::steady_clock::now() - future_start_time < future_timeout) {
                     if (urdf_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready &&
-                        srdf_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready) {
+                        srdf_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready &&
+                        ompl_plugin_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready &&
+                        ompl_adapters_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready) {
                         
                         auto urdf_params = urdf_future.get();
                         auto srdf_params = srdf_future.get();
+                        auto ompl_plugin_params = ompl_plugin_future.get();
+                        auto ompl_adapters_params = ompl_adapters_future.get();
                         
                         if (urdf_params.size() > 0 && srdf_params.size() > 0) {
                             // Check if parameters are not empty strings
@@ -161,8 +170,30 @@ namespace {
                             std::string srdf_value = srdf_params[0].as_string();
                             
                             if (!urdf_value.empty() && !srdf_value.empty()) {
-                                node->set_parameters({{"robot_description", urdf_value}, {"robot_description_semantic", srdf_value}});
-                                RCLCPP_INFO(node->get_logger(), "Robot params synced from [%s]", source_node.c_str());
+                                // Set robot description parameters
+                                node->set_parameters({
+                                    {"robot_description", urdf_value}, 
+                                    {"robot_description_semantic", srdf_value}
+                                });
+                                
+                                // Set OMPL parameters if available
+                                if (ompl_plugin_params.size() > 0) {
+                                    std::string ompl_plugin = ompl_plugin_params[0].as_string();
+                                    if (!ompl_plugin.empty()) {
+                                        node->set_parameter(rclcpp::Parameter("ompl.planning_plugin", ompl_plugin));
+                                        RCLCPP_INFO(node->get_logger(), "Set ompl.planning_plugin: %s", ompl_plugin.c_str());
+                                    }
+                                }
+                                
+                                if (ompl_adapters_params.size() > 0) {
+                                    std::string ompl_adapters = ompl_adapters_params[0].as_string();
+                                    if (!ompl_adapters.empty()) {
+                                        node->set_parameter(rclcpp::Parameter("ompl.request_adapters", ompl_adapters));
+                                        RCLCPP_INFO(node->get_logger(), "Set ompl.request_adapters: %s", ompl_adapters.c_str());
+                                    }
+                                }
+                                
+                                RCLCPP_INFO(node->get_logger(), "Robot and OMPL params synced from [%s]", source_node.c_str());
                                 return true;
                             } else {
                                 RCLCPP_WARN(node->get_logger(), "Got empty parameter values from %s, retrying...", source_node.c_str());
@@ -299,8 +330,18 @@ public:
 
     MTCOrchestratorActionServer(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) 
         : Node("mtc_orchestrator_action_server", options), is_executing_(false) {
-        // Parameters are now automatically declared from overrides
-        // No need to manually declare them
+        // Declare robot description parameters that we'll need to set later
+        this->declare_parameter("robot_description", "");
+        this->declare_parameter("robot_description_semantic", "");
+        this->declare_parameter("robot_description_planning", "");
+        this->declare_parameter("robot_description_kinematics", "");
+        
+        // Declare OMPL parameters (same as in ompl_planning.yaml) 
+        this->declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner");
+        this->declare_parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization");
+        this->declare_parameter("ompl.path_tolerance", 0.1);
+        this->declare_parameter("ompl.resample_dt", 0.1); 
+        this->declare_parameter("ompl.min_angle_change", 0.001);
         
         // Initialize orchestrator
         orchestrator_ = std::make_unique<Orchestrator>();
@@ -313,13 +354,30 @@ public:
             std::bind(&MTCOrchestratorActionServer::handle_cancel, this, std::placeholders::_1),
             std::bind(&MTCOrchestratorActionServer::handle_accepted, this, std::placeholders::_1));
 
-        RCLCPP_INFO(this->get_logger(), "MTC Orchestrator Action Server started");
+        // Initialize embedded MoveTo action server
+        moveto_action_server_ = rclcpp_action::create_server<MoveToAction>(
+            this,
+            "moveto_action",
+            std::bind(&MTCOrchestratorActionServer::handle_moveto_goal, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&MTCOrchestratorActionServer::handle_moveto_cancel, this, std::placeholders::_1),
+            std::bind(&MTCOrchestratorActionServer::handle_moveto_accepted, this, std::placeholders::_1));
+
+        RCLCPP_INFO(this->get_logger(), "MTC Orchestrator with Embedded Actions started");
     }
 
 private:
     ActionServer::SharedPtr action_server_;
     std::unique_ptr<Orchestrator> orchestrator_;
     bool is_executing_;
+    
+    // Embedded MoveTo action server
+    rclcpp_action::Server<MoveToAction>::SharedPtr moveto_action_server_;
+    
+    // Current MoveTo execution state for abort capability
+    std::atomic<bool> moveto_abort_requested_{false};
+    
+    // Reusable MoveTo instance - created once, reused multiple times
+    std::shared_ptr<MoveToStages> moveto_instance_;
 
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID & uuid,
@@ -357,6 +415,142 @@ private:
         std::thread{std::bind(&MTCOrchestratorActionServer::execute, this, std::placeholders::_1), goal_handle}.detach();
     }
 
+    // ========== EMBEDDED MOVETO ACTION SERVER HANDLERS ==========
+    
+    rclcpp_action::GoalResponse handle_moveto_goal(
+        const rclcpp_action::GoalUUID & uuid,
+        std::shared_ptr<const MoveToAction::Goal> goal)
+    {
+        (void)uuid;
+        RCLCPP_INFO(this->get_logger(), "Received MoveTo goal: %s -> %s", 
+                   goal->target_type.c_str(), goal->target.c_str());
+        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+    }
+
+    rclcpp_action::CancelResponse handle_moveto_cancel(
+        const std::shared_ptr<rclcpp_action::ServerGoalHandle<MoveToAction>> goal_handle)
+    {
+        (void)goal_handle;
+        RCLCPP_INFO(this->get_logger(), "MoveTo goal cancellation requested");
+        moveto_abort_requested_ = true;
+        return rclcpp_action::CancelResponse::ACCEPT;
+    }
+
+    void handle_moveto_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<MoveToAction>> goal_handle)
+    {
+        std::thread{std::bind(&MTCOrchestratorActionServer::execute_moveto_embedded, this, std::placeholders::_1), goal_handle}.detach();
+    }
+
+    void execute_moveto_embedded(const std::shared_ptr<rclcpp_action::ServerGoalHandle<MoveToAction>> goal_handle)
+    {
+        moveto_abort_requested_ = false;
+        const auto goal = goal_handle->get_goal();
+        auto feedback = std::make_shared<MoveToAction::Feedback>();
+        auto result = std::make_shared<MoveToAction::Result>();
+        
+        try {
+            // Parse poses JSON
+            nlohmann::json poses;
+            try {
+                poses = nlohmann::json::parse(goal->poses_json);
+            } catch (const std::exception& e) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to parse poses JSON: %s", e.what());
+                result->success = false;
+                result->error_message = "Invalid poses JSON";
+                goal_handle->abort(result);
+                return;
+            }
+
+            // Create step JSON from goal
+            nlohmann::json step;
+            step["target_type"] = goal->target_type;
+            step["target"] = goal->target;
+            step["planning_type"] = goal->planning_type;
+            step["arm_group"] = goal->arm_group;
+            if (!goal->direction.empty()) {
+                step["direction"] = goal->direction;
+            }
+            if (goal->distance != 0.0) {
+                step["distance"] = goal->distance;
+            }
+
+            // Provide continuous feedback during execution
+            feedback->current_operation = "Initializing MoveTo task";
+            feedback->progress_percentage = 10.0f;
+            goal_handle->publish_feedback(feedback);
+
+            // Check for abort before starting
+            if (moveto_abort_requested_ || goal_handle->is_canceling()) {
+                RCLCPP_INFO(this->get_logger(), "MoveTo goal canceled before execution");
+                result->success = false;
+                result->error_message = "Task was canceled";
+                goal_handle->canceled(result);
+                return;
+            }
+
+            feedback->current_operation = "Syncing robot parameters";
+            feedback->progress_percentage = 20.0f;
+            goal_handle->publish_feedback(feedback);
+
+            // CRITICAL: Sync robot description from move_group (same as working version)
+            if (!update_robot_description_from("move_group", this->shared_from_this())) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to sync robot description from move_group");
+                result->success = false;
+                result->error_message = "Failed to sync robot description";
+                goal_handle->abort(result);
+                return;
+            }
+
+            feedback->current_operation = "Planning trajectory";
+            feedback->progress_percentage = 40.0f;
+            goal_handle->publish_feedback(feedback);
+
+            // Use the reusable MoveTo instance (same as working version)
+            if (!moveto_instance_) {
+                RCLCPP_ERROR(this->get_logger(), "MoveTo instance not initialized");
+                result->success = false;
+                result->error_message = "MoveTo instance not available";
+                goal_handle->abort(result);
+                return;
+            }
+
+            // Execute using the same pattern as the working version
+            bool success = moveto_instance_->run(step, poses, this->shared_from_this());
+
+            // Check for abort after execution
+            if (moveto_abort_requested_ || goal_handle->is_canceling()) {
+                RCLCPP_INFO(this->get_logger(), "MoveTo goal canceled during execution");
+                result->success = false;
+                result->error_message = "Task was canceled";
+                goal_handle->canceled(result);
+                return;
+            }
+
+            feedback->current_operation = "MoveTo completed";
+            feedback->progress_percentage = 100.0f;
+            goal_handle->publish_feedback(feedback);
+
+            result->success = success;
+            if (success) {
+                result->error_message = "";
+                goal_handle->succeed(result);
+                RCLCPP_INFO(this->get_logger(), "MoveTo goal succeeded");
+            } else {
+                result->error_message = "MoveTo execution failed";
+                goal_handle->abort(result);
+                RCLCPP_ERROR(this->get_logger(), "MoveTo goal failed");
+            }
+
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "MoveTo execution exception: %s", e.what());
+            result->success = false;
+            result->error_message = std::string("Exception: ") + e.what();
+            goal_handle->abort(result);
+        }
+
+        // Don't reset the reusable instance - keep it for next use
+    }
+
     // Switch to different gripper configuration
     bool switch_gripper(const std::string& new_gripper, const std::string& robot_ip) {
         if (orchestrator_->get_current_gripper() == new_gripper) return true;
@@ -377,7 +571,7 @@ private:
     bool execute_step(const std::string& action, const nlohmann::json& step, 
                      const nlohmann::json& poses, const std::string& robot_ip,
                      PickPlaceStages& pick_place, ToolExchangeStages& tool_exch,
-                     MoveToStages& moveto, EndEffectorStages& end_effector) {
+                     MoveToStages& /* moveto */, EndEffectorStages& end_effector) {
         
         // Handle tool exchange tasks
         if (action == "tool_exchange") {
@@ -406,10 +600,9 @@ private:
                    pick_place.run(step, poses, this->shared_from_this());
         }
 
-        // Handle simple move-to tasks
+        // Handle simple move-to tasks - now using embedded action approach
         if (action == "moveto") {
-            return update_robot_description_from("move_group", this->shared_from_this()) && 
-                   moveto.run(step, poses, this->shared_from_this());
+            return execute_moveto_direct(step, poses);
         }
 
         // Handle end effector operations
@@ -418,6 +611,42 @@ private:
         }
 
         return false;
+    }
+
+    // Execute MoveTo operation directly using shared MoveIt context
+    bool execute_moveto_direct(const nlohmann::json& step, const nlohmann::json& poses) {
+        try {
+            RCLCPP_INFO(this->get_logger(), "Executing MoveTo directly: %s -> %s", 
+                       step.value("target_type", "pose").c_str(), 
+                       step.value("target", "unknown").c_str());
+
+            // CRITICAL: Sync robot description from move_group (same as working version)
+            if (!update_robot_description_from("move_group", this->shared_from_this())) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to sync robot description from move_group");
+                return false;
+            }
+
+            // Use the reusable MoveTo instance (same as working version)
+            if (!moveto_instance_) {
+                RCLCPP_ERROR(this->get_logger(), "MoveTo instance not initialized");
+                return false;
+            }
+
+            // Execute using the same pattern as the working version
+            bool success = moveto_instance_->run(step, poses, this->shared_from_this());
+            
+            if (success) {
+                RCLCPP_INFO(this->get_logger(), "MoveTo direct execution completed successfully");
+            } else {
+                RCLCPP_ERROR(this->get_logger(), "MoveTo direct execution failed");
+            }
+            
+            return success;
+            
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "MoveTo direct execution exception: %s", e.what());
+            return false;
+        }
     }
 
     void execute(const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
@@ -487,10 +716,13 @@ private:
             
             orchestrator_->set_current_gripper(start_gripper);
 
-            // Create task handlers
+            // Create task handlers (reusable instances)
             PickPlaceStages pick_place(this->shared_from_this(), task_script);
             ToolExchangeStages tool_exch(this->shared_from_this(), task_script);
-            MoveToStages moveto(this->shared_from_this(), task_script);
+            
+            // Initialize the reusable MoveTo instance for both direct and action calls
+            moveto_instance_ = std::make_shared<MoveToStages>(this->shared_from_this(), task_script);
+            
             EndEffectorStages end_effector(this->shared_from_this(), task_script);
 
             // Execute task sequence
@@ -518,8 +750,8 @@ private:
                 
                 RCLCPP_INFO(this->get_logger(), "Executing step %zu: %s", i + 1, action.c_str());
                 
-                // Execute step
-                if (!execute_step(action, step, poses, robot_ip, pick_place, tool_exch, moveto, end_effector)) {
+                // Execute step (moveto parameter unused now - using moveto_instance_ instead)
+                if (!execute_step(action, step, poses, robot_ip, pick_place, tool_exch, *moveto_instance_, end_effector)) {
                     RCLCPP_ERROR(this->get_logger(), "%s step failed", action.c_str());
                     result->success = false;
                     result->error_message = action + " step failed";
@@ -552,6 +784,7 @@ private:
         
         // Cleanup
         orchestrator_->kill_all_and_wait();
+        moveto_instance_.reset(); // Reset reusable instance for next task
         is_executing_ = false;
     }
 };
