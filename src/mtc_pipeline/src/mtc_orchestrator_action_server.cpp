@@ -410,6 +410,12 @@ public:
             std::bind(&MTCOrchestratorActionServer::handle_pickplace_cancel, this, std::placeholders::_1),
             std::bind(&MTCOrchestratorActionServer::handle_pickplace_accepted, this, std::placeholders::_1));
 
+        // Initialize action clients to call embedded actions
+        moveto_action_client_ = rclcpp_action::create_client<MoveToAction>(this, "moveto_action");
+        endeffector_action_client_ = rclcpp_action::create_client<EndEffectorAction>(this, "endeffector_action");
+        toolexchange_action_client_ = rclcpp_action::create_client<ToolExchangeAction>(this, "toolexchange_action");
+        pickplace_action_client_ = rclcpp_action::create_client<PickPlaceAction>(this, "pickplace_action");
+
         RCLCPP_INFO(this->get_logger(), "MTC Orchestrator with All Embedded Actions started");
     }
 
@@ -423,6 +429,12 @@ private:
     rclcpp_action::Server<EndEffectorAction>::SharedPtr endeffector_action_server_;
     rclcpp_action::Server<ToolExchangeAction>::SharedPtr toolexchange_action_server_;
     rclcpp_action::Server<PickPlaceAction>::SharedPtr pickplace_action_server_;
+    
+    // Action clients to call embedded actions
+    rclcpp_action::Client<MoveToAction>::SharedPtr moveto_action_client_;
+    rclcpp_action::Client<EndEffectorAction>::SharedPtr endeffector_action_client_;
+    rclcpp_action::Client<ToolExchangeAction>::SharedPtr toolexchange_action_client_;
+    rclcpp_action::Client<PickPlaceAction>::SharedPtr pickplace_action_client_;
     
     // Execution state for abort capability
     std::atomic<bool> moveto_abort_requested_{false};
@@ -1087,6 +1099,156 @@ private:
         return true;
     }
 
+    // Call embedded MoveTo action
+    bool call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses) {
+        try {
+            // Wait for action server to be available
+            if (!moveto_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+                RCLCPP_ERROR(this->get_logger(), "MoveTo action server not available");
+                return false;
+            }
+
+            // Create goal
+            auto goal = MoveToAction::Goal();
+            goal.target_type = step.value("target_type", "pose");
+            goal.target = step.value("target", "");
+            goal.planning_type = step.value("planning_type", "joint");
+            goal.arm_group = step.value("arm_group", "ur_arm");
+            goal.direction = step.value("direction", "");
+            goal.distance = step.value("distance", 0.0);
+            goal.poses_json = poses.dump();
+
+            // Send goal
+            auto goal_handle_future = moveto_action_client_->async_send_goal(goal);
+            auto goal_handle = goal_handle_future.get();
+            
+            if (!goal_handle) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to send MoveTo goal");
+                return false;
+            }
+
+            // Wait for result
+            auto result_future = moveto_action_client_->async_get_result(goal_handle);
+            auto result = result_future.get();
+            
+            return result.code == rclcpp_action::ResultCode::SUCCEEDED;
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "MoveTo action call failed: %s", e.what());
+            return false;
+        }
+    }
+
+    // Call embedded EndEffector action
+    bool call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses) {
+        try {
+            // Wait for action server to be available
+            if (!endeffector_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+                RCLCPP_ERROR(this->get_logger(), "EndEffector action server not available");
+                return false;
+            }
+
+            // Create goal
+            auto goal = EndEffectorAction::Goal();
+            goal.end_effector_type = step.value("end_effector_type", "");
+            goal.end_effector_action = step.value("end_effector_action", "");
+            goal.position = step.value("position", 0.0);
+            goal.force = step.value("force", 0.0);
+            goal.pressure = step.value("pressure", 0.0);
+            // Note: params_json field not available in EndEffectorAction
+            goal.poses_json = poses.dump();
+
+            // Send goal
+            auto goal_handle_future = endeffector_action_client_->async_send_goal(goal);
+            auto goal_handle = goal_handle_future.get();
+            
+            if (!goal_handle) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to send EndEffector goal");
+                return false;
+            }
+
+            // Wait for result
+            auto result_future = endeffector_action_client_->async_get_result(goal_handle);
+            auto result = result_future.get();
+            
+            return result.code == rclcpp_action::ResultCode::SUCCEEDED;
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "EndEffector action call failed: %s", e.what());
+            return false;
+        }
+    }
+
+    // Call embedded ToolExchange action
+    bool call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses) {
+        try {
+            // Wait for action server to be available
+            if (!toolexchange_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+                RCLCPP_ERROR(this->get_logger(), "ToolExchange action server not available");
+                return false;
+            }
+
+            // Create goal
+            auto goal = ToolExchangeAction::Goal();
+            goal.operation = step.value("operation", "");
+            goal.gripper = step.value("gripper", "");
+            goal.dock_number = step.value("dock_number", 1);
+            goal.poses_json = poses.dump();
+
+            // Send goal
+            auto goal_handle_future = toolexchange_action_client_->async_send_goal(goal);
+            auto goal_handle = goal_handle_future.get();
+            
+            if (!goal_handle) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to send ToolExchange goal");
+                return false;
+            }
+
+            // Wait for result
+            auto result_future = toolexchange_action_client_->async_get_result(goal_handle);
+            auto result = result_future.get();
+            
+            return result.code == rclcpp_action::ResultCode::SUCCEEDED;
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "ToolExchange action call failed: %s", e.what());
+            return false;
+        }
+    }
+
+    // Call embedded PickPlace action
+    bool call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses) {
+        try {
+            // Wait for action server to be available
+            if (!pickplace_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+                RCLCPP_ERROR(this->get_logger(), "PickPlace action server not available");
+                return false;
+            }
+
+            // Create goal
+            auto goal = PickPlaceAction::Goal();
+            goal.gripper = step.value("gripper", "");
+            goal.pick_pose = step.value("pick_pose", "");
+            goal.place_pose = step.value("place_pose", "");
+            goal.poses_json = poses.dump();
+
+            // Send goal
+            auto goal_handle_future = pickplace_action_client_->async_send_goal(goal);
+            auto goal_handle = goal_handle_future.get();
+            
+            if (!goal_handle) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to send PickPlace goal");
+                return false;
+            }
+
+            // Wait for result
+            auto result_future = pickplace_action_client_->async_get_result(goal_handle);
+            auto result = result_future.get();
+            
+            return result.code == rclcpp_action::ResultCode::SUCCEEDED;
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "PickPlace action call failed: %s", e.what());
+            return false;
+        }
+    }
+
     // Execute a single task step
     bool execute_step(const std::string& action, const nlohmann::json& step, 
                      const nlohmann::json& poses, const std::string& robot_ip,
@@ -1099,7 +1261,7 @@ private:
             const std::string requested_tool = step.value("gripper", orchestrator_->get_current_gripper());
 
             // Execute via embedded action
-            bool success = execute_toolexchange_direct(step, poses);
+            bool success = call_toolexchange_action(step, poses);
             if (!success) return false;
 
             // Handle gripper switching after tool exchange
@@ -1117,17 +1279,17 @@ private:
             if (!switch_gripper(need, robot_ip))
                 return false;
 
-            return execute_pickplace_direct(step, poses);
+            return call_pickplace_action(step, poses);
         }
 
         // Handle simple move-to tasks - now using embedded action approach
         if (action == "moveto") {
-            return execute_moveto_direct(step, poses);
+            return call_moveto_action(step, poses);
         }
 
         // Handle end effector operations - now using embedded action approach
         if (action == "end_effector") {
-            return execute_endeffector_direct(step, poses);
+            return call_endeffector_action(step, poses);
         }
 
         return false;
