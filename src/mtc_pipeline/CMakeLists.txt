@@ -56,29 +56,54 @@ target_compile_features(mtc_pipeline_core PUBLIC c_std_99 cxx_std_17)
 add_executable(mtc_orchestrator  src/mtc_orchestrator.cpp)
 add_executable(mtc_orchestrator_action_server  src/mtc_orchestrator_action_server.cpp)
 add_executable(mtc_action_client_example  src/mtc_action_client_example.cpp)
-# moveto_action_server removed - now embedded in orchestrator
+
+# === Modular Action Servers ===
+add_executable(pickplace_action_server  src/pickplace_action_server.cpp)
+add_executable(toolexchange_action_server  src/toolexchange_action_server.cpp)
+add_executable(moveto_action_server  src/moveto_action_server.cpp)
+add_executable(endeffector_action_server  src/endeffector_action_server.cpp)
 
 # === Link executables to dependencies ===
 ament_target_dependencies(mtc_orchestrator moveit_task_constructor_core rclcpp ur_msgs)
 ament_target_dependencies(mtc_orchestrator_action_server moveit_task_constructor_core rclcpp rclcpp_action ur_msgs std_srvs)
 ament_target_dependencies(mtc_action_client_example rclcpp rclcpp_action)
-# moveto_action_server dependencies removed
+
+# === Modular Action Server Dependencies ===
+ament_target_dependencies(pickplace_action_server moveit_task_constructor_core rclcpp rclcpp_action)
+ament_target_dependencies(toolexchange_action_server moveit_task_constructor_core rclcpp rclcpp_action)
+ament_target_dependencies(moveto_action_server moveit_task_constructor_core rclcpp rclcpp_action)
+ament_target_dependencies(endeffector_action_server moveit_task_constructor_core rclcpp rclcpp_action)
 
 # Make executables depend on generated interfaces
 rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
 target_link_libraries(mtc_orchestrator_action_server "${cpp_typesupport_target}")
 target_link_libraries(mtc_action_client_example "${cpp_typesupport_target}")
-# moveto_action_server typesupport removed
+
+# === Modular Action Server Typesupport ===
+target_link_libraries(pickplace_action_server "${cpp_typesupport_target}")
+target_link_libraries(toolexchange_action_server "${cpp_typesupport_target}")
+target_link_libraries(moveto_action_server "${cpp_typesupport_target}")
+target_link_libraries(endeffector_action_server "${cpp_typesupport_target}")
 
 target_link_libraries(mtc_orchestrator nlohmann_json::nlohmann_json)
 target_link_libraries(mtc_orchestrator_action_server nlohmann_json::nlohmann_json)
 target_link_libraries(mtc_action_client_example nlohmann_json::nlohmann_json)
-# moveto_action_server nlohmann_json removed
+
+# === Modular Action Server JSON and Core Library ===
+target_link_libraries(pickplace_action_server nlohmann_json::nlohmann_json)
+target_link_libraries(toolexchange_action_server nlohmann_json::nlohmann_json)
+target_link_libraries(moveto_action_server nlohmann_json::nlohmann_json)
+target_link_libraries(endeffector_action_server nlohmann_json::nlohmann_json)
 
 # === Link mtc_pipeline_core library to relevant executables ===
 target_link_libraries(mtc_orchestrator mtc_pipeline_core)
 target_link_libraries(mtc_orchestrator_action_server mtc_pipeline_core)
-# moveto_action_server core library removed
+
+# === Modular Action Server Core Library ===
+target_link_libraries(pickplace_action_server mtc_pipeline_core)
+target_link_libraries(toolexchange_action_server mtc_pipeline_core)
+target_link_libraries(moveto_action_server mtc_pipeline_core)
+target_link_libraries(endeffector_action_server mtc_pipeline_core)
 
 # === Include directories ===
 target_include_directories(mtc_orchestrator PUBLIC
@@ -90,13 +115,31 @@ target_include_directories(mtc_orchestrator_action_server PUBLIC
 target_include_directories(mtc_action_client_example PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-# moveto_action_server include directories removed
+
+# === Modular Action Server Include Directories ===
+target_include_directories(pickplace_action_server PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_include_directories(toolexchange_action_server PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_include_directories(moveto_action_server PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
+target_include_directories(endeffector_action_server PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>)
 
 # === C++ Standards ===
 target_compile_features(mtc_orchestrator PUBLIC c_std_99 cxx_std_17)
 target_compile_features(mtc_orchestrator_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(mtc_action_client_example PUBLIC c_std_99 cxx_std_17)
-# moveto_action_server compile features removed
+
+# === Modular Action Server C++ Standards ===
+target_compile_features(pickplace_action_server PUBLIC c_std_99 cxx_std_17)
+target_compile_features(toolexchange_action_server PUBLIC c_std_99 cxx_std_17)
+target_compile_features(moveto_action_server PUBLIC c_std_99 cxx_std_17)
+target_compile_features(endeffector_action_server PUBLIC c_std_99 cxx_std_17)
 
 # === Install targets ===
 # Install executables to lib/${PROJECT_NAME} (ROS2 standard)
@@ -104,7 +147,10 @@ install(TARGETS
   mtc_orchestrator
   mtc_orchestrator_action_server
   mtc_action_client_example
-  # moveto_action_server removed - now embedded
+  pickplace_action_server
+  toolexchange_action_server
+  moveto_action_server
+  endeffector_action_server
   DESTINATION lib/${PROJECT_NAME}
 )
 
