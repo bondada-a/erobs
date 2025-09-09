@@ -1,46 +1,8 @@
-#include <rclcpp/rclcpp.hpp>
-#include <rclcpp_action/rclcpp_action.hpp>
-#include <rclcpp/parameter_client.hpp>
-#include <memory>
-#include <thread>
-#include <chrono>
-#include <future>
-#include <atomic>
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <string>
-#include <iostream>
-#include <std_srvs/srv/trigger.hpp>
-#include <sensor_msgs/msg/joint_state.hpp>
-#include <linux/limits.h>
-#include <cstdlib>
-
-#include "mtc_pipeline/action/mtc_execution.hpp"
-#include "mtc_pipeline/action/move_to_action.hpp"
-#include "mtc_pipeline/action/end_effector_action.hpp"
-#include "mtc_pipeline/action/tool_exchange_action.hpp"
-#include "mtc_pipeline/action/pick_place_action.hpp"
-#include "mtc_pipeline/pick_place_stages.hpp"
-#include "mtc_pipeline/tool_exchange_stages.hpp"
-#include "mtc_pipeline/moveto_stages.hpp"
-#include "mtc_pipeline/end_effector_stages.hpp"
-
-using namespace std::chrono_literals;
-using MTCExecution = mtc_pipeline::action::MTCExecution;
-using GoalHandleMTCExecution = rclcpp_action::ServerGoalHandle<MTCExecution>;
-using MoveToAction = mtc_pipeline::action::MoveToAction;
-using EndEffectorAction = mtc_pipeline::action::EndEffectorAction;
-using ToolExchangeAction = mtc_pipeline::action::ToolExchangeAction;
-using PickPlaceAction = mtc_pipeline::action::PickPlaceAction;
+#include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 
 namespace {
     // Wait for ROS2 service to become available
-    bool wait_for_service(rclcpp::Node::SharedPtr node, const std::string& service_name, std::chrono::seconds timeout = 30s) {
+    bool wait_for_service(rclcpp::Node::SharedPtr node, const std::string& service_name, std::chrono::seconds timeout) {
         auto client = node->create_client<std_srvs::srv::Trigger>(service_name);
         return client->wait_for_service(timeout);
     }
@@ -271,8 +233,6 @@ namespace {
         // Create the setup command that sources the workspace
         std::string setup_cmd = "source " + workspace_path + "/install/setup.bash && ";
         
-        // Debug: Print the ip parameter
-        std::cout << "DEBUG: launch_cmd_for_gripper called with ip: '" << ip << "'" << std::endl;
         
         if (g == "none") return setup_cmd + "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=" + ip;
         if (g == "epick") return setup_cmd + "ros2 launch ur_zivid_epick_moveit_config move_group.launch.py robot_ip:=" + ip;
@@ -282,173 +242,163 @@ namespace {
 }
 
 // Manages MoveIt configuration processes
-class Orchestrator {
-    std::vector<pid_t> active_pids_; 
-    std::string current_gripper_ = "none"; 
-    
-public:
-    // Launch new MoveIt configuration process
-    pid_t launch(const std::string& cmd) {
-        pid_t pid = fork(); 
-        if (pid == 0) {
-            execl("/usr/bin/setsid", "setsid", "bash", "-c", cmd.c_str(), (char*)nullptr);
-            exit(1); 
-        }
-        active_pids_.push_back(pid);
-        return pid;
+// Orchestrator class implementation
+pid_t Orchestrator::launch(const std::string& cmd) {
+    pid_t pid = fork(); 
+    if (pid == 0) {
+        execl("/usr/bin/setsid", "setsid", "bash", "-c", cmd.c_str(), (char*)nullptr);
+        exit(1); 
     }
+    active_pids_.push_back(pid);
+    return pid;
+}
 
-    // Gracefully terminate all processes
-    void kill_all_and_wait() {
-        for (pid_t pid : active_pids_)
-            ::kill(-pid, SIGINT);
-        
-        auto start_time = std::chrono::steady_clock::now();
-        const auto timeout = std::chrono::seconds(15);
-        
-        while (std::chrono::steady_clock::now() - start_time < timeout) {
-            bool all_terminated = true;
-            for (pid_t pid : active_pids_) {
-                int status;
-                if (waitpid(pid, &status, WNOHANG) == 0) {
-                    all_terminated = false;
-                    break;
-                }
-            }
-            if (all_terminated) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-        
+void Orchestrator::kill_all_and_wait() {
+    for (pid_t pid : active_pids_)
+        ::kill(-pid, SIGINT);
+    
+    auto start_time = std::chrono::steady_clock::now();
+    const auto timeout = std::chrono::seconds(15);
+    
+    while (std::chrono::steady_clock::now() - start_time < timeout) {
+        bool all_terminated = true;
         for (pid_t pid : active_pids_) {
-            waitpid(pid, nullptr, WNOHANG);
+            int status;
+            if (waitpid(pid, &status, WNOHANG) == 0) {
+                all_terminated = false;
+                break;
+            }
         }
-        active_pids_.clear();
+        if (all_terminated) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-
-    void set_current_gripper(const std::string& g) { current_gripper_ = g; }
-    const std::string& get_current_gripper() const { return current_gripper_; }
-};
-
-class MTCOrchestratorActionServer : public rclcpp::Node
-{
-public:
-    using ActionServer = rclcpp_action::Server<MTCExecution>;
-
-    MTCOrchestratorActionServer(const rclcpp::NodeOptions& options = rclcpp::NodeOptions()) 
-        : Node("mtc_orchestrator_action_server", options), is_executing_(false) {
-        // Declare parameters only if they don't already exist (launch file compatibility)
-        if (!this->has_parameter("robot_description")) {
-            this->declare_parameter("robot_description", "");
-        }
-        if (!this->has_parameter("robot_description_semantic")) {
-            this->declare_parameter("robot_description_semantic", "");
-        }
-        if (!this->has_parameter("robot_description_planning")) {
-            this->declare_parameter("robot_description_planning", "");
-        }
-        if (!this->has_parameter("robot_description_kinematics")) {
-            this->declare_parameter("robot_description_kinematics", "");
-        }
-        
-        // Declare OMPL parameters only if they don't already exist
-        if (!this->has_parameter("ompl.planning_plugin")) {
-            this->declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner");
-        }
-        if (!this->has_parameter("ompl.request_adapters")) {
-            this->declare_parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization");
-        }
-        if (!this->has_parameter("ompl.path_tolerance")) {
-            this->declare_parameter("ompl.path_tolerance", 0.1);
-        }
-        if (!this->has_parameter("ompl.resample_dt")) {
-            this->declare_parameter("ompl.resample_dt", 0.1);
-        }
-        if (!this->has_parameter("ompl.min_angle_change")) {
-            this->declare_parameter("ompl.min_angle_change", 0.001);
-        }
-        
-        // Initialize orchestrator
-        orchestrator_ = std::make_unique<Orchestrator>();
-        
-        // Initialize the action server
-        this->action_server_ = rclcpp_action::create_server<MTCExecution>(
-            this,
-            "mtc_execution",
-            std::bind(&MTCOrchestratorActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&MTCOrchestratorActionServer::handle_cancel, this, std::placeholders::_1),
-            std::bind(&MTCOrchestratorActionServer::handle_accepted, this, std::placeholders::_1));
-
-        // Initialize embedded MoveTo action server
-        moveto_action_server_ = rclcpp_action::create_server<MoveToAction>(
-            this,
-            "moveto_action",
-            std::bind(&MTCOrchestratorActionServer::handle_moveto_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&MTCOrchestratorActionServer::handle_moveto_cancel, this, std::placeholders::_1),
-            std::bind(&MTCOrchestratorActionServer::handle_moveto_accepted, this, std::placeholders::_1));
-
-        // Initialize embedded EndEffector action server
-        endeffector_action_server_ = rclcpp_action::create_server<EndEffectorAction>(
-            this,
-            "endeffector_action",
-            std::bind(&MTCOrchestratorActionServer::handle_endeffector_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&MTCOrchestratorActionServer::handle_endeffector_cancel, this, std::placeholders::_1),
-            std::bind(&MTCOrchestratorActionServer::handle_endeffector_accepted, this, std::placeholders::_1));
-
-        // Initialize embedded ToolExchange action server
-        toolexchange_action_server_ = rclcpp_action::create_server<ToolExchangeAction>(
-            this,
-            "toolexchange_action",
-            std::bind(&MTCOrchestratorActionServer::handle_toolexchange_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&MTCOrchestratorActionServer::handle_toolexchange_cancel, this, std::placeholders::_1),
-            std::bind(&MTCOrchestratorActionServer::handle_toolexchange_accepted, this, std::placeholders::_1));
-
-        // Initialize embedded PickPlace action server
-        pickplace_action_server_ = rclcpp_action::create_server<PickPlaceAction>(
-            this,
-            "pickplace_action",
-            std::bind(&MTCOrchestratorActionServer::handle_pickplace_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&MTCOrchestratorActionServer::handle_pickplace_cancel, this, std::placeholders::_1),
-            std::bind(&MTCOrchestratorActionServer::handle_pickplace_accepted, this, std::placeholders::_1));
-
-        // Initialize action clients to call embedded actions
-        moveto_action_client_ = rclcpp_action::create_client<MoveToAction>(this, "moveto_action");
-        endeffector_action_client_ = rclcpp_action::create_client<EndEffectorAction>(this, "endeffector_action");
-        toolexchange_action_client_ = rclcpp_action::create_client<ToolExchangeAction>(this, "toolexchange_action");
-        pickplace_action_client_ = rclcpp_action::create_client<PickPlaceAction>(this, "pickplace_action");
-
-        RCLCPP_INFO(this->get_logger(), "MTC Orchestrator with All Embedded Actions started");
+    
+    for (pid_t pid : active_pids_) {
+        waitpid(pid, nullptr, WNOHANG);
     }
+    active_pids_.clear();
+}
 
-private:
-    ActionServer::SharedPtr action_server_;
-    std::unique_ptr<Orchestrator> orchestrator_;
-    bool is_executing_;
-    
-    // Embedded action servers
-    rclcpp_action::Server<MoveToAction>::SharedPtr moveto_action_server_;
-    rclcpp_action::Server<EndEffectorAction>::SharedPtr endeffector_action_server_;
-    rclcpp_action::Server<ToolExchangeAction>::SharedPtr toolexchange_action_server_;
-    rclcpp_action::Server<PickPlaceAction>::SharedPtr pickplace_action_server_;
-    
-    // Action clients to call embedded actions
-    rclcpp_action::Client<MoveToAction>::SharedPtr moveto_action_client_;
-    rclcpp_action::Client<EndEffectorAction>::SharedPtr endeffector_action_client_;
-    rclcpp_action::Client<ToolExchangeAction>::SharedPtr toolexchange_action_client_;
-    rclcpp_action::Client<PickPlaceAction>::SharedPtr pickplace_action_client_;
-    
-    // Execution state for abort capability
-    std::atomic<bool> moveto_abort_requested_{false};
-    std::atomic<bool> endeffector_abort_requested_{false};
-    std::atomic<bool> toolexchange_abort_requested_{false};
-    std::atomic<bool> pickplace_abort_requested_{false};
-    
-    // Reusable stage instances - created once, reused multiple times
-    std::shared_ptr<MoveToStages> moveto_instance_;
-    std::shared_ptr<EndEffectorStages> endeffector_instance_;
-    std::shared_ptr<ToolExchangeStages> toolexchange_instance_;
-    std::shared_ptr<PickPlaceStages> pickplace_instance_;
+void Orchestrator::set_current_gripper(const std::string& g) { current_gripper_ = g; }
+const std::string& Orchestrator::get_current_gripper() const { return current_gripper_; }
 
-    rclcpp_action::GoalResponse handle_goal(
+// MTCOrchestratorActionServer implementation
+MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options) 
+    : Node("mtc_orchestrator_action_server", options), is_executing_(false) {
+    // Declare parameters only if they don't already exist (launch file compatibility)
+    if (!this->has_parameter("robot_description")) {
+        this->declare_parameter("robot_description", "");
+    }
+    if (!this->has_parameter("robot_description_semantic")) {
+        this->declare_parameter("robot_description_semantic", "");
+    }
+    if (!this->has_parameter("robot_description_planning")) {
+        this->declare_parameter("robot_description_planning", "");
+    }
+    if (!this->has_parameter("robot_description_kinematics")) {
+        this->declare_parameter("robot_description_kinematics", "");
+    }
+    
+    // Declare OMPL parameters only if they don't already exist
+    if (!this->has_parameter("ompl.planning_plugin")) {
+        this->declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner");
+    }
+    if (!this->has_parameter("ompl.request_adapters")) {
+        this->declare_parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization");
+    }
+    if (!this->has_parameter("ompl.path_tolerance")) {
+        this->declare_parameter("ompl.path_tolerance", 0.1);
+    }
+    if (!this->has_parameter("ompl.resample_dt")) {
+        this->declare_parameter("ompl.resample_dt", 0.1);
+    }
+    if (!this->has_parameter("ompl.min_angle_change")) {
+        this->declare_parameter("ompl.min_angle_change", 0.001);
+    }
+    
+    // Initialize orchestrator
+    orchestrator_ = std::make_unique<Orchestrator>();
+    
+    // Initialize the action server
+    this->action_server_ = rclcpp_action::create_server<MTCExecution>(
+        this,
+        "mtc_execution",
+        std::bind(&MTCOrchestratorActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&MTCOrchestratorActionServer::handle_cancel, this, std::placeholders::_1),
+        std::bind(&MTCOrchestratorActionServer::handle_accepted, this, std::placeholders::_1));
+
+    // Initialize embedded MoveTo action server
+    moveto_action_server_ = rclcpp_action::create_server<MoveToAction>(
+        this,
+        "moveto_action",
+        std::bind(&MTCOrchestratorActionServer::handle_moveto_goal, this, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&MTCOrchestratorActionServer::handle_moveto_cancel, this, std::placeholders::_1),
+        std::bind(&MTCOrchestratorActionServer::handle_moveto_accepted, this, std::placeholders::_1));
+
+    // Initialize embedded EndEffector action server
+    endeffector_action_server_ = rclcpp_action::create_server<EndEffectorAction>(
+        this,
+        "endeffector_action",
+        std::bind(&MTCOrchestratorActionServer::handle_endeffector_goal, this, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&MTCOrchestratorActionServer::handle_endeffector_cancel, this, std::placeholders::_1),
+        std::bind(&MTCOrchestratorActionServer::handle_endeffector_accepted, this, std::placeholders::_1));
+
+    // Initialize embedded ToolExchange action server
+    toolexchange_action_server_ = rclcpp_action::create_server<ToolExchangeAction>(
+        this,
+        "toolexchange_action",
+        std::bind(&MTCOrchestratorActionServer::handle_toolexchange_goal, this, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&MTCOrchestratorActionServer::handle_toolexchange_cancel, this, std::placeholders::_1),
+        std::bind(&MTCOrchestratorActionServer::handle_toolexchange_accepted, this, std::placeholders::_1));
+
+    // Initialize embedded PickPlace action server
+    pickplace_action_server_ = rclcpp_action::create_server<PickPlaceAction>(
+        this,
+        "pickplace_action",
+        std::bind(&MTCOrchestratorActionServer::handle_pickplace_goal, this, std::placeholders::_1, std::placeholders::_2),
+        std::bind(&MTCOrchestratorActionServer::handle_pickplace_cancel, this, std::placeholders::_1),
+        std::bind(&MTCOrchestratorActionServer::handle_pickplace_accepted, this, std::placeholders::_1));
+
+    // Initialize action clients to call embedded actions
+    moveto_action_client_ = rclcpp_action::create_client<MoveToAction>(this, "moveto_action");
+    endeffector_action_client_ = rclcpp_action::create_client<EndEffectorAction>(this, "endeffector_action");
+    toolexchange_action_client_ = rclcpp_action::create_client<ToolExchangeAction>(this, "toolexchange_action");
+    pickplace_action_client_ = rclcpp_action::create_client<PickPlaceAction>(this, "pickplace_action");
+
+    RCLCPP_INFO(this->get_logger(), "MTC Orchestrator with All Embedded Actions started");
+}
+
+// Template implementations for simple action handlers
+template<typename ActionType>
+rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_simple_goal(
+    const rclcpp_action::GoalUUID& uuid, 
+    std::shared_ptr<const typename ActionType::Goal> goal,
+    const std::string& action_name) {
+    (void)uuid;
+    (void)goal;
+    RCLCPP_INFO(this->get_logger(), "Received %s goal", action_name.c_str());
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+}
+
+template<typename ActionType>
+rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_simple_cancel(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionType>> goal_handle,
+    std::atomic<bool>& abort_flag,
+    const std::string& action_name) {
+    (void)goal_handle;
+    RCLCPP_INFO(this->get_logger(), "%s goal cancellation requested", action_name.c_str());
+    abort_flag = true;
+    return rclcpp_action::CancelResponse::ACCEPT;
+}
+
+template<typename ActionType>
+void MTCOrchestratorActionServer::handle_simple_accepted(
+    const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionType>> goal_handle,
+    void (MTCOrchestratorActionServer::*execute_func)(const std::shared_ptr<rclcpp_action::ServerGoalHandle<ActionType>>)) {
+    std::thread{std::bind(execute_func, this, std::placeholders::_1), goal_handle}.detach();
+}
+
+rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_goal(
         const rclcpp_action::GoalUUID & uuid,
         std::shared_ptr<const MTCExecution::Goal> goal)
     {
@@ -464,7 +414,7 @@ private:
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
-    rclcpp_action::CancelResponse handle_cancel(
+rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
         const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
     {
         (void)goal_handle;
@@ -479,38 +429,33 @@ private:
         return rclcpp_action::CancelResponse::ACCEPT;
     }
 
-    void handle_accepted(const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
+void MTCOrchestratorActionServer::handle_accepted(const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
     {
         std::thread{std::bind(&MTCOrchestratorActionServer::execute, this, std::placeholders::_1), goal_handle}.detach();
     }
 
+
     // ========== EMBEDDED MOVETO ACTION SERVER HANDLERS ==========
     
-    rclcpp_action::GoalResponse handle_moveto_goal(
+rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_moveto_goal(
         const rclcpp_action::GoalUUID & uuid,
         std::shared_ptr<const MoveToAction::Goal> goal)
     {
-        (void)uuid;
-        RCLCPP_INFO(this->get_logger(), "Received MoveTo goal: %s -> %s", 
-                   goal->target_type.c_str(), goal->target.c_str());
-        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+        return handle_simple_goal<MoveToAction>(uuid, goal, "MoveTo");
     }
 
-    rclcpp_action::CancelResponse handle_moveto_cancel(
+rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_moveto_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<MoveToAction>> goal_handle)
     {
-        (void)goal_handle;
-        RCLCPP_INFO(this->get_logger(), "MoveTo goal cancellation requested");
-        moveto_abort_requested_ = true;
-        return rclcpp_action::CancelResponse::ACCEPT;
+        return handle_simple_cancel<MoveToAction>(goal_handle, moveto_abort_requested_, "MoveTo");
     }
 
-    void handle_moveto_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<MoveToAction>> goal_handle)
+void MTCOrchestratorActionServer::handle_moveto_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<MoveToAction>> goal_handle)
     {
-        std::thread{std::bind(&MTCOrchestratorActionServer::execute_moveto_embedded, this, std::placeholders::_1), goal_handle}.detach();
+        handle_simple_accepted<MoveToAction>(goal_handle, &MTCOrchestratorActionServer::execute_moveto_embedded);
     }
 
-    void execute_moveto_embedded(const std::shared_ptr<rclcpp_action::ServerGoalHandle<MoveToAction>> goal_handle)
+void MTCOrchestratorActionServer::execute_moveto_embedded(const std::shared_ptr<rclcpp_action::ServerGoalHandle<MoveToAction>> goal_handle)
     {
         moveto_abort_requested_ = false;
         const auto goal = goal_handle->get_goal();
@@ -622,31 +567,25 @@ private:
 
     // ========== EMBEDDED ENDEFFECTOR ACTION SERVER HANDLERS ==========
     
-    rclcpp_action::GoalResponse handle_endeffector_goal(
+rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_endeffector_goal(
         const rclcpp_action::GoalUUID & uuid,
         std::shared_ptr<const EndEffectorAction::Goal> goal)
     {
-        (void)uuid;
-        RCLCPP_INFO(this->get_logger(), "Received EndEffector goal: %s -> %s", 
-                   goal->end_effector_type.c_str(), goal->end_effector_action.c_str());
-        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+        return handle_simple_goal<EndEffectorAction>(uuid, goal, "EndEffector");
     }
 
-    rclcpp_action::CancelResponse handle_endeffector_cancel(
+rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_endeffector_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<EndEffectorAction>> goal_handle)
     {
-        (void)goal_handle;
-        RCLCPP_INFO(this->get_logger(), "EndEffector goal cancellation requested");
-        endeffector_abort_requested_ = true;
-        return rclcpp_action::CancelResponse::ACCEPT;
+        return handle_simple_cancel<EndEffectorAction>(goal_handle, endeffector_abort_requested_, "EndEffector");
     }
 
-    void handle_endeffector_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<EndEffectorAction>> goal_handle)
+void MTCOrchestratorActionServer::handle_endeffector_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<EndEffectorAction>> goal_handle)
     {
-        std::thread{std::bind(&MTCOrchestratorActionServer::execute_endeffector_embedded, this, std::placeholders::_1), goal_handle}.detach();
+        handle_simple_accepted<EndEffectorAction>(goal_handle, &MTCOrchestratorActionServer::execute_endeffector_embedded);
     }
 
-    void execute_endeffector_embedded(const std::shared_ptr<rclcpp_action::ServerGoalHandle<EndEffectorAction>> goal_handle)
+void MTCOrchestratorActionServer::execute_endeffector_embedded(const std::shared_ptr<rclcpp_action::ServerGoalHandle<EndEffectorAction>> goal_handle)
     {
         endeffector_abort_requested_ = false;
         const auto goal = goal_handle->get_goal();
@@ -746,31 +685,25 @@ private:
 
     // ========== EMBEDDED TOOLEXCHANGE ACTION SERVER HANDLERS ==========
     
-    rclcpp_action::GoalResponse handle_toolexchange_goal(
+rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_toolexchange_goal(
         const rclcpp_action::GoalUUID & uuid,
         std::shared_ptr<const ToolExchangeAction::Goal> goal)
     {
-        (void)uuid;
-        RCLCPP_INFO(this->get_logger(), "Received ToolExchange goal: %s %s at dock %d", 
-                   goal->operation.c_str(), goal->gripper.c_str(), goal->dock_number);
-        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+        return handle_simple_goal<ToolExchangeAction>(uuid, goal, "ToolExchange");
     }
 
-    rclcpp_action::CancelResponse handle_toolexchange_cancel(
+rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_toolexchange_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<ToolExchangeAction>> goal_handle)
     {
-        (void)goal_handle;
-        RCLCPP_INFO(this->get_logger(), "ToolExchange goal cancellation requested");
-        toolexchange_abort_requested_ = true;
-        return rclcpp_action::CancelResponse::ACCEPT;
+        return handle_simple_cancel<ToolExchangeAction>(goal_handle, toolexchange_abort_requested_, "ToolExchange");
     }
 
-    void handle_toolexchange_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<ToolExchangeAction>> goal_handle)
+void MTCOrchestratorActionServer::handle_toolexchange_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<ToolExchangeAction>> goal_handle)
     {
-        std::thread{std::bind(&MTCOrchestratorActionServer::execute_toolexchange_embedded, this, std::placeholders::_1), goal_handle}.detach();
+        handle_simple_accepted<ToolExchangeAction>(goal_handle, &MTCOrchestratorActionServer::execute_toolexchange_embedded);
     }
 
-    void execute_toolexchange_embedded(const std::shared_ptr<rclcpp_action::ServerGoalHandle<ToolExchangeAction>> goal_handle)
+void MTCOrchestratorActionServer::execute_toolexchange_embedded(const std::shared_ptr<rclcpp_action::ServerGoalHandle<ToolExchangeAction>> goal_handle)
     {
         toolexchange_abort_requested_ = false;
         const auto goal = goal_handle->get_goal();
@@ -866,31 +799,25 @@ private:
 
     // ========== EMBEDDED PICKPLACE ACTION SERVER HANDLERS ==========
     
-    rclcpp_action::GoalResponse handle_pickplace_goal(
+rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_pickplace_goal(
         const rclcpp_action::GoalUUID & uuid,
         std::shared_ptr<const PickPlaceAction::Goal> goal)
     {
-        (void)uuid;
-        RCLCPP_INFO(this->get_logger(), "Received PickPlace goal: %s gripper, pick=%s, place=%s", 
-                   goal->gripper.c_str(), goal->pick_pose.c_str(), goal->place_pose.c_str());
-        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+        return handle_simple_goal<PickPlaceAction>(uuid, goal, "PickPlace");
     }
 
-    rclcpp_action::CancelResponse handle_pickplace_cancel(
+rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_pickplace_cancel(
         const std::shared_ptr<rclcpp_action::ServerGoalHandle<PickPlaceAction>> goal_handle)
     {
-        (void)goal_handle;
-        RCLCPP_INFO(this->get_logger(), "PickPlace goal cancellation requested");
-        pickplace_abort_requested_ = true;
-        return rclcpp_action::CancelResponse::ACCEPT;
+        return handle_simple_cancel<PickPlaceAction>(goal_handle, pickplace_abort_requested_, "PickPlace");
     }
 
-    void handle_pickplace_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<PickPlaceAction>> goal_handle)
+void MTCOrchestratorActionServer::handle_pickplace_accepted(const std::shared_ptr<rclcpp_action::ServerGoalHandle<PickPlaceAction>> goal_handle)
     {
-        std::thread{std::bind(&MTCOrchestratorActionServer::execute_pickplace_embedded, this, std::placeholders::_1), goal_handle}.detach();
+        handle_simple_accepted<PickPlaceAction>(goal_handle, &MTCOrchestratorActionServer::execute_pickplace_embedded);
     }
 
-    void execute_pickplace_embedded(const std::shared_ptr<rclcpp_action::ServerGoalHandle<PickPlaceAction>> goal_handle)
+void MTCOrchestratorActionServer::execute_pickplace_embedded(const std::shared_ptr<rclcpp_action::ServerGoalHandle<PickPlaceAction>> goal_handle)
     {
         pickplace_abort_requested_ = false;
         const auto goal = goal_handle->get_goal();
@@ -984,107 +911,11 @@ private:
         }
     }
 
-    // Execute EndEffector operation directly using shared MoveIt context
-    bool execute_endeffector_direct(const nlohmann::json& step, const nlohmann::json& poses) {
-        try {
-            RCLCPP_INFO(this->get_logger(), "Executing EndEffector directly: %s -> %s", 
-                       step.value("end_effector_type", "unknown").c_str(), 
-                       step.value("end_effector_action", "unknown").c_str());
 
-            // Use the reusable EndEffector instance (same as working version)
-            if (!endeffector_instance_) {
-                RCLCPP_ERROR(this->get_logger(), "EndEffector instance not initialized");
-                return false;
-            }
 
-            // Execute using the same pattern as the working version
-            bool success = endeffector_instance_->run(step, poses, this->shared_from_this());
-            
-            if (success) {
-                RCLCPP_INFO(this->get_logger(), "EndEffector direct execution completed successfully");
-            } else {
-                RCLCPP_ERROR(this->get_logger(), "EndEffector direct execution failed");
-            }
-            
-            return success;
-            
-        } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "EndEffector direct execution exception: %s", e.what());
-            return false;
-        }
-    }
-
-    // Execute ToolExchange operation directly using shared MoveIt context
-    bool execute_toolexchange_direct(const nlohmann::json& step, const nlohmann::json& poses) {
-        try {
-            RCLCPP_INFO(this->get_logger(), "Executing ToolExchange directly: %s %s", 
-                       step.value("operation", "unknown").c_str(),
-                       step.value("gripper", "unknown").c_str());
-
-            // CRITICAL: Sync robot description from move_group (same as working version)
-            if (!update_robot_description_from("move_group", this->shared_from_this())) {
-                RCLCPP_ERROR(this->get_logger(), "Failed to sync robot description from move_group");
-                return false;
-            }
-
-            // Use the reusable ToolExchange instance
-            if (!toolexchange_instance_) {
-                RCLCPP_ERROR(this->get_logger(), "ToolExchange instance not initialized");
-                return false;
-            }
-
-            bool success = toolexchange_instance_->run(step, poses, this->shared_from_this());
-            
-            if (success) {
-                RCLCPP_INFO(this->get_logger(), "ToolExchange direct execution completed successfully");
-            } else {
-                RCLCPP_ERROR(this->get_logger(), "ToolExchange direct execution failed");
-            }
-            
-            return success;
-            
-        } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "ToolExchange direct execution exception: %s", e.what());
-            return false;
-        }
-    }
-
-    // Execute PickPlace operation directly using shared MoveIt context
-    bool execute_pickplace_direct(const nlohmann::json& step, const nlohmann::json& poses) {
-        try {
-            RCLCPP_INFO(this->get_logger(), "Executing PickPlace directly: %s gripper", 
-                       step.value("gripper", "unknown").c_str());
-
-            // CRITICAL: Sync robot description from move_group (same as working version)
-            if (!update_robot_description_from("move_group", this->shared_from_this())) {
-                RCLCPP_ERROR(this->get_logger(), "Failed to sync robot description from move_group");
-                return false;
-            }
-
-            // Use the reusable PickPlace instance
-            if (!pickplace_instance_) {
-                RCLCPP_ERROR(this->get_logger(), "PickPlace instance not initialized");
-                return false;
-            }
-
-            bool success = pickplace_instance_->run(step, poses, this->shared_from_this());
-            
-            if (success) {
-                RCLCPP_INFO(this->get_logger(), "PickPlace direct execution completed successfully");
-            } else {
-                RCLCPP_ERROR(this->get_logger(), "PickPlace direct execution failed");
-            }
-            
-            return success;
-            
-        } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "PickPlace direct execution exception: %s", e.what());
-            return false;
-        }
-    }
 
     // Switch to different gripper configuration
-    bool switch_gripper(const std::string& new_gripper, const std::string& robot_ip) {
+bool MTCOrchestratorActionServer::switch_gripper(const std::string& new_gripper, const std::string& robot_ip) {
         if (orchestrator_->get_current_gripper() == new_gripper) return true;
         
         orchestrator_->kill_all_and_wait();
@@ -1099,169 +930,21 @@ private:
         return true;
     }
 
-    // Call embedded MoveTo action
-    bool call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses) {
-        try {
-            // Wait for action server to be available
-            if (!moveto_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
-                RCLCPP_ERROR(this->get_logger(), "MoveTo action server not available");
-                return false;
-            }
 
-            // Create goal
-            auto goal = MoveToAction::Goal();
-            goal.target_type = step.value("target_type", "pose");
-            goal.target = step.value("target", "");
-            goal.planning_type = step.value("planning_type", "joint");
-            goal.arm_group = step.value("arm_group", "ur_arm");
-            goal.direction = step.value("direction", "");
-            goal.distance = step.value("distance", 0.0);
-            goal.poses_json = poses.dump();
 
-            // Send goal
-            auto goal_handle_future = moveto_action_client_->async_send_goal(goal);
-            auto goal_handle = goal_handle_future.get();
-            
-            if (!goal_handle) {
-                RCLCPP_ERROR(this->get_logger(), "Failed to send MoveTo goal");
-                return false;
-            }
 
-            // Wait for result
-            auto result_future = moveto_action_client_->async_get_result(goal_handle);
-            auto result = result_future.get();
-            
-            return result.code == rclcpp_action::ResultCode::SUCCEEDED;
-        } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "MoveTo action call failed: %s", e.what());
-            return false;
-        }
-    }
 
-    // Call embedded EndEffector action
-    bool call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses) {
-        try {
-            // Wait for action server to be available
-            if (!endeffector_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
-                RCLCPP_ERROR(this->get_logger(), "EndEffector action server not available");
-                return false;
-            }
-
-            // Create goal
-            auto goal = EndEffectorAction::Goal();
-            goal.end_effector_type = step.value("end_effector_type", "");
-            goal.end_effector_action = step.value("end_effector_action", "");
-            goal.position = step.value("position", 0.0);
-            goal.force = step.value("force", 0.0);
-            goal.pressure = step.value("pressure", 0.0);
-            // Note: params_json field not available in EndEffectorAction
-            goal.poses_json = poses.dump();
-
-            // Send goal
-            auto goal_handle_future = endeffector_action_client_->async_send_goal(goal);
-            auto goal_handle = goal_handle_future.get();
-            
-            if (!goal_handle) {
-                RCLCPP_ERROR(this->get_logger(), "Failed to send EndEffector goal");
-                return false;
-            }
-
-            // Wait for result
-            auto result_future = endeffector_action_client_->async_get_result(goal_handle);
-            auto result = result_future.get();
-            
-            return result.code == rclcpp_action::ResultCode::SUCCEEDED;
-        } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "EndEffector action call failed: %s", e.what());
-            return false;
-        }
-    }
-
-    // Call embedded ToolExchange action
-    bool call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses) {
-        try {
-            // Wait for action server to be available
-            if (!toolexchange_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
-                RCLCPP_ERROR(this->get_logger(), "ToolExchange action server not available");
-                return false;
-            }
-
-            // Create goal
-            auto goal = ToolExchangeAction::Goal();
-            goal.operation = step.value("operation", "");
-            goal.gripper = step.value("gripper", "");
-            goal.dock_number = step.value("dock_number", 1);
-            goal.poses_json = poses.dump();
-
-            // Send goal
-            auto goal_handle_future = toolexchange_action_client_->async_send_goal(goal);
-            auto goal_handle = goal_handle_future.get();
-            
-            if (!goal_handle) {
-                RCLCPP_ERROR(this->get_logger(), "Failed to send ToolExchange goal");
-                return false;
-            }
-
-            // Wait for result
-            auto result_future = toolexchange_action_client_->async_get_result(goal_handle);
-            auto result = result_future.get();
-            
-            return result.code == rclcpp_action::ResultCode::SUCCEEDED;
-        } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "ToolExchange action call failed: %s", e.what());
-            return false;
-        }
-    }
-
-    // Call embedded PickPlace action
-    bool call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses) {
-        try {
-            // Wait for action server to be available
-            if (!pickplace_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
-                RCLCPP_ERROR(this->get_logger(), "PickPlace action server not available");
-                return false;
-            }
-
-            // Create goal
-            auto goal = PickPlaceAction::Goal();
-            goal.gripper = step.value("gripper", "");
-            goal.pick_pose = step.value("pick_pose", "");
-            goal.place_pose = step.value("place_pose", "");
-            goal.poses_json = poses.dump();
-
-            // Send goal
-            auto goal_handle_future = pickplace_action_client_->async_send_goal(goal);
-            auto goal_handle = goal_handle_future.get();
-            
-            if (!goal_handle) {
-                RCLCPP_ERROR(this->get_logger(), "Failed to send PickPlace goal");
-                return false;
-            }
-
-            // Wait for result
-            auto result_future = pickplace_action_client_->async_get_result(goal_handle);
-            auto result = result_future.get();
-            
-            return result.code == rclcpp_action::ResultCode::SUCCEEDED;
-        } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "PickPlace action call failed: %s", e.what());
-            return false;
-        }
-    }
-
-    // Execute a single task step
-    bool execute_step(const std::string& action, const nlohmann::json& step, 
-                     const nlohmann::json& poses, const std::string& robot_ip,
-                     PickPlaceStages& /* pick_place */, ToolExchangeStages& /* tool_exch */,
-                     MoveToStages& /* moveto */, EndEffectorStages& /* end_effector */) {
+// Execute a single task step
+bool MTCOrchestratorActionServer::execute_step(const std::string& action, const nlohmann::json& step, 
+                     const nlohmann::json& poses, const std::string& robot_ip) {
         
-        // Handle tool exchange tasks - now using embedded action approach
+        // Handle tool exchange tasks - using embedded action approach
         if (action == "tool_exchange") {
             const std::string operation = step.value("operation", "");
             const std::string requested_tool = step.value("gripper", orchestrator_->get_current_gripper());
 
-            // Execute via embedded action
-            bool success = call_toolexchange_action(step, poses);
+            // Execute via embedded action (call the embedded action server directly)
+            bool success = execute_toolexchange_embedded_internal(step, poses);
             if (!success) return false;
 
             // Handle gripper switching after tool exchange
@@ -1273,42 +956,38 @@ private:
             return true;
         }
 
-        // Handle pick and place tasks - now using embedded action approach
+        // Handle pick and place tasks - using embedded action approach
         if (action == "pick_and_place") {
             std::string need = step.value("gripper", orchestrator_->get_current_gripper());
             if (!switch_gripper(need, robot_ip))
                 return false;
 
-            return call_pickplace_action(step, poses);
+            return execute_pickplace_embedded_internal(step, poses);
         }
 
-        // Handle simple move-to tasks - now using embedded action approach
+        // Handle simple move-to tasks - using embedded action approach
         if (action == "moveto") {
-            return call_moveto_action(step, poses);
+            return execute_moveto_embedded_internal(step, poses);
         }
 
-        // Handle end effector operations - now using embedded action approach
+        // Handle end effector operations - using embedded action approach
         if (action == "end_effector") {
-            return call_endeffector_action(step, poses);
+            return execute_endeffector_embedded_internal(step, poses);
         }
 
         return false;
     }
 
-    // Execute MoveTo operation directly using shared MoveIt context
-    bool execute_moveto_direct(const nlohmann::json& step, const nlohmann::json& poses) {
+    // Internal methods to execute embedded actions without action server overhead
+bool MTCOrchestratorActionServer::execute_moveto_embedded_internal(const nlohmann::json& step, const nlohmann::json& poses) {
         try {
-            RCLCPP_INFO(this->get_logger(), "Executing MoveTo directly: %s -> %s", 
-                       step.value("target_type", "pose").c_str(), 
-                       step.value("target", "unknown").c_str());
-
-            // CRITICAL: Sync robot description from move_group (same as working version)
+            // CRITICAL: Sync robot description from move_group
             if (!update_robot_description_from("move_group", this->shared_from_this())) {
                 RCLCPP_ERROR(this->get_logger(), "Failed to sync robot description from move_group");
                 return false;
             }
 
-            // Use the reusable MoveTo instance (same as working version)
+            // Use the reusable MoveTo instance
             if (!moveto_instance_) {
                 RCLCPP_ERROR(this->get_logger(), "MoveTo instance not initialized");
                 return false;
@@ -1316,22 +995,80 @@ private:
 
             // Execute using the same pattern as the working version
             bool success = moveto_instance_->run(step, poses, this->shared_from_this());
-            
-            if (success) {
-                RCLCPP_INFO(this->get_logger(), "MoveTo direct execution completed successfully");
-            } else {
-                RCLCPP_ERROR(this->get_logger(), "MoveTo direct execution failed");
-            }
-            
             return success;
             
         } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "MoveTo direct execution exception: %s", e.what());
+            RCLCPP_ERROR(this->get_logger(), "MoveTo execution exception: %s", e.what());
             return false;
         }
     }
 
-    void execute(const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
+bool MTCOrchestratorActionServer::execute_endeffector_embedded_internal(const nlohmann::json& step, const nlohmann::json& poses) {
+        try {
+            // Use the reusable EndEffector instance
+            if (!endeffector_instance_) {
+                RCLCPP_ERROR(this->get_logger(), "EndEffector instance not initialized");
+                return false;
+            }
+
+            // Execute using the same pattern as the working version
+            bool success = endeffector_instance_->run(step, poses, this->shared_from_this());
+            return success;
+            
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "EndEffector execution exception: %s", e.what());
+            return false;
+        }
+    }
+
+bool MTCOrchestratorActionServer::execute_toolexchange_embedded_internal(const nlohmann::json& step, const nlohmann::json& poses) {
+        try {
+            // CRITICAL: Sync robot description from move_group
+            if (!update_robot_description_from("move_group", this->shared_from_this())) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to sync robot description from move_group");
+                return false;
+            }
+
+            // Use the reusable ToolExchange instance
+            if (!toolexchange_instance_) {
+                RCLCPP_ERROR(this->get_logger(), "ToolExchange instance not initialized");
+                return false;
+            }
+
+            bool success = toolexchange_instance_->run(step, poses, this->shared_from_this());
+            return success;
+            
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "ToolExchange execution exception: %s", e.what());
+            return false;
+        }
+    }
+
+bool MTCOrchestratorActionServer::execute_pickplace_embedded_internal(const nlohmann::json& step, const nlohmann::json& poses) {
+        try {
+            // CRITICAL: Sync robot description from move_group
+            if (!update_robot_description_from("move_group", this->shared_from_this())) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to sync robot description from move_group");
+                return false;
+            }
+
+            // Use the reusable PickPlace instance
+            if (!pickplace_instance_) {
+                RCLCPP_ERROR(this->get_logger(), "PickPlace instance not initialized");
+                return false;
+            }
+
+            bool success = pickplace_instance_->run(step, poses, this->shared_from_this());
+            return success;
+            
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "PickPlace execution exception: %s", e.what());
+            return false;
+        }
+    }
+
+
+void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
     {
         RCLCPP_INFO(this->get_logger(), "Executing goal");
         is_executing_ = true;
@@ -1358,8 +1095,6 @@ private:
             std::string robot_ip = goal->robot_ip.empty() ? "192.168.1.101" : goal->robot_ip;
             std::string start_gripper = task_script.value("start_gripper", "none");
             
-            // Debug: Print the robot_ip value
-            RCLCPP_INFO(this->get_logger(), "DEBUG: robot_ip from goal: '%s'", robot_ip.c_str());
             
             const auto& sequence = task_script["sequence"];
             const auto& poses = task_script["poses"];
@@ -1398,11 +1133,7 @@ private:
             
             orchestrator_->set_current_gripper(start_gripper);
 
-            // Create task handlers (reusable instances)
-            PickPlaceStages pick_place(this->shared_from_this(), task_script);
-            ToolExchangeStages tool_exch(this->shared_from_this(), task_script);
-            
-            // Initialize reusable instances for both direct and action calls
+            // Initialize reusable instances for embedded actions
             moveto_instance_ = std::make_shared<MoveToStages>(this->shared_from_this(), task_script);
             endeffector_instance_ = std::make_shared<EndEffectorStages>(this->shared_from_this(), task_script);
             toolexchange_instance_ = std::make_shared<ToolExchangeStages>(this->shared_from_this(), task_script);
@@ -1434,7 +1165,7 @@ private:
                 RCLCPP_INFO(this->get_logger(), "Executing step %zu: %s", i + 1, action.c_str());
                 
                 // Execute step (stage parameters unused now - using embedded instances instead)
-                if (!execute_step(action, step, poses, robot_ip, pick_place, tool_exch, *moveto_instance_, *endeffector_instance_)) {
+                if (!execute_step(action, step, poses, robot_ip)) {
                     RCLCPP_ERROR(this->get_logger(), "%s step failed", action.c_str());
                     result->success = false;
                     result->error_message = action + " step failed";
@@ -1468,7 +1199,7 @@ private:
         // Cleanup
         orchestrator_->kill_all_and_wait();
         
-        // Reset all reusable instances for next task
+        // Reset instances for next task
         moveto_instance_.reset();
         endeffector_instance_.reset();
         toolexchange_instance_.reset();
@@ -1476,7 +1207,6 @@ private:
         
         is_executing_ = false;
     }
-};
 
 int main(int argc, char** argv)
 {
