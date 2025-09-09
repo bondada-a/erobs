@@ -244,129 +244,129 @@ namespace {
 // Manages MoveIt configuration processes
 // Orchestrator class implementation
 pid_t Orchestrator::launch(const std::string& cmd) {
-    pid_t pid = fork(); 
-    if (pid == 0) {
-        execl("/usr/bin/setsid", "setsid", "bash", "-c", cmd.c_str(), (char*)nullptr);
-        exit(1); 
+        pid_t pid = fork(); 
+        if (pid == 0) {
+            execl("/usr/bin/setsid", "setsid", "bash", "-c", cmd.c_str(), (char*)nullptr);
+            exit(1); 
+        }
+        active_pids_.push_back(pid);
+        return pid;
     }
-    active_pids_.push_back(pid);
-    return pid;
-}
 
 void Orchestrator::kill_all_and_wait() {
-    for (pid_t pid : active_pids_)
-        ::kill(-pid, SIGINT);
-    
-    auto start_time = std::chrono::steady_clock::now();
-    const auto timeout = std::chrono::seconds(15);
-    
-    while (std::chrono::steady_clock::now() - start_time < timeout) {
-        bool all_terminated = true;
-        for (pid_t pid : active_pids_) {
-            int status;
-            if (waitpid(pid, &status, WNOHANG) == 0) {
-                all_terminated = false;
-                break;
+        for (pid_t pid : active_pids_)
+            ::kill(-pid, SIGINT);
+        
+        auto start_time = std::chrono::steady_clock::now();
+        const auto timeout = std::chrono::seconds(15);
+        
+        while (std::chrono::steady_clock::now() - start_time < timeout) {
+            bool all_terminated = true;
+            for (pid_t pid : active_pids_) {
+                int status;
+                if (waitpid(pid, &status, WNOHANG) == 0) {
+                    all_terminated = false;
+                    break;
+                }
             }
+            if (all_terminated) break;
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-        if (all_terminated) break;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        
+        for (pid_t pid : active_pids_) {
+            waitpid(pid, nullptr, WNOHANG);
+        }
+        active_pids_.clear();
     }
-    
-    for (pid_t pid : active_pids_) {
-        waitpid(pid, nullptr, WNOHANG);
-    }
-    active_pids_.clear();
-}
 
 void Orchestrator::set_current_gripper(const std::string& g) { current_gripper_ = g; }
 const std::string& Orchestrator::get_current_gripper() const { return current_gripper_; }
 
 // MTCOrchestratorActionServer implementation
 MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options) 
-    : Node("mtc_orchestrator_action_server", options), is_executing_(false) {
-    // Declare parameters only if they don't already exist (launch file compatibility)
-    if (!this->has_parameter("robot_description")) {
-        this->declare_parameter("robot_description", "");
-    }
-    if (!this->has_parameter("robot_description_semantic")) {
-        this->declare_parameter("robot_description_semantic", "");
-    }
-    if (!this->has_parameter("robot_description_planning")) {
-        this->declare_parameter("robot_description_planning", "");
-    }
-    if (!this->has_parameter("robot_description_kinematics")) {
-        this->declare_parameter("robot_description_kinematics", "");
-    }
-    
-    // Declare OMPL parameters only if they don't already exist
-    if (!this->has_parameter("ompl.planning_plugin")) {
-        this->declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner");
-    }
-    if (!this->has_parameter("ompl.request_adapters")) {
-        this->declare_parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization");
-    }
-    if (!this->has_parameter("ompl.path_tolerance")) {
-        this->declare_parameter("ompl.path_tolerance", 0.1);
-    }
-    if (!this->has_parameter("ompl.resample_dt")) {
-        this->declare_parameter("ompl.resample_dt", 0.1);
-    }
-    if (!this->has_parameter("ompl.min_angle_change")) {
-        this->declare_parameter("ompl.min_angle_change", 0.001);
-    }
-    
-    // Initialize orchestrator
-    orchestrator_ = std::make_unique<Orchestrator>();
-    
-    // Initialize the action server
-    this->action_server_ = rclcpp_action::create_server<MTCExecution>(
-        this,
-        "mtc_execution",
-        std::bind(&MTCOrchestratorActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&MTCOrchestratorActionServer::handle_cancel, this, std::placeholders::_1),
-        std::bind(&MTCOrchestratorActionServer::handle_accepted, this, std::placeholders::_1));
+        : Node("mtc_orchestrator_action_server", options), is_executing_(false) {
+        // Declare parameters only if they don't already exist (launch file compatibility)
+        if (!this->has_parameter("robot_description")) {
+            this->declare_parameter("robot_description", "");
+        }
+        if (!this->has_parameter("robot_description_semantic")) {
+            this->declare_parameter("robot_description_semantic", "");
+        }
+        if (!this->has_parameter("robot_description_planning")) {
+            this->declare_parameter("robot_description_planning", "");
+        }
+        if (!this->has_parameter("robot_description_kinematics")) {
+            this->declare_parameter("robot_description_kinematics", "");
+        }
+        
+        // Declare OMPL parameters only if they don't already exist
+        if (!this->has_parameter("ompl.planning_plugin")) {
+            this->declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner");
+        }
+        if (!this->has_parameter("ompl.request_adapters")) {
+            this->declare_parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization");
+        }
+        if (!this->has_parameter("ompl.path_tolerance")) {
+            this->declare_parameter("ompl.path_tolerance", 0.1);
+        }
+        if (!this->has_parameter("ompl.resample_dt")) {
+            this->declare_parameter("ompl.resample_dt", 0.1);
+        }
+        if (!this->has_parameter("ompl.min_angle_change")) {
+            this->declare_parameter("ompl.min_angle_change", 0.001);
+        }
+        
+        // Initialize orchestrator
+        orchestrator_ = std::make_unique<Orchestrator>();
+        
+        // Initialize the action server
+        this->action_server_ = rclcpp_action::create_server<MTCExecution>(
+            this,
+            "mtc_execution",
+            std::bind(&MTCOrchestratorActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&MTCOrchestratorActionServer::handle_cancel, this, std::placeholders::_1),
+            std::bind(&MTCOrchestratorActionServer::handle_accepted, this, std::placeholders::_1));
 
-    // Initialize embedded MoveTo action server
-    moveto_action_server_ = rclcpp_action::create_server<MoveToAction>(
-        this,
-        "moveto_action",
-        std::bind(&MTCOrchestratorActionServer::handle_moveto_goal, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&MTCOrchestratorActionServer::handle_moveto_cancel, this, std::placeholders::_1),
-        std::bind(&MTCOrchestratorActionServer::handle_moveto_accepted, this, std::placeholders::_1));
+        // Initialize embedded MoveTo action server
+        moveto_action_server_ = rclcpp_action::create_server<MoveToAction>(
+            this,
+            "moveto_action",
+            std::bind(&MTCOrchestratorActionServer::handle_moveto_goal, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&MTCOrchestratorActionServer::handle_moveto_cancel, this, std::placeholders::_1),
+            std::bind(&MTCOrchestratorActionServer::handle_moveto_accepted, this, std::placeholders::_1));
 
-    // Initialize embedded EndEffector action server
-    endeffector_action_server_ = rclcpp_action::create_server<EndEffectorAction>(
-        this,
-        "endeffector_action",
-        std::bind(&MTCOrchestratorActionServer::handle_endeffector_goal, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&MTCOrchestratorActionServer::handle_endeffector_cancel, this, std::placeholders::_1),
-        std::bind(&MTCOrchestratorActionServer::handle_endeffector_accepted, this, std::placeholders::_1));
+        // Initialize embedded EndEffector action server
+        endeffector_action_server_ = rclcpp_action::create_server<EndEffectorAction>(
+            this,
+            "endeffector_action",
+            std::bind(&MTCOrchestratorActionServer::handle_endeffector_goal, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&MTCOrchestratorActionServer::handle_endeffector_cancel, this, std::placeholders::_1),
+            std::bind(&MTCOrchestratorActionServer::handle_endeffector_accepted, this, std::placeholders::_1));
 
-    // Initialize embedded ToolExchange action server
-    toolexchange_action_server_ = rclcpp_action::create_server<ToolExchangeAction>(
-        this,
-        "toolexchange_action",
-        std::bind(&MTCOrchestratorActionServer::handle_toolexchange_goal, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&MTCOrchestratorActionServer::handle_toolexchange_cancel, this, std::placeholders::_1),
-        std::bind(&MTCOrchestratorActionServer::handle_toolexchange_accepted, this, std::placeholders::_1));
+        // Initialize embedded ToolExchange action server
+        toolexchange_action_server_ = rclcpp_action::create_server<ToolExchangeAction>(
+            this,
+            "toolexchange_action",
+            std::bind(&MTCOrchestratorActionServer::handle_toolexchange_goal, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&MTCOrchestratorActionServer::handle_toolexchange_cancel, this, std::placeholders::_1),
+            std::bind(&MTCOrchestratorActionServer::handle_toolexchange_accepted, this, std::placeholders::_1));
 
-    // Initialize embedded PickPlace action server
-    pickplace_action_server_ = rclcpp_action::create_server<PickPlaceAction>(
-        this,
-        "pickplace_action",
-        std::bind(&MTCOrchestratorActionServer::handle_pickplace_goal, this, std::placeholders::_1, std::placeholders::_2),
-        std::bind(&MTCOrchestratorActionServer::handle_pickplace_cancel, this, std::placeholders::_1),
-        std::bind(&MTCOrchestratorActionServer::handle_pickplace_accepted, this, std::placeholders::_1));
+        // Initialize embedded PickPlace action server
+        pickplace_action_server_ = rclcpp_action::create_server<PickPlaceAction>(
+            this,
+            "pickplace_action",
+            std::bind(&MTCOrchestratorActionServer::handle_pickplace_goal, this, std::placeholders::_1, std::placeholders::_2),
+            std::bind(&MTCOrchestratorActionServer::handle_pickplace_cancel, this, std::placeholders::_1),
+            std::bind(&MTCOrchestratorActionServer::handle_pickplace_accepted, this, std::placeholders::_1));
 
-    // Initialize action clients to call embedded actions
-    moveto_action_client_ = rclcpp_action::create_client<MoveToAction>(this, "moveto_action");
-    endeffector_action_client_ = rclcpp_action::create_client<EndEffectorAction>(this, "endeffector_action");
-    toolexchange_action_client_ = rclcpp_action::create_client<ToolExchangeAction>(this, "toolexchange_action");
-    pickplace_action_client_ = rclcpp_action::create_client<PickPlaceAction>(this, "pickplace_action");
+        // Initialize action clients to call embedded actions
+        moveto_action_client_ = rclcpp_action::create_client<MoveToAction>(this, "moveto_action");
+        endeffector_action_client_ = rclcpp_action::create_client<EndEffectorAction>(this, "endeffector_action");
+        toolexchange_action_client_ = rclcpp_action::create_client<ToolExchangeAction>(this, "toolexchange_action");
+        pickplace_action_client_ = rclcpp_action::create_client<PickPlaceAction>(this, "pickplace_action");
 
-    RCLCPP_INFO(this->get_logger(), "MTC Orchestrator with All Embedded Actions started");
-}
+        RCLCPP_INFO(this->get_logger(), "MTC Orchestrator with All Embedded Actions started");
+    }
 
 // Template implementations for simple action handlers
 template<typename ActionType>
@@ -943,8 +943,8 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& action, const 
             const std::string operation = step.value("operation", "");
             const std::string requested_tool = step.value("gripper", orchestrator_->get_current_gripper());
 
-            // Execute via embedded action (call the embedded action server directly)
-            bool success = execute_toolexchange_embedded_internal(step, poses);
+            // Execute via embedded action (call the embedded action server via ROS2 actions)
+            bool success = call_toolexchange_action(step, poses);
             if (!success) return false;
 
             // Handle gripper switching after tool exchange
@@ -962,21 +962,147 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& action, const 
             if (!switch_gripper(need, robot_ip))
                 return false;
 
-            return execute_pickplace_embedded_internal(step, poses);
+            return call_pickplace_action(step, poses);
         }
 
         // Handle simple move-to tasks - using embedded action approach
         if (action == "moveto") {
-            return execute_moveto_embedded_internal(step, poses);
+            return call_moveto_action(step, poses);
         }
 
         // Handle end effector operations - using embedded action approach
         if (action == "end_effector") {
-            return execute_endeffector_embedded_internal(step, poses);
+            return call_endeffector_action(step, poses);
         }
 
+    return false;
+}
+
+// Action client methods to call embedded actions via ROS2 actions
+bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses) {
+    if (!moveto_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+        RCLCPP_ERROR(this->get_logger(), "MoveTo action server not available");
         return false;
     }
+    
+    auto goal = MoveToAction::Goal();
+    goal.target_type = step.value("target_type", "");
+    goal.target = step.value("target", "");
+    goal.planning_type = step.value("planning_type", "joint");
+    goal.arm_group = step.value("arm_group", "ur_arm");
+    goal.direction = step.value("direction", "");
+    goal.distance = step.value("distance", 0.0);
+    goal.poses_json = poses.dump();
+    
+    auto future = moveto_action_client_->async_send_goal(goal);
+    auto goal_handle = future.get();
+    
+    if (!goal_handle) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to send MoveTo goal");
+        return false;
+    }
+    
+    auto result_future = moveto_action_client_->async_get_result(goal_handle);
+    auto result = result_future.get();
+    
+    if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+        return result.result->success;
+    }
+    return false;
+}
+
+bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses) {
+    if (!endeffector_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+        RCLCPP_ERROR(this->get_logger(), "EndEffector action server not available");
+        return false;
+    }
+    
+    auto goal = EndEffectorAction::Goal();
+    goal.end_effector_type = step.value("end_effector_type", "");
+    goal.end_effector_action = step.value("end_effector_action", "");
+    goal.position = step.value("position", 0.0);
+    goal.force = step.value("force", 0.0);
+    goal.pressure = step.value("pressure", 0.0);
+    goal.poses_json = poses.dump();
+    
+    auto future = endeffector_action_client_->async_send_goal(goal);
+    auto goal_handle = future.get();
+    
+    if (!goal_handle) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to send EndEffector goal");
+        return false;
+    }
+    
+    auto result_future = endeffector_action_client_->async_get_result(goal_handle);
+    auto result = result_future.get();
+    
+    if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+        return result.result->success;
+    }
+    return false;
+}
+
+bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses) {
+    if (!toolexchange_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+        RCLCPP_ERROR(this->get_logger(), "ToolExchange action server not available");
+        return false;
+    }
+    
+    auto goal = ToolExchangeAction::Goal();
+    goal.operation = step.value("operation", "");
+    goal.gripper = step.value("gripper", "");
+    goal.dock_number = step.value("dock_number", 0);
+    // Note: approach_poses would need to be parsed from JSON array if present
+    goal.poses_json = poses.dump();
+    
+    auto future = toolexchange_action_client_->async_send_goal(goal);
+    auto goal_handle = future.get();
+    
+    if (!goal_handle) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to send ToolExchange goal");
+        return false;
+    }
+    
+    auto result_future = toolexchange_action_client_->async_get_result(goal_handle);
+    auto result = result_future.get();
+    
+    if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+        return result.result->success;
+    }
+    return false;
+}
+
+bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses) {
+    if (!pickplace_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+        RCLCPP_ERROR(this->get_logger(), "PickPlace action server not available");
+        return false;
+    }
+    
+    auto goal = PickPlaceAction::Goal();
+    goal.gripper = step.value("gripper", "");
+    goal.pick_pose = step.value("pick_pose", "");
+    goal.place_pose = step.value("place_pose", "");
+    goal.approach_distance = step.value("approach_distance", 0.1);
+    goal.planning_type = step.value("planning_type", "joint");
+    goal.arm_group = step.value("arm_group", "ur_arm");
+    goal.poses_json = poses.dump();
+    
+    auto future = pickplace_action_client_->async_send_goal(goal);
+    auto goal_handle = future.get();
+    
+    if (!goal_handle) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to send PickPlace goal");
+        return false;
+    }
+    
+    auto result_future = pickplace_action_client_->async_get_result(goal_handle);
+    auto result = result_future.get();
+    
+    if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+        return result.result->success;
+    }
+    return false;
+}
 
     // Internal methods to execute embedded actions without action server overhead
 bool MTCOrchestratorActionServer::execute_moveto_embedded_internal(const nlohmann::json& step, const nlohmann::json& poses) {
@@ -1040,7 +1166,7 @@ bool MTCOrchestratorActionServer::execute_toolexchange_embedded_internal(const n
             
         } catch (const std::exception& e) {
             RCLCPP_ERROR(this->get_logger(), "ToolExchange execution exception: %s", e.what());
-            return false;
+        return false;
         }
     }
 

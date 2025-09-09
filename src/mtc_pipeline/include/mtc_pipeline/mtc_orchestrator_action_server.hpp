@@ -182,6 +182,12 @@ private:
     // Gripper switching logic
     bool switch_gripper(const std::string& new_gripper, const std::string& robot_ip);
     
+    // Action client methods to call embedded actions via ROS2 actions
+    bool call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses);
+    bool call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses);
+    bool call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses);
+    bool call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses);
+    
     // Template for simple action handlers
     template<typename ActionType>
     rclcpp_action::GoalResponse handle_simple_goal(const rclcpp_action::GoalUUID& uuid, 
