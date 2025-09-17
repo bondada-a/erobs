@@ -29,7 +29,7 @@ WORKDIR /root/ws/erobs/
 RUN /bin/bash -c ". ./setup.sh"
 
 WORKDIR /root/ws/
-RUN /bin/bash -c ". ./erobs/build.sh"
+RUN /bin/bash -c "cd erobs && colcon build"
 
 ENV ROBOT_IP=10.69.26.90
 ENV REVERSE_IP=10.69.26.42
