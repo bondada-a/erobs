@@ -528,7 +528,7 @@ void MTCOrchestratorActionServer::execute_moveto_embedded(const std::shared_ptr<
                 return;
             }
 
-            // Execute using the same pattern as the working version
+            // Execute using FSM-style behavior (no cancellation callback)
             bool success = moveto_instance_->run(step, poses, this->shared_from_this());
 
             // Check for abort after execution

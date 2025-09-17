@@ -19,6 +19,8 @@ public:
     EndEffectorStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
     
     bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node);
+    bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node, 
+             std::function<bool()> should_cancel);
     
     // End effector control methods
     bool controlGripper(const std::string& action, double position = 0.0, double force = 0.0);

@@ -21,6 +21,10 @@ public:
 
   // Main orchestrator step runner
   bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node);
+  
+  // Main orchestrator step runner with cancellation support
+  bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node, 
+           std::function<bool()> should_cancel);
 
   // Create a move to named pose (from JSON poses or SRDF named states)
   std::unique_ptr<mtc::Stage> makeMoveToNamedStage(

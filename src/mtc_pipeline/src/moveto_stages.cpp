@@ -11,6 +11,9 @@
 #include <string>
 #include <vector>
 #include <map>
+#include <thread>
+#include <atomic>
+#include <chrono>
 #include <boost/algorithm/string/join.hpp>
 
 namespace mtc = moveit::task_constructor;
@@ -281,4 +284,237 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
     }
     
     return (result.val == moveit_msgs::msg::MoveItErrorCodes::SUCCESS);
+}
+
+// Main orchestrator step runner with cancellation support
+bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node, 
+                      std::function<bool()> should_cancel) {
+    std::string target_type = step.value("target_type", "pose");
+    std::string planning_type = step.value("planning_type", "joint");
+    std::string arm_group_name = step.value("arm_group", "ur_arm");
+    
+    // FSM-style: No cancellation check before starting
+    
+    // Update config with poses
+    config_["poses"] = poses;
+    
+    // Create planner based on planning type
+    mtc::solvers::PlannerInterfacePtr planner;
+    
+    if (planning_type == "cartesian") {
+        auto cartesian_planner = std::make_shared<mtc::solvers::CartesianPath>();
+        cartesian_planner->setMaxVelocityScalingFactor(0.2);
+        cartesian_planner->setMaxAccelerationScalingFactor(0.2);
+        cartesian_planner->setStepSize(0.001);
+        cartesian_planner->setMinFraction(0.8);
+        planner = cartesian_planner;
+    } else {
+        auto joint_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node, "ompl");
+        joint_planner->setMaxVelocityScalingFactor(0.2);
+        joint_planner->setMaxAccelerationScalingFactor(0.2);
+        planner = joint_planner;
+    }
+    
+    // Create task
+    mtc::Task task;
+    task.stages()->setName("MoveTo Task");
+    
+    task.setProperty("group", arm_group_name);
+    
+    // Set up IK frame
+    geometry_msgs::msg::PoseStamped ik_frame_pose;
+    ik_frame_pose.header.frame_id = "flange";
+    ik_frame_pose.pose.orientation.w = 1.0;
+    task.setProperty("ik_frame", ik_frame_pose);
+    
+    // Add current state
+    task.add(std::make_unique<mtc::stages::CurrentState>("current"));
+    
+    // Add movement stage based on target type
+    if (target_type == "named_state") {
+        std::string named_state = step["target"];
+        // For named states, we'll handle this after loading the robot model
+    } else if (target_type == "joints") {
+        std::vector<double> joint_angles = step["target"].get<std::vector<double>>();
+        task.add(makeMoveToJointStage("move_to_joints", joint_angles, planner, arm_group_name));
+    } else if (target_type == "relative") {
+        std::string direction = step["direction"];
+        double distance = step["distance"].get<double>();
+        task.add(makeMoveRelativeStage("move_relative", direction, distance, planner, arm_group_name));
+    } else {
+        // Default: pose from JSON
+        std::string pose_key = step["target"];
+        task.add(makeMoveToNamedStage("move_to_" + pose_key, pose_key, planner, arm_group_name, false));
+    }
+    
+    // Initialize and execute task
+    try {
+        // FSM-style: No cancellation check before initialization
+        
+        // Load robot model
+        task.loadRobotModel(node);
+        
+        // Debug: Print available groups and states
+        auto robot_model = task.getRobotModel();
+        if (robot_model) {
+            RCLCPP_INFO(node->get_logger(), "Robot model loaded successfully");
+            RCLCPP_INFO(node->get_logger(), "Available groups: %s", 
+                       boost::algorithm::join(robot_model->getJointModelGroupNames(), ", ").c_str());
+            
+            if (target_type == "named_state") {
+                std::string named_state = step["target"];
+                auto group = robot_model->getJointModelGroup(arm_group_name);
+                if (group) {
+                    RCLCPP_INFO(node->get_logger(), "Group '%s' found", arm_group_name.c_str());
+                    
+                    // Get the named state from the robot model
+                    std::map<std::string, double> joint_goal;
+                    if (named_state == "moveit_home") {
+                        joint_goal = {{"shoulder_pan_joint", 0.0}, {"shoulder_lift_joint", -1.57}, 
+                                     {"elbow_joint", 0.0}, {"wrist_1_joint", -1.57}, 
+                                     {"wrist_2_joint", 0.0}, {"wrist_3_joint", 0.0}};
+                    } else if (named_state == "home") {
+                        joint_goal = {{"shoulder_pan_joint", 0.0}, {"shoulder_lift_joint", -1.57}, 
+                                     {"elbow_joint", 0.0}, {"wrist_1_joint", -1.57}, 
+                                     {"wrist_2_joint", 0.0}, {"wrist_3_joint", 0.0}};
+                    } else {
+                        RCLCPP_ERROR(node->get_logger(), "Unknown named state: %s", named_state.c_str());
+                        return false;
+                    }
+                    
+                    std::vector<double> joint_angles;
+                    for (const auto& joint_name : getJointNames()) {
+                        joint_angles.push_back(joint_goal[joint_name]);
+                    }
+                    task.add(makeMoveToJointStage("move_to_" + named_state, joint_angles, planner, arm_group_name));
+                } else {
+                    RCLCPP_ERROR(node->get_logger(), "Group '%s' not found in robot model", arm_group_name.c_str());
+                    return false;
+                }
+            }
+        }
+        
+        // FSM-style: No cancellation check before planning
+        
+        task.init();
+    } catch (const mtc::InitStageException& e) {
+        RCLCPP_ERROR_STREAM(node->get_logger(), "Stage initialization failed: " << e);
+        return false;
+    }
+    
+    // FSM-style: No cancellation check before planning
+    
+    if (!task.plan(5)) {
+        RCLCPP_ERROR(node->get_logger(), "Task planning failed");
+        return false;
+    }
+    
+    if (task.solutions().empty()) {
+        RCLCPP_ERROR(node->get_logger(), "No solutions found to execute");
+        return false;
+    }
+    
+    // FSM-style: No cancellation check before execution
+    
+    auto solution = task.solutions().front();
+    
+    // Execute with FSM-style behavior (complete movement, then check cancellation)
+    RCLCPP_INFO(node->get_logger(), "Starting execution with FSM-style behavior...");
+    
+    // COMMENTED OUT: Multi-thread cancellation monitoring
+    // This will now behave like FSM: complete movement, then check for cancellation
+    /*
+    // Start execution in a separate thread to allow monitoring
+    std::atomic<bool> execution_complete{false};
+    std::atomic<bool> execution_success{false};
+    std::exception_ptr execution_exception{nullptr};
+    
+    std::thread execution_thread([&]() {
+        try {
+            auto result = task.execute(*solution);
+            execution_success = (result.val == moveit_msgs::msg::MoveItErrorCodes::SUCCESS);
+            execution_complete = true;
+        } catch (...) {
+            execution_exception = std::current_exception();
+            execution_complete = true;
+        }
+    });
+    
+    // Monitor execution with cancellation checks (FSM-style loop)
+    while (!execution_complete) {
+        // Check for cancellation every 100ms (like FSM approach)
+        if (should_cancel && should_cancel()) {
+            RCLCPP_WARN(node->get_logger(), "MoveTo task cancelled during execution - stopping gracefully...");
+            
+            // Graceful software cancellation - no hardware emergency stop needed
+            try {
+                RCLCPP_INFO(node->get_logger(), "Cancelling MTC task execution gracefully...");
+                
+                // The MTC task will handle the cancellation gracefully
+                // No need for hardware emergency stop - this is software cancellation
+                
+            } catch (const std::exception& e) {
+                RCLCPP_ERROR(node->get_logger(), "Exception during task cancellation: %s", e.what());
+            }
+            
+            // Detach the execution thread and return immediately
+            execution_thread.detach();
+            
+            RCLCPP_WARN(node->get_logger(), "MoveTo task cancelled - execution stopped gracefully");
+            return false;
+        }
+        
+        // Sleep for 100ms before next check (like FSM approach)
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    
+    // Wait for execution thread to complete
+    if (execution_thread.joinable()) {
+        execution_thread.join();
+    }
+    
+    // Handle any exceptions
+    if (execution_exception) {
+        try {
+            std::rethrow_exception(execution_exception);
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(node->get_logger(), "MoveTo execution exception: %s", e.what());
+            return false;
+        }
+    }
+    
+    // Check final result
+    if (should_cancel && should_cancel()) {
+        RCLCPP_WARN(node->get_logger(), "MoveTo task cancelled after execution");
+        return false;
+    }
+    
+    if (execution_success) {
+        RCLCPP_INFO(node->get_logger(), "MoveTo task completed successfully");
+    } else {
+        RCLCPP_ERROR(node->get_logger(), "MoveTo task failed");
+    }
+    
+    return execution_success;
+    */
+    
+    // FSM-STYLE EXECUTION: Blocking call, then check cancellation
+    RCLCPP_INFO(node->get_logger(), "Executing MTC task (blocking call)...");
+    auto result = task.execute(*solution);
+    
+    // Check for cancellation AFTER execution completes (FSM-style)
+    if (should_cancel && should_cancel()) {
+        RCLCPP_WARN(node->get_logger(), "MoveTo task cancelled after execution (FSM-style)");
+        return false;
+    }
+    
+    bool execution_success = (result.val == moveit_msgs::msg::MoveItErrorCodes::SUCCESS);
+    
+    if (execution_success) {
+        RCLCPP_INFO(node->get_logger(), "MoveTo task completed successfully");
+    } else {
+        RCLCPP_ERROR(node->get_logger(), "MoveTo task failed");
+    }
+    
+    return execution_success;
 }

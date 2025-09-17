@@ -18,7 +18,7 @@ class MTCDevice:
     
     def __init__(self, name="mtc_device"):
         self.name = name
-        self.get_logger = lambda: print  # Simple logger
+        self.get_logger = lambda: print  
     
     def set(self, json_file_path):
         """Execute MTC task using the existing C++ client with a JSON file"""
@@ -28,7 +28,7 @@ class MTCDevice:
         try:
             # Use existing C++ client with the provided JSON file
             cmd = ['ros2', 'run', 'mtc_pipeline', 'mtc_action_client_example', 
-                   json_file_path, '192.168.56.101', '300']
+                   json_file_path, '192.168.1.101', '300']
             
             print(f"Executing MTC task from: {json_file_path}")
             
