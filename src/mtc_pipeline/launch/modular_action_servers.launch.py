@@ -92,7 +92,7 @@ def generate_launch_description():
         }]
     )
     
-    # Main Orchestrator (without embedded action servers)
+    # Main Orchestrator (pure delegation mode)
     orchestrator = Node(
         package='mtc_pipeline',
         executable='mtc_orchestrator_action_server',
@@ -102,7 +102,6 @@ def generate_launch_description():
             'use_sim_time': False,
             'gripper': gripper,
             'robot_ip': robot_ip,
-            'disable_embedded_servers': True,  # Disable embedded servers for delegation mode
         }]
     )
     
