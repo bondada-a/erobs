@@ -89,5 +89,3 @@ target/
 .ipynb_checkpoints
 *.code-workspace
 
-src/ur5e_hande_robot_description/meshes/zivid/*.stl
-src/ur5e_hande_robot_description/meshes/zivid/*.dae
