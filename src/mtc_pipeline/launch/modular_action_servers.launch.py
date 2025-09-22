@@ -24,8 +24,8 @@ def generate_launch_description():
     
     launch_moveit_arg = DeclareLaunchArgument(
         'launch_moveit',
-        default_value='true',
-        description='Whether to launch MoveIt move_group'
+        default_value='false',
+        description='Whether to launch MoveIt move_group (false for delegation - orchestrator manages MoveIt)'
     )
     
     # Get launch configuration
@@ -45,8 +45,8 @@ def generate_launch_description():
         condition=IfCondition(launch_moveit),
         cmd=[
             'bash', '-c',
-            f'source /home/aditya/work/github_ws/erobs/install/setup.bash && '
-            f'ros2 launch {moveit_config} move_group.launch.py robot_ip:={robot_ip}'
+            ['source /home/aditya/work/github_ws/erobs/install/setup.bash && ros2 launch ',
+             moveit_config, ' move_group.launch.py robot_ip:=', robot_ip]
         ],
         output='screen'
     )
@@ -102,6 +102,7 @@ def generate_launch_description():
             'use_sim_time': False,
             'gripper': gripper,
             'robot_ip': robot_ip,
+            'disable_embedded_servers': True,  # Disable embedded servers for delegation mode
         }]
     )
     

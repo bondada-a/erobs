@@ -327,37 +327,51 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
             std::bind(&MTCOrchestratorActionServer::handle_cancel, this, std::placeholders::_1),
             std::bind(&MTCOrchestratorActionServer::handle_accepted, this, std::placeholders::_1));
 
-        // Initialize embedded MoveTo action server
-        moveto_action_server_ = rclcpp_action::create_server<MoveToAction>(
-            this,
-            "moveto_action",
-            std::bind(&MTCOrchestratorActionServer::handle_moveto_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&MTCOrchestratorActionServer::handle_moveto_cancel, this, std::placeholders::_1),
-            std::bind(&MTCOrchestratorActionServer::handle_moveto_accepted, this, std::placeholders::_1));
+        // Check if we should disable embedded action servers (for delegation mode)
+        bool disable_embedded_servers = false;
+        try {
+            disable_embedded_servers = this->declare_parameter("disable_embedded_servers", false);
+        } catch (const rclcpp::exceptions::ParameterAlreadyDeclaredException&) {
+            disable_embedded_servers = this->get_parameter("disable_embedded_servers").as_bool();
+        }
 
-        // Initialize embedded EndEffector action server
-        endeffector_action_server_ = rclcpp_action::create_server<EndEffectorAction>(
-            this,
-            "endeffector_action",
-            std::bind(&MTCOrchestratorActionServer::handle_endeffector_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&MTCOrchestratorActionServer::handle_endeffector_cancel, this, std::placeholders::_1),
-            std::bind(&MTCOrchestratorActionServer::handle_endeffector_accepted, this, std::placeholders::_1));
+        if (!disable_embedded_servers) {
+            // Initialize embedded MoveTo action server
+            moveto_action_server_ = rclcpp_action::create_server<MoveToAction>(
+                this,
+                "moveto_action",
+                std::bind(&MTCOrchestratorActionServer::handle_moveto_goal, this, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&MTCOrchestratorActionServer::handle_moveto_cancel, this, std::placeholders::_1),
+                std::bind(&MTCOrchestratorActionServer::handle_moveto_accepted, this, std::placeholders::_1));
 
-        // Initialize embedded ToolExchange action server
-        toolexchange_action_server_ = rclcpp_action::create_server<ToolExchangeAction>(
-            this,
-            "toolexchange_action",
-            std::bind(&MTCOrchestratorActionServer::handle_toolexchange_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&MTCOrchestratorActionServer::handle_toolexchange_cancel, this, std::placeholders::_1),
-            std::bind(&MTCOrchestratorActionServer::handle_toolexchange_accepted, this, std::placeholders::_1));
+            // Initialize embedded EndEffector action server
+            endeffector_action_server_ = rclcpp_action::create_server<EndEffectorAction>(
+                this,
+                "endeffector_action",
+                std::bind(&MTCOrchestratorActionServer::handle_endeffector_goal, this, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&MTCOrchestratorActionServer::handle_endeffector_cancel, this, std::placeholders::_1),
+                std::bind(&MTCOrchestratorActionServer::handle_endeffector_accepted, this, std::placeholders::_1));
 
-        // Initialize embedded PickPlace action server
-        pickplace_action_server_ = rclcpp_action::create_server<PickPlaceAction>(
-            this,
-            "pickplace_action",
-            std::bind(&MTCOrchestratorActionServer::handle_pickplace_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&MTCOrchestratorActionServer::handle_pickplace_cancel, this, std::placeholders::_1),
-            std::bind(&MTCOrchestratorActionServer::handle_pickplace_accepted, this, std::placeholders::_1));
+            // Initialize embedded ToolExchange action server
+            toolexchange_action_server_ = rclcpp_action::create_server<ToolExchangeAction>(
+                this,
+                "toolexchange_action",
+                std::bind(&MTCOrchestratorActionServer::handle_toolexchange_goal, this, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&MTCOrchestratorActionServer::handle_toolexchange_cancel, this, std::placeholders::_1),
+                std::bind(&MTCOrchestratorActionServer::handle_toolexchange_accepted, this, std::placeholders::_1));
+
+            // Initialize embedded PickPlace action server
+            pickplace_action_server_ = rclcpp_action::create_server<PickPlaceAction>(
+                this,
+                "pickplace_action",
+                std::bind(&MTCOrchestratorActionServer::handle_pickplace_goal, this, std::placeholders::_1, std::placeholders::_2),
+                std::bind(&MTCOrchestratorActionServer::handle_pickplace_cancel, this, std::placeholders::_1),
+                std::bind(&MTCOrchestratorActionServer::handle_pickplace_accepted, this, std::placeholders::_1));
+
+            RCLCPP_INFO(this->get_logger(), "Embedded action servers enabled");
+        } else {
+            RCLCPP_INFO(this->get_logger(), "Embedded action servers disabled - delegation mode active");
+        }
 
         // Initialize action clients to call embedded actions
         moveto_action_client_ = rclcpp_action::create_client<MoveToAction>(this, "moveto_action");

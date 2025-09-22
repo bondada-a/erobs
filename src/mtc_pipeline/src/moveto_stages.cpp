@@ -16,6 +16,34 @@
 #include <chrono>
 #include <boost/algorithm/string/join.hpp>
 
+// Helper function to declare and set OMPL parameters on the node
+void setOMPLParameters(rclcpp::Node::SharedPtr node) {
+    try {
+        // Declare OMPL parameters first
+        try {
+            node->declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner");
+        } catch (const rclcpp::exceptions::ParameterAlreadyDeclaredException&) {
+            // Parameter already declared, that's fine
+        }
+
+        try {
+            node->declare_parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization");
+        } catch (const rclcpp::exceptions::ParameterAlreadyDeclaredException&) {
+            // Parameter already declared, that's fine
+        }
+
+        // Set OMPL parameters
+        node->set_parameter(rclcpp::Parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner"));
+        node->set_parameter(rclcpp::Parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization"));
+
+        RCLCPP_INFO(node->get_logger(), "Set ompl.planning_plugin: ompl_interface/OMPLPlanner");
+        RCLCPP_INFO(node->get_logger(), "Set ompl.request_adapters: default_planner_request_adapters/AddTimeOptimalParameterization");
+        RCLCPP_INFO(node->get_logger(), "OMPL params set for modular action server");
+    } catch (const std::exception& e) {
+        RCLCPP_WARN(node->get_logger(), "Failed to set OMPL parameters: %s. Using defaults.", e.what());
+    }
+}
+
 namespace mtc = moveit::task_constructor;
 
 MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
@@ -169,6 +197,9 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
         cartesian_planner->setMinFraction(0.8);
         planner = cartesian_planner;
     } else {
+        // Set OMPL parameters directly
+        setOMPLParameters(node);
+
         auto joint_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node, "ompl");
         joint_planner->setMaxVelocityScalingFactor(0.2);
         joint_planner->setMaxAccelerationScalingFactor(0.2);
@@ -309,6 +340,9 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
         cartesian_planner->setMinFraction(0.8);
         planner = cartesian_planner;
     } else {
+        // Set OMPL parameters directly
+        setOMPLParameters(node);
+
         auto joint_planner = std::make_shared<mtc::solvers::PipelinePlanner>(node, "ompl");
         joint_planner->setMaxVelocityScalingFactor(0.2);
         joint_planner->setMaxAccelerationScalingFactor(0.2);
