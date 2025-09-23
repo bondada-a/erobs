@@ -3,15 +3,19 @@ repositories:
     type: git
     url: https://github.com/tylerjw/serial.git
     version: ros2
-  robotiq_hande_driver:
+  robotiq_hande/robotiq_hande_driver:
     type: git
     url: https://github.com/AGH-CEAI/robotiq_hande_driver.git
     version: humble-devel
-  robotiq_hande_description:
+  robotiq_hande/robotiq_hande_description:
     type: git
     url: https://github.com/macmacal/robotiq_hande_description.git
     version: humble-devel
   ros2_epick_gripper:
     type: git
     url: https://github.com/bondada-a/ros2_epick_gripper.git
+    version: main
+  pipettor:
+    type: git
+    url: https://github.com/sixym3/pipettor.git
     version: main

@@ -12,9 +12,9 @@ vcs import src/end_effectors < src/end_effectors/end_effectors.repos
 
 This pulls in:
 - `serial` - ROS2 serial communication
-- `robotiq_hande_driver` - Robotiq HandE gripper driver
-- `robotiq_hande_description` - Robotiq HandE URDF models
-- `ros2_epick_gripper` - EPick vacuum gripper driver 
+- `robotiq_hande` - Robotiq HandE gripper driver and URDF models
+- `ros2_epick_gripper` - EPick vacuum gripper driver
+- `pipettor` - Custom pipettor developed at CMS NSLS-2
 
 **Note:** The EPick driver uses a fork from https://github.com/bondada-a/ros2_epick_gripper.git instead of the upstream PickNikRobotics version. This fork includes updated headers and removes the epick_moveit_studio package (requires Moveit Pro).
 

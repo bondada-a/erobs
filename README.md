@@ -29,7 +29,7 @@ Each manifest in the [docker](./docker) directory is a container image that can 
   - [hello_moveit_interfaces](./src/demos/hello_moveit_interfaces): ROS2 package for defining the interfaces used in the hello_moveit package.
 
 
-### Docker Contents
+### Docker Contents 
 
 We use Podman throughout this work, but have named the container images with Docker in mind.
 
@@ -43,17 +43,18 @@ We use Podman throughout this work, but have named the container images with Doc
   - [ur-example](./docker/ur-example): Container image for running a simple action with the UR3e robot arm.
   - [erobs-hello-moveit](./docker/erobs-hello-moveit): Container image for running a simple action with the UR3e robot arm.
 
+**⚠️ Deprecation Warning:**  
+The container images currently in the `docker` directory are being deprecated, as they will soon depend on different source code. Please be aware that these images may not reflect the latest application structure or codebase.
 
 ### Hello Moveit
 
-Demonstrations using a combination of the MoveIt tutorials and some UR specific tools, to show how to make simple actions
-that can deploy MoveIt using the MoveGroupInterface.
+Demonstrations using a combination of the MoveIt tutorials and some UR specific tools, to show how to make simple actions that can deploy MoveIt using the MoveGroupInterface.
 
 ### Bluesky ROS
 
 Ongoing developments of integrating ROS2 and Bluesky. Currently targeted towards integrating Ophyd Objects as ROS2 Action Clients.
 
-## Using Containers to Run the Full Applicaiton Suite
+## Using Containers to Run the Full Application Suite
 
 The complete application uses a 1-node-per-container model. The containers are currently orchestrated by bash scripts detailed in the READMEs of each container image. Specifically, the full application is detailed in [erobs-common-img](./docker/erobs-common-img/README.md).
 
@@ -98,6 +99,9 @@ Now, go back to the VNC client. In the `Program` tab, start the program.
   ```
 
 The in `Program/Graphics` tab, the robot should be moving between four poses every 6 seconds.
+
+**⚠️ Deprecation Warning:**  
+With the current move towards using MoveIt Task Constructor, we will be only spinning up one container. Theses examples and instructions demonstrate how to send basic commands directly using using ur-driver and should be placed in an tutorial/testing folder. 
 
 ## Notes on VSCode Workspace
 

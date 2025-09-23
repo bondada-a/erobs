@@ -4,6 +4,12 @@ log
 site
 erobs.code-workspace
 
+# Packages being handled by vcs
+pipettor/*
+robotiq_hande/*
+ros2_epick_gripper/*
+serial/*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
