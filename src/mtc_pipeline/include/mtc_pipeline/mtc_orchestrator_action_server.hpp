@@ -8,6 +8,8 @@
 #include <std_srvs/srv/trigger.hpp>
 #include <moveit_msgs/srv/get_planning_scene.hpp>
 #include <moveit_msgs/srv/query_planner_interfaces.hpp>
+#include <controller_manager_msgs/srv/switch_controller.hpp>
+#include <controller_manager_msgs/srv/list_controllers.hpp>
 
 // Third-party includes
 #include <nlohmann/json.hpp>

@@ -31,6 +31,101 @@ namespace {
         return false;
     }
 
+    // Safely switch controllers using ROS2 service (replaces system() call)
+    bool switch_controllers(rclcpp::Node::SharedPtr node, const std::vector<std::string>& activate_controllers) {
+        // First, wait for controller manager services to be available
+        auto list_client = node->create_client<controller_manager_msgs::srv::ListControllers>("/controller_manager/list_controllers");
+
+        if (!list_client->wait_for_service(15s)) {
+            RCLCPP_ERROR(node->get_logger(), "Controller manager list_controllers service not available");
+            return false;
+        }
+
+        // Wait for the specific controller to be loaded and ready (with longer timeout)
+        const auto controller_name = activate_controllers[0]; // We're only activating one controller
+        auto start_time = std::chrono::steady_clock::now();
+        bool controller_ready = false;
+        const auto timeout = 45s;  // Increased timeout to allow for all spawner processes
+
+        RCLCPP_INFO(node->get_logger(), "Waiting for controller '%s' to be loaded and ready...", controller_name.c_str());
+
+        while (std::chrono::steady_clock::now() - start_time < timeout && !controller_ready) {
+            auto list_request = std::make_shared<controller_manager_msgs::srv::ListControllers::Request>();
+            auto list_future = list_client->async_send_request(list_request);
+
+            if (list_future.wait_for(5s) == std::future_status::ready) {
+                auto list_result = list_future.get();
+                for (const auto& controller : list_result->controller) {
+                    if (controller.name == controller_name) {
+                        // Check controller state - it should be configured/inactive to be activatable
+                        std::string state = controller.state;
+                        RCLCPP_INFO(node->get_logger(), "Controller '%s' found with state: %s", controller_name.c_str(), state.c_str());
+
+                        // Controller is ready if it's configured/inactive (can be activated) or already active
+                        if (state == "configured" || state == "inactive" || state == "active") {
+                            controller_ready = true;
+                            RCLCPP_INFO(node->get_logger(), "Controller '%s' is ready (state: %s)", controller_name.c_str(), state.c_str());
+
+                            // If already active, no need to switch
+                            if (state == "active") {
+                                RCLCPP_INFO(node->get_logger(), "Controller '%s' is already active", controller_name.c_str());
+                                return true;
+                            }
+                            break;
+                        } else {
+                            RCLCPP_INFO(node->get_logger(), "Controller '%s' not ready yet (state: %s), waiting...", controller_name.c_str(), state.c_str());
+                        }
+                        break;
+                    }
+                }
+            } else {
+                RCLCPP_WARN(node->get_logger(), "List controllers service call timed out, retrying...");
+            }
+
+            if (!controller_ready) {
+                std::this_thread::sleep_for(1s); // Wait longer between checks
+            }
+        }
+
+        if (!controller_ready) {
+            RCLCPP_ERROR(node->get_logger(), "Controller '%s' not ready after %ld seconds timeout", controller_name.c_str(),
+                        std::chrono::duration_cast<std::chrono::seconds>(timeout).count());
+            return false;
+        }
+
+        // Now switch the controller
+        auto switch_client = node->create_client<controller_manager_msgs::srv::SwitchController>("/controller_manager/switch_controller");
+
+        if (!switch_client->wait_for_service(10s)) {
+            RCLCPP_ERROR(node->get_logger(), "Controller manager switch_controller service not available");
+            return false;
+        }
+
+        RCLCPP_INFO(node->get_logger(), "Attempting to activate controller: %s", controller_name.c_str());
+
+        auto request = std::make_shared<controller_manager_msgs::srv::SwitchController::Request>();
+        request->activate_controllers = activate_controllers;
+        request->deactivate_controllers = {};  // Not deactivating any controllers
+        request->strictness = controller_manager_msgs::srv::SwitchController::Request::STRICT;
+        request->activate_asap = false;
+        request->timeout = rclcpp::Duration::from_seconds(10.0);
+
+        auto result_future = switch_client->async_send_request(request);
+        if (result_future.wait_for(15s) == std::future_status::ready) {
+            auto result = result_future.get();
+            if (result->ok) {
+                RCLCPP_INFO(node->get_logger(), "Successfully activated controller: %s", controller_name.c_str());
+                return true;
+            } else {
+                RCLCPP_ERROR(node->get_logger(), "Failed to activate controller '%s'", controller_name.c_str());
+                return false;
+            }
+        } else {
+            RCLCPP_ERROR(node->get_logger(), "Controller switch service call timed out for controller: %s", controller_name.c_str());
+            return false;
+        }
+    }
+
     // Copy robot description parameters for orchestrator
     bool update_robot_description_from(const std::string& source_node, rclcpp::Node::SharedPtr node) {
         RCLCPP_INFO(node->get_logger(), "Attempting to get robot description from %s", source_node.c_str());
@@ -570,7 +665,9 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             
             // Activate robot controller
             RCLCPP_INFO(this->get_logger(), "Activating scaled_joint_trajectory_controller...");
-            system("ros2 control switch_controllers --activate scaled_joint_trajectory_controller");
+            if (!switch_controllers(this->shared_from_this(), {"scaled_joint_trajectory_controller"})) {
+                throw std::runtime_error("Failed to activate scaled_joint_trajectory_controller");
+            }
             
             play_dashboard_client(this->shared_from_this());
             
