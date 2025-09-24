@@ -13,7 +13,6 @@ find_package(rclcpp_action REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(ur_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
-find_package(controller_manager_msgs REQUIRED)
 
 # Generate actions and Python modules
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -66,7 +65,7 @@ add_executable(endeffector_action_server  src/endeffector_action_server.cpp)
 
 # === Link executables to dependencies ===
 ament_target_dependencies(mtc_orchestrator moveit_task_constructor_core rclcpp ur_msgs)
-ament_target_dependencies(mtc_orchestrator_action_server moveit_task_constructor_core rclcpp rclcpp_action ur_msgs std_srvs controller_manager_msgs)
+ament_target_dependencies(mtc_orchestrator_action_server moveit_task_constructor_core rclcpp rclcpp_action ur_msgs std_srvs)
 ament_target_dependencies(mtc_action_client_example rclcpp rclcpp_action)
 
 # === Modular Action Server Dependencies ===
