@@ -74,7 +74,7 @@ private:
             step["target_type"] = goal->target_type;
             step["target"] = goal->target;
             step["planning_type"] = goal->planning_type;
-            step["arm_group"] = goal->arm_group;
+            // arm_group removed - hardcoded as "ur_arm" in stages
             step["direction"] = goal->direction;
             step["distance"] = goal->distance;
             

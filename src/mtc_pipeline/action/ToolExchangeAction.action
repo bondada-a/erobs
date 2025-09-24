@@ -2,7 +2,7 @@
 string operation          # "load", "dock"
 string gripper           # "hande", "epick", "none"
 int32 dock_number        # Dock position (1-5)
-string[] approach_poses  # List of approach pose keys
+string approach_pose     # Approach pose key
 string poses_json        # JSON string containing all poses from the task
 ---
 # Result

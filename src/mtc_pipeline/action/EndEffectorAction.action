@@ -1,9 +1,6 @@
 # Goal
 string end_effector_type    # "hande", "epick", etc.
 string end_effector_action  # "open", "close", "activate", "deactivate"
-float64 position           # Position value (optional, for position-controlled grippers)
-float64 force             # Force value (optional, for force-controlled grippers)
-float64 pressure          # Pressure value (optional, for vacuum grippers)
 string poses_json         # JSON string containing all poses from the task
 ---
 # Result

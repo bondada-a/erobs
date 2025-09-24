@@ -49,7 +49,7 @@
         23.34
     ]
   },
-  "sequence": [
+  "tasks": [
     {
       "type": "move",
       "pose_waypoints": ["waypoint_1", "waypoint_2", "waypoint_3", "waypoint_4", "waypoint_5", "waypoint_6"]

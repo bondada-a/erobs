@@ -33,7 +33,7 @@
       180.0
     ]
   },
-  "sequence": [
+  "tasks": [
     {
       "type": "move",
       "pose_waypoints": ["pickup_approach"]

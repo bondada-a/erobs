@@ -2,9 +2,7 @@
 string gripper              # "hande", "epick"
 string pick_pose           # Pick pose key
 string place_pose          # Place pose key
-float64 approach_distance  # Distance for approach/retreat moves
 string planning_type       # "joint" or "cartesian"
-string arm_group          # "ur_arm"
 string poses_json         # JSON string containing all poses from the task
 ---
 # Result

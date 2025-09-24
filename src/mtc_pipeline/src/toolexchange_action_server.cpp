@@ -79,12 +79,9 @@ private:
             nlohmann::json poses = nlohmann::json::parse(goal->poses_json);
             
             // Add approach pose to step (required by ToolExchangeStages)
-            if (poses.contains("approach_pose")) {
-                step["poses"] = {poses["approach_pose"]};
-            } else {
-                // Default approach pose if not specified
-                step["poses"] = {"approach_pose"};
-            }
+            // Use approach_pose from action goal, default to "dock_approach"
+            std::string approach_pose_key = goal->approach_pose.empty() ? "dock_approach" : goal->approach_pose;
+            step["poses"] = {approach_pose_key};
 
             // Execute using existing ToolExchangeStages
             bool success = tool_exchange_stages_->run(step, poses, this->shared_from_this());

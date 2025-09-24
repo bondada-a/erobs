@@ -26,13 +26,13 @@ namespace {
     // Wait for MoveIt stack to be ready
     bool wait_for_moveit_ready(rclcpp::Node::SharedPtr node, std::chrono::seconds timeout = 30s) {
         RCLCPP_INFO(node->get_logger(), "Waiting for MoveIt to become ready...");
-        
+
         auto start_time = std::chrono::steady_clock::now();
         while (std::chrono::steady_clock::now() - start_time < timeout) {
             if (!check_command_output("ros2 node list", "move_group") ||
                 !check_command_output("ros2 topic list | grep joint_states", "joint_states")) {
                 std::this_thread::sleep_for(100ms);
-                continue; 
+                continue;
             }
             
             // Wait a bit more for move_group to fully initialize
@@ -453,7 +453,6 @@ bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step,
     goal.target_type = step.value("target_type", "");
     goal.target = step.value("target", "");
     goal.planning_type = step.value("planning_type", "joint");
-    goal.arm_group = step.value("arm_group", "ur_arm");
     goal.direction = step.value("direction", "");
     goal.distance = step.value("distance", 0.0);
     goal.poses_json = poses.dump();
@@ -484,9 +483,6 @@ bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& 
     auto goal = EndEffectorAction::Goal();
     goal.end_effector_type = step.value("end_effector_type", "");
     goal.end_effector_action = step.value("end_effector_action", "");
-    goal.position = step.value("position", 0.0);
-    goal.force = step.value("force", 0.0);
-    goal.pressure = step.value("pressure", 0.0);
     goal.poses_json = poses.dump();
     
     auto future = endeffector_action_client_->async_send_goal(goal);
@@ -546,9 +542,7 @@ bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& st
     goal.gripper = step.value("gripper", "");
     goal.pick_pose = step.value("pick_pose", "");
     goal.place_pose = step.value("place_pose", "");
-    goal.approach_distance = step.value("approach_distance", 0.1);
     goal.planning_type = step.value("planning_type", "joint");
-    goal.arm_group = step.value("arm_group", "ur_arm");
     goal.poses_json = poses.dump();
     
     auto future = pickplace_action_client_->async_send_goal(goal);
@@ -598,10 +592,11 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             std::string start_gripper = task_script.value("start_gripper", "none");
             
             
-            const auto& sequence = task_script["sequence"];
+            // Get tasks from JSON
+            const auto& operations = task_script["tasks"];
             const auto& poses = task_script["poses"];
-            
-            result->total_steps = sequence.size();
+
+            result->total_steps = operations.size();
             result->completed_steps = 0;
             
             // Start MoveIt configuration
@@ -636,8 +631,8 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             orchestrator_->set_current_gripper(start_gripper);
 
 
-            // Execute task sequence
-            for (size_t i = 0; i < sequence.size(); ++i) {
+            // Execute tasks
+            for (size_t i = 0; i < operations.size(); ++i) {
                 // Check if goal was cancelled
                 if (goal_handle->is_canceling()) {
                     RCLCPP_INFO(this->get_logger(), "Goal canceled");
@@ -647,14 +642,14 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
                     is_executing_ = false;
                     return;
                 }
-                
-                const auto& step = sequence[i];
-                const std::string action = step["action"];
-                
+
+                const auto& step = operations[i];
+                const std::string action = step.contains("type") ? step["type"].get<std::string>() : step["action"].get<std::string>();
+
                 // Update feedback
                 feedback->current_step = i + 1;
                 feedback->current_action = action;
-                feedback->progress_percentage = static_cast<float>(i + 1) / sequence.size() * 100.0f;
+                feedback->progress_percentage = static_cast<float>(i + 1) / operations.size() * 100.0f;
                 feedback->status_message = "Executing: " + action;
                 feedback->current_gripper = orchestrator_->get_current_gripper();
                 goal_handle->publish_feedback(feedback);

@@ -73,9 +73,7 @@ private:
             nlohmann::json step;
             step["end_effector_type"] = goal->end_effector_type;
             step["end_effector_action"] = goal->end_effector_action;
-            step["position"] = goal->position;
-            step["force"] = goal->force;
-            step["pressure"] = goal->pressure;
+            // position, force, pressure removed - hardcoded values used in stages
             
             // Parse poses JSON
             nlohmann::json poses = nlohmann::json::parse(goal->poses_json);

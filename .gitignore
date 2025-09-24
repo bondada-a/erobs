@@ -89,3 +89,6 @@ target/
 .ipynb_checkpoints
 *.code-workspace
 
+# Production refactoring log
+PRODUCTION_REFACTORING_LOG.md
+

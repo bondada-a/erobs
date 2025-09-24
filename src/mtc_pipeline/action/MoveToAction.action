@@ -2,7 +2,6 @@
 string target_type          # "pose", "joints", "relative", "named_state"
 string target               # pose key, joint values, or named state
 string planning_type        # "joint" or "cartesian"
-string arm_group           # "ur_arm"
 string direction           # for relative moves (optional)
 float64 distance           # for relative moves (optional)
 string poses_json          # JSON string containing all poses from the task

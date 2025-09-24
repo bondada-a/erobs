@@ -1,27 +1,35 @@
 #ifndef MTC_ORCHESTRATOR_ACTION_SERVER_HPP
 #define MTC_ORCHESTRATOR_ACTION_SERVER_HPP
 
+// ROS2 includes
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp/parameter_client.hpp>
-#include <memory>
-#include <thread>
-#include <chrono>
-#include <future>
-#include <atomic>
-#include <nlohmann/json.hpp>
-#include <fstream>
-#include <sstream>
-#include <vector>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/wait.h>
-#include <string>
-#include <iostream>
 #include <std_srvs/srv/trigger.hpp>
-#include <sensor_msgs/msg/joint_state.hpp>
-#include <linux/limits.h>
+#include <moveit_msgs/srv/get_planning_scene.hpp>
+
+// Third-party includes
+#include <nlohmann/json.hpp>
+
+// Standard library includes
+#include <algorithm>
+#include <atomic>
+#include <chrono>
+#include <cstdio>
 #include <cstdlib>
+#include <fstream>
+#include <functional>
+#include <future>
+#include <iostream>
+#include <linux/limits.h>
+#include <memory>
+#include <signal.h>
+#include <sstream>
+#include <stdexcept>
+#include <string>
+#include <sys/wait.h>
+#include <thread>
+#include <vector>
 
 #include "mtc_pipeline/action/mtc_execution.hpp"
 #include "mtc_pipeline/action/move_to_action.hpp"

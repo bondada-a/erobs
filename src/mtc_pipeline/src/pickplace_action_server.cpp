@@ -74,9 +74,9 @@ private:
             step["gripper"] = goal->gripper;
             step["pick_pose"] = goal->pick_pose;
             step["place_pose"] = goal->place_pose;
-            step["approach_distance"] = goal->approach_distance;
+            // approach_distance removed - not implemented in stages
             step["planning_type"] = goal->planning_type;
-            step["arm_group"] = goal->arm_group;
+            // arm_group removed - hardcoded as "ur_arm" in stages
             
             // Parse poses JSON
             nlohmann::json poses = nlohmann::json::parse(goal->poses_json);
