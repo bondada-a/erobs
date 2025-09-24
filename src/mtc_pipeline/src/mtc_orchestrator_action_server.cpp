@@ -7,77 +7,32 @@ namespace {
         return client->wait_for_service(timeout);
     }
 
-    // Execute shell command and check if output contains expected string
-    bool check_command_output(const std::string& cmd, const std::string& expected) {
-        FILE* pipe = popen(cmd.c_str(), "r");
-        if (!pipe) return false; 
-        char buf[128]; 
-        bool found = false;
-        while (fgets(buf, 128, pipe)) {
-            if (std::string(buf).find(expected) != std::string::npos) {
-                found = true;
-                break;
-            }
-        }
-        pclose(pipe);
-        return found;
-    }
 
-    // Wait for MoveIt stack to be ready
+    // Wait for MoveIt stack to be ready - Simple, reliable approach
     bool wait_for_moveit_ready(rclcpp::Node::SharedPtr node, std::chrono::seconds timeout = 30s) {
         RCLCPP_INFO(node->get_logger(), "Waiting for MoveIt to become ready...");
 
         auto start_time = std::chrono::steady_clock::now();
         while (std::chrono::steady_clock::now() - start_time < timeout) {
-            if (!check_command_output("ros2 node list", "move_group") ||
-                !check_command_output("ros2 topic list | grep joint_states", "joint_states")) {
-                std::this_thread::sleep_for(100ms);
-                continue;
+            // Check if move_group node exists (replaces "ros2 node list")
+            auto node_names = node->get_node_names();
+            bool move_group_found = std::any_of(node_names.begin(), node_names.end(),
+                [](const std::string& name) { return name.find("move_group") != std::string::npos; });
+
+            // Check if joint_states topic exists (replaces "ros2 topic list | grep joint_states")
+            auto topics = node->get_topic_names_and_types();
+            bool joint_states_found = std::any_of(topics.begin(), topics.end(),
+                [](const auto& topic_pair) { return topic_pair.first.find("joint_states") != std::string::npos; });
+
+            if (move_group_found && joint_states_found) {
+                RCLCPP_INFO(node->get_logger(), "MoveIt is ready (move_group node and joint_states topic detected)");
+                return true;
             }
-            
-            // Wait a bit more for move_group to fully initialize
-            std::this_thread::sleep_for(5s);
-            
-            // Now check if the parameters are available
-            auto client = std::make_shared<rclcpp::AsyncParametersClient>(node, "move_group");
-            if (client->wait_for_service(2s)) {
-                try {
-                    auto urdf_future = client->get_parameters({"robot_description"});
-                    auto srdf_future = client->get_parameters({"robot_description_semantic"});
-                    
-                    // Wait for parameters to be available
-                    auto param_start_time = std::chrono::steady_clock::now();
-                    const auto param_timeout = std::chrono::seconds(10);
-                    
-                    while (std::chrono::steady_clock::now() - param_start_time < param_timeout) {
-                        if (urdf_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready &&
-                            srdf_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready) {
-                            
-                            auto urdf_params = urdf_future.get();
-                            auto srdf_params = srdf_future.get();
-                            
-                            if (urdf_params.size() > 0 && srdf_params.size() > 0) {
-                                std::string urdf_value = urdf_params[0].as_string();
-                                std::string srdf_value = srdf_params[0].as_string();
-                                
-                                if (!urdf_value.empty() && !srdf_value.empty()) {
-                                    RCLCPP_INFO(node->get_logger(), "MoveIt is ready with parameters!");
-                                    return true;
-                                }
-                            }
-                            break; // Exit inner loop and retry from outer loop
-                        }
-                        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                    }
-                } catch (const std::exception& e) {
-                    RCLCPP_WARN(node->get_logger(), "Exception checking parameters: %s, retrying...", e.what());
-                }
-            }
-            
-            std::this_thread::sleep_for(1s);
+
+            std::this_thread::sleep_for(100ms);
         }
-        
-        RCLCPP_ERROR(node->get_logger(), "MoveIt failed to become ready!");
+
+        RCLCPP_ERROR(node->get_logger(), "MoveIt failed to become ready within timeout!");
         return false;
     }
 
