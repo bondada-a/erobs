@@ -14,18 +14,13 @@ namespace {
 
         auto start_time = std::chrono::steady_clock::now();
         while (std::chrono::steady_clock::now() - start_time < timeout) {
-            // Check if move_group node exists (replaces "ros2 node list")
+            // Check if move_group node exists - this indicates MoveIt is fully ready
             auto node_names = node->get_node_names();
             bool move_group_found = std::any_of(node_names.begin(), node_names.end(),
                 [](const std::string& name) { return name.find("move_group") != std::string::npos; });
 
-            // Check if joint_states topic exists (replaces "ros2 topic list | grep joint_states")
-            auto topics = node->get_topic_names_and_types();
-            bool joint_states_found = std::any_of(topics.begin(), topics.end(),
-                [](const auto& topic_pair) { return topic_pair.first.find("joint_states") != std::string::npos; });
-
-            if (move_group_found && joint_states_found) {
-                RCLCPP_INFO(node->get_logger(), "MoveIt is ready (move_group node and joint_states topic detected)");
+            if (move_group_found) {
+                RCLCPP_INFO(node->get_logger(), "MoveIt is ready (move_group node detected)");
                 return true;
             }
 
