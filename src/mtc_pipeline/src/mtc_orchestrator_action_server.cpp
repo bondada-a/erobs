@@ -1,11 +1,6 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 
 namespace {
-    // Wait for ROS2 service to become available
-    bool wait_for_service(rclcpp::Node::SharedPtr node, const std::string& service_name, std::chrono::seconds timeout) {
-        auto client = node->create_client<std_srvs::srv::Trigger>(service_name);
-        return client->wait_for_service(timeout);
-    }
 
 
     // Wait for MoveIt stack to be ready - Simple, reliable approach
@@ -141,12 +136,12 @@ namespace {
     // Send play command to robot dashboard
     bool play_dashboard_client(rclcpp::Node::SharedPtr node) {
         RCLCPP_DEBUG(node->get_logger(), "Waiting for dashboard service...");
-        if (!wait_for_service(node, "/dashboard_client/play", 30s)) {
+
+        auto client = node->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
+        if (!client->wait_for_service(30s)) {
             RCLCPP_ERROR(node->get_logger(), "Dashboard 'play' service not available");
             return false;
         }
-        
-        auto client = node->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
         auto future = client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
         
         // Wait for the future to complete without using spin_until_future_complete
