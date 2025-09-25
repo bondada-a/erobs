@@ -88,7 +88,6 @@ private:
     bool switch_gripper(const std::string& new_gripper, const std::string& robot_ip);
 
     // Execute function helpers
-    bool parse_and_validate_task_script(const std::string& json_str, nlohmann::json& task_script);
     bool initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip);
     
     // Generic template for action client calls
@@ -133,7 +132,6 @@ private:
 
     // Helper functions for execute_step
     bool handle_tool_exchange(const nlohmann::json& step, const nlohmann::json& poses, const std::string& robot_ip);
-    bool handle_pick_and_place(const nlohmann::json& step, const nlohmann::json& poses);
     
 };
 

@@ -79,14 +79,14 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& action, const 
                      const nlohmann::json& poses, const std::string& robot_ip) {
 
         if (action == "tool_exchange") return handle_tool_exchange(step, poses, robot_ip);
-        if (action == "pick_and_place") return handle_pick_and_place(step, poses);
+        if (action == "pick_and_place") return call_pickplace_action(step, poses);
         if (action == "moveto") return call_moveto_action(step, poses);
         if (action == "end_effector") return call_endeffector_action(step, poses);
 
         return false;
 }
 
-// Action client methods to call embedded actions via ROS2 actions
+// Action client methods to call modular action servers via ROS2 actions
 bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses) {
     return call_action_generic<MoveToAction>(
         moveto_action_client_,
@@ -169,34 +169,6 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& ste
     return true;
 }
 
-bool MTCOrchestratorActionServer::handle_pick_and_place(const nlohmann::json& step, const nlohmann::json& poses) {
-    // Use whatever gripper is currently attached - gripper switching should be done via tool_exchange
-    return call_pickplace_action(step, poses);
-}
-
-bool MTCOrchestratorActionServer::parse_and_validate_task_script(const std::string& json_str, nlohmann::json& task_script) {
-    try {
-        task_script = nlohmann::json::parse(json_str);
-    } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to parse JSON: %s", e.what());
-        return false;
-    }
-
-    // Validate required fields exist
-    if (!task_script.contains("tasks") || !task_script.contains("poses")) {
-        RCLCPP_ERROR(this->get_logger(), "JSON missing required 'tasks' or 'poses' fields");
-        return false;
-    }
-
-    // Validate field types
-    if (!task_script["tasks"].is_array() || !task_script["poses"].is_object()) {
-        RCLCPP_ERROR(this->get_logger(), "JSON field types invalid: 'tasks' must be array, 'poses' must be object");
-        return false;
-    }
-
-    return true;
-}
-
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
     // Start MoveIt configuration
     RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
@@ -272,15 +244,8 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
         auto result = std::make_shared<MTCExecution::Result>();
 
         try {
-            // Parse and validate JSON task script
-            nlohmann::json task_script;
-            if (!parse_and_validate_task_script(goal->task_script_json, task_script)) {
-                result->success = false;
-                result->error_message = "Failed to parse or validate JSON task script";
-                goal_handle->abort(result);
-                is_executing_ = false;
-                return;
-            }
+            // Parse JSON task script
+            nlohmann::json task_script = nlohmann::json::parse(goal->task_script_json);
 
             // Get task parameters
             const std::string robot_ip = goal->robot_ip.empty() ? "192.168.1.101" : goal->robot_ip;
