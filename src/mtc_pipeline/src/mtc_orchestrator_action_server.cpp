@@ -173,12 +173,13 @@ namespace {
 
     // Get launch command for gripper type
     std::string launch_cmd_for_gripper(const std::string& g, const std::string& ip) {
-        // Get the current working directory to find the workspace
-        char cwd[PATH_MAX];
-        if (getcwd(cwd, sizeof(cwd)) == nullptr) {
+        // Get the current working directory to find the workspace - safe approach
+        std::string workspace_path;
+        try {
+            workspace_path = std::filesystem::current_path().string();
+        } catch (const std::filesystem::filesystem_error&) {
             return "";
         }
-        std::string workspace_path = std::string(cwd);
 
         // Gripper to package mapping
         static const std::unordered_map<std::string, std::string> gripper_packages = {
