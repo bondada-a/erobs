@@ -46,7 +46,7 @@ namespace {
                 RCLCPP_INFO(node->get_logger(), "Parameter service for %s is available", source_node.c_str());
                 break;
             }
-            RCLCPP_INFO(node->get_logger(), "Waiting for parameter service of %s to become available...", source_node.c_str());
+            RCLCPP_DEBUG(node->get_logger(), "Waiting for parameter service of %s to become available...", source_node.c_str());
             std::this_thread::sleep_for(std::chrono::milliseconds(500));
         }
         
@@ -62,7 +62,7 @@ namespace {
 
         while (std::chrono::steady_clock::now() - start_time < param_timeout) {
             try {
-                RCLCPP_INFO(node->get_logger(), "Getting robot and OMPL parameters from %s", source_node.c_str());
+                RCLCPP_DEBUG(node->get_logger(), "Getting robot and OMPL parameters from %s", source_node.c_str());
                 auto urdf_future = client->get_parameters({"robot_description"});
                 auto srdf_future = client->get_parameters({"robot_description_semantic"});
                 auto ompl_plugin_future = client->get_parameters({"ompl.planning_plugin"});
@@ -134,8 +134,7 @@ namespace {
             }
         }
         
-        RCLCPP_ERROR(node->get_logger(), "Timeout getting robot description from %s after %ld seconds", source_node.c_str(), 
-                    std::chrono::duration_cast<std::chrono::seconds>(param_timeout).count());
+        RCLCPP_ERROR(node->get_logger(), "Timeout getting robot description from %s", source_node.c_str());
         return false;
     }
 
@@ -143,7 +142,7 @@ namespace {
     bool play_dashboard_client(rclcpp::Node::SharedPtr node) {
         RCLCPP_INFO(node->get_logger(), "Waiting for dashboard service...");
         if (!wait_for_service(node, "/dashboard_client/play", 30s)) {
-            RCLCPP_ERROR(node->get_logger(), "Dashboard 'play' service not available!");
+            RCLCPP_ERROR(node->get_logger(), "Dashboard 'play' service not available");
             return false;
         }
         
@@ -457,7 +456,7 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& action, const 
 // Action client methods to call embedded actions via ROS2 actions
 bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses) {
     if (!moveto_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
-        RCLCPP_ERROR(this->get_logger(), "MoveTo action server not available");
+        RCLCPP_ERROR(this->get_logger(), "MoveTo action server unavailable");
         return false;
     }
     
@@ -488,7 +487,7 @@ bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step,
 
 bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses) {
     if (!endeffector_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
-        RCLCPP_ERROR(this->get_logger(), "EndEffector action server not available");
+        RCLCPP_ERROR(this->get_logger(), "EndEffector action server unavailable");
         return false;
     }
     
@@ -516,7 +515,7 @@ bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& 
 
 bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses) {
     if (!toolexchange_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
-        RCLCPP_ERROR(this->get_logger(), "ToolExchange action server not available");
+        RCLCPP_ERROR(this->get_logger(), "ToolExchange action server unavailable");
         return false;
     }
     
@@ -546,7 +545,7 @@ bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json&
 
 bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses) {
     if (!pickplace_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
-        RCLCPP_ERROR(this->get_logger(), "PickPlace action server not available");
+        RCLCPP_ERROR(this->get_logger(), "PickPlace action server unavailable");
         return false;
     }
     
