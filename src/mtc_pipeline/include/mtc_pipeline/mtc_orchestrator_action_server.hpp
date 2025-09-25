@@ -44,8 +44,6 @@ using ToolExchangeAction = mtc_pipeline::action::ToolExchangeAction;
 using PickPlaceAction = mtc_pipeline::action::PickPlaceAction;
 
 namespace {
-    // Update robot description from another node
-    bool update_robot_description_from(const std::string& source_node, rclcpp::Node::SharedPtr target_node);
 }
 
 // Process management class

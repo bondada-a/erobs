@@ -2,35 +2,6 @@
 
 namespace {
 
-    // Copy robot description parameters for orchestrator
-    bool update_robot_description_from(const std::string& source_node, rclcpp::Node::SharedPtr node) {
-        RCLCPP_DEBUG(node->get_logger(), "Attempting to get robot description from %s", source_node.c_str());
-        
-        auto client = std::make_shared<rclcpp::AsyncParametersClient>(node, source_node);
-
-        // Keep trying to get the parameters
-        while (true) {
-            try {
-                auto urdf_params = client->get_parameters({"robot_description"}).get();
-                auto srdf_params = client->get_parameters({"robot_description_semantic"}).get();
-
-                if (!urdf_params.empty() && !srdf_params.empty() &&
-                    !urdf_params[0].as_string().empty() && !srdf_params[0].as_string().empty()) {
-
-                    node->set_parameters({
-                        {"robot_description", urdf_params[0].as_string()},
-                        {"robot_description_semantic", srdf_params[0].as_string()}
-                    });
-                    return true;
-                }
-
-            } catch (const std::exception&) {
-                // Any failure (service unavailable, empty params, etc.) - just retry
-            }
-
-            std::this_thread::sleep_for(1s);
-        }
-    }
 
     // Send play command to robot dashboard
     bool play_dashboard_client(rclcpp::Node::SharedPtr node) {
@@ -479,10 +450,6 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
 
     play_dashboard_client(this->shared_from_this());
 
-    if (!update_robot_description_from("move_group", this->shared_from_this())) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to update robot description");
-        return false;
-    }
 
     orchestrator_->set_current_gripper(start_gripper);
     return true;
