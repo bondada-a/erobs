@@ -1,65 +1,6 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 
 
-// Manages MoveIt configuration processes - Secure version
-pid_t Orchestrator::launch(const std::string& cmd) {
-        pid_t pid = fork();
-        if (pid == 0) {
-            // Child process - execute command directly
-            if (setsid() == -1) {
-                exit(1);
-            }
-
-            // Execute command via shell (safe since we control the command content)
-            execl("/bin/bash", "bash", "-c", cmd.c_str(), (char*)nullptr);
-            exit(1); // Only reached if execl fails
-        }
-
-        if (pid > 0) {
-            std::lock_guard<std::mutex> lock(pids_mutex_);
-            active_pids_.push_back(pid);
-        }
-        return pid;
-    }
-
-void Orchestrator::kill_all_and_wait() {
-        std::vector<pid_t> pids_copy;
-        {
-            std::lock_guard<std::mutex> lock(pids_mutex_);
-            pids_copy = active_pids_;
-        }
-
-        for (pid_t pid : pids_copy)
-            ::kill(-pid, SIGINT);
-
-        auto start_time = std::chrono::steady_clock::now();
-        const auto timeout = std::chrono::seconds(15);
-
-        while (std::chrono::steady_clock::now() - start_time < timeout) {
-            bool all_terminated = true;
-            for (pid_t pid : pids_copy) {
-                int status;
-                if (waitpid(pid, &status, WNOHANG) == 0) {
-                    all_terminated = false;
-                    break;
-                }
-            }
-            if (all_terminated) break;
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-
-        for (pid_t pid : pids_copy) {
-            waitpid(pid, nullptr, WNOHANG);
-        }
-
-        {
-            std::lock_guard<std::mutex> lock(pids_mutex_);
-            active_pids_.clear();
-        }
-    }
-
-void Orchestrator::set_current_gripper(const std::string& g) { current_gripper_ = g; }
-const std::string& Orchestrator::get_current_gripper() const { return current_gripper_; }
 
 // MTCOrchestratorActionServer implementation
 MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options) 
@@ -89,8 +30,6 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
             this->declare_parameter("ompl.min_angle_change", 0.001);
         }
         
-        // Initialize orchestrator
-        orchestrator_ = std::make_unique<Orchestrator>();
         
         // Initialize the action server
         this->action_server_ = rclcpp_action::create_server<MTCExecution>(
@@ -133,8 +72,7 @@ rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
         RCLCPP_DEBUG(this->get_logger(), "Received request to cancel goal");
         
         if (is_executing_) {
-            // Cancel the execution
-            orchestrator_->kill_all_and_wait();
+            // Cancel the execution - processes will clean up automatically
             is_executing_ = false;
         }
         
@@ -153,14 +91,14 @@ void MTCOrchestratorActionServer::handle_accepted(const std::shared_ptr<GoalHand
 
     // Switch to different gripper configuration
 bool MTCOrchestratorActionServer::switch_gripper(const std::string& new_gripper, const std::string& robot_ip) {
-        if (orchestrator_->get_current_gripper() == new_gripper) return true;
+        if (current_gripper_ == new_gripper) return true;
 
         // Just reuse the initialization logic - switching gripper IS reinitializing MoveIt
         if (!initialize_moveit_stack(new_gripper, robot_ip)) {
             return false;
         }
 
-        orchestrator_->set_current_gripper(new_gripper);
+        current_gripper_ = new_gripper;
         return true;
     }
 
@@ -175,7 +113,7 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& action, const 
         // Handle tool exchange tasks - using delegation to modular action servers
         if (action == "tool_exchange") {
             const std::string operation = step.value("operation", "");
-            const std::string requested_tool = step.value("gripper", orchestrator_->get_current_gripper());
+            const std::string requested_tool = step.value("gripper", current_gripper_);
 
             // Execute via delegation to modular action servers
             bool success = call_toolexchange_action(step, poses);
@@ -192,7 +130,7 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& action, const 
 
         // Handle pick and place tasks - using delegation to modular action servers
         if (action == "pick_and_place") {
-            std::string need = step.value("gripper", orchestrator_->get_current_gripper());
+            std::string need = step.value("gripper", current_gripper_);
             if (!switch_gripper(need, robot_ip))
                 return false;
 
@@ -302,7 +240,6 @@ bool MTCOrchestratorActionServer::parse_and_validate_task_script(const std::stri
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
     // Start MoveIt configuration
     RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
-    orchestrator_->kill_all_and_wait();
 
     // Map gripper types to MoveIt config packages
     static const std::unordered_map<std::string, std::string> gripper_packages = {
@@ -317,9 +254,9 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         return false;
     }
 
-    const std::string launch_cmd = "ros2 launch " + it->second + " move_group.launch.py robot_ip:=" + robot_ip;
+    const std::string launch_cmd = "ros2 launch " + it->second + " move_group.launch.py robot_ip:=" + robot_ip + " &";
     RCLCPP_DEBUG(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
-    orchestrator_->launch(launch_cmd);
+    std::system(launch_cmd.c_str());
 
     // Wait for MoveIt to become ready
     RCLCPP_DEBUG(this->get_logger(), "Waiting for MoveIt to become ready...");
@@ -359,7 +296,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     }
 
 
-    orchestrator_->set_current_gripper(start_gripper);
+    current_gripper_ = start_gripper;
     return true;
 }
 
@@ -438,7 +375,7 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
                 feedback->current_action = action;
                 feedback->progress_percentage = static_cast<float>(i + 1) / operations.size() * 100.0f;
                 feedback->status_message = "Executing: " + action;
-                feedback->current_gripper = orchestrator_->get_current_gripper();
+                feedback->current_gripper = current_gripper_;
                 goal_handle->publish_feedback(feedback);
                 
                 RCLCPP_DEBUG(this->get_logger(), "Executing step %zu: %s", i + 1, action.c_str());
@@ -475,12 +412,7 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             goal_handle->abort(result);
         }
 
-        // Cleanup - always execute regardless of success or failure
-        try {
-            orchestrator_->kill_all_and_wait();
-        } catch (const std::exception& e) {
-            RCLCPP_WARN(this->get_logger(), "Cleanup failed: %s", e.what());
-        }
+        // Cleanup - processes will clean up automatically when orchestrator exits
 
         is_executing_ = false;
     }

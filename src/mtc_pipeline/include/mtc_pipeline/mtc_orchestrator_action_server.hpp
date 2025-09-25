@@ -42,25 +42,6 @@ using ToolExchangeAction = mtc_pipeline::action::ToolExchangeAction;
 using PickPlaceAction = mtc_pipeline::action::PickPlaceAction;
 
 
-// Process management class
-class Orchestrator {
-public:
-    // Launch new MoveIt configuration process
-    pid_t launch(const std::string& cmd);
-    
-    // Kill all active processes and wait for them to finish
-    void kill_all_and_wait();
-
-    // Gripper management
-    void set_current_gripper(const std::string& g);
-    const std::string& get_current_gripper() const;
-    
-private:
-    std::vector<pid_t> active_pids_;
-    std::mutex pids_mutex_;
-    std::string current_gripper_ = "none";
-};
-
 class MTCOrchestratorActionServer : public rclcpp::Node
 {
 public:
@@ -73,8 +54,8 @@ public:
 
 private:
     ActionServer::SharedPtr action_server_;
-    std::unique_ptr<Orchestrator> orchestrator_;
     std::atomic<bool> is_executing_;
+    std::string current_gripper_ = "none";
     
     
     // Action clients to call embedded actions
