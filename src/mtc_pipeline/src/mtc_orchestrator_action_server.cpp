@@ -2,28 +2,21 @@
 
 namespace {
 
-
-    // Wait for MoveIt stack to be ready - Simple, reliable approach
-    bool wait_for_moveit_ready(rclcpp::Node::SharedPtr node, std::chrono::seconds timeout = 30s) {
+    // Wait for MoveIt stack to be ready
+    bool wait_for_moveit_ready(rclcpp::Node::SharedPtr node) {
         RCLCPP_DEBUG(node->get_logger(), "Waiting for MoveIt to become ready...");
 
-        auto start_time = std::chrono::steady_clock::now();
-        while (std::chrono::steady_clock::now() - start_time < timeout) {
-            // Check if move_group node exists - this indicates MoveIt is fully ready
+        while (true) {
             auto node_names = node->get_node_names();
-            bool move_group_found = std::any_of(node_names.begin(), node_names.end(),
-                [](const std::string& name) { return name.find("move_group") != std::string::npos; });
 
-            if (move_group_found) {
-                RCLCPP_DEBUG(node->get_logger(), "MoveIt is ready (move_group node detected)");
-                return true;
+            for (const auto& name : node_names) {
+                if (name.find("move_group") != std::string::npos) {
+                    return true; 
+                }
             }
 
-            std::this_thread::sleep_for(100ms);
+            std::this_thread::sleep_for(500ms);
         }
-
-        RCLCPP_ERROR(node->get_logger(), "MoveIt failed to become ready within timeout!");
-        return false;
     }
 
 
@@ -399,15 +392,12 @@ void MTCOrchestratorActionServer::handle_accepted(const std::shared_ptr<GoalHand
     // Switch to different gripper configuration
 bool MTCOrchestratorActionServer::switch_gripper(const std::string& new_gripper, const std::string& robot_ip) {
         if (orchestrator_->get_current_gripper() == new_gripper) return true;
-        
-        orchestrator_->kill_all_and_wait();
-        orchestrator_->launch(launch_cmd_for_gripper(new_gripper, robot_ip));
-        
-        if (!wait_for_moveit_ready(this->shared_from_this(), 30s) ||
-            !update_robot_description_from("move_group", this->shared_from_this()))
+
+        // Just reuse the initialization logic - switching gripper IS reinitializing MoveIt
+        if (!initialize_moveit_stack(new_gripper, robot_ip)) {
             return false;
-        
-        play_dashboard_client(this->shared_from_this()); 
+        }
+
         orchestrator_->set_current_gripper(new_gripper);
         return true;
     }
@@ -556,7 +546,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     RCLCPP_DEBUG(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
     orchestrator_->launch(launch_cmd);
 
-    if (!wait_for_moveit_ready(this->shared_from_this(), 30s)) {
+    if (!wait_for_moveit_ready(this->shared_from_this())) {
         RCLCPP_ERROR(this->get_logger(), "Failed to initialize MoveIt stack");
         return false;
     }

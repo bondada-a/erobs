@@ -44,10 +44,6 @@ using ToolExchangeAction = mtc_pipeline::action::ToolExchangeAction;
 using PickPlaceAction = mtc_pipeline::action::PickPlaceAction;
 
 namespace {
-    // Wait for ROS2 service to become available
-    bool wait_for_service(rclcpp::Node::SharedPtr node, const std::string& service_name, std::chrono::seconds timeout = 30s);
-    
-    
     // Update robot description from another node
     bool update_robot_description_from(const std::string& source_node, rclcpp::Node::SharedPtr target_node);
 }
