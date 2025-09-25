@@ -4,7 +4,6 @@
 // ROS2 includes
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <rclcpp/parameter_client.hpp>
 #include <std_srvs/srv/trigger.hpp>
 
 // Third-party includes
@@ -43,8 +42,6 @@ using EndEffectorAction = mtc_pipeline::action::EndEffectorAction;
 using ToolExchangeAction = mtc_pipeline::action::ToolExchangeAction;
 using PickPlaceAction = mtc_pipeline::action::PickPlaceAction;
 
-namespace {
-}
 
 // Process management class
 class Orchestrator {
