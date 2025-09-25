@@ -6,25 +6,15 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp/parameter_client.hpp>
 #include <std_srvs/srv/trigger.hpp>
-#include <moveit_msgs/srv/get_planning_scene.hpp>
-#include <moveit_msgs/srv/query_planner_interfaces.hpp>
-
-// ROS2 Launch includes for secure process management
-#include <rclcpp/executors.hpp>
 
 // Third-party includes
 #include <nlohmann/json.hpp>
 
 // Standard library includes
-#include <algorithm>
-#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
-#include <fstream>
-#include <functional>
 #include <future>
-#include <iostream>
 #include <linux/limits.h>
 #include <memory>
 #include <signal.h>
@@ -34,7 +24,6 @@
 #include <sys/wait.h>
 #include <thread>
 #include <vector>
-#include <cctype>
 
 #include "mtc_pipeline/action/mtc_execution.hpp"
 #include "mtc_pipeline/action/move_to_action.hpp"
