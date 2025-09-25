@@ -179,15 +179,21 @@ namespace {
             return "";
         }
         std::string workspace_path = std::string(cwd);
-        
-        // Create the setup command that sources the workspace
-        std::string setup_cmd = "source " + workspace_path + "/install/setup.bash && ";
-        
-        
-        if (g == "none") return setup_cmd + "ros2 launch ur_standalone_moveit_config move_group.launch.py robot_ip:=" + ip;
-        if (g == "epick") return setup_cmd + "ros2 launch ur_zivid_epick_moveit_config move_group.launch.py robot_ip:=" + ip;
-        if (g == "hande") return setup_cmd + "ros2 launch ur_zivid_hande_moveit_config move_group.launch.py robot_ip:=" + ip;
-        return "";
+
+        // Gripper to package mapping
+        static const std::unordered_map<std::string, std::string> gripper_packages = {
+            {"none", "ur_standalone_moveit_config"},
+            {"epick", "ur_zivid_epick_moveit_config"},
+            {"hande", "ur_zivid_hande_moveit_config"}
+        };
+
+        auto it = gripper_packages.find(g);
+        if (it == gripper_packages.end()) {
+            return "";
+        }
+
+        return "source " + workspace_path + "/install/setup.bash && ros2 launch " +
+               it->second + " move_group.launch.py robot_ip:=" + ip;
     }
     // Secure command parsing - validates and sanitizes launch commands
     bool validate_launch_command(const std::string& cmd, std::string& package, std::string& launch_file, std::string& robot_ip) {

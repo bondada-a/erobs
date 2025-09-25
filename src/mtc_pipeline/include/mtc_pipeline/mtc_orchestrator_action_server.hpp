@@ -23,6 +23,7 @@
 #include <string>
 #include <sys/wait.h>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 
 #include "mtc_pipeline/action/mtc_execution.hpp"
