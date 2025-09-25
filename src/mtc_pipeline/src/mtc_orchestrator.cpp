@@ -30,15 +30,30 @@ namespace {
     // Execute shell command and check if output contains expected string
     bool check_command_output(const std::string& cmd, const std::string& expected) {
         FILE* pipe = popen(cmd.c_str(), "r");
-        if (!pipe) return false; 
-        char buf[128]; 
+        if (!pipe) return false;
+
+        std::string line;
+        char ch;
         bool found = false;
-        while (fgets(buf, 128, pipe)) {
-            if (std::string(buf).find(expected) != std::string::npos) {
-                found = true;
-                break;
+
+        // Read character by character to avoid buffer overflow
+        while ((ch = fgetc(pipe)) != EOF) {
+            if (ch == '\n') {
+                if (line.find(expected) != std::string::npos) {
+                    found = true;
+                    break;
+                }
+                line.clear();
+            } else {
+                line += ch;
             }
         }
+
+        // Check final line if no newline at end
+        if (!found && !line.empty() && line.find(expected) != std::string::npos) {
+            found = true;
+        }
+
         pclose(pipe);
         return found;
     }
