@@ -2,36 +2,14 @@
 
 namespace {
 
-
     // Copy robot description parameters for orchestrator
     bool update_robot_description_from(const std::string& source_node, rclcpp::Node::SharedPtr node) {
         RCLCPP_DEBUG(node->get_logger(), "Attempting to get robot description from %s", source_node.c_str());
         
-        // First, wait for the node to be available
-        auto start_time = std::chrono::steady_clock::now();
-        const auto node_timeout = std::chrono::seconds(30);
-        
-        while (std::chrono::steady_clock::now() - start_time < node_timeout) {
-            auto client = std::make_shared<rclcpp::AsyncParametersClient>(node, source_node);
-            if (client->wait_for_service(2s)) {
-                RCLCPP_DEBUG(node->get_logger(), "Parameter service for %s is available", source_node.c_str());
-                break;
-            }
-            RCLCPP_DEBUG(node->get_logger(), "Waiting for parameter service of %s to become available...", source_node.c_str());
-            std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        }
-        
         auto client = std::make_shared<rclcpp::AsyncParametersClient>(node, source_node);
-        if (!client->wait_for_service(5s)) {
-            RCLCPP_ERROR(node->get_logger(), "Could not contact parameter service of %s", source_node.c_str());
-            return false;
-        }
 
-        // Now wait for the parameters to be declared and available
-        start_time = std::chrono::steady_clock::now();
-        const auto param_timeout = std::chrono::seconds(30);
-
-        while (std::chrono::steady_clock::now() - start_time < param_timeout) {
+        // Keep trying to get the parameters
+        while (true) {
             try {
                 RCLCPP_DEBUG(node->get_logger(), "Getting robot and OMPL parameters from %s", source_node.c_str());
                 auto urdf_future = client->get_parameters({"robot_description"});
@@ -39,74 +17,56 @@ namespace {
                 auto ompl_plugin_future = client->get_parameters({"ompl.planning_plugin"});
                 auto ompl_adapters_future = client->get_parameters({"ompl.request_adapters"});
 
-                // Wait for both futures to complete
-                auto future_start_time = std::chrono::steady_clock::now();
-                const auto future_timeout = std::chrono::seconds(10);
+                // Wait for all futures to complete
+                auto urdf_params = urdf_future.get();
+                auto srdf_params = srdf_future.get();
+                auto ompl_plugin_params = ompl_plugin_future.get();
+                auto ompl_adapters_params = ompl_adapters_future.get();
 
-                while (std::chrono::steady_clock::now() - future_start_time < future_timeout) {
-                    if (urdf_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready &&
-                        srdf_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready &&
-                        ompl_plugin_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready &&
-                        ompl_adapters_future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready) {
+                if (urdf_params.size() > 0 && srdf_params.size() > 0) {
+                    // Check if parameters are not empty strings
+                    std::string urdf_value = urdf_params[0].as_string();
+                    std::string srdf_value = srdf_params[0].as_string();
 
-                        auto urdf_params = urdf_future.get();
-                        auto srdf_params = srdf_future.get();
-                        auto ompl_plugin_params = ompl_plugin_future.get();
-                        auto ompl_adapters_params = ompl_adapters_future.get();
+                    if (!urdf_value.empty() && !srdf_value.empty()) {
+                        // Set robot description parameters
+                        node->set_parameters({
+                            {"robot_description", urdf_value},
+                            {"robot_description_semantic", srdf_value}
+                        });
 
-                        if (urdf_params.size() > 0 && srdf_params.size() > 0) {
-                            // Check if parameters are not empty strings
-                            std::string urdf_value = urdf_params[0].as_string();
-                            std::string srdf_value = srdf_params[0].as_string();
-
-                            if (!urdf_value.empty() && !srdf_value.empty()) {
-                                // Set robot description parameters
-                                node->set_parameters({
-                                    {"robot_description", urdf_value},
-                                    {"robot_description_semantic", srdf_value}
-                                });
-
-                                // Set OMPL parameters if available
-                                if (ompl_plugin_params.size() > 0) {
-                                    std::string ompl_plugin = ompl_plugin_params[0].as_string();
-                                    if (!ompl_plugin.empty()) {
-                                        node->set_parameter(rclcpp::Parameter("ompl.planning_plugin", ompl_plugin));
-                                        RCLCPP_DEBUG(node->get_logger(), "Set ompl.planning_plugin: %s", ompl_plugin.c_str());
-                                    }
-                                }
-
-                                if (ompl_adapters_params.size() > 0) {
-                                    std::string ompl_adapters = ompl_adapters_params[0].as_string();
-                                    if (!ompl_adapters.empty()) {
-                                        node->set_parameter(rclcpp::Parameter("ompl.request_adapters", ompl_adapters));
-                                        RCLCPP_DEBUG(node->get_logger(), "Set ompl.request_adapters: %s", ompl_adapters.c_str());
-                                    }
-                                }
-
-                                RCLCPP_INFO(node->get_logger(), "Robot and OMPL params synced from [%s]", source_node.c_str());
-                                return true;
-                            } else {
-                                RCLCPP_WARN(node->get_logger(), "Got empty parameter values from %s, retrying...", source_node.c_str());
+                        // Set OMPL parameters if available
+                        if (ompl_plugin_params.size() > 0) {
+                            std::string ompl_plugin = ompl_plugin_params[0].as_string();
+                            if (!ompl_plugin.empty()) {
+                                node->set_parameter(rclcpp::Parameter("ompl.planning_plugin", ompl_plugin));
+                                RCLCPP_DEBUG(node->get_logger(), "Set ompl.planning_plugin: %s", ompl_plugin.c_str());
                             }
-                        } else {
-                            RCLCPP_WARN(node->get_logger(), "Got empty parameter list from %s, retrying...", source_node.c_str());
                         }
-                        break; // Exit the inner while loop and retry from outer loop
-                    }
-                    std::this_thread::sleep_for(std::chrono::milliseconds(100));
-                }
 
-                RCLCPP_WARN(node->get_logger(), "Parameter futures not ready, retrying in 1 second...");
-                std::this_thread::sleep_for(std::chrono::seconds(1));
+                        if (ompl_adapters_params.size() > 0) {
+                            std::string ompl_adapters = ompl_adapters_params[0].as_string();
+                            if (!ompl_adapters.empty()) {
+                                node->set_parameter(rclcpp::Parameter("ompl.request_adapters", ompl_adapters));
+                                RCLCPP_DEBUG(node->get_logger(), "Set ompl.request_adapters: %s", ompl_adapters.c_str());
+                            }
+                        }
+
+                        RCLCPP_INFO(node->get_logger(), "Robot and OMPL params synced from [%s]", source_node.c_str());
+                        return true;
+                    } else {
+                        RCLCPP_WARN(node->get_logger(), "Got empty parameter values from %s, retrying...", source_node.c_str());
+                    }
+                } else {
+                    RCLCPP_WARN(node->get_logger(), "Got empty parameter list from %s, retrying...", source_node.c_str());
+                }
 
             } catch (const std::exception& e) {
                 RCLCPP_WARN(node->get_logger(), "Exception while getting parameters from %s: %s, retrying...", source_node.c_str(), e.what());
-                std::this_thread::sleep_for(std::chrono::seconds(1));
             }
+
+            std::this_thread::sleep_for(1s);  // Wait 1 second before retrying
         }
-        
-        RCLCPP_ERROR(node->get_logger(), "Timeout getting robot description from %s", source_node.c_str());
-        return false;
     }
 
     // Send play command to robot dashboard
