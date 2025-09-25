@@ -1,36 +1,9 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 
-
-
 // MTCOrchestratorActionServer implementation
-MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options) 
+MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options)
         : Node("mtc_orchestrator_action_server", options), is_executing_(false) {
-        // Declare essential parameters only if they don't already exist (launch file compatibility)
-        if (!this->has_parameter("robot_description")) {
-            this->declare_parameter("robot_description", "");
-        }
-        if (!this->has_parameter("robot_description_semantic")) {
-            this->declare_parameter("robot_description_semantic", "");
-        }
-        
-        // Declare OMPL parameters only if they don't already exist
-        if (!this->has_parameter("ompl.planning_plugin")) {
-            this->declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner");
-        }
-        if (!this->has_parameter("ompl.request_adapters")) {
-            this->declare_parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization");
-        }
-        if (!this->has_parameter("ompl.path_tolerance")) {
-            this->declare_parameter("ompl.path_tolerance", 0.1);
-        }
-        if (!this->has_parameter("ompl.resample_dt")) {
-            this->declare_parameter("ompl.resample_dt", 0.1);
-        }
-        if (!this->has_parameter("ompl.min_angle_change")) {
-            this->declare_parameter("ompl.min_angle_change", 0.001);
-        }
-        
-        
+
         // Initialize the action server
         this->action_server_ = rclcpp_action::create_server<MTCExecution>(
             this,
@@ -277,11 +250,13 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         }
     }
 
-    // Wait for joint states to stabilize after controller initialization
-    // Controllers are loaded automatically by launch files, but need brief time for state synchronization
-    // This prevents position tolerance violations during first trajectory execution
-    RCLCPP_DEBUG(this->get_logger(), "Allowing time for joint state synchronization...");
-    std::this_thread::sleep_for(3s);
+    // Wait for PlanningScene service - this is what action servers actually need
+    RCLCPP_DEBUG(this->get_logger(), "Waiting for PlanningScene service...");
+    auto ps_client = this->create_client<moveit_msgs::srv::GetPlanningScene>("/get_planning_scene");
+    if (!ps_client->wait_for_service(30s)) {
+        RCLCPP_ERROR(this->get_logger(), "PlanningScene service not ready within timeout");
+        return false;
+    }
 
     // Send play command to robot dashboard
     auto client = this->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");

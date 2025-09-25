@@ -5,6 +5,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <std_srvs/srv/trigger.hpp>
+#include <moveit_msgs/srv/get_planning_scene.hpp>
 
 // Third-party includes
 #include <nlohmann/json.hpp>
