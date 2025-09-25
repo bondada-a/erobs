@@ -2,23 +2,6 @@
 
 namespace {
 
-    // Wait for MoveIt stack to be ready
-    bool wait_for_moveit_ready(rclcpp::Node::SharedPtr node) {
-        RCLCPP_DEBUG(node->get_logger(), "Waiting for MoveIt to become ready...");
-
-        while (true) {
-            auto node_names = node->get_node_names();
-
-            for (const auto& name : node_names) {
-                if (name.find("move_group") != std::string::npos) {
-                    return true; 
-                }
-            }
-
-            std::this_thread::sleep_for(500ms);
-        }
-    }
-
 
     // Copy robot description parameters for orchestrator
     bool update_robot_description_from(const std::string& source_node, rclcpp::Node::SharedPtr node) {
@@ -546,9 +529,23 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     RCLCPP_DEBUG(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
     orchestrator_->launch(launch_cmd);
 
-    if (!wait_for_moveit_ready(this->shared_from_this())) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to initialize MoveIt stack");
-        return false;
+    // Wait for MoveIt to become ready
+    RCLCPP_DEBUG(this->get_logger(), "Waiting for MoveIt to become ready...");
+    bool moveit_ready = false;
+    while (!moveit_ready) {
+        auto node_names = this->get_node_names();
+
+        for (const auto& name : node_names) {
+            if (name.find("move_group") != std::string::npos) {
+                RCLCPP_DEBUG(this->get_logger(), "MoveIt is ready!");
+                moveit_ready = true;
+                break;
+            }
+        }
+
+        if (!moveit_ready) {
+            std::this_thread::sleep_for(500ms);
+        }
     }
 
     // Wait for joint states to stabilize after controller initialization
