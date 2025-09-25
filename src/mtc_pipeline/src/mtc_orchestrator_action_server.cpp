@@ -557,7 +557,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
     orchestrator_->kill_all_and_wait();
 
-    std::string launch_cmd = launch_cmd_for_gripper(start_gripper, robot_ip);
+    const std::string launch_cmd = launch_cmd_for_gripper(start_gripper, robot_ip);
     RCLCPP_INFO(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
     orchestrator_->launch(launch_cmd);
 
@@ -604,8 +604,8 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             }
 
             // Get task parameters
-            std::string robot_ip = goal->robot_ip.empty() ? "192.168.1.101" : goal->robot_ip;
-            std::string start_gripper = task_script.value("start_gripper", "none");
+            const std::string robot_ip = goal->robot_ip.empty() ? "192.168.1.101" : goal->robot_ip;
+            const std::string start_gripper = task_script.value("start_gripper", "none");
 
             const auto& operations = task_script["tasks"];
             const auto& poses = task_script["poses"];
