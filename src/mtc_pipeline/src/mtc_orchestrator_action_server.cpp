@@ -2,31 +2,6 @@
 
 namespace {
 
-    // Get launch command for gripper type
-    std::string launch_cmd_for_gripper(const std::string& g, const std::string& ip) {
-        // Get the current working directory to find the workspace - safe approach
-        std::string workspace_path;
-        try {
-            workspace_path = std::filesystem::current_path().string();
-        } catch (const std::filesystem::filesystem_error&) {
-            return "";
-        }
-
-        // Gripper to package mapping
-        static const std::unordered_map<std::string, std::string> gripper_packages = {
-            {"none", "ur_standalone_moveit_config"},
-            {"epick", "ur_zivid_epick_moveit_config"},
-            {"hande", "ur_zivid_hande_moveit_config"}
-        };
-
-        auto it = gripper_packages.find(g);
-        if (it == gripper_packages.end()) {
-            return "";
-        }
-
-        return "source " + workspace_path + "/install/setup.bash && ros2 launch " +
-               it->second + " move_group.launch.py robot_ip:=" + ip;
-    }
     // Secure command parsing - validates and sanitizes launch commands
     bool validate_launch_command(const std::string& cmd, std::string& package, std::string& launch_file, std::string& robot_ip) {
         // Expected format: "source /path/install/setup.bash && ros2 launch PACKAGE LAUNCH_FILE robot_ip:=IP"
@@ -385,7 +360,20 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
     orchestrator_->kill_all_and_wait();
 
-    const std::string launch_cmd = launch_cmd_for_gripper(start_gripper, robot_ip);
+    // Map gripper types to MoveIt config packages
+    static const std::unordered_map<std::string, std::string> gripper_packages = {
+        {"none", "ur_standalone_moveit_config"},
+        {"epick", "ur_zivid_epick_moveit_config"},
+        {"hande", "ur_zivid_hande_moveit_config"}
+    };
+
+    auto it = gripper_packages.find(start_gripper);
+    if (it == gripper_packages.end()) {
+        RCLCPP_ERROR(this->get_logger(), "Unknown gripper type: %s", start_gripper.c_str());
+        return false;
+    }
+
+    const std::string launch_cmd = "ros2 launch " + it->second + " move_group.launch.py robot_ip:=" + robot_ip;
     RCLCPP_DEBUG(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
     orchestrator_->launch(launch_cmd);
 
