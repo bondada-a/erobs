@@ -10,7 +10,7 @@ namespace {
 
     // Wait for MoveIt stack to be ready - Simple, reliable approach
     bool wait_for_moveit_ready(rclcpp::Node::SharedPtr node, std::chrono::seconds timeout = 30s) {
-        RCLCPP_INFO(node->get_logger(), "Waiting for MoveIt to become ready...");
+        RCLCPP_DEBUG(node->get_logger(), "Waiting for MoveIt to become ready...");
 
         auto start_time = std::chrono::steady_clock::now();
         while (std::chrono::steady_clock::now() - start_time < timeout) {
@@ -20,7 +20,7 @@ namespace {
                 [](const std::string& name) { return name.find("move_group") != std::string::npos; });
 
             if (move_group_found) {
-                RCLCPP_INFO(node->get_logger(), "MoveIt is ready (move_group node detected)");
+                RCLCPP_DEBUG(node->get_logger(), "MoveIt is ready (move_group node detected)");
                 return true;
             }
 
@@ -34,7 +34,7 @@ namespace {
 
     // Copy robot description parameters for orchestrator
     bool update_robot_description_from(const std::string& source_node, rclcpp::Node::SharedPtr node) {
-        RCLCPP_INFO(node->get_logger(), "Attempting to get robot description from %s", source_node.c_str());
+        RCLCPP_DEBUG(node->get_logger(), "Attempting to get robot description from %s", source_node.c_str());
         
         // First, wait for the node to be available
         auto start_time = std::chrono::steady_clock::now();
@@ -43,7 +43,7 @@ namespace {
         while (std::chrono::steady_clock::now() - start_time < node_timeout) {
             auto client = std::make_shared<rclcpp::AsyncParametersClient>(node, source_node);
             if (client->wait_for_service(2s)) {
-                RCLCPP_INFO(node->get_logger(), "Parameter service for %s is available", source_node.c_str());
+                RCLCPP_DEBUG(node->get_logger(), "Parameter service for %s is available", source_node.c_str());
                 break;
             }
             RCLCPP_DEBUG(node->get_logger(), "Waiting for parameter service of %s to become available...", source_node.c_str());
@@ -100,7 +100,7 @@ namespace {
                                     std::string ompl_plugin = ompl_plugin_params[0].as_string();
                                     if (!ompl_plugin.empty()) {
                                         node->set_parameter(rclcpp::Parameter("ompl.planning_plugin", ompl_plugin));
-                                        RCLCPP_INFO(node->get_logger(), "Set ompl.planning_plugin: %s", ompl_plugin.c_str());
+                                        RCLCPP_DEBUG(node->get_logger(), "Set ompl.planning_plugin: %s", ompl_plugin.c_str());
                                     }
                                 }
 
@@ -108,7 +108,7 @@ namespace {
                                     std::string ompl_adapters = ompl_adapters_params[0].as_string();
                                     if (!ompl_adapters.empty()) {
                                         node->set_parameter(rclcpp::Parameter("ompl.request_adapters", ompl_adapters));
-                                        RCLCPP_INFO(node->get_logger(), "Set ompl.request_adapters: %s", ompl_adapters.c_str());
+                                        RCLCPP_DEBUG(node->get_logger(), "Set ompl.request_adapters: %s", ompl_adapters.c_str());
                                     }
                                 }
 
@@ -140,7 +140,7 @@ namespace {
 
     // Send play command to robot dashboard
     bool play_dashboard_client(rclcpp::Node::SharedPtr node) {
-        RCLCPP_INFO(node->get_logger(), "Waiting for dashboard service...");
+        RCLCPP_DEBUG(node->get_logger(), "Waiting for dashboard service...");
         if (!wait_for_service(node, "/dashboard_client/play", 30s)) {
             RCLCPP_ERROR(node->get_logger(), "Dashboard 'play' service not available");
             return false;
@@ -157,7 +157,7 @@ namespace {
             if (future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready) {
                 auto result = future.get();
                 if (result->success) {
-                    RCLCPP_INFO(node->get_logger(), "Dashboard 'play' called successfully.");
+                    RCLCPP_DEBUG(node->get_logger(), "Dashboard 'play' called successfully.");
                     return true;
                 } else {
                     RCLCPP_WARN(node->get_logger(), "Dashboard 'play' failed");
@@ -372,7 +372,7 @@ rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_goal(
             return rclcpp_action::GoalResponse::REJECT;
         }
         
-        RCLCPP_INFO(this->get_logger(), "Goal accepted");
+        RCLCPP_DEBUG(this->get_logger(), "Goal accepted");
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
     }
 
@@ -380,7 +380,7 @@ rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
         const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
     {
         (void)goal_handle;
-        RCLCPP_INFO(this->get_logger(), "Received request to cancel goal");
+        RCLCPP_DEBUG(this->get_logger(), "Received request to cancel goal");
         
         if (is_executing_) {
             // Cancel the execution
@@ -558,7 +558,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     orchestrator_->kill_all_and_wait();
 
     const std::string launch_cmd = launch_cmd_for_gripper(start_gripper, robot_ip);
-    RCLCPP_INFO(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
+    RCLCPP_DEBUG(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
     orchestrator_->launch(launch_cmd);
 
     if (!wait_for_moveit_ready(this->shared_from_this(), 30s)) {
@@ -569,7 +569,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     // Wait for joint states to stabilize after controller initialization
     // Controllers are loaded automatically by launch files, but need brief time for state synchronization
     // This prevents position tolerance violations during first trajectory execution
-    RCLCPP_INFO(this->get_logger(), "Allowing time for joint state synchronization...");
+    RCLCPP_DEBUG(this->get_logger(), "Allowing time for joint state synchronization...");
     std::this_thread::sleep_for(3s);
 
     play_dashboard_client(this->shared_from_this());
@@ -631,7 +631,7 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             for (size_t i = 0; i < operations.size(); ++i) {
                 // Check if goal was cancelled
                 if (goal_handle->is_canceling()) {
-                    RCLCPP_INFO(this->get_logger(), "Goal canceled");
+                    RCLCPP_DEBUG(this->get_logger(), "Goal canceled");
                     result->success = false;
                     result->error_message = "Task was canceled";
                     goal_handle->canceled(result);
@@ -661,7 +661,7 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
                 feedback->current_gripper = orchestrator_->get_current_gripper();
                 goal_handle->publish_feedback(feedback);
                 
-                RCLCPP_INFO(this->get_logger(), "Executing step %zu: %s", i + 1, action.c_str());
+                RCLCPP_DEBUG(this->get_logger(), "Executing step %zu: %s", i + 1, action.c_str());
                 
                 // Execute step (stage parameters unused now - using embedded instances instead)
                 if (!execute_step(action, step, poses, robot_ip)) {
