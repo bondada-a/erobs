@@ -2,40 +2,6 @@
 
 namespace {
 
-
-    // Send play command to robot dashboard
-    bool play_dashboard_client(rclcpp::Node::SharedPtr node) {
-        RCLCPP_DEBUG(node->get_logger(), "Waiting for dashboard service...");
-
-        auto client = node->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
-        if (!client->wait_for_service(30s)) {
-            RCLCPP_ERROR(node->get_logger(), "Dashboard 'play' service not available");
-            return false;
-        }
-        auto future = client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
-        
-        // Wait for the future to complete without using spin_until_future_complete
-        auto start_time = std::chrono::steady_clock::now();
-        const auto timeout = std::chrono::seconds(5);
-        
-        while (std::chrono::steady_clock::now() - start_time < timeout) {
-            if (future.wait_for(std::chrono::milliseconds(100)) == std::future_status::ready) {
-                auto result = future.get();
-                if (result->success) {
-                    RCLCPP_DEBUG(node->get_logger(), "Dashboard 'play' called successfully.");
-                    return true;
-                } else {
-                    RCLCPP_WARN(node->get_logger(), "Dashboard 'play' failed");
-                    return false;
-                }
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(10));
-        }
-        
-        RCLCPP_WARN(node->get_logger(), "Dashboard 'play' timed out");
-        return false;
-    }
-
     // Get launch command for gripper type
     std::string launch_cmd_for_gripper(const std::string& g, const std::string& ip) {
         // Get the current working directory to find the workspace - safe approach
@@ -448,7 +414,17 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     RCLCPP_DEBUG(this->get_logger(), "Allowing time for joint state synchronization...");
     std::this_thread::sleep_for(3s);
 
-    play_dashboard_client(this->shared_from_this());
+    // Send play command to robot dashboard
+    auto client = this->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
+    if (client->wait_for_service(30s)) {
+        auto future = client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
+        auto result = future.get();  // Block until complete
+        if (!result->success) {
+            RCLCPP_WARN(this->get_logger(), "Dashboard 'play' failed");
+        }
+    } else {
+        RCLCPP_WARN(this->get_logger(), "Dashboard 'play' service not available");
+    }
 
 
     orchestrator_->set_current_gripper(start_gripper);
