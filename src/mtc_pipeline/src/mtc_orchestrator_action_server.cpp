@@ -529,7 +529,59 @@ bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& st
     );
 }
 
+bool MTCOrchestratorActionServer::parse_and_validate_task_script(const std::string& json_str, nlohmann::json& task_script) {
+    try {
+        task_script = nlohmann::json::parse(json_str);
+    } catch (const std::exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to parse JSON: %s", e.what());
+        return false;
+    }
 
+    // Validate required fields exist
+    if (!task_script.contains("tasks") || !task_script.contains("poses")) {
+        RCLCPP_ERROR(this->get_logger(), "JSON missing required 'tasks' or 'poses' fields");
+        return false;
+    }
+
+    // Validate field types
+    if (!task_script["tasks"].is_array() || !task_script["poses"].is_object()) {
+        RCLCPP_ERROR(this->get_logger(), "JSON field types invalid: 'tasks' must be array, 'poses' must be object");
+        return false;
+    }
+
+    return true;
+}
+
+bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
+    // Start MoveIt configuration
+    RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
+    orchestrator_->kill_all_and_wait();
+
+    std::string launch_cmd = launch_cmd_for_gripper(start_gripper, robot_ip);
+    RCLCPP_INFO(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
+    orchestrator_->launch(launch_cmd);
+
+    if (!wait_for_moveit_ready(this->shared_from_this(), 30s)) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to initialize MoveIt stack");
+        return false;
+    }
+
+    // Wait for joint states to stabilize after controller initialization
+    // Controllers are loaded automatically by launch files, but need brief time for state synchronization
+    // This prevents position tolerance violations during first trajectory execution
+    RCLCPP_INFO(this->get_logger(), "Allowing time for joint state synchronization...");
+    std::this_thread::sleep_for(3s);
+
+    play_dashboard_client(this->shared_from_this());
+
+    if (!update_robot_description_from("move_group", this->shared_from_this())) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to update robot description");
+        return false;
+    }
+
+    orchestrator_->set_current_gripper(start_gripper);
+    return true;
+}
 
 void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
     {
@@ -541,14 +593,11 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
         auto result = std::make_shared<MTCExecution::Result>();
 
         try {
-            // Parse the JSON task script
+            // Parse and validate JSON task script
             nlohmann::json task_script;
-            try {
-                task_script = nlohmann::json::parse(goal->task_script_json);
-            } catch (const std::exception& e) {
-                RCLCPP_ERROR(this->get_logger(), "Failed to parse JSON: %s", e.what());
+            if (!parse_and_validate_task_script(goal->task_script_json, task_script)) {
                 result->success = false;
-                result->error_message = "Failed to parse JSON task script";
+                result->error_message = "Failed to parse or validate JSON task script";
                 goal_handle->abort(result);
                 is_executing_ = false;
                 return;
@@ -558,63 +607,24 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             std::string robot_ip = goal->robot_ip.empty() ? "192.168.1.101" : goal->robot_ip;
             std::string start_gripper = task_script.value("start_gripper", "none");
 
-            // Get tasks from JSON with safe access and validation
-            if (!task_script.contains("tasks") || !task_script.contains("poses")) {
-                RCLCPP_ERROR(this->get_logger(), "JSON missing required 'tasks' or 'poses' fields");
-                result->success = false;
-                result->error_message = "JSON missing required fields";
-                goal_handle->abort(result);
-                is_executing_ = false;
-                return;
-            }
-
-            if (!task_script["tasks"].is_array() || !task_script["poses"].is_object()) {
-                RCLCPP_ERROR(this->get_logger(), "JSON field types invalid: 'tasks' must be array, 'poses' must be object");
-                result->success = false;
-                result->error_message = "JSON field types invalid";
-                goal_handle->abort(result);
-                is_executing_ = false;
-                return;
-            }
-
             const auto& operations = task_script["tasks"];
             const auto& poses = task_script["poses"];
 
             result->total_steps = operations.size();
             result->completed_steps = 0;
-            
-            // Start MoveIt configuration
-            RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
-            orchestrator_->kill_all_and_wait();
-            std::string launch_cmd = launch_cmd_for_gripper(start_gripper, robot_ip);
-            RCLCPP_INFO(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
-            orchestrator_->launch(launch_cmd);
-            
-            // Send feedback
+
+            // Send initial feedback
             feedback->current_step = 0;
             feedback->current_action = "Initializing MoveIt";
             feedback->progress_percentage = 0.0f;
             feedback->status_message = "Starting MoveIt configuration";
             feedback->current_gripper = start_gripper;
             goal_handle->publish_feedback(feedback);
-            
-            if (!wait_for_moveit_ready(this->shared_from_this(), 30s)) {
+
+            // Initialize MoveIt stack
+            if (!initialize_moveit_stack(start_gripper, robot_ip)) {
                 throw std::runtime_error("Failed to initialize MoveIt stack");
             }
-            
-            // Wait for joint states to stabilize after controller initialization
-            // Controllers are loaded automatically by launch files, but need brief time for state synchronization
-            // This prevents position tolerance violations during first trajectory execution
-            RCLCPP_INFO(this->get_logger(), "Allowing time for joint state synchronization...");
-            std::this_thread::sleep_for(3s);
-            
-            play_dashboard_client(this->shared_from_this());
-            
-            if (!update_robot_description_from("move_group", this->shared_from_this())) {
-                throw std::runtime_error("Failed to update robot description");
-            }
-            
-            orchestrator_->set_current_gripper(start_gripper);
 
 
             // Execute tasks
