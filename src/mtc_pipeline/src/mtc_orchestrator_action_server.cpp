@@ -1,6 +1,9 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 
 namespace {
+    // Constants for common timeout values
+    constexpr auto ACTION_SERVER_TIMEOUT = std::chrono::seconds(5);
+
     // Wait for ROS2 service to become available
     bool wait_for_service(rclcpp::Node::SharedPtr node, const std::string& service_name, std::chrono::seconds timeout) {
         auto client = node->create_client<std_srvs::srv::Trigger>(service_name);
@@ -266,21 +269,28 @@ pid_t Orchestrator::launch(const std::string& cmd) {
         }
 
         if (pid > 0) {
+            std::lock_guard<std::mutex> lock(pids_mutex_);
             active_pids_.push_back(pid);
         }
         return pid;
     }
 
 void Orchestrator::kill_all_and_wait() {
-        for (pid_t pid : active_pids_)
+        std::vector<pid_t> pids_copy;
+        {
+            std::lock_guard<std::mutex> lock(pids_mutex_);
+            pids_copy = active_pids_;
+        }
+
+        for (pid_t pid : pids_copy)
             ::kill(-pid, SIGINT);
-        
+
         auto start_time = std::chrono::steady_clock::now();
         const auto timeout = std::chrono::seconds(15);
-        
+
         while (std::chrono::steady_clock::now() - start_time < timeout) {
             bool all_terminated = true;
-            for (pid_t pid : active_pids_) {
+            for (pid_t pid : pids_copy) {
                 int status;
                 if (waitpid(pid, &status, WNOHANG) == 0) {
                     all_terminated = false;
@@ -290,11 +300,15 @@ void Orchestrator::kill_all_and_wait() {
             if (all_terminated) break;
             std::this_thread::sleep_for(std::chrono::milliseconds(100));
         }
-        
-        for (pid_t pid : active_pids_) {
+
+        for (pid_t pid : pids_copy) {
             waitpid(pid, nullptr, WNOHANG);
         }
-        active_pids_.clear();
+
+        {
+            std::lock_guard<std::mutex> lock(pids_mutex_);
+            active_pids_.clear();
+        }
     }
 
 void Orchestrator::set_current_gripper(const std::string& g) { current_gripper_ = g; }
@@ -456,7 +470,7 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& action, const 
 
 // Action client methods to call embedded actions via ROS2 actions
 bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    if (!moveto_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+    if (!moveto_action_client_->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
         RCLCPP_ERROR(this->get_logger(), "MoveTo action server unavailable");
         return false;
     }
@@ -487,7 +501,7 @@ bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step,
 }
 
 bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    if (!endeffector_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+    if (!endeffector_action_client_->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
         RCLCPP_ERROR(this->get_logger(), "EndEffector action server unavailable");
         return false;
     }
@@ -515,7 +529,7 @@ bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& 
 }
 
 bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    if (!toolexchange_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+    if (!toolexchange_action_client_->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
         RCLCPP_ERROR(this->get_logger(), "ToolExchange action server unavailable");
         return false;
     }
@@ -545,7 +559,7 @@ bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json&
 }
 
 bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    if (!pickplace_action_client_->wait_for_action_server(std::chrono::seconds(5))) {
+    if (!pickplace_action_client_->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
         RCLCPP_ERROR(this->get_logger(), "PickPlace action server unavailable");
         return false;
     }
@@ -602,9 +616,26 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             // Get task parameters
             std::string robot_ip = goal->robot_ip.empty() ? "192.168.1.101" : goal->robot_ip;
             std::string start_gripper = task_script.value("start_gripper", "none");
-            
-            
-            // Get tasks from JSON
+
+            // Get tasks from JSON with safe access and validation
+            if (!task_script.contains("tasks") || !task_script.contains("poses")) {
+                RCLCPP_ERROR(this->get_logger(), "JSON missing required 'tasks' or 'poses' fields");
+                result->success = false;
+                result->error_message = "JSON missing required fields";
+                goal_handle->abort(result);
+                is_executing_ = false;
+                return;
+            }
+
+            if (!task_script["tasks"].is_array() || !task_script["poses"].is_object()) {
+                RCLCPP_ERROR(this->get_logger(), "JSON field types invalid: 'tasks' must be array, 'poses' must be object");
+                result->success = false;
+                result->error_message = "JSON field types invalid";
+                goal_handle->abort(result);
+                is_executing_ = false;
+                return;
+            }
+
             const auto& operations = task_script["tasks"];
             const auto& poses = task_script["poses"];
 

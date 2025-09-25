@@ -11,12 +11,14 @@
 #include <nlohmann/json.hpp>
 
 // Standard library includes
+#include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
 #include <future>
 #include <memory>
+#include <mutex>
 #include <signal.h>
 #include <sstream>
 #include <stdexcept>
@@ -57,16 +59,14 @@ public:
     
     // Kill all active processes and wait for them to finish
     void kill_all_and_wait();
-    
-    // Check if any processes are still running
-    bool has_active_processes() const;
-    
+
     // Gripper management
     void set_current_gripper(const std::string& g);
     const std::string& get_current_gripper() const;
     
 private:
     std::vector<pid_t> active_pids_;
+    std::mutex pids_mutex_;
     std::string current_gripper_ = "none";
 };
 
@@ -80,7 +80,7 @@ public:
 private:
     ActionServer::SharedPtr action_server_;
     std::unique_ptr<Orchestrator> orchestrator_;
-    bool is_executing_;
+    std::atomic<bool> is_executing_;
     
     
     // Action clients to call embedded actions
