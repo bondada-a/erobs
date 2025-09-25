@@ -11,40 +11,24 @@ namespace {
         // Keep trying to get the parameters
         while (true) {
             try {
-                RCLCPP_DEBUG(node->get_logger(), "Getting robot description from %s", source_node.c_str());
-                auto urdf_future = client->get_parameters({"robot_description"});
-                auto srdf_future = client->get_parameters({"robot_description_semantic"});
+                auto urdf_params = client->get_parameters({"robot_description"}).get();
+                auto srdf_params = client->get_parameters({"robot_description_semantic"}).get();
 
-                // Wait for futures to complete
-                auto urdf_params = urdf_future.get();
-                auto srdf_params = srdf_future.get();
+                if (!urdf_params.empty() && !srdf_params.empty() &&
+                    !urdf_params[0].as_string().empty() && !srdf_params[0].as_string().empty()) {
 
-                if (urdf_params.size() > 0 && srdf_params.size() > 0) {
-                    // Check if parameters are not empty strings
-                    std::string urdf_value = urdf_params[0].as_string();
-                    std::string srdf_value = srdf_params[0].as_string();
-
-                    if (!urdf_value.empty() && !srdf_value.empty()) {
-                        // Set robot description parameters
-                        node->set_parameters({
-                            {"robot_description", urdf_value},
-                            {"robot_description_semantic", srdf_value}
-                        });
-
-                        RCLCPP_INFO(node->get_logger(), "Robot description synced from [%s]", source_node.c_str());
-                        return true;
-                    } else {
-                        RCLCPP_WARN(node->get_logger(), "Got empty parameter values from %s, retrying...", source_node.c_str());
-                    }
-                } else {
-                    RCLCPP_WARN(node->get_logger(), "Got empty parameter list from %s, retrying...", source_node.c_str());
+                    node->set_parameters({
+                        {"robot_description", urdf_params[0].as_string()},
+                        {"robot_description_semantic", srdf_params[0].as_string()}
+                    });
+                    return true;
                 }
 
-            } catch (const std::exception& e) {
-                RCLCPP_WARN(node->get_logger(), "Exception while getting parameters from %s: %s, retrying...", source_node.c_str(), e.what());
+            } catch (const std::exception&) {
+                // Any failure (service unavailable, empty params, etc.) - just retry
             }
 
-            std::this_thread::sleep_for(1s);  // Wait 1 second before retrying
+            std::this_thread::sleep_for(1s);
         }
     }
 
