@@ -130,6 +130,10 @@ private:
     bool call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses);
     bool call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses);
     bool call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses);
+
+    // Helper functions for execute_step
+    bool handle_tool_exchange(const nlohmann::json& step, const nlohmann::json& poses, const std::string& robot_ip);
+    bool handle_pick_and_place(const nlohmann::json& step, const nlohmann::json& poses);
     
 };
 

@@ -3,7 +3,6 @@
 // MTCOrchestratorActionServer implementation
 MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options)
         : Node("mtc_orchestrator_action_server", options), is_executing_(false) {
-
         // Initialize the action server
         this->action_server_ = rclcpp_action::create_server<MTCExecution>(
             this,
@@ -18,7 +17,7 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
         toolexchange_action_client_ = rclcpp_action::create_client<ToolExchangeAction>(this, "toolexchange_action");
         pickplace_action_client_ = rclcpp_action::create_client<PickPlaceAction>(this, "pickplace_action");
 
-        RCLCPP_INFO(this->get_logger(), "MTC Orchestrator Action Server started - using delegation to modular action servers");
+        RCLCPP_INFO(this->get_logger(), "MTC Orchestrator Action Server started");
     }
 
 
@@ -45,7 +44,6 @@ rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
         RCLCPP_DEBUG(this->get_logger(), "Received request to cancel goal");
         
         if (is_executing_) {
-            // Cancel the execution - processes will clean up automatically
             is_executing_ = false;
         }
         
@@ -76,51 +74,16 @@ bool MTCOrchestratorActionServer::switch_gripper(const std::string& new_gripper,
     }
 
 
-
-
-
 // Execute a single task step
-bool MTCOrchestratorActionServer::execute_step(const std::string& action, const nlohmann::json& step, 
+bool MTCOrchestratorActionServer::execute_step(const std::string& action, const nlohmann::json& step,
                      const nlohmann::json& poses, const std::string& robot_ip) {
-        
-        // Handle tool exchange tasks - using delegation to modular action servers
-        if (action == "tool_exchange") {
-            const std::string operation = step.value("operation", "");
-            const std::string requested_tool = step.value("gripper", current_gripper_);
 
-            // Execute via delegation to modular action servers
-            bool success = call_toolexchange_action(step, poses);
-            if (!success) return false;
+        if (action == "tool_exchange") return handle_tool_exchange(step, poses, robot_ip);
+        if (action == "pick_and_place") return handle_pick_and_place(step, poses);
+        if (action == "moveto") return call_moveto_action(step, poses);
+        if (action == "end_effector") return call_endeffector_action(step, poses);
 
-            // Handle gripper switching after tool exchange
-            if (operation == "dock") {
-                return switch_gripper("none", robot_ip);
-            } else if (operation == "load") {
-                return switch_gripper(requested_tool, robot_ip);
-            }
-            return true;
-        }
-
-        // Handle pick and place tasks - using delegation to modular action servers
-        if (action == "pick_and_place") {
-            std::string need = step.value("gripper", current_gripper_);
-            if (!switch_gripper(need, robot_ip))
-                return false;
-
-            return call_pickplace_action(step, poses);
-        }
-
-        // Handle simple move-to tasks - using delegation to modular action servers
-        if (action == "moveto") {
-            return call_moveto_action(step, poses);
-        }
-
-        // Handle end effector operations - using delegation to modular action servers
-        if (action == "end_effector") {
-            return call_endeffector_action(step, poses);
-        }
-
-    return false;
+        return false;
 }
 
 // Action client methods to call embedded actions via ROS2 actions
@@ -185,6 +148,30 @@ bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& st
             goal.poses_json = poses.dump();
         }
     );
+}
+
+// Helper functions for execute_step
+bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& step, const nlohmann::json& poses, const std::string& robot_ip) {
+    const std::string operation = step.value("operation", "");
+    const std::string requested_tool = step.value("gripper", current_gripper_);
+
+    // Execute via delegation to modular action servers
+    if (!call_toolexchange_action(step, poses)) {
+        return false;
+    }
+
+    // Handle gripper switching after tool exchange
+    if (operation == "dock") {
+        return switch_gripper("none", robot_ip);
+    } else if (operation == "load") {
+        return switch_gripper(requested_tool, robot_ip);
+    }
+    return true;
+}
+
+bool MTCOrchestratorActionServer::handle_pick_and_place(const nlohmann::json& step, const nlohmann::json& poses) {
+    // Use whatever gripper is currently attached - gripper switching should be done via tool_exchange
+    return call_pickplace_action(step, poses);
 }
 
 bool MTCOrchestratorActionServer::parse_and_validate_task_script(const std::string& json_str, nlohmann::json& task_script) {
