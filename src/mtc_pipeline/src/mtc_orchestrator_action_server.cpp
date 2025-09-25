@@ -11,17 +11,13 @@ namespace {
         // Keep trying to get the parameters
         while (true) {
             try {
-                RCLCPP_DEBUG(node->get_logger(), "Getting robot and OMPL parameters from %s", source_node.c_str());
+                RCLCPP_DEBUG(node->get_logger(), "Getting robot description from %s", source_node.c_str());
                 auto urdf_future = client->get_parameters({"robot_description"});
                 auto srdf_future = client->get_parameters({"robot_description_semantic"});
-                auto ompl_plugin_future = client->get_parameters({"ompl.planning_plugin"});
-                auto ompl_adapters_future = client->get_parameters({"ompl.request_adapters"});
 
-                // Wait for all futures to complete
+                // Wait for futures to complete
                 auto urdf_params = urdf_future.get();
                 auto srdf_params = srdf_future.get();
-                auto ompl_plugin_params = ompl_plugin_future.get();
-                auto ompl_adapters_params = ompl_adapters_future.get();
 
                 if (urdf_params.size() > 0 && srdf_params.size() > 0) {
                     // Check if parameters are not empty strings
@@ -35,24 +31,7 @@ namespace {
                             {"robot_description_semantic", srdf_value}
                         });
 
-                        // Set OMPL parameters if available
-                        if (ompl_plugin_params.size() > 0) {
-                            std::string ompl_plugin = ompl_plugin_params[0].as_string();
-                            if (!ompl_plugin.empty()) {
-                                node->set_parameter(rclcpp::Parameter("ompl.planning_plugin", ompl_plugin));
-                                RCLCPP_DEBUG(node->get_logger(), "Set ompl.planning_plugin: %s", ompl_plugin.c_str());
-                            }
-                        }
-
-                        if (ompl_adapters_params.size() > 0) {
-                            std::string ompl_adapters = ompl_adapters_params[0].as_string();
-                            if (!ompl_adapters.empty()) {
-                                node->set_parameter(rclcpp::Parameter("ompl.request_adapters", ompl_adapters));
-                                RCLCPP_DEBUG(node->get_logger(), "Set ompl.request_adapters: %s", ompl_adapters.c_str());
-                            }
-                        }
-
-                        RCLCPP_INFO(node->get_logger(), "Robot and OMPL params synced from [%s]", source_node.c_str());
+                        RCLCPP_INFO(node->get_logger(), "Robot description synced from [%s]", source_node.c_str());
                         return true;
                     } else {
                         RCLCPP_WARN(node->get_logger(), "Got empty parameter values from %s, retrying...", source_node.c_str());
