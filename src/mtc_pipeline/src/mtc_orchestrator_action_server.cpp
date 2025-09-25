@@ -190,30 +190,10 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     RCLCPP_DEBUG(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
     std::system(launch_cmd.c_str());
 
-    // Wait for MoveIt to become ready
-    RCLCPP_DEBUG(this->get_logger(), "Waiting for MoveIt to become ready...");
-    bool moveit_ready = false;
-    while (!moveit_ready) {
-        auto node_names = this->get_node_names();
-
-        for (const auto& name : node_names) {
-            if (name.find("move_group") != std::string::npos) {
-                RCLCPP_DEBUG(this->get_logger(), "MoveIt is ready!");
-                moveit_ready = true;
-                break;
-            }
-        }
-
-        if (!moveit_ready) {
-            std::this_thread::sleep_for(500ms);
-        }
-    }
-
-    // Wait for PlanningScene service - this is what action servers actually need
-    RCLCPP_DEBUG(this->get_logger(), "Waiting for PlanningScene service...");
+    // Wait for PlanningScene service (this confirms MoveIt is ready)
     auto ps_client = this->create_client<moveit_msgs::srv::GetPlanningScene>("/get_planning_scene");
     if (!ps_client->wait_for_service(30s)) {
-        RCLCPP_ERROR(this->get_logger(), "PlanningScene service not ready within timeout");
+        RCLCPP_ERROR(this->get_logger(), "MoveIt not ready within 30s");
         return false;
     }
 
