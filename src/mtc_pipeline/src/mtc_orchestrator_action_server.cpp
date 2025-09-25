@@ -302,18 +302,12 @@ const std::string& Orchestrator::get_current_gripper() const { return current_gr
 // MTCOrchestratorActionServer implementation
 MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options) 
         : Node("mtc_orchestrator_action_server", options), is_executing_(false) {
-        // Declare parameters only if they don't already exist (launch file compatibility)
+        // Declare essential parameters only if they don't already exist (launch file compatibility)
         if (!this->has_parameter("robot_description")) {
             this->declare_parameter("robot_description", "");
         }
         if (!this->has_parameter("robot_description_semantic")) {
             this->declare_parameter("robot_description_semantic", "");
-        }
-        if (!this->has_parameter("robot_description_planning")) {
-            this->declare_parameter("robot_description_planning", "");
-        }
-        if (!this->has_parameter("robot_description_kinematics")) {
-            this->declare_parameter("robot_description_kinematics", "");
         }
         
         // Declare OMPL parameters only if they don't already exist
