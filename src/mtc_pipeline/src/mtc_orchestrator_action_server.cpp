@@ -1,9 +1,6 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 
 namespace {
-    // Constants for common timeout values
-    constexpr auto ACTION_SERVER_TIMEOUT = std::chrono::seconds(5);
-
     // Wait for ROS2 service to become available
     bool wait_for_service(rclcpp::Node::SharedPtr node, const std::string& service_name, std::chrono::seconds timeout) {
         auto client = node->create_client<std_srvs::srv::Trigger>(service_name);
@@ -470,122 +467,66 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& action, const 
 
 // Action client methods to call embedded actions via ROS2 actions
 bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    if (!moveto_action_client_->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
-        RCLCPP_ERROR(this->get_logger(), "MoveTo action server unavailable");
-        return false;
-    }
-    
-    auto goal = MoveToAction::Goal();
-    goal.target_type = step.value("target_type", "");
-    goal.target = step.value("target", "");
-    goal.planning_type = step.value("planning_type", "joint");
-    goal.direction = step.value("direction", "");
-    goal.distance = step.value("distance", 0.0);
-    goal.poses_json = poses.dump();
-    
-    auto future = moveto_action_client_->async_send_goal(goal);
-    auto goal_handle = future.get();
-    
-    if (!goal_handle) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to send MoveTo goal");
-        return false;
-    }
-    
-    auto result_future = moveto_action_client_->async_get_result(goal_handle);
-    auto result = result_future.get();
-    
-    if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
-        return result.result->success;
-    }
-    return false;
+    return call_action_generic<MoveToAction>(
+        moveto_action_client_,
+        "MoveTo",
+        step,
+        poses,
+        [](MoveToAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+            goal.target_type = step.value("target_type", "");
+            goal.target = step.value("target", "");
+            goal.planning_type = step.value("planning_type", "joint");
+            goal.direction = step.value("direction", "");
+            goal.distance = step.value("distance", 0.0);
+            goal.poses_json = poses.dump();
+        }
+    );
 }
 
 bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    if (!endeffector_action_client_->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
-        RCLCPP_ERROR(this->get_logger(), "EndEffector action server unavailable");
-        return false;
-    }
-    
-    auto goal = EndEffectorAction::Goal();
-    goal.end_effector_type = step.value("end_effector_type", "");
-    goal.end_effector_action = step.value("end_effector_action", "");
-    goal.poses_json = poses.dump();
-    
-    auto future = endeffector_action_client_->async_send_goal(goal);
-    auto goal_handle = future.get();
-    
-    if (!goal_handle) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to send EndEffector goal");
-        return false;
-    }
-    
-    auto result_future = endeffector_action_client_->async_get_result(goal_handle);
-    auto result = result_future.get();
-    
-    if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
-        return result.result->success;
-    }
-    return false;
+    return call_action_generic<EndEffectorAction>(
+        endeffector_action_client_,
+        "EndEffector",
+        step,
+        poses,
+        [](EndEffectorAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+            goal.end_effector_type = step.value("end_effector_type", "");
+            goal.end_effector_action = step.value("end_effector_action", "");
+            goal.poses_json = poses.dump();
+        }
+    );
 }
 
 bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    if (!toolexchange_action_client_->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
-        RCLCPP_ERROR(this->get_logger(), "ToolExchange action server unavailable");
-        return false;
-    }
-    
-    auto goal = ToolExchangeAction::Goal();
-    goal.operation = step.value("operation", "");
-    goal.gripper = step.value("gripper", "");
-    goal.dock_number = step.value("dock_number", 0);
-    // Note: approach_poses would need to be parsed from JSON array if present
-    goal.poses_json = poses.dump();
-    
-    auto future = toolexchange_action_client_->async_send_goal(goal);
-    auto goal_handle = future.get();
-    
-    if (!goal_handle) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to send ToolExchange goal");
-        return false;
-    }
-    
-    auto result_future = toolexchange_action_client_->async_get_result(goal_handle);
-    auto result = result_future.get();
-    
-    if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
-        return result.result->success;
-    }
-    return false;
+    return call_action_generic<ToolExchangeAction>(
+        toolexchange_action_client_,
+        "ToolExchange",
+        step,
+        poses,
+        [](ToolExchangeAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+            goal.operation = step.value("operation", "");
+            goal.gripper = step.value("gripper", "");
+            goal.dock_number = step.value("dock_number", 0);
+            // Note: approach_poses would need to be parsed from JSON array if present
+            goal.poses_json = poses.dump();
+        }
+    );
 }
 
 bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    if (!pickplace_action_client_->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
-        RCLCPP_ERROR(this->get_logger(), "PickPlace action server unavailable");
-        return false;
-    }
-    
-    auto goal = PickPlaceAction::Goal();
-    goal.gripper = step.value("gripper", "");
-    goal.pick_pose = step.value("pick_pose", "");
-    goal.place_pose = step.value("place_pose", "");
-    goal.planning_type = step.value("planning_type", "joint");
-    goal.poses_json = poses.dump();
-    
-    auto future = pickplace_action_client_->async_send_goal(goal);
-    auto goal_handle = future.get();
-    
-    if (!goal_handle) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to send PickPlace goal");
-        return false;
-    }
-    
-    auto result_future = pickplace_action_client_->async_get_result(goal_handle);
-    auto result = result_future.get();
-    
-    if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
-        return result.result->success;
-    }
-    return false;
+    return call_action_generic<PickPlaceAction>(
+        pickplace_action_client_,
+        "PickPlace",
+        step,
+        poses,
+        [](PickPlaceAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+            goal.gripper = step.value("gripper", "");
+            goal.pick_pose = step.value("pick_pose", "");
+            goal.place_pose = step.value("place_pose", "");
+            goal.planning_type = step.value("planning_type", "joint");
+            goal.poses_json = poses.dump();
+        }
+    );
 }
 
 
@@ -689,7 +630,18 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
                 }
 
                 const auto& step = operations[i];
-                const std::string action = step.contains("type") ? step["type"].get<std::string>() : step["action"].get<std::string>();
+                std::string action;
+                try {
+                    if (step.contains("type") && step["type"].is_string()) {
+                        action = step["type"].get<std::string>();
+                    } else if (step.contains("action") && step["action"].is_string()) {
+                        action = step["action"].get<std::string>();
+                    } else {
+                        throw std::runtime_error("Step missing valid 'type' or 'action' field");
+                    }
+                } catch (const std::exception& e) {
+                    throw std::runtime_error("Failed to read action from step " + std::to_string(i + 1) + ": " + e.what());
+                }
 
                 // Update feedback
                 feedback->current_step = i + 1;
@@ -732,10 +684,14 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             result->error_message = std::string("Execution failed: ") + e.what();
             goal_handle->abort(result);
         }
-        
-        // Cleanup
-        orchestrator_->kill_all_and_wait();
-        
+
+        // Cleanup - always execute regardless of success or failure
+        try {
+            orchestrator_->kill_all_and_wait();
+        } catch (const std::exception& e) {
+            RCLCPP_WARN(this->get_logger(), "Cleanup failed: %s", e.what());
+        }
+
         is_executing_ = false;
     }
 

@@ -16,6 +16,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
+#include <functional>
 #include <future>
 #include <memory>
 #include <mutex>
@@ -75,6 +76,9 @@ class MTCOrchestratorActionServer : public rclcpp::Node
 public:
     using ActionServer = rclcpp_action::Server<MTCExecution>;
 
+    // Constants for common timeout values
+    static constexpr auto ACTION_SERVER_TIMEOUT = std::chrono::seconds(5);
+
     MTCOrchestratorActionServer(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
 
 private:
@@ -111,6 +115,40 @@ private:
     // Gripper switching logic
     bool switch_gripper(const std::string& new_gripper, const std::string& robot_ip);
     
+    // Generic template for action client calls
+    template<typename ActionType>
+    bool call_action_generic(
+        typename rclcpp_action::Client<ActionType>::SharedPtr client,
+        const std::string& action_name,
+        const nlohmann::json& step,
+        const nlohmann::json& poses,
+        std::function<void(typename ActionType::Goal&, const nlohmann::json&, const nlohmann::json&)> populate_goal
+    ) {
+        if (!client->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
+            RCLCPP_ERROR(this->get_logger(), "%s action server unavailable", action_name.c_str());
+            return false;
+        }
+
+        auto goal = typename ActionType::Goal();
+        populate_goal(goal, step, poses);
+
+        auto future = client->async_send_goal(goal);
+        auto goal_handle = future.get();
+
+        if (!goal_handle) {
+            RCLCPP_ERROR(this->get_logger(), "Failed to send %s goal", action_name.c_str());
+            return false;
+        }
+
+        auto result_future = client->async_get_result(goal_handle);
+        auto result = result_future.get();
+
+        if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+            return result.result->success;
+        }
+        return false;
+    }
+
     // Action client methods to call modular action servers via ROS2 actions
     bool call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses);
     bool call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses);
