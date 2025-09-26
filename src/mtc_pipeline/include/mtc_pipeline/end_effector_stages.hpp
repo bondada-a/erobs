@@ -1,20 +1,20 @@
 #pragma once
 
-#include <rclcpp/rclcpp.hpp>
-#include <moveit/task_constructor/task.h>
-#include <moveit/task_constructor/stages/current_state.h>
-#include <moveit/task_constructor/stages/move_to.h>
-#include <moveit/task_constructor/stages/move_relative.h>
+#include "mtc_pipeline/base_stages.hpp"
+
 #include <moveit/task_constructor/solvers/planner_interface.h>
+#include <moveit/task_constructor/stages/move_relative.h>
+#include <moveit/task_constructor/stages/move_to.h>
 #include <nlohmann/json.hpp>
+
+#include <map>
 #include <memory>
 #include <string>
 #include <vector>
-#include <map>
 
 namespace mtc = moveit::task_constructor;
 
-class EndEffectorStages {
+class EndEffectorStages : public BaseStages {
 public:
     EndEffectorStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
     
@@ -28,9 +28,6 @@ public:
     bool controlCustom(const std::string& end_effector_type, const std::string& action, const nlohmann::json& params);
 
 private:
-    rclcpp::Node::SharedPtr node_;
-    nlohmann::json config_;
-    
     // Service clients for different end effectors (created on-demand)
     // rclcpp::Client<control_msgs::msg::GripperCommand>::SharedPtr gripper_client_;
     // rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr vacuum_client_;

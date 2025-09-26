@@ -1,25 +1,21 @@
 #pragma once
 
-#include <rclcpp/rclcpp.hpp>
-#include <moveit/task_constructor/task.h>
-#include <moveit/task_constructor/stages/current_state.h>
-#include <moveit/task_constructor/stages/move_to.h>
+#include "mtc_pipeline/base_stages.hpp"
+
 #include <moveit/task_constructor/solvers/planner_interface.h>
+#include <moveit/task_constructor/stages/move_to.h>
 #include <nlohmann/json.hpp>
+
 #include <memory>
 #include <string>
 #include <vector>
 
 namespace mtc = moveit::task_constructor;
 
-class PickPlaceStages {
+class PickPlaceStages : public BaseStages {
 public:
   // Constructor
   PickPlaceStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
-
-  // Modular stage creators:
-  std::vector<std::unique_ptr<mtc::Stage>> makePickStages();
-  std::vector<std::unique_ptr<mtc::Stage>> makePlaceStages();
 
   // For custom named moves
   std::unique_ptr<mtc::Stage> makeMoveToNamedStage(
@@ -39,8 +35,4 @@ public:
 
   // Orchestrator step runner
   bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node);
-
-private:
-  rclcpp::Node::SharedPtr node_;
-  nlohmann::json config_;
 };
