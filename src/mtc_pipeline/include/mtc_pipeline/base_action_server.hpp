@@ -13,7 +13,7 @@ template<typename ActionType, typename StagesType>
 class BaseActionServer : public rclcpp::Node
 {
 public:
-    using Action = ActionType;
+
     using GoalHandle = rclcpp_action::ServerGoalHandle<ActionType>;
 
     BaseActionServer(const std::string& node_name, const std::string& action_name)
@@ -64,7 +64,8 @@ private:
 
     void handle_accepted(const std::shared_ptr<GoalHandle> goal_handle)
     {
-        std::thread{std::bind(&BaseActionServer::execute, this, std::placeholders::_1), goal_handle}.detach();
+        auto self = this->shared_from_this();
+        std::thread{[self, goal_handle]() { self->execute(goal_handle); }}.detach();
     }
 
     void execute(const std::shared_ptr<GoalHandle> goal_handle)
