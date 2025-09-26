@@ -64,7 +64,7 @@ private:
 
     void handle_accepted(const std::shared_ptr<GoalHandle> goal_handle)
     {
-        auto self = this->shared_from_this();
+        auto self = std::static_pointer_cast<BaseActionServer>(this->shared_from_this());
         std::thread{[self, goal_handle]() { self->execute(goal_handle); }}.detach();
     }
 
