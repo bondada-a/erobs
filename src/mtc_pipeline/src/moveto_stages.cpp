@@ -60,11 +60,11 @@ std::vector<std::string> MoveToStages::getJointNames() {
 std::map<std::string, double> MoveToStages::convertDegreesToRadians(const std::vector<double>& angles_deg) {
     const std::vector<std::string> joint_names = getJointNames();
     std::map<std::string, double> joint_goal;
-    
+
     for (size_t i = 0; i < std::min(angles_deg.size(), joint_names.size()); ++i) {
         joint_goal[joint_names[i]] = angles_deg[i] * M_PI / 180.0;
     }
-    
+
     return joint_goal;
 }
 
@@ -75,7 +75,7 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToNamedStage(
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group_name,
     bool is_named_state) {
-    
+
     if (is_named_state) {
         // For named states, we need to get the joint values from the robot model
         // This will be handled in the run function where we have access to the robot model
@@ -86,17 +86,17 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToNamedStage(
         stage->setGroup(arm_group_name);
         stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
         stage->setIKFrame("flange");
-        
+
         auto& angles_deg = config_["poses"][pose_key];
         if (!angles_deg.is_array() || angles_deg.size() != 6) {
             throw std::runtime_error(pose_key + " must be an array of 6 numbers");
         }
-        
+
         std::vector<double> angles_vec;
         for (const auto& angle : angles_deg) {
             angles_vec.push_back(angle.get<double>());
         }
-        
+
         auto joint_goal = convertDegreesToRadians(angles_vec);
         stage->setGoal(joint_goal);
         return stage;
@@ -109,15 +109,15 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToJointStage(
     const std::vector<double>& joint_angles,
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group_name) {
-    
+
     auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
     stage->setGroup(arm_group_name);
     stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
     stage->setIKFrame("flange");
-    
+
     auto joint_goal = convertDegreesToRadians(joint_angles);
     stage->setGoal(joint_goal);
-    
+
     return stage;
 }
 
@@ -127,13 +127,13 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToPoseStage(
     const geometry_msgs::msg::PoseStamped& pose,
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group_name) {
-    
+
     auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
     stage->setGroup(arm_group_name);
     stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
     stage->setIKFrame("flange");
     stage->setGoal(pose);
-    
+
     return stage;
 }
 
@@ -144,17 +144,17 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveRelativeStage(
     double distance,
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group_name) {
-    
+
     auto stage = std::make_unique<mtc::stages::MoveRelative>(label, planner);
     stage->properties().set("marker_ns", "relative_move");
     stage->properties().set("link", "flange");
     stage->properties().configureInitFrom(mtc::Stage::PARENT, { "group", "ik_frame" });
     stage->setGroup(arm_group_name);
     stage->setMinMaxDistance(std::abs(distance), std::abs(distance));
-    
+
     geometry_msgs::msg::Vector3Stamped vec;
     vec.header.frame_id = "flange";
-    
+
     // Set direction based on input
     if (direction == "forward" || direction == "x") {
         vec.vector.x = (distance >= 0.0) ? 1.0 : -1.0;
@@ -169,10 +169,10 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveRelativeStage(
     } else if (direction == "down" || direction == "-z") {
         vec.vector.z = (distance >= 0.0) ? -1.0 : 1.0;
     } else {
-        throw std::runtime_error("Invalid direction: " + direction + 
+        throw std::runtime_error("Invalid direction: " + direction +
             ". Use: forward/x, right/y, up/z, backward/-x, left/-y, down/-z");
     }
-    
+
     stage->setDirection(vec);
     return stage;
 }
@@ -183,20 +183,20 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
 }
 
 // Main orchestrator step runner with cancellation support
-bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node, 
+bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node,
                       std::function<bool()> should_cancel) {
     std::string target_type = step.value("target_type", "pose");
     std::string planning_type = step.value("planning_type", "joint");
     std::string arm_group_name = step.value("arm_group", "ur_arm");
-    
+
     // FSM-style: No cancellation check before starting
-    
+
     // Update config with poses
     config_["poses"] = poses;
-    
+
     // Create planner based on planning type
     mtc::solvers::PlannerInterfacePtr planner;
-    
+
     if (planning_type == "cartesian") {
         auto cartesian_planner = std::make_shared<mtc::solvers::CartesianPath>();
         cartesian_planner->setMaxVelocityScalingFactor(0.2);
@@ -213,22 +213,22 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
         joint_planner->setMaxAccelerationScalingFactor(0.2);
         planner = joint_planner;
     }
-    
+
     // Create task
     mtc::Task task;
     task.stages()->setName("MoveTo Task");
-    
+
     task.setProperty("group", arm_group_name);
-    
+
     // Set up IK frame
     geometry_msgs::msg::PoseStamped ik_frame_pose;
     ik_frame_pose.header.frame_id = "flange";
     ik_frame_pose.pose.orientation.w = 1.0;
     task.setProperty("ik_frame", ik_frame_pose);
-    
+
     // Add current state
     task.add(std::make_unique<mtc::stages::CurrentState>("current"));
-    
+
     // Add movement stage based on target type
     if (target_type == "named_state") {
         std::string named_state = step["target"];
@@ -245,35 +245,25 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
         std::string pose_key = step["target"];
         task.add(makeMoveToNamedStage("move_to_" + pose_key, pose_key, planner, arm_group_name, false));
     }
-    
+
     // Initialize and execute task
     try {
         // FSM-style: No cancellation check before initialization
-        
+
         // Load robot model
         task.loadRobotModel(node);
-        
-        // Debug: Print available groups and states
+
         auto robot_model = task.getRobotModel();
         if (robot_model) {
-            RCLCPP_INFO(node->get_logger(), "Robot model loaded successfully");
-            RCLCPP_INFO(node->get_logger(), "Available groups: %s", 
-                       boost::algorithm::join(robot_model->getJointModelGroupNames(), ", ").c_str());
-            
             if (target_type == "named_state") {
                 std::string named_state = step["target"];
                 auto group = robot_model->getJointModelGroup(arm_group_name);
                 if (group) {
-                    RCLCPP_INFO(node->get_logger(), "Group '%s' found", arm_group_name.c_str());
-
                     // Use MoveIt API to get named state from SRDF
                     moveit::core::RobotState robot_state(robot_model);
                     if (robot_state.setToDefaultValues(group, named_state)) {
-                        RCLCPP_INFO(node->get_logger(), "Found named state '%s' in SRDF", named_state.c_str());
-
                         std::vector<double> joint_angles;
                         robot_state.copyJointGroupPositions(group, joint_angles);
-
                         task.add(makeMoveToJointStage("move_to_" + named_state, joint_angles, planner, arm_group_name));
                     } else {
                         RCLCPP_ERROR(node->get_logger(), "Named state '%s' not found in SRDF for group '%s'",
@@ -286,52 +276,52 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, 
                 }
             }
         }
-        
+
         // FSM-style: No cancellation check before planning
-        
+
         task.init();
     } catch (const mtc::InitStageException& e) {
         RCLCPP_ERROR_STREAM(node->get_logger(), "Stage initialization failed: " << e);
         return false;
     }
-    
+
     // FSM-style: No cancellation check before planning
-    
+
     if (!task.plan(5)) {
         RCLCPP_ERROR(node->get_logger(), "Task planning failed");
         return false;
     }
-    
+
     if (task.solutions().empty()) {
         RCLCPP_ERROR(node->get_logger(), "No solutions found to execute");
         return false;
     }
-    
+
     // FSM-style: No cancellation check before execution
-    
+
     auto solution = task.solutions().front();
-    
+
     // Execute with FSM-style behavior (complete movement, then check cancellation)
     RCLCPP_INFO(node->get_logger(), "Starting execution with FSM-style behavior...");
-    
-    
+
+
     // FSM-STYLE EXECUTION: Blocking call, then check cancellation
     RCLCPP_INFO(node->get_logger(), "Executing MTC task (blocking call)...");
     auto result = task.execute(*solution);
-    
+
     // Check for cancellation AFTER execution completes (FSM-style)
     if (should_cancel && should_cancel()) {
         RCLCPP_WARN(node->get_logger(), "MoveTo task cancelled after execution (FSM-style)");
         return false;
     }
-    
+
     bool execution_success = (result.val == moveit_msgs::msg::MoveItErrorCodes::SUCCESS);
-    
+
     if (execution_success) {
         RCLCPP_INFO(node->get_logger(), "MoveTo task completed successfully");
     } else {
         RCLCPP_ERROR(node->get_logger(), "MoveTo task failed");
     }
-    
+
     return execution_success;
 }
