@@ -13,17 +13,11 @@
 // Standard library includes
 #include <atomic>
 #include <chrono>
-#include <cstdio>
 #include <cstdlib>
 #include <functional>
-#include <future>
 #include <memory>
-#include <mutex>
-#include <signal.h>
-#include <sstream>
 #include <stdexcept>
 #include <string>
-#include <sys/wait.h>
 #include <thread>
 #include <unordered_map>
 #include <vector>
@@ -59,7 +53,7 @@ private:
     std::string current_gripper_ = "none";
     
     
-    // Action clients to call embedded actions
+    // Action clients to call modular action servers
     rclcpp_action::Client<MoveToAction>::SharedPtr moveto_action_client_;
     rclcpp_action::Client<EndEffectorAction>::SharedPtr endeffector_action_client_;
     rclcpp_action::Client<ToolExchangeAction>::SharedPtr toolexchange_action_client_;
@@ -89,7 +83,7 @@ private:
 
     // Execute function helpers
     bool initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip);
-    
+
     // Generic template for action client calls
     template<typename ActionType>
     bool call_action_generic(
@@ -98,31 +92,7 @@ private:
         const nlohmann::json& step,
         const nlohmann::json& poses,
         std::function<void(typename ActionType::Goal&, const nlohmann::json&, const nlohmann::json&)> populate_goal
-    ) {
-        if (!client->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
-            RCLCPP_ERROR(this->get_logger(), "%s action server unavailable", action_name.c_str());
-            return false;
-        }
-
-        auto goal = typename ActionType::Goal();
-        populate_goal(goal, step, poses);
-
-        auto future = client->async_send_goal(goal);
-        auto goal_handle = future.get();
-
-        if (!goal_handle) {
-            RCLCPP_ERROR(this->get_logger(), "Failed to send %s goal", action_name.c_str());
-            return false;
-        }
-
-        auto result_future = client->async_get_result(goal_handle);
-        auto result = result_future.get();
-
-        if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
-            return result.result->success;
-        }
-        return false;
-    }
+    );
 
     // Action client methods to call modular action servers via ROS2 actions
     bool call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses);

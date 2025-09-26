@@ -169,17 +169,6 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& ste
     return true;
 }
 
-void MTCOrchestratorActionServer::update_feedback(std::shared_ptr<MTCExecution::Feedback> feedback,
-                    std::shared_ptr<GoalHandleMTCExecution> goal_handle,
-                    size_t current_step, size_t total_steps, const std::string& action,
-                    const std::string& status_message) {
-    feedback->current_step = current_step;
-    feedback->current_action = action;
-    feedback->progress_percentage = static_cast<float>(current_step) / total_steps * 100.0f;
-    feedback->status_message = status_message;
-    feedback->current_gripper = current_gripper_;
-    goal_handle->publish_feedback(feedback);
-}
 
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
     // Start MoveIt configuration
@@ -225,6 +214,71 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     current_gripper_ = start_gripper;
     return true;
 }
+
+void MTCOrchestratorActionServer::update_feedback(std::shared_ptr<MTCExecution::Feedback> feedback,
+                    std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+                    size_t current_step, size_t total_steps, const std::string& action,
+                    const std::string& status_message) {
+    feedback->current_step = current_step;
+    feedback->current_action = action;
+    feedback->progress_percentage = static_cast<float>(current_step) / total_steps * 100.0f;
+    feedback->status_message = status_message;
+    feedback->current_gripper = current_gripper_;
+    goal_handle->publish_feedback(feedback);
+}
+
+// Template implementation
+template<typename ActionType>
+bool MTCOrchestratorActionServer::call_action_generic(
+    typename rclcpp_action::Client<ActionType>::SharedPtr client,
+    const std::string& action_name,
+    const nlohmann::json& step,
+    const nlohmann::json& poses,
+    std::function<void(typename ActionType::Goal&, const nlohmann::json&, const nlohmann::json&)> populate_goal
+) {
+    if (!client->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
+        RCLCPP_ERROR(this->get_logger(), "%s action server unavailable", action_name.c_str());
+        return false;
+    }
+
+    auto goal = typename ActionType::Goal();
+    populate_goal(goal, step, poses);
+
+    auto future = client->async_send_goal(goal);
+    auto goal_handle = future.get();
+
+    if (!goal_handle) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to send %s goal", action_name.c_str());
+        return false;
+    }
+
+    auto result_future = client->async_get_result(goal_handle);
+    auto result = result_future.get();
+
+    if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+        return result.result->success;
+    }
+    return false;
+}
+
+// Explicit template instantiations
+template bool MTCOrchestratorActionServer::call_action_generic<MoveToAction>(
+    rclcpp_action::Client<MoveToAction>::SharedPtr, const std::string&, const nlohmann::json&, const nlohmann::json&,
+    std::function<void(MoveToAction::Goal&, const nlohmann::json&, const nlohmann::json&)>);
+
+template bool MTCOrchestratorActionServer::call_action_generic<EndEffectorAction>(
+    rclcpp_action::Client<EndEffectorAction>::SharedPtr, const std::string&, const nlohmann::json&, const nlohmann::json&,
+    std::function<void(EndEffectorAction::Goal&, const nlohmann::json&, const nlohmann::json&)>);
+
+template bool MTCOrchestratorActionServer::call_action_generic<ToolExchangeAction>(
+    rclcpp_action::Client<ToolExchangeAction>::SharedPtr, const std::string&, const nlohmann::json&, const nlohmann::json&,
+    std::function<void(ToolExchangeAction::Goal&, const nlohmann::json&, const nlohmann::json&)>);
+
+template bool MTCOrchestratorActionServer::call_action_generic<PickPlaceAction>(
+    rclcpp_action::Client<PickPlaceAction>::SharedPtr, const std::string&, const nlohmann::json&, const nlohmann::json&,
+    std::function<void(PickPlaceAction::Goal&, const nlohmann::json&, const nlohmann::json&)>);
+
+
 
 void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
     {
