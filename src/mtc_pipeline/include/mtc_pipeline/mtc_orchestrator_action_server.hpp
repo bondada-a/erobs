@@ -132,7 +132,13 @@ private:
 
     // Helper functions for execute_step
     bool handle_tool_exchange(const nlohmann::json& step, const nlohmann::json& poses, const std::string& robot_ip);
-    
+
+    // Helper function for feedback updates
+    void update_feedback(std::shared_ptr<MTCExecution::Feedback> feedback,
+                        std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+                        size_t current_step, size_t total_steps, const std::string& action,
+                        const std::string& status_message);
+
 };
 
 #endif // MTC_ORCHESTRATOR_ACTION_SERVER_HPP

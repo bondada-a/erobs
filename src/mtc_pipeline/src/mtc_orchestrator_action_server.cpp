@@ -169,6 +169,18 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& ste
     return true;
 }
 
+void MTCOrchestratorActionServer::update_feedback(std::shared_ptr<MTCExecution::Feedback> feedback,
+                    std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+                    size_t current_step, size_t total_steps, const std::string& action,
+                    const std::string& status_message) {
+    feedback->current_step = current_step;
+    feedback->current_action = action;
+    feedback->progress_percentage = static_cast<float>(current_step) / total_steps * 100.0f;
+    feedback->status_message = status_message;
+    feedback->current_gripper = current_gripper_;
+    goal_handle->publish_feedback(feedback);
+}
+
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
     // Start MoveIt configuration
     RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
@@ -238,18 +250,12 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             result->completed_steps = 0;
 
             // Send initial feedback
-            feedback->current_step = 0;
-            feedback->current_action = "Initializing MoveIt";
-            feedback->progress_percentage = 0.0f;
-            feedback->status_message = "Starting MoveIt configuration";
-            feedback->current_gripper = start_gripper;
-            goal_handle->publish_feedback(feedback);
+            update_feedback(feedback, goal_handle, 0, operations.size(), "Initializing MoveIt", "Starting MoveIt configuration");
 
             // Initialize MoveIt stack
             if (!initialize_moveit_stack(start_gripper, robot_ip)) {
                 throw std::runtime_error("Failed to initialize MoveIt stack");
             }
-
 
             // Execute tasks
             for (size_t i = 0; i < operations.size(); ++i) {
@@ -264,30 +270,17 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
                 }
 
                 const auto& step = operations[i];
-                std::string action;
-                try {
-                    if (step.contains("type") && step["type"].is_string()) {
-                        action = step["type"].get<std::string>();
-                    } else if (step.contains("action") && step["action"].is_string()) {
-                        action = step["action"].get<std::string>();
-                    } else {
-                        throw std::runtime_error("Step missing valid 'type' or 'action' field");
-                    }
-                } catch (const std::exception& e) {
-                    throw std::runtime_error("Failed to read action from step " + std::to_string(i + 1) + ": " + e.what());
+                std::string action = step.value("action", step.value("type", ""));
+                if (action.empty()) {
+                    throw std::runtime_error("Step missing 'action' or 'type' field");
                 }
 
                 // Update feedback
-                feedback->current_step = i + 1;
-                feedback->current_action = action;
-                feedback->progress_percentage = static_cast<float>(i + 1) / operations.size() * 100.0f;
-                feedback->status_message = "Executing: " + action;
-                feedback->current_gripper = current_gripper_;
-                goal_handle->publish_feedback(feedback);
+                update_feedback(feedback, goal_handle, i + 1, operations.size(), action, "Executing: " + action);
                 
                 RCLCPP_DEBUG(this->get_logger(), "Executing step %zu: %s", i + 1, action.c_str());
                 
-                // Execute step (stage parameters unused now - using embedded instances instead)
+                // Execute step
                 if (!execute_step(action, step, poses, robot_ip)) {
                     RCLCPP_ERROR(this->get_logger(), "%s step failed", action.c_str());
                     result->success = false;
@@ -305,9 +298,7 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             result->success = true;
             result->error_message = "";
             
-            feedback->progress_percentage = 100.0f;
-            feedback->status_message = "Task completed successfully";
-            goal_handle->publish_feedback(feedback);
+            update_feedback(feedback, goal_handle, operations.size(), operations.size(), "", "Task completed successfully");
             
             goal_handle->succeed(result);
             RCLCPP_INFO(this->get_logger(), "Goal succeeded");
@@ -318,8 +309,6 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             result->error_message = std::string("Execution failed: ") + e.what();
             goal_handle->abort(result);
         }
-
-        // Cleanup - processes will clean up automatically when orchestrator exits
 
         is_executing_ = false;
     }
