@@ -35,6 +35,7 @@ endif()
 
 # === Create a library for shared logic ===
 add_library(mtc_pipeline_core
+  src/base_stages.cpp
   src/pick_place_stages.cpp
   src/tool_exchange_stages.cpp
   src/moveto_stages.cpp

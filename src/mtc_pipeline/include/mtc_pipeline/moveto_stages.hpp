@@ -1,20 +1,21 @@
 #pragma once
 
-#include <rclcpp/rclcpp.hpp>
-#include <moveit/task_constructor/task.h>
-#include <moveit/task_constructor/stages/current_state.h>
-#include <moveit/task_constructor/stages/move_to.h>
-#include <moveit/task_constructor/stages/move_relative.h>
+#include "mtc_pipeline/base_stages.hpp"
+
 #include <moveit/task_constructor/solvers/planner_interface.h>
+#include <moveit/task_constructor/stages/move_relative.h>
+#include <moveit/task_constructor/stages/move_to.h>
 #include <nlohmann/json.hpp>
+
+#include <geometry_msgs/msg/pose_stamped.hpp>
+
 #include <memory>
 #include <string>
 #include <vector>
-#include <map>
 
 namespace mtc = moveit::task_constructor;
 
-class MoveToStages {
+class MoveToStages : public BaseStages {
 public:
   // Constructor
   MoveToStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
@@ -59,12 +60,4 @@ public:
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group_name
   );
-
-private:
-  rclcpp::Node::SharedPtr node_;
-  nlohmann::json config_;
-  
-  // Helper methods
-  std::map<std::string, double> convertDegreesToRadians(const std::vector<double>& angles_deg);
-  std::vector<std::string> getJointNames();
 };
