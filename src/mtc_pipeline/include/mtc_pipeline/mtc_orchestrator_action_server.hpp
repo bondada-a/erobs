@@ -77,7 +77,7 @@ private:
 
 
     // Main execution logic
-    bool execute_step(const std::string& action, const nlohmann::json& step, 
+    bool execute_step(const std::string& task_type, const nlohmann::json& step, 
                      const nlohmann::json& poses, const std::string& robot_ip);
     
     // Gripper switching logic
@@ -109,7 +109,7 @@ private:
     // Helper function for feedback updates
     void update_feedback(std::shared_ptr<MTCExecution::Feedback> feedback,
                         std::shared_ptr<GoalHandleMTCExecution> goal_handle,
-                        size_t current_step, size_t total_steps, const std::string& action,
+                        size_t current_step, size_t total_steps, const std::string& task_type,
                         const std::string& status_message);
 
 };
