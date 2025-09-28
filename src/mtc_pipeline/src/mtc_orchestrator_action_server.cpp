@@ -1,5 +1,8 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 
+#include <algorithm>
+#include <rclcpp/parameter.hpp>
+
 // MTCOrchestratorActionServer implementation
 MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options)
         : Node("mtc_orchestrator_action_server", options), is_executing_(false) {
@@ -171,6 +174,22 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& ste
 
 
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
+    // Kill any existing MoveIt processes first
+    RCLCPP_INFO(this->get_logger(), "Killing existing MoveIt processes...");
+    const int kill_moveit = std::system("pkill -f 'ros2 launch.*moveit_config.*move_group.launch.py'");
+    const int kill_ur = std::system("pkill -f 'ur_ros2_control_node'");
+    const int kill_move_group = std::system("pkill -f 'move_group'");
+    const int kill_rsp = std::system("pkill -f 'robot_state_publisher'");
+    const int kill_rviz = std::system("pkill -f 'rviz2'");
+    (void)kill_moveit;
+    (void)kill_ur;
+    (void)kill_move_group;
+    (void)kill_rsp;
+    (void)kill_rviz;
+
+    // Wait a bit for processes to die
+    std::this_thread::sleep_for(3s);
+
     // Start MoveIt configuration
     RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
 
@@ -189,7 +208,8 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
 
     const std::string launch_cmd = "ros2 launch " + it->second + " move_group.launch.py robot_ip:=" + robot_ip + " &";
     RCLCPP_DEBUG(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
-    std::system(launch_cmd.c_str());
+    const int launch_ret = std::system(launch_cmd.c_str());
+    (void)launch_ret;
 
     // Wait for PlanningScene service (this confirms MoveIt is ready)
     auto ps_client = this->create_client<moveit_msgs::srv::GetPlanningScene>("/get_planning_scene");
@@ -197,6 +217,14 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         RCLCPP_ERROR(this->get_logger(), "MoveIt not ready within 30s");
         return false;
     }
+
+    if (!sync_robot_descriptions()) {
+        RCLCPP_WARN(this->get_logger(), "Failed to sync robot descriptions after launching MoveIt");
+    }
+
+    // Wait for robot hardware to be ready - simple timeout approach
+    RCLCPP_INFO(this->get_logger(), "Waiting for robot hardware to initialize...");
+    std::this_thread::sleep_for(5s);
 
     // Send play command to robot dashboard
     auto client = this->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
@@ -210,8 +238,70 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         RCLCPP_WARN(this->get_logger(), "Dashboard 'play' service not available");
     }
 
-
     current_gripper_ = start_gripper;
+    return true;
+}
+
+bool MTCOrchestratorActionServer::sync_robot_descriptions()
+{
+    auto node = this->shared_from_this();
+    auto source_client = std::make_shared<rclcpp::SyncParametersClient>(node, "move_group");
+
+    if (!source_client->wait_for_service(5s)) {
+        RCLCPP_ERROR(this->get_logger(), "Unable to reach move_group parameter service for robot description sync");
+        return false;
+    }
+
+    std::vector<std::string> param_names = {
+        "robot_description",
+        "robot_description_semantic",
+        "robot_description_kinematics",
+        "robot_description_planning"
+    };
+
+    std::vector<rclcpp::Parameter> description_params;
+    try {
+        description_params = source_client->get_parameters(param_names);
+    } catch (const std::exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to retrieve robot description parameters: %s", e.what());
+        return false;
+    }
+
+    description_params.erase(
+        std::remove_if(description_params.begin(), description_params.end(),
+                       [](const rclcpp::Parameter& param) { return param.get_name().empty(); }),
+        description_params.end());
+
+    if (description_params.empty()) {
+        RCLCPP_ERROR(this->get_logger(), "No robot_description parameters retrieved from move_group");
+        return false;
+    }
+
+    // Update orchestrator's own parameters
+    this->set_parameters(description_params);
+
+    static const std::vector<std::string> target_nodes = {
+        "moveto_action_server",
+        "endeffector_action_server",
+        "pickplace_action_server",
+        "toolexchange_action_server"
+    };
+
+    for (const auto& target : target_nodes) {
+        auto target_client = std::make_shared<rclcpp::SyncParametersClient>(node, target);
+        if (!target_client->wait_for_service(5s)) {
+            RCLCPP_WARN(this->get_logger(), "Parameter service for %s unavailable during robot description sync", target.c_str());
+            continue;
+        }
+
+        try {
+            target_client->set_parameters(description_params);
+            RCLCPP_INFO(this->get_logger(), "Synced robot description parameters to %s", target.c_str());
+        } catch (const std::exception& e) {
+            RCLCPP_WARN(this->get_logger(), "Failed to sync robot description to %s: %s", target.c_str(), e.what());
+        }
+    }
+
     return true;
 }
 
@@ -253,6 +343,15 @@ bool MTCOrchestratorActionServer::call_action_generic(
     }
 
     auto result_future = client->async_get_result(goal_handle);
+
+    // Add timeout for action execution (2 minutes)
+    constexpr auto ACTION_TIMEOUT = 120s;
+    if (result_future.wait_for(ACTION_TIMEOUT) != std::future_status::ready) {
+        RCLCPP_ERROR(this->get_logger(), "%s action timed out after %ld seconds", action_name.c_str(), ACTION_TIMEOUT.count());
+        client->async_cancel_goal(goal_handle);
+        return false;
+    }
+
     auto result = result_future.get();
 
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {

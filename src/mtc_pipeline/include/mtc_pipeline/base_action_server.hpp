@@ -16,6 +16,7 @@ public:
 
     using GoalHandle = rclcpp_action::ServerGoalHandle<ActionType>;
 
+
     BaseActionServer(const std::string& node_name, const std::string& action_name)
         : Node(node_name)
     {
@@ -82,7 +83,7 @@ private:
             // Parse poses JSON
             nlohmann::json poses = nlohmann::json::parse(goal->poses_json);
 
-            // Execute using stages
+            // Execute using stages - timeout is handled at orchestrator level
             bool success = stages_->run(step, poses, this->shared_from_this());
 
             result->success = success;

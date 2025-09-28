@@ -6,6 +6,8 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <moveit_msgs/srv/get_planning_scene.hpp>
+#include <rclcpp/parameter_client.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 
 // Third-party includes
 #include <nlohmann/json.hpp>
@@ -83,6 +85,7 @@ private:
 
     // Execute function helpers
     bool initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip);
+    bool sync_robot_descriptions();
 
     // Generic template for action client calls
     template<typename ActionType>
