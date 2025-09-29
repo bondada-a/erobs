@@ -3,12 +3,11 @@
 #include "mtc_pipeline/base_stages.hpp"
 
 #include <moveit/task_constructor/solvers/planner_interface.h>
-#include <moveit/task_constructor/stages/move_relative.h>
-#include <moveit/task_constructor/stages/move_to.h>
 #include <nlohmann/json.hpp>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -22,9 +21,9 @@ public:
 
   // Main orchestrator step runner
   bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node);
-  
+
   // Main orchestrator step runner with cancellation support
-  bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node, 
+  bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node,
            std::function<bool()> should_cancel);
 
   // Create a move to named pose (from JSON poses or SRDF named states)

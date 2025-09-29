@@ -1,17 +1,13 @@
 #include "mtc_pipeline/moveto_stages.hpp"
 
-#include <moveit/task_constructor/stages.h>
-#include <moveit_msgs/msg/move_it_error_codes.hpp>
-#include <geometry_msgs/msg/vector3_stamped.hpp>
-#include <moveit/robot_model_loader/robot_model_loader.h>
+#include <moveit/task_constructor/stages/move_relative.h>
+#include <moveit/task_constructor/stages/move_to.h>
 #include <moveit/robot_state/robot_state.h>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
 
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
-#include <memory>
-#include <string>
-#include <vector>
 
 namespace {
 constexpr double RAD_TO_DEG = 180.0 / 3.14159265358979323846;
