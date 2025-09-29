@@ -27,16 +27,15 @@ public:
            std::function<bool()> should_cancel);
 
   // Create a move to named pose (from JSON poses or SRDF named states)
-  std::unique_ptr<mtc::Stage> makeMoveToNamedStage(
+  std::unique_ptr<mtc::Stage> moveToNamedPose(
     const std::string& label,
     const std::string& pose_key,
     const mtc::solvers::PlannerInterfacePtr& planner,
-    const std::string& arm_group_name,
-    bool is_named_state = false
+    const std::string& arm_group_name
   );
 
   // Create a move to joint angles (direct joint values)
-  std::unique_ptr<mtc::Stage> makeMoveToJointStage(
+  std::unique_ptr<mtc::Stage> moveToJoints(
     const std::string& label,
     const std::vector<double>& joint_angles,
     const mtc::solvers::PlannerInterfacePtr& planner,
@@ -44,7 +43,7 @@ public:
   );
 
   // Create a Cartesian move to pose
-  std::unique_ptr<mtc::Stage> makeMoveToPoseStage(
+  std::unique_ptr<mtc::Stage> moveToCartesian(
     const std::string& label,
     const geometry_msgs::msg::PoseStamped& pose,
     const mtc::solvers::PlannerInterfacePtr& planner,
@@ -52,7 +51,7 @@ public:
   );
 
   // Create a relative movement stage
-  std::unique_ptr<mtc::Stage> makeMoveRelativeStage(
+  std::unique_ptr<mtc::Stage> moveToRelative(
     const std::string& label,
     const std::string& direction,
     double distance,

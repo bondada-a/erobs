@@ -45,6 +45,7 @@ protected:
                        const ShouldCancelFn& should_cancel = nullptr) const;
 
   std::map<std::string, double> jointsFromDegrees(const std::vector<double>& angles_deg) const;
+  std::map<std::string, double> jointsFromRadians(const std::vector<double>& angles_rad) const;
   static const std::vector<std::string>& defaultJointNames();
 
   void configureOmplParameters() const;

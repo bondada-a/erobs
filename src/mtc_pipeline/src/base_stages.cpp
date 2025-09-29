@@ -112,6 +112,17 @@ std::map<std::string, double> BaseStages::jointsFromDegrees(const std::vector<do
   return joint_goal;
 }
 
+std::map<std::string, double> BaseStages::jointsFromRadians(const std::vector<double>& angles_rad) const {
+  const auto& names = defaultJointNames();
+  std::map<std::string, double> joint_goal;
+
+  for (size_t i = 0; i < std::min(angles_rad.size(), names.size()); ++i) {
+    joint_goal[names[i]] = angles_rad[i];
+  }
+
+  return joint_goal;
+}
+
 const std::vector<std::string>& BaseStages::defaultJointNames() {
   static const std::vector<std::string> names = {
     "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",

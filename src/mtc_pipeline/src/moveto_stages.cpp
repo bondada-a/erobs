@@ -2,6 +2,7 @@
 
 #include <moveit/task_constructor/stages/move_relative.h>
 #include <moveit/task_constructor/stages/move_to.h>
+#include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_state/robot_state.h>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 
@@ -9,47 +10,38 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace {
-constexpr double RAD_TO_DEG = 180.0 / 3.14159265358979323846;
-}
-
 namespace mtc = moveit::task_constructor;
 
 MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
   : BaseStages(node, config) {}
 
-std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToNamedStage(
+// =================================================================================
+// Stage Factory Functions
+// =================================================================================
+
+// Create a move to named pose (from JSON poses)
+std::unique_ptr<mtc::Stage> MoveToStages::moveToNamedPose(
   const std::string& label,
   const std::string& pose_key,
   const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group_name,
-  bool is_named_state)
+  const std::string& arm_group_name)
 {
-  if (is_named_state) {
-    throw std::runtime_error("Named states should be handled in the run function, not in makeMoveToNamedStage");
-  }
-
   const auto& poses = config().at("poses");
   const auto& joint_pose = poses.at(pose_key);
-  if (!joint_pose.is_array() || joint_pose.size() != BaseStages::defaultJointNames().size()) {
-    throw std::runtime_error(pose_key + " must be an array of 6 numbers");
+  if (!joint_pose.is_array() || joint_pose.size() != 6) {
+    throw std::runtime_error(pose_key + " must be an array of 6 joint angles");
   }
 
-  std::vector<double> joint_angles_deg;
-  joint_angles_deg.reserve(joint_pose.size());
-  for (const auto& angle : joint_pose) {
-    joint_angles_deg.push_back(angle.get<double>());
-  }
+  auto joint_angles_deg = joint_pose.get<std::vector<double>>();
 
   auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
   stage->setGroup(arm_group_name);
-  stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-  stage->setIKFrame("flange");
   stage->setGoal(jointsFromDegrees(joint_angles_deg));
   return stage;
 }
 
-std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToJointStage(
+// Create a move to joint angles (direct joint values)
+std::unique_ptr<mtc::Stage> MoveToStages::moveToJoints(
   const std::string& label,
   const std::vector<double>& joint_angles,
   const mtc::solvers::PlannerInterfacePtr& planner,
@@ -63,7 +55,8 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToJointStage(
   return stage;
 }
 
-std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToPoseStage(
+// Create a Cartesian move to pose
+std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesian(
   const std::string& label,
   const geometry_msgs::msg::PoseStamped& pose,
   const mtc::solvers::PlannerInterfacePtr& planner,
@@ -77,7 +70,8 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveToPoseStage(
   return stage;
 }
 
-std::unique_ptr<mtc::Stage> MoveToStages::makeMoveRelativeStage(
+// Create a relative movement stage
+std::unique_ptr<mtc::Stage> MoveToStages::moveToRelative(
   const std::string& label,
   const std::string& direction,
   double distance,
@@ -114,6 +108,10 @@ std::unique_ptr<mtc::Stage> MoveToStages::makeMoveRelativeStage(
   stage->setDirection(vec);
   return stage;
 }
+
+// =================================================================================
+// Main Orchestration
+// =================================================================================
 
 bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node_ptr)
 {
@@ -174,21 +172,20 @@ bool MoveToStages::run(const nlohmann::json& step,
     std::vector<double> joint_angles_rad;
     robot_state.copyJointGroupPositions(group, joint_angles_rad);
 
-    std::vector<double> joint_angles_deg(joint_angles_rad.size());
-    std::transform(joint_angles_rad.begin(), joint_angles_rad.end(), joint_angles_deg.begin(),
-                   [](double value) { return value * RAD_TO_DEG; });
-
-    task.add(makeMoveToJointStage("move_to_" + named_state, joint_angles_deg, planner, arm_group_name));
+    auto stage = std::make_unique<mtc::stages::MoveTo>("move_to_" + named_state, planner);
+    stage->setGroup(arm_group_name);
+    stage->setGoal(jointsFromRadians(joint_angles_rad));
+    task.add(std::move(stage));
   } else if (target_type == "joints") {
     const auto joint_angles = step.at("target").get<std::vector<double>>();
-    task.add(makeMoveToJointStage("move_to_joints", joint_angles, planner, arm_group_name));
+    task.add(moveToJoints("move_to_joints", joint_angles, planner, arm_group_name));
   } else if (target_type == "relative") {
     const std::string direction = step.at("direction");
     const double distance = step.at("distance").get<double>();
-    task.add(makeMoveRelativeStage("move_relative", direction, distance, planner, arm_group_name));
+    task.add(moveToRelative("move_relative", direction, distance, planner, arm_group_name));
   } else if (target_type == "pose") {
     const std::string pose_key = step.at("target");
-    task.add(makeMoveToNamedStage("move_to_" + pose_key, pose_key, planner, arm_group_name, false));
+    task.add(moveToNamedPose("move_to_" + pose_key, pose_key, planner, arm_group_name));
   } else {
     RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
     return false;
