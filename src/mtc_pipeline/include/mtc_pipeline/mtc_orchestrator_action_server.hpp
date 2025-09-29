@@ -91,7 +91,7 @@ private:
     template<typename ActionType>
     bool call_action_generic(
         typename rclcpp_action::Client<ActionType>::SharedPtr client,
-        const std::string& action_name,
+        const std::string& task_type,
         const nlohmann::json& step,
         const nlohmann::json& poses,
         std::function<void(typename ActionType::Goal&, const nlohmann::json&, const nlohmann::json&)> populate_goal
