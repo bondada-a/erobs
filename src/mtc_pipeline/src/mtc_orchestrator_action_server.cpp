@@ -251,12 +251,12 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& ste
     const std::string operation = step.value("operation", "");
     const std::string requested_tool = step.value("gripper", process_manager_->current_gripper_);
 
-    // Execute via delegation to modular action servers
+    // Execute tool exchange action
     if (!call_toolexchange_action(step, poses)) {
         return false;
     }
 
-    // Handle gripper switching after tool exchange
+    // Handle gripper switching after tool exchange                 //TODO : validate have the right gripper attached and no gripper while loading.
     if (operation == "dock") {
         return initialize_moveit_stack("none", robot_ip);
     } else if (operation == "load") {
