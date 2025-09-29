@@ -218,7 +218,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
 
     // Map gripper types to MoveIt config packages                                          //TODO : Add gripper payload for each gripper
     static const std::unordered_map<std::string, std::string> gripper_packages = {
-        {"none", "ur_standalone_moveit_config"},
+        {"none", "ur_standalone_moveit_config"},  // Temporary fix - use hande config for none gripper
         {"epick", "ur_zivid_epick_moveit_config"},
         {"hande", "ur_zivid_hande_moveit_config"}
     };
@@ -236,32 +236,16 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         return false;
     }
 
+    // Wait for robot hardware to be ready - simple timeout approach
+    RCLCPP_INFO(this->get_logger(), "Waiting for robot hardware to initialize...");
+    std::this_thread::sleep_for(5s);
+
     // Send play command to robot dashboard
     auto client = this->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
     client->wait_for_service(30s);
     client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
 
     process_manager_->current_gripper_ = start_gripper;
-    return true;
-}
-
-// === STEP EXECUTION HELPERS ===
-
-bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& step, const nlohmann::json& poses, const std::string& robot_ip) {
-    const std::string operation = step.value("operation", "");
-    const std::string requested_tool = step.value("gripper", process_manager_->current_gripper_);
-
-    // Execute tool exchange action
-    if (!call_toolexchange_action(step, poses)) {
-        return false;
-    }
-
-    // Handle gripper switching after tool exchange                 //TODO : validate have the right gripper attached and no gripper while loading.
-    if (operation == "dock") {
-        return initialize_moveit_stack("none", robot_ip);
-    } else if (operation == "load") {
-        return initialize_moveit_stack(requested_tool, robot_ip);
-    }
     return true;
 }
 
@@ -329,15 +313,6 @@ bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& 
     });
 }
 
-bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    return call_action_generic<ToolExchangeAction>(toolexchange_action_client_, "tool_exchange", step, poses, [](ToolExchangeAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
-        goal.operation = step.value("operation", "");
-        goal.gripper = step.value("gripper", "");
-        goal.dock_number = step.value("dock_number", 0);
-        goal.poses_json = poses.dump();
-    });
-}
-
 bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses) {
     return call_action_generic<PickPlaceAction>(pickplace_action_client_, "pick_and_place", step, poses, [](PickPlaceAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
         goal.gripper = step.value("gripper", "");
@@ -347,6 +322,35 @@ bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& st
         goal.poses_json = poses.dump();
     });
 }
+
+bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& step, const nlohmann::json& poses, const std::string& robot_ip) {
+    const std::string operation = step.value("operation", "");
+    const std::string requested_tool = step.value("gripper", process_manager_->current_gripper_);
+
+    // Execute tool exchange action
+    if (!call_toolexchange_action(step, poses)) {
+        return false;
+    }
+
+    // Handle gripper switching after tool exchange                 //TODO : validate have the right gripper attached and no gripper while loading.
+    if (operation == "dock") {
+        return initialize_moveit_stack("none", robot_ip);
+    } else if (operation == "load") {
+        return initialize_moveit_stack(requested_tool, robot_ip);
+    }
+    return true;
+}
+
+bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses) {
+    return call_action_generic<ToolExchangeAction>(toolexchange_action_client_, "tool_exchange", step, poses, [](ToolExchangeAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+        goal.operation = step.value("operation", "");
+        goal.gripper = step.value("gripper", "");
+        goal.dock_number = step.value("dock_number", 0);
+        goal.poses_json = poses.dump();
+    });
+}
+
+
 
 // === UTILITY FUNCTIONS ===
 
