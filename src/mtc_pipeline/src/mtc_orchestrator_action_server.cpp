@@ -216,12 +216,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         RCLCPP_INFO(this->get_logger(), "Switching from %s to %s gripper",
                    process_manager_->current_gripper_.c_str(), start_gripper.c_str());
         process_manager_->kill_moveit_process();
-    } else {
-        RCLCPP_INFO(this->get_logger(), "Starting fresh MoveIt process");
     }
-
-    // Start MoveIt configuration
-    RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
 
     // Map gripper types to MoveIt config packages
     static const std::unordered_map<std::string, std::string> gripper_packages = {
@@ -230,12 +225,9 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         {"hande", "ur_zivid_hande_moveit_config"}
     };
 
+    // Start MoveIt configuration
+    RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
     auto it = gripper_packages.find(start_gripper);
-    if (it == gripper_packages.end()) {
-        RCLCPP_ERROR(this->get_logger(), "Unknown gripper type: %s", start_gripper.c_str());
-        return false;
-    }
-
     const std::string launch_cmd = "ros2 launch " + it->second + " move_group.launch.py robot_ip:=" + robot_ip;
     process_manager_->launch_process(launch_cmd);
 
@@ -245,7 +237,6 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         RCLCPP_ERROR(this->get_logger(), "MoveIt not ready within 30s");
         return false;
     }
-
 
     // Wait for robot hardware to be ready - simple timeout approach
     RCLCPP_INFO(this->get_logger(), "Waiting for robot hardware to initialize...");
