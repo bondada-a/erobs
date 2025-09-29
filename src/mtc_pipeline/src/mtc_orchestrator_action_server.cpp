@@ -198,9 +198,6 @@ rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_goal(
     const rclcpp_action::GoalUUID & uuid,
     std::shared_ptr<const MTCExecution::Goal> goal)
 {
-    (void)uuid;
-    (void)goal;
-
     if (is_executing_) {
         RCLCPP_WARN(this->get_logger(), "Goal rejected: another task is already executing");
         return rclcpp_action::GoalResponse::REJECT;
@@ -213,7 +210,6 @@ rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_goal(
 rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
     const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
 {
-    (void)goal_handle;
     RCLCPP_DEBUG(this->get_logger(), "Received request to cancel goal");
 
     if (is_executing_) {
