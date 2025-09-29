@@ -83,8 +83,6 @@ private:
     bool execute_step(const std::string& task_type, const nlohmann::json& step, 
                      const nlohmann::json& poses, const std::string& robot_ip);
     
-    // Gripper switching logic
-    bool switch_gripper(const std::string& new_gripper, const std::string& robot_ip);
 
     // Execute function helpers
     bool initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip);

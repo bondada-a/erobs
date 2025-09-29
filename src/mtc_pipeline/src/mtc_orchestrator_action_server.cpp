@@ -304,16 +304,6 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
 }
 
 
-bool MTCOrchestratorActionServer::switch_gripper(const std::string& new_gripper, const std::string& robot_ip) {
-    if (process_manager_->current_gripper_ == new_gripper) return true;
-
-    // Just reuse the initialization logic - switching gripper IS reinitializing MoveIt
-    if (!initialize_moveit_stack(new_gripper, robot_ip)) {
-        return false;
-    }
-
-    return true;
-}
 
 // === STEP EXECUTION HELPERS ===
 
@@ -328,9 +318,9 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& ste
 
     // Handle gripper switching after tool exchange
     if (operation == "dock") {
-        return switch_gripper("none", robot_ip);
+        return initialize_moveit_stack("none", robot_ip);
     } else if (operation == "load") {
-        return switch_gripper(requested_tool, robot_ip);
+        return initialize_moveit_stack(requested_tool, robot_ip);
     }
     return true;
 }
