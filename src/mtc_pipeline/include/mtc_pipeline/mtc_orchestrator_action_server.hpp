@@ -24,6 +24,8 @@
 #include <unordered_map>
 #include <vector>
 
+class SimpleProcessManager;
+
 #include "mtc_pipeline/action/mtc_execution.hpp"
 #include "mtc_pipeline/action/move_to_action.hpp"
 #include "mtc_pipeline/action/end_effector_action.hpp"
@@ -48,11 +50,12 @@ public:
     static constexpr auto ACTION_SERVER_TIMEOUT = std::chrono::seconds(5);
 
     MTCOrchestratorActionServer(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
+    ~MTCOrchestratorActionServer() override;
 
 private:
     ActionServer::SharedPtr action_server_;
     std::atomic<bool> is_executing_;
-    std::string current_gripper_ = "none";
+    std::unique_ptr<SimpleProcessManager> process_manager_;
     
     
     // Action clients to call modular action servers

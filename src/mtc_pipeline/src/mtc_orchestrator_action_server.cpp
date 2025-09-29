@@ -1,11 +1,65 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 
-#include <algorithm>
 #include <rclcpp/parameter.hpp>
+#include <csignal>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <unistd.h>
+
+// Simple class to manage MoveIt processes
+class SimpleProcessManager {
+public:
+  // Launch a command and remember its process ID
+  pid_t launch_process(const std::string& command) {
+    pid_t pid = fork();  // Create a new process
+
+    if (pid == 0) {  // This is the child process
+      // Create a new process group so we can kill all children
+      setsid();
+      // Run the command
+      execl("/bin/bash", "bash", "-c", command.c_str(), static_cast<char*>(nullptr));
+      _exit(1);  // Exit if exec fails
+    }
+
+    if (pid > 0) {  // This is the parent process
+      moveit_pid_ = pid;  // Remember the process ID
+    }
+
+    return pid;
+  }
+
+  // Kill the MoveIt process if it's running
+  void kill_moveit_process() {
+    if (moveit_pid_ > 0) {
+      // Kill the whole process group (parent + all children)
+      kill(-moveit_pid_, SIGTERM);  // Ask process group to stop nicely
+
+      // Wait 3 seconds for it to stop
+      for (int i = 0; i < 30; i++) {
+        if (kill(moveit_pid_, 0) != 0) {  // Check if main process is dead
+          break;  // Process is dead, we're done
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+
+      // Force kill the whole group if still alive
+      kill(-moveit_pid_, SIGKILL);
+      waitpid(moveit_pid_, nullptr, WNOHANG);  // Clean up zombie process
+      moveit_pid_ = 0;  // Reset
+    }
+  }
+
+  // Track which gripper configuration is currently running
+  std::string current_gripper_ = "";
+  // Store the MoveIt process ID
+  pid_t moveit_pid_ = 0;
+};
 
 // MTCOrchestratorActionServer implementation
 MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options)
         : Node("mtc_orchestrator_action_server", options), is_executing_(false) {
+        process_manager_ = std::make_unique<SimpleProcessManager>();
+
         // Initialize the action server
         this->action_server_ = rclcpp_action::create_server<MTCExecution>(
             this,
@@ -22,6 +76,12 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
 
         RCLCPP_INFO(this->get_logger(), "MTC Orchestrator Action Server started");
     }
+
+MTCOrchestratorActionServer::~MTCOrchestratorActionServer() {
+    if (process_manager_) {
+        process_manager_->kill_moveit_process();
+    }
+}
 
 // === MAIN EXECUTION FLOW ===
 
@@ -72,6 +132,7 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
                 result->error_message = "Task was canceled";
                 goal_handle->canceled(result);
                 is_executing_ = false;
+                process_manager_->kill_moveit_process();
                 return;
             }
 
@@ -94,6 +155,7 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
                 result->completed_steps = i;
                 goal_handle->abort(result);
                 is_executing_ = false;
+                process_manager_->kill_moveit_process();
                 return;
             }
 
@@ -107,13 +169,14 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
         update_feedback(feedback, goal_handle, tasks.size(), tasks.size(), "", "Task completed successfully");
 
         goal_handle->succeed(result);
-        RCLCPP_INFO(this->get_logger(), "Goal succeeded");
+        RCLCPP_INFO(this->get_logger(), "Goal succeeded - keeping MoveIt running");
 
     } catch (const std::exception& e) {
         RCLCPP_ERROR(this->get_logger(), "Execution failed: %s", e.what());
         result->success = false;
         result->error_message = std::string("Execution failed: ") + e.what();
         goal_handle->abort(result);
+        process_manager_->kill_moveit_process();  // Still kill on failure
     }
 
     is_executing_ = false;
@@ -154,6 +217,7 @@ rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
     RCLCPP_DEBUG(this->get_logger(), "Received request to cancel goal");
 
     if (is_executing_) {
+        process_manager_->kill_moveit_process();
         is_executing_ = false;
     }
 
@@ -168,21 +232,28 @@ void MTCOrchestratorActionServer::handle_accepted(const std::shared_ptr<GoalHand
 // === MOVEIT STACK MANAGEMENT ===
 
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
-    // Kill any existing MoveIt processes first
-    RCLCPP_INFO(this->get_logger(), "Killing existing MoveIt processes...");
-    const int kill_moveit = std::system("pkill -f 'ros2 launch.*moveit_config.*move_group.launch.py'");
-    const int kill_ur = std::system("pkill -f 'ur_ros2_control_node'");
-    const int kill_move_group = std::system("pkill -f 'move_group'");
-    const int kill_rsp = std::system("pkill -f 'robot_state_publisher'");
-    const int kill_rviz = std::system("pkill -f 'rviz2'");
-    (void)kill_moveit;
-    (void)kill_ur;
-    (void)kill_move_group;
-    (void)kill_rsp;
-    (void)kill_rviz;
+    // Check if we already have the right gripper running
+    if (process_manager_->moveit_pid_ > 0 && process_manager_->current_gripper_ == start_gripper) {
+        // Check if MoveIt is actually still alive
+        if (kill(process_manager_->moveit_pid_, 0) == 0) {
+            RCLCPP_INFO(this->get_logger(), "MoveIt already running for gripper: %s, reusing", start_gripper.c_str());
+            return true;  // Reuse existing MoveIt!
+        } else {
+            // Process died, reset our tracking
+            RCLCPP_WARN(this->get_logger(), "MoveIt process died unexpectedly, restarting");
+            process_manager_->moveit_pid_ = 0;
+            process_manager_->current_gripper_ = "";
+        }
+    }
 
-    // Wait a bit for processes to die
-    std::this_thread::sleep_for(3s);
+    // Kill any existing MoveIt processes (different gripper or dead process)
+    if (process_manager_->moveit_pid_ > 0) {
+        RCLCPP_INFO(this->get_logger(), "Switching from %s to %s gripper",
+                   process_manager_->current_gripper_.c_str(), start_gripper.c_str());
+        process_manager_->kill_moveit_process();
+    } else {
+        RCLCPP_INFO(this->get_logger(), "Starting fresh MoveIt process");
+    }
 
     // Start MoveIt configuration
     RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
@@ -200,10 +271,9 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         return false;
     }
 
-    const std::string launch_cmd = "ros2 launch " + it->second + " move_group.launch.py robot_ip:=" + robot_ip + " &";
+    const std::string launch_cmd = "ros2 launch " + it->second + " move_group.launch.py robot_ip:=" + robot_ip;
     RCLCPP_DEBUG(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
-    const int launch_ret = std::system(launch_cmd.c_str());
-    (void)launch_ret;
+    process_manager_->launch_process(launch_cmd);
 
     // Wait for PlanningScene service (this confirms MoveIt is ready)
     auto ps_client = this->create_client<moveit_msgs::srv::GetPlanningScene>("/get_planning_scene");
@@ -232,7 +302,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         RCLCPP_WARN(this->get_logger(), "Dashboard 'play' service not available");
     }
 
-    current_gripper_ = start_gripper;
+    process_manager_->current_gripper_ = start_gripper;
     return true;
 }
 
@@ -300,14 +370,13 @@ bool MTCOrchestratorActionServer::sync_robot_descriptions()
 }
 
 bool MTCOrchestratorActionServer::switch_gripper(const std::string& new_gripper, const std::string& robot_ip) {
-    if (current_gripper_ == new_gripper) return true;
+    if (process_manager_->current_gripper_ == new_gripper) return true;
 
     // Just reuse the initialization logic - switching gripper IS reinitializing MoveIt
     if (!initialize_moveit_stack(new_gripper, robot_ip)) {
         return false;
     }
 
-    current_gripper_ = new_gripper;
     return true;
 }
 
@@ -315,7 +384,7 @@ bool MTCOrchestratorActionServer::switch_gripper(const std::string& new_gripper,
 
 bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& step, const nlohmann::json& poses, const std::string& robot_ip) {
     const std::string operation = step.value("operation", "");
-    const std::string requested_tool = step.value("gripper", current_gripper_);
+    const std::string requested_tool = step.value("gripper", process_manager_->current_gripper_);
 
     // Execute via delegation to modular action servers
     if (!call_toolexchange_action(step, poses)) {
@@ -448,7 +517,7 @@ void MTCOrchestratorActionServer::update_feedback(std::shared_ptr<MTCExecution::
     feedback->current_action = task_type;
     feedback->progress_percentage = static_cast<float>(current_step) / total_steps * 100.0f;
     feedback->status_message = status_message;
-    feedback->current_gripper = current_gripper_;
+    feedback->current_gripper = process_manager_ ? process_manager_->current_gripper_ : std::string("none");
     goal_handle->publish_feedback(feedback);
 }
 
