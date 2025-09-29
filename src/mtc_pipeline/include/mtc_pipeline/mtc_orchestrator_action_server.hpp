@@ -109,8 +109,7 @@ private:
     // Helper function for feedback updates
     void update_feedback(std::shared_ptr<MTCExecution::Feedback> feedback,
                         std::shared_ptr<GoalHandleMTCExecution> goal_handle,
-                        size_t current_step, size_t total_steps, const std::string& task_type,
-                        const std::string& status_message);
+                        size_t current_step, size_t total_steps, const std::string& task_type);
 
 };
 
