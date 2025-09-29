@@ -55,20 +55,7 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToJoints(
   return stage;
 }
 
-// Create a Cartesian move to pose
-std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesian(
-  const std::string& label,
-  const geometry_msgs::msg::PoseStamped& pose,
-  const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group_name)
-{
-  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-  stage->setGroup(arm_group_name);
-  stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-  stage->setIKFrame("flange");
-  stage->setGoal(pose);
-  return stage;
-}
+// TODO: Feature : Add moveToPosition(x,y,z,r,p,y) for moving directly to a position wrt base frame/world frame
 
 // Create a relative movement stage
 std::unique_ptr<mtc::Stage> MoveToStages::moveToRelative(

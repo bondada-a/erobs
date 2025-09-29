@@ -42,14 +42,6 @@ public:
     const std::string& arm_group_name
   );
 
-  // Create a Cartesian move to pose
-  std::unique_ptr<mtc::Stage> moveToCartesian(
-    const std::string& label,
-    const geometry_msgs::msg::PoseStamped& pose,
-    const mtc::solvers::PlannerInterfacePtr& planner,
-    const std::string& arm_group_name
-  );
-
   // Create a relative movement stage
   std::unique_ptr<mtc::Stage> moveToRelative(
     const std::string& label,
