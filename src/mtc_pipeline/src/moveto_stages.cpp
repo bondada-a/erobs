@@ -19,29 +19,8 @@ MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node, const nlohmann::
 // Stage Factory Functions
 // =================================================================================
 
-// Create a move to named pose (from JSON poses)
-std::unique_ptr<mtc::Stage> MoveToStages::moveToNamedPose(
-  const std::string& label,
-  const std::string& pose_key,
-  const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group_name)
-{
-  const auto& poses = config().at("poses");
-  const auto& joint_pose = poses.at(pose_key);
-  if (!joint_pose.is_array() || joint_pose.size() != 6) {
-    throw std::runtime_error(pose_key + " must be an array of 6 joint angles");
-  }
-
-  auto joint_angles_deg = joint_pose.get<std::vector<double>>();
-
-  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-  stage->setGroup(arm_group_name);
-  stage->setGoal(jointsFromDegrees(joint_angles_deg));
-  return stage;
-}
-
-// Create a move to joint angles (direct joint values)
-std::unique_ptr<mtc::Stage> MoveToStages::moveToJoints(
+// Create a move to joint goal (handles both named poses and direct joint values)
+std::unique_ptr<mtc::Stage> MoveToStages::moveToJointGoal(
   const std::string& label,
   const std::vector<double>& joint_angles,
   const mtc::solvers::PlannerInterfacePtr& planner,
@@ -49,8 +28,6 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToJoints(
 {
   auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
   stage->setGroup(arm_group_name);
-  stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-  stage->setIKFrame("flange");
   stage->setGoal(jointsFromDegrees(joint_angles));
   return stage;
 }
@@ -163,16 +140,22 @@ bool MoveToStages::run(const nlohmann::json& step,
     stage->setGroup(arm_group_name);
     stage->setGoal(jointsFromRadians(joint_angles_rad));
     task.add(std::move(stage));
-  } else if (target_type == "joints") {
+  } else if (target_type == "joints") { // Direct joint angles : might be useful when using aruco tags to get joint angles directly
     const auto joint_angles = step.at("target").get<std::vector<double>>();
-    task.add(moveToJoints("move_to_joints", joint_angles, planner, arm_group_name));
+    task.add(moveToJointGoal("move_to_joints", joint_angles, planner, arm_group_name));
+  } else if (target_type == "pose") {
+    const std::string pose_key = step.at("target");
+    const auto& poses = config().at("poses");
+    const auto& joint_pose = poses.at(pose_key);
+    if (!joint_pose.is_array() || joint_pose.size() != 6) {
+      throw std::runtime_error(pose_key + " must be an array of 6 joint angles");
+    }
+    auto joint_angles = joint_pose.get<std::vector<double>>();
+    task.add(moveToJointGoal("move_to_" + pose_key, joint_angles, planner, arm_group_name));
   } else if (target_type == "relative") {
     const std::string direction = step.at("direction");
     const double distance = step.at("distance").get<double>();
     task.add(moveToRelative("move_relative", direction, distance, planner, arm_group_name));
-  } else if (target_type == "pose") {
-    const std::string pose_key = step.at("target");
-    task.add(moveToNamedPose("move_to_" + pose_key, pose_key, planner, arm_group_name));
   } else {
     RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
     return false;

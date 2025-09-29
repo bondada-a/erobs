@@ -26,16 +26,8 @@ public:
   bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node,
            std::function<bool()> should_cancel);
 
-  // Create a move to named pose (from JSON poses or SRDF named states)
-  std::unique_ptr<mtc::Stage> moveToNamedPose(
-    const std::string& label,
-    const std::string& pose_key,
-    const mtc::solvers::PlannerInterfacePtr& planner,
-    const std::string& arm_group_name
-  );
-
-  // Create a move to joint angles (direct joint values)
-  std::unique_ptr<mtc::Stage> moveToJoints(
+  // Create a move to joint goal (handles both named poses and direct joint values)
+  std::unique_ptr<mtc::Stage> moveToJointGoal(
     const std::string& label,
     const std::vector<double>& joint_angles,
     const mtc::solvers::PlannerInterfacePtr& planner,
