@@ -46,8 +46,6 @@ class MTCOrchestratorActionServer : public rclcpp::Node
 public:
     using ActionServer = rclcpp_action::Server<MTCExecution>;
 
-    // Constants for common timeout values
-    static constexpr auto ACTION_SERVER_TIMEOUT = std::chrono::seconds(5);
 
     MTCOrchestratorActionServer(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
     ~MTCOrchestratorActionServer() override;

@@ -335,7 +335,7 @@ bool MTCOrchestratorActionServer::call_action_generic(
     const nlohmann::json& poses,
     std::function<void(typename ActionType::Goal&, const nlohmann::json&, const nlohmann::json&)> populate_goal
 ) {
-    if (!client->wait_for_action_server(ACTION_SERVER_TIMEOUT)) {
+    if (!client->wait_for_action_server(5s)) {
         RCLCPP_ERROR(this->get_logger(), "%s action server unavailable", action_name.c_str());
         return false;
     }
@@ -353,10 +353,9 @@ bool MTCOrchestratorActionServer::call_action_generic(
 
     auto result_future = client->async_get_result(goal_handle);
 
-    // Add timeout for action execution (2 minutes)
-    constexpr auto ACTION_TIMEOUT = 120s;
-    if (result_future.wait_for(ACTION_TIMEOUT) != std::future_status::ready) {
-        RCLCPP_ERROR(this->get_logger(), "%s action timed out after %ld seconds", action_name.c_str(), ACTION_TIMEOUT.count());
+    // Wait up to 2 minutes for action to complete
+    if (result_future.wait_for(120s) != std::future_status::ready) {
+        RCLCPP_ERROR(this->get_logger(), "%s action timed out after 120 seconds", action_name.c_str());
         client->async_cancel_goal(goal_handle);
         return false;
     }
