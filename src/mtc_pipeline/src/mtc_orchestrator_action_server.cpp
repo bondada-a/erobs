@@ -369,66 +369,42 @@ bool MTCOrchestratorActionServer::call_action_generic(
 }
 
 bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    return call_action_generic<MoveToAction>(
-        moveto_action_client_,
-        "MoveTo",
-        step,
-        poses,
-        [](MoveToAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
-            goal.target_type = step.value("target_type", "");
-            goal.target = step.value("target", "");
-            goal.planning_type = step.value("planning_type", "joint");
-            goal.direction = step.value("direction", "");
-            goal.distance = step.value("distance", 0.0);
-            goal.poses_json = poses.dump();
-        }
-    );
+    return call_action_generic<MoveToAction>(moveto_action_client_, "MoveTo", step, poses, [](MoveToAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+        goal.target_type = step.value("target_type", "");
+        goal.target = step.value("target", "");
+        goal.planning_type = step.value("planning_type", "joint");
+        goal.direction = step.value("direction", "");
+        goal.distance = step.value("distance", 0.0);
+        goal.poses_json = poses.dump();
+    });
 }
 
 bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    return call_action_generic<EndEffectorAction>(
-        endeffector_action_client_,
-        "EndEffector",
-        step,
-        poses,
-        [](EndEffectorAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
-            goal.end_effector_type = step.value("end_effector_type", "");
-            goal.end_effector_action = step.value("end_effector_action", "");
-            goal.poses_json = poses.dump();
-        }
-    );
+    return call_action_generic<EndEffectorAction>(endeffector_action_client_, "EndEffector", step, poses, [](EndEffectorAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+        goal.end_effector_type = step.value("end_effector_type", "");
+        goal.end_effector_action = step.value("end_effector_action", "");
+        goal.poses_json = poses.dump();
+    });
 }
 
 bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    return call_action_generic<ToolExchangeAction>(
-        toolexchange_action_client_,
-        "ToolExchange",
-        step,
-        poses,
-        [](ToolExchangeAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
-            goal.operation = step.value("operation", "");
-            goal.gripper = step.value("gripper", "");
-            goal.dock_number = step.value("dock_number", 0);
-            // Note: approach_poses would need to be parsed from JSON array if present
-            goal.poses_json = poses.dump();
-        }
-    );
+    return call_action_generic<ToolExchangeAction>(toolexchange_action_client_, "ToolExchange", step, poses, [](ToolExchangeAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+        goal.operation = step.value("operation", "");
+        goal.gripper = step.value("gripper", "");
+        goal.dock_number = step.value("dock_number", 0);
+        // Note: approach_poses would need to be parsed from JSON array if present
+        goal.poses_json = poses.dump();
+    });
 }
 
 bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    return call_action_generic<PickPlaceAction>(
-        pickplace_action_client_,
-        "PickPlace",
-        step,
-        poses,
-        [](PickPlaceAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
-            goal.gripper = step.value("gripper", "");
-            goal.pick_pose = step.value("pick_pose", "");
-            goal.place_pose = step.value("place_pose", "");
-            goal.planning_type = step.value("planning_type", "joint");
-            goal.poses_json = poses.dump();
-        }
-    );
+    return call_action_generic<PickPlaceAction>(pickplace_action_client_, "PickPlace", step, poses, [](PickPlaceAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+        goal.gripper = step.value("gripper", "");
+        goal.pick_pose = step.value("pick_pose", "");
+        goal.place_pose = step.value("place_pose", "");
+        goal.planning_type = step.value("planning_type", "joint");
+        goal.poses_json = poses.dump();
+    });
 }
 
 // === UTILITY FUNCTIONS ===
