@@ -421,23 +421,6 @@ void MTCOrchestratorActionServer::update_feedback(std::shared_ptr<MTCExecution::
     goal_handle->publish_feedback(feedback);
 }
 
-// === TEMPLATE INSTANTIATIONS ===
-
-template bool MTCOrchestratorActionServer::call_action_generic<MoveToAction>(
-    rclcpp_action::Client<MoveToAction>::SharedPtr, const std::string&, const nlohmann::json&, const nlohmann::json&,
-    std::function<void(MoveToAction::Goal&, const nlohmann::json&, const nlohmann::json&)>);
-
-template bool MTCOrchestratorActionServer::call_action_generic<EndEffectorAction>(
-    rclcpp_action::Client<EndEffectorAction>::SharedPtr, const std::string&, const nlohmann::json&, const nlohmann::json&,
-    std::function<void(EndEffectorAction::Goal&, const nlohmann::json&, const nlohmann::json&)>);
-
-template bool MTCOrchestratorActionServer::call_action_generic<ToolExchangeAction>(
-    rclcpp_action::Client<ToolExchangeAction>::SharedPtr, const std::string&, const nlohmann::json&, const nlohmann::json&,
-    std::function<void(ToolExchangeAction::Goal&, const nlohmann::json&, const nlohmann::json&)>);
-
-template bool MTCOrchestratorActionServer::call_action_generic<PickPlaceAction>(
-    rclcpp_action::Client<PickPlaceAction>::SharedPtr, const std::string&, const nlohmann::json&, const nlohmann::json&,
-    std::function<void(PickPlaceAction::Goal&, const nlohmann::json&, const nlohmann::json&)>);
 
 // === MAIN ===
 
