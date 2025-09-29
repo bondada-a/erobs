@@ -173,7 +173,7 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& task_type, con
     return false;
 }
 
-// === ACTION SERVER HANDLERS ===
+// === ACTION SERVER HANDLERS (ORCHESTRATOR) ===
 
 rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_goal(
     const rclcpp_action::GoalUUID & uuid,
@@ -218,7 +218,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         process_manager_->kill_moveit_process();
     }
 
-    // Map gripper types to MoveIt config packages
+    // Map gripper types to MoveIt config packages                                          //TODO : Add gripper payload for each gripper
     static const std::unordered_map<std::string, std::string> gripper_packages = {
         {"none", "ur_standalone_moveit_config"},
         {"epick", "ur_zivid_epick_moveit_config"},
@@ -277,14 +277,17 @@ bool MTCOrchestratorActionServer::call_action_generic(
     const nlohmann::json& poses,
     std::function<void(typename ActionType::Goal&, const nlohmann::json&, const nlohmann::json&)> populate_goal
 ) {
+    // Check if action server is available
     if (!client->wait_for_action_server(5s)) {
         RCLCPP_ERROR(this->get_logger(), "%s action server unavailable", action_name.c_str());
         return false;
     }
 
+    // Create and populate goal using lambda function
     auto goal = typename ActionType::Goal();
     populate_goal(goal, step, poses);
 
+    // Send goal and get handle
     auto future = client->async_send_goal(goal);
     auto goal_handle = future.get();
 
@@ -293,17 +296,16 @@ bool MTCOrchestratorActionServer::call_action_generic(
         return false;
     }
 
+    // Wait for result with timeout
     auto result_future = client->async_get_result(goal_handle);
-
-    // Wait up to 2 minutes for action to complete
     if (result_future.wait_for(120s) != std::future_status::ready) {
         RCLCPP_ERROR(this->get_logger(), "%s action timed out after 120 seconds", action_name.c_str());
         client->async_cancel_goal(goal_handle);
         return false;
     }
 
+    // Check if action succeeded
     auto result = result_future.get();
-
     if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
         return result.result->success;
     }
@@ -334,7 +336,6 @@ bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json&
         goal.operation = step.value("operation", "");
         goal.gripper = step.value("gripper", "");
         goal.dock_number = step.value("dock_number", 0);
-        // Note: approach_poses would need to be parsed from JSON array if present
         goal.poses_json = poses.dump();
     });
 }
