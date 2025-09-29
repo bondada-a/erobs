@@ -117,7 +117,6 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
                 result->error_message = "Task was canceled";
                 goal_handle->canceled(result);
                 is_executing_ = false;
-                process_manager_->kill_moveit_process();
                 return;
             }
 
@@ -139,7 +138,6 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
                 result->completed_steps = i;
                 goal_handle->abort(result);
                 is_executing_ = false;
-                process_manager_->kill_moveit_process();
                 return;
             }
 
@@ -160,7 +158,6 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
         result->success = false;
         result->error_message = std::string("Execution failed: ") + e.what();
         goal_handle->abort(result);
-        process_manager_->kill_moveit_process();  // Still kill on failure
     }
 
     is_executing_ = false;
@@ -193,9 +190,7 @@ rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_goal(
 rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
     const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
 {
-
     if (is_executing_) {
-        process_manager_->kill_moveit_process();
         is_executing_ = false;
     }
 
@@ -212,16 +207,8 @@ void MTCOrchestratorActionServer::handle_accepted(const std::shared_ptr<GoalHand
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
     // Check if we already have the right gripper running
     if (process_manager_->moveit_pid_ > 0 && process_manager_->current_gripper_ == start_gripper) {
-        // Check if MoveIt is actually still alive
-        if (kill(process_manager_->moveit_pid_, 0) == 0) {
-            RCLCPP_INFO(this->get_logger(), "MoveIt already running for gripper: %s, reusing", start_gripper.c_str());
-            return true;  // Reuse existing MoveIt!
-        } else {
-            // Process died, reset our tracking
-            RCLCPP_WARN(this->get_logger(), "MoveIt process died unexpectedly, restarting");
-            process_manager_->moveit_pid_ = 0;
-            process_manager_->current_gripper_ = "";
-        }
+        RCLCPP_INFO(this->get_logger(), "MoveIt already running for gripper: %s, reusing", start_gripper.c_str());
+        return true;  // Reuse existing MoveIt!
     }
 
     // Kill any existing MoveIt processes (different gripper or dead process)
