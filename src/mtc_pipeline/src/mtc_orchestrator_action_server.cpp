@@ -285,15 +285,8 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
 
     // Send play command to robot dashboard
     auto client = this->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
-    if (client->wait_for_service(30s)) {
-        auto future = client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
-        auto result = future.get();  // Block until complete
-        if (!result->success) {
-            RCLCPP_WARN(this->get_logger(), "Dashboard 'play' failed");
-        }
-    } else {
-        RCLCPP_WARN(this->get_logger(), "Dashboard 'play' service not available");
-    }
+    client->wait_for_service(30s);
+    client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
 
     process_manager_->current_gripper_ = start_gripper;
     return true;
