@@ -1,11 +1,5 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 
-#include <rclcpp/parameter.hpp>
-#include <csignal>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
-
 // Simple class to manage MoveIt processes
 class SimpleProcessManager {
 public:

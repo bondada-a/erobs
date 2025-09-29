@@ -4,10 +4,9 @@
 // ROS2 includes
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
+#include <rclcpp/parameter.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <moveit_msgs/srv/get_planning_scene.hpp>
-#include <rclcpp/parameter_client.hpp>
-#include <sensor_msgs/msg/joint_state.hpp>
 
 // Third-party includes
 #include <nlohmann/json.hpp>
@@ -15,12 +14,15 @@
 // Standard library includes
 #include <atomic>
 #include <chrono>
-#include <cstdlib>
+#include <csignal>
 #include <functional>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <sys/types.h>
+#include <sys/wait.h>
 #include <thread>
+#include <unistd.h>
 #include <unordered_map>
 #include <vector>
 
