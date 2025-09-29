@@ -88,7 +88,6 @@ private:
 
     // Execute function helpers
     bool initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip);
-    bool sync_robot_descriptions();
 
     // Generic template for action client calls
     template<typename ActionType>

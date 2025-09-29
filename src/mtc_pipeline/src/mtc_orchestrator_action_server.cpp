@@ -282,10 +282,6 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         return false;
     }
 
-    // Skip robot description sync for now to avoid executor conflicts
-    // if (!sync_robot_descriptions()) {
-    //     RCLCPP_WARN(this->get_logger(), "Failed to sync robot descriptions after launching MoveIt");
-    // }
 
     // Wait for robot hardware to be ready - simple timeout approach
     RCLCPP_INFO(this->get_logger(), "Waiting for robot hardware to initialize...");
@@ -307,27 +303,6 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     return true;
 }
 
-bool MTCOrchestratorActionServer::sync_robot_descriptions()
-{
-    // Get robot config from MoveIt
-    auto source_client = std::make_shared<rclcpp::SyncParametersClient>(this, "move_group");
-    if (!source_client->wait_for_service(5s)) return false;
-
-    std::vector<std::string> param_names = {"robot_description", "robot_description_semantic", "robot_description_kinematics", "robot_description_planning"};
-    auto description_params = source_client->get_parameters(param_names);
-
-    // Copy to all action servers
-    std::vector<std::string> target_nodes = {"moveto_action_server", "endeffector_action_server", "pickplace_action_server", "toolexchange_action_server"};
-
-    for (const auto& target : target_nodes) {
-        auto target_client = std::make_shared<rclcpp::SyncParametersClient>(this, target);
-        if (target_client->wait_for_service(2s)) {
-            target_client->set_parameters(description_params);
-        }
-    }
-
-    return true;
-}
 
 bool MTCOrchestratorActionServer::switch_gripper(const std::string& new_gripper, const std::string& robot_ip) {
     if (process_manager_->current_gripper_ == new_gripper) return true;
