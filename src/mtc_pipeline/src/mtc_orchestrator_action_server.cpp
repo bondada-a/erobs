@@ -282,9 +282,10 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         return false;
     }
 
-    if (!sync_robot_descriptions()) {
-        RCLCPP_WARN(this->get_logger(), "Failed to sync robot descriptions after launching MoveIt");
-    }
+    // Skip robot description sync for now to avoid executor conflicts
+    // if (!sync_robot_descriptions()) {
+    //     RCLCPP_WARN(this->get_logger(), "Failed to sync robot descriptions after launching MoveIt");
+    // }
 
     // Wait for robot hardware to be ready - simple timeout approach
     RCLCPP_INFO(this->get_logger(), "Waiting for robot hardware to initialize...");
@@ -308,61 +309,20 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
 
 bool MTCOrchestratorActionServer::sync_robot_descriptions()
 {
-    auto node = this->shared_from_this();
-    auto source_client = std::make_shared<rclcpp::SyncParametersClient>(node, "move_group");
+    // Get robot config from MoveIt
+    auto source_client = std::make_shared<rclcpp::SyncParametersClient>(this, "move_group");
+    if (!source_client->wait_for_service(5s)) return false;
 
-    if (!source_client->wait_for_service(5s)) {
-        RCLCPP_ERROR(this->get_logger(), "Unable to reach move_group parameter service for robot description sync");
-        return false;
-    }
+    std::vector<std::string> param_names = {"robot_description", "robot_description_semantic", "robot_description_kinematics", "robot_description_planning"};
+    auto description_params = source_client->get_parameters(param_names);
 
-    std::vector<std::string> param_names = {
-        "robot_description",
-        "robot_description_semantic",
-        "robot_description_kinematics",
-        "robot_description_planning"
-    };
-
-    std::vector<rclcpp::Parameter> description_params;
-    try {
-        description_params = source_client->get_parameters(param_names);
-    } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to retrieve robot description parameters: %s", e.what());
-        return false;
-    }
-
-    description_params.erase(
-        std::remove_if(description_params.begin(), description_params.end(),
-                       [](const rclcpp::Parameter& param) { return param.get_name().empty(); }),
-        description_params.end());
-
-    if (description_params.empty()) {
-        RCLCPP_ERROR(this->get_logger(), "No robot_description parameters retrieved from move_group");
-        return false;
-    }
-
-    // Update orchestrator's own parameters
-    this->set_parameters(description_params);
-
-    static const std::vector<std::string> target_nodes = {
-        "moveto_action_server",
-        "endeffector_action_server",
-        "pickplace_action_server",
-        "toolexchange_action_server"
-    };
+    // Copy to all action servers
+    std::vector<std::string> target_nodes = {"moveto_action_server", "endeffector_action_server", "pickplace_action_server", "toolexchange_action_server"};
 
     for (const auto& target : target_nodes) {
-        auto target_client = std::make_shared<rclcpp::SyncParametersClient>(node, target);
-        if (!target_client->wait_for_service(5s)) {
-            RCLCPP_WARN(this->get_logger(), "Parameter service for %s unavailable during robot description sync", target.c_str());
-            continue;
-        }
-
-        try {
+        auto target_client = std::make_shared<rclcpp::SyncParametersClient>(this, target);
+        if (target_client->wait_for_service(2s)) {
             target_client->set_parameters(description_params);
-            RCLCPP_INFO(this->get_logger(), "Synced robot description parameters to %s", target.c_str());
-        } catch (const std::exception& e) {
-            RCLCPP_WARN(this->get_logger(), "Failed to sync robot description to %s: %s", target.c_str(), e.what());
         }
     }
 
