@@ -9,49 +9,41 @@
 // Simple class to manage MoveIt processes
 class SimpleProcessManager {
 public:
-  // Launch a command and remember its process ID
   pid_t launch_process(const std::string& command) {
-    pid_t pid = fork();  // Create a new process
+    pid_t pid = fork();
 
-    if (pid == 0) {  // This is the child process
-      // Create a new process group so we can kill all children
-      setsid();
-      // Run the command
+    if (pid == 0) {  // Child process
+      setsid();  // Create new process group for clean termination
       execl("/bin/bash", "bash", "-c", command.c_str(), static_cast<char*>(nullptr));
       _exit(1);  // Exit if exec fails
     }
 
-    if (pid > 0) {  // This is the parent process
-      moveit_pid_ = pid;  // Remember the process ID
+    if (pid > 0) {  // Parent process
+      moveit_pid_ = pid;
     }
 
     return pid;
   }
 
-  // Kill the MoveIt process if it's running
   void kill_moveit_process() {
     if (moveit_pid_ > 0) {
-      // Kill the whole process group (parent + all children)
-      kill(-moveit_pid_, SIGTERM);  // Ask process group to stop nicely
+      kill(-moveit_pid_, SIGTERM);  // Graceful termination of process group
 
-      // Wait 3 seconds for it to stop
+      // Wait up to 3 seconds for graceful shutdown
       for (int i = 0; i < 30; i++) {
-        if (kill(moveit_pid_, 0) != 0) {  // Check if main process is dead
-          break;  // Process is dead, we're done
+        if (kill(moveit_pid_, 0) != 0) {
+          break;
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
       }
 
-      // Force kill the whole group if still alive
-      kill(-moveit_pid_, SIGKILL);
+      kill(-moveit_pid_, SIGKILL);  // Force kill if still alive
       waitpid(moveit_pid_, nullptr, WNOHANG);  // Clean up zombie process
-      moveit_pid_ = 0;  // Reset
+      moveit_pid_ = 0;
     }
   }
 
-  // Track which gripper configuration is currently running
-  std::string current_gripper_ = "";
-  // Store the MoveIt process ID
+  std::string current_gripper_ = "";  // Active gripper configuration
   pid_t moveit_pid_ = 0;
 };
 
@@ -127,7 +119,6 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
         for (size_t i = 0; i < tasks.size(); ++i) {
             // Check if goal was cancelled
             if (goal_handle->is_canceling()) {
-                RCLCPP_DEBUG(this->get_logger(), "Goal canceled");
                 result->success = false;
                 result->error_message = "Task was canceled";
                 goal_handle->canceled(result);
@@ -145,7 +136,6 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
             // Update feedback
             update_feedback(feedback, goal_handle, i + 1, tasks.size(), task_type, "Executing: " + task_type);
 
-            RCLCPP_DEBUG(this->get_logger(), "Executing step %zu: %s", i + 1, task_type.c_str());
 
             // Execute step
             if (!execute_step(task_type, step, poses, robot_ip)) {
@@ -203,14 +193,12 @@ rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_goal(
         return rclcpp_action::GoalResponse::REJECT;
     }
 
-    RCLCPP_DEBUG(this->get_logger(), "Goal accepted");
     return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
 rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
     const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
 {
-    RCLCPP_DEBUG(this->get_logger(), "Received request to cancel goal");
 
     if (is_executing_) {
         process_manager_->kill_moveit_process();
@@ -268,7 +256,6 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     }
 
     const std::string launch_cmd = "ros2 launch " + it->second + " move_group.launch.py robot_ip:=" + robot_ip;
-    RCLCPP_DEBUG(this->get_logger(), "Launch command: %s", launch_cmd.c_str());
     process_manager_->launch_process(launch_cmd);
 
     // Wait for PlanningScene service (this confirms MoveIt is ready)
@@ -291,8 +278,6 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     process_manager_->current_gripper_ = start_gripper;
     return true;
 }
-
-
 
 // === STEP EXECUTION HELPERS ===
 
