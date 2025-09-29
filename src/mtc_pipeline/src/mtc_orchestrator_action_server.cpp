@@ -238,10 +238,6 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         return false;
     }
 
-    // Wait for robot hardware to be ready - simple timeout approach
-    RCLCPP_INFO(this->get_logger(), "Waiting for robot hardware to initialize...");
-    std::this_thread::sleep_for(5s);
-
     // Send play command to robot dashboard
     auto client = this->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
     client->wait_for_service(30s);
