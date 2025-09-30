@@ -13,6 +13,7 @@ find_package(rclcpp_action REQUIRED)
 find_package(nlohmann_json REQUIRED)
 find_package(ur_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
+find_package(tf2_eigen REQUIRED)
 
 # Generate actions and Python modules
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -46,6 +47,7 @@ ament_target_dependencies(mtc_pipeline_core
   rclcpp
   ur_msgs
   nlohmann_json
+  tf2_eigen
 )
 target_include_directories(mtc_pipeline_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

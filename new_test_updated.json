@@ -29,7 +29,7 @@
       "task_type": "moveto",
       "target_type": "pose",
       "target": "pickup",
-      "planning_type": "joint"
+      "planning_type": "cartesian"
     },
     {
       "task_type": "end_effector",
