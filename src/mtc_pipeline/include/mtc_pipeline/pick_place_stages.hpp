@@ -17,7 +17,7 @@ public:
   // Constructor
   PickPlaceStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
 
-  // For custom named moves
+  // Create move stage to named pose
   std::unique_ptr<mtc::Stage> makeMoveToNamedStage(
     const std::string& label,
     const std::string& pose_key,
@@ -28,9 +28,8 @@ public:
   // Helper for gripper open/close
   std::unique_ptr<mtc::Stage> makeGripperStage(
     const std::string& label,
-    const std::string& hand_group_name,
-    const std::string& goal_state,
-    const mtc::solvers::PlannerInterfacePtr& planner
+    const mtc::solvers::PlannerInterfacePtr& planner,
+    bool open
   );
 
   // Orchestrator step runner
