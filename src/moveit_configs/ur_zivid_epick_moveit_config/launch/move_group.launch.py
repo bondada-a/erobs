@@ -46,6 +46,7 @@ def generate_launch_description():
         MoveItConfigsBuilder("ur_moveit",package_name="ur_zivid_epick_moveit_config")
         .robot_description(file_path=os.path.join(get_package_share_directory("ur5e_hande_robot_description"), "urdf", "ur_with_zivid_epick.xacro"),mappings=xacro_args)
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
+        .robot_description_kinematics(file_path="config/kinematics.yaml")
         .planning_scene_monitor(
             publish_robot_description=True, publish_robot_description_semantic=True
         )
