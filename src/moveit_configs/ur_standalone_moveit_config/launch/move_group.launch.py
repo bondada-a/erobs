@@ -78,7 +78,7 @@ def generate_launch_description():
     )
 
     rviz_config = PathJoinSubstitution([
-        FindPackageShare("ur5e_hande_moveit_config"), "rviz", LaunchConfiguration("rviz_config")
+        FindPackageShare("ur_standalone_moveit_config"), "rviz", LaunchConfiguration("rviz_config")
     ])
 
     rviz_node = Node(

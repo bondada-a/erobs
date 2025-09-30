@@ -63,6 +63,7 @@ def generate_launch_description():
         executable="move_group",
         output="screen",
         parameters=[
+            moveit_config.robot_description_kinematics,
             moveit_config.to_dict(),
             move_group_capabilities,
         ],
