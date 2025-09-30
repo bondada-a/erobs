@@ -10,8 +10,6 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
-#include <sstream>
-#include <iomanip>
 
 namespace {
 constexpr double DEG_TO_RAD = 3.14159265358979323846 / 180.0;
@@ -81,17 +79,11 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToRelative(
 // Main Orchestration
 // =================================================================================
 
-bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node_ptr)
-{
-  return run(step, poses, node_ptr, nullptr);
-}
-
 bool MoveToStages::run(const nlohmann::json& step,
                        const nlohmann::json& poses,
-                       rclcpp::Node::SharedPtr /*node_ptr*/,
-                       std::function<bool()> should_cancel)
+                       rclcpp::Node::SharedPtr)
 {
-  refreshPoses(poses);
+  refreshPoses(poses); // Update internal pose config with new pose data
 
   const std::string target_type = step.value("target_type", "pose");
   const std::string planning_type = step.value("planning_type", "joint");
@@ -113,37 +105,26 @@ bool MoveToStages::run(const nlohmann::json& step,
       if (!task.getRobotModel()) {
         task.loadRobotModel(node());
       }
+      const auto& robot_model = task.getRobotModel();
+      const auto* group = robot_model->getJointModelGroup(arm_group_name);
+      
+      moveit::core::RobotState robot_state(robot_model);
+      if (!robot_state.setToDefaultValues(group, named_state)) {
+        RCLCPP_ERROR(node()->get_logger(), "Named state '%s' failed", named_state.c_str());
+        return false;
+      }
+
+      std::vector<double> joint_angles_rad;
+      robot_state.copyJointGroupPositions(group, joint_angles_rad);
+
+      auto stage = std::make_unique<mtc::stages::MoveTo>("move_to_" + named_state, planner);
+      stage->setGroup(arm_group_name);
+      stage->setGoal(jointsFromRadians(joint_angles_rad));
+      task.add(std::move(stage));
     } catch (const std::exception& e) {
-      RCLCPP_ERROR(node()->get_logger(), "Failed to load robot model: %s", e.what());
+      RCLCPP_ERROR(node()->get_logger(), "Named state '%s' failed", named_state.c_str());
       return false;
     }
-
-    const auto& robot_model = task.getRobotModel();
-    if (!robot_model) {
-      RCLCPP_ERROR(node()->get_logger(), "Robot model unavailable for named state lookup");
-      return false;
-    }
-
-    const auto* group = robot_model->getJointModelGroup(arm_group_name);
-    if (!group) {
-      RCLCPP_ERROR(node()->get_logger(), "Group '%s' not found in robot model", arm_group_name.c_str());
-      return false;
-    }
-
-    moveit::core::RobotState robot_state(robot_model);
-    if (!robot_state.setToDefaultValues(group, named_state)) {
-      RCLCPP_ERROR(node()->get_logger(), "Named state '%s' not found for group '%s'",
-                   named_state.c_str(), arm_group_name.c_str());
-      return false;
-    }
-
-    std::vector<double> joint_angles_rad;
-    robot_state.copyJointGroupPositions(group, joint_angles_rad);
-
-    auto stage = std::make_unique<mtc::stages::MoveTo>("move_to_" + named_state, planner);
-    stage->setGroup(arm_group_name);
-    stage->setGoal(jointsFromRadians(joint_angles_rad));
-    task.add(std::move(stage));
   } else if (target_type == "joints") { // Direct joint angles : might be useful when using aruco tags to get joint angles directly
     const auto joint_angles = step.at("target").get<std::vector<double>>();
     task.add(moveToJointGoal("move_to_joints", joint_angles, planner, arm_group_name));
@@ -201,17 +182,15 @@ bool MoveToStages::run(const nlohmann::json& step,
     const double distance = step.at("distance").get<double>();
     
     // Generate descriptive label based on direction and distance
-    std::stringstream label_stream;
-    label_stream << "move_" << direction << "_" << std::fixed << std::setprecision(3) << distance << "m";
-    std::string descriptive_label = label_stream.str();
+    const std::string label = "move_" + direction + "_" + std::to_string(distance) + "m";
     
-    task.add(moveToRelative(descriptive_label, direction, distance, planner, arm_group_name));
+    task.add(moveToRelative(label, direction, distance, planner, arm_group_name));
   } else {
     RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
     return false;
   }
 
-  const bool success = loadPlanExecute(task, 5, should_cancel);
+  const bool success = loadPlanExecute(task, 5);
   if (success) {
     RCLCPP_INFO(node()->get_logger(), "MoveTo task completed successfully");
   }

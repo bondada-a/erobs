@@ -23,10 +23,6 @@ public:
   // Main orchestrator step runner
   bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node);
 
-  // Main orchestrator step runner with cancellation support
-  bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node,
-           std::function<bool()> should_cancel);
-
   // Create a move to joint goal (handles both named poses and direct joint values)
   std::unique_ptr<mtc::Stage> moveToJointGoal(
     const std::string& label,
@@ -44,7 +40,4 @@ public:
     const std::string& arm_group_name
   );
 
-private:
-  // Helper function to parse direction string into 3D vector
-  geometry_msgs::msg::Vector3 parseDirection(const std::string& direction, double distance) const;
 };
