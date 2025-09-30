@@ -29,7 +29,7 @@ public:
     const std::vector<double>& joint_angles,
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group_name
-  );
+  ) const;
 
   // Create a relative movement stage
   std::unique_ptr<mtc::Stage> moveToRelative(
@@ -38,6 +38,20 @@ public:
     double distance,
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group_name
-  );
+  ) const;
 
+private:
+  // Helper functions for different target types
+  void handleNamedState(const nlohmann::json& step, mtc::Task& task, 
+                       const mtc::solvers::PlannerInterfacePtr& planner,
+                       const std::string& arm_group_name) const;
+  
+  void handleJoints(const nlohmann::json& step, mtc::Task& task,
+                   const mtc::solvers::PlannerInterfacePtr& planner,
+                   const std::string& arm_group_name,
+                   const std::string& planning_type) const;
+  
+  void handleRelative(const nlohmann::json& step, mtc::Task& task,
+                     const mtc::solvers::PlannerInterfacePtr& planner,
+                     const std::string& arm_group_name) const;
 };
