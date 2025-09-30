@@ -75,9 +75,9 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   auto task = createTaskTemplate("Pick and Place Modular Task", arm_group_name);
 
-  auto sampling_planner = makePipelinePlanner("ompl");
+  auto sampling_planner = makePipelinePlanner();
   auto interpolation_planner = makeJointInterpolationPlanner();
-  auto cartesian_planner = makeCartesianPlanner(0.2, 0.2, 0.001, 0.95);
+  auto cartesian_planner = makeCartesianPlanner();
 
   auto constrain_stage_path = [](std::unique_ptr<mtc::Stage> stage,
                                  const moveit_msgs::msg::Constraints& constraints) {

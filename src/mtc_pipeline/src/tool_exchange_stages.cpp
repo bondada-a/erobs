@@ -49,8 +49,8 @@ bool ToolExchangeStages::run(const nlohmann::json& step,
 
   auto task = createTaskTemplate(task_name, arm_group, ik_frame);
 
-  auto sampling_planner = makePipelinePlanner("ompl");
-  auto cartesian_planner = makeCartesianPlanner(0.2, 0.2, 0.001, 0.0);
+  auto sampling_planner = makePipelinePlanner();
+  auto cartesian_planner = makeCartesianPlanner();
 
   const auto addNamedMoveStage = [&](const std::string& label, const std::string& pose_key) {
     const auto& pose = config().at("poses").at(pose_key);

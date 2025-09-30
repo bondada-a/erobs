@@ -136,6 +136,18 @@ const std::string& BaseStages::defaultArmGroupName() {
   return name;
 }
 
+const double BaseStages::PipelinePlannerDefaults::vel_scale = 0.2;
+const double BaseStages::PipelinePlannerDefaults::acc_scale = 0.2;
+const char* const BaseStages::PipelinePlannerDefaults::pipeline_id = "ompl";
+
+const double BaseStages::CartesianPlannerDefaults::vel_scale = 0.2;
+const double BaseStages::CartesianPlannerDefaults::acc_scale = 0.2;
+const double BaseStages::CartesianPlannerDefaults::step = 0.001;
+const double BaseStages::CartesianPlannerDefaults::min_fraction = 0.6; // 60% of the path should be valid
+
+const double BaseStages::JointInterpolationPlannerDefaults::vel_scale = 0.2;
+const double BaseStages::JointInterpolationPlannerDefaults::acc_scale = 0.2;
+
 void BaseStages::configureOmplParameters() const {
   if (!node_) {
     return;

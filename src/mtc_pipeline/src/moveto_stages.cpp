@@ -91,9 +91,9 @@ bool MoveToStages::run(const nlohmann::json& step,
 
   mtc::solvers::PlannerInterfacePtr planner;
   if (planning_type == "cartesian") {
-    planner = makeCartesianPlanner(0.1, 0.1, 0.01, 0.8);
+    planner = makeCartesianPlanner();
   } else {
-    planner = makePipelinePlanner("ompl", 0.2, 0.2);
+    planner = makePipelinePlanner();
   }
 
   auto task = createTaskTemplate("MoveTo Task", arm_group_name);

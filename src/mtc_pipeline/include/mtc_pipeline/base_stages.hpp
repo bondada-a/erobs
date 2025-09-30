@@ -24,6 +24,24 @@ class BaseStages {
 public:
   using ShouldCancelFn = std::function<bool()>;
 
+  struct PipelinePlannerDefaults {
+    static const double vel_scale;
+    static const double acc_scale;
+    static const char* const pipeline_id;
+  };
+
+  struct CartesianPlannerDefaults {
+    static const double vel_scale;
+    static const double acc_scale;
+    static const double step;
+    static const double min_fraction;
+  };
+
+  struct JointInterpolationPlannerDefaults {
+    static const double vel_scale;
+    static const double acc_scale;
+  };
+
   BaseStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
   virtual ~BaseStages() = default;
 
@@ -51,15 +69,20 @@ protected:
 
   void configureOmplParameters() const;
 
-  std::shared_ptr<mtc::solvers::PipelinePlanner> makePipelinePlanner(const std::string& pipeline_id = "ompl",
-                                                                     double vel_scale = 0.2,
-                                                                     double acc_scale = 0.2) const;
-  std::shared_ptr<mtc::solvers::CartesianPath> makeCartesianPlanner(double vel_scale = 0.2,
-                                                                    double acc_scale = 0.2,
-                                                                    double step = 0.001,
-                                                                    double min_fraction = 0.8) const;
-  std::shared_ptr<mtc::solvers::JointInterpolationPlanner> makeJointInterpolationPlanner(double vel_scale = 0.2,
-                                                                                         double acc_scale = 0.2) const;
+  std::shared_ptr<mtc::solvers::PipelinePlanner> makePipelinePlanner(
+    const std::string& pipeline_id = PipelinePlannerDefaults::pipeline_id,
+    double vel_scale = PipelinePlannerDefaults::vel_scale,
+    double acc_scale = PipelinePlannerDefaults::acc_scale) const;
+
+  std::shared_ptr<mtc::solvers::CartesianPath> makeCartesianPlanner(
+    double vel_scale = CartesianPlannerDefaults::vel_scale,
+    double acc_scale = CartesianPlannerDefaults::acc_scale,
+    double step = CartesianPlannerDefaults::step,
+    double min_fraction = CartesianPlannerDefaults::min_fraction) const;
+
+  std::shared_ptr<mtc::solvers::JointInterpolationPlanner> makeJointInterpolationPlanner(
+    double vel_scale = JointInterpolationPlannerDefaults::vel_scale,
+    double acc_scale = JointInterpolationPlannerDefaults::acc_scale) const;
 
 private:
   rclcpp::Node::SharedPtr node_;
