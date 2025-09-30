@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include <sstream>
+#include <iomanip>
 
 namespace {
 constexpr double DEG_TO_RAD = 3.14159265358979323846 / 180.0;
@@ -48,9 +50,6 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToRelative(
   const std::string& arm_group_name)
 {
   auto stage = std::make_unique<mtc::stages::MoveRelative>(label, planner);
-  stage->properties().set("marker_ns", "relative_move");
-  stage->properties().set("link", "flange");
-  stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
   stage->setGroup(arm_group_name);
   stage->setMinMaxDistance(std::abs(distance), std::abs(distance));
 
@@ -62,13 +61,13 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToRelative(
   } else if (direction == "right" || direction == "y") {
     vec.vector.y = (distance >= 0.0) ? 1.0 : -1.0;
   } else if (direction == "up" || direction == "z") {
-    vec.vector.z = (distance >= 0.0) ? 1.0 : -1.0;
+    vec.vector.z = (distance >= 0.0) ? -1.0 : 1.0;
   } else if (direction == "backward" || direction == "-x") {
     vec.vector.x = (distance >= 0.0) ? -1.0 : 1.0;
   } else if (direction == "left" || direction == "-y") {
     vec.vector.y = (distance >= 0.0) ? -1.0 : 1.0;
   } else if (direction == "down" || direction == "-z") {
-    vec.vector.z = (distance >= 0.0) ? -1.0 : 1.0;
+    vec.vector.z = (distance >= 0.0) ? 1.0 : -1.0;
   } else {
     throw std::runtime_error("Invalid direction: " + direction +
                              ". Use: forward/x, right/y, up/z, backward/-x, left/-y, down/-z");
@@ -100,7 +99,7 @@ bool MoveToStages::run(const nlohmann::json& step,
 
   mtc::solvers::PlannerInterfacePtr planner;
   if (planning_type == "cartesian") {
-    planner = makeCartesianPlanner(0.2, 0.2, 0.001, 0.8);
+    planner = makeCartesianPlanner(0.1, 0.1, 0.01, 0.8);
   } else {
     planner = makePipelinePlanner("ompl", 0.2, 0.2);
   }
@@ -200,7 +199,13 @@ bool MoveToStages::run(const nlohmann::json& step,
   } else if (target_type == "relative") {
     const std::string direction = step.at("direction");
     const double distance = step.at("distance").get<double>();
-    task.add(moveToRelative("move_relative", direction, distance, planner, arm_group_name));
+    
+    // Generate descriptive label based on direction and distance
+    std::stringstream label_stream;
+    label_stream << "move_" << direction << "_" << std::fixed << std::setprecision(3) << distance << "m";
+    std::string descriptive_label = label_stream.str();
+    
+    task.add(moveToRelative(descriptive_label, direction, distance, planner, arm_group_name));
   } else {
     RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
     return false;

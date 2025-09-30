@@ -6,6 +6,7 @@
 #include <nlohmann/json.hpp>
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/vector3.hpp>
 
 #include <functional>
 #include <memory>
@@ -42,4 +43,8 @@ public:
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group_name
   );
+
+private:
+  // Helper function to parse direction string into 3D vector
+  geometry_msgs::msg::Vector3 parseDirection(const std::string& direction, double distance) const;
 };
