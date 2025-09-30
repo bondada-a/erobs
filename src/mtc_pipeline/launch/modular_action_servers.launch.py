@@ -43,7 +43,7 @@ def launch_setup(context, *args, **kwargs):
     action_server_parameters = [
         {'use_sim_time': False},
         # Include SRDF (semantic description) - planning groups, end effectors, etc.
-        moveit_configs.robot_description_semantic,
+        # moveit_configs.robot_description_semantic,
         # Include kinematics solvers and configuration
         moveit_configs.robot_description_kinematics,
         moveit_configs.planning_pipelines,
