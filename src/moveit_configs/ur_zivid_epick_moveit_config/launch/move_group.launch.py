@@ -9,7 +9,6 @@ from ament_index_python.packages import get_package_share_directory
 import os
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.actions import TimerAction
 
 def generate_launch_description():
     ## Arguments  
@@ -94,22 +93,14 @@ def generate_launch_description():
         ],
     )
 
-    # Tool Communication Node
-    tool_communication = Node(
-        package="ur_robot_driver",
-        executable="tool_communication.py",
-        name="tool_communication_node",
-        output="screen",
-        parameters=[{"robot_ip": LaunchConfiguration("robot_ip")}]
-    )
-
-
-
-    # Delay the UR control launch , allowing gripper driver to load first.
-    delayed_ur_control_launch = TimerAction(
-        period=2.0,  # seconds
-        actions=[ur_control_launch]
-    )
+    # # Tool Communication Node
+    # tool_communication = Node(
+    #     package="ur_robot_driver",
+    #     executable="tool_communication.py",
+    #     name="tool_communication_node",
+    #     output="screen",
+    #     parameters=[{"robot_ip": LaunchConfiguration("robot_ip")}]
+    # )
 
     # Static TF
     static_tf = Node(
@@ -144,9 +135,7 @@ def generate_launch_description():
 
 
     return LaunchDescription([
-        ## arguments 
-        tool_communication,
-
+        ## arguments
         robot_ip,
         ur_type,
         use_fake_hardware,
@@ -157,8 +146,8 @@ def generate_launch_description():
 
 
         ## Nodes
-        delayed_ur_control_launch,
-        # ur_control_launch,
+        # tool_communication,
+        ur_control_launch,
         run_move_group_node,
         rviz_node,
         static_tf,
