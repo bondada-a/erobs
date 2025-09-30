@@ -51,10 +51,19 @@ This package requires the following external packages:
 - **Tool exchanger**: Custom STL files for the tool exchanger system
 - **Hand-E gripper**: Provided by external `robotiq_hande_description` package
 
+### Hardware Configuration Notes
+
+**End Effector Hardware Settings:**
+- `ur_with_zivid_hande.xacro` and `ur_with_zivid_epick.xacro` both have `use_fake_hardware="true"` hardcoded for the end effectors
+- This means the grippers operate in simulation mode (not interacting with actual gripper hardware)
+- **For actual hardware:** Change `use_fake_hardware="true"` to `use_fake_hardware="false"` in the respective XACRO files
+- **Location:** Lines 140 (Hand-E) and 115 (ePick) in the gripper macro calls
+
 ### TODO
 - For the zivid camera:
   - Use meshes/description/XACRO files from the official `zivid_ros` package instead of local mesh files
   - Remove strain relief part as we aren't using it for the actual robot
+- Make `use_fake_hardware` parameter dynamic for end effectors instead of hardcoded values
 
 ## Usage
 
