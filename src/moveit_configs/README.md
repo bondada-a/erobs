@@ -83,7 +83,7 @@ Each launch file accepts the following parameters:
 - `robot_ip`: IP address of the UR robot (default: '192.168.1.10')
 - `ur_type`: UR robot model (default: 'ur5e')
 - `description_package`: Package for robot config files (default: 'ur_description')
-- `description_file`: Custom URDF file path (points to ur5e_hande_robot_description)
+- `description_file`: Custom URDF file path (points to ur5e_robot_description)
 - `controllers_file`: Hardware controller configuration file
 - `rviz_config`: RViz configuration file to load
 
@@ -110,7 +110,7 @@ All configurations maintain consistency in:
 ## Integration with Robot Description
 
 These MoveIt configurations work with robot descriptions from:
-- **ur5e_hande_robot_description**: Custom URDF files for complete robot systems
+- **ur5e_robot_description**: Custom URDF files for complete robot systems
 - **ur_description**: Standard UR robot configuration files
 - **robotiq_hande_description**: Hand-E gripper descriptions
 - **epick_config**: ePick vacuum gripper descriptions

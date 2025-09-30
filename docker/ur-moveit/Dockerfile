@@ -27,7 +27,7 @@ RUN git clone https://github.com/bondada-a/erobs.git -b ur5e
 WORKDIR /root/ws/
 
 RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && \
-        colcon build --symlink-install --packages-select ur5e_hande_robot_description && \
+        colcon build --symlink-install --packages-select ur5e_robot_description && \
         colcon build --symlink-install --packages-select ur5e_hande_moveit_config"
 
 WORKDIR /root/ws/
@@ -36,7 +36,7 @@ ENV ROBOT_IP=10.69.26.90
 ENV REVERSE_IP=192.168.56.102
 ENV UR_TYPE="ur5e"
 ENV LAUNCH_RVIZ="false"
-ENV DESCRIPTION_PKG="ur5e_hande_robot_description"
+ENV DESCRIPTION_PKG="ur5e_robot_description"
 ENV DESCRIPTION_FILE="ur_with_hande.xacro"
 ENV CONFIG_PKG="ur5e_hande_moveit_config"
 ENV CONFIG_FILE="ur.srdf"

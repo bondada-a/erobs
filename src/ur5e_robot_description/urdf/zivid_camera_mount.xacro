@@ -12,7 +12,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur5e_hande_robot_description/meshes/zivid/zivid_assembly_decimated.stl"
+          <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_assembly_decimated.stl"
                 scale="${scale} ${scale} ${scale}"/>
         </geometry>
         <material name="grey">
@@ -22,7 +22,7 @@
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur5e_hande_robot_description/meshes/zivid/zivid_assembly_decimated.stl"
+          <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_assembly_decimated.stl"
                 scale="${scale} ${scale} ${scale}"/>
         </geometry>
       </collision>

@@ -16,7 +16,7 @@ def generate_launch_description():
     ur_type = DeclareLaunchArgument('ur_type', default_value='ur5e')
     robot_ip = DeclareLaunchArgument('robot_ip', default_value='192.168.1.10')
     description_package = DeclareLaunchArgument('description_package', default_value='ur_description')
-    description_file = DeclareLaunchArgument('description_file', default_value=os.path.join(get_package_share_directory("ur5e_hande_robot_description"), "urdf", "ur_standalone.xacro"))
+    description_file = DeclareLaunchArgument('description_file', default_value=os.path.join(get_package_share_directory("ur5e_robot_description"), "urdf", "ur_standalone.xacro"))
     controllers_file = DeclareLaunchArgument('controllers_file', default_value=os.path.join(get_package_share_directory("ur_standalone_moveit_config"), "config", "ur_controllers.yaml"))
 
 
@@ -42,7 +42,7 @@ def generate_launch_description():
     # Load MoveIt! configuration
     moveit_config = (
         MoveItConfigsBuilder("ur_moveit",package_name="ur_standalone_moveit_config")
-        .robot_description(file_path=os.path.join(get_package_share_directory("ur5e_hande_robot_description"), "urdf", "ur_standalone.xacro"),mappings=xacro_args)
+        .robot_description(file_path=os.path.join(get_package_share_directory("ur5e_robot_description"), "urdf", "ur_standalone.xacro"),mappings=xacro_args)
         .trajectory_execution(file_path="config/moveit_controllers.yaml")
         .robot_description_kinematics(file_path="config/kinematics.yaml")
         .planning_scene_monitor(

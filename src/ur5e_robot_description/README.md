@@ -1,4 +1,4 @@
-## ur5e_hande_robot_description
+## ur5e_robot_description
 
 This package contains robot description files for UR5e robotic systems with various end-effectors and camera configurations:
   - Standalone UR5e arm with Zivid camera and tool exchanger
@@ -56,8 +56,7 @@ This package requires the following external packages:
 **End Effector Hardware Settings:**
 - `ur_with_zivid_hande.xacro` and `ur_with_zivid_epick.xacro` both have `use_fake_hardware="true"` hardcoded for the end effectors
 - This means the grippers operate in simulation mode (not interacting with actual gripper hardware)
-- **For actual hardware:** Change `use_fake_hardware="true"` to `use_fake_hardware="false"` in the respective XACRO files
-- **Location:** Lines 140 (Hand-E) and 115 (ePick) in the gripper macro calls
+- **For actual hardware:** Change `use_fake_hardware="true"` to `use_fake_hardware="false"` in the respective gripper macro calls
 
 ### TODO
 - For the zivid camera:
@@ -69,20 +68,20 @@ This package requires the following external packages:
 
 ### Building the Package
 ```bash
-colcon build --packages-select ur5e_hande_robot_description
+colcon build --packages-select ur5e_robot_description
 source install/setup.bash
 ```
 
 ### Generating URDF from XACRO
 ```bash
 # Generate standalone configuration
-xacro ur5e_hande_robot_description/urdf/ur_standalone.xacro name:=ur > ur_standalone.urdf
+xacro ur5e_robot_description/urdf/ur_standalone.xacro name:=ur > ur_standalone.urdf
 
 # Generate Hand-E configuration
-xacro ur5e_hande_robot_description/urdf/ur_with_zivid_hande.xacro name:=ur > ur_with_hande.urdf
+xacro ur5e_robot_description/urdf/ur_with_zivid_hande.xacro name:=ur > ur_with_hande.urdf
 
 # Generate ePick configuration
-xacro ur5e_hande_robot_description/urdf/ur_with_zivid_epick.xacro name:=ur > ur_with_epick.urdf
+xacro ur5e_robot_description/urdf/ur_with_zivid_epick.xacro name:=ur > ur_with_epick.urdf
 ```
 
 ### Viewing in RViz

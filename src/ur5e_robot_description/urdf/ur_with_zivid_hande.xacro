@@ -1,20 +1,20 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
-  <!-- Based on ur_with_hande.xacro; assembles UR robot + Zivid camera mount + EPick gripper
-       Chain: map -> UR -> flange -> zivid_camera_mount -> zivid_camera -> EPick gripper -->
+  <!-- Based on ur_with_hande.xacro; assembles UR robot + Zivid camera mount + HandE gripper
+       Chain: map -> UR -> flange -> zivid_camera_mount -> zivid_camera -> HandE gripper -->
 
   <!-- robot name parameter -->
   <xacro:arg name="name" default="ur"/>
 
   <!-- import main macros -->
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
-  <xacro:include filename="$(find ur5e_hande_robot_description)/urdf/zivid_camera_mount.xacro"/>
-  <xacro:include filename="$(find ur5e_hande_robot_description)/urdf/tool_block.xacro"/>
-  <xacro:include filename="$(find epick_config)/urdf/epick_overlay.xacro"/>
+  <xacro:include filename="$(find ur5e_robot_description)/urdf/zivid_camera_mount.xacro"/>
+  <xacro:include filename="$(find ur5e_robot_description)/urdf/tool_block.xacro"/>
+  <xacro:include filename="$(find robotiq_hande_description)/urdf/robotiq_hande_gripper.xacro"/>
 
   <!-- possible 'ur_type' values: ur3, ur5e, ur5, ur10, ur10e, ur16e, ur20 -->
   <xacro:arg name="ur_type" default="ur5e"/>
-  <!--. -->
+
   <!-- Parameters from upstream UR description -->
   <xacro:arg name="tf_prefix" default="" />
   <xacro:arg name="joint_limit_params" default="$(find ur_description)/config/$(arg ur_type)/joint_limits.yaml"/>
@@ -112,9 +112,38 @@
   <!-- Tool block attached to the Zivid camera -->
   <xacro:tool_block parent_link="zivid_camera" xyz="0 -0.105 0.03" rpy="-1.5708 0 0"/>
 
-  <xacro:epick_overlay use_fake_hardware="true" parent="tool_block"
-                  origin_xyz="0 -0.02 0"
-                  origin_rpy="-1.5708 0 3.1416"/>
+  <!-- pos wrt camera / not flange -->
+  <xacro:arg name="grip_pos_min" default="0"/>
+  <xacro:arg name="grip_pos_max" default="0.025"/>
+  <xacro:arg name="tty_port" default="/tmp/ttyUR"/>
+  <xacro:arg name="baudrate" default="115200"/>
+  <xacro:arg name="parity" default="N"/>
+  <xacro:arg name="data_bits" default="8"/>
+  <xacro:arg name="stop_bit" default="1"/>
+  <xacro:arg name="slave_id" default="9"/>
+  <xacro:arg name="create_socat_tty" default="true"/>
+  <xacro:arg name="socat_ip_address" default="192.168.1.101"/>
+  <xacro:arg name="socat_port" default="54321"/>
+
+  <xacro:robotiq_hande_gripper
+    name="robotiq_hande_gripper"
+    prefix="$(arg tf_prefix)"
+    parent="tool_block"
+    grip_pos_min="$(arg grip_pos_min)"
+    grip_pos_max="$(arg grip_pos_max)"
+    tty_port="$(arg tty_port)"
+    baudrate="$(arg baudrate)"
+    parity="$(arg parity)"
+    data_bits="$(arg data_bits)"
+    stop_bit="$(arg stop_bit)"
+    slave_id="$(arg slave_id)"
+    use_fake_hardware="true"
+    xyz="0 -0.02 0"
+    rpy="-1.5708 0 3.1416"
+    create_socat_tty="$(arg create_socat_tty)"
+    socat_ip_address="$(arg socat_ip_address)"
+    socat_port="$(arg socat_port)"
+  />
 </robot>
 
 

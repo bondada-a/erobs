@@ -1,6 +1,6 @@
 moveit_setup_assistant_config:
   urdf:
-    package: ur5e_hande_robot_description
+    package: ur5e_robot_description
     relative_path: urdf/ur_with_zivid_epick.urdf
   srdf:
     relative_path: config/ur.srdf
