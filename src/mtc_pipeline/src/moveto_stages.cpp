@@ -9,6 +9,13 @@
 
 #include <algorithm>
 #include <cmath>
+#include <stdexcept>
+
+namespace {
+constexpr double degToRad(double degrees) {
+  return degrees * M_PI / 180.0;
+}
+}
 
 namespace mtc = moveit::task_constructor;
 
@@ -106,16 +113,14 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesianPose(
 // Handle named state : predefined states from the SRDF (moveit_home)
 void MoveToStages::handleNamedState(const nlohmann::json& step, mtc::Task& task,
                                    const mtc::solvers::PlannerInterfacePtr& planner,
-                                   const std::string& arm_group_name) const
+                                   const std::string& arm_group_name,
+                                   const moveit::core::RobotModelConstPtr&,
+                                   const moveit::core::JointModelGroup* group,
+                                   moveit::core::RobotState& robot_state) const
 {
   const std::string named_state = step.at("target");
 
   try {
-    task.loadRobotModel(node());
-    const auto& robot_model = task.getRobotModel();
-    const auto* group = robot_model->getJointModelGroup(arm_group_name);
-
-    moveit::core::RobotState robot_state(robot_model);
     if (!robot_state.setToDefaultValues(group, named_state)) {
       throw std::runtime_error("Named state '" + named_state + "' not found");
     }
@@ -137,35 +142,35 @@ void MoveToStages::handleNamedState(const nlohmann::json& step, mtc::Task& task,
 void MoveToStages::handleJoints(const nlohmann::json& step, mtc::Task& task,
                                const mtc::solvers::PlannerInterfacePtr& planner,
                                const std::string& arm_group_name,
-                               const std::string& planning_type) const
+                               const std::string& planning_type,
+                               const moveit::core::RobotModelConstPtr& robot_model,
+                               const moveit::core::JointModelGroup* group,
+                               moveit::core::RobotState& robot_state) const
 {
   try {
-  if (step.contains("target") && step["target"].is_array()) {
-    // Direct joint angles
-    const auto joint_angles = step.at("target").get<std::vector<double>>();
-    task.add(moveToJointGoal("move_to_joints", joint_angles, planner, arm_group_name));
-  }
-  else {
-    // Pose defined in json 
-    const std::string pose_key = step.at("target");
-    const auto& poses_config = config().at("poses");
-    const auto& joint_pose_json = poses_config.at(pose_key);
-    if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
-      throw std::runtime_error(pose_key + " must be an array of 6 joint angles");
+    if (step.contains("target") && step["target"].is_array()) {
+      // Direct joint angles
+      const auto joint_angles = step.at("target").get<std::vector<double>>();
+      task.add(moveToJointGoal("move_to_joints", joint_angles, planner, arm_group_name));
     }
-    auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
+    else {
+      // Pose defined in json 
+      const std::string pose_key = step.at("target");
+      const auto& poses_config = config().at("poses");
+      const auto& joint_pose_json = poses_config.at(pose_key);
+      if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
+        throw std::runtime_error(pose_key + " must be an array of 6 joint angles");
+      }
+      auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
 
-    if (planning_type == "cartesian") {
-      task.loadRobotModel(node());
-      const auto& robot_model = task.getRobotModel();
-      const auto* group = robot_model->getJointModelGroup(arm_group_name);
-      moveit::core::RobotState robot_state(robot_model);
-      
-      task.add(moveToCartesianPose("move_to_cartesian_" + pose_key, joint_angles_deg, planner, arm_group_name, task, robot_model, group, robot_state));
-    } else {
-      task.add(moveToJointGoal("move_to_" + pose_key, joint_angles_deg, planner, arm_group_name));
+      if (planning_type == "cartesian") {
+        // Cartesian planning - convert joints to pose using provided robot model
+        task.add(moveToCartesianPose("move_to_cartesian_" + pose_key, joint_angles_deg, planner, arm_group_name, task, robot_model, group, robot_state));
+      } else {
+        // Joint planning
+        task.add(moveToJointGoal("move_to_" + pose_key, joint_angles_deg, planner, arm_group_name));
+      }
     }
-  }
   } catch (const std::exception& e) {
     RCLCPP_ERROR(node()->get_logger(), "Joint/pose handling failed: %s", e.what());
     throw;
@@ -212,11 +217,17 @@ bool MoveToStages::run(const nlohmann::json& step,
 
   auto task = createTaskTemplate("MoveTo Task", arm_group_name);
 
+  // Load robot model and get joint group (needed for named_state and cartesian planning)
+  task.loadRobotModel(node());
+  const auto& robot_model = task.getRobotModel();
+  const auto* group = robot_model->getJointModelGroup(arm_group_name);
+  moveit::core::RobotState robot_state(robot_model);
+
   try {
     if (target_type == "named_state") {
-      handleNamedState(step, task, planner, arm_group_name);
+      handleNamedState(step, task, planner, arm_group_name, robot_model, group, robot_state);
     } else if (target_type == "joints" || target_type == "pose") {
-      handleJoints(step, task, planner, arm_group_name, planning_type);
+      handleJoints(step, task, planner, arm_group_name, planning_type, robot_model, group, robot_state);
     } else if (target_type == "relative") {
       handleRelative(step, task, planner, arm_group_name);
     } else {

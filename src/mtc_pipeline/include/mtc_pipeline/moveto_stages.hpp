@@ -55,12 +55,18 @@ private:
   // Helper functions for different target types
   void handleNamedState(const nlohmann::json& step, mtc::Task& task,
                        const mtc::solvers::PlannerInterfacePtr& planner,
-                       const std::string& arm_group_name) const;
+                       const std::string& arm_group_name,
+                       const moveit::core::RobotModelConstPtr&,
+                       const moveit::core::JointModelGroup* group,
+                       moveit::core::RobotState& robot_state) const;
 
   void handleJoints(const nlohmann::json& step, mtc::Task& task,
                    const mtc::solvers::PlannerInterfacePtr& planner,
                    const std::string& arm_group_name,
-                   const std::string& planning_type) const;
+                   const std::string& planning_type,
+                   const moveit::core::RobotModelConstPtr& robot_model,
+                   const moveit::core::JointModelGroup* group,
+                   moveit::core::RobotState& robot_state) const;
 
   void handleRelative(const nlohmann::json& step, mtc::Task& task,
                      const mtc::solvers::PlannerInterfacePtr& planner,
