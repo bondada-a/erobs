@@ -100,14 +100,6 @@ def generate_launch_description():
     #     parameters=[{"robot_ip": LaunchConfiguration("robot_ip")}]
     # )
 
-    # Static TF
-    static_tf = Node(
-        package="tf2_ros",
-        executable="static_transform_publisher",
-        name="static_transform_publisher",
-        output="log",
-        arguments=["--frame-id", "map", "--child-frame-id", "base_link"],
-    )
 
     # Publish TF
     robot_state_publisher = Node(
@@ -147,7 +139,6 @@ def generate_launch_description():
         ur_control_launch,
         run_move_group_node,
         rviz_node,
-        static_tf,
         robot_state_publisher,
         epick_controller_spawner,
         epick_status_controller_spawner,
