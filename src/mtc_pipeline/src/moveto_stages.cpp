@@ -2,12 +2,10 @@
 
 #include <moveit/task_constructor/stages/move_relative.h>
 #include <moveit/task_constructor/stages/move_to.h>
-#include <moveit/robot_model_loader/robot_model_loader.h>
 #include <moveit/robot_state/robot_state.h>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <tf2_eigen/tf2_eigen.hpp>
 
-#include <algorithm>
 #include <cmath>
 #include <stdexcept>
 
