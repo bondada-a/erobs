@@ -1,61 +1,88 @@
 ## ur5e_hande_robot_description
 
-This package contains 
-  - descriptions files for the hand-e robotic gripper by *Robotiq*,
-  - description file for integrating the gripper to ur5e robotic arm by Universal Robotics, and
-  - four configuration files to be passed when initiating the ur5e robotic arm. 
+This package contains robot description files for UR5e robotic systems with various end-effectors and camera configurations:
+  - Standalone UR5e arm with Zivid camera and tool exchanger
+  - UR5e with Zivid camera, tool block, and Robotiq Hand-E gripper
+  - UR5e with Zivid camera, tool block, and ePick vacuum gripper
+  - Mesh files for tool exchanger and camera components 
 
 
-**config/hande**
 
-Files default_kinematics.yaml, physical_parameters.yaml, and visual_parameters are created both as a part of the automated process through "MoveIt Setup Assistant" and extracting the values from hand-e user manual. 
-These files contain the physical properties of the hand-e gripper and pointers to the respective design files.
+## Available Robot Configurations
 
-**config/camera_mount**
-Physical_parameters.yaml file includes the physical measurements for the camera and the mount. These are derived both from physically measuring them and extracting from official Robotiq & Azure Kinect webpages. 
+### ur_standalone.xacro
+UR5e arm with Zivid camera and tool exchanger robotside.
+Chain: UR5e → Zivid Camera → TE_RobotSide
 
-**config/ur5e**
+### ur_with_zivid_hande.xacro
+UR5e arm with Zivid camera, tool block, and Robotiq Hand-E gripper.
+Chain: UR5e → Zivid Camera → Tool Block → Hand-E Gripper
 
-Configuration files for the ur5e robot are directly copied from the humble version of the package [*Universal_Robots_ROS2_Description*](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description/tree/29e90d5095fdf4af99eba3c3eae153d7d5d769c0/config/ur5e).
-These configurations are free to be adjusted. 
+### ur_with_zivid_epick.xacro
+UR5e arm with Zivid camera, tool block, and ePick vacuum gripper.
+Chain: UR5e → Zivid Camera → Tool Block → ePick Gripper 
 
-**meshes/hande**
+## Package Structure
 
-These files contains designs for the hand-e robot. .dae files are directly taken from *Acutronic Robotic*'s [robotiq_modular_gripper](https://github.com/AcutronicRobotics/robotiq_modular_gripper/tree/4e708524e5dd20753f711686eb2cd1017a25a09e/robotiq_hande_gripper_description/meshes). These design files were not available in *Robotiq*'s github repositories.
+### URDF Files (`urdf/`)
+- **ur_standalone.xacro**: UR5e arm with Zivid camera and tool exchanger
+- **ur_with_zivid_hande.xacro**: Complete system with Robotiq Hand-E gripper
+- **ur_with_zivid_epick.xacro**: Complete system with ePick vacuum gripper
+- **te_robotside.xacro**: Tool exchanger robot-side component
+- **tool_block.xacro**: Tool block for gripper attachment
+- **zivid_camera_mount.xacro**: Zivid camera mounting system
 
-**urdf/hande.xacro**
+### Mesh Files (`meshes/`)
+- **tool_exchanger/**: Tool exchanger system STL files
+- **zivid/**: Zivid camera mesh files and protective housing
 
-The previous version of the description file for the hand-e gripper base and fingers were included from *Acutronic Robotic*'s [robotiq_modular_gripper](https://github.com/AcutronicRobotics/robotiq_modular_gripper/blob/4e708524e5dd20753f711686eb2cd1017a25a09e/robotiq_hande_gripper_description/urdf/robotiq_hande.urdf.xacro) and extended to include paramters from config/hande. However, the design of the hande-base includes 4 screws that collides with the coupler. Hence, the new design for the base and the coupler are taken from [this github repo](https://github.com/macmacal/robotiq_hande_description).
+### Dependencies
+This package requires the following external packages:
+- **[Universal_Robots_ROS2_Description](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description)**: Official UR robot descriptions
+- **robotiq_hande_description**: Robotiq Hand-E gripper descriptions (included in `src/end_effectors/`)
 
-**urdf/ur_with_hande.xacro**
-
-This file creates the description for the ur5e robot and attaches the hande gripper. Ur3e robot module is created to be directly compatible with the humble version of the the package [ur_description](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description/blob/29e90d5095fdf4af99eba3c3eae153d7d5d769c0/urdf/ur.urdf.xacro) by the following line 
 ```xml
 <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+<xacro:include filename="$(find robotiq_hande_description)/urdf/robotiq_hande_gripper.xacro"/>
 ```
 
-**urdf/ur_with_camera_hande.xacro**
-This file creates the description for the ur3e robot and attaches the hande gripper, camera mount, and the Azure Kienct camera.
+### Mesh Sources
+- **Zivid camera**: Official Zivid mesh files
+- **Tool exchanger**: Custom STL files for the tool exchanger system
+- **Hand-E gripper**: Provided by external `robotiq_hande_description` package
 
-**Azure Kinect .stl**
-Design for the Azure Kinect camera can be found in [Microsoft official github repo.](https://github.com/microsoft/Azure-Kinect-Sensor-SDK/tree/5f79890933e1c81e325633152b2f2799df825b8b/assets)
+## Usage
 
-## Execution
-
-Start up the ur simulator program (IP to be connected via a VNC viewer: 192.168.56.101):
+### Building the Package
 ```bash
-docker compose up ursim
+colcon build --packages-select ur5e_hande_robot_description
+source install/setup.bash
 ```
 
-Build and start the ur_driver program:
+### Generating URDF from XACRO
 ```bash
-docker compose up urdriver 
+# Generate standalone configuration
+xacro ur5e_hande_robot_description/urdf/ur_standalone.xacro name:=ur > ur_standalone.urdf
+
+# Generate Hand-E configuration
+xacro ur5e_hande_robot_description/urdf/ur_with_zivid_hande.xacro name:=ur > ur_with_hande.urdf
+
+# Generate ePick configuration
+xacro ur5e_hande_robot_description/urdf/ur_with_zivid_epick.xacro name:=ur > ur_with_epick.urdf
 ```
 
-Build the ur3e_hande_robot_description and ur3e_hande_moveit_config packages by running (IP to be connected via a VNC viewer: 192.168.56.103:5901):
+### Viewing in RViz
 ```bash
-docker build -t ur-moveit:latest .
-docker compose up urmoveit
+# Launch with specific configuration
+ros2 launch ur_standalone_moveit_config move_group.launch.py
+ros2 launch ur_zivid_hande_moveit_config move_group.launch.py
+ros2 launch ur_zivid_epick_moveit_config move_group.launch.py
 ```
+
+### Integration with MoveIt
+This package is designed to work with the corresponding MoveIt configuration packages:
+- `ur_standalone_moveit_config`
+- `ur_zivid_hande_moveit_config`
+- `ur_zivid_epick_moveit_config`
 
 
