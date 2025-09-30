@@ -87,7 +87,7 @@ bool MoveToStages::run(const nlohmann::json& step,
 
   const std::string target_type = step.value("target_type", "pose");
   const std::string planning_type = step.value("planning_type", "joint");
-  const std::string arm_group_name = step.value("arm_group", "ur_arm");
+  const std::string arm_group_name = step.value("arm_group", defaultArmGroupName());
 
   mtc::solvers::PlannerInterfacePtr planner;
   if (planning_type == "cartesian") {

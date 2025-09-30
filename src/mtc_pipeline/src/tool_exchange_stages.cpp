@@ -35,7 +35,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step,
   refreshPoses(poses);
 
   const double dock_offset_y = DOCK_SPACING_METERS * static_cast<double>(3 - dock_number);
-  constexpr const char* arm_group = "ur_arm";
+  const std::string& arm_group = defaultArmGroupName();
   constexpr const char* ik_frame = "flange";
 
   std::string task_name;

@@ -70,7 +70,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
     return false;
   }
 
-  constexpr const char* arm_group_name = "ur_arm";
+  const std::string& arm_group_name = defaultArmGroupName();
   constexpr const char* hand_group_name = "hande_gripper";
 
   auto task = createTaskTemplate("Pick and Place Modular Task", arm_group_name);

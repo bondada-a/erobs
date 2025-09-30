@@ -131,6 +131,11 @@ const std::vector<std::string>& BaseStages::defaultJointNames() {
   return names;
 }
 
+const std::string& BaseStages::defaultArmGroupName() {
+  static const std::string name = "ur_arm";
+  return name;
+}
+
 void BaseStages::configureOmplParameters() const {
   if (!node_) {
     return;
