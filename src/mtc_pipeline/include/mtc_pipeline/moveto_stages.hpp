@@ -40,17 +40,28 @@ public:
     const std::string& arm_group_name
   ) const;
 
+  std::unique_ptr<mtc::Stage> moveToCartesianPose(
+    const std::string& label,
+    const std::vector<double>& joint_angles_deg,
+    const mtc::solvers::PlannerInterfacePtr& planner,
+    const std::string& arm_group_name,
+    mtc::Task& task,
+    const moveit::core::RobotModelConstPtr& robot_model,
+    const moveit::core::JointModelGroup* group,
+    moveit::core::RobotState& robot_state
+  ) const;
+
 private:
   // Helper functions for different target types
-  void handleNamedState(const nlohmann::json& step, mtc::Task& task, 
+  void handleNamedState(const nlohmann::json& step, mtc::Task& task,
                        const mtc::solvers::PlannerInterfacePtr& planner,
                        const std::string& arm_group_name) const;
-  
+
   void handleJoints(const nlohmann::json& step, mtc::Task& task,
                    const mtc::solvers::PlannerInterfacePtr& planner,
                    const std::string& arm_group_name,
                    const std::string& planning_type) const;
-  
+
   void handleRelative(const nlohmann::json& step, mtc::Task& task,
                      const mtc::solvers::PlannerInterfacePtr& planner,
                      const std::string& arm_group_name) const;

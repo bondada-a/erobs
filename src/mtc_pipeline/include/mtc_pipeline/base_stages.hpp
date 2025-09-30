@@ -66,6 +66,7 @@ protected:
   std::map<std::string, double> jointsFromRadians(const std::vector<double>& angles_rad) const;
   static const std::vector<std::string>& defaultJointNames();
   static const std::string& defaultArmGroupName();
+  static constexpr double degToRad(double degrees) { return degrees * M_PI / 180.0; }
 
   void configureOmplParameters() const;
 
