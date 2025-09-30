@@ -28,8 +28,8 @@ Chain: UR5e → Zivid Camera → Tool Block → ePick Gripper
 - **ur_standalone.xacro**: UR5e arm with Zivid camera and tool exchanger
 - **ur_with_zivid_hande.xacro**: Complete system with Robotiq Hand-E gripper
 - **ur_with_zivid_epick.xacro**: Complete system with ePick vacuum gripper
-- **te_robotside.xacro**: Tool exchanger robot-side component
-- **tool_block.xacro**: Tool block for gripper attachment
+- **te_robotside.xacro**: Tool exchanger robot-side component (shows correct configuration when no gripper is attached)
+- **tool_block.xacro**: Combined tool block that integrates both robot-side and tool-side parts into a single component for simplified gripper attachment
 - **zivid_camera_mount.xacro**: Zivid camera mounting system
 
 ### Mesh Files (`meshes/`)
@@ -47,9 +47,14 @@ This package requires the following external packages:
 ```
 
 ### Mesh Sources
-- **Zivid camera**: Official Zivid mesh files
+- **Zivid camera**: Official mesh files from [Zivid Downloads](https://www.zivid.com/downloads)
 - **Tool exchanger**: Custom STL files for the tool exchanger system
 - **Hand-E gripper**: Provided by external `robotiq_hande_description` package
+
+### TODO
+- For the zivid camera:
+  - Use meshes/description/XACRO files from the official `zivid_ros` package instead of local mesh files
+  - Remove strain relief part as we aren't using it for the actual robot
 
 ## Usage
 
