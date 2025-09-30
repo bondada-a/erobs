@@ -38,7 +38,7 @@ def generate_launch_description():
         }.items()
     )
 
-    # Load MoveIt! configuration (same as move_group.launch.py)
+    # Load MoveIt! configuration (same as robot_bringup.launch.py)
     moveit_config = (
         MoveItConfigsBuilder("ur_moveit", package_name="ur_zivid_hande_moveit_config")
         .robot_description(file_path=os.path.join(get_package_share_directory("ur5e_hande_robot_description"), "urdf", "ur_with_zivid_hande.xacro"), mappings=xacro_args)

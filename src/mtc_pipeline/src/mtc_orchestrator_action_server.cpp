@@ -226,7 +226,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     // Start MoveIt configuration
     RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
     auto it = gripper_packages.find(start_gripper);
-    const std::string launch_cmd = "ros2 launch " + it->second + " move_group.launch.py robot_ip:=" + robot_ip;
+    const std::string launch_cmd = "ros2 launch " + it->second + " robot_bringup.launch.py robot_ip:=" + robot_ip;
     process_manager_->launch_process(launch_cmd);
 
     // Wait for PlanningScene service (this confirms MoveIt is ready)

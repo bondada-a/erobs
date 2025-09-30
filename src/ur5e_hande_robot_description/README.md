@@ -88,9 +88,9 @@ xacro ur5e_hande_robot_description/urdf/ur_with_zivid_epick.xacro name:=ur > ur_
 ### Viewing in RViz
 ```bash
 # Launch with specific configuration
-ros2 launch ur_standalone_moveit_config move_group.launch.py
-ros2 launch ur_zivid_hande_moveit_config move_group.launch.py
-ros2 launch ur_zivid_epick_moveit_config move_group.launch.py
+ros2 launch ur_standalone_moveit_config robot_bringup.launch.py
+ros2 launch ur_zivid_hande_moveit_config robot_bringup.launch.py
+ros2 launch ur_zivid_epick_moveit_config robot_bringup.launch.py
 ```
 
 ### Integration with MoveIt

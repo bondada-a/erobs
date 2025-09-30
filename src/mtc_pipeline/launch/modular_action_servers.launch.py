@@ -33,7 +33,7 @@ def launch_setup(context, *args, **kwargs):
         condition=IfCondition(launch_moveit),
         cmd=[
             'bash', '-c',
-            [f'source /home/aditya/work/github_ws/erobs/install/setup.bash && ros2 launch {moveit_config_pkg_name} move_group.launch.py robot_ip:={robot_ip}']
+            [f'source /home/aditya/work/github_ws/erobs/install/setup.bash && ros2 launch {moveit_config_pkg_name} robot_bringup.launch.py robot_ip:={robot_ip}']
         ],
         output='screen'
     )

@@ -34,7 +34,7 @@ ur_<config_name>_moveit_config/
 │   ├── ur_<gripper>_controllers.yaml # Hardware controller configuration
 │   └── ur.urdf.xacro               # Robot description for MoveIt
 ├── launch/
-│   └── move_group.launch.py         # Main launch file
+│   └── robot_bringup.launch.py      # Main launch file
 ├── rviz/
 │   └── view_robot_mtc.rviz         # RViz configuration
 └── .setup_assistant                 # MoveIt Setup Assistant metadata
@@ -54,7 +54,7 @@ ur_<config_name>_moveit_config/
 - **ur.urdf.xacro**: Robot description file that MoveIt uses internally
 
 ### Launch Configuration
-- **move_group.launch.py**:
+- **robot_bringup.launch.py**:
   - Launches UR robot driver with hardware interface
   - Starts MoveIt move_group node with planning capabilities
   - Spawns gripper controllers
@@ -67,13 +67,13 @@ ur_<config_name>_moveit_config/
 
 ```bash
 # For standalone configuration (no gripper)
-ros2 launch ur_standalone_moveit_config move_group.launch.py
+ros2 launch ur_standalone_moveit_config robot_bringup.launch.py
 
 # For Hand-E gripper configuration
-ros2 launch ur_zivid_hande_moveit_config move_group.launch.py
+ros2 launch ur_zivid_hande_moveit_config robot_bringup.launch.py
 
 # For ePick vacuum gripper configuration
-ros2 launch ur_zivid_epick_moveit_config move_group.launch.py
+ros2 launch ur_zivid_epick_moveit_config robot_bringup.launch.py
 ```
 
 ### Launch Parameters
@@ -89,7 +89,7 @@ Each launch file accepts the following parameters:
 
 Example with custom parameters:
 ```bash
-ros2 launch ur_zivid_hande_moveit_config move_group.launch.py robot_ip:=192.168.1.100 ur_type:=ur5e
+ros2 launch ur_zivid_hande_moveit_config robot_bringup.launch.py robot_ip:=192.168.1.100 ur_type:=ur5e
 ```
 
 ## Creating New MoveIt Configurations
