@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="wingman_toolchanger_robotside">
 
-  <xacro:macro name="te_robotside" params="parent_link">
+  <xacro:macro name="te_robotside" params="parent_link xyz:='0.010 0 0' rpy:='0 0 ${pi/2}'">
   
     <link name="te_robotside">
       <visual>
@@ -33,7 +33,7 @@
     <joint name="te_robotside_joint" type="fixed">
       <parent link="${parent_link}"/>
       <child link="te_robotside"/>
-      <origin xyz="0.010 0 0" rpy="0 0 ${pi/2}"/>
+      <origin xyz="${xyz}" rpy="${rpy}"/>
     </joint>
 
   </xacro:macro>
