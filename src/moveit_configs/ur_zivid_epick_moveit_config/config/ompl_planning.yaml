@@ -4,10 +4,7 @@ request_adapters:
 planner_configs:
   RRTConnectkConfigDefault:
     type: geometric::RRTConnect
-    range: 10.0
-    goal_tolerance: 0.01
-    num_planning_attempts: 10
-    planning_time: 10.0
+    range: 0.0
   RRTstar:
     type: geometric::RRTstar
     range: 1.0
