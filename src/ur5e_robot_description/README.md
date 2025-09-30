@@ -63,6 +63,8 @@ This package requires the following external packages:
   - Use meshes/description/XACRO files from the official `zivid_ros` package instead of local mesh files
   - Remove strain relief part as we aren't using it for the actual robot
 - Make `use_fake_hardware` parameter dynamic for end effectors instead of hardcoded values
+- Add custom suction cup to the ePick gripper (pen_vacuum)
+- Add the robot mount
 
 ## Usage
 
@@ -72,19 +74,7 @@ colcon build --packages-select ur5e_robot_description
 source install/setup.bash
 ```
 
-### Generating URDF from XACRO
-```bash
-# Generate standalone configuration
-xacro ur5e_robot_description/urdf/ur_standalone.xacro name:=ur > ur_standalone.urdf
-
-# Generate Hand-E configuration
-xacro ur5e_robot_description/urdf/ur_with_zivid_hande.xacro name:=ur > ur_with_hande.urdf
-
-# Generate ePick configuration
-xacro ur5e_robot_description/urdf/ur_with_zivid_epick.xacro name:=ur > ur_with_epick.urdf
-```
-
-### Viewing in RViz
+### Viewing in RViz (after creating moveit_config)
 ```bash
 # Launch with specific configuration
 ros2 launch ur_standalone_moveit_config robot_bringup.launch.py

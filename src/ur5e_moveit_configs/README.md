@@ -115,3 +115,7 @@ These MoveIt configurations work with robot descriptions from:
 - **robotiq_hande_description**: Hand-E gripper descriptions
 - **epick_config**: ePick vacuum gripper descriptions
 
+## TODO
+
+- Have consistent "moveit_home" values across SRDFs
+
