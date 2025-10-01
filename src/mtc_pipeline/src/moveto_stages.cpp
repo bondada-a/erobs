@@ -210,51 +210,59 @@ bool MoveToStages::run(const nlohmann::json& step,
   RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: target_type='%s', planning_type='%s', arm_group='%s'",
               target_type.c_str(), planning_type.c_str(), arm_group_name.c_str());
 
-  mtc::solvers::PlannerInterfacePtr planner;
-  if (planning_type == "cartesian") {
-    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Cartesian planner");
-    planner = makeCartesianPlanner();
-  } else {
-    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Pipeline planner");
-    planner = makePipelinePlanner();
-  }
-
-  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating task template");
-  auto task = createTaskTemplate("MoveTo Task", arm_group_name);
-
-  // Load robot model and get joint group (needed for named_state and cartesian planning)
-  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Loading robot model");
-  task.loadRobotModel(node());
-  const auto& robot_model = task.getRobotModel();
-  const auto* group = robot_model->getJointModelGroup(arm_group_name);
-  moveit::core::RobotState robot_state(robot_model);
-  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Robot model loaded");
-
-  try {
-    if (target_type == "named_state") {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling named_state");
-      handleNamedState(step, task, planner, arm_group_name, robot_model, group, robot_state);
-    } else if (target_type == "joints" || target_type == "pose") {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling joints/pose");
-      handleJoints(step, task, planner, arm_group_name, planning_type, robot_model, group, robot_state);
-    } else if (target_type == "relative") {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling relative");
-      handleRelative(step, task, planner, arm_group_name);
+  // Scope block to control destruction order and avoid class_loader warnings
+  bool success;
+  {
+    mtc::solvers::PlannerInterfacePtr planner;
+    if (planning_type == "cartesian") {
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Cartesian planner");
+      planner = makeCartesianPlanner();
     } else {
-      RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Pipeline planner");
+      planner = makePipelinePlanner();
+    }
+
+    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating task template");
+    auto task = createTaskTemplate("MoveTo Task", arm_group_name);
+
+    // Load robot model and get joint group (needed for named_state and cartesian planning)
+    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Loading robot model");
+    task.loadRobotModel(node());
+    const auto& robot_model = task.getRobotModel();
+    const auto* group = robot_model->getJointModelGroup(arm_group_name);
+    moveit::core::RobotState robot_state(robot_model);
+    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Robot model loaded");
+
+    try {
+      if (target_type == "named_state") {
+        RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling named_state");
+        handleNamedState(step, task, planner, arm_group_name, robot_model, group, robot_state);
+      } else if (target_type == "joints" || target_type == "pose") {
+        RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling joints/pose");
+        handleJoints(step, task, planner, arm_group_name, planning_type, robot_model, group, robot_state);
+      } else if (target_type == "relative") {
+        RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling relative");
+        handleRelative(step, task, planner, arm_group_name);
+      } else {
+        RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
+        return false;
+      }
+    } catch (const std::exception& e) {
+      RCLCPP_ERROR(node()->get_logger(), "MoveTo task failed: %s", e.what());
       return false;
     }
-  } catch (const std::exception& e) {
-    RCLCPP_ERROR(node()->get_logger(), "MoveTo task failed: %s", e.what());
-    return false;
-  }
 
-  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Calling loadPlanExecute");
-  const bool success = loadPlanExecute(task, 5);
-  if (success) {
-    RCLCPP_INFO(node()->get_logger(), "MoveTo task completed successfully");
-  } else {
-    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: loadPlanExecute failed");
-  }
+    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Calling loadPlanExecute");
+    success = loadPlanExecute(task, 5);
+    if (success) {
+      RCLCPP_INFO(node()->get_logger(), "MoveTo task completed successfully");
+    } else {
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: loadPlanExecute failed");
+    }
+
+    // Explicit cleanup in correct order: planner before task
+    planner.reset();
+  } // task and any remaining references destroyed here
+
   return success;
 }
