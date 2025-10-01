@@ -82,7 +82,7 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesianPose(
   moveit::core::RobotState& robot_state) const
 {
   // Convert joints to Cartesian pose using provided robot model and state
-  
+
   // Convert degrees to radians
   std::vector<double> joint_angles_rad;
   joint_angles_rad.reserve(joint_angles_deg.size());
@@ -91,8 +91,8 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesianPose(
   }
   robot_state.setJointGroupPositions(group, joint_angles_rad);
 
-  // Get target pose in Cartesian space
-  const std::string& ik_frame = task.properties().get<geometry_msgs::msg::PoseStamped>("ik_frame").header.frame_id;
+  // Get target pose in Cartesian space using "flange" as ik_frame
+  const std::string ik_frame = "flange";
   const Eigen::Isometry3d& target_pose_eigen = robot_state.getGlobalLinkTransform(ik_frame);
 
   geometry_msgs::msg::PoseStamped target_pose_msg;
@@ -103,7 +103,7 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesianPose(
   auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
   stage->setGroup(arm_group_name);
   stage->setGoal(target_pose_msg);
-  
+
   return stage;
 }
 
@@ -200,33 +200,45 @@ bool MoveToStages::run(const nlohmann::json& step,
                        const nlohmann::json& poses,
                        rclcpp::Node::SharedPtr)
 {
+  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Starting");
   refreshPoses(poses); // Update internal pose config with new pose data
 
   const std::string target_type = step.value("target_type", "pose");
   const std::string planning_type = step.value("planning_type", "joint");
   const std::string arm_group_name = step.value("arm_group", defaultArmGroupName());
 
+  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: target_type='%s', planning_type='%s', arm_group='%s'",
+              target_type.c_str(), planning_type.c_str(), arm_group_name.c_str());
+
   mtc::solvers::PlannerInterfacePtr planner;
   if (planning_type == "cartesian") {
+    RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Creating Cartesian planner");
     planner = makeCartesianPlanner();
   } else {
+    RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Creating Pipeline planner");
     planner = makePipelinePlanner();
   }
 
+  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Creating task template");
   auto task = createTaskTemplate("MoveTo Task", arm_group_name);
 
   // Load robot model and get joint group (needed for named_state and cartesian planning)
+  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Loading robot model");
   task.loadRobotModel(node());
   const auto& robot_model = task.getRobotModel();
   const auto* group = robot_model->getJointModelGroup(arm_group_name);
   moveit::core::RobotState robot_state(robot_model);
+  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Robot model loaded");
 
   try {
     if (target_type == "named_state") {
+      RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Handling named_state");
       handleNamedState(step, task, planner, arm_group_name, robot_model, group, robot_state);
     } else if (target_type == "joints" || target_type == "pose") {
+      RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Handling joints/pose");
       handleJoints(step, task, planner, arm_group_name, planning_type, robot_model, group, robot_state);
     } else if (target_type == "relative") {
+      RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Handling relative");
       handleRelative(step, task, planner, arm_group_name);
     } else {
       RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
@@ -237,9 +249,12 @@ bool MoveToStages::run(const nlohmann::json& step,
     return false;
   }
 
+  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Calling loadPlanExecute");
   const bool success = loadPlanExecute(task, 5);
   if (success) {
     RCLCPP_INFO(node()->get_logger(), "MoveTo task completed successfully");
+  } else {
+    RCLCPP_ERROR(node()->get_logger(), "[DEBUG] MoveToStages::run: loadPlanExecute failed");
   }
   return success;
 }

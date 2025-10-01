@@ -229,14 +229,15 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     const std::string launch_cmd = "ros2 launch " + it->second + " robot_bringup.launch.py robot_ip:=" + robot_ip;
     process_manager_->launch_process(launch_cmd);
 
-    // Wait for PlanningScene service (this confirms MoveIt is ready)
-    auto ps_client = this->create_client<moveit_msgs::srv::GetPlanningScene>("/get_planning_scene");
-    if (!ps_client->wait_for_service(30s)) {
-        RCLCPP_ERROR(this->get_logger(), "MoveIt not ready within 30s");
+    // Wait for planning service (loaded after OMPL pipeline initialization)
+    auto plan_client = this->create_client<moveit_msgs::srv::GetMotionPlan>("/plan_kinematic_path");
+    if (!plan_client->wait_for_service(30s)) {
+        RCLCPP_ERROR(this->get_logger(), "MoveIt planning service not ready within 30s");
         return false;
     }
+    RCLCPP_INFO(this->get_logger(), "MoveIt fully initialized and ready for planning");
 
-    // Wait for robot hardware to be ready - simple timeout approach
+    // Wait for robot hardware to be ready
     RCLCPP_INFO(this->get_logger(), "Waiting for robot hardware to initialize...");
     std::this_thread::sleep_for(5s);
 
