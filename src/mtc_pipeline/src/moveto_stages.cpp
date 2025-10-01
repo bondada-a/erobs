@@ -200,45 +200,45 @@ bool MoveToStages::run(const nlohmann::json& step,
                        const nlohmann::json& poses,
                        rclcpp::Node::SharedPtr)
 {
-  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Starting");
+  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Starting");
   refreshPoses(poses); // Update internal pose config with new pose data
 
   const std::string target_type = step.value("target_type", "pose");
   const std::string planning_type = step.value("planning_type", "joint");
   const std::string arm_group_name = step.value("arm_group", defaultArmGroupName());
 
-  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: target_type='%s', planning_type='%s', arm_group='%s'",
+  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: target_type='%s', planning_type='%s', arm_group='%s'",
               target_type.c_str(), planning_type.c_str(), arm_group_name.c_str());
 
   mtc::solvers::PlannerInterfacePtr planner;
   if (planning_type == "cartesian") {
-    RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Creating Cartesian planner");
+    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Cartesian planner");
     planner = makeCartesianPlanner();
   } else {
-    RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Creating Pipeline planner");
+    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Pipeline planner");
     planner = makePipelinePlanner();
   }
 
-  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Creating task template");
+  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating task template");
   auto task = createTaskTemplate("MoveTo Task", arm_group_name);
 
   // Load robot model and get joint group (needed for named_state and cartesian planning)
-  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Loading robot model");
+  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Loading robot model");
   task.loadRobotModel(node());
   const auto& robot_model = task.getRobotModel();
   const auto* group = robot_model->getJointModelGroup(arm_group_name);
   moveit::core::RobotState robot_state(robot_model);
-  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Robot model loaded");
+  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Robot model loaded");
 
   try {
     if (target_type == "named_state") {
-      RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Handling named_state");
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling named_state");
       handleNamedState(step, task, planner, arm_group_name, robot_model, group, robot_state);
     } else if (target_type == "joints" || target_type == "pose") {
-      RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Handling joints/pose");
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling joints/pose");
       handleJoints(step, task, planner, arm_group_name, planning_type, robot_model, group, robot_state);
     } else if (target_type == "relative") {
-      RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Handling relative");
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling relative");
       handleRelative(step, task, planner, arm_group_name);
     } else {
       RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
@@ -249,12 +249,12 @@ bool MoveToStages::run(const nlohmann::json& step,
     return false;
   }
 
-  RCLCPP_INFO(node()->get_logger(), "[DEBUG] MoveToStages::run: Calling loadPlanExecute");
+  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Calling loadPlanExecute");
   const bool success = loadPlanExecute(task, 5);
   if (success) {
     RCLCPP_INFO(node()->get_logger(), "MoveTo task completed successfully");
   } else {
-    RCLCPP_ERROR(node()->get_logger(), "[DEBUG] MoveToStages::run: loadPlanExecute failed");
+    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: loadPlanExecute failed");
   }
   return success;
 }

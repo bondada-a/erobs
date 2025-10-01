@@ -56,16 +56,16 @@ mtc::Task BaseStages::createTaskTemplate(const std::string& name,
 bool BaseStages::loadPlanExecute(mtc::Task& task,
                                  int plan_attempts,
                                  const ShouldCancelFn& should_cancel) const {
-  RCLCPP_INFO(node_->get_logger(), "[DEBUG] loadPlanExecute: Starting");
+  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Starting");
 
   try {
-    RCLCPP_INFO(node_->get_logger(), "[DEBUG] loadPlanExecute: Loading robot model");
+    RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Loading robot model");
     if (!task.getRobotModel()) {
       task.loadRobotModel(node_);
     }
-    RCLCPP_INFO(node_->get_logger(), "[DEBUG] loadPlanExecute: Robot model loaded, initializing task");
+    RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Robot model loaded, initializing task");
     task.init();
-    RCLCPP_INFO(node_->get_logger(), "[DEBUG] loadPlanExecute: Task initialized successfully");
+    RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Task initialized successfully");
   } catch (const mtc::InitStageException& e) {
     RCLCPP_ERROR(node_->get_logger(), "Stage initialization failed: %s", e.what());
     return false;
@@ -76,27 +76,27 @@ bool BaseStages::loadPlanExecute(mtc::Task& task,
     return false;
   }
 
-  RCLCPP_INFO(node_->get_logger(), "[DEBUG] loadPlanExecute: Starting planning with %d attempts", plan_attempts);
+  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Starting planning with %d attempts", plan_attempts);
   if (!task.plan(plan_attempts)) {
     RCLCPP_ERROR(node_->get_logger(), "Task planning failed");
     return false;
   }
-  RCLCPP_INFO(node_->get_logger(), "[DEBUG] loadPlanExecute: Planning completed successfully");
+  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Planning completed successfully");
 
   if (task.solutions().empty()) {
     RCLCPP_ERROR(node_->get_logger(), "No solutions found to execute");
     return false;
   }
-  RCLCPP_INFO(node_->get_logger(), "[DEBUG] loadPlanExecute: Found %zu solution(s)", task.solutions().size());
+  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Found %zu solution(s)", task.solutions().size());
 
   if (should_cancel && should_cancel()) {
     RCLCPP_WARN(node_->get_logger(), "Task cancelled before execution");
     return false;
   }
 
-  RCLCPP_INFO(node_->get_logger(), "[DEBUG] loadPlanExecute: Starting execution");
+  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Starting execution");
   auto result = task.execute(*task.solutions().front());
-  RCLCPP_INFO(node_->get_logger(), "[DEBUG] loadPlanExecute: Execution completed with code: %d", result.val);
+  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Execution completed with code: %d", result.val);
 
   if (should_cancel && should_cancel()) {
     RCLCPP_WARN(node_->get_logger(), "Task cancelled after execution");
@@ -108,7 +108,7 @@ bool BaseStages::loadPlanExecute(mtc::Task& task,
     return false;
   }
 
-  RCLCPP_INFO(node_->get_logger(), "[DEBUG] loadPlanExecute: Completed successfully");
+  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Completed successfully");
   return true;
 }
 
