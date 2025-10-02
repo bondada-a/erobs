@@ -142,8 +142,18 @@ private:
      * Create action goal from JSON content
      */
     MTCExecution::Goal create_goal(const std::string& json_content, const std::string& robot_ip) {
+        // Parse the full JSON file
+        nlohmann::json full_script = nlohmann::json::parse(json_content);
+
+        // Create task-only JSON (tasks + start_gripper)
+        nlohmann::json task_only;
+        task_only["tasks"] = full_script["tasks"];
+        task_only["start_gripper"] = full_script["start_gripper"];
+
+        // Create goal with separated fields
         MTCExecution::Goal goal;
-        goal.task_script_json = json_content;
+        goal.task_script_json = task_only.dump();
+        goal.poses_json = full_script["poses"].dump();
         goal.robot_ip = robot_ip;
         return goal;
     }

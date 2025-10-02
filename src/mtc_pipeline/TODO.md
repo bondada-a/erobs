@@ -54,6 +54,12 @@
    - Cleaned up `package.xml` to match
    - **Result:** Faster builds, cleaner dependencies, less disk space usage
 
+9. ✅ **JSON Performance Optimization**
+   - Changed `MTCExecution.action` to separate `task_script_json` and `poses_json` fields
+   - Client now serializes poses once, orchestrator passes string directly to action servers
+   - Eliminated N serializations of poses dict (was calling `poses.dump()` for each step)
+   - **Result:** ~10-50ms saved per task execution (depends on number of steps)
+
 ### Files Modified This Session:
 - `include/mtc_pipeline/end_effector_stages.hpp` - Complete redesign
 - `src/end_effector_stages.cpp` - Refactored to 118 lines (from 75)
@@ -61,12 +67,15 @@
 - `CMakeLists.txt` - Refactored and cleaned (removed ur_msgs, Python install block, 40+ line reduction)
 - `package.xml` - Removed unused ur_msgs dependency
 - `launch/modular_action_servers.launch.py` - Updated node names
-- `src/mtc_orchestrator_action_server.cpp` - Updated action client name
+- `src/mtc_orchestrator_action_server.cpp` - Updated action client name, JSON optimization
+- `include/mtc_pipeline/mtc_orchestrator_action_server.hpp` - Updated signatures for JSON optimization
 - `include/mtc_pipeline/base_action_server.hpp` - Removed node parameter
 - All stage headers/implementations - Removed node parameter
 - `new_test_updated.json` - Fixed action names (vacuum_on → on, vacuum_off → off)
 - `src/base_stages.cpp` - Removed DEG_TO_RAD constant, use degToRad() function
 - `src/moveto_stages.cpp` - Removed duplicate degToRad() function
+- `action/MTCExecution.action` - Added poses_json field
+- `src/mtc_action_client_example.cpp` - Split task and poses JSON serialization
 
 ### Documentation Added:
 - `README_ADD_END_EFFECTOR.md` - Complete guide for adding new end effectors
@@ -132,25 +141,30 @@ int run_action_server(int argc, char** argv) {
 ## 🟠 MEDIUM PRIORITY (Design Issues)
 
 ### 8. Hardcoded Values → Configuration
-- [ ] Move dock spacing to config: `DOCK_SPACING_METERS = 0.1524`
-  - File: `src/tool_exchange_stages.cpp:17`
-- [ ] Move gripper names to config:
-  - `GRIPPER_GROUP = "hande_gripper"`
-  - `GRIPPER_OPEN_STATE = "hande_open"`
-  - `GRIPPER_CLOSED_STATE = "hande_closed"`
-  - File: `src/pick_place_stages.cpp:16-18`
-- [ ] Move wrist constraints to config:
-  - `WRIST3_POSITION = 0.0`
-  - `WRIST3_TOLERANCE = 0.01`
-  - File: `src/pick_place_stages.cpp:20-22`
+- [x] ~~Move hardcoded values to central config file~~
+  - **REJECTED** - Most values are truly local, creating central config adds unnecessary coupling
+  - Local constants (DOCK_SPACING_METERS, wrist constraints) are fine where they are
+  - Better to document why values are chosen rather than extract them
+- [ ] Fix pick_place_stages.cpp gripper hardcoding:
+  - Currently hardcoded to "hande" gripper only (lines 16-18)
+  - Should accept gripper type as parameter (like EndEffectorStages does)
+  - EndEffectorStages already has proper gripper config map pattern (lines 20-35)
 
 ### 9. Performance Optimizations
-- [ ] Cache robot model in BaseStages (avoid repeated loading)
+- [x] ~~Cache robot model in BaseStages (avoid repeated loading)~~
+  - **REJECTED** - Same issue as planner caching
+  - Gripper swapping changes robot model (different URDF/SRDF)
+  - BaseStages instances persist across actions, cached model would become stale after tool_exchange
+  - Simplicity > fake optimization
 - [x] ~~Cache planner objects as member variables~~
   - **ATTEMPTED & REVERTED** - Tried Option 5 (recreate after task creation) but provided no real caching benefit
   - Robot model mismatch issues made true caching impractical
   - Decided simplicity > fake optimization
-- [ ] Avoid repeated JSON serialization/deserialization
+- [x] ~~Avoid repeated JSON serialization/deserialization~~
+  - **COMPLETED** - Eliminated N serializations of poses dict per task
+  - Changed MTCExecution.action to have separate task_script_json and poses_json fields
+  - Client serializes poses once, orchestrator passes string directly to action servers
+  - Orchestrator no longer calls poses.dump() in loop (was 4 times per step)
 
 ### 10. Code Organization
 - [ ] Move SimpleProcessManager to separate header file

@@ -81,9 +81,9 @@ private:
 
 
     // Main execution logic
-    bool execute_step(const std::string& task_type, const nlohmann::json& step, 
-                     const nlohmann::json& poses, const std::string& robot_ip);
-    
+    bool execute_step(const std::string& task_type, const nlohmann::json& step,
+                     const std::string& poses_json, const std::string& robot_ip);
+
 
     // Execute function helpers
     bool initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip);
@@ -94,18 +94,18 @@ private:
         typename rclcpp_action::Client<ActionType>::SharedPtr client,
         const std::string& task_type,
         const nlohmann::json& step,
-        const nlohmann::json& poses,
-        std::function<void(typename ActionType::Goal&, const nlohmann::json&, const nlohmann::json&)> populate_goal
+        const std::string& poses_json,
+        std::function<void(typename ActionType::Goal&, const nlohmann::json&, const std::string&)> populate_goal
     );
 
     // Action client methods to call modular action servers via ROS2 actions
-    bool call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses);
-    bool call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses);
-    bool call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses);
-    bool call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses);
+    bool call_moveto_action(const nlohmann::json& step, const std::string& poses_json);
+    bool call_endeffector_action(const nlohmann::json& step, const std::string& poses_json);
+    bool call_toolexchange_action(const nlohmann::json& step, const std::string& poses_json);
+    bool call_pickplace_action(const nlohmann::json& step, const std::string& poses_json);
 
     // Helper functions for execute_step
-    bool handle_tool_exchange(const nlohmann::json& step, const nlohmann::json& poses, const std::string& robot_ip);
+    bool handle_tool_exchange(const nlohmann::json& step, const std::string& poses_json, const std::string& robot_ip);
 
     // Helper function for feedback updates
     void update_feedback(std::shared_ptr<MTCExecution::Feedback> feedback,

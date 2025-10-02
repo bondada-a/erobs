@@ -95,8 +95,6 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
         const std::string start_gripper = task_script["start_gripper"].get<std::string>();
 
         const auto& tasks = task_script["tasks"];
-        const auto& poses = task_script["poses"];
-
 
         // Send initial feedback
         update_feedback(feedback, goal_handle, 0, tasks.size(), "Initializing MoveIt");
@@ -128,7 +126,7 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
 
 
             // Execute step
-            if (!execute_step(task_type, step, poses, goal->robot_ip)) {
+            if (!execute_step(task_type, step, goal->poses_json, goal->robot_ip)) {
                 RCLCPP_ERROR(this->get_logger(), "%s step failed", task_type.c_str());
                 result->success = false;
                 result->error_message = task_type + " step failed";
@@ -162,11 +160,11 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
 }
 
 bool MTCOrchestratorActionServer::execute_step(const std::string& task_type, const nlohmann::json& step,
-                 const nlohmann::json& poses, const std::string& robot_ip) {
-    if (task_type == "tool_exchange") return handle_tool_exchange(step, poses, robot_ip);
-    if (task_type == "pick_and_place") return call_pickplace_action(step, poses);
-    if (task_type == "moveto") return call_moveto_action(step, poses);
-    if (task_type == "end_effector") return call_endeffector_action(step, poses);
+                 const std::string& poses_json, const std::string& robot_ip) {
+    if (task_type == "tool_exchange") return handle_tool_exchange(step, poses_json, robot_ip);
+    if (task_type == "pick_and_place") return call_pickplace_action(step, poses_json);
+    if (task_type == "moveto") return call_moveto_action(step, poses_json);
+    if (task_type == "end_effector") return call_endeffector_action(step, poses_json);
 
     return false;
 }
@@ -262,8 +260,8 @@ bool MTCOrchestratorActionServer::call_action_generic(
     typename rclcpp_action::Client<ActionType>::SharedPtr client,
     const std::string& task_type,
     const nlohmann::json& step,
-    const nlohmann::json& poses,
-    std::function<void(typename ActionType::Goal&, const nlohmann::json&, const nlohmann::json&)> populate_goal
+    const std::string& poses_json,
+    std::function<void(typename ActionType::Goal&, const nlohmann::json&, const std::string&)> populate_goal
 ) {
     // Check if action server is available
     if (!client->wait_for_action_server(5s)) {
@@ -273,7 +271,7 @@ bool MTCOrchestratorActionServer::call_action_generic(
 
     // Create and populate goal using lambda function
     auto goal = typename ActionType::Goal();
-    populate_goal(goal, step, poses);
+    populate_goal(goal, step, poses_json);
 
     // Send goal and get handle
     auto future = client->async_send_goal(goal);
@@ -300,41 +298,41 @@ bool MTCOrchestratorActionServer::call_action_generic(
     return false;
 }
 
-bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    return call_action_generic<MoveToAction>(moveto_action_client_, "moveto", step, poses, [](MoveToAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step, const std::string& poses_json) {
+    return call_action_generic<MoveToAction>(moveto_action_client_, "moveto", step, poses_json, [](MoveToAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
         goal.target_type = step.value("target_type", "");
         goal.target = step.value("target", "");
         goal.planning_type = step.value("planning_type", "joint");
         goal.direction = step.value("direction", "");
         goal.distance = step.value("distance", 0.0);
-        goal.poses_json = poses.dump();
+        goal.poses_json = poses_json;
     });
 }
 
-bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    return call_action_generic<EndEffectorAction>(endeffector_action_client_, "end_effector", step, poses, [](EndEffectorAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& step, const std::string& poses_json) {
+    return call_action_generic<EndEffectorAction>(endeffector_action_client_, "end_effector", step, poses_json, [](EndEffectorAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
         goal.end_effector_type = step.value("end_effector_type", "");
         goal.end_effector_action = step.value("end_effector_action", "");
-        goal.poses_json = poses.dump();
+        goal.poses_json = poses_json;
     });
 }
 
-bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    return call_action_generic<PickPlaceAction>(pickplace_action_client_, "pick_and_place", step, poses, [](PickPlaceAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& step, const std::string& poses_json) {
+    return call_action_generic<PickPlaceAction>(pickplace_action_client_, "pick_and_place", step, poses_json, [](PickPlaceAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
         goal.gripper = step.value("gripper", "");
         goal.pick_pose = step.value("pick_pose", "");
         goal.place_pose = step.value("place_pose", "");
         goal.planning_type = step.value("planning_type", "joint");
-        goal.poses_json = poses.dump();
+        goal.poses_json = poses_json;
     });
 }
 
-bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& step, const nlohmann::json& poses, const std::string& robot_ip) {
+bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& step, const std::string& poses_json, const std::string& robot_ip) {
     const std::string operation = step.value("operation", "");
     const std::string requested_tool = step.value("gripper", process_manager_->current_gripper_);
 
     // Execute tool exchange action
-    if (!call_toolexchange_action(step, poses)) {
+    if (!call_toolexchange_action(step, poses_json)) {
         return false;
     }
 
@@ -347,12 +345,12 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& ste
     return true;
 }
 
-bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json& step, const nlohmann::json& poses) {
-    return call_action_generic<ToolExchangeAction>(toolexchange_action_client_, "tool_exchange", step, poses, [](ToolExchangeAction::Goal& goal, const nlohmann::json& step, const nlohmann::json& poses) {
+bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json& step, const std::string& poses_json) {
+    return call_action_generic<ToolExchangeAction>(toolexchange_action_client_, "tool_exchange", step, poses_json, [](ToolExchangeAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
         goal.operation = step.value("operation", "");
         goal.gripper = step.value("gripper", "");
         goal.dock_number = step.value("dock_number", 0);
-        goal.poses_json = poses.dump();
+        goal.poses_json = poses_json;
     });
 }
 

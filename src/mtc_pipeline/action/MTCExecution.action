@@ -1,7 +1,7 @@
 # Goal
-string task_script_json    # JSON string containing the task sequence and poses
-string robot_ip           # Robot IP address (optional, can use default)
-string start_gripper      # Initial gripper configuration (optional, can use default)
+string task_script_json    # JSON string containing only the tasks array and start_gripper
+string poses_json          # JSON string containing the poses dictionary
+string robot_ip            # Robot IP address (optional, can use default)
 ---
 # Result
 bool success
