@@ -167,9 +167,16 @@ int run_action_server(int argc, char** argv) {
   - Orchestrator no longer calls poses.dump() in loop (was 4 times per step)
 
 ### 10. Code Organization
-- [ ] Move SimpleProcessManager to separate header file
-- [ ] Standardize on `#pragma once` instead of mixed header guards
-- [ ] Use anonymous namespaces consistently for file-local constants
+- [x] ~~Move SimpleProcessManager to separate header file~~
+  - **NOT NEEDED** - Single-use implementation detail tightly coupled to orchestrator
+  - Current pattern (forward declaration + definition in .cpp) is appropriate
+  - Extracting would add complexity without benefit
+- [x] ~~Standardize on `#pragma once` instead of mixed header guards~~
+  - **COMPLETED** - All 7 header files now use `#pragma once`
+  - Updated: `base_action_server.hpp`, `mtc_orchestrator_action_server.hpp`
+  - Removed old-style `#ifndef/#define/#endif` guards
+- [x] ~~Use anonymous namespaces consistently for file-local constants~~
+  - **ALREADY DONE** - All file-local constants properly use anonymous namespaces
 
 ### 11. Error Handling Standardization
 - [ ] Use consistent pattern: return false with RCLCPP_ERROR

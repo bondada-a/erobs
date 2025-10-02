@@ -1,5 +1,4 @@
-#ifndef BASE_ACTION_SERVER_HPP
-#define BASE_ACTION_SERVER_HPP
+#pragma once
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
@@ -104,5 +103,3 @@ private:
         }
     }
 };
-
-#endif // BASE_ACTION_SERVER_HPP

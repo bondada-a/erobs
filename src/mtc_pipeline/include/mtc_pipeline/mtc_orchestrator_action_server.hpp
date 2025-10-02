@@ -1,5 +1,4 @@
-#ifndef MTC_ORCHESTRATOR_ACTION_SERVER_HPP
-#define MTC_ORCHESTRATOR_ACTION_SERVER_HPP
+#pragma once
 
 // ROS2 includes
 #include <rclcpp/rclcpp.hpp>
@@ -113,5 +112,3 @@ private:
                         size_t current_step, size_t total_steps, const std::string& task_type);
 
 };
-
-#endif // MTC_ORCHESTRATOR_ACTION_SERVER_HPP
