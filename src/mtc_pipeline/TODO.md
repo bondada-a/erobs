@@ -60,6 +60,12 @@
    - Eliminated N serializations of poses dict (was calling `poses.dump()` for each step)
    - **Result:** ~10-50ms saved per task execution (depends on number of steps)
 
+10. ✅ **Code Organization Cleanup**
+   - Standardized all headers to use `#pragma once` (removed old-style `#ifndef/#define`)
+   - Evaluated and rejected SimpleProcessManager extraction (current pattern is appropriate)
+   - Confirmed anonymous namespaces already used consistently
+   - **Result:** 100% consistent header guard style across all 7 headers
+
 ### Files Modified This Session:
 - `include/mtc_pipeline/end_effector_stages.hpp` - Complete redesign
 - `src/end_effector_stages.cpp` - Refactored to 118 lines (from 75)
@@ -76,6 +82,8 @@
 - `src/moveto_stages.cpp` - Removed duplicate degToRad() function
 - `action/MTCExecution.action` - Added poses_json field
 - `src/mtc_action_client_example.cpp` - Split task and poses JSON serialization
+- `include/mtc_pipeline/base_action_server.hpp` - Changed to `#pragma once`
+- `include/mtc_pipeline/mtc_orchestrator_action_server.hpp` - Changed to `#pragma once`
 
 ### Documentation Added:
 - `README_ADD_END_EFFECTOR.md` - Complete guide for adding new end effectors

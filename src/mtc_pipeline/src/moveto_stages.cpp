@@ -56,8 +56,8 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToRelative(
   } else if (direction == "down" || direction == "-z") {
     vec.vector.z = (distance >= 0.0) ? 1.0 : -1.0;
   } else {
-    throw std::runtime_error("Invalid direction: " + direction +
-                             ". Use: forward/x, right/y, up/z, backward/-x, left/-y, down/-z");
+    RCLCPP_ERROR(node()->get_logger(), "Invalid direction: '%s'. Use: forward/x, right/y, up/z, backward/-x, left/-y, down/-z", direction.c_str());
+    return nullptr;
   }
 
   stage->setDirection(vec);
@@ -103,7 +103,7 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesianPose(
 
 
 // Handle named state : predefined states from the SRDF (moveit_home)
-void MoveToStages::handleNamedState(const nlohmann::json& step, mtc::Task& task,
+bool MoveToStages::handleNamedState(const nlohmann::json& step, mtc::Task& task,
                                    const mtc::solvers::PlannerInterfacePtr& planner,
                                    const std::string& arm_group_name,
                                    const moveit::core::RobotModelConstPtr&,
@@ -112,26 +112,23 @@ void MoveToStages::handleNamedState(const nlohmann::json& step, mtc::Task& task,
 {
   const std::string named_state = step.at("target");
 
-  try {
-    if (!robot_state.setToDefaultValues(group, named_state)) {
-      throw std::runtime_error("Named state '" + named_state + "' not found");
-    }
-
-    std::vector<double> joint_angles_rad;
-    robot_state.copyJointGroupPositions(group, joint_angles_rad);
-
-    auto stage = std::make_unique<mtc::stages::MoveTo>("move_to_" + named_state, planner);
-    stage->setGroup(arm_group_name);
-    stage->setGoal(jointsFromRadians(joint_angles_rad));
-    task.add(std::move(stage));
-  } catch (const std::exception& e) {
-    RCLCPP_ERROR(node()->get_logger(), "Named state '%s' failed: %s", named_state.c_str(), e.what());
-    throw;
+  if (!robot_state.setToDefaultValues(group, named_state)) {
+    RCLCPP_ERROR(node()->get_logger(), "Named state '%s' not found", named_state.c_str());
+    return false;
   }
+
+  std::vector<double> joint_angles_rad;
+  robot_state.copyJointGroupPositions(group, joint_angles_rad);
+
+  auto stage = std::make_unique<mtc::stages::MoveTo>("move_to_" + named_state, planner);
+  stage->setGroup(arm_group_name);
+  stage->setGoal(jointsFromRadians(joint_angles_rad));
+  task.add(std::move(stage));
+  return true;
 }
 
 // Handle joint angles : direct joint angles or pose from json
-void MoveToStages::handleJoints(const nlohmann::json& step, mtc::Task& task,
+bool MoveToStages::handleJoints(const nlohmann::json& step, mtc::Task& task,
                                const mtc::solvers::PlannerInterfacePtr& planner,
                                const std::string& arm_group_name,
                                const std::string& planning_type,
@@ -139,51 +136,48 @@ void MoveToStages::handleJoints(const nlohmann::json& step, mtc::Task& task,
                                const moveit::core::JointModelGroup* group,
                                moveit::core::RobotState& robot_state) const
 {
-  try {
-    if (step.contains("target") && step["target"].is_array()) {
-      // Direct joint angles
-      const auto joint_angles = step.at("target").get<std::vector<double>>();
-      task.add(moveToJointGoal("move_to_joints", joint_angles, planner, arm_group_name));
-    }
-    else {
-      // Pose defined in json 
-      const std::string pose_key = step.at("target");
-      const auto& poses_config = config().at("poses");
-      const auto& joint_pose_json = poses_config.at(pose_key);
-      if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
-        throw std::runtime_error(pose_key + " must be an array of 6 joint angles");
-      }
-      auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
-
-      if (planning_type == "cartesian") {
-        // Cartesian planning - convert joints to pose using provided robot model
-        task.add(moveToCartesianPose("move_to_cartesian_" + pose_key, joint_angles_deg, planner, arm_group_name, task, robot_model, group, robot_state));
-      } else {
-        // Joint planning
-        task.add(moveToJointGoal("move_to_" + pose_key, joint_angles_deg, planner, arm_group_name));
-      }
-    }
-  } catch (const std::exception& e) {
-    RCLCPP_ERROR(node()->get_logger(), "Joint/pose handling failed: %s", e.what());
-    throw;
+  if (step.contains("target") && step["target"].is_array()) {
+    // Direct joint angles
+    const auto joint_angles = step.at("target").get<std::vector<double>>();
+    task.add(moveToJointGoal("move_to_joints", joint_angles, planner, arm_group_name));
   }
+  else {
+    // Pose defined in json
+    const std::string pose_key = step.at("target");
+    const auto& poses_config = config().at("poses");
+    const auto& joint_pose_json = poses_config.at(pose_key);
+    if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
+      RCLCPP_ERROR(node()->get_logger(), "'%s' must be an array of 6 joint angles", pose_key.c_str());
+      return false;
+    }
+    auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
+
+    if (planning_type == "cartesian") {
+      // Cartesian planning - convert joints to pose using provided robot model
+      task.add(moveToCartesianPose("move_to_cartesian_" + pose_key, joint_angles_deg, planner, arm_group_name, task, robot_model, group, robot_state));
+    } else {
+      // Joint planning
+      task.add(moveToJointGoal("move_to_" + pose_key, joint_angles_deg, planner, arm_group_name));
+    }
+  }
+  return true;
 }
 
 // Handle relative movement : move relative to the current position
-void MoveToStages::handleRelative(const nlohmann::json& step, mtc::Task& task,
+bool MoveToStages::handleRelative(const nlohmann::json& step, mtc::Task& task,
                                  const mtc::solvers::PlannerInterfacePtr& planner,
                                  const std::string& arm_group_name) const
 {
-  try {
-    const std::string direction = step.at("direction");
-    const double distance = step.at("distance").get<double>();
+  const std::string direction = step.at("direction");
+  const double distance = step.at("distance").get<double>();
 
-    const std::string label = "move_" + direction + "_" + std::to_string(distance) + "m";
-    task.add(moveToRelative(label, direction, distance, planner, arm_group_name));
-  } catch (const std::exception& e) {
-    RCLCPP_ERROR(node()->get_logger(), "Relative movement failed: %s", e.what());
-    throw;
+  const std::string label = "move_" + direction + "_" + std::to_string(distance) + "m";
+  auto stage = moveToRelative(label, direction, distance, planner, arm_group_name);
+  if (!stage) {
+    return false;  // Error already logged in moveToRelative
   }
+  task.add(std::move(stage));
+  return true;
 }
 
 // =================================================================================
@@ -227,22 +221,23 @@ bool MoveToStages::run(const nlohmann::json& step,
       planner = makePipelinePlanner();
     }
 
-    try {
-      if (target_type == "named_state") {
-        RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling named_state");
-        handleNamedState(step, task, planner, arm_group_name, robot_model, group, robot_state);
-      } else if (target_type == "joints" || target_type == "pose") {
-        RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling joints/pose");
-        handleJoints(step, task, planner, arm_group_name, planning_type, robot_model, group, robot_state);
-      } else if (target_type == "relative") {
-        RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling relative");
-        handleRelative(step, task, planner, arm_group_name);
-      } else {
-        RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
+    if (target_type == "named_state") {
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling named_state");
+      if (!handleNamedState(step, task, planner, arm_group_name, robot_model, group, robot_state)) {
         return false;
       }
-    } catch (const std::exception& e) {
-      RCLCPP_ERROR(node()->get_logger(), "MoveTo task failed: %s", e.what());
+    } else if (target_type == "joints" || target_type == "pose") {
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling joints/pose");
+      if (!handleJoints(step, task, planner, arm_group_name, planning_type, robot_model, group, robot_state)) {
+        return false;
+      }
+    } else if (target_type == "relative") {
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling relative");
+      if (!handleRelative(step, task, planner, arm_group_name)) {
+        return false;
+      }
+    } else {
+      RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
       return false;
     }
 

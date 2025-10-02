@@ -80,81 +80,93 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
     auto feedback = std::make_shared<MTCExecution::Feedback>();
     auto result = std::make_shared<MTCExecution::Result>();
 
-    try {
-        // Parse JSON task script
-        nlohmann::json task_script = nlohmann::json::parse(goal->task_script_json);
+    // Parse JSON task script
+    nlohmann::json task_script = nlohmann::json::parse(goal->task_script_json);
 
-        // Get task parameters
-        if (goal->robot_ip.empty()) {
-            throw std::runtime_error("Goal missing required robot_ip");
-        }
-
-        if (!task_script.contains("start_gripper") || !task_script["start_gripper"].is_string()) {
-            throw std::runtime_error("Task script missing required start_gripper");
-        }
-        const std::string start_gripper = task_script["start_gripper"].get<std::string>();
-
-        const auto& tasks = task_script["tasks"];
-
-        // Send initial feedback
-        update_feedback(feedback, goal_handle, 0, tasks.size(), "Initializing MoveIt");
-
-        // Initialize MoveIt stack
-        if (!initialize_moveit_stack(start_gripper, goal->robot_ip)) {
-            throw std::runtime_error("Failed to initialize MoveIt stack");
-        }
-
-        // Execute tasks
-        for (size_t i = 0; i < tasks.size(); ++i) {
-            // Check if goal was cancelled
-            if (goal_handle->is_canceling()) {
-                result->success = false;
-                result->error_message = "Task was canceled";
-                goal_handle->canceled(result);
-                is_executing_ = false;
-                return;
-            }
-
-            const auto& step = tasks[i];
-            std::string task_type = step.value("task_type", "");
-            if (task_type.empty()) {
-                throw std::runtime_error("Step missing 'task_type' field");
-            }
-
-            // Update feedback
-            update_feedback(feedback, goal_handle, i + 1, tasks.size(), task_type);
-
-
-            // Execute step
-            if (!execute_step(task_type, step, goal->poses_json, goal->robot_ip)) {
-                RCLCPP_ERROR(this->get_logger(), "%s step failed", task_type.c_str());
-                result->success = false;
-                result->error_message = task_type + " step failed";
-                result->completed_steps = i;
-                goal_handle->abort(result);
-                is_executing_ = false;
-                return;
-            }
-
-            result->completed_steps = i + 1;
-        }
-
-        // Success
-        result->success = true;
-        result->error_message = "";
-        result->total_steps = tasks.size();
-
-        update_feedback(feedback, goal_handle, tasks.size(), tasks.size(), "");
-
-        goal_handle->succeed(result);
-        RCLCPP_INFO(this->get_logger(), "Goal succeeded - keeping MoveIt running");
-
-    } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "Execution failed: %s", e.what());
+    // Get task parameters
+    if (goal->robot_ip.empty()) {
+        RCLCPP_ERROR(this->get_logger(), "Goal missing required robot_ip");
         result->success = false;
-        result->error_message = std::string("Execution failed: ") + e.what();
+        result->error_message = "Goal missing required robot_ip";
         goal_handle->abort(result);
+        is_executing_ = false;
+        return;
     }
+
+    if (!task_script.contains("start_gripper") || !task_script["start_gripper"].is_string()) {
+        RCLCPP_ERROR(this->get_logger(), "Task script missing required start_gripper");
+        result->success = false;
+        result->error_message = "Task script missing required start_gripper";
+        goal_handle->abort(result);
+        is_executing_ = false;
+        return;
+    }
+    const std::string start_gripper = task_script["start_gripper"].get<std::string>();
+
+    const auto& tasks = task_script["tasks"];
+
+    // Send initial feedback
+    update_feedback(feedback, goal_handle, 0, tasks.size(), "Initializing MoveIt");
+
+    // Initialize MoveIt stack
+    if (!initialize_moveit_stack(start_gripper, goal->robot_ip)) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to initialize MoveIt stack");
+        result->success = false;
+        result->error_message = "Failed to initialize MoveIt stack";
+        goal_handle->abort(result);
+        is_executing_ = false;
+        return;
+    }
+
+    // Execute tasks
+    for (size_t i = 0; i < tasks.size(); ++i) {
+        // Check if goal was cancelled
+        if (goal_handle->is_canceling()) {
+            result->success = false;
+            result->error_message = "Task was canceled";
+            goal_handle->canceled(result);
+            is_executing_ = false;
+            return;
+        }
+
+        const auto& step = tasks[i];
+        std::string task_type = step.value("task_type", "");
+        if (task_type.empty()) {
+            RCLCPP_ERROR(this->get_logger(), "Step missing 'task_type' field");
+            result->success = false;
+            result->error_message = "Step missing 'task_type' field";
+            result->completed_steps = i;
+            goal_handle->abort(result);
+            is_executing_ = false;
+            return;
+        }
+
+        // Update feedback
+        update_feedback(feedback, goal_handle, i + 1, tasks.size(), task_type);
+
+        // Execute step
+        if (!execute_step(task_type, step, goal->poses_json, goal->robot_ip)) {
+            RCLCPP_ERROR(this->get_logger(), "%s step failed", task_type.c_str());
+            result->success = false;
+            result->error_message = task_type + " step failed";
+            result->completed_steps = i;
+            goal_handle->abort(result);
+            is_executing_ = false;
+            return;
+        }
+
+        result->completed_steps = i + 1;
+    }
+
+    // Success
+    result->success = true;
+    result->error_message = "";
+    result->total_steps = tasks.size();
+
+    update_feedback(feedback, goal_handle, tasks.size(), tasks.size(), "");
+
+    goal_handle->succeed(result);
+    RCLCPP_INFO(this->get_logger(), "Goal succeeded - keeping MoveIt running");
 
     is_executing_ = false;
 }
