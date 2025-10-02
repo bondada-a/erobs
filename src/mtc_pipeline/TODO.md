@@ -66,6 +66,14 @@
    - Confirmed anonymous namespaces already used consistently
    - **Result:** 100% consistent header guard style across all 7 headers
 
+11. ✅ **Error Handling Standardization**
+   - Converted all exception-based error handling to return code pattern
+   - Removed 9 `throw std::runtime_error` calls from moveto_stages.cpp (4), pick_place_stages.cpp (1), mtc_orchestrator_action_server.cpp (4)
+   - All error paths now use RCLCPP_ERROR + return false/nullptr
+   - Removed all catch-rethrow blocks
+   - Helper functions return nullptr or false on error with proper checking
+   - **Result:** Consistent error handling following ROS2 best practices, deterministic behavior
+
 ### Files Modified This Session:
 - `include/mtc_pipeline/end_effector_stages.hpp` - Complete redesign
 - `src/end_effector_stages.cpp` - Refactored to 118 lines (from 75)
@@ -84,6 +92,10 @@
 - `src/mtc_action_client_example.cpp` - Split task and poses JSON serialization
 - `include/mtc_pipeline/base_action_server.hpp` - Changed to `#pragma once`
 - `include/mtc_pipeline/mtc_orchestrator_action_server.hpp` - Changed to `#pragma once`
+- `src/moveto_stages.cpp` - Converted 4 exceptions to return codes
+- `include/mtc_pipeline/moveto_stages.hpp` - Updated function signatures (void → bool)
+- `src/pick_place_stages.cpp` - Converted 1 exception to return code, added null checks
+- `src/mtc_orchestrator_action_server.cpp` - Converted 4 exceptions to return codes, removed try-catch
 
 ### Documentation Added:
 - `README_ADD_END_EFFECTOR.md` - Complete guide for adding new end effectors
@@ -126,18 +138,10 @@
   - **Result:** ~35 line reduction, easier to maintain, follows industry standard patterns
 
 ### 6. Identical main() Functions
-- [ ] Create template function in `base_action_server.hpp`
-```cpp
-template<typename ServerType>
-int run_action_server(int argc, char** argv) {
-    rclcpp::init(argc, argv);
-    auto node = std::make_shared<ServerType>();
-    node->initialize_stages();
-    rclcpp::spin(node);
-    rclcpp::shutdown();
-    return 0;
-}
-```
+- [x] ~~Create template function in `base_action_server.hpp`~~
+  - **REJECTED** - Small amount of duplication (4 instances)
+  - Keeping identical main() functions improves readability and makes code flow easier to understand
+  - Template abstraction would save only ~6 lines per file but reduce clarity
 
 ### 7. Remove Unused Parameters
 - [x] ~~Remove unused `node` parameter from all `run()` methods~~
@@ -187,9 +191,14 @@ int run_action_server(int argc, char** argv) {
   - **ALREADY DONE** - All file-local constants properly use anonymous namespaces
 
 ### 11. Error Handling Standardization
-- [ ] Use consistent pattern: return false with RCLCPP_ERROR
-- [ ] Don't throw exceptions in stage implementations
-- [ ] Add input validation:
+- [x] ~~Use consistent pattern: return false with RCLCPP_ERROR~~
+  - **COMPLETED** - All stages now use RCLCPP_ERROR + return false pattern
+  - Converted 9 `throw std::runtime_error` calls across all stage files
+- [x] ~~Don't throw exceptions in stage implementations~~
+  - **COMPLETED** - Removed all exception throwing from moveto_stages.cpp, pick_place_stages.cpp, mtc_orchestrator_action_server.cpp
+  - Helper functions return nullptr or false on error
+  - Removed all catch-rethrow blocks
+- [ ] Add input validation (DEFERRED - for later):
   - Joint angles count validation
   - Dock number bounds checking (1-5)
   - Gripper type validation
@@ -379,9 +388,9 @@ protected:
 ## 📊 METRICS
 
 **Total Issues Found:** 67
-- Critical: 4 (✅ 3 completed)
-- High Priority: 10 (✅ 2 completed)
-- Medium Priority: 14 (✅ 1 attempted)
+- Critical: 4 (✅ 3 completed, ❌ 1 deferred)
+- High Priority: 10 (✅ 2 completed, ❌ 1 rejected)
+- Medium Priority: 14 (✅ 5 completed, ❌ 2 attempted/deferred)
 - Low Priority: 9
 - Stage-Specific: 30 (✅ 8 completed in EndEffectorStages)
 
@@ -415,6 +424,7 @@ protected:
 - [x] **Degree-to-radian conversion consolidated** - single source of truth (2025-10-02)
 - [x] **CMakeLists.txt refactored** - dependency sets, global includes, ~40 line reduction (2025-10-02)
 - [x] **Removed unused dependencies** - ur_msgs, Python install block (2025-10-02)
+- [x] **Error handling standardized** - RCLCPP_ERROR + return false pattern, removed 9 exceptions (2025-10-02)
 
 ---
 
@@ -427,10 +437,10 @@ protected:
 
 2. **High Impact Tasks:**
    - ~~Refactor CMakeLists.txt duplication~~ ✅ DONE
-   - Create main() template function (20 min) - eliminate identical main() functions
+   - ~~Create main() template function~~ ❌ REJECTED - improves readability to keep explicit
    - Fix shell injection vulnerability (15 min) - security issue (deferred pending requirements)
 
 3. **Design Improvements:**
    - Extract hardcoded configurations to JSON/YAML (2 hours)
-   - Add input validation (bounds checking, type validation) (1 hour)
+   - Add input validation (bounds checking, type validation) (1 hour) - DEFERRED
    - Improve documentation with Doxygen comments (2 hours)
