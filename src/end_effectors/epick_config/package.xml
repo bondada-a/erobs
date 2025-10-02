@@ -4,7 +4,7 @@
   <name>epick_config</name>
   <version>0.1.0</version>
   <description>Overlay configuration for ros2_epick_gripper (pose and serial port).</description>
-  <maintainer email="abondada@bnl.gov">Aditya Bondada</maintainer>
+  <maintainer email="aditya@example.com">Aditya</maintainer>
   <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
@@ -14,7 +14,7 @@
   <exec_depend>ros2run</exec_depend>
   <exec_depend>ros2param</exec_depend>
   <exec_depend>rclcpp</exec_depend>
-  <exec_depend>epick_description</exec_depend>
+
 
   <export>
     <build_type>ament_cmake</build_type>
