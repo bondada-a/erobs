@@ -73,32 +73,32 @@ public:
      * Execute a task from a JSON file
      * @param json_file_path Path to the JSON task file
      * @param robot_ip IP address of the robot
-     * @return true if task completed successfully, false otherwise
+     * @return 0 = success, 1 = failed, 2 = cancelled
      */
-    bool execute_task(const std::string& json_file_path, const std::string& robot_ip = "192.168.1.101") {
+    int execute_task(const std::string& json_file_path, const std::string& robot_ip = "192.168.1.101") {
         // Validate and read JSON file
         auto json_content = read_json_file(json_file_path);
         if (!json_content) {
-            return false;
+            return 1;  // Failed
         }
-        
+
         // Create and send goal
         auto goal_msg = create_goal(*json_content, robot_ip);
         auto goal_handle = send_goal(goal_msg);
         if (!goal_handle) {
-            return false;
+            return 1;  // Failed
         }
-        
+
         // Store goal_handle for potential cancellation
         current_goal_handle_ = goal_handle;
-        
+
         // Wait for completion with cancellation support
-        bool success = wait_for_completion(goal_handle);
-        
+        int result = wait_for_completion(goal_handle);
+
         // Clear the stored goal handle
         current_goal_handle_.reset();
-        
-        return success;
+
+        return result;
     }
 
 private:
@@ -181,8 +181,9 @@ private:
     
     /**
      * Wait for task completion with industry-standard cancellation support
+     * Returns: 0 = success, 1 = failed, 2 = cancelled
      */
-    bool wait_for_completion(std::shared_ptr<GoalHandleMTCExecution> goal_handle) {
+    int wait_for_completion(std::shared_ptr<GoalHandleMTCExecution> goal_handle) {
         auto result_future = action_client_->async_get_result(goal_handle);
         
         // Industry standard: Use shorter timeouts and check for cancellation
@@ -194,22 +195,28 @@ private:
             if (g_should_cancel.load()) {
                 RCLCPP_INFO(get_logger(), "Cancellation requested, stopping execution...");
                 cancel_goal(goal_handle);
-                return false;
+                return 2;  // Cancelled
             }
-            
+
             // Check if result is ready with short timeout (allows for cancellation)
             auto status = rclcpp::spin_until_future_complete(shared_from_this(), result_future, check_interval);
-            
+
             if (status == rclcpp::FutureReturnCode::SUCCESS) {
                 auto result = result_future.get();
-                return result.code == rclcpp_action::ResultCode::SUCCEEDED;
+                if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+                    return 0;  // Success
+                } else if (result.code == rclcpp_action::ResultCode::CANCELED) {
+                    return 2;  // Cancelled
+                } else {
+                    return 1;  // Failed
+                }
             }
-            
+
             // Check for overall timeout
             auto elapsed = std::chrono::steady_clock::now() - start_time;
             if (elapsed > timeout_) {
                 RCLCPP_ERROR(get_logger(), "Task execution timed out");
-                return false;
+                return 1;  // Failed
             }
         }
     }
@@ -283,13 +290,17 @@ int main(int argc, char** argv) {
     
     // Execute the task
     RCLCPP_INFO(client->get_logger(), "Starting task execution. Press Ctrl+C to cancel at any time.");
-    bool success = client->execute_task(json_file, robot_ip);
-    
-    // Handle cancellation if requested
-    if (g_should_cancel.load()) {
-        RCLCPP_INFO(client->get_logger(), "Cancellation was requested during execution");
+    int exit_code = client->execute_task(json_file, robot_ip);
+
+    // Handle different exit conditions
+    if (exit_code == 0) {
+        RCLCPP_INFO(client->get_logger(), "Task completed successfully");
+    } else if (exit_code == 2) {
+        RCLCPP_WARN(client->get_logger(), "Task was cancelled by user");
+    } else {
+        RCLCPP_ERROR(client->get_logger(), "Task failed");
     }
-    
+
     rclcpp::shutdown();
-    return success ? 0 : 1;
+    return exit_code;
 }

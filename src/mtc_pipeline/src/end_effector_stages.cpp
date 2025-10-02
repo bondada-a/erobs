@@ -11,15 +11,7 @@ EndEffectorStages::EndEffectorStages(const rclcpp::Node::SharedPtr& node, const 
 
 bool EndEffectorStages::run(const nlohmann::json& step,
                             const nlohmann::json& poses,
-                            rclcpp::Node::SharedPtr node_ptr)
-{
-  return run(step, poses, node_ptr, nullptr);
-}
-
-bool EndEffectorStages::run(const nlohmann::json& step,
-                            const nlohmann::json& poses,
-                            rclcpp::Node::SharedPtr /*node_ptr*/,
-                            std::function<bool()> should_cancel)
+                            rclcpp::Node::SharedPtr /*node_ptr*/)
 {
   refreshPoses(poses);
 
@@ -73,7 +65,7 @@ bool EndEffectorStages::run(const nlohmann::json& step,
   stage->setGoal(goal_state);
   task.add(std::move(stage));
 
-  const bool success = loadPlanExecute(task, 5, should_cancel);
+  const bool success = loadPlanExecute(task);
   if (success) {
     RCLCPP_INFO(node()->get_logger(), "End effector control successful: %s", task_name.c_str());
   }
