@@ -101,9 +101,9 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
     const std::string arm_group = defaultArmGroupName();
     auto task = createTaskTemplate("Pick and Place", arm_group);
-    
-    // Simple planners - one for each type
-    auto joint_planner = makePipelinePlanner();
+
+    // Create planners for this task
+    auto pipeline_planner = makePipelinePlanner();
     auto cartesian_planner = makeCartesianPlanner();
     auto gripper_planner = makeJointInterpolationPlanner();
 
@@ -113,19 +113,19 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
     // === PICK SEQUENCE ===
     RCLCPP_INFO(node()->get_logger(), "Building pick sequence...");
-    
+
     // 1. Open gripper
     task.add(makeGripperStage("open gripper", gripper_planner, true));
-    
+
     // 2. Move to pickup approach
-    task.add(makeMoveToNamedStage("pickup approach", pick_poses[0], joint_planner, arm_group));
-    
+    task.add(makeMoveToNamedStage("pickup approach", pick_poses[0], pipeline_planner, arm_group));
+
     // 3. Move to pickup position
     task.add(makeMoveToNamedStage("pickup", pick_poses[1], cartesian_planner, arm_group));
-    
+
     // 4. Close gripper
     task.add(makeGripperStage("close gripper", gripper_planner, false));
-    
+
     // 5. Pickup retreat (with wrist constraint) - use cartesian for smooth retreat
     {
       auto stage = makeMoveToNamedStage("pickup retreat", pick_poses[0], cartesian_planner, arm_group);
@@ -137,16 +137,16 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
     // === PLACE SEQUENCE ===
     RCLCPP_INFO(node()->get_logger(), "Building place sequence...");
-    
+
     // 6. Move to place approach (with wrist constraint)
     {
-      auto stage = makeMoveToNamedStage("place approach", place_poses[0], joint_planner, arm_group);
+      auto stage = makeMoveToNamedStage("place approach", place_poses[0], pipeline_planner, arm_group);
       if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
         move_to_stage->setPathConstraints(createWrist3Constraint());
       }
       task.add(std::move(stage));
     }
-    
+
     // 7. Move to place position (with wrist constraint)
     {
       auto stage = makeMoveToNamedStage("place", place_poses[1], cartesian_planner, arm_group);
@@ -155,16 +155,16 @@ bool PickPlaceStages::run(const nlohmann::json& step,
       }
       task.add(std::move(stage));
     }
-    
+
     // 8. Open gripper
     task.add(makeGripperStage("open gripper", gripper_planner, true));
-    
+
     // 9. Place retreat
     task.add(makeMoveToNamedStage("place retreat", place_poses[0], cartesian_planner, arm_group));
 
     // 10. Return home (optional)
     if (step.value("return_home", true)) {
-      auto home_stage = std::make_unique<mtc::stages::MoveTo>("return home", joint_planner);
+      auto home_stage = std::make_unique<mtc::stages::MoveTo>("return home", pipeline_planner);
       home_stage->setGroup(arm_group);
       home_stage->setGoal("moveit_home");
       task.add(std::move(home_stage));

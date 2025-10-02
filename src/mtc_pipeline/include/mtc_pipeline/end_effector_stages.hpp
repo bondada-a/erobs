@@ -19,9 +19,6 @@ private:
         std::map<std::string, std::string> action_to_state;
     };
 
-    // Cached planner
-    mutable moveit::task_constructor::solvers::PlannerInterfacePtr interpolation_planner_;
-
     // Initialize gripper configurations from SRDF definitions
     void initializeGripperConfigs();
 

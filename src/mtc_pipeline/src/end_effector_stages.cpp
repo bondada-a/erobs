@@ -89,10 +89,8 @@ bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& po
     return false;
   }
 
-  // Get or create cached planner
-  if (!interpolation_planner_) {
-    interpolation_planner_ = makeJointInterpolationPlanner();
-  }
+  // Create planner for this task
+  auto interpolation_planner = makeJointInterpolationPlanner();
 
   // Create MTC task
   const std::string task_name = end_effector_type + " " + action;
@@ -102,7 +100,7 @@ bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& po
   task.stages()->setName(task_name);
   task.add(std::make_unique<mtc::stages::CurrentState>("current state"));
 
-  auto stage = std::make_unique<mtc::stages::MoveTo>(goal_state, interpolation_planner_);
+  auto stage = std::make_unique<mtc::stages::MoveTo>(goal_state, interpolation_planner);
   stage->setGroup(config.group_name);
   stage->setGoal(goal_state);
   task.add(std::move(stage));

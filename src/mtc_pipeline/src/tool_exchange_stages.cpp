@@ -47,6 +47,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
 
   auto task = createTaskTemplate(task_name, arm_group, ik_frame);
 
+  // Create planners for this task
   auto sampling_planner = makePipelinePlanner();
   auto cartesian_planner = makeCartesianPlanner();
 
@@ -69,7 +70,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
   };
 
   const auto addRelativeMoveStage = [&](const std::string& name,double distance, double x, double y, double z, const std::string& marker_ns) {
-    
+
     auto stage = std::make_unique<mtc::stages::MoveRelative>(name, cartesian_planner);
     stage->properties().set("marker_ns", marker_ns);
     stage->properties().set("link", ik_frame);

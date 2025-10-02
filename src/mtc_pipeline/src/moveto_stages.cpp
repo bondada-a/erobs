@@ -212,15 +212,6 @@ bool MoveToStages::run(const nlohmann::json& step,
   // Scope block to control destruction order and avoid class_loader warnings
   bool success;
   {
-    mtc::solvers::PlannerInterfacePtr planner;
-    if (planning_type == "cartesian") {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Cartesian planner");
-      planner = makeCartesianPlanner();
-    } else {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Pipeline planner");
-      planner = makePipelinePlanner();
-    }
-
     RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating task template");
     auto task = createTaskTemplate("MoveTo Task", arm_group_name);
 
@@ -231,6 +222,16 @@ bool MoveToStages::run(const nlohmann::json& step,
     const auto* group = robot_model->getJointModelGroup(arm_group_name);
     moveit::core::RobotState robot_state(robot_model);
     RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Robot model loaded");
+
+    // Create planners after loading robot model to ensure correct model reference
+    mtc::solvers::PlannerInterfacePtr planner;
+    if (planning_type == "cartesian") {
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Cartesian planner");
+      planner = makeCartesianPlanner();
+    } else {
+      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Pipeline planner");
+      planner = makePipelinePlanner();
+    }
 
     try {
       if (target_type == "named_state") {
