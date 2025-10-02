@@ -21,7 +21,7 @@ public:
   MoveToStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
 
   // Main orchestrator step runner
-  bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node);
+  bool run(const nlohmann::json& step, const nlohmann::json& poses);
 
   // Create a move to joint goal (handles both named poses and direct joint values)
   std::unique_ptr<mtc::Stage> moveToJointGoal(

@@ -197,8 +197,7 @@ void MoveToStages::handleRelative(const nlohmann::json& step, mtc::Task& task,
 // =================================================================================
 
 bool MoveToStages::run(const nlohmann::json& step,
-                       const nlohmann::json& poses,
-                       rclcpp::Node::SharedPtr)
+                       const nlohmann::json& poses)
 {
   RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Starting");
   refreshPoses(poses); // Update internal pose config with new pose data

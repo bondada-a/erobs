@@ -33,5 +33,5 @@ public:
   );
 
   // Orchestrator step runner
-  bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node);
+  bool run(const nlohmann::json& step, const nlohmann::json& poses);
 };

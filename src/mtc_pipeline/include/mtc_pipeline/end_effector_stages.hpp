@@ -3,14 +3,28 @@
 #include "mtc_pipeline/base_stages.hpp"
 
 #include <nlohmann/json.hpp>
-#include <functional>
 #include <string>
+#include <map>
 
 class EndEffectorStages : public BaseStages {
 public:
     EndEffectorStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
 
-    bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node);
-    bool run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr node,
-             std::function<bool()> should_cancel);
+    bool run(const nlohmann::json& step, const nlohmann::json& poses);
+
+private:
+    // Gripper configuration
+    struct GripperConfig {
+        std::string group_name;
+        std::map<std::string, std::string> action_to_state;
+    };
+
+    // Cached planner
+    mutable moveit::task_constructor::solvers::PlannerInterfacePtr interpolation_planner_;
+
+    // Initialize gripper configurations from SRDF definitions
+    void initializeGripperConfigs();
+
+    // Gripper configurations - populated in constructor
+    std::map<std::string, GripperConfig> gripper_configs_;
 };

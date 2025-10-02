@@ -56,7 +56,7 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
 
         // Initialize action clients to call modular action servers
         moveto_action_client_ = rclcpp_action::create_client<MoveToAction>(this, "moveto_action");
-        endeffector_action_client_ = rclcpp_action::create_client<EndEffectorAction>(this, "endeffector_action");
+        endeffector_action_client_ = rclcpp_action::create_client<EndEffectorAction>(this, "end_effector_action");
         toolexchange_action_client_ = rclcpp_action::create_client<ToolExchangeAction>(this, "toolexchange_action");
         pickplace_action_client_ = rclcpp_action::create_client<PickPlaceAction>(this, "pickplace_action");
 

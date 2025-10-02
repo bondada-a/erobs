@@ -5,7 +5,7 @@
 class EndEffectorActionServer : public BaseActionServer<mtc_pipeline::action::EndEffectorAction, EndEffectorStages>
 {
 public:
-    EndEffectorActionServer() : BaseActionServer("endeffector_action_server", "endeffector_action") {}
+    EndEffectorActionServer() : BaseActionServer("end_effector_action_server", "end_effector_action") {}
 
 protected:
     nlohmann::json goal_to_step(const mtc_pipeline::action::EndEffectorAction::Goal& goal) override

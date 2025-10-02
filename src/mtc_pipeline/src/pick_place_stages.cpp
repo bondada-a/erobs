@@ -67,8 +67,7 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(
 }
 
 bool PickPlaceStages::run(const nlohmann::json& step,
-                          const nlohmann::json& poses,
-                          rclcpp::Node::SharedPtr /*node_ptr*/)
+                          const nlohmann::json& poses)
 {
   // Basic validation
   if (!step.contains("pick_poses") || !step.contains("place_poses")) {

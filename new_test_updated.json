@@ -94,7 +94,7 @@
     {
       "task_type": "end_effector",
       "end_effector_type": "epick",
-      "end_effector_action": "vacuum_on"
+      "end_effector_action": "on"
     },
     {
       "task_type": "moveto",
@@ -111,7 +111,7 @@
     {
       "task_type": "end_effector",
       "end_effector_type": "epick",
-      "end_effector_action": "vacuum_off"
+      "end_effector_action": "off"
     },
     {
       "task_type": "moveto",

@@ -55,10 +55,10 @@ def generate_launch_description():
         parameters=action_server_parameters
     )
 
-    endeffector_action_server = Node(
+    end_effector_action_server = Node(
         package='mtc_pipeline',
-        executable='endeffector_action_server',
-        name='endeffector_action_server',
+        executable='end_effector_action_server',
+        name='end_effector_action_server',
         output='screen',
         parameters=action_server_parameters
     )
@@ -80,6 +80,6 @@ def generate_launch_description():
         pickplace_action_server,
         toolexchange_action_server,
         moveto_action_server,
-        endeffector_action_server,
+        end_effector_action_server,
         orchestrator,
     ])

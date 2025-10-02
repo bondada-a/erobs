@@ -20,7 +20,7 @@ constexpr double DOCK_SPACING_METERS = 0.1524;
 ToolExchangeStages::ToolExchangeStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
   : BaseStages(node, config) {}
 
-bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& poses, rclcpp::Node::SharedPtr /*node_ptr*/){
+bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& poses){
   
   const std::string operation = step.value("operation", "load");
   const int dock_number = step.value("dock_number", 3);

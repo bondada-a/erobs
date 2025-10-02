@@ -84,7 +84,7 @@ private:
             nlohmann::json poses = nlohmann::json::parse(goal->poses_json);
 
             // Execute using stages - timeout is handled at orchestrator level
-            bool success = stages_->run(step, poses, this->shared_from_this());
+            bool success = stages_->run(step, poses);
 
             result->success = success;
             if (!success) {
