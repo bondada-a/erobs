@@ -10,10 +10,6 @@
 #include <algorithm>
 #include <cmath>
 
-namespace {
-constexpr double DEG_TO_RAD = 3.14159265358979323846 / 180.0;
-}
-
 BaseStages::BaseStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
   : node_(node), config_(config) {}
 
@@ -117,7 +113,7 @@ std::map<std::string, double> BaseStages::jointsFromDegrees(const std::vector<do
   std::map<std::string, double> joint_goal;
 
   for (size_t i = 0; i < std::min(angles_deg.size(), names.size()); ++i) {
-    joint_goal[names[i]] = angles_deg[i] * DEG_TO_RAD;
+    joint_goal[names[i]] = degToRad(angles_deg[i]);
   }
 
   return joint_goal;

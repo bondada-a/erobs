@@ -35,6 +35,12 @@
    - **Decision:** Removed all caching for simplicity and consistency
    - **Result:** Cleaner code, no false optimization
 
+6. ✅ **Degree-to-Radian Conversion Consolidated**
+   - Removed duplicate `DEG_TO_RAD` constant from `base_stages.cpp`
+   - Removed duplicate `degToRad()` function from `moveto_stages.cpp`
+   - All code now uses `BaseStages::degToRad()` exclusively
+   - **Result:** Single source of truth, eliminates potential inconsistencies
+
 ### Files Modified This Session:
 - `include/mtc_pipeline/end_effector_stages.hpp` - Complete redesign
 - `src/end_effector_stages.cpp` - Refactored to 118 lines (from 75)
@@ -45,6 +51,8 @@
 - `include/mtc_pipeline/base_action_server.hpp` - Removed node parameter
 - All stage headers/implementations - Removed node parameter
 - `new_test_updated.json` - Fixed action names (vacuum_on → on, vacuum_off → off)
+- `src/base_stages.cpp` - Removed DEG_TO_RAD constant, use degToRad() function
+- `src/moveto_stages.cpp` - Removed duplicate degToRad() function
 
 ### Documentation Added:
 - `README_ADD_END_EFFECTOR.md` - Complete guide for adding new end effectors
@@ -65,10 +73,10 @@
   - Validate robot_ip input
 
 ### 3. Multiple Degree-to-Radian Conversions
-- [ ] Remove duplicate implementations, keep only `BaseStages::degToRad()`
-  - Remove: `DEG_TO_RAD` in `src/base_stages.cpp:14`
-  - Remove: `degToRad()` in `src/moveto_stages.cpp:13`
-  - Use: `BaseStages::degToRad()` everywhere
+- [x] ~~Remove duplicate implementations, keep only `BaseStages::degToRad()`~~
+  - **COMPLETED** - Removed `DEG_TO_RAD` constant from `base_stages.cpp`
+  - **COMPLETED** - Removed duplicate `degToRad()` function from `moveto_stages.cpp`
+  - All code now uses `BaseStages::degToRad()` exclusively
 
 ### 4. Naming Inconsistency
 - [x] ~~Rename all "endeffector" to "end_effector"~~
@@ -209,7 +217,8 @@ int run_action_server(int argc, char** argv) {
 
 ### MoveToStages (moveto_stages.cpp)
 **Design Issues:**
-- [ ] Duplicate degToRad function (line 13) - use BaseStages::degToRad()
+- [x] ~~Duplicate degToRad function (line 13) - use BaseStages::degToRad()~~
+  - **COMPLETED** - Removed duplicate function, now uses BaseStages::degToRad()
 - [ ] Hardcoded "flange" frame (lines 50, 95) - make configurable
 - [ ] Z-axis direction inverted (lines 57, 63) - confusing and error-prone
 - [ ] Complex direction mapping (lines 52-67) - consider using a map
@@ -336,7 +345,7 @@ protected:
 ## 📊 METRICS
 
 **Total Issues Found:** 67
-- Critical: 4 (✅ 2 completed)
+- Critical: 4 (✅ 3 completed)
 - High Priority: 10 (✅ 1 completed)
 - Medium Priority: 14 (✅ 1 attempted)
 - Low Priority: 9
@@ -369,22 +378,23 @@ protected:
 - [x] **Removed unused node parameters** from all stages (2025-10-02)
 - [x] **Created comprehensive documentation** (README_ADD_END_EFFECTOR.md) (2025-10-02)
 - [x] **Evaluated planner caching strategy** - decided against for simplicity (2025-10-02)
+- [x] **Degree-to-radian conversion consolidated** - single source of truth (2025-10-02)
 
 ---
 
 ## 📝 NEXT STEPS
 
-1. **Start with Quick Wins:**
-   - Remove unused EndEffectorStages::run() declaration (5 min)
-   - Consolidate degToRad functions (10 min)
-   - Fix endeffector naming (15 min)
+1. **Remaining Quick Wins:**
+   - ~~Remove unused EndEffectorStages::run() declaration~~ ✅ DONE
+   - ~~Consolidate degToRad functions~~ ✅ DONE
+   - ~~Fix endeffector naming~~ ✅ DONE
 
-2. **Then High Impact:**
-   - Refactor CMakeLists.txt (30 min)
-   - Create main() template (20 min)
-   - Cache planners (1 hour)
+2. **High Impact Tasks:**
+   - Refactor CMakeLists.txt duplication (30 min) - 75+ duplicate lines
+   - Create main() template function (20 min) - eliminate identical main() functions
+   - Fix shell injection vulnerability (15 min) - security issue
 
-3. **Finally Design:**
-   - Extract configurations (2 hours)
-   - Add validation (1 hour)
-   - Documentation (2 hours)
+3. **Design Improvements:**
+   - Extract hardcoded configurations to JSON/YAML (2 hours)
+   - Add input validation (bounds checking, type validation) (1 hour)
+   - Improve documentation with Doxygen comments (2 hours)

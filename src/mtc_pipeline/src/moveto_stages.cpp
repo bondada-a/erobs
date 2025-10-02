@@ -9,12 +9,6 @@
 #include <cmath>
 #include <stdexcept>
 
-namespace {
-constexpr double degToRad(double degrees) {
-  return degrees * M_PI / 180.0;
-}
-}
-
 namespace mtc = moveit::task_constructor;
 
 MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
