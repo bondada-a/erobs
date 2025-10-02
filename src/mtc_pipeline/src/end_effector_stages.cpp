@@ -61,18 +61,21 @@ bool EndEffectorStages::run(const nlohmann::json& step,
   // Execute MTC task
   auto interpolation_planner = makeJointInterpolationPlanner();
 
-  mtc::Task task;
-  task.stages()->setName("End Effector Control");
-  task.add(std::make_unique<mtc::stages::CurrentState>("current"));
+  const std::string task_name = end_effector_type + " " + action;
+  const std::string stage_name = goal_state;
 
-  auto stage = std::make_unique<mtc::stages::MoveTo>("control", interpolation_planner);
+  mtc::Task task;
+  task.stages()->setName(task_name);
+  task.add(std::make_unique<mtc::stages::CurrentState>("current state"));
+
+  auto stage = std::make_unique<mtc::stages::MoveTo>(stage_name, interpolation_planner);
   stage->setGroup(group_name);
   stage->setGoal(goal_state);
   task.add(std::move(stage));
 
   const bool success = loadPlanExecute(task, 5, should_cancel);
   if (success) {
-    RCLCPP_INFO(node()->get_logger(), "End effector control successful");
+    RCLCPP_INFO(node()->get_logger(), "End effector control successful: %s", task_name.c_str());
   }
   return success;
 }

@@ -47,7 +47,7 @@ mtc::Task BaseStages::createTaskTemplate(const std::string& name,
   task.setProperty("ik_frame", ik_frame_pose);
 
   if (add_current_state) {
-    task.add(std::make_unique<mtc::stages::CurrentState>("current"));
+    task.add(std::make_unique<mtc::stages::CurrentState>("current state"));
   }
 
   return task;
