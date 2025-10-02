@@ -13,7 +13,6 @@
 <depend>moveit_task_constructor_core</depend>
 <depend>rclcpp</depend>
 <depend>rclcpp_action</depend>
-<depend>ur_msgs</depend>
 <depend>std_srvs</depend>
 <depend>tf2_eigen</depend>
 <exec_depend>rosidl_default_runtime</exec_depend>
