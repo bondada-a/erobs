@@ -188,8 +188,13 @@ rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_goal(
 rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
     const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
 {
+    RCLCPP_WARN(this->get_logger(), "Cancel request received from client");
+
     if (is_executing_) {
+        RCLCPP_INFO(this->get_logger(), "Stopping current task execution");
         is_executing_ = false;
+    } else {
+        RCLCPP_INFO(this->get_logger(), "No active task to cancel");
     }
 
     return rclcpp_action::CancelResponse::ACCEPT;
