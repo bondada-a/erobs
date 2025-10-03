@@ -158,11 +158,7 @@ bool MoveToStages::handleRelative(const nlohmann::json& step, mtc::Task& task,
   const double distance = step.at("distance").get<double>();
 
   const std::string label = "move_" + direction + "_" + std::to_string(distance) + "m";
-  auto stage = moveToRelative(label, direction, distance, planner, arm_group_name);
-  if (!stage) {
-    return false;  // Error already logged in moveToRelative
-  }
-  task.add(std::move(stage));
+  task.add(moveToRelative(label, direction, distance, planner, arm_group_name));
   return true;
 }
 
