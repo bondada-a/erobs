@@ -298,8 +298,7 @@ std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
   const std::string& direction,
   double distance,
   const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group,
-  const std::string& frame) const {
+  const std::string& arm_group) const {
 
   auto it = DIRECTION_VECTORS.find(direction);
   if (it == DIRECTION_VECTORS.end()) {
@@ -309,14 +308,13 @@ std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
 
   const auto& [x, y, z] = it->second;
   const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
-  const std::string& ik_frame = frame.empty() ? defaultIkFrame() : frame;
 
   auto stage = std::make_unique<mtc::stages::MoveRelative>(label, planner);
   stage->setGroup(group);
   stage->setMinMaxDistance(distance, distance);
 
   geometry_msgs::msg::Vector3Stamped vec;
-  vec.header.frame_id = ik_frame;
+  vec.header.frame_id = defaultIkFrame();  // Direction expressed in flange frame
   vec.vector.x = x;
   vec.vector.y = y;
   vec.vector.z = z;

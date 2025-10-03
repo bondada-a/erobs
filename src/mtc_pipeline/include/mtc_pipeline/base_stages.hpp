@@ -102,8 +102,7 @@ protected:
     const std::string& direction,
     double distance,
     const mtc::solvers::PlannerInterfacePtr& planner,
-    const std::string& arm_group = "",
-    const std::string& frame = "") const;
+    const std::string& arm_group = "") const;
 
   std::unique_ptr<mtc::Stage> createNamedStateMoveStage(
     const std::string& label,

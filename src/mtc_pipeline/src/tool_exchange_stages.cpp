@@ -45,7 +45,6 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     auto stage = createRelativeMoveStage(name, direction, std::abs(distance), cartesian_planner);
     if (!stage) return;
 
-    stage->properties().set("link", defaultIkFrame());
     stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
 
     task.add(std::move(stage));
