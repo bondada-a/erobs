@@ -14,11 +14,14 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
   auto task = createTaskTemplate("MoveTo Task");
   auto planner = (planning_type == "cartesian") ? makeCartesianPlanner() : makePipelinePlanner();
 
+  // 1. NAMED STATE: Move to predefined SRDF state (e.g., "moveit_home")
   if (target_type == "named_state") {
     const std::string named_state = step.at("target");
     task.add(createNamedStateMoveStage("move_to_" + named_state, named_state, planner));
-  } else if (target_type == "pose") {
-    // Pose defined in json config
+  }
+
+  // 2. POSE: Move to joint configuration from JSON config
+  else if (target_type == "pose") {
     const std::string pose_key = step.at("target");
     const auto& joint_pose_json = poses.at(pose_key);
 
@@ -30,34 +33,32 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
     const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
     const std::string label = planning_type == "cartesian" ? "move_to_cartesian_" + pose_key : "move_to_" + pose_key;
 
-    // Apply planning type
-    if (planning_type == "cartesian") {
-      // Load robot model and create robot state for FK conversion (needed only for cartesian)
+    if (planning_type == "cartesian") {  // Cartesian path (requires robot model to compute FK)
+      
       task.loadRobotModel(node());
       const auto& robot_model = task.getRobotModel();
       moveit::core::RobotState robot_state(robot_model);
-
-      // Cartesian planning - convert joints to pose via FK
       const std::string arm_group = defaultArmGroupName();
       task.add(createCartesianMoveStageFromJoints(label, joint_angles_deg, planner, arm_group, robot_state));
-    } else {
-      // Joint planning
-      task.add(createJointMoveStage(label, joint_angles_deg, planner));
+
+    } else {    // Joint: Plan in joint space (default)
+      task.add(createJointMoveStage(label, joint_angles_deg, planner));       
     }
-  } else if (target_type == "relative") {
+  }
+
+  // 3. RELATIVE: Move relative to current position (e.g., "forward", "up")
+  else if (target_type == "relative") {
     const std::string direction = step.at("direction");
     const double distance = step.at("distance").get<double>();
-
     const std::string label = "move_" + direction + "_" + std::to_string(distance) + "m";
+    // TODO: Check if relative movements should always use CartesianPlanner instead of respecting planning_type
     task.add(createRelativeMoveStage(label, direction, distance, planner));
-  } else {
+  }
+
+  else {
     RCLCPP_ERROR(node()->get_logger(), "Unsupported target_type '%s'", target_type.c_str());
     return false;
   }
 
-  const bool success = loadPlanExecute(task);
-  if (success) {
-    RCLCPP_INFO(node()->get_logger(), "MoveTo task completed successfully");
-  }
-  return success;
+  return loadPlanExecute(task);
 }
