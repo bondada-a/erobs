@@ -2,12 +2,10 @@
 
 #include <moveit/task_constructor/stages/move_relative.h>
 #include <moveit/task_constructor/stages/move_to.h>
-#include <moveit_msgs/msg/move_it_error_codes.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
 
 #include <cmath>
 #include <memory>
-#include <stdexcept>
 #include <string>
 #include <vector>
 
@@ -24,17 +22,13 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
   
   const std::string operation = step.value("operation", "load");
   const int dock_number = step.value("dock_number", 3);
-  const auto& approach_entries = step.value("poses", std::vector<std::string>{});
-  if (approach_entries.empty()) {
-    RCLCPP_ERROR(node()->get_logger(), "Tool exchange step requires at least one approach pose");
-    return false;
-  }
+  const std::string approach_pose = step.at("approach_pose");
 
   refreshPoses(poses);
 
   const double dock_offset_y = DOCK_SPACING_METERS * static_cast<double>(3 - dock_number);
   const std::string& arm_group = defaultArmGroupName();
-  constexpr const char* ik_frame = "flange";
+  const std::string& ik_frame = defaultIkFrame();
 
   std::string task_name;
   if (operation == "load") {
@@ -51,26 +45,23 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
   auto sampling_planner = makePipelinePlanner();
   auto cartesian_planner = makeCartesianPlanner();
 
-  const auto addNamedMoveStage = [&](const std::string& label, const std::string& pose_key) {
-    const auto& pose = config().at("poses").at(pose_key);
-    if (!pose.is_array() || pose.size() != BaseStages::defaultJointNames().size()) {
-      throw std::runtime_error(pose_key + " must be an array of 6 numbers");
+  const auto addNamedMoveStage = [&](const std::string& label, const std::string& pose_key) -> bool {
+    const auto& joint_pose_json = config().at("poses").at(pose_key);
+    if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
+      RCLCPP_ERROR(node()->get_logger(), "'%s' must be an array of 6 joint angles", pose_key.c_str());
+      return false;
     }
 
-    std::vector<double> joint_angles_deg;
-    joint_angles_deg.reserve(pose.size());
-    for (const auto& v : pose) {
-      joint_angles_deg.push_back(v.get<double>());
-    }
+    const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
 
     auto stage = std::make_unique<mtc::stages::MoveTo>(label, sampling_planner);
     stage->setGroup(arm_group);
     stage->setGoal(jointsFromDegrees(joint_angles_deg));
     task.add(std::move(stage));
+    return true;
   };
 
-  const auto addRelativeMoveStage = [&](const std::string& name,double distance, double x, double y, double z, const std::string& marker_ns) {
-
+  const auto addRelativeMoveStage = [&](const std::string& name, double distance, double x, double y, double z, const std::string& marker_ns) {
     auto stage = std::make_unique<mtc::stages::MoveRelative>(name, cartesian_planner);
     stage->properties().set("marker_ns", marker_ns);
     stage->properties().set("link", ik_frame);
@@ -94,16 +85,18 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     addRelativeMoveStage("shift to dock", offset, 0.0, direction, 0.0, "dock_shift");
   };
 
-  const std::string& approach_pose = approach_entries.front();
-
   if (operation == "load") {
-    addNamedMoveStage("move to load approach", approach_pose);
+    if (!addNamedMoveStage("move to load approach", approach_pose)) {
+      return false;
+    }
     addDockShiftStage(dock_offset_y);
     addRelativeMoveStage("attach_tool", 0.1, 1.0, 0.0, 0.0, "approach_object");
     addRelativeMoveStage("detach_holder", 0.15, 0.0, 0.0, -1.0, "approach_object");
     addRelativeMoveStage("move_up", 0.2, -1.0, 0.0, 0.0, "approach_object");
   } else if (operation == "dock") {
-    addNamedMoveStage("move to dock approach", approach_pose);
+    if (!addNamedMoveStage("move to dock approach", approach_pose)) {
+      return false;
+    }
     addDockShiftStage(dock_offset_y);
     addRelativeMoveStage("align_holder", 0.2, 1.0, 0.0, 0.0, "approach_object");
     addRelativeMoveStage("detach_tool", 0.15, 0.0, 0.0, 1.0, "approach_object");
@@ -113,11 +106,5 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     return false;
   }
 
-  const bool success = loadPlanExecute(task);
-  if (success) {
-    RCLCPP_INFO(node()->get_logger(), "Tool exchange %s completed successfully", operation.c_str());
-  } else {
-    RCLCPP_ERROR(node()->get_logger(), "Tool exchange %s failed", operation.c_str());
-  }
-  return success;
+  return loadPlanExecute(task);
 }

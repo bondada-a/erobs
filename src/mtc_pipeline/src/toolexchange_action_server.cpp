@@ -14,10 +14,7 @@ protected:
         step["operation"] = goal.operation;
         step["gripper"] = goal.gripper;
         step["dock_number"] = goal.dock_number;
-
-        // Add approach pose to step (required by ToolExchangeStages)
-        std::string approach_pose_key = goal.approach_pose.empty() ? "dock_approach" : goal.approach_pose;
-        step["poses"] = {approach_pose_key};
+        step["approach_pose"] = goal.approach_pose;
 
         return step;
     }

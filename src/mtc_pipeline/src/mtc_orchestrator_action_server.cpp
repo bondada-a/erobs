@@ -362,6 +362,7 @@ bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json&
         goal.operation = step.value("operation", "");
         goal.gripper = step.value("gripper", "");
         goal.dock_number = step.value("dock_number", 0);
+        goal.approach_pose = step.value("approach_pose", "");
         goal.poses_json = poses_json;
     });
 }
