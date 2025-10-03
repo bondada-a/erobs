@@ -337,36 +337,17 @@ std::unique_ptr<mtc::Stage> BaseStages::createNamedStateMoveStage(
   return stage;
 }
 
-// Create cartesian move stage from joint angles (uses FK to convert to pose)
+// Create cartesian move stage from joint angles
+// CartesianPath planner automatically computes FK from joint goal
 std::unique_ptr<mtc::Stage> BaseStages::createCartesianMoveStageFromJoints(
   const std::string& label,
   const std::vector<double>& joint_angles_deg,
   const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group,
-  moveit::core::RobotState& robot_state) const {
+  const std::string& arm_group) const {
 
-  // Convert joints to Cartesian pose using robot state
-  const auto& robot_model = robot_state.getRobotModel();
-  const auto* group = robot_model->getJointModelGroup(arm_group);
-
-  // Convert degrees to radians
-  std::vector<double> joint_angles_rad(joint_angles_deg.size());
-  std::transform(joint_angles_deg.begin(), joint_angles_deg.end(),
-                 joint_angles_rad.begin(),
-                 [this](double deg) { return degToRad(deg); });
-  robot_state.setJointGroupPositions(group, joint_angles_rad);
-
-  // Get target pose in Cartesian space using flange frame
-  const Eigen::Isometry3d& target_pose_eigen = robot_state.getGlobalLinkTransform(defaultIkFrame());
-
-  geometry_msgs::msg::PoseStamped target_pose_msg;
-  target_pose_msg.header.frame_id = robot_model->getModelFrame();
-  target_pose_msg.pose = tf2::toMsg(target_pose_eigen);
-
-  // Create and configure stage
+  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
   auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-  stage->setGroup(arm_group);
-  stage->setGoal(target_pose_msg);
-
+  stage->setGroup(group);
+  stage->setGoal(jointsFromDegrees(joint_angles_deg));
   return stage;
 }

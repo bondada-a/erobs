@@ -1,5 +1,4 @@
 #include "mtc_pipeline/moveto_stages.hpp"
-#include <moveit/robot_state/robot_state.h>
 
 namespace mtc = moveit::task_constructor;
 
@@ -33,16 +32,10 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
     const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
     const std::string label = planning_type == "cartesian" ? "move_to_cartesian_" + pose_key : "move_to_" + pose_key;
 
-    if (planning_type == "cartesian") {  // Cartesian path (requires robot model to compute FK)
-      
-      task.loadRobotModel(node());
-      const auto& robot_model = task.getRobotModel();
-      moveit::core::RobotState robot_state(robot_model);
-      const std::string arm_group = defaultArmGroupName();
-      task.add(createCartesianMoveStageFromJoints(label, joint_angles_deg, planner, arm_group, robot_state));
-
+    if (planning_type == "cartesian") {  // Cartesian path
+      task.add(createCartesianMoveStageFromJoints(label, joint_angles_deg, planner));
     } else {    // Joint: Plan in joint space (default)
-      task.add(createJointMoveStage(label, joint_angles_deg, planner));       
+      task.add(createJointMoveStage(label, joint_angles_deg, planner));
     }
   }
 

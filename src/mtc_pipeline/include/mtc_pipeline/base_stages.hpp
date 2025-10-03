@@ -110,13 +110,12 @@ protected:
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group = "") const;
 
-  // Create cartesian move stage from joint angles (uses FK to convert to pose)
+  // Create cartesian move stage from joint angles
   std::unique_ptr<mtc::Stage> createCartesianMoveStageFromJoints(
     const std::string& label,
     const std::vector<double>& joint_angles_deg,
     const mtc::solvers::PlannerInterfacePtr& planner,
-    const std::string& arm_group,
-    moveit::core::RobotState& robot_state) const;
+    const std::string& arm_group = "") const;
 
 private:
   rclcpp::Node::SharedPtr node_;
