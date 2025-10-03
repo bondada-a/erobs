@@ -1,14 +1,8 @@
 #include "mtc_pipeline/pick_place_stages.hpp"
-#include "mtc_pipeline/moveto_stages.hpp"
 
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit_msgs/msg/constraints.hpp>
 #include <moveit_msgs/msg/joint_constraint.hpp>
-
-#include <memory>
-#include <stdexcept>
-#include <string>
-#include <vector>
 
 namespace mtc = moveit::task_constructor;
 
@@ -51,13 +45,7 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
   }
 
   auto joint_angles_deg = joint_pose.get<std::vector<double>>();
-
-  // TODO: Fix this to use proper MoveToStages API
-  // MoveToStages moveto_helper(node(), config());
-  // return moveto_helper.moveToJointGoal(label, joint_angles_deg, planner, arm_group_name);
-
-  RCLCPP_ERROR(node()->get_logger(), "makeMoveToNamedStage not implemented - needs refactoring");
-  return nullptr;
+  return createJointMoveStage(label, joint_angles_deg, planner, arm_group_name);
 }
 
 std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(
@@ -183,10 +171,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 10. Return home (optional)
   if (step.value("return_home", true)) {
-    auto home_stage = std::make_unique<mtc::stages::MoveTo>("return home", pipeline_planner);
-    home_stage->setGroup(arm_group);
-    home_stage->setGoal("moveit_home");
-    task.add(std::move(home_stage));
+    task.add(createNamedStateMoveStage("return home", "moveit_home", pipeline_planner, arm_group));
   }
 
   // Execute the complete sequence

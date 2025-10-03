@@ -86,6 +86,49 @@ protected:
     double vel_scale = JointInterpolationPlannerDefaults::vel_scale,
     double acc_scale = JointInterpolationPlannerDefaults::acc_scale) const;
 
+  // Movement stage creation helpers (return stages, don't add to task)
+  std::unique_ptr<mtc::Stage> createJointMoveStage(
+    const std::string& label,
+    const std::vector<double>& joint_angles_deg,
+    const mtc::solvers::PlannerInterfacePtr& planner,
+    const std::string& arm_group = "") const;
+
+  std::unique_ptr<mtc::Stage> createJointMoveStage(
+    const std::string& label,
+    const std::map<std::string, double>& joint_goals,
+    const mtc::solvers::PlannerInterfacePtr& planner,
+    const std::string& arm_group = "") const;
+
+  std::unique_ptr<mtc::Stage> createRelativeMoveStage(
+    const std::string& label,
+    const std::string& direction,
+    double distance,
+    const mtc::solvers::PlannerInterfacePtr& planner,
+    const std::string& arm_group = "",
+    const std::string& frame = "") const;
+
+  std::unique_ptr<mtc::Stage> createRelativeMoveStage(
+    const std::string& label,
+    double x, double y, double z,
+    double distance,
+    const mtc::solvers::PlannerInterfacePtr& planner,
+    const std::string& arm_group = "",
+    const std::string& frame = "") const;
+
+  std::unique_ptr<mtc::Stage> createNamedStateMoveStage(
+    const std::string& label,
+    const std::string& named_state,
+    const mtc::solvers::PlannerInterfacePtr& planner,
+    const std::string& arm_group = "") const;
+
+  // Create cartesian move stage from joint angles (uses FK to convert to pose)
+  std::unique_ptr<mtc::Stage> createCartesianMoveStageFromJoints(
+    const std::string& label,
+    const std::vector<double>& joint_angles_deg,
+    const mtc::solvers::PlannerInterfacePtr& planner,
+    const std::string& arm_group,
+    moveit::core::RobotState& robot_state) const;
+
 private:
   rclcpp::Node::SharedPtr node_;
   nlohmann::json config_;

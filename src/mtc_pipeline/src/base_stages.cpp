@@ -4,11 +4,17 @@
 #include <moveit/task_constructor/stages.h>
 #include <moveit/task_constructor/stages/current_state.h>
 #include <moveit/task_constructor/stages/move_to.h>
+#include <moveit/task_constructor/stages/move_relative.h>
+#include <moveit/robot_state/robot_state.h>
 #include <moveit_msgs/msg/move_it_error_codes.hpp>
+#include <geometry_msgs/msg/vector3_stamped.hpp>
 #include <rclcpp/exceptions/exceptions.hpp>
+#include <tf2_eigen/tf2_eigen.hpp>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
+#include <map>
 
 BaseStages::BaseStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
   : node_(node), config_(config) {}
@@ -215,4 +221,138 @@ mtc::solvers::PlannerInterfacePtr BaseStages::makeJointInterpolationPlanner(doub
   planner->setMaxVelocityScalingFactor(vel_scale);
   planner->setMaxAccelerationScalingFactor(acc_scale);
   return planner;
+}
+
+// Direction vectors for relative movements
+// Note: Z-axis is inverted for flange (up = -Z, down = +Z)
+namespace {
+  const std::map<std::string, std::array<double, 3>> DIRECTION_VECTORS = {
+    {"forward",  { 1.0,  0.0,  0.0}}, {"x",  { 1.0,  0.0,  0.0}},
+    {"backward", {-1.0,  0.0,  0.0}}, {"-x", {-1.0,  0.0,  0.0}},
+    {"right",    { 0.0,  1.0,  0.0}}, {"y",  { 0.0,  1.0,  0.0}},
+    {"left",     { 0.0, -1.0,  0.0}}, {"-y", { 0.0, -1.0,  0.0}},
+    {"up",       { 0.0,  0.0, -1.0}}, {"z",  { 0.0,  0.0, -1.0}},  // Physical up = -Z in flange
+    {"down",     { 0.0,  0.0,  1.0}}, {"-z", { 0.0,  0.0,  1.0}}   // Physical down = +Z in flange
+  };
+}
+
+// Create joint move stage from degrees
+std::unique_ptr<mtc::Stage> BaseStages::createJointMoveStage(
+  const std::string& label,
+  const std::vector<double>& joint_angles_deg,
+  const mtc::solvers::PlannerInterfacePtr& planner,
+  const std::string& arm_group) const {
+
+  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
+  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
+  stage->setGroup(group);
+  stage->setGoal(jointsFromDegrees(joint_angles_deg));
+  return stage;
+}
+
+// Create joint move stage from pre-converted joint goals
+std::unique_ptr<mtc::Stage> BaseStages::createJointMoveStage(
+  const std::string& label,
+  const std::map<std::string, double>& joint_goals,
+  const mtc::solvers::PlannerInterfacePtr& planner,
+  const std::string& arm_group) const {
+
+  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
+  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
+  stage->setGroup(group);
+  stage->setGoal(joint_goals);
+  return stage;
+}
+
+// Create relative move stage using direction string
+std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
+  const std::string& label,
+  const std::string& direction,
+  double distance,
+  const mtc::solvers::PlannerInterfacePtr& planner,
+  const std::string& arm_group,
+  const std::string& frame) const {
+
+  auto it = DIRECTION_VECTORS.find(direction);
+  if (it == DIRECTION_VECTORS.end()) {
+    RCLCPP_ERROR(node_->get_logger(), "Invalid direction: '%s'", direction.c_str());
+    return nullptr;
+  }
+
+  const auto& [x, y, z] = it->second;
+  return createRelativeMoveStage(label, x, y, z, distance, planner, arm_group, frame);
+}
+
+// Create relative move stage using x,y,z components
+std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
+  const std::string& label,
+  double x, double y, double z,
+  double distance,
+  const mtc::solvers::PlannerInterfacePtr& planner,
+  const std::string& arm_group,
+  const std::string& frame) const {
+
+  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
+  const std::string& ik_frame = frame.empty() ? defaultIkFrame() : frame;
+
+  auto stage = std::make_unique<mtc::stages::MoveRelative>(label, planner);
+  stage->setGroup(group);
+  stage->setMinMaxDistance(distance, distance);
+
+  geometry_msgs::msg::Vector3Stamped vec;
+  vec.header.frame_id = ik_frame;
+  vec.vector.x = x;
+  vec.vector.y = y;
+  vec.vector.z = z;
+
+  stage->setDirection(vec);
+  return stage;
+}
+
+// Create named state move stage
+std::unique_ptr<mtc::Stage> BaseStages::createNamedStateMoveStage(
+  const std::string& label,
+  const std::string& named_state,
+  const mtc::solvers::PlannerInterfacePtr& planner,
+  const std::string& arm_group) const {
+
+  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
+  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
+  stage->setGroup(group);
+  stage->setGoal(named_state);
+  return stage;
+}
+
+// Create cartesian move stage from joint angles (uses FK to convert to pose)
+std::unique_ptr<mtc::Stage> BaseStages::createCartesianMoveStageFromJoints(
+  const std::string& label,
+  const std::vector<double>& joint_angles_deg,
+  const mtc::solvers::PlannerInterfacePtr& planner,
+  const std::string& arm_group,
+  moveit::core::RobotState& robot_state) const {
+
+  // Convert joints to Cartesian pose using robot state
+  const auto& robot_model = robot_state.getRobotModel();
+  const auto* group = robot_model->getJointModelGroup(arm_group);
+
+  // Convert degrees to radians
+  std::vector<double> joint_angles_rad(joint_angles_deg.size());
+  std::transform(joint_angles_deg.begin(), joint_angles_deg.end(),
+                 joint_angles_rad.begin(),
+                 [this](double deg) { return degToRad(deg); });
+  robot_state.setJointGroupPositions(group, joint_angles_rad);
+
+  // Get target pose in Cartesian space using flange frame
+  const Eigen::Isometry3d& target_pose_eigen = robot_state.getGlobalLinkTransform(defaultIkFrame());
+
+  geometry_msgs::msg::PoseStamped target_pose_msg;
+  target_pose_msg.header.frame_id = robot_model->getModelFrame();
+  target_pose_msg.pose = tf2::toMsg(target_pose_eigen);
+
+  // Create and configure stage
+  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
+  stage->setGroup(arm_group);
+  stage->setGoal(target_pose_msg);
+
+  return stage;
 }

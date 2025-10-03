@@ -1,13 +1,6 @@
 #include "mtc_pipeline/tool_exchange_stages.hpp"
 
-#include <moveit/task_constructor/stages/move_relative.h>
-#include <moveit/task_constructor/stages/move_to.h>
-#include <geometry_msgs/msg/vector3_stamped.hpp>
-
 #include <cmath>
-#include <memory>
-#include <string>
-#include <vector>
 
 namespace mtc = moveit::task_constructor;
 
@@ -45,6 +38,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
   auto sampling_planner = makePipelinePlanner();
   auto cartesian_planner = makeCartesianPlanner();
 
+  // Helper to add joint move stage from pose key
   const auto addNamedMoveStage = [&](const std::string& label, const std::string& pose_key) -> bool {
     const auto& joint_pose_json = config().at("poses").at(pose_key);
     if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
@@ -53,27 +47,22 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     }
 
     const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
-
-    auto stage = std::make_unique<mtc::stages::MoveTo>(label, sampling_planner);
-    stage->setGroup(arm_group);
-    stage->setGoal(jointsFromDegrees(joint_angles_deg));
+    auto stage = createJointMoveStage(label, joint_angles_deg, sampling_planner, arm_group);
+    if (!stage) return false;
     task.add(std::move(stage));
     return true;
   };
 
+  // Helper to add relative move stage with custom properties
   const auto addRelativeMoveStage = [&](const std::string& name, double distance, double x, double y, double z, const std::string& marker_ns) {
-    auto stage = std::make_unique<mtc::stages::MoveRelative>(name, cartesian_planner);
+    auto stage = createRelativeMoveStage(name, x, y, z, std::abs(distance), cartesian_planner, arm_group, ik_frame);
+    if (!stage) return;
+
+    // Set custom MTC properties
     stage->properties().set("marker_ns", marker_ns);
     stage->properties().set("link", ik_frame);
     stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-    stage->setMinMaxDistance(std::abs(distance), std::abs(distance));
 
-    geometry_msgs::msg::Vector3Stamped vec;
-    vec.header.frame_id = ik_frame;
-    vec.vector.x = x;
-    vec.vector.y = y;
-    vec.vector.z = z;
-    stage->setDirection(vec);
     task.add(std::move(stage));
   };
 
