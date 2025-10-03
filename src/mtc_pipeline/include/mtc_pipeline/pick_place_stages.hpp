@@ -15,7 +15,7 @@ namespace mtc = moveit::task_constructor;
 class PickPlaceStages : public BaseStages {
 public:
   // Constructor
-  PickPlaceStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
+  PickPlaceStages(const rclcpp::Node::SharedPtr& node);
 
   // Create move stage to named pose
   std::unique_ptr<mtc::Stage> makeMoveToNamedStage(

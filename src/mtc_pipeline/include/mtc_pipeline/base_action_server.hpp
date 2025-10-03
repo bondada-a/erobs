@@ -32,7 +32,7 @@ public:
 
     // Initialize stages after object is fully constructed and managed by shared_ptr
     void initialize_stages() {
-        stages_ = std::make_unique<StagesType>(this->shared_from_this(), nlohmann::json{});
+        stages_ = std::make_unique<StagesType>(this->shared_from_this());
     }
 
 protected:

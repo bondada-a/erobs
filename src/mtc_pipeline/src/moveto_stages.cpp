@@ -2,8 +2,8 @@
 
 namespace mtc = moveit::task_constructor;
 
-MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
-  : BaseStages(node, config) {}
+MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node)
+  : BaseStages(node) {}
 
 
 bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) {

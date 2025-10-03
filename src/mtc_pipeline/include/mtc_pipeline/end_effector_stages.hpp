@@ -6,7 +6,7 @@
 
 class EndEffectorStages : public BaseStages {
 public:
-    EndEffectorStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
+    EndEffectorStages(const rclcpp::Node::SharedPtr& node);
 
     bool run(const nlohmann::json& step, const nlohmann::json& poses);
 };

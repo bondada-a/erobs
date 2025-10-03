@@ -4,8 +4,8 @@
 
 namespace mtc = moveit::task_constructor;
 
-EndEffectorStages::EndEffectorStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
-  : BaseStages(node, config) {}
+EndEffectorStages::EndEffectorStages(const rclcpp::Node::SharedPtr& node)
+  : BaseStages(node) {}
 
 bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& poses)
 {

@@ -8,8 +8,8 @@ namespace {
 constexpr double DOCK_SPACING_METERS = 0.1524;
 }
 
-ToolExchangeStages::ToolExchangeStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
-  : BaseStages(node, config) {}
+ToolExchangeStages::ToolExchangeStages(const rclcpp::Node::SharedPtr& node)
+  : BaseStages(node) {}
 
 bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& poses){
   const std::string operation = step.at("operation");

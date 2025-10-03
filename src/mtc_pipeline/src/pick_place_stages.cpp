@@ -28,8 +28,8 @@ moveit_msgs::msg::Constraints createWrist3Constraint() {
 }
 }
 
-PickPlaceStages::PickPlaceStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
-  : BaseStages(node, config) {}
+PickPlaceStages::PickPlaceStages(const rclcpp::Node::SharedPtr& node)
+  : BaseStages(node) {}
 
 std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
   const std::string& label,

@@ -7,7 +7,7 @@
 class MoveToStages : public BaseStages {
 public:
   // Constructor
-  MoveToStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
+  MoveToStages(const rclcpp::Node::SharedPtr& node);
 
   // Main orchestrator step runner
   bool run(const nlohmann::json& step, const nlohmann::json& poses);

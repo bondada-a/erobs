@@ -6,6 +6,6 @@
 
 class ToolExchangeStages : public BaseStages {
 public:
-  ToolExchangeStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
+  ToolExchangeStages(const rclcpp::Node::SharedPtr& node);
   bool run(const nlohmann::json& step, const nlohmann::json& poses);
 };

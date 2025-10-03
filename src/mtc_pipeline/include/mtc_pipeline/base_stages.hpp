@@ -42,14 +42,11 @@ public:
     static const double acc_scale;
   };
 
-  BaseStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config);
+  BaseStages(const rclcpp::Node::SharedPtr& node);
   virtual ~BaseStages() = default;
 
 protected:
   rclcpp::Node::SharedPtr node() const;
-
-  nlohmann::json& config();
-  const nlohmann::json& config() const;
 
   mtc::Task createTaskTemplate(const std::string& name,
                                const std::string& arm_group = "",
@@ -119,5 +116,4 @@ protected:
 
 private:
   rclcpp::Node::SharedPtr node_;
-  nlohmann::json config_;
 };

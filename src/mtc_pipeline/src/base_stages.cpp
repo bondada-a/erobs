@@ -69,19 +69,11 @@ const double BaseStages::JointInterpolationPlannerDefaults::acc_scale = 0.2;
 // Class Implementation
 // ============================================================================
 
-BaseStages::BaseStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
-  : node_(node), config_(config) {}
+BaseStages::BaseStages(const rclcpp::Node::SharedPtr& node)
+  : node_(node) {}
 
 rclcpp::Node::SharedPtr BaseStages::node() const {
   return node_;
-}
-
-nlohmann::json& BaseStages::config() {
-  return config_;
-}
-
-const nlohmann::json& BaseStages::config() const {
-  return config_;
 }
 
 // ============================================================================
