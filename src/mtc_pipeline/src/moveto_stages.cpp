@@ -1,4 +1,5 @@
 #include "mtc_pipeline/moveto_stages.hpp"
+#include <moveit/task_constructor/stages/move_to.h>
 
 namespace mtc = moveit::task_constructor;
 
@@ -16,7 +17,11 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
   // 1. NAMED STATE: Move to predefined SRDF state (e.g., "moveit_home")
   if (target_type == "named_state") {
     const std::string named_state = step.at("target");
-    task.add(createNamedStateMoveStage("move_to_" + named_state, named_state, planner));
+    auto stage = std::make_unique<mtc::stages::MoveTo>("move_to_" + named_state, planner);
+    stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    stage->setGroup(defaultArmGroupName());
+    stage->setGoal(named_state);
+    task.add(std::move(stage));
   }
 
   // 2. POSE: Move to joint configuration from JSON config
@@ -32,11 +37,11 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
     const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
     const std::string label = planning_type == "cartesian" ? "move_to_cartesian_" + pose_key : "move_to_" + pose_key;
 
-    if (planning_type == "cartesian") {  // Cartesian path
-      task.add(createCartesianMoveStageFromJoints(label, joint_angles_deg, planner));
-    } else {    // Joint: Plan in joint space (default)
-      task.add(createJointMoveStage(label, joint_angles_deg, planner));
-    }
+    auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
+    stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    stage->setGroup(defaultArmGroupName());
+    stage->setGoal(jointsFromDegrees(joint_angles_deg));
+    task.add(std::move(stage));
   }
 
   // 3. RELATIVE: Move relative to current position (e.g., "forward", "up")
@@ -44,7 +49,6 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
     const std::string direction = step.at("direction");
     const double distance = step.at("distance").get<double>();
     const std::string label = "move_" + direction + "_" + std::to_string(distance) + "m";
-    // TODO: Check if relative movements should always use CartesianPlanner instead of respecting planning_type
     task.add(createRelativeMoveStage(label, direction, distance, planner));
   }
 

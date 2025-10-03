@@ -256,34 +256,6 @@ mtc::solvers::PlannerInterfacePtr BaseStages::makeJointInterpolationPlanner(doub
 // Movement Stage Creation Methods
 // ============================================================================
 
-// Create joint move stage from degrees
-std::unique_ptr<mtc::Stage> BaseStages::createJointMoveStage(
-  const std::string& label,
-  const std::vector<double>& joint_angles_deg,
-  const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group) const {
-
-  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
-  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-  stage->setGroup(group);
-  stage->setGoal(jointsFromDegrees(joint_angles_deg));
-  return stage;
-}
-
-// Create joint move stage from pre-converted joint goals
-std::unique_ptr<mtc::Stage> BaseStages::createJointMoveStage(
-  const std::string& label,
-  const std::map<std::string, double>& joint_goals,
-  const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group) const {
-
-  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
-  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-  stage->setGroup(group);
-  stage->setGoal(joint_goals);
-  return stage;
-}
-
 // Create relative move stage using direction string
 std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
   const std::string& label,
@@ -312,34 +284,5 @@ std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
   vec.vector.z = z;
 
   stage->setDirection(vec);
-  return stage;
-}
-
-// Create named state move stage
-std::unique_ptr<mtc::Stage> BaseStages::createNamedStateMoveStage(
-  const std::string& label,
-  const std::string& named_state,
-  const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group) const {
-
-  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
-  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-  stage->setGroup(group);
-  stage->setGoal(named_state);
-  return stage;
-}
-
-// Create cartesian move stage from joint angles
-// CartesianPath planner automatically computes FK from joint goal
-std::unique_ptr<mtc::Stage> BaseStages::createCartesianMoveStageFromJoints(
-  const std::string& label,
-  const std::vector<double>& joint_angles_deg,
-  const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group) const {
-
-  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
-  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-  stage->setGroup(group);
-  stage->setGoal(jointsFromDegrees(joint_angles_deg));
   return stage;
 }

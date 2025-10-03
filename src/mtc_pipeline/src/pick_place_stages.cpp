@@ -44,7 +44,11 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
   }
 
   auto joint_angles_deg = joint_pose.get<std::vector<double>>();
-  return createJointMoveStage(label, joint_angles_deg, planner);
+  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
+  stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+  stage->setGroup(defaultArmGroupName());
+  stage->setGoal(jointsFromDegrees(joint_angles_deg));
+  return stage;
 }
 
 std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(
@@ -152,7 +156,11 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   // RETURN HOME (optional)
   // ============================================================================
   if (step.value("return_home", true)) {
-    task.add(createNamedStateMoveStage("return home", "moveit_home", pipeline_planner));
+    auto stage = std::make_unique<mtc::stages::MoveTo>("return home", pipeline_planner);
+    stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    stage->setGroup(defaultArmGroupName());
+    stage->setGoal("moveit_home");
+    task.add(std::move(stage));
   }
 
   return loadPlanExecute(task);

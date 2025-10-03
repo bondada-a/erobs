@@ -1,6 +1,7 @@
 #include "mtc_pipeline/tool_exchange_stages.hpp"
 
 #include <cmath>
+#include <moveit/task_constructor/stages/move_to.h>
 
 namespace mtc = moveit::task_constructor;
 
@@ -34,8 +35,10 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     }
 
     const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
-    auto stage = createJointMoveStage(label, joint_angles_deg, sampling_planner);
-    if (!stage) return false;
+    auto stage = std::make_unique<mtc::stages::MoveTo>(label, sampling_planner);
+    stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    stage->setGroup(defaultArmGroupName());
+    stage->setGoal(jointsFromDegrees(joint_angles_deg));
     task.add(std::move(stage));
     return true;
   };
