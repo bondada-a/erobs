@@ -71,12 +71,11 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesianPose(
   const std::vector<double>& joint_angles_deg,
   const mtc::solvers::PlannerInterfacePtr& planner,
   const std::string& arm_group_name,
-  mtc::Task& task,
-  const moveit::core::RobotModelConstPtr& robot_model,
-  const moveit::core::JointModelGroup* group,
-  moveit::core::RobotState& robot_state) const
+  moveit::core::RobotState& robot_state) const //needed for forward kinematics
 {
-  // Convert joints to Cartesian pose using provided robot model and state
+  // Convert joints to Cartesian pose using robot state
+  const auto& robot_model = robot_state.getRobotModel();
+  const auto* group = robot_model->getJointModelGroup(arm_group_name);
 
   // Convert degrees to radians
   std::vector<double> joint_angles_rad;
@@ -154,8 +153,8 @@ bool MoveToStages::handleJoints(const nlohmann::json& step, mtc::Task& task,
     auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
 
     if (planning_type == "cartesian") {
-      // Cartesian planning - convert joints to pose using provided robot model
-      task.add(moveToCartesianPose("move_to_cartesian_" + pose_key, joint_angles_deg, planner, arm_group_name, task, robot_model, group, robot_state));
+      // Cartesian planning - convert joints to pose
+      task.add(moveToCartesianPose("move_to_cartesian_" + pose_key, joint_angles_deg, planner, arm_group_name, robot_state));
     } else {
       // Joint planning
       task.add(moveToJointGoal("move_to_" + pose_key, joint_angles_deg, planner, arm_group_name));

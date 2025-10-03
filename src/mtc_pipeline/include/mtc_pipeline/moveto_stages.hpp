@@ -45,9 +45,6 @@ public:
     const std::vector<double>& joint_angles_deg,
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group_name,
-    mtc::Task& task,
-    const moveit::core::RobotModelConstPtr& robot_model,
-    const moveit::core::JointModelGroup* group,
     moveit::core::RobotState& robot_state
   ) const;
 
