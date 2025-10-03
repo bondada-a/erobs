@@ -104,25 +104,13 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesianPose(
 // Handle named state : predefined states from the SRDF (moveit_home)
 bool MoveToStages::handleNamedState(const nlohmann::json& step, mtc::Task& task,
                                    const mtc::solvers::PlannerInterfacePtr& planner,
-                                   const std::string& arm_group_name,
-                                   moveit::core::RobotState& robot_state) const
+                                   const std::string& arm_group_name) const
 {
-  const auto& robot_model = robot_state.getRobotModel();
-  const auto* group = robot_model->getJointModelGroup(arm_group_name);
-
   const std::string named_state = step.at("target");
-
-  if (!robot_state.setToDefaultValues(group, named_state)) {
-    RCLCPP_ERROR(node()->get_logger(), "Named state '%s' not found", named_state.c_str());
-    return false;
-  }
-
-  std::vector<double> joint_angles_rad;
-  robot_state.copyJointGroupPositions(group, joint_angles_rad);
 
   auto stage = std::make_unique<mtc::stages::MoveTo>("move_to_" + named_state, planner);
   stage->setGroup(arm_group_name);
-  stage->setGoal(jointsFromRadians(joint_angles_rad));
+  stage->setGoal(named_state);
   task.add(std::move(stage));
   return true;
 }
@@ -214,7 +202,7 @@ bool MoveToStages::run(const nlohmann::json& step,
     }
 
     if (target_type == "named_state") {
-      if (!handleNamedState(step, task, planner, arm_group_name, robot_state)) {
+      if (!handleNamedState(step, task, planner, arm_group_name)) {
         return false;
       }
     } else if (target_type == "joints" || target_type == "pose") {
