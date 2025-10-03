@@ -1,6 +1,4 @@
 #include "mtc_pipeline/moveto_stages.hpp"
-
-#include <moveit/task_constructor/stages/move_to.h>
 #include <moveit/robot_state/robot_state.h>
 
 namespace mtc = moveit::task_constructor;
@@ -8,30 +6,16 @@ namespace mtc = moveit::task_constructor;
 MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
   : BaseStages(node, config) {}
 
-// Main run function
 
 bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) {
-                        
-  refreshPoses(poses); // Update internal pose config with new pose data
-
   const std::string target_type = step.value("target_type", "pose");
   const std::string planning_type = step.value("planning_type", "joint");
   const std::string arm_group_name = step.value("arm_group", defaultArmGroupName());
-
-  RCLCPP_DEBUG(node()->get_logger(), "MoveTo: target_type='%s', planning_type='%s', arm_group='%s'",
-              target_type.c_str(), planning_type.c_str(), arm_group_name.c_str());
 
   // Scope block to control destruction order and avoid class_loader warnings
   bool success;
   {
     auto task = createTaskTemplate("MoveTo Task", arm_group_name);
-
-    // Load robot model (needed for cartesian planning)
-    task.loadRobotModel(node());
-    const auto& robot_model = task.getRobotModel();
-    moveit::core::RobotState robot_state(robot_model);
-
-    // Create planner after loading robot model to ensure correct model reference
     auto planner = (planning_type == "cartesian") ? makeCartesianPlanner() : makePipelinePlanner();
 
     if (target_type == "named_state") {
@@ -40,8 +24,7 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
     } else if (target_type == "pose") {
       // Pose defined in json config
       const std::string pose_key = step.at("target");
-      const auto& poses_config = config().at("poses");
-      const auto& joint_pose_json = poses_config.at(pose_key);
+      const auto& joint_pose_json = poses.at(pose_key);
 
       if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
         RCLCPP_ERROR(node()->get_logger(), "'%s' must be an array of 6 joint angles", pose_key.c_str());
@@ -53,6 +36,11 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
 
       // Apply planning type
       if (planning_type == "cartesian") {
+        // Load robot model and create robot state for FK conversion (needed only for cartesian)
+        task.loadRobotModel(node());
+        const auto& robot_model = task.getRobotModel();
+        moveit::core::RobotState robot_state(robot_model);
+
         // Cartesian planning - convert joints to pose via FK
         task.add(createCartesianMoveStageFromJoints(label, joint_angles_deg, planner, arm_group_name, robot_state));
       } else {
