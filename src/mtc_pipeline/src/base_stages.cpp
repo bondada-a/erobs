@@ -41,10 +41,12 @@ mtc::Task BaseStages::createTaskTemplate(const std::string& name,
                                          bool add_current_state) const {
   mtc::Task task;
   task.stages()->setName(name);
-  task.setProperty("group", arm_group);
+  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
+  task.setProperty("group", group);
 
   geometry_msgs::msg::PoseStamped ik_frame_pose;
-  ik_frame_pose.header.frame_id = ik_frame;
+  const std::string& frame = ik_frame.empty() ? defaultIkFrame() : ik_frame;
+  ik_frame_pose.header.frame_id = frame;
   ik_frame_pose.pose.orientation.w = 1.0;
   task.setProperty("ik_frame", ik_frame_pose);
 

@@ -54,8 +54,8 @@ protected:
   void refreshPoses(const nlohmann::json& poses);
 
   mtc::Task createTaskTemplate(const std::string& name,
-                               const std::string& arm_group,
-                               const std::string& ik_frame = "flange",
+                               const std::string& arm_group = "",
+                               const std::string& ik_frame = "",
                                bool add_current_state = true) const;
 
   bool loadPlanExecute(mtc::Task& task,
