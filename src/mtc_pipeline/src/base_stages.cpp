@@ -82,8 +82,7 @@ rclcpp::Node::SharedPtr BaseStages::node() const {
 
 mtc::Task BaseStages::createTaskTemplate(const std::string& name,
                                          const std::string& arm_group,
-                                         const std::string& ik_frame,
-                                         bool add_current_state) const {
+                                         const std::string& ik_frame) const {
   mtc::Task task;
   task.stages()->setName(name);
   const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
@@ -92,12 +91,9 @@ mtc::Task BaseStages::createTaskTemplate(const std::string& name,
   geometry_msgs::msg::PoseStamped ik_frame_pose;
   const std::string& frame = ik_frame.empty() ? defaultIkFrame() : ik_frame;
   ik_frame_pose.header.frame_id = frame;
-  ik_frame_pose.pose.orientation.w = 1.0;
   task.setProperty("ik_frame", ik_frame_pose);
 
-  if (add_current_state) {
-    task.add(std::make_unique<mtc::stages::CurrentState>("current state"));
-  }
+  task.add(std::make_unique<mtc::stages::CurrentState>("current state"));
 
   return task;
 }
@@ -106,63 +102,25 @@ mtc::Task BaseStages::createTaskTemplate(const std::string& name,
 // Task Execution
 // ============================================================================
 
-bool BaseStages::loadPlanExecute(mtc::Task& task,
-                                 int plan_attempts,
-                                 const ShouldCancelFn& should_cancel) const {
-  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Starting");
-
+bool BaseStages::loadPlanExecute(mtc::Task& task) const {
+  // Initialize
   try {
-    RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Loading robot model");
     if (!task.getRobotModel()) {
       task.loadRobotModel(node_);
     }
-    RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Robot model loaded, initializing task");
     task.init();
-    RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Task initialized successfully");
   } catch (const mtc::InitStageException& e) {
-    RCLCPP_ERROR(node_->get_logger(), "Stage initialization failed: %s", e.what());
     return false;
   }
 
-  if (should_cancel && should_cancel()) {
-    RCLCPP_WARN(node_->get_logger(), "Task cancelled before planning");
+  // Plan
+  if (!task.plan()) {
     return false;
   }
 
-  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Starting planning with %d attempts", plan_attempts);
-  if (!task.plan(plan_attempts)) {
-    RCLCPP_ERROR(node_->get_logger(), "Task planning failed");
-    return false;
-  }
-  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Planning completed successfully");
-
-  if (task.solutions().empty()) {
-    RCLCPP_ERROR(node_->get_logger(), "No solutions found to execute");
-    return false;
-  }
-  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Found %zu solution(s)", task.solutions().size());
-
-  if (should_cancel && should_cancel()) {
-    RCLCPP_WARN(node_->get_logger(), "Task cancelled before execution");
-    return false;
-  }
-
-  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Starting execution");
+  // Execute
   auto result = task.execute(*task.solutions().front());
-  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Execution completed with code: %d", result.val);
-
-  if (should_cancel && should_cancel()) {
-    RCLCPP_WARN(node_->get_logger(), "Task cancelled after execution");
-    return false;
-  }
-
-  if (result.val != moveit_msgs::msg::MoveItErrorCodes::SUCCESS) {
-    RCLCPP_ERROR(node_->get_logger(), "Task execution failed with code: %d", result.val);
-    return false;
-  }
-
-  RCLCPP_DEBUG(node_->get_logger(), "loadPlanExecute: Completed successfully");
-  return true;
+  return result.val == moveit_msgs::msg::MoveItErrorCodes::SUCCESS;
 }
 
 // ============================================================================
@@ -173,19 +131,9 @@ std::map<std::string, double> BaseStages::jointsFromDegrees(const std::vector<do
   const auto& names = defaultJointNames();
   std::map<std::string, double> joint_goal;
 
-  for (size_t i = 0; i < std::min(angles_deg.size(), names.size()); ++i) {
+  const size_t count = std::min(angles_deg.size(), names.size());
+  for (size_t i = 0; i < count; ++i) {
     joint_goal[names[i]] = degToRad(angles_deg[i]);
-  }
-
-  return joint_goal;
-}
-
-std::map<std::string, double> BaseStages::jointsFromRadians(const std::vector<double>& angles_rad) const {
-  const auto& names = defaultJointNames();
-  std::map<std::string, double> joint_goal;
-
-  for (size_t i = 0; i < std::min(angles_rad.size(), names.size()); ++i) {
-    joint_goal[names[i]] = angles_rad[i];
   }
 
   return joint_goal;
