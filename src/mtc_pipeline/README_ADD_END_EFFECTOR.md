@@ -4,11 +4,12 @@ This guide explains how to add a new end effector (gripper, vacuum, etc.) to the
 
 ## Overview
 
-The system uses a configuration-driven approach where end effectors are defined in:
-1. **SRDF files** - Define the MoveIt planning groups and states
-2. **C++ configuration** - Map user-friendly names to SRDF states
+The system uses an SRDF-driven approach where end effectors are defined in:
+1. **URDF files** - Define the physical robot model
+2. **SRDF files** - Define the MoveIt planning groups and named states
+3. **JSON files** - Use SRDF names directly to control the end effector
 
-Adding a new end effector requires creating the URDF/SRDF and adding a few lines of configuration code.
+Adding a new end effector only requires creating the URDF/SRDF - no C++ code changes needed!
 
 ---
 
@@ -170,63 +171,7 @@ mkdir -p ur_zivid_suction_moveit_config/{config,urdf,launch}
 
 ---
 
-### Step 4: Update EndEffectorStages Configuration
-
-**Location:** `src/mtc_pipeline/src/end_effector_stages.cpp`
-
-Find the `initializeGripperConfigs()` function and add your gripper configuration:
-
-```cpp
-void EndEffectorStages::initializeGripperConfigs()
-{
-  // Initialize gripper configurations based on SRDF definitions
-  // This matches the actual states defined in the SRDF files
-
-  // Hande gripper configuration
-  gripper_configs_["hande"] = {
-    "hande_gripper",
-    {
-      {"open", "hande_open"},
-      {"close", "hande_closed"}
-    }
-  };
-
-  // Epick vacuum gripper configuration
-  gripper_configs_["epick"] = {
-    "epick_gripper",
-    {
-      {"on", "vacuum_on"},
-      {"off", "vacuum_off"}
-    }
-  };
-
-  // ⬇️ ADD YOUR GRIPPER HERE ⬇️
-
-  // Suction cup gripper configuration
-  gripper_configs_["suction_cup"] = {
-    "suction_cup_gripper",    // ⚠️ Must match SRDF <group name="">
-    {
-      {"grip", "suction_on"},     // action_name -> SRDF <group_state name="">
-      {"release", "suction_off"}  // action_name -> SRDF <group_state name="">
-    }
-  };
-}
-```
-
-**Configuration Format:**
-```cpp
-gripper_configs_["json_identifier"] = {
-  "srdf_group_name",           // Must match <group name="..."> in SRDF
-  {
-    {"action_1", "srdf_state_1"},  // User action -> <group_state name="...">
-    {"action_2", "srdf_state_2"}   // User action -> <group_state name="...">
-  }
-};
-```
-
----
-
-### Step 5: Build and Test
+### Step 4: Build and Test
 
 ```bash
 cd /path/to/your/workspace
@@ -236,14 +181,15 @@ source install/setup.bash
 
 ---
 
-### Step 6: Create a Test JSON
+### Step 5: Create a Test JSON
 
-Create a test file to verify your gripper works:
+Create a test file to verify your gripper works. Use the SRDF names directly:
 
 `test_suction_cup.json`
 
 ```json
 {
+  "start_gripper": "suction_cup_gripper",
   "poses": {
     "home": [0, -90, 0, -90, 0, 0],
     "pick_approach": [45, -60, 30, -60, -90, 0]
@@ -251,29 +197,37 @@ Create a test file to verify your gripper works:
   "tasks": [
     {
       "task_type": "moveto",
-      "pose": "home"
+      "target_type": "named_state",
+      "target": "moveit_home",
+      "planning_type": "joint"
     },
     {
       "task_type": "end_effector",
-      "end_effector_type": "suction_cup",
-      "end_effector_action": "grip"
+      "end_effector_type": "suction_cup_gripper",
+      "end_effector_action": "suction_on"
     },
     {
       "task_type": "moveto",
-      "pose": "pick_approach"
+      "target_type": "pose",
+      "target": "pick_approach",
+      "planning_type": "joint"
     },
     {
       "task_type": "end_effector",
-      "end_effector_type": "suction_cup",
-      "end_effector_action": "release"
+      "end_effector_type": "suction_cup_gripper",
+      "end_effector_action": "suction_off"
     }
   ]
 }
 ```
 
+**Important:**
+- `end_effector_type` must match your SRDF `<group name="...">`
+- `end_effector_action` must match your SRDF `<group_state name="...">`
+
 ---
 
-### Step 7: Run and Test
+### Step 6: Run and Test
 
 ```bash
 # Start the servers
@@ -285,30 +239,30 @@ ros2 run mtc_pipeline mtc_action_client_example test_suction_cup.json 192.168.56
 
 **Expected output:**
 ```
-[DEBUG] End effector control: type=suction_cup, action=grip
-[DEBUG] End effector control successful: suction_cup grip
+[INFO] Task name: suction_cup_gripper suction_on
+[INFO] MoveTo task completed successfully
 ```
 
 ---
 
 ## Quick Reference
 
-### SRDF → Code Mapping
+### SRDF → JSON Mapping
 
-| SRDF | Code | JSON Usage |
-|------|------|------------|
-| `<group name="suction_cup_gripper">` | `"suction_cup_gripper"` (group_name) | - |
-| `<group_state name="suction_on">` | `"suction_on"` (state value) | - |
-| `<group_state name="suction_off">` | `"suction_off"` (state value) | - |
-| - | `"suction_cup"` (config key) | `"end_effector_type": "suction_cup"` |
-| - | `"grip"` (action key) | `"end_effector_action": "grip"` |
+The JSON directly uses SRDF names - no translation needed!
+
+| SRDF Element | SRDF Example | JSON Field | JSON Value |
+|--------------|--------------|------------|------------|
+| `<group name="...">` | `suction_cup_gripper` | `end_effector_type` | `"suction_cup_gripper"` |
+| `<group_state name="...">` | `suction_on` | `end_effector_action` | `"suction_on"` |
+| `<group_state name="...">` | `suction_off` | `end_effector_action` | `"suction_off"` |
 
 ### Existing Grippers
 
-| Gripper | Type | Actions | SRDF States |
-|---------|------|---------|-------------|
-| **hande** | Hand-E gripper | `open`, `close` | `hande_open`, `hande_closed` |
-| **epick** | EPick vacuum | `on`, `off` | `vacuum_on`, `vacuum_off` |
+| Group Name | Type | SRDF States |
+|------------|------|-------------|
+| `hande_gripper` | Hand-E gripper | `hande_open`, `hande_closed` |
+| `epick_gripper` | EPick vacuum | `vacuum_on`, `vacuum_off` |
 
 ---
 
@@ -320,28 +274,29 @@ When adding a new end effector, make sure you:
 - [ ] Created MoveIt config package (ur_zivid_yourgriper_moveit_config)
 - [ ] Defined `<group>` in SRDF (e.g., `suction_cup_gripper`)
 - [ ] Defined `<group_state>` entries in SRDF for each action
-- [ ] Added configuration to `end_effector_stages.cpp` → `initializeGripperConfigs()`
-- [ ] Verified group name matches between SRDF and code
-- [ ] Verified state names match between SRDF and code
-- [ ] Rebuilt: `colcon build --packages-select mtc_pipeline`
-- [ ] Tested with JSON file
+- [ ] Created test JSON file with SRDF names
+- [ ] Verified JSON uses correct SRDF group name for `end_effector_type`
+- [ ] Verified JSON uses correct SRDF state names for `end_effector_action`
+- [ ] Tested with action client
 - [ ] Verified successful execution in logs
 
 ---
 
 ## Troubleshooting
 
-### Error: "Unknown end effector type: 'xxx'"
-- Check that the `gripper_configs_` key matches what you use in JSON `"end_effector_type"`
-- Make sure you rebuilt after editing the C++ file
-
-### Error: "Unknown action 'xxx' for end effector 'yyy'"
-- Check that your action name matches one of the keys in the actions map
-- The error message will list valid actions
+### Error: JSON parsing error with end_effector fields
+- Verify `end_effector_type` exactly matches your SRDF `<group name="">`
+- Verify `end_effector_action` exactly matches your SRDF `<group_state name="">`
+- SRDF names are case-sensitive!
 
 ### Error: "No planning group named 'xxx_gripper'"
-- Check that the `group_name` in C++ matches the `<group name="">` in your SRDF
+- Check that your JSON `end_effector_type` matches the `<group name="">` in your SRDF
 - Make sure your MoveIt config is being loaded correctly
+- Verify you're launching with the correct robot configuration
+
+### Error: "Goal state 'xxx' not found"
+- Check that your JSON `end_effector_action` matches a `<group_state name="">` in your SRDF
+- Make sure the state is defined for the correct group
 
 ### Error: "No IK solver for group 'xxx_gripper'"
 - This is expected for simple grippers - they don't need IK
@@ -351,17 +306,17 @@ When adding a new end effector, make sure you:
 
 ## Design Notes
 
-The system is intentionally kept simple:
+The system is intentionally kept simple and SRDF-driven:
 
-- **Hardcoded configuration** - Grippers are defined in C++ for compile-time safety
-- **SRDF-driven** - The source of truth is your SRDF file
-- **User-friendly actions** - You can use friendly names like "grip" instead of "suction_on"
-- **Automatic validation** - The system tells you what's available if you make a mistake
+- **No C++ code needed** - Everything is defined in URDF/SRDF
+- **SRDF is the source of truth** - JSON uses SRDF names directly
+- **Zero abstraction** - What you define in SRDF is what you use in JSON
+- **Simple and explicit** - Easy to understand and debug
 
 Adding a new gripper requires:
-- ~40 lines of URDF
-- ~20 lines of SRDF
-- **4-6 lines of C++ configuration**
-- Rebuild
+- ~40 lines of URDF (robot model)
+- ~20 lines of SRDF (planning groups and states)
+- **0 lines of C++** - No code changes!
+- JSON uses the SRDF names directly
 
 That's it!

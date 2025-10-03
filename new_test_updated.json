@@ -33,8 +33,8 @@
     },
     {
       "task_type": "end_effector",
-      "end_effector_type": "hande",
-      "end_effector_action": "close"
+      "end_effector_type": "hande_gripper",
+      "end_effector_action": "hande_closed"
     },
     {
       "task_type": "moveto",
@@ -56,8 +56,8 @@
     },
     {
       "task_type": "end_effector",
-      "end_effector_type": "hande",
-      "end_effector_action": "open"
+      "end_effector_type": "hande_gripper",
+      "end_effector_action": "hande_open"
     },
     {
       "task_type": "moveto",
@@ -93,8 +93,8 @@
     },
     {
       "task_type": "end_effector",
-      "end_effector_type": "epick",
-      "end_effector_action": "on"
+      "end_effector_type": "epick_gripper",
+      "end_effector_action": "vacuum_on"
     },
     {
       "task_type": "moveto",
@@ -110,8 +110,8 @@
     },
     {
       "task_type": "end_effector",
-      "end_effector_type": "epick",
-      "end_effector_action": "off"
+      "end_effector_type": "epick_gripper",
+      "end_effector_action": "vacuum_off"
     },
     {
       "task_type": "moveto",
