@@ -70,7 +70,11 @@ const double BaseStages::JointInterpolationPlannerDefaults::acc_scale = 0.2;
 // ============================================================================
 
 BaseStages::BaseStages(const rclcpp::Node::SharedPtr& node)
-  : node_(node) {}
+  : node_(node) {
+  // Configure OMPL parameters for pipeline planner
+  node_->declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner");
+  node_->declare_parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization");
+}
 
 rclcpp::Node::SharedPtr BaseStages::node() const {
   return node_;
@@ -143,37 +147,9 @@ std::map<std::string, double> BaseStages::jointsFromDegrees(const std::vector<do
 // Planner Configuration & Factories
 // ============================================================================
 
-void BaseStages::configureOmplParameters() const {
-  if (!node_) {
-    return;
-  }
-
-  const auto declare_if_needed = [this](const std::string& name, const rclcpp::ParameterValue& value) {
-    try {
-      node_->declare_parameter(name, value);
-    } catch (const rclcpp::exceptions::ParameterAlreadyDeclaredException&) {
-      // Already declared, safe to ignore
-    }
-  };
-
-  declare_if_needed("ompl.planning_plugin", rclcpp::ParameterValue(std::string("ompl_interface/OMPLPlanner")));
-  declare_if_needed("ompl.request_adapters", rclcpp::ParameterValue(std::string("default_planner_request_adapters/AddTimeOptimalParameterization")));
-
-  try {
-    node_->set_parameter(rclcpp::Parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner"));
-    node_->set_parameter(rclcpp::Parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization"));
-  } catch (const std::exception& e) {
-    RCLCPP_WARN(node_->get_logger(), "Failed to set OMPL parameters: %s", e.what());
-  }
-}
-
 mtc::solvers::PlannerInterfacePtr BaseStages::makePipelinePlanner(const std::string& pipeline_id,
                                                                   double vel_scale,
                                                                   double acc_scale) const {
-  if (pipeline_id == "ompl") {
-    configureOmplParameters();
-  }
-
   auto planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_, pipeline_id);
   planner->setMaxVelocityScalingFactor(vel_scale);
   planner->setMaxAccelerationScalingFactor(acc_scale);

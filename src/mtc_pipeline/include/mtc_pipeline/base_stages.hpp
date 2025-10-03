@@ -58,8 +58,6 @@ protected:
   static const std::string& defaultIkFrame();
   static constexpr double degToRad(double degrees) { return degrees * M_PI / 180.0; }
 
-  void configureOmplParameters() const;
-
   mtc::solvers::PlannerInterfacePtr makePipelinePlanner(
     const std::string& pipeline_id = PipelinePlannerDefaults::pipeline_id,
     double vel_scale = PipelinePlannerDefaults::vel_scale,
