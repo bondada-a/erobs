@@ -51,8 +51,6 @@ protected:
   nlohmann::json& config();
   const nlohmann::json& config() const;
 
-  void refreshPoses(const nlohmann::json& poses);
-
   mtc::Task createTaskTemplate(const std::string& name,
                                const std::string& arm_group = "",
                                const std::string& ik_frame = "",
@@ -102,14 +100,6 @@ protected:
   std::unique_ptr<mtc::Stage> createRelativeMoveStage(
     const std::string& label,
     const std::string& direction,
-    double distance,
-    const mtc::solvers::PlannerInterfacePtr& planner,
-    const std::string& arm_group = "",
-    const std::string& frame = "") const;
-
-  std::unique_ptr<mtc::Stage> createRelativeMoveStage(
-    const std::string& label,
-    double x, double y, double z,
     double distance,
     const mtc::solvers::PlannerInterfacePtr& planner,
     const std::string& arm_group = "",

@@ -41,8 +41,8 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
   };
 
   // Lambda: Add relative move with custom MTC visualization properties
-  const auto addRelativeMoveStage = [&](const std::string& name, double distance, double x, double y, double z, const std::string& marker_ns) {
-    auto stage = createRelativeMoveStage(name, x, y, z, std::abs(distance), cartesian_planner);
+  const auto addRelativeMoveStage = [&](const std::string& name, const std::string& direction, double distance, const std::string& marker_ns) {
+    auto stage = createRelativeMoveStage(name, direction, std::abs(distance), cartesian_planner);
     if (!stage) return;
 
     // Set custom MTC properties for visualization
@@ -57,8 +57,8 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
   const auto addDockShiftStage = [&](double offset) {
     if (std::abs(offset) < 1e-4) return;  // Skip if offset is negligible
 
-    double direction = offset >= 0.0 ? 1.0 : -1.0;
-    addRelativeMoveStage("shift to dock", offset, 0.0, direction, 0.0, "dock_shift");
+    const std::string direction = (offset >= 0.0) ? "right" : "left";
+    addRelativeMoveStage("shift to dock", direction, offset, "dock_shift");
   };
 
   // ============================================================================
@@ -67,10 +67,10 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
   if (operation == "load") {
     if (!addNamedMoveStage("move to load approach", approach_pose)) return false;
 
-    addDockShiftStage(dock_offset_y);                                      // Align with specific dock
-    addRelativeMoveStage("attach_tool", 0.1, 1.0, 0.0, 0.0, "approach_object");      // Move forward into tool
-    addRelativeMoveStage("detach_holder", 0.15, 0.0, 0.0, -1.0, "approach_object");  // Move down to release holder
-    addRelativeMoveStage("move_up", 0.2, -1.0, 0.0, 0.0, "approach_object");         // Move back with tool
+    addDockShiftStage(dock_offset_y);                              // Align with specific dock
+    addRelativeMoveStage("attach_tool", "forward", 0.1, "approach_object");      // Move forward into tool
+    addRelativeMoveStage("detach_holder", "up", 0.15, "approach_object");        // Move up to release holder
+    addRelativeMoveStage("move_up", "backward", 0.2, "approach_object");         // Move back with tool
   }
 
   // ============================================================================
@@ -79,10 +79,10 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
   else if (operation == "dock") {
     if (!addNamedMoveStage("move to dock approach", approach_pose)) return false;
 
-    addDockShiftStage(dock_offset_y);                                      // Align with specific dock
-    addRelativeMoveStage("align_holder", 0.2, 1.0, 0.0, 0.0, "approach_object");     // Move forward to holder
-    addRelativeMoveStage("detach_tool", 0.15, 0.0, 0.0, 1.0, "approach_object");     // Move up to release tool
-    addRelativeMoveStage("dock connect", 0.1, -1.0, 0.0, 0.0, "approach_object");    // Move back from dock
+    addDockShiftStage(dock_offset_y);                              // Align with specific dock
+    addRelativeMoveStage("align_holder", "forward", 0.2, "approach_object");     // Move forward to holder
+    addRelativeMoveStage("detach_tool", "down", 0.15, "approach_object");        // Move down to release tool
+    addRelativeMoveStage("dock connect", "backward", 0.1, "approach_object");    // Move back from dock
   }
 
   // ============================================================================

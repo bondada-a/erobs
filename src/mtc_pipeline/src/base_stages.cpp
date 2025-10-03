@@ -16,6 +16,59 @@
 #include <cmath>
 #include <map>
 
+// ============================================================================
+// Constants and Static Defaults
+// ============================================================================
+
+namespace {
+  // Direction vectors for relative movements
+  // Note: Z-axis is inverted for flange (up = -Z, down = +Z)
+  const std::map<std::string, std::array<double, 3>> DIRECTION_VECTORS = {
+    {"forward",  { 1.0,  0.0,  0.0}}, {"x",  { 1.0,  0.0,  0.0}},
+    {"backward", {-1.0,  0.0,  0.0}}, {"-x", {-1.0,  0.0,  0.0}},
+    {"right",    { 0.0,  1.0,  0.0}}, {"y",  { 0.0,  1.0,  0.0}},
+    {"left",     { 0.0, -1.0,  0.0}}, {"-y", { 0.0, -1.0,  0.0}},
+    {"up",       { 0.0,  0.0, -1.0}}, {"z",  { 0.0,  0.0, -1.0}},  // Physical up = -Z in flange
+    {"down",     { 0.0,  0.0,  1.0}}, {"-z", { 0.0,  0.0,  1.0}}   // Physical down = +Z in flange
+  };
+}
+
+// Static joint and arm defaults
+const std::vector<std::string>& BaseStages::defaultJointNames() {
+  static const std::vector<std::string> names = {
+    "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
+    "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"
+  };
+  return names;
+}
+
+const std::string& BaseStages::defaultArmGroupName() {
+  static const std::string name = "ur_arm";
+  return name;
+}
+
+const std::string& BaseStages::defaultIkFrame() {
+  static const std::string frame = "flange";
+  return frame;
+}
+
+// Planner default constants
+const double BaseStages::PipelinePlannerDefaults::vel_scale = 0.2;
+const double BaseStages::PipelinePlannerDefaults::acc_scale = 0.2;
+const char* const BaseStages::PipelinePlannerDefaults::pipeline_id = "ompl";
+
+const double BaseStages::CartesianPlannerDefaults::vel_scale = 0.2;
+const double BaseStages::CartesianPlannerDefaults::acc_scale = 0.2;
+const double BaseStages::CartesianPlannerDefaults::step = 0.001;
+const double BaseStages::CartesianPlannerDefaults::min_fraction = 0.6; // 60% of the path should be valid
+
+const double BaseStages::JointInterpolationPlannerDefaults::vel_scale = 0.2;
+const double BaseStages::JointInterpolationPlannerDefaults::acc_scale = 0.2;
+
+// ============================================================================
+// Class Implementation
+// ============================================================================
+
 BaseStages::BaseStages(const rclcpp::Node::SharedPtr& node, const nlohmann::json& config)
   : node_(node), config_(config) {}
 
@@ -31,9 +84,9 @@ const nlohmann::json& BaseStages::config() const {
   return config_;
 }
 
-void BaseStages::refreshPoses(const nlohmann::json& poses) {
-  config_["poses"] = poses;
-}
+// ============================================================================
+// Task Template Creation
+// ============================================================================
 
 mtc::Task BaseStages::createTaskTemplate(const std::string& name,
                                          const std::string& arm_group,
@@ -56,6 +109,10 @@ mtc::Task BaseStages::createTaskTemplate(const std::string& name,
 
   return task;
 }
+
+// ============================================================================
+// Task Execution
+// ============================================================================
 
 bool BaseStages::loadPlanExecute(mtc::Task& task,
                                  int plan_attempts,
@@ -116,6 +173,10 @@ bool BaseStages::loadPlanExecute(mtc::Task& task,
   return true;
 }
 
+// ============================================================================
+// Joint Conversion Utilities
+// ============================================================================
+
 std::map<std::string, double> BaseStages::jointsFromDegrees(const std::vector<double>& angles_deg) const {
   const auto& names = defaultJointNames();
   std::map<std::string, double> joint_goal;
@@ -138,35 +199,9 @@ std::map<std::string, double> BaseStages::jointsFromRadians(const std::vector<do
   return joint_goal;
 }
 
-const std::vector<std::string>& BaseStages::defaultJointNames() {
-  static const std::vector<std::string> names = {
-    "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
-    "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"
-  };
-  return names;
-}
-
-const std::string& BaseStages::defaultArmGroupName() {
-  static const std::string name = "ur_arm";
-  return name;
-}
-
-const std::string& BaseStages::defaultIkFrame() {
-  static const std::string frame = "flange";
-  return frame;
-}
-
-const double BaseStages::PipelinePlannerDefaults::vel_scale = 0.2;
-const double BaseStages::PipelinePlannerDefaults::acc_scale = 0.2;
-const char* const BaseStages::PipelinePlannerDefaults::pipeline_id = "ompl";
-
-const double BaseStages::CartesianPlannerDefaults::vel_scale = 0.2;
-const double BaseStages::CartesianPlannerDefaults::acc_scale = 0.2;
-const double BaseStages::CartesianPlannerDefaults::step = 0.001;
-const double BaseStages::CartesianPlannerDefaults::min_fraction = 0.6; // 60% of the path should be valid
-
-const double BaseStages::JointInterpolationPlannerDefaults::vel_scale = 0.2;
-const double BaseStages::JointInterpolationPlannerDefaults::acc_scale = 0.2;
+// ============================================================================
+// Planner Configuration & Factories
+// ============================================================================
 
 void BaseStages::configureOmplParameters() const {
   if (!node_) {
@@ -225,18 +260,9 @@ mtc::solvers::PlannerInterfacePtr BaseStages::makeJointInterpolationPlanner(doub
   return planner;
 }
 
-// Direction vectors for relative movements
-// Note: Z-axis is inverted for flange (up = -Z, down = +Z)
-namespace {
-  const std::map<std::string, std::array<double, 3>> DIRECTION_VECTORS = {
-    {"forward",  { 1.0,  0.0,  0.0}}, {"x",  { 1.0,  0.0,  0.0}},
-    {"backward", {-1.0,  0.0,  0.0}}, {"-x", {-1.0,  0.0,  0.0}},
-    {"right",    { 0.0,  1.0,  0.0}}, {"y",  { 0.0,  1.0,  0.0}},
-    {"left",     { 0.0, -1.0,  0.0}}, {"-y", { 0.0, -1.0,  0.0}},
-    {"up",       { 0.0,  0.0, -1.0}}, {"z",  { 0.0,  0.0, -1.0}},  // Physical up = -Z in flange
-    {"down",     { 0.0,  0.0,  1.0}}, {"-z", { 0.0,  0.0,  1.0}}   // Physical down = +Z in flange
-  };
-}
+// ============================================================================
+// Movement Stage Creation Methods
+// ============================================================================
 
 // Create joint move stage from degrees
 std::unique_ptr<mtc::Stage> BaseStages::createJointMoveStage(
@@ -282,18 +308,6 @@ std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
   }
 
   const auto& [x, y, z] = it->second;
-  return createRelativeMoveStage(label, x, y, z, distance, planner, arm_group, frame);
-}
-
-// Create relative move stage using x,y,z components
-std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
-  const std::string& label,
-  double x, double y, double z,
-  double distance,
-  const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group,
-  const std::string& frame) const {
-
   const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
   const std::string& ik_frame = frame.empty() ? defaultIkFrame() : frame;
 
