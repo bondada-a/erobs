@@ -12,85 +12,83 @@ ToolExchangeStages::ToolExchangeStages(const rclcpp::Node::SharedPtr& node, cons
   : BaseStages(node, config) {}
 
 bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& poses){
-  
-  const std::string operation = step.value("operation", "load");
+  const std::string operation = step.at("operation");
   const int dock_number = step.value("dock_number", 3);
   const std::string approach_pose = step.at("approach_pose");
 
-  refreshPoses(poses);
-
   const double dock_offset_y = DOCK_SPACING_METERS * static_cast<double>(3 - dock_number);
-  const std::string& arm_group = defaultArmGroupName();
-  const std::string& ik_frame = defaultIkFrame();
+  const std::string task_name = (operation == "load") ? "Load Tool Task" :
+                                 (operation == "dock") ? "Dock Tool Task" :
+                                 "Tool Exchange Task";
 
-  std::string task_name;
-  if (operation == "load") {
-    task_name = "Load Tool Task";
-  } else if (operation == "dock") {
-    task_name = "Dock Tool Task";
-  } else {
-    task_name = "Tool Exchange Task";
-  }
-
-  auto task = createTaskTemplate(task_name, arm_group, ik_frame);
-
-  // Create planners for this task
+  auto task = createTaskTemplate(task_name);
   auto sampling_planner = makePipelinePlanner();
   auto cartesian_planner = makeCartesianPlanner();
 
-  // Helper to add joint move stage from pose key
+  // Lambda: Add joint move to approach pose
   const auto addNamedMoveStage = [&](const std::string& label, const std::string& pose_key) -> bool {
-    const auto& joint_pose_json = config().at("poses").at(pose_key);
+    const auto& joint_pose_json = poses.at(pose_key);
     if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
       RCLCPP_ERROR(node()->get_logger(), "'%s' must be an array of 6 joint angles", pose_key.c_str());
       return false;
     }
 
     const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
-    auto stage = createJointMoveStage(label, joint_angles_deg, sampling_planner, arm_group);
+    auto stage = createJointMoveStage(label, joint_angles_deg, sampling_planner);
     if (!stage) return false;
     task.add(std::move(stage));
     return true;
   };
 
-  // Helper to add relative move stage with custom properties
+  // Lambda: Add relative move with custom MTC visualization properties
   const auto addRelativeMoveStage = [&](const std::string& name, double distance, double x, double y, double z, const std::string& marker_ns) {
-    auto stage = createRelativeMoveStage(name, x, y, z, std::abs(distance), cartesian_planner, arm_group, ik_frame);
+    auto stage = createRelativeMoveStage(name, x, y, z, std::abs(distance), cartesian_planner);
     if (!stage) return;
 
-    // Set custom MTC properties
+    // Set custom MTC properties for visualization
     stage->properties().set("marker_ns", marker_ns);
-    stage->properties().set("link", ik_frame);
+    stage->properties().set("link", defaultIkFrame());
     stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
 
     task.add(std::move(stage));
   };
 
+  // Lambda: Shift laterally to align with specific dock
   const auto addDockShiftStage = [&](double offset) {
-    if (std::abs(offset) < 1e-4) {
-      return;
-    }
+    if (std::abs(offset) < 1e-4) return;  // Skip if offset is negligible
+
     double direction = offset >= 0.0 ? 1.0 : -1.0;
     addRelativeMoveStage("shift to dock", offset, 0.0, direction, 0.0, "dock_shift");
   };
 
+  // ============================================================================
+  // LOAD OPERATION: Attach tool from dock
+  // ============================================================================
   if (operation == "load") {
-    if (!addNamedMoveStage("move to load approach", approach_pose)) {
-      return false;
-    }
-    addDockShiftStage(dock_offset_y);
-    addRelativeMoveStage("attach_tool", 0.1, 1.0, 0.0, 0.0, "approach_object");
-    addRelativeMoveStage("detach_holder", 0.15, 0.0, 0.0, -1.0, "approach_object");
-    addRelativeMoveStage("move_up", 0.2, -1.0, 0.0, 0.0, "approach_object");
-  } else if (operation == "dock") {
-    if (!addNamedMoveStage("move to dock approach", approach_pose)) {
-      return false;
-    }
-    addDockShiftStage(dock_offset_y);
-    addRelativeMoveStage("align_holder", 0.2, 1.0, 0.0, 0.0, "approach_object");
-    addRelativeMoveStage("detach_tool", 0.15, 0.0, 0.0, 1.0, "approach_object");
-    addRelativeMoveStage("dock connect", 0.1, -1.0, 0.0, 0.0, "approach_object");
-  } else {
+    if (!addNamedMoveStage("move to load approach", approach_pose)) return false;
+
+    addDockShiftStage(dock_offset_y);                                      // Align with specific dock
+    addRelativeMoveStage("attach_tool", 0.1, 1.0, 0.0, 0.0, "approach_object");      // Move forward into tool
+    addRelativeMoveStage("detach_holder", 0.15, 0.0, 0.0, -1.0, "approach_object");  // Move down to release holder
+    addRelativeMoveStage("move_up", 0.2, -1.0, 0.0, 0.0, "approach_object");         // Move back with tool
+  }
+
+  // ============================================================================
+  // DOCK OPERATION: Return tool to dock
+  // ============================================================================
+  else if (operation == "dock") {
+    if (!addNamedMoveStage("move to dock approach", approach_pose)) return false;
+
+    addDockShiftStage(dock_offset_y);                                      // Align with specific dock
+    addRelativeMoveStage("align_holder", 0.2, 1.0, 0.0, 0.0, "approach_object");     // Move forward to holder
+    addRelativeMoveStage("detach_tool", 0.15, 0.0, 0.0, 1.0, "approach_object");     // Move up to release tool
+    addRelativeMoveStage("dock connect", 0.1, -1.0, 0.0, 0.0, "approach_object");    // Move back from dock
+  }
+
+  // ============================================================================
+  // UNSUPPORTED OPERATION
+  // ============================================================================
+  else {
     RCLCPP_ERROR(node()->get_logger(), "Unknown tool exchange operation '%s'", operation.c_str());
     return false;
   }
