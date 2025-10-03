@@ -8,6 +8,8 @@
 
 #include <cmath>
 #include <stdexcept>
+#include <array>
+#include <map>
 
 namespace mtc = moveit::task_constructor;
 
@@ -36,29 +38,28 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToRelative(
   const mtc::solvers::PlannerInterfacePtr& planner,
   const std::string& arm_group_name) const
 {
+  // Direction vectors: {x, y, z}
+  // Note: Z-axis is inverted for flange (up = -Z, down = +Z)
+  static const std::map<std::string, std::array<double, 3>> DIRECTION_VECTORS = {
+    {"forward",  { 1.0,  0.0,  0.0}}, {"x",  { 1.0,  0.0,  0.0}},
+    {"backward", {-1.0,  0.0,  0.0}}, {"-x", {-1.0,  0.0,  0.0}},
+    {"right",    { 0.0,  1.0,  0.0}}, {"y",  { 0.0,  1.0,  0.0}},
+    {"left",     { 0.0, -1.0,  0.0}}, {"-y", { 0.0, -1.0,  0.0}},
+    {"up",       { 0.0,  0.0, -1.0}}, {"z",  { 0.0,  0.0, -1.0}},  // Inverted Z
+    {"down",     { 0.0,  0.0,  1.0}}, {"-z", { 0.0,  0.0,  1.0}}   // Inverted Z
+  };
+
   auto stage = std::make_unique<mtc::stages::MoveRelative>(label, planner);
   stage->setGroup(arm_group_name);
-  stage->setMinMaxDistance(std::abs(distance), std::abs(distance));
+  stage->setMinMaxDistance(distance, distance);
+
+  const auto& [x, y, z] = DIRECTION_VECTORS.at(direction);
 
   geometry_msgs::msg::Vector3Stamped vec;
   vec.header.frame_id = "flange";
-
-  if (direction == "forward" || direction == "x") {
-    vec.vector.x = (distance >= 0.0) ? 1.0 : -1.0;
-  } else if (direction == "right" || direction == "y") {
-    vec.vector.y = (distance >= 0.0) ? 1.0 : -1.0;
-  } else if (direction == "up" || direction == "z") {
-    vec.vector.z = (distance >= 0.0) ? -1.0 : 1.0;
-  } else if (direction == "backward" || direction == "-x") {
-    vec.vector.x = (distance >= 0.0) ? -1.0 : 1.0;
-  } else if (direction == "left" || direction == "-y") {
-    vec.vector.y = (distance >= 0.0) ? -1.0 : 1.0;
-  } else if (direction == "down" || direction == "-z") {
-    vec.vector.z = (distance >= 0.0) ? 1.0 : -1.0;
-  } else {
-    RCLCPP_ERROR(node()->get_logger(), "Invalid direction: '%s'. Use: forward/x, right/y, up/z, backward/-x, left/-y, down/-z", direction.c_str());
-    return nullptr;
-  }
+  vec.vector.x = x;
+  vec.vector.y = y;
+  vec.vector.z = z;
 
   stage->setDirection(vec);
   return stage;
@@ -187,52 +188,43 @@ bool MoveToStages::handleRelative(const nlohmann::json& step, mtc::Task& task,
 bool MoveToStages::run(const nlohmann::json& step,
                        const nlohmann::json& poses)
 {
-  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Starting");
   refreshPoses(poses); // Update internal pose config with new pose data
 
   const std::string target_type = step.value("target_type", "pose");
   const std::string planning_type = step.value("planning_type", "joint");
   const std::string arm_group_name = step.value("arm_group", defaultArmGroupName());
 
-  RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: target_type='%s', planning_type='%s', arm_group='%s'",
+  RCLCPP_DEBUG(node()->get_logger(), "MoveTo: target_type='%s', planning_type='%s', arm_group='%s'",
               target_type.c_str(), planning_type.c_str(), arm_group_name.c_str());
 
   // Scope block to control destruction order and avoid class_loader warnings
   bool success;
   {
-    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating task template");
     auto task = createTaskTemplate("MoveTo Task", arm_group_name);
 
     // Load robot model and get joint group (needed for named_state and cartesian planning)
-    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Loading robot model");
     task.loadRobotModel(node());
     const auto& robot_model = task.getRobotModel();
     const auto* group = robot_model->getJointModelGroup(arm_group_name);
     moveit::core::RobotState robot_state(robot_model);
-    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Robot model loaded");
 
     // Create planners after loading robot model to ensure correct model reference
     mtc::solvers::PlannerInterfacePtr planner;
     if (planning_type == "cartesian") {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Cartesian planner");
       planner = makeCartesianPlanner();
     } else {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Creating Pipeline planner");
       planner = makePipelinePlanner();
     }
 
     if (target_type == "named_state") {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling named_state");
       if (!handleNamedState(step, task, planner, arm_group_name, robot_model, group, robot_state)) {
         return false;
       }
     } else if (target_type == "joints" || target_type == "pose") {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling joints/pose");
       if (!handleJoints(step, task, planner, arm_group_name, planning_type, robot_model, group, robot_state)) {
         return false;
       }
     } else if (target_type == "relative") {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Handling relative");
       if (!handleRelative(step, task, planner, arm_group_name)) {
         return false;
       }
@@ -241,12 +233,9 @@ bool MoveToStages::run(const nlohmann::json& step,
       return false;
     }
 
-    RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: Calling loadPlanExecute");
     success = loadPlanExecute(task, 5);
     if (success) {
       RCLCPP_INFO(node()->get_logger(), "MoveTo task completed successfully");
-    } else {
-      RCLCPP_DEBUG(node()->get_logger(), "MoveToStages::run: loadPlanExecute failed");
     }
 
     // Explicit cleanup in correct order: planner before task
