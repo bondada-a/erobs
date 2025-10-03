@@ -1,19 +1,13 @@
 #include "mtc_pipeline/base_stages.hpp"
 
-#include <moveit/task_constructor/solvers.h>
-#include <moveit/task_constructor/stages.h>
 #include <moveit/task_constructor/stages/current_state.h>
-#include <moveit/task_constructor/stages/move_to.h>
 #include <moveit/task_constructor/stages/move_relative.h>
-#include <moveit/robot_state/robot_state.h>
 #include <moveit_msgs/msg/move_it_error_codes.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/vector3_stamped.hpp>
-#include <rclcpp/exceptions/exceptions.hpp>
-#include <tf2_eigen/tf2_eigen.hpp>
 
 #include <algorithm>
 #include <array>
-#include <cmath>
 #include <map>
 
 // ============================================================================
@@ -89,12 +83,10 @@ mtc::Task BaseStages::createTaskTemplate(const std::string& name,
                                          const std::string& ik_frame) const {
   mtc::Task task;
   task.stages()->setName(name);
-  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
-  task.setProperty("group", group);
+  task.setProperty("group", arm_group.empty() ? defaultArmGroupName() : arm_group);
 
   geometry_msgs::msg::PoseStamped ik_frame_pose;
-  const std::string& frame = ik_frame.empty() ? defaultIkFrame() : ik_frame;
-  ik_frame_pose.header.frame_id = frame;
+  ik_frame_pose.header.frame_id = ik_frame.empty() ? defaultIkFrame() : ik_frame;
   task.setProperty("ik_frame", ik_frame_pose);
 
   task.add(std::make_unique<mtc::stages::CurrentState>("current state"));
@@ -113,7 +105,7 @@ bool BaseStages::loadPlanExecute(mtc::Task& task) const {
       task.loadRobotModel(node_);
     }
     task.init();
-  } catch (const mtc::InitStageException& e) {
+  } catch (const mtc::InitStageException&) {
     return false;
   }
 
@@ -185,8 +177,7 @@ std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
   const std::string& label,
   const std::string& direction,
   double distance,
-  const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group) const {
+  const mtc::solvers::PlannerInterfacePtr& planner) const {
 
   auto it = DIRECTION_VECTORS.find(direction);
   if (it == DIRECTION_VECTORS.end()) {
@@ -195,14 +186,13 @@ std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
   }
 
   const auto& [x, y, z] = it->second;
-  const std::string& group = arm_group.empty() ? defaultArmGroupName() : arm_group;
 
   auto stage = std::make_unique<mtc::stages::MoveRelative>(label, planner);
-  stage->setGroup(group);
+  stage->setGroup(defaultArmGroupName());
   stage->setMinMaxDistance(distance, distance);
 
   geometry_msgs::msg::Vector3Stamped vec;
-  vec.header.frame_id = defaultIkFrame();  // Direction expressed in flange frame
+  vec.header.frame_id = defaultIkFrame();
   vec.vector.x = x;
   vec.vector.y = y;
   vec.vector.z = z;

@@ -2,16 +2,10 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <moveit/task_constructor/task.h>
-#include <moveit/task_constructor/stages/current_state.h>
 #include <moveit/task_constructor/solvers/cartesian_path.h>
 #include <moveit/task_constructor/solvers/joint_interpolation.h>
 #include <moveit/task_constructor/solvers/pipeline_planner.h>
-#include <moveit_msgs/msg/move_it_error_codes.hpp>
-#include <nlohmann/json.hpp>
 
-#include <geometry_msgs/msg/pose_stamped.hpp>
-
-#include <functional>
 #include <map>
 #include <memory>
 #include <string>
@@ -78,8 +72,7 @@ protected:
     const std::string& label,
     const std::string& direction,
     double distance,
-    const mtc::solvers::PlannerInterfacePtr& planner,
-    const std::string& arm_group = "") const;
+    const mtc::solvers::PlannerInterfacePtr& planner) const;
 
 private:
   rclcpp::Node::SharedPtr node_;
