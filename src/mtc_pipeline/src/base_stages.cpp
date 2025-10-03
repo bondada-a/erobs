@@ -143,6 +143,11 @@ const std::string& BaseStages::defaultArmGroupName() {
   return name;
 }
 
+const std::string& BaseStages::defaultIkFrame() {
+  static const std::string frame = "flange";
+  return frame;
+}
+
 const double BaseStages::PipelinePlannerDefaults::vel_scale = 0.2;
 const double BaseStages::PipelinePlannerDefaults::acc_scale = 0.2;
 const char* const BaseStages::PipelinePlannerDefaults::pipeline_id = "ompl";
@@ -179,9 +184,9 @@ void BaseStages::configureOmplParameters() const {
   }
 }
 
-std::shared_ptr<mtc::solvers::PipelinePlanner> BaseStages::makePipelinePlanner(const std::string& pipeline_id,
-                                                                               double vel_scale,
-                                                                               double acc_scale) const {
+mtc::solvers::PlannerInterfacePtr BaseStages::makePipelinePlanner(const std::string& pipeline_id,
+                                                                  double vel_scale,
+                                                                  double acc_scale) const {
   if (pipeline_id == "ompl") {
     configureOmplParameters();
   }
@@ -192,10 +197,10 @@ std::shared_ptr<mtc::solvers::PipelinePlanner> BaseStages::makePipelinePlanner(c
   return planner;
 }
 
-std::shared_ptr<mtc::solvers::CartesianPath> BaseStages::makeCartesianPlanner(double vel_scale,
-                                                                              double acc_scale,
-                                                                              double step,
-                                                                              double min_fraction) const {
+mtc::solvers::PlannerInterfacePtr BaseStages::makeCartesianPlanner(double vel_scale,
+                                                                    double acc_scale,
+                                                                    double step,
+                                                                    double min_fraction) const {
   auto planner = std::make_shared<mtc::solvers::CartesianPath>();
   planner->setMaxVelocityScalingFactor(vel_scale);
   planner->setMaxAccelerationScalingFactor(acc_scale);
@@ -204,8 +209,8 @@ std::shared_ptr<mtc::solvers::CartesianPath> BaseStages::makeCartesianPlanner(do
   return planner;
 }
 
-std::shared_ptr<mtc::solvers::JointInterpolationPlanner> BaseStages::makeJointInterpolationPlanner(double vel_scale,
-                                                                                                    double acc_scale) const {
+mtc::solvers::PlannerInterfacePtr BaseStages::makeJointInterpolationPlanner(double vel_scale,
+                                                                             double acc_scale) const {
   auto planner = std::make_shared<mtc::solvers::JointInterpolationPlanner>();
   planner->setMaxVelocityScalingFactor(vel_scale);
   planner->setMaxAccelerationScalingFactor(acc_scale);

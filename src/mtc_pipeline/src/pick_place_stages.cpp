@@ -52,8 +52,12 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
 
   auto joint_angles_deg = joint_pose.get<std::vector<double>>();
 
-  MoveToStages moveto_helper(node(), config());
-  return moveto_helper.moveToJointGoal(label, joint_angles_deg, planner, arm_group_name);
+  // TODO: Fix this to use proper MoveToStages API
+  // MoveToStages moveto_helper(node(), config());
+  // return moveto_helper.moveToJointGoal(label, joint_angles_deg, planner, arm_group_name);
+
+  RCLCPP_ERROR(node()->get_logger(), "makeMoveToNamedStage not implemented - needs refactoring");
+  return nullptr;
 }
 
 std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(

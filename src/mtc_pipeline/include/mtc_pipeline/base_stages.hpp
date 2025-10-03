@@ -66,22 +66,23 @@ protected:
   std::map<std::string, double> jointsFromRadians(const std::vector<double>& angles_rad) const;
   static const std::vector<std::string>& defaultJointNames();
   static const std::string& defaultArmGroupName();
+  static const std::string& defaultIkFrame();
   static constexpr double degToRad(double degrees) { return degrees * M_PI / 180.0; }
 
   void configureOmplParameters() const;
 
-  std::shared_ptr<mtc::solvers::PipelinePlanner> makePipelinePlanner(
+  mtc::solvers::PlannerInterfacePtr makePipelinePlanner(
     const std::string& pipeline_id = PipelinePlannerDefaults::pipeline_id,
     double vel_scale = PipelinePlannerDefaults::vel_scale,
     double acc_scale = PipelinePlannerDefaults::acc_scale) const;
 
-  std::shared_ptr<mtc::solvers::CartesianPath> makeCartesianPlanner(
+  mtc::solvers::PlannerInterfacePtr makeCartesianPlanner(
     double vel_scale = CartesianPlannerDefaults::vel_scale,
     double acc_scale = CartesianPlannerDefaults::acc_scale,
     double step = CartesianPlannerDefaults::step,
     double min_fraction = CartesianPlannerDefaults::min_fraction) const;
 
-  std::shared_ptr<mtc::solvers::JointInterpolationPlanner> makeJointInterpolationPlanner(
+  mtc::solvers::PlannerInterfacePtr makeJointInterpolationPlanner(
     double vel_scale = JointInterpolationPlannerDefaults::vel_scale,
     double acc_scale = JointInterpolationPlannerDefaults::acc_scale) const;
 
