@@ -48,8 +48,6 @@ void EndEffectorStages::initializeGripperConfigs()
 
 bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& poses)
 {
-  refreshPoses(poses);
-
   // Validate required fields
   if (!step.contains("end_effector_action") || step["end_effector_action"].empty()) {
     RCLCPP_ERROR(node()->get_logger(), "Missing or empty required field: end_effector_action");
@@ -96,11 +94,9 @@ bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& po
   const std::string task_name = end_effector_type + " " + action;
   const std::string& goal_state = action_it->second;
 
-  mtc::Task task;
-  task.stages()->setName(task_name);
-  task.add(std::make_unique<mtc::stages::CurrentState>("current state"));
+  auto task = createTaskTemplate(task_name, config.group_name);
 
-  auto stage = std::make_unique<mtc::stages::MoveTo>(goal_state, interpolation_planner);
+  auto stage = std::make_unique<mtc::stages::MoveTo>(task_name, interpolation_planner);
   stage->setGroup(config.group_name);
   stage->setGoal(goal_state);
   task.add(std::move(stage));
