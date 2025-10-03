@@ -34,10 +34,9 @@ PickPlaceStages::PickPlaceStages(const rclcpp::Node::SharedPtr& node, const nloh
 std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
   const std::string& label,
   const std::string& pose_key,
-  const mtc::solvers::PlannerInterfacePtr& planner,
-  const std::string& arm_group_name)
+  const nlohmann::json& poses,
+  const mtc::solvers::PlannerInterfacePtr& planner)
 {
-  const auto& poses = config().at("poses");
   const auto& joint_pose = poses.at(pose_key);
   if (!joint_pose.is_array() || joint_pose.size() != BaseStages::defaultJointNames().size()) {
     RCLCPP_ERROR(node()->get_logger(), "'%s' must be an array of 6 numbers", pose_key.c_str());
@@ -45,7 +44,7 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
   }
 
   auto joint_angles_deg = joint_pose.get<std::vector<double>>();
-  return createJointMoveStage(label, joint_angles_deg, planner, arm_group_name);
+  return createJointMoveStage(label, joint_angles_deg, planner);
 }
 
 std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(
@@ -62,63 +61,42 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(
 bool PickPlaceStages::run(const nlohmann::json& step,
                           const nlohmann::json& poses)
 {
-  // Basic validation
+  // Validation
   if (!step.contains("pick_poses") || !step.contains("place_poses")) {
     RCLCPP_ERROR(node()->get_logger(), "Step must contain pick_poses and place_poses");
     return false;
   }
 
-  refreshPoses(poses);
-
-  // Debug: Print the entire step to see what we're receiving
-  RCLCPP_INFO(node()->get_logger(), "Received step: %s", step.dump().c_str());
-
   const std::vector<std::string> pick_poses = step["pick_poses"].get<std::vector<std::string>>();
   const std::vector<std::string> place_poses = step["place_poses"].get<std::vector<std::string>>();
-
-  // Debug: Print the parsed poses
-  RCLCPP_INFO(node()->get_logger(), "Parsed pick_poses size: %zu", pick_poses.size());
-  RCLCPP_INFO(node()->get_logger(), "Parsed place_poses size: %zu", place_poses.size());
-  for (size_t i = 0; i < pick_poses.size(); ++i) {
-    RCLCPP_INFO(node()->get_logger(), "pick_poses[%zu]: '%s'", i, pick_poses[i].c_str());
-  }
-  for (size_t i = 0; i < place_poses.size(); ++i) {
-    RCLCPP_INFO(node()->get_logger(), "place_poses[%zu]: '%s'", i, place_poses[i].c_str());
-  }
 
   if (pick_poses.size() < 2 || place_poses.size() < 2) {
     RCLCPP_ERROR(node()->get_logger(), "Need at least 2 poses for pick and place");
     return false;
   }
 
-  const std::string arm_group = defaultArmGroupName();
-  auto task = createTaskTemplate("Pick and Place", arm_group);
-
-  // Create planners for this task
+  auto task = createTaskTemplate("Pick and Place");
   auto pipeline_planner = makePipelinePlanner();
   auto cartesian_planner = makeCartesianPlanner();
   auto gripper_planner = makeJointInterpolationPlanner();
 
-  RCLCPP_INFO(node()->get_logger(), "Pick poses: [%s, %s], Place poses: [%s, %s]",
-              pick_poses[0].c_str(), pick_poses[1].c_str(),
-              place_poses[0].c_str(), place_poses[1].c_str());
-
-  // === PICK SEQUENCE ===
-  RCLCPP_INFO(node()->get_logger(), "Building pick sequence...");
+  // ============================================================================
+  // PICK SEQUENCE
+  // ============================================================================
 
   // 1. Open gripper
   task.add(makeGripperStage("open gripper", gripper_planner, true));
 
   // 2. Move to pickup approach
   {
-    auto stage = makeMoveToNamedStage("pickup approach", pick_poses[0], pipeline_planner, arm_group);
+    auto stage = makeMoveToNamedStage("pickup approach", pick_poses[0], poses, pipeline_planner);
     if (!stage) return false;
     task.add(std::move(stage));
   }
 
   // 3. Move to pickup position
   {
-    auto stage = makeMoveToNamedStage("pickup", pick_poses[1], cartesian_planner, arm_group);
+    auto stage = makeMoveToNamedStage("pickup", pick_poses[1], poses, cartesian_planner);
     if (!stage) return false;
     task.add(std::move(stage));
   }
@@ -126,9 +104,9 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   // 4. Close gripper
   task.add(makeGripperStage("close gripper", gripper_planner, false));
 
-  // 5. Pickup retreat (with wrist constraint) - use cartesian for smooth retreat
+  // 5. Pickup retreat (with wrist constraint to keep wrist orientation)
   {
-    auto stage = makeMoveToNamedStage("pickup retreat", pick_poses[0], cartesian_planner, arm_group);
+    auto stage = makeMoveToNamedStage("pickup retreat", pick_poses[0], poses, cartesian_planner);
     if (!stage) return false;
     if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
       move_to_stage->setPathConstraints(createWrist3Constraint());
@@ -136,12 +114,13 @@ bool PickPlaceStages::run(const nlohmann::json& step,
     task.add(std::move(stage));
   }
 
-  // === PLACE SEQUENCE ===
-  RCLCPP_INFO(node()->get_logger(), "Building place sequence...");
+  // ============================================================================
+  // PLACE SEQUENCE
+  // ============================================================================
 
   // 6. Move to place approach (with wrist constraint)
   {
-    auto stage = makeMoveToNamedStage("place approach", place_poses[0], pipeline_planner, arm_group);
+    auto stage = makeMoveToNamedStage("place approach", place_poses[0], poses, pipeline_planner);
     if (!stage) return false;
     if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
       move_to_stage->setPathConstraints(createWrist3Constraint());
@@ -151,7 +130,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 7. Move to place position (with wrist constraint)
   {
-    auto stage = makeMoveToNamedStage("place", place_poses[1], cartesian_planner, arm_group);
+    auto stage = makeMoveToNamedStage("place", place_poses[1], poses, cartesian_planner);
     if (!stage) return false;
     if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
       move_to_stage->setPathConstraints(createWrist3Constraint());
@@ -164,25 +143,17 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 9. Place retreat
   {
-    auto stage = makeMoveToNamedStage("place retreat", place_poses[0], cartesian_planner, arm_group);
+    auto stage = makeMoveToNamedStage("place retreat", place_poses[0], poses, cartesian_planner);
     if (!stage) return false;
     task.add(std::move(stage));
   }
 
-  // 10. Return home (optional)
+  // ============================================================================
+  // RETURN HOME (optional)
+  // ============================================================================
   if (step.value("return_home", true)) {
-    task.add(createNamedStateMoveStage("return home", "moveit_home", pipeline_planner, arm_group));
+    task.add(createNamedStateMoveStage("return home", "moveit_home", pipeline_planner));
   }
 
-  // Execute the complete sequence
-  RCLCPP_INFO(node()->get_logger(), "Executing pick and place sequence...");
-  const bool success = loadPlanExecute(task);
-
-  if (success) {
-    RCLCPP_INFO(node()->get_logger(), "Pick and place sequence completed successfully");
-  } else {
-    RCLCPP_ERROR(node()->get_logger(), "Pick and place sequence failed");
-  }
-
-  return success;
+  return loadPlanExecute(task);
 }

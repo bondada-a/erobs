@@ -21,8 +21,8 @@ public:
   std::unique_ptr<mtc::Stage> makeMoveToNamedStage(
     const std::string& label,
     const std::string& pose_key,
-    const mtc::solvers::PlannerInterfacePtr& planner,
-    const std::string& arm_group_name
+    const nlohmann::json& poses,
+    const mtc::solvers::PlannerInterfacePtr& planner
   );
 
   // Helper for gripper open/close

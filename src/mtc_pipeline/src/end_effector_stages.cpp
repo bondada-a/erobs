@@ -1,6 +1,5 @@
 #include "mtc_pipeline/end_effector_stages.hpp"
 
-#include <moveit/task_constructor/stages/current_state.h>
 #include <moveit/task_constructor/stages/move_to.h>
 
 namespace mtc = moveit::task_constructor;
