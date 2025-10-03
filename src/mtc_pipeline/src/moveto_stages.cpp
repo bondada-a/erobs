@@ -78,11 +78,10 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesianPose(
   const auto* group = robot_model->getJointModelGroup(arm_group_name);
 
   // Convert degrees to radians
-  std::vector<double> joint_angles_rad;
-  joint_angles_rad.reserve(joint_angles_deg.size());
-  for (const auto& angle_deg : joint_angles_deg) {
-    joint_angles_rad.push_back(degToRad(angle_deg));
-  }
+  std::vector<double> joint_angles_rad(joint_angles_deg.size());
+  std::transform(joint_angles_deg.begin(), joint_angles_deg.end(),
+                 joint_angles_rad.begin(),
+                 [this](double deg) { return degToRad(deg); });
   robot_state.setJointGroupPositions(group, joint_angles_rad);
 
   // Get target pose in Cartesian space using "flange" as ik_frame
@@ -106,10 +105,11 @@ std::unique_ptr<mtc::Stage> MoveToStages::moveToCartesianPose(
 bool MoveToStages::handleNamedState(const nlohmann::json& step, mtc::Task& task,
                                    const mtc::solvers::PlannerInterfacePtr& planner,
                                    const std::string& arm_group_name,
-                                   const moveit::core::RobotModelConstPtr&,
-                                   const moveit::core::JointModelGroup* group,
                                    moveit::core::RobotState& robot_state) const
 {
+  const auto& robot_model = robot_state.getRobotModel();
+  const auto* group = robot_model->getJointModelGroup(arm_group_name);
+
   const std::string named_state = step.at("target");
 
   if (!robot_state.setToDefaultValues(group, named_state)) {
@@ -132,8 +132,6 @@ bool MoveToStages::handleJoints(const nlohmann::json& step, mtc::Task& task,
                                const mtc::solvers::PlannerInterfacePtr& planner,
                                const std::string& arm_group_name,
                                const std::string& planning_type,
-                               const moveit::core::RobotModelConstPtr& robot_model,
-                               const moveit::core::JointModelGroup* group,
                                moveit::core::RobotState& robot_state) const
 {
   if (step.contains("target") && step["target"].is_array()) {
@@ -216,11 +214,11 @@ bool MoveToStages::run(const nlohmann::json& step,
     }
 
     if (target_type == "named_state") {
-      if (!handleNamedState(step, task, planner, arm_group_name, robot_model, group, robot_state)) {
+      if (!handleNamedState(step, task, planner, arm_group_name, robot_state)) {
         return false;
       }
     } else if (target_type == "joints" || target_type == "pose") {
-      if (!handleJoints(step, task, planner, arm_group_name, planning_type, robot_model, group, robot_state)) {
+      if (!handleJoints(step, task, planner, arm_group_name, planning_type, robot_state)) {
         return false;
       }
     } else if (target_type == "relative") {

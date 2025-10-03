@@ -53,16 +53,12 @@ private:
   bool handleNamedState(const nlohmann::json& step, mtc::Task& task,
                        const mtc::solvers::PlannerInterfacePtr& planner,
                        const std::string& arm_group_name,
-                       const moveit::core::RobotModelConstPtr&,
-                       const moveit::core::JointModelGroup* group,
                        moveit::core::RobotState& robot_state) const;
 
   bool handleJoints(const nlohmann::json& step, mtc::Task& task,
                    const mtc::solvers::PlannerInterfacePtr& planner,
                    const std::string& arm_group_name,
                    const std::string& planning_type,
-                   const moveit::core::RobotModelConstPtr& robot_model,
-                   const moveit::core::JointModelGroup* group,
                    moveit::core::RobotState& robot_state) const;
 
   bool handleRelative(const nlohmann::json& step, mtc::Task& task,
