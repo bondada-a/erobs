@@ -81,7 +81,17 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
     auto result = std::make_shared<MTCExecution::Result>();
 
     // Parse full JSON
-    nlohmann::json full_script = nlohmann::json::parse(goal->full_json);
+    nlohmann::json full_script;
+    try {
+        full_script = nlohmann::json::parse(goal->full_json);
+    } catch (const nlohmann::json::exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid JSON: %s", e.what());
+        result->success = false;
+        result->error_message = std::string("Invalid JSON: ") + e.what();
+        goal_handle->abort(result);
+        is_executing_ = false;
+        return;
+    }
 
     // Get task parameters
     if (goal->robot_ip.empty()) {
