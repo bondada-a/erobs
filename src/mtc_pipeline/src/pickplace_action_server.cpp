@@ -14,9 +14,11 @@ protected:
         step["gripper"] = goal.gripper;
         step["planning_type"] = goal.planning_type;
 
-        // Use explicit approach and target poses (no magic suffix)
-        step["pick_poses"] = {goal.pick_approach, goal.pick_target};
-        step["place_poses"] = {goal.place_approach, goal.place_target};
+        // Pass individual pose fields directly (no array conversion)
+        step["pick_approach"] = goal.pick_approach;
+        step["pick_target"] = goal.pick_target;
+        step["place_approach"] = goal.place_approach;
+        step["place_target"] = goal.place_target;
 
         return step;
     }

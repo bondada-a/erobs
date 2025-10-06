@@ -65,19 +65,19 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(
 bool PickPlaceStages::run(const nlohmann::json& step,
                           const nlohmann::json& poses)
 {
-  // Validation
-  if (!step.contains("pick_poses") || !step.contains("place_poses")) {
-    RCLCPP_ERROR(node()->get_logger(), "Step must contain pick_poses and place_poses");
+  // Validation - check for individual pose fields
+  if (!step.contains("pick_approach") || !step.contains("pick_target") ||
+      !step.contains("place_approach") || !step.contains("place_target")) {
+    RCLCPP_ERROR(node()->get_logger(),
+                "Step must contain pick_approach, pick_target, place_approach, and place_target");
     return false;
   }
 
-  const std::vector<std::string> pick_poses = step["pick_poses"].get<std::vector<std::string>>();
-  const std::vector<std::string> place_poses = step["place_poses"].get<std::vector<std::string>>();
-
-  if (pick_poses.size() < 2 || place_poses.size() < 2) {
-    RCLCPP_ERROR(node()->get_logger(), "Need at least 2 poses for pick and place");
-    return false;
-  }
+  // Extract individual pose names
+  const std::string pick_approach = step["pick_approach"].get<std::string>();
+  const std::string pick_target = step["pick_target"].get<std::string>();
+  const std::string place_approach = step["place_approach"].get<std::string>();
+  const std::string place_target = step["place_target"].get<std::string>();
 
   auto task = createTaskTemplate("Pick and Place");
   auto pipeline_planner = makePipelinePlanner();
@@ -93,14 +93,14 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 2. Move to pickup approach
   {
-    auto stage = makeMoveToNamedStage("pickup approach", pick_poses[0], poses, pipeline_planner);
+    auto stage = makeMoveToNamedStage("pickup approach", pick_approach, poses, pipeline_planner);
     if (!stage) return false;
     task.add(std::move(stage));
   }
 
   // 3. Move to pickup position
   {
-    auto stage = makeMoveToNamedStage("pickup", pick_poses[1], poses, cartesian_planner);
+    auto stage = makeMoveToNamedStage("pickup", pick_target, poses, cartesian_planner);
     if (!stage) return false;
     task.add(std::move(stage));
   }
@@ -110,7 +110,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 5. Pickup retreat (with wrist constraint to keep wrist orientation)
   {
-    auto stage = makeMoveToNamedStage("pickup retreat", pick_poses[0], poses, cartesian_planner);
+    auto stage = makeMoveToNamedStage("pickup retreat", pick_approach, poses, cartesian_planner);
     if (!stage) return false;
     if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
       move_to_stage->setPathConstraints(createWrist3Constraint());
@@ -124,7 +124,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 6. Move to place approach (with wrist constraint)
   {
-    auto stage = makeMoveToNamedStage("place approach", place_poses[0], poses, pipeline_planner);
+    auto stage = makeMoveToNamedStage("place approach", place_approach, poses, pipeline_planner);
     if (!stage) return false;
     if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
       move_to_stage->setPathConstraints(createWrist3Constraint());
@@ -134,7 +134,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 7. Move to place position (with wrist constraint)
   {
-    auto stage = makeMoveToNamedStage("place", place_poses[1], poses, cartesian_planner);
+    auto stage = makeMoveToNamedStage("place", place_target, poses, cartesian_planner);
     if (!stage) return false;
     if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
       move_to_stage->setPathConstraints(createWrist3Constraint());
@@ -147,7 +147,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 9. Place retreat
   {
-    auto stage = makeMoveToNamedStage("place retreat", place_poses[0], poses, cartesian_planner);
+    auto stage = makeMoveToNamedStage("place retreat", place_approach, poses, cartesian_planner);
     if (!stage) return false;
     task.add(std::move(stage));
   }
