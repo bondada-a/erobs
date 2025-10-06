@@ -180,9 +180,9 @@ class MTCGUIClient:
                 "place_approach": [-45.0, -90.0, -90.0, -90.0, 90.0, 0.0],
                 "place": [-45.0, -90.0, -90.0, -90.0, 90.0, 0.0]
             },
-            "sequence": []
+            "tasks": []
         }
-        
+
         self.current_config = default_config
         self.update_task_tree()
     
@@ -205,39 +205,40 @@ class MTCGUIClient:
 
     def add_task_step(self, action_type):
         """Add a new task step"""
-        step_id = len(self.current_config["sequence"]) + 1
-        
+        step_id = len(self.current_config["tasks"]) + 1
+
         if action_type == "moveto":
             step = {
-                "action": "moveto",
-                "target_type": "pose",
-                "target": "home",
-                "planning_type": "joint",
-                "arm_group": "ur_arm"
+                "task_type": "moveto",
+                "target": "moveit_home",
+                "planning_type": "joint"
             }
         elif action_type == "pick_and_place":
             step = {
-                "action": "pick_and_place",
+                "task_type": "pick_and_place",
                 "gripper": "epick",
-                "pickup_poses": ["pickup_approach", "pickup"],
-                "place_poses": ["place_approach", "place"]
+                "pick_approach": "pickup_approach",
+                "pick_target": "pickup",
+                "place_approach": "place_approach",
+                "place_target": "place",
+                "planning_type": "joint"
             }
         elif action_type == "tool_exchange":
             step = {
-                "action": "tool_exchange",
+                "task_type": "tool_exchange",
                 "operation": "load",
                 "gripper": "hande",
                 "dock_number": 3,
-                "poses": ["load_approach"]
+                "approach_pose": "load_approach"
             }
         elif action_type == "end_effector":
             step = {
-                "action": "end_effector",
+                "task_type": "end_effector",
                 "end_effector_type": "epick",
                 "end_effector_action": "vacuum_on"
             }
-        
-        self.current_config["sequence"].append(step)
+
+        self.current_config["tasks"].append(step)
         self.update_task_tree()
         self.log_message(f"Added {action_type} step")
 
@@ -247,161 +248,209 @@ class MTCGUIClient:
         if not selection:
             messagebox.showwarning("Warning", "Please select a step to remove")
             return
-        
+
         item = selection[0]
         step_index = int(item) - 1
-        
-        if 0 <= step_index < len(self.current_config["sequence"]):
-            removed_step = self.current_config["sequence"].pop(step_index)
+
+        if 0 <= step_index < len(self.current_config["tasks"]):
+            removed_step = self.current_config["tasks"].pop(step_index)
             self.update_task_tree()
-            self.log_message(f"Removed step: {removed_step['action']}")
+            self.log_message(f"Removed step: {removed_step['task_type']}")
 
     def edit_task_step(self, event):
         """Edit selected task step"""
         selection = self.task_tree.selection()
         if not selection:
             return
-        
+
         item = selection[0]
         step_index = int(item) - 1
-        
-        if 0 <= step_index < len(self.current_config["sequence"]):
+
+        if 0 <= step_index < len(self.current_config["tasks"]):
             self.edit_step_dialog(step_index)
 
     def edit_step_dialog(self, step_index):
         """Open dialog to edit a task step"""
-        step = self.current_config["sequence"][step_index]
-        
+        step = self.current_config["tasks"][step_index]
+
         dialog = tk.Toplevel(self.root)
         dialog.title(f"Edit Step {step_index + 1}")
-        dialog.geometry("500x400")
+        dialog.geometry("500x600")
         dialog.transient(self.root)
         try:
             dialog.grab_set()
         except:
             pass  # Ignore grab errors
-        
+
         # Create form fields based on step type
-        if step["action"] == "moveto":
+        if step["task_type"] == "moveto":
             self.create_moveto_edit_form(dialog, step, step_index)
-        elif step["action"] == "pick_and_place":
+        elif step["task_type"] == "pick_and_place":
             self.create_pickplace_edit_form(dialog, step, step_index)
-        elif step["action"] == "tool_exchange":
+        elif step["task_type"] == "tool_exchange":
             self.create_toolexchange_edit_form(dialog, step, step_index)
-        elif step["action"] == "end_effector":
+        elif step["task_type"] == "end_effector":
             self.create_end_effector_edit_form(dialog, step, step_index)
 
     def create_moveto_edit_form(self, dialog, step, step_index):
         """Create edit form for moveto steps"""
         ttk.Label(dialog, text="MoveTo Configuration", font=("Arial", 12, "bold")).pack(pady=10)
-        
-        # Target type
-        ttk.Label(dialog, text="Target Type:").pack(anchor="w", padx=20)
-        target_type_var = tk.StringVar(value=step.get("target_type", "pose"))
-        target_type_combo = ttk.Combobox(dialog, textvariable=target_type_var, 
-                                       values=["pose", "named_state"], width=30)
-        target_type_combo.pack(padx=20, pady=(0, 10))
-        
+
         # Target pose/state
         ttk.Label(dialog, text="Target:").pack(anchor="w", padx=20)
-        target_var = tk.StringVar(value=step.get("target", "home"))
+        target_var = tk.StringVar(value=step.get("target", "moveit_home"))
         target_entry = ttk.Entry(dialog, textvariable=target_var, width=30)
         target_entry.pack(padx=20, pady=(0, 10))
-        
-        # Add help text for named states
-        help_text = ttk.Label(dialog, text="For named_state: use 'moveit_home', 'hande_open', 'hande_closed'", 
+
+        # Add help text
+        help_text = ttk.Label(dialog, text="Named states: moveit_home, hande_open, hande_closed\nPoses: use names from pose manager",
                             font=("Arial", 8), foreground="gray")
         help_text.pack(padx=20, pady=(0, 10))
-        
+
         # Planning type
         ttk.Label(dialog, text="Planning Type:").pack(anchor="w", padx=20)
         planning_var = tk.StringVar(value=step.get("planning_type", "joint"))
-        planning_combo = ttk.Combobox(dialog, textvariable=planning_var, 
+        planning_combo = ttk.Combobox(dialog, textvariable=planning_var,
                                     values=["joint", "cartesian"], width=30)
-        planning_combo.pack(padx=20, pady=(0, 10))
-        
-        # Arm group
-        ttk.Label(dialog, text="Arm Group:").pack(anchor="w", padx=20)
-        arm_group_var = tk.StringVar(value=step.get("arm_group", "ur_arm"))
-        arm_group_entry = ttk.Entry(dialog, textvariable=arm_group_var, width=30)
-        arm_group_entry.pack(padx=20, pady=(0, 20))
-        
+        planning_combo.pack(padx=20, pady=(0, 20))
+
+        # Separator for optional relative move
+        ttk.Separator(dialog, orient='horizontal').pack(fill='x', padx=20, pady=10)
+
+        ttk.Label(dialog, text="Relative Move (Optional)", font=("Arial", 10, "bold")).pack(pady=5)
+
+        # Direction
+        ttk.Label(dialog, text="Direction:").pack(anchor="w", padx=20)
+        direction_var = tk.StringVar(value=step.get("direction", ""))
+        direction_combo = ttk.Combobox(dialog, textvariable=direction_var,
+                                     values=["", "forward", "backward", "left", "right", "up", "down"], width=30)
+        direction_combo.pack(padx=20, pady=(0, 10))
+
+        # Distance
+        ttk.Label(dialog, text="Distance (meters):").pack(anchor="w", padx=20)
+        distance_var = tk.StringVar(value=str(step.get("distance", "")))
+        distance_entry = ttk.Entry(dialog, textvariable=distance_var, width=30)
+        distance_entry.pack(padx=20, pady=(0, 20))
+
+        ttk.Label(dialog, text="Note: If direction is set, target is ignored",
+                font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
+
         def save_changes():
-            step["target_type"] = target_type_var.get()
             step["target"] = target_var.get()
             step["planning_type"] = planning_var.get()
-            step["arm_group"] = arm_group_var.get()
+
+            # Handle optional relative move
+            if direction_var.get():
+                step["direction"] = direction_var.get()
+                try:
+                    step["distance"] = float(distance_var.get()) if distance_var.get() else 0.0
+                except ValueError:
+                    step["distance"] = 0.0
+            else:
+                # Remove relative move fields if direction is empty
+                step.pop("direction", None)
+                step.pop("distance", None)
+
             self.update_task_tree()
             dialog.destroy()
             self.log_message(f"Updated step {step_index + 1}")
-        
+
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
     def create_pickplace_edit_form(self, dialog, step, step_index):
         """Create edit form for pick and place steps"""
         ttk.Label(dialog, text="Pick & Place Configuration", font=("Arial", 12, "bold")).pack(pady=10)
-        
+
         # Gripper
         ttk.Label(dialog, text="Gripper:").pack(anchor="w", padx=20)
         gripper_var = tk.StringVar(value=step.get("gripper", "epick"))
-        gripper_combo = ttk.Combobox(dialog, textvariable=gripper_var, 
+        gripper_combo = ttk.Combobox(dialog, textvariable=gripper_var,
                                     values=["epick", "hande"], width=30)
         gripper_combo.pack(padx=20, pady=(0, 10))
-        
-        # Pickup poses
-        ttk.Label(dialog, text="Pickup Poses (comma-separated):").pack(anchor="w", padx=20)
-        pickup_var = tk.StringVar(value=", ".join(step.get("pickup_poses", [])))
-        pickup_entry = ttk.Entry(dialog, textvariable=pickup_var, width=30)
-        pickup_entry.pack(padx=20, pady=(0, 10))
-        
-        # Place poses
-        ttk.Label(dialog, text="Place Poses (comma-separated):").pack(anchor="w", padx=20)
-        place_var = tk.StringVar(value=", ".join(step.get("place_poses", [])))
-        place_entry = ttk.Entry(dialog, textvariable=place_var, width=30)
-        place_entry.pack(padx=20, pady=(0, 20))
-        
+
+        # Pick approach pose
+        ttk.Label(dialog, text="Pick Approach Pose:").pack(anchor="w", padx=20)
+        pick_approach_var = tk.StringVar(value=step.get("pick_approach", ""))
+        pick_approach_entry = ttk.Entry(dialog, textvariable=pick_approach_var, width=30)
+        pick_approach_entry.pack(padx=20, pady=(0, 10))
+
+        # Pick target pose
+        ttk.Label(dialog, text="Pick Target Pose:").pack(anchor="w", padx=20)
+        pick_target_var = tk.StringVar(value=step.get("pick_target", ""))
+        pick_target_entry = ttk.Entry(dialog, textvariable=pick_target_var, width=30)
+        pick_target_entry.pack(padx=20, pady=(0, 10))
+
+        # Place approach pose
+        ttk.Label(dialog, text="Place Approach Pose:").pack(anchor="w", padx=20)
+        place_approach_var = tk.StringVar(value=step.get("place_approach", ""))
+        place_approach_entry = ttk.Entry(dialog, textvariable=place_approach_var, width=30)
+        place_approach_entry.pack(padx=20, pady=(0, 10))
+
+        # Place target pose
+        ttk.Label(dialog, text="Place Target Pose:").pack(anchor="w", padx=20)
+        place_target_var = tk.StringVar(value=step.get("place_target", ""))
+        place_target_entry = ttk.Entry(dialog, textvariable=place_target_var, width=30)
+        place_target_entry.pack(padx=20, pady=(0, 10))
+
+        # Planning type
+        ttk.Label(dialog, text="Planning Type:").pack(anchor="w", padx=20)
+        planning_var = tk.StringVar(value=step.get("planning_type", "joint"))
+        planning_combo = ttk.Combobox(dialog, textvariable=planning_var,
+                                     values=["joint", "cartesian"], width=30)
+        planning_combo.pack(padx=20, pady=(0, 20))
+
         def save_changes():
             step["gripper"] = gripper_var.get()
-            step["pickup_poses"] = [p.strip() for p in pickup_var.get().split(",")]
-            step["place_poses"] = [p.strip() for p in place_var.get().split(",")]
+            step["pick_approach"] = pick_approach_var.get()
+            step["pick_target"] = pick_target_var.get()
+            step["place_approach"] = place_approach_var.get()
+            step["place_target"] = place_target_var.get()
+            step["planning_type"] = planning_var.get()
             self.update_task_tree()
             dialog.destroy()
             self.log_message(f"Updated step {step_index + 1}")
-        
+
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
     def create_toolexchange_edit_form(self, dialog, step, step_index):
         """Create edit form for tool exchange steps"""
         ttk.Label(dialog, text="Tool Exchange Configuration", font=("Arial", 12, "bold")).pack(pady=10)
-        
+
         # Operation
         ttk.Label(dialog, text="Operation:").pack(anchor="w", padx=20)
         operation_var = tk.StringVar(value=step.get("operation", "load"))
-        operation_combo = ttk.Combobox(dialog, textvariable=operation_var, 
+        operation_combo = ttk.Combobox(dialog, textvariable=operation_var,
                                      values=["load", "dock"], width=30)
         operation_combo.pack(padx=20, pady=(0, 10))
-        
+
         # Gripper
         ttk.Label(dialog, text="Gripper:").pack(anchor="w", padx=20)
         gripper_var = tk.StringVar(value=step.get("gripper", "hande"))
-        gripper_combo = ttk.Combobox(dialog, textvariable=gripper_var, 
-                                    values=["epick", "hande"], width=30)
+        gripper_combo = ttk.Combobox(dialog, textvariable=gripper_var,
+                                    values=["epick", "hande", "none"], width=30)
         gripper_combo.pack(padx=20, pady=(0, 10))
-        
+
         # Dock number
         ttk.Label(dialog, text="Dock Number:").pack(anchor="w", padx=20)
         dock_var = tk.StringVar(value=str(step.get("dock_number", 3)))
         dock_entry = ttk.Entry(dialog, textvariable=dock_var, width=30)
-        dock_entry.pack(padx=20, pady=(0, 20))
-        
+        dock_entry.pack(padx=20, pady=(0, 10))
+
+        # Approach pose
+        ttk.Label(dialog, text="Approach Pose:").pack(anchor="w", padx=20)
+        approach_var = tk.StringVar(value=step.get("approach_pose", ""))
+        approach_entry = ttk.Entry(dialog, textvariable=approach_var, width=30)
+        approach_entry.pack(padx=20, pady=(0, 20))
+
         def save_changes():
             step["operation"] = operation_var.get()
             step["gripper"] = gripper_var.get()
             step["dock_number"] = int(dock_var.get())
+            step["approach_pose"] = approach_var.get()
             self.update_task_tree()
             dialog.destroy()
             self.log_message(f"Updated step {step_index + 1}")
-        
+
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
     def create_end_effector_edit_form(self, dialog, step, step_index):
@@ -436,31 +485,43 @@ class MTCGUIClient:
         # Clear existing items
         for item in self.task_tree.get_children():
             self.task_tree.delete(item)
-        
-        # Add current sequence
-        for i, step in enumerate(self.current_config["sequence"]):
+
+        # Add current tasks
+        for i, step in enumerate(self.current_config["tasks"]):
             step_id = str(i + 1)
-            action = step.get("action", "unknown")
-            
+            action = step.get("task_type", "unknown")
+
             # Create details string
             details = ""
             if action == "moveto":
-                target_type = step.get('target_type', 'pose')
                 target = step.get('target', 'unknown')
-                details = f"Move to {target} ({target_type})"
+                direction = step.get('direction', '')
+                if direction:
+                    distance = step.get('distance', 0)
+                    details = f"Relative move {direction} {distance}m"
+                else:
+                    details = f"Move to {target}"
             elif action == "pick_and_place":
-                details = f"Pick & Place with {step.get('gripper', 'unknown')}"
+                pick_target = step.get('pick_target', '?')
+                place_target = step.get('place_target', '?')
+                gripper = step.get('gripper', 'unknown')
+                details = f"Pick from {pick_target} to {place_target} ({gripper})"
             elif action == "tool_exchange":
-                details = f"{step.get('operation', 'unknown')} {step.get('gripper', 'unknown')}"
+                operation = step.get('operation', '?')
+                gripper = step.get('gripper', '?')
+                dock_number = step.get('dock_number', '?')
+                details = f"{operation} {gripper} at dock {dock_number}"
             elif action == "end_effector":
-                details = f"{step.get('end_effector_type', 'unknown')} {step.get('end_effector_action', 'unknown')}"
-            
-            self.task_tree.insert("", "end", iid=step_id, text=step_id, 
+                ee_type = step.get('end_effector_type', 'unknown')
+                ee_action = step.get('end_effector_action', 'unknown')
+                details = f"{ee_type} {ee_action}"
+
+            self.task_tree.insert("", "end", iid=step_id, text=step_id,
                                 values=(action, details))
 
     def execute_task(self):
         """Execute the current task configuration using the MTC action client"""
-        if not self.current_config["sequence"]:
+        if not self.current_config["tasks"]:
             messagebox.showwarning("Warning", "No task sequence defined")
             return
         
@@ -486,31 +547,42 @@ class MTCGUIClient:
         """Validate the current configuration"""
         # Check if poses exist
         poses = self.current_config.get("poses", {})
-        sequence = self.current_config.get("sequence", [])
-        
+        tasks = self.current_config.get("tasks", [])
+
         # Define known named states (from SRDF)
         known_named_states = {
             "moveit_home", "hande_open", "hande_closed"
         }
-        
+
         # Collect all referenced pose names
         referenced_poses = set()
-        for step in sequence:
-            if step["action"] == "moveto":
+        for step in tasks:
+            if step["task_type"] == "moveto":
                 target = step.get("target")
-                target_type = step.get("target_type", "pose")
-                if target:
-                    # Only check poses, not named states
-                    if target_type != "named_state":
+                direction = step.get("direction")
+                if target and not direction:
+                    # Only check if it's not a named state and not a relative move
+                    if target not in known_named_states:
                         referenced_poses.add(target)
-            elif step["action"] == "pick_and_place":
-                pickup_poses = step.get("pickup_poses", [])
-                place_poses = step.get("place_poses", [])
-                referenced_poses.update(pickup_poses)
-                referenced_poses.update(place_poses)
-            elif step["action"] == "tool_exchange":
-                step_poses = step.get("poses", [])
-                referenced_poses.update(step_poses)
+            elif step["task_type"] == "pick_and_place":
+                # Add all 4 explicit pose fields
+                pick_approach = step.get("pick_approach")
+                pick_target = step.get("pick_target")
+                place_approach = step.get("place_approach")
+                place_target = step.get("place_target")
+                if pick_approach:
+                    referenced_poses.add(pick_approach)
+                if pick_target:
+                    referenced_poses.add(pick_target)
+                if place_approach:
+                    referenced_poses.add(place_approach)
+                if place_target:
+                    referenced_poses.add(place_target)
+            elif step["task_type"] == "tool_exchange":
+                # Use singular approach_pose
+                approach_pose = step.get("approach_pose")
+                if approach_pose:
+                    referenced_poses.add(approach_pose)
         
         # Check if all referenced poses exist (excluding named states)
         missing_poses = referenced_poses - set(poses.keys())
