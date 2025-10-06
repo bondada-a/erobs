@@ -15,35 +15,35 @@
   "tasks": [
     {
       "task_type": "moveto",
-      "target_type": "relative",
+      "target": "pickup_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
       "direction": "forward",
       "distance": 0.005,
       "planning_type": "cartesian"
     },
     {
       "task_type": "moveto",
-      "target_type": "relative",
       "direction": "right",
       "distance": 0.05,
       "planning_type": "cartesian"
     },
     {
       "task_type": "moveto",
-      "target_type": "relative",
       "direction": "down",
       "distance": 0.05,
       "planning_type": "cartesian"
     },
     {
       "task_type": "moveto",
-      "target_type": "relative",
       "direction": "backward",
       "distance": 0.1,
       "planning_type": "cartesian"
     },
     {
       "task_type": "moveto",
-      "target_type": "relative",
       "direction": "left",
       "distance": 0.05,
       "planning_type": "cartesian"

@@ -312,7 +312,6 @@ bool MTCOrchestratorActionServer::call_action_generic(
 
 bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step, const std::string& poses_json) {
     return call_action_generic<MoveToAction>(moveto_action_client_, "moveto", step, poses_json, [](MoveToAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
-        goal.target_type = step.value("target_type", "");
         goal.target = step.value("target", "");
         goal.planning_type = step.value("planning_type", "joint");
         goal.direction = step.value("direction", "");

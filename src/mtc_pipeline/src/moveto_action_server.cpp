@@ -11,11 +11,17 @@ protected:
     nlohmann::json goal_to_step(const mtc_pipeline::action::MoveToAction::Goal& goal) override
     {
         nlohmann::json step;
-        step["target_type"] = goal.target_type;
-        step["target"] = goal.target;
-        step["planning_type"] = goal.planning_type;
-        step["direction"] = goal.direction;
-        step["distance"] = goal.distance;
+        // Only add fields that are actually used
+        if (!goal.target.empty()) {
+            step["target"] = goal.target;
+        }
+        if (!goal.planning_type.empty()) {
+            step["planning_type"] = goal.planning_type;
+        }
+        if (!goal.direction.empty()) {
+            step["direction"] = goal.direction;
+            step["distance"] = goal.distance;
+        }
         return step;
     }
 };
