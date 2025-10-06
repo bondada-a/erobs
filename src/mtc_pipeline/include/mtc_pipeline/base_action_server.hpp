@@ -79,21 +79,32 @@ private:
             // Convert goal to step JSON using derived class implementation
             nlohmann::json step = goal_to_step(*goal);
 
-            // Parse poses JSON
-            nlohmann::json poses = nlohmann::json::parse(goal->poses_json);
+            // Parse poses JSON with explicit error handling
+            nlohmann::json poses;
+            try {
+                poses = nlohmann::json::parse(goal->poses_json);
+            } catch (const nlohmann::json::exception& e) {
+                RCLCPP_ERROR(this->get_logger(), "Invalid poses JSON: %s", e.what());
+                result->success = false;
+                result->error_message = std::string("Invalid poses JSON: ") + e.what();
+                goal_handle->abort(result);
+                return;
+            }
 
             // Execute using stages - timeout is handled at orchestrator level
             bool success = stages_->run(step, poses);
 
             result->success = success;
             if (!success) {
-                result->error_message = "Execution failed";
+                result->error_message = "Stage execution failed";
             }
 
         } catch (const std::exception& e) {
             RCLCPP_ERROR(this->get_logger(), "Execution exception: %s", e.what());
             result->success = false;
-            result->error_message = std::string("Exception: ") + e.what();
+            result->error_message = std::string("Execution exception: ") + e.what();
+            goal_handle->abort(result);
+            return;
         }
 
         // Send result

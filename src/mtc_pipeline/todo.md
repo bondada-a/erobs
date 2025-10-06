@@ -22,7 +22,7 @@
 
 ---
 
-### [ ] 2. Hardcoded Gripper Configuration
+### [DEFERRED] 2. Hardcoded Gripper Configuration ⏸️
 **Location:** `pick_place_stages.cpp:10-12`
 **Problem:** Only supports Hande gripper, not Epick
 
@@ -33,7 +33,9 @@ constexpr const char* GRIPPER_OPEN_STATE = "hande_open";
 constexpr const char* GRIPPER_CLOSED_STATE = "hande_closed";
 ```
 
-**Action:**
+**Status:** Deferred - User will add Epick support later when needed
+
+**Action (when ready):**
 - [ ] Create gripper configuration map (hande, epick)
 - [ ] Make gripper states dynamic based on `step["gripper"]` value
 - [ ] Add validation for unsupported grippers
@@ -44,17 +46,18 @@ constexpr const char* GRIPPER_CLOSED_STATE = "hande_closed";
 
 ---
 
-### [ ] 3. Missing JSON Parse Error Handling
+### [X] 3. Missing JSON Parse Error Handling ✅
 **Location:** `base_action_server.hpp:83`
-**Problem:** No try-catch around json::parse()
+**Problem:** No explicit try-catch around json::parse()
 
 **Action:**
-- [ ] Add try-catch around `nlohmann::json::parse(goal->poses_json)` in base_action_server.hpp
-- [ ] Return proper error result on parse failure
-- [ ] Ensure consistent error handling across all JSON parsing
+- [X] Add explicit try-catch around `nlohmann::json::parse(goal->poses_json)` ✅
+- [X] Return proper error result on parse failure (abort with error message) ✅
+- [X] Improved error message from "Execution failed" to "Stage execution failed" ✅
+- [X] Build successful ✅
 
-**Files to modify:**
-- `include/mtc_pipeline/base_action_server.hpp:83`
+**Files modified:**
+- `include/mtc_pipeline/base_action_server.hpp:71-115` - Added nested try-catch for JSON parsing with specific error handling
 
 ---
 
@@ -396,11 +399,11 @@ After each fix:
 
 ## Progress Tracking
 
-**Critical:** 1/3 complete ✅
+**Critical:** 2/3 complete ✅ (1 deferred)
 **Important:** 0/5 complete
 **Nice to Have:** 0/12 complete
 
-**Total:** 1/20 complete (5%)
+**Total:** 2/20 complete (10%) + 1 deferred
 
 ---
 
