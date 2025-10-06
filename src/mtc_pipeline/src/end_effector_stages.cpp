@@ -2,8 +2,6 @@
 
 #include <moveit/task_constructor/stages/move_to.h>
 
-namespace mtc = moveit::task_constructor;
-
 EndEffectorStages::EndEffectorStages(const rclcpp::Node::SharedPtr& node)
   : BaseStages(node) {}
 

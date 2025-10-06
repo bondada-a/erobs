@@ -10,14 +10,16 @@
 #include <string>
 #include <vector>
 
-namespace mtc = moveit::task_constructor;
-
 class PickPlaceStages : public BaseStages {
 public:
   // Constructor
   PickPlaceStages(const rclcpp::Node::SharedPtr& node);
 
-  // Create move stage to named pose
+  // Orchestrator step runner
+  bool run(const nlohmann::json& step, const nlohmann::json& poses);
+
+private:
+  // Internal helper: Create move stage to named pose
   std::unique_ptr<mtc::Stage> make_move_to_named_stage(
     const std::string& label,
     const std::string& pose_key,
@@ -25,13 +27,10 @@ public:
     const mtc::solvers::PlannerInterfacePtr& planner
   );
 
-  // Helper for gripper open/close
+  // Internal helper: Gripper open/close
   std::unique_ptr<mtc::Stage> make_gripper_stage(
     const std::string& label,
     const mtc::solvers::PlannerInterfacePtr& planner,
     bool open
   );
-
-  // Orchestrator step runner
-  bool run(const nlohmann::json& step, const nlohmann::json& poses);
 };

@@ -3,8 +3,6 @@
 #include <cmath>
 #include <moveit/task_constructor/stages/move_to.h>
 
-namespace mtc = moveit::task_constructor;
-
 namespace {
 constexpr double DOCK_SPACING_METERS = 0.1524;
 }

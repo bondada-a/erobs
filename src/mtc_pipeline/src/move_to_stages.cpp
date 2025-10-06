@@ -1,8 +1,6 @@
 #include "mtc_pipeline/move_to_stages.hpp"
 #include <moveit/task_constructor/stages/move_to.h>
 
-namespace mtc = moveit::task_constructor;
-
 MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node)
   : BaseStages(node) {}
 

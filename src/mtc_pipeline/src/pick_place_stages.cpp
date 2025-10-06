@@ -4,8 +4,6 @@
 #include <moveit_msgs/msg/constraints.hpp>
 #include <moveit_msgs/msg/joint_constraint.hpp>
 
-namespace mtc = moveit::task_constructor;
-
 namespace {
 constexpr const char* GRIPPER_GROUP = "hande_gripper";
 constexpr const char* GRIPPER_OPEN_STATE = "hande_open";
