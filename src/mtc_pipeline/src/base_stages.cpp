@@ -28,7 +28,7 @@ namespace {
 }
 
 // Static joint and arm defaults
-const std::vector<std::string>& BaseStages::defaultJointNames() {
+const std::vector<std::string>& BaseStages::default_joint_names() {
   static const std::vector<std::string> names = {
     "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
     "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"
@@ -36,12 +36,12 @@ const std::vector<std::string>& BaseStages::defaultJointNames() {
   return names;
 }
 
-const std::string& BaseStages::defaultArmGroupName() {
+const std::string& BaseStages::default_arm_group_name() {
   static const std::string name = "ur_arm";
   return name;
 }
 
-const std::string& BaseStages::defaultIkFrame() {
+const std::string& BaseStages::default_ik_frame() {
   static const std::string frame = "flange";
   return frame;
 }
@@ -78,15 +78,15 @@ rclcpp::Node::SharedPtr BaseStages::node() const {
 // Task Template Creation
 // ============================================================================
 
-mtc::Task BaseStages::createTaskTemplate(const std::string& name,
-                                         const std::string& arm_group,
-                                         const std::string& ik_frame) const {
+mtc::Task BaseStages::create_task_template(const std::string& name,
+                                            const std::string& arm_group,
+                                            const std::string& ik_frame) const {
   mtc::Task task;
   task.stages()->setName(name);
-  task.setProperty("group", arm_group.empty() ? defaultArmGroupName() : arm_group);
+  task.setProperty("group", arm_group.empty() ? default_arm_group_name() : arm_group);
 
   geometry_msgs::msg::PoseStamped ik_frame_pose;
-  ik_frame_pose.header.frame_id = ik_frame.empty() ? defaultIkFrame() : ik_frame;
+  ik_frame_pose.header.frame_id = ik_frame.empty() ? default_ik_frame() : ik_frame;
   task.setProperty("ik_frame", ik_frame_pose);
 
   task.add(std::make_unique<mtc::stages::CurrentState>("current state"));
@@ -98,7 +98,7 @@ mtc::Task BaseStages::createTaskTemplate(const std::string& name,
 // Task Execution
 // ============================================================================
 
-bool BaseStages::loadPlanExecute(mtc::Task& task) const {
+bool BaseStages::load_plan_execute(mtc::Task& task) const {
   // Initialize
   try {
     if (!task.getRobotModel()) {
@@ -123,13 +123,13 @@ bool BaseStages::loadPlanExecute(mtc::Task& task) const {
 // Joint Conversion Utilities
 // ============================================================================
 
-std::map<std::string, double> BaseStages::jointsFromDegrees(const std::vector<double>& angles_deg) const {
-  const auto& names = defaultJointNames();
+std::map<std::string, double> BaseStages::joints_from_degrees(const std::vector<double>& angles_deg) const {
+  const auto& names = default_joint_names();
   std::map<std::string, double> joint_goal;
 
   const size_t count = std::min(angles_deg.size(), names.size());
   for (size_t i = 0; i < count; ++i) {
-    joint_goal[names[i]] = degToRad(angles_deg[i]);
+    joint_goal[names[i]] = deg_to_rad(angles_deg[i]);
   }
 
   return joint_goal;
@@ -139,19 +139,19 @@ std::map<std::string, double> BaseStages::jointsFromDegrees(const std::vector<do
 // Planner Configuration & Factories
 // ============================================================================
 
-mtc::solvers::PlannerInterfacePtr BaseStages::makePipelinePlanner(const std::string& pipeline_id,
-                                                                  double vel_scale,
-                                                                  double acc_scale) const {
+mtc::solvers::PlannerInterfacePtr BaseStages::make_pipeline_planner(const std::string& pipeline_id,
+                                                                    double vel_scale,
+                                                                    double acc_scale) const {
   auto planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_, pipeline_id);
   planner->setMaxVelocityScalingFactor(vel_scale);
   planner->setMaxAccelerationScalingFactor(acc_scale);
   return planner;
 }
 
-mtc::solvers::PlannerInterfacePtr BaseStages::makeCartesianPlanner(double vel_scale,
-                                                                    double acc_scale,
-                                                                    double step,
-                                                                    double min_fraction) const {
+mtc::solvers::PlannerInterfacePtr BaseStages::make_cartesian_planner(double vel_scale,
+                                                                      double acc_scale,
+                                                                      double step,
+                                                                      double min_fraction) const {
   auto planner = std::make_shared<mtc::solvers::CartesianPath>();
   planner->setMaxVelocityScalingFactor(vel_scale);
   planner->setMaxAccelerationScalingFactor(acc_scale);
@@ -160,8 +160,8 @@ mtc::solvers::PlannerInterfacePtr BaseStages::makeCartesianPlanner(double vel_sc
   return planner;
 }
 
-mtc::solvers::PlannerInterfacePtr BaseStages::makeJointInterpolationPlanner(double vel_scale,
-                                                                             double acc_scale) const {
+mtc::solvers::PlannerInterfacePtr BaseStages::make_joint_interpolation_planner(double vel_scale,
+                                                                                double acc_scale) const {
   auto planner = std::make_shared<mtc::solvers::JointInterpolationPlanner>();
   planner->setMaxVelocityScalingFactor(vel_scale);
   planner->setMaxAccelerationScalingFactor(acc_scale);
@@ -173,7 +173,7 @@ mtc::solvers::PlannerInterfacePtr BaseStages::makeJointInterpolationPlanner(doub
 // ============================================================================
 
 // Create relative move stage using direction string
-std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
+std::unique_ptr<mtc::Stage> BaseStages::create_relative_move_stage(
   const std::string& label,
   const std::string& direction,
   double distance,
@@ -188,11 +188,11 @@ std::unique_ptr<mtc::Stage> BaseStages::createRelativeMoveStage(
   const auto& [x, y, z] = it->second;
 
   auto stage = std::make_unique<mtc::stages::MoveRelative>(label, planner);
-  stage->setGroup(defaultArmGroupName());
+  stage->setGroup(default_arm_group_name());
   stage->setMinMaxDistance(distance, distance);
 
   geometry_msgs::msg::Vector3Stamped vec;
-  vec.header.frame_id = defaultIkFrame();
+  vec.header.frame_id = default_ik_frame();
   vec.vector.x = x;
   vec.vector.y = y;
   vec.vector.z = z;

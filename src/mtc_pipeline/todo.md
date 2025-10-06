@@ -138,30 +138,49 @@ All action server files now use consistent snake_case naming:
 
 ---
 
-### [ ] 6. Function Naming Consistency
+### [X] 6. Function Naming Consistency ✅
 **Problem:** Mixed camelCase and snake_case
 
-**Current camelCase functions:**
+**Action:**
+- [X] Renamed all 11 functions in base_stages.hpp ✅
+- [X] Renamed 2 functions in pick_place_stages.hpp ✅
+- [X] Updated all implementations in base_stages.cpp ✅
+- [X] Updated all implementations in pick_place_stages.cpp ✅
+- [X] Updated all call sites in pick_place_stages.cpp ✅
+- [X] Updated all call sites in move_to_stages.cpp ✅
+- [X] Updated all call sites in tool_exchange_stages.cpp ✅
+- [X] Updated all call sites in end_effector_stages.cpp ✅
+- [X] Build successful ✅
+
+**Functions renamed (13 total):**
+
+**base_stages.hpp/cpp:**
+- `createTaskTemplate()` → `create_task_template()`
 - `loadPlanExecute()` → `load_plan_execute()`
 - `jointsFromDegrees()` → `joints_from_degrees()`
+- `defaultJointNames()` → `default_joint_names()`
+- `defaultArmGroupName()` → `default_arm_group_name()`
+- `defaultIkFrame()` → `default_ik_frame()`
 - `degToRad()` → `deg_to_rad()`
 - `makePipelinePlanner()` → `make_pipeline_planner()`
 - `makeCartesianPlanner()` → `make_cartesian_planner()`
 - `makeJointInterpolationPlanner()` → `make_joint_interpolation_planner()`
+- `createRelativeMoveStage()` → `create_relative_move_stage()`
+
+**pick_place_stages.hpp/cpp:**
 - `makeMoveToNamedStage()` → `make_move_to_named_stage()`
 - `makeGripperStage()` → `make_gripper_stage()`
 
-**Action:**
-- [ ] Rename all camelCase functions to snake_case
-- [ ] Update all call sites
-- [ ] Test build and functionality
+**Files modified:**
+- `include/mtc_pipeline/base_stages.hpp` - 11 function declarations
+- `src/base_stages.cpp` - 11 function implementations
+- `include/mtc_pipeline/pick_place_stages.hpp` - 2 function declarations
+- `src/pick_place_stages.cpp` - 2 implementations + 13 call sites
+- `src/move_to_stages.cpp` - 7 call sites
+- `src/tool_exchange_stages.cpp` - 6 call sites
+- `src/end_effector_stages.cpp` - 3 call sites
 
-**Files to modify:**
-- `include/mtc_pipeline/base_stages.hpp`
-- `src/base_stages.cpp`
-- `include/mtc_pipeline/pick_place_stages.hpp`
-- `src/pick_place_stages.cpp`
-- All files calling these functions
+**Result:** All functions now use consistent snake_case naming
 
 ---
 
@@ -431,10 +450,10 @@ After each fix:
 ## Progress Tracking
 
 **Critical:** 2/3 complete ✅ (1 deferred)
-**Important:** 2/5 complete ✅
+**Important:** 3/5 complete ✅
 **Nice to Have:** 0/12 complete
 
-**Total:** 4/20 complete (20%) + 1 deferred
+**Total:** 5/20 complete (25%) + 1 deferred
 
 ---
 

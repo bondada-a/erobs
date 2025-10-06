@@ -31,14 +31,14 @@ moveit_msgs::msg::Constraints createWrist3Constraint() {
 PickPlaceStages::PickPlaceStages(const rclcpp::Node::SharedPtr& node)
   : BaseStages(node) {}
 
-std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
+std::unique_ptr<mtc::Stage> PickPlaceStages::make_move_to_named_stage(
   const std::string& label,
   const std::string& pose_key,
   const nlohmann::json& poses,
   const mtc::solvers::PlannerInterfacePtr& planner)
 {
   const auto& joint_pose = poses.at(pose_key);
-  if (!joint_pose.is_array() || joint_pose.size() != BaseStages::defaultJointNames().size()) {
+  if (!joint_pose.is_array() || joint_pose.size() != BaseStages::default_joint_names().size()) {
     RCLCPP_ERROR(node()->get_logger(), "'%s' must be an array of 6 numbers", pose_key.c_str());
     return nullptr;
   }
@@ -46,12 +46,12 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::makeMoveToNamedStage(
   auto joint_angles_deg = joint_pose.get<std::vector<double>>();
   auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
   stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-  stage->setGroup(defaultArmGroupName());
-  stage->setGoal(jointsFromDegrees(joint_angles_deg));
+  stage->setGroup(default_arm_group_name());
+  stage->setGoal(joints_from_degrees(joint_angles_deg));
   return stage;
 }
 
-std::unique_ptr<mtc::Stage> PickPlaceStages::makeGripperStage(
+std::unique_ptr<mtc::Stage> PickPlaceStages::make_gripper_stage(
   const std::string& label,
   const mtc::solvers::PlannerInterfacePtr& planner,
   bool open)
@@ -79,38 +79,38 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   const std::string place_approach = step["place_approach"].get<std::string>();
   const std::string place_target = step["place_target"].get<std::string>();
 
-  auto task = createTaskTemplate("Pick and Place");
-  auto pipeline_planner = makePipelinePlanner();
-  auto cartesian_planner = makeCartesianPlanner();
-  auto gripper_planner = makeJointInterpolationPlanner();
+  auto task = create_task_template("Pick and Place");
+  auto pipeline_planner = make_pipeline_planner();
+  auto cartesian_planner = make_cartesian_planner();
+  auto gripper_planner = make_joint_interpolation_planner();
 
   // ============================================================================
   // PICK SEQUENCE
   // ============================================================================
 
   // 1. Open gripper
-  task.add(makeGripperStage("open gripper", gripper_planner, true));
+  task.add(make_gripper_stage("open gripper", gripper_planner, true));
 
   // 2. Move to pickup approach
   {
-    auto stage = makeMoveToNamedStage("pickup approach", pick_approach, poses, pipeline_planner);
+    auto stage = make_move_to_named_stage("pickup approach", pick_approach, poses, pipeline_planner);
     if (!stage) return false;
     task.add(std::move(stage));
   }
 
   // 3. Move to pickup position
   {
-    auto stage = makeMoveToNamedStage("pickup", pick_target, poses, cartesian_planner);
+    auto stage = make_move_to_named_stage("pickup", pick_target, poses, cartesian_planner);
     if (!stage) return false;
     task.add(std::move(stage));
   }
 
   // 4. Close gripper
-  task.add(makeGripperStage("close gripper", gripper_planner, false));
+  task.add(make_gripper_stage("close gripper", gripper_planner, false));
 
   // 5. Pickup retreat (with wrist constraint to keep wrist orientation)
   {
-    auto stage = makeMoveToNamedStage("pickup retreat", pick_approach, poses, cartesian_planner);
+    auto stage = make_move_to_named_stage("pickup retreat", pick_approach, poses, cartesian_planner);
     if (!stage) return false;
     if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
       move_to_stage->setPathConstraints(createWrist3Constraint());
@@ -124,7 +124,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 6. Move to place approach (with wrist constraint)
   {
-    auto stage = makeMoveToNamedStage("place approach", place_approach, poses, pipeline_planner);
+    auto stage = make_move_to_named_stage("place approach", place_approach, poses, pipeline_planner);
     if (!stage) return false;
     if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
       move_to_stage->setPathConstraints(createWrist3Constraint());
@@ -134,7 +134,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 7. Move to place position (with wrist constraint)
   {
-    auto stage = makeMoveToNamedStage("place", place_target, poses, cartesian_planner);
+    auto stage = make_move_to_named_stage("place", place_target, poses, cartesian_planner);
     if (!stage) return false;
     if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
       move_to_stage->setPathConstraints(createWrist3Constraint());
@@ -143,11 +143,11 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   }
 
   // 8. Open gripper
-  task.add(makeGripperStage("open gripper", gripper_planner, true));
+  task.add(make_gripper_stage("open gripper", gripper_planner, true));
 
   // 9. Place retreat
   {
-    auto stage = makeMoveToNamedStage("place retreat", place_approach, poses, cartesian_planner);
+    auto stage = make_move_to_named_stage("place retreat", place_approach, poses, cartesian_planner);
     if (!stage) return false;
     task.add(std::move(stage));
   }
@@ -158,10 +158,10 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   if (step.value("return_home", true)) {
     auto stage = std::make_unique<mtc::stages::MoveTo>("return home", pipeline_planner);
     stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-    stage->setGroup(defaultArmGroupName());
+    stage->setGroup(default_arm_group_name());
     stage->setGoal("moveit_home");
     task.add(std::move(stage));
   }
 
-  return loadPlanExecute(task);
+  return load_plan_execute(task);
 }

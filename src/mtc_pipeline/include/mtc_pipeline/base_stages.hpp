@@ -40,35 +40,35 @@ public:
 protected:
   rclcpp::Node::SharedPtr node() const;
 
-  mtc::Task createTaskTemplate(const std::string& name,
-                               const std::string& arm_group = "",
-                               const std::string& ik_frame = "") const;
+  mtc::Task create_task_template(const std::string& name,
+                                  const std::string& arm_group = "",
+                                  const std::string& ik_frame = "") const;
 
-  bool loadPlanExecute(mtc::Task& task) const;
+  bool load_plan_execute(mtc::Task& task) const;
 
-  std::map<std::string, double> jointsFromDegrees(const std::vector<double>& angles_deg) const;
-  static const std::vector<std::string>& defaultJointNames();
-  static const std::string& defaultArmGroupName();
-  static const std::string& defaultIkFrame();
-  static constexpr double degToRad(double degrees) { return degrees * M_PI / 180.0; }
+  std::map<std::string, double> joints_from_degrees(const std::vector<double>& angles_deg) const;
+  static const std::vector<std::string>& default_joint_names();
+  static const std::string& default_arm_group_name();
+  static const std::string& default_ik_frame();
+  static constexpr double deg_to_rad(double degrees) { return degrees * M_PI / 180.0; }
 
-  mtc::solvers::PlannerInterfacePtr makePipelinePlanner(
+  mtc::solvers::PlannerInterfacePtr make_pipeline_planner(
     const std::string& pipeline_id = PipelinePlannerDefaults::pipeline_id,
     double vel_scale = PipelinePlannerDefaults::vel_scale,
     double acc_scale = PipelinePlannerDefaults::acc_scale) const;
 
-  mtc::solvers::PlannerInterfacePtr makeCartesianPlanner(
+  mtc::solvers::PlannerInterfacePtr make_cartesian_planner(
     double vel_scale = CartesianPlannerDefaults::vel_scale,
     double acc_scale = CartesianPlannerDefaults::acc_scale,
     double step = CartesianPlannerDefaults::step,
     double min_fraction = CartesianPlannerDefaults::min_fraction) const;
 
-  mtc::solvers::PlannerInterfacePtr makeJointInterpolationPlanner(
+  mtc::solvers::PlannerInterfacePtr make_joint_interpolation_planner(
     double vel_scale = JointInterpolationPlannerDefaults::vel_scale,
     double acc_scale = JointInterpolationPlannerDefaults::acc_scale) const;
 
   // Movement stage creation helper
-  std::unique_ptr<mtc::Stage> createRelativeMoveStage(
+  std::unique_ptr<mtc::Stage> create_relative_move_stage(
     const std::string& label,
     const std::string& direction,
     double distance,

@@ -10,8 +10,8 @@ MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node)
 bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) {
   const std::string planning_type = step.value("planning_type", "joint");
 
-  auto task = createTaskTemplate("MoveTo Task");
-  auto planner = (planning_type == "cartesian") ? makeCartesianPlanner() : makePipelinePlanner();
+  auto task = create_task_template("MoveTo Task");
+  auto planner = (planning_type == "cartesian") ? make_cartesian_planner() : make_pipeline_planner();
 
   // Auto-detect target type based on fields present
 
@@ -20,7 +20,7 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
     const std::string direction = step.at("direction");
     const double distance = step.at("distance").get<double>();
     const std::string label = "move_" + direction + "_" + std::to_string(distance) + "m";
-    task.add(createRelativeMoveStage(label, direction, distance, planner));
+    task.add(create_relative_move_stage(label, direction, distance, planner));
   }
 
   // 2. POSE or NAMED STATE: Check if target exists
@@ -42,15 +42,15 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
 
       auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
       stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-      stage->setGroup(defaultArmGroupName());
-      stage->setGoal(jointsFromDegrees(joint_angles_deg));
+      stage->setGroup(default_arm_group_name());
+      stage->setGoal(joints_from_degrees(joint_angles_deg));
       task.add(std::move(stage));
     }
     else {
       // 2b. NAMED STATE: Move to predefined SRDF state (e.g., "moveit_home")
       auto stage = std::make_unique<mtc::stages::MoveTo>("move_to_" + target, planner);
       stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-      stage->setGroup(defaultArmGroupName());
+      stage->setGroup(default_arm_group_name());
       stage->setGoal(target);
       task.add(std::move(stage));
     }
@@ -61,5 +61,5 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
     return false;
   }
 
-  return loadPlanExecute(task);
+  return load_plan_execute(task);
 }

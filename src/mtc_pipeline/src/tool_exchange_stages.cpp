@@ -22,9 +22,9 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
                                  (operation == "dock") ? "Dock Tool Task" :
                                  "Tool Exchange Task";
 
-  auto task = createTaskTemplate(task_name);
-  auto sampling_planner = makePipelinePlanner();
-  auto cartesian_planner = makeCartesianPlanner();
+  auto task = create_task_template(task_name);
+  auto sampling_planner = make_pipeline_planner();
+  auto cartesian_planner = make_cartesian_planner();
 
   // Lambda: Add joint move to approach pose
   const auto addNamedMoveStage = [&](const std::string& label, const std::string& pose_key) -> bool {
@@ -37,15 +37,15 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
     auto stage = std::make_unique<mtc::stages::MoveTo>(label, sampling_planner);
     stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-    stage->setGroup(defaultArmGroupName());
-    stage->setGoal(jointsFromDegrees(joint_angles_deg));
+    stage->setGroup(default_arm_group_name());
+    stage->setGoal(joints_from_degrees(joint_angles_deg));
     task.add(std::move(stage));
     return true;
   };
 
   // Lambda: Add relative move stage
   const auto addRelativeMoveStage = [&](const std::string& name, const std::string& direction, double distance) {
-    auto stage = createRelativeMoveStage(name, direction, std::abs(distance), cartesian_planner);
+    auto stage = create_relative_move_stage(name, direction, std::abs(distance), cartesian_planner);
     if (!stage) return;
 
     stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
@@ -93,5 +93,5 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     return false;
   }
 
-  return loadPlanExecute(task);
+  return load_plan_execute(task);
 }
