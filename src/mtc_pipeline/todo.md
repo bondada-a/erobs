@@ -234,23 +234,27 @@ All action server files now use consistent snake_case naming:
 
 ## 🟢 Nice to Have (Future Improvements)
 
-### [ ] 9. Lambda vs Method Helpers Consistency
-**Problem:** Inconsistent approach
+### [X] 9. Lambda vs Method Helpers Consistency ✅
+**Problem:** Inconsistent approach - ToolExchangeStages had redundant lambdas
 
-- ToolExchangeStages: Uses lambdas (lines 30-62)
-- PickPlaceStages: Uses class methods (lines 34-63)
-- MoveToStages: No helpers
+- ToolExchangeStages: Used lambdas that just wrapped existing functions
+- PickPlaceStages: Uses class methods (kept as-is, they're actually reusable)
+- MoveToStages: No helpers (correct - uses inline code)
 
 **Action:**
-- [ ] Define guideline: Use class methods for reusable/testable helpers
-- [ ] Use lambdas for one-off helpers with captured state
-- [ ] Refactor ToolExchangeStages to use methods if helpers are reusable
-- [ ] OR refactor PickPlaceStages to use lambdas if helpers are specific
+- [X] Removed all 3 redundant lambdas from ToolExchangeStages ✅
+- [X] Used `create_relative_move_stage()` directly instead of `addRelativeMoveStage` lambda ✅
+- [X] Used inline MoveTo stage creation instead of `addNamedMoveStage` lambda (same pattern as move_to_stages.cpp) ✅
+- [X] Removed `addDockShiftStage` lambda - logic now inline ✅
+- [X] Build successful ✅
 
-**Files to review:**
-- `src/tool_exchange_stages.cpp`
-- `src/pick_place_stages.cpp`
-- `include/mtc_pipeline/pick_place_stages.hpp`
+**Decision:**
+- Use existing base class functions directly (no unnecessary wrappers)
+- Inline simple logic instead of lambdas when not capturing complex state
+- Keep PickPlaceStages methods as they provide actual reusable abstractions
+
+**Files modified:**
+- `src/tool_exchange_stages.cpp` - Removed 3 lambdas (lines 30-62), simplified code by ~30 lines
 
 ---
 
@@ -458,9 +462,9 @@ After each fix:
 
 **Critical:** 2/3 complete ✅ (1 deferred)
 **Important:** 4/5 complete ✅
-**Nice to Have:** 0/12 complete
+**Nice to Have:** 1/12 complete ✅
 
-**Total:** 6/20 complete (30%) + 1 deferred
+**Total:** 7/20 complete (35%) + 1 deferred
 
 ---
 

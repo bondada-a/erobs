@@ -26,63 +26,84 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
   auto sampling_planner = make_pipeline_planner();
   auto cartesian_planner = make_cartesian_planner();
 
-  // Lambda: Add joint move to approach pose
-  const auto addNamedMoveStage = [&](const std::string& label, const std::string& pose_key) -> bool {
-    const auto& joint_pose_json = poses.at(pose_key);
-    if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
-      RCLCPP_ERROR(node()->get_logger(), "'%s' must be an array of 6 joint angles", pose_key.c_str());
-      return false;
-    }
-
-    const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
-    auto stage = std::make_unique<mtc::stages::MoveTo>(label, sampling_planner);
-    stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-    stage->setGroup(default_arm_group_name());
-    stage->setGoal(joints_from_degrees(joint_angles_deg));
-    task.add(std::move(stage));
-    return true;
-  };
-
-  // Lambda: Add relative move stage
-  const auto addRelativeMoveStage = [&](const std::string& name, const std::string& direction, double distance) {
-    auto stage = create_relative_move_stage(name, direction, std::abs(distance), cartesian_planner);
-    if (!stage) return;
-
-    stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-
-    task.add(std::move(stage));
-  };
-
-  // Lambda: Shift laterally to align with specific dock
-  const auto addDockShiftStage = [&](double offset) {
-    if (std::abs(offset) < 1e-4) return;  // Skip if offset is negligible
-
-    const std::string direction = (offset >= 0.0) ? "right" : "left";
-    addRelativeMoveStage("shift to dock", direction, offset);
-  };
-
   // ============================================================================
   // LOAD OPERATION: Attach tool from dock
   // ============================================================================
   if (operation == "load") {
-    if (!addNamedMoveStage("move to load approach", approach_pose)) return false;
+    // Move to approach pose
+    const auto& joint_pose_json = poses.at(approach_pose);
+    if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
+      RCLCPP_ERROR(node()->get_logger(), "'%s' must be an array of 6 joint angles", approach_pose.c_str());
+      return false;
+    }
 
-    addDockShiftStage(dock_offset_y);                              // Align with specific dock
-    addRelativeMoveStage("attach_tool", "forward", 0.1);           // Move forward into tool
-    addRelativeMoveStage("detach_holder", "up", 0.15);             // Move up to release holder
-    addRelativeMoveStage("move_up", "backward", 0.2);              // Move back with tool
+    const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
+    auto approach_stage = std::make_unique<mtc::stages::MoveTo>("move to load approach", sampling_planner);
+    approach_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    approach_stage->setGroup(default_arm_group_name());
+    approach_stage->setGoal(joints_from_degrees(joint_angles_deg));
+    task.add(std::move(approach_stage));
+
+    // Shift laterally to align with specific dock
+    if (std::abs(dock_offset_y) >= 1e-4) {
+      const std::string direction = (dock_offset_y >= 0.0) ? "right" : "left";
+      auto shift_stage = create_relative_move_stage("shift to dock", direction, std::abs(dock_offset_y), cartesian_planner);
+      shift_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+      task.add(std::move(shift_stage));
+    }
+
+    // Execute tool loading sequence
+    auto attach_stage = create_relative_move_stage("attach_tool", "forward", 0.1, cartesian_planner);
+    attach_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    task.add(std::move(attach_stage));
+
+    auto detach_stage = create_relative_move_stage("detach_holder", "up", 0.15, cartesian_planner);
+    detach_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    task.add(std::move(detach_stage));
+
+    auto moveup_stage = create_relative_move_stage("move_up", "backward", 0.2, cartesian_planner);
+    moveup_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    task.add(std::move(moveup_stage));
   }
 
   // ============================================================================
   // DOCK OPERATION: Return tool to dock
   // ============================================================================
   else if (operation == "dock") {
-    if (!addNamedMoveStage("move to dock approach", approach_pose)) return false;
+    // Move to approach pose
+    const auto& joint_pose_json = poses.at(approach_pose);
+    if (!joint_pose_json.is_array() || joint_pose_json.size() != 6) {
+      RCLCPP_ERROR(node()->get_logger(), "'%s' must be an array of 6 joint angles", approach_pose.c_str());
+      return false;
+    }
 
-    addDockShiftStage(dock_offset_y);                              // Align with specific dock
-    addRelativeMoveStage("align_holder", "forward", 0.2);          // Move forward to holder
-    addRelativeMoveStage("detach_tool", "down", 0.15);             // Move down to release tool
-    addRelativeMoveStage("dock connect", "backward", 0.1);         // Move back from dock
+    const auto joint_angles_deg = joint_pose_json.get<std::vector<double>>();
+    auto approach_stage = std::make_unique<mtc::stages::MoveTo>("move to dock approach", sampling_planner);
+    approach_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    approach_stage->setGroup(default_arm_group_name());
+    approach_stage->setGoal(joints_from_degrees(joint_angles_deg));
+    task.add(std::move(approach_stage));
+
+    // Shift laterally to align with specific dock
+    if (std::abs(dock_offset_y) >= 1e-4) {
+      const std::string direction = (dock_offset_y >= 0.0) ? "right" : "left";
+      auto shift_stage = create_relative_move_stage("shift to dock", direction, std::abs(dock_offset_y), cartesian_planner);
+      shift_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+      task.add(std::move(shift_stage));
+    }
+
+    // Execute tool docking sequence
+    auto align_stage = create_relative_move_stage("align_holder", "forward", 0.2, cartesian_planner);
+    align_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    task.add(std::move(align_stage));
+
+    auto detach_stage = create_relative_move_stage("detach_tool", "down", 0.15, cartesian_planner);
+    detach_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    task.add(std::move(detach_stage));
+
+    auto dock_stage = create_relative_move_stage("dock connect", "backward", 0.1, cartesian_planner);
+    dock_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    task.add(std::move(dock_stage));
   }
 
   // ============================================================================
