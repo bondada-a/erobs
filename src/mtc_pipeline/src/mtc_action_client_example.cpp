@@ -13,8 +13,10 @@
 using MTCExecution = mtc_pipeline::action::MTCExecution;
 using GoalHandleMTCExecution = rclcpp_action::ClientGoalHandle<MTCExecution>;
 
-// Global variable for signal handling (industry standard)
-std::atomic<bool> g_should_cancel{false};
+namespace {
+// Signal flag for Ctrl+C cancellation (accessed by signal handler and main thread)
+std::atomic<bool> should_cancel{false};
+}
 
 /**
  * Client node that sends task execution requests to the MTC action server
@@ -24,7 +26,6 @@ class MTCActionClient : public rclcpp::Node {
 private:
     rclcpp_action::Client<MTCExecution>::SharedPtr action_client_;
     std::chrono::seconds timeout_;
-    std::shared_ptr<GoalHandleMTCExecution> current_goal_handle_;
 
 public:
     explicit MTCActionClient(std::chrono::seconds timeout = std::chrono::seconds(300)) 
@@ -32,10 +33,15 @@ public:
         action_client_ = rclcpp_action::create_client<MTCExecution>(this, "mtc_execution");
     }
     
-    rclcpp_action::Client<MTCExecution>::SharedPtr get_action_client() {
-        return action_client_;
+    /**
+     * Wait for the action server to become available
+     * @param timeout How long to wait for the server
+     * @return true if server is available, false if timeout
+     */
+    bool wait_for_server(std::chrono::seconds timeout = std::chrono::seconds(10)) {
+        return action_client_->wait_for_action_server(timeout);
     }
-    
+
     /**
      * Cancel the current goal using industry-standard async cancellation
      * Follows ROS2 naming convention: cancel_goal (not cancel_current_goal)
@@ -76,86 +82,44 @@ public:
      * @return 0 = success, 1 = failed, 2 = cancelled
      */
     int execute_task(const std::string& json_file_path, const std::string& robot_ip = "192.168.1.101") {
-        // Validate and read JSON file
-        auto json_content = read_json_file(json_file_path);
-        if (!json_content) {
+        // Create and send goal
+        auto goal_msg = create_goal(json_file_path, robot_ip);
+        if (!goal_msg) {
             return 1;  // Failed
         }
 
-        // Create and send goal
-        auto goal_msg = create_goal(*json_content, robot_ip);
-        auto goal_handle = send_goal(goal_msg);
+        auto goal_handle = send_goal(*goal_msg);
         if (!goal_handle) {
             return 1;  // Failed
         }
 
-        // Store goal_handle for potential cancellation
-        current_goal_handle_ = goal_handle;
-
         // Wait for completion with cancellation support
         int result = wait_for_completion(goal_handle);
-
-        // Clear the stored goal handle
-        current_goal_handle_.reset();
 
         return result;
     }
 
 private:
     /**
-     * Read and validate JSON file
+     * Create action goal from JSON file
      */
-    std::optional<std::string> read_json_file(const std::string& file_path) {
-        // Check if file exists and is readable
-        if (!std::filesystem::exists(file_path)) {
-            RCLCPP_ERROR(get_logger(), "File does not exist: %s", file_path.c_str());
-            return std::nullopt;
-        }
-        
-        auto file_size = std::filesystem::file_size(file_path);
-        if (file_size > 10 * 1024 * 1024) { // 10MB limit
-            RCLCPP_ERROR(get_logger(), "File too large: %s (%zu bytes)", file_path.c_str(), file_size);
-            return std::nullopt;
-        }
-        
-        // Read file content
-        std::ifstream file(file_path);
-        if (!file.is_open()) {
-            RCLCPP_ERROR(get_logger(), "Could not open file: %s", file_path.c_str());
-            return std::nullopt;
-        }
-        
-        std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        
-        // Validate JSON structure
+    std::optional<MTCExecution::Goal> create_goal(const std::string& json_file_path, const std::string& robot_ip) {
         try {
+            std::ifstream file(json_file_path);
+            std::string content((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
+
+            // Validate JSON by parsing
             nlohmann::json::parse(content);
-        } catch (const nlohmann::json::exception& e) {
-            RCLCPP_ERROR(get_logger(), "Invalid JSON in file %s: %s", file_path.c_str(), e.what());
+
+            // Create goal with full JSON
+            MTCExecution::Goal goal;
+            goal.full_json = content;
+            goal.robot_ip = robot_ip;
+            return goal;
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(get_logger(), "Error creating goal: %s", e.what());
             return std::nullopt;
         }
-        
-        return content;
-    }
-    
-    /**
-     * Create action goal from JSON content
-     */
-    MTCExecution::Goal create_goal(const std::string& json_content, const std::string& robot_ip) {
-        // Parse the full JSON file
-        nlohmann::json full_script = nlohmann::json::parse(json_content);
-
-        // Create task-only JSON (tasks + start_gripper)
-        nlohmann::json task_only;
-        task_only["tasks"] = full_script["tasks"];
-        task_only["start_gripper"] = full_script["start_gripper"];
-
-        // Create goal with separated fields
-        MTCExecution::Goal goal;
-        goal.task_script_json = task_only.dump();
-        goal.poses_json = full_script["poses"].dump();
-        goal.robot_ip = robot_ip;
-        return goal;
     }
     
     /**
@@ -165,10 +129,10 @@ private:
         RCLCPP_INFO(get_logger(), "Sending task execution goal...");
         
         auto send_goal_options = rclcpp_action::Client<MTCExecution>::SendGoalOptions();
-        send_goal_options.feedback_callback = 
-            std::bind(&MTCActionClient::feedback_callback, this, std::placeholders::_1, std::placeholders::_2);
-        send_goal_options.result_callback = 
-            std::bind(&MTCActionClient::result_callback, this, std::placeholders::_1);
+        send_goal_options.feedback_callback =
+            [this](auto, const auto& feedback) { feedback_callback({}, feedback); };
+        send_goal_options.result_callback =
+            [this](const auto& result) { result_callback(result); };
         
         auto goal_handle_future = action_client_->async_send_goal(goal, send_goal_options);
         
@@ -202,7 +166,7 @@ private:
         
         while (true) {
             // Check if we should cancel (Ctrl+C was pressed)
-            if (g_should_cancel.load()) {
+            if (should_cancel.load()) {
                 RCLCPP_INFO(get_logger(), "Cancellation requested, stopping execution...");
                 cancel_goal(goal_handle);
                 return 2;  // Cancelled
@@ -284,7 +248,7 @@ int main(int argc, char** argv) {
     
     // Industry standard: Setup signal handler for Ctrl+C
     signal(SIGINT, [](int) {
-        g_should_cancel.store(true);
+        should_cancel.store(true);
     });
     
     // Create the action client with timeout
@@ -292,7 +256,7 @@ int main(int argc, char** argv) {
     
     // Wait for the action server to become available
     RCLCPP_INFO(client->get_logger(), "Waiting for action server...");
-    if (!client->get_action_client()->wait_for_action_server(std::chrono::seconds(10))) {
+    if (!client->wait_for_server(std::chrono::seconds(10))) {
         RCLCPP_ERROR(client->get_logger(), "Action server not available after 10 seconds");
         rclcpp::shutdown();
         return 1;

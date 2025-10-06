@@ -23,9 +23,9 @@ public:
         this->action_server_ = rclcpp_action::create_server<ActionType>(
             this,
             action_name,
-            std::bind(&BaseActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&BaseActionServer::handle_cancel, this, std::placeholders::_1),
-            std::bind(&BaseActionServer::handle_accepted, this, std::placeholders::_1));
+            [this](const auto& uuid, const auto& goal) { return handle_goal(uuid, goal); },
+            [this](const auto& goal_handle) { return handle_cancel(goal_handle); },
+            [this](const auto& goal_handle) { handle_accepted(goal_handle); });
 
         RCLCPP_INFO(this->get_logger(), "%s Action Server started", node_name.c_str());
     }

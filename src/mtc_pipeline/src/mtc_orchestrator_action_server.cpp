@@ -50,9 +50,9 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
         this->action_server_ = rclcpp_action::create_server<MTCExecution>(
             this,
             "mtc_execution",
-            std::bind(&MTCOrchestratorActionServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
-            std::bind(&MTCOrchestratorActionServer::handle_cancel, this, std::placeholders::_1),
-            std::bind(&MTCOrchestratorActionServer::handle_accepted, this, std::placeholders::_1));
+            [this](const auto& uuid, const auto& goal) { return handle_goal(uuid, goal); },
+            [this](const auto& goal_handle) { return handle_cancel(goal_handle); },
+            [this](const auto& goal_handle) { handle_accepted(goal_handle); });
 
         // Initialize action clients to call modular action servers
         moveto_action_client_ = rclcpp_action::create_client<MoveToAction>(this, "moveto_action");
@@ -80,8 +80,8 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
     auto feedback = std::make_shared<MTCExecution::Feedback>();
     auto result = std::make_shared<MTCExecution::Result>();
 
-    // Parse JSON task script
-    nlohmann::json task_script = nlohmann::json::parse(goal->task_script_json);
+    // Parse full JSON
+    nlohmann::json full_script = nlohmann::json::parse(goal->full_json);
 
     // Get task parameters
     if (goal->robot_ip.empty()) {
@@ -93,7 +93,7 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
         return;
     }
 
-    if (!task_script.contains("start_gripper") || !task_script["start_gripper"].is_string()) {
+    if (!full_script.contains("start_gripper") || !full_script["start_gripper"].is_string()) {
         RCLCPP_ERROR(this->get_logger(), "Task script missing required start_gripper");
         result->success = false;
         result->error_message = "Task script missing required start_gripper";
@@ -101,9 +101,10 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
         is_executing_ = false;
         return;
     }
-    const std::string start_gripper = task_script["start_gripper"].get<std::string>();
+    const std::string start_gripper = full_script["start_gripper"].get<std::string>();
 
-    const auto& tasks = task_script["tasks"];
+    const auto& tasks = full_script["tasks"];
+    const std::string poses_json = full_script["poses"].dump();
 
     // Send initial feedback
     update_feedback(feedback, goal_handle, 0, tasks.size(), "Initializing MoveIt");
@@ -145,7 +146,7 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
         update_feedback(feedback, goal_handle, i + 1, tasks.size(), task_type);
 
         // Execute step
-        if (!execute_step(task_type, step, goal->poses_json, goal->robot_ip)) {
+        if (!execute_step(task_type, step, poses_json, goal->robot_ip)) {
             RCLCPP_ERROR(this->get_logger(), "%s step failed", task_type.c_str());
             result->success = false;
             result->error_message = task_type + " step failed";
@@ -212,7 +213,7 @@ rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
 
 void MTCOrchestratorActionServer::handle_accepted(const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
 {
-    std::thread{std::bind(&MTCOrchestratorActionServer::execute, this, std::placeholders::_1), goal_handle}.detach();
+    std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
 }
 
 // === MOVEIT STACK MANAGEMENT ===
