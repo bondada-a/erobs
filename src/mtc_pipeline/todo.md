@@ -63,47 +63,78 @@ constexpr const char* GRIPPER_CLOSED_STATE = "hande_closed";
 
 ## 🟡 Important Issues (Fix Soon)
 
-### [ ] 4. File Naming Consistency
+### [X] 4. File Naming Consistency ✅
 **Problem:** Mixed naming conventions
 
-**Current state:**
-- ✅ `moveto_action_server.cpp`
-- ✅ `end_effector_action_server.cpp`
-- ❌ `pickplace_action_server.cpp` (should be `pick_place_action_server.cpp`)
-- ❌ `toolexchange_action_server.cpp` (should be `tool_exchange_action_server.cpp`)
-
 **Action:**
-- [ ] Rename `src/pickplace_action_server.cpp` → `src/pick_place_action_server.cpp`
-- [ ] Rename `src/toolexchange_action_server.cpp` → `src/tool_exchange_action_server.cpp`
-- [ ] Update CMakeLists.txt references
-- [ ] Test build
+- [X] Renamed `src/pickplace_action_server.cpp` → `src/pick_place_action_server.cpp` ✅
+- [X] Renamed `src/toolexchange_action_server.cpp` → `src/tool_exchange_action_server.cpp` ✅
+- [X] Updated all CMakeLists.txt references (executable names, dependencies, linking, features, install) ✅
+- [X] Build successful ✅
+- [X] Verified executable names in install directory ✅
 
-**Files to modify:**
-- Rename 2 source files
-- `CMakeLists.txt`
+**Files modified:**
+- `src/pickplace_action_server.cpp` → `src/pick_place_action_server.cpp` (renamed)
+- `src/toolexchange_action_server.cpp` → `src/tool_exchange_action_server.cpp` (renamed)
+- `CMakeLists.txt` lines 67-68, 78-79, 86-87, 93-94, 101-102 - Updated all references
+
+**Result:**
+All action server files now use consistent snake_case naming:
+- ✅ `end_effector_action_server`
+- ✅ `moveto_action_server`
+- ✅ `pick_place_action_server`
+- ✅ `tool_exchange_action_server`
 
 ---
 
-### [ ] 5. Action Topic Name Consistency
-**Location:** `mtc_orchestrator_action_server.cpp:58-61`
-**Problem:** Inconsistent naming
-
-**Current:**
-- `"moveto_action"` → should be `"move_to_action"`
-- ✅ `"end_effector_action"`
-- `"toolexchange_action"` → should be `"tool_exchange_action"`
-- `"pickplace_action"` → should be `"pick_place_action"`
+### [X] 5. Complete Naming Consistency (Files, Nodes, Topics) ✅
+**Problem:** Inconsistent naming across files, node names, and topic names
 
 **Action:**
-- [ ] Update action topic names to snake_case with underscores
-- [ ] Update action server constructors to match
-- [ ] Test all action communication
+- [X] Renamed `src/moveto_action_server.cpp` → `src/move_to_action_server.cpp` ✅
+- [X] Renamed `src/moveto_stages.cpp` → `src/move_to_stages.cpp` ✅
+- [X] Renamed `include/mtc_pipeline/moveto_stages.hpp` → `include/mtc_pipeline/move_to_stages.hpp` ✅
+- [X] Updated CMakeLists.txt library sources (line 46) ✅
+- [X] Updated CMakeLists.txt executable (line 69) ✅
+- [X] Updated CMakeLists.txt dependencies (line 80) ✅
+- [X] Updated CMakeLists.txt linking (line 88) ✅
+- [X] Updated CMakeLists.txt features (line 95) ✅
+- [X] Updated CMakeLists.txt install (line 103) ✅
+- [X] Updated #include in move_to_action_server.cpp ✅
+- [X] Updated #include in move_to_stages.cpp ✅
+- [X] Updated all topic names in orchestrator (line 58-61) ✅
+- [X] Updated all node names and topic names in action servers ✅
+- [X] Clean build successful ✅
 
-**Files to modify:**
-- `src/mtc_orchestrator_action_server.cpp:58-61`
-- `src/moveto_action_server.cpp:8`
-- `src/pickplace_action_server.cpp:8`
-- `src/toolexchange_action_server.cpp:8`
+**Files modified:**
+- `src/moveto_action_server.cpp` → `src/move_to_action_server.cpp` (renamed, updated include, node name, topic name)
+- `src/moveto_stages.cpp` → `src/move_to_stages.cpp` (renamed, updated include)
+- `include/mtc_pipeline/moveto_stages.hpp` → `include/mtc_pipeline/move_to_stages.hpp` (renamed)
+- `src/pick_place_action_server.cpp:8` - Updated node name and topic name
+- `src/tool_exchange_action_server.cpp:8` - Updated node name and topic name
+- `src/mtc_orchestrator_action_server.cpp:58-61` - Updated 3 topic names
+- `CMakeLists.txt` - Updated 6 locations
+- `launch/modular_action_servers.launch.py` - Updated all executable and node names (lines 34-56, 80-84)
+
+**Result - All naming is now consistent with snake_case using underscores:**
+
+**Executables:**
+- ✅ `end_effector_action_server`
+- ✅ `move_to_action_server`
+- ✅ `pick_place_action_server`
+- ✅ `tool_exchange_action_server`
+
+**Node names:**
+- ✅ `"end_effector_action_server"`
+- ✅ `"move_to_action_server"`
+- ✅ `"pick_place_action_server"`
+- ✅ `"tool_exchange_action_server"`
+
+**Topic names:**
+- ✅ `"end_effector_action"`
+- ✅ `"move_to_action"`
+- ✅ `"pick_place_action"`
+- ✅ `"tool_exchange_action"`
 
 ---
 
@@ -400,10 +431,10 @@ After each fix:
 ## Progress Tracking
 
 **Critical:** 2/3 complete ✅ (1 deferred)
-**Important:** 0/5 complete
+**Important:** 2/5 complete ✅
 **Nice to Have:** 0/12 complete
 
-**Total:** 2/20 complete (10%) + 1 deferred
+**Total:** 4/20 complete (20%) + 1 deferred
 
 ---
 

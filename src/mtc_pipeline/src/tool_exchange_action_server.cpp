@@ -5,7 +5,7 @@
 class ToolExchangeActionServer : public BaseActionServer<mtc_pipeline::action::ToolExchangeAction, ToolExchangeStages>
 {
 public:
-    ToolExchangeActionServer() : BaseActionServer("toolexchange_action_server", "toolexchange_action") {}
+    ToolExchangeActionServer() : BaseActionServer("tool_exchange_action_server", "tool_exchange_action") {}
 
 protected:
     nlohmann::json goal_to_step(const mtc_pipeline::action::ToolExchangeAction::Goal& goal) override

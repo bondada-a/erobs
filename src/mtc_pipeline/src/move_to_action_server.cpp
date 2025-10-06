@@ -1,11 +1,11 @@
 #include "mtc_pipeline/base_action_server.hpp"
-#include "mtc_pipeline/moveto_stages.hpp"
+#include "mtc_pipeline/move_to_stages.hpp"
 #include "mtc_pipeline/action/move_to_action.hpp"
 
 class MoveToActionServer : public BaseActionServer<mtc_pipeline::action::MoveToAction, MoveToStages>
 {
 public:
-    MoveToActionServer() : BaseActionServer("moveto_action_server", "moveto_action") {}
+    MoveToActionServer() : BaseActionServer("move_to_action_server", "move_to_action") {}
 
 protected:
     nlohmann::json goal_to_step(const mtc_pipeline::action::MoveToAction::Goal& goal) override

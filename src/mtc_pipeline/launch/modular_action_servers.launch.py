@@ -31,26 +31,26 @@ def generate_launch_description():
     ]
 
     # Modular Action Servers - connect to MoveIt managed by orchestrator
-    pickplace_action_server = Node(
+    pick_place_action_server = Node(
         package='mtc_pipeline',
-        executable='pickplace_action_server',
-        name='pickplace_action_server',
+        executable='pick_place_action_server',
+        name='pick_place_action_server',
         output='screen',
         parameters=action_server_parameters
     )
 
-    toolexchange_action_server = Node(
+    tool_exchange_action_server = Node(
         package='mtc_pipeline',
-        executable='toolexchange_action_server',
-        name='toolexchange_action_server',
+        executable='tool_exchange_action_server',
+        name='tool_exchange_action_server',
         output='screen',
         parameters=action_server_parameters
     )
 
-    moveto_action_server = Node(
+    move_to_action_server = Node(
         package='mtc_pipeline',
-        executable='moveto_action_server',
-        name='moveto_action_server',
+        executable='move_to_action_server',
+        name='move_to_action_server',
         output='screen',
         parameters=action_server_parameters
     )
@@ -77,9 +77,9 @@ def generate_launch_description():
 
     return LaunchDescription([
         robot_ip_arg,
-        pickplace_action_server,
-        toolexchange_action_server,
-        moveto_action_server,
+        pick_place_action_server,
+        tool_exchange_action_server,
+        move_to_action_server,
         end_effector_action_server,
         orchestrator,
     ])

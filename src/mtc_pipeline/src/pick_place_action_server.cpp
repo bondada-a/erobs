@@ -5,7 +5,7 @@
 class PickPlaceActionServer : public BaseActionServer<mtc_pipeline::action::PickPlaceAction, PickPlaceStages>
 {
 public:
-    PickPlaceActionServer() : BaseActionServer("pickplace_action_server", "pickplace_action") {}
+    PickPlaceActionServer() : BaseActionServer("pick_place_action_server", "pick_place_action") {}
 
 protected:
     nlohmann::json goal_to_step(const mtc_pipeline::action::PickPlaceAction::Goal& goal) override

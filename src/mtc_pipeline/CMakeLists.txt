@@ -43,7 +43,7 @@ add_library(mtc_pipeline_core
   src/base_stages.cpp
   src/pick_place_stages.cpp
   src/tool_exchange_stages.cpp
-  src/moveto_stages.cpp
+  src/move_to_stages.cpp
   src/end_effector_stages.cpp
 )
 ament_target_dependencies(mtc_pipeline_core
@@ -64,9 +64,9 @@ include_directories(include)
 
 add_executable(mtc_orchestrator_action_server src/mtc_orchestrator_action_server.cpp)
 add_executable(mtc_action_client_example src/mtc_action_client_example.cpp)
-add_executable(pickplace_action_server src/pickplace_action_server.cpp)
-add_executable(toolexchange_action_server src/toolexchange_action_server.cpp)
-add_executable(moveto_action_server src/moveto_action_server.cpp)
+add_executable(pick_place_action_server src/pick_place_action_server.cpp)
+add_executable(tool_exchange_action_server src/tool_exchange_action_server.cpp)
+add_executable(move_to_action_server src/move_to_action_server.cpp)
 add_executable(end_effector_action_server src/end_effector_action_server.cpp)
 
 
@@ -75,32 +75,32 @@ rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_t
 
 ament_target_dependencies(mtc_orchestrator_action_server ${ORCHESTRATOR_DEPS})
 ament_target_dependencies(mtc_action_client_example rclcpp rclcpp_action)
-ament_target_dependencies(pickplace_action_server ${MODULAR_ACTION_SERVER_DEPS})
-ament_target_dependencies(toolexchange_action_server ${MODULAR_ACTION_SERVER_DEPS})
-ament_target_dependencies(moveto_action_server ${MODULAR_ACTION_SERVER_DEPS})
+ament_target_dependencies(pick_place_action_server ${MODULAR_ACTION_SERVER_DEPS})
+ament_target_dependencies(tool_exchange_action_server ${MODULAR_ACTION_SERVER_DEPS})
+ament_target_dependencies(move_to_action_server ${MODULAR_ACTION_SERVER_DEPS})
 ament_target_dependencies(end_effector_action_server ${MODULAR_ACTION_SERVER_DEPS})
 
-# Link Libraries 
+# Link Libraries
 target_link_libraries(mtc_orchestrator_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 target_link_libraries(mtc_action_client_example "${cpp_typesupport_target}" nlohmann_json::nlohmann_json)
-target_link_libraries(pickplace_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
-target_link_libraries(toolexchange_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
-target_link_libraries(moveto_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
+target_link_libraries(pick_place_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
+target_link_libraries(tool_exchange_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
+target_link_libraries(move_to_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 target_link_libraries(end_effector_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 
 target_compile_features(mtc_orchestrator_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(mtc_action_client_example PUBLIC c_std_99 cxx_std_17)
-target_compile_features(pickplace_action_server PUBLIC c_std_99 cxx_std_17)
-target_compile_features(toolexchange_action_server PUBLIC c_std_99 cxx_std_17)
-target_compile_features(moveto_action_server PUBLIC c_std_99 cxx_std_17)
+target_compile_features(pick_place_action_server PUBLIC c_std_99 cxx_std_17)
+target_compile_features(tool_exchange_action_server PUBLIC c_std_99 cxx_std_17)
+target_compile_features(move_to_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(end_effector_action_server PUBLIC c_std_99 cxx_std_17)
 
 install(TARGETS
   mtc_orchestrator_action_server
   mtc_action_client_example
-  pickplace_action_server
-  toolexchange_action_server
-  moveto_action_server
+  pick_place_action_server
+  tool_exchange_action_server
+  move_to_action_server
   end_effector_action_server
   DESTINATION lib/${PROJECT_NAME}
 )
