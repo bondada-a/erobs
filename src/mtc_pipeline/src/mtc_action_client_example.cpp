@@ -8,6 +8,7 @@
 #include <signal.h>
 #include <atomic>
 
+using namespace std::chrono_literals;
 using MTCExecution = mtc_pipeline::action::MTCExecution;
 using GoalHandleMTCExecution = rclcpp_action::ClientGoalHandle<MTCExecution>;
 
@@ -24,7 +25,7 @@ class MTCActionClient : public rclcpp::Node {
 public:
     enum class Result { Success = 0, Failure = 1, Cancelled = 2 };
 
-    explicit MTCActionClient(std::chrono::seconds timeout = std::chrono::seconds(300))
+    explicit MTCActionClient(std::chrono::seconds timeout = 300s)
         : Node("mtc_action_client"), timeout_(timeout) {
         action_client_ = rclcpp_action::create_client<MTCExecution>(this, "mtc_execution");
     }
@@ -34,7 +35,7 @@ public:
      * @param timeout How long to wait for the server
      * @return true if server is available, false if timeout
      */
-    bool wait_for_server(std::chrono::seconds timeout = std::chrono::seconds(10)) {
+    bool wait_for_server(std::chrono::seconds timeout = 10s) {
         return action_client_->wait_for_action_server(timeout);
     }
 
@@ -95,7 +96,7 @@ private:
         auto goal_handle_future = action_client_->async_send_goal(goal, send_goal_options);
         auto node = shared_from_this();
 
-        auto status = rclcpp::spin_until_future_complete(node, goal_handle_future, std::chrono::seconds(10));
+        auto status = rclcpp::spin_until_future_complete(node, goal_handle_future, 10s);
         if (status != rclcpp::FutureReturnCode::SUCCESS) {
             RCLCPP_ERROR(get_logger(), "Failed to send goal (timeout or error)");
             return nullptr;
@@ -118,7 +119,7 @@ private:
         auto result_future = action_client_->async_get_result(goal_handle);
         auto node = shared_from_this();
 
-        const auto check_interval = std::chrono::milliseconds(100);
+        const auto check_interval = 100ms;
         auto start_time = std::chrono::steady_clock::now();
 
         while (true) {
@@ -169,7 +170,7 @@ private:
         auto cancel_future = action_client_->async_cancel_goal(goal_handle);
         auto node = shared_from_this();
 
-        auto status = rclcpp::spin_until_future_complete(node, cancel_future, std::chrono::seconds(5));
+        auto status = rclcpp::spin_until_future_complete(node, cancel_future, 5s);
 
         if (status == rclcpp::FutureReturnCode::SUCCESS) {
             auto cancel_response = cancel_future.get();
@@ -249,7 +250,7 @@ int main(int argc, char** argv) {
 
     // Wait for the action server to become available
     RCLCPP_INFO(client->get_logger(), "Waiting for action server...");
-    if (!client->wait_for_server(std::chrono::seconds(10))) {
+    if (!client->wait_for_server(10s)) {
         RCLCPP_ERROR(client->get_logger(), "Action server not available after 10 seconds");
         rclcpp::shutdown();
         return 1;

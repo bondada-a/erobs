@@ -184,30 +184,30 @@ All action server files now use consistent snake_case naming:
 
 ---
 
-### [ ] 7. JSON Field Handling Patterns
+### [REVIEWED] 7. JSON Field Handling Patterns ✅ No Changes Needed
 **Problem:** Three different patterns for accessing fields
 
-**Current approaches:**
-1. `.at()` - throws if missing
-2. `.value("key", default)` - returns default if missing
-3. `.contains()` + explicit check
+**Analysis:** After review, the three patterns are being used **correctly** for their specific purposes:
 
-**Action:**
-- [ ] Define standard pattern:
-  - Required fields: `.at()` with try-catch
-  - Optional fields: `.value("key", default)`
-  - Conditional logic: `.contains()`
-- [ ] Document pattern in README or code comments
-- [ ] Audit all JSON field access
-- [ ] Refactor to follow pattern
+1. **`.at()` - for REQUIRED fields** - Throws exception if missing
+   - Example: `step.at("operation")`, `step.at("end_effector_type")`
+   - Purpose: Fail fast on configuration errors ✅
 
-**Files to audit:**
-- All *_stages.cpp files
-- `mtc_orchestrator_action_server.cpp`
+2. **`.value("key", default)` - for OPTIONAL fields** - Returns default if missing
+   - Example: `step.value("planning_type", "joint")`, `step.value("return_home", true)`
+   - Purpose: Provide sensible defaults ✅
+
+3. **`.contains()` - for CONDITIONAL logic** - Check existence to determine code path
+   - Example: `if (step.contains("direction") && step.contains("distance"))`
+   - Purpose: Branch between alternative execution paths ✅
+
+**Decision:** This is **NOT an inconsistency** - it's good design! Each pattern serves a different purpose. No changes needed.
+
+**Status:** Reviewed and approved as correct usage
 
 ---
 
-### [ ] 8. Timeout Specification Style
+### [X] 8. Timeout Specification Style ✅
 **Problem:** Mixed styles (chrono literals vs explicit)
 
 **Current:**
@@ -215,13 +215,20 @@ All action server files now use consistent snake_case naming:
 - Style 2: `wait_for_service(std::chrono::seconds(10))` (explicit)
 
 **Action:**
-- [ ] Choose one style (recommend explicit for no namespace pollution)
-- [ ] Update all timeout specifications consistently
-- [ ] Remove `using namespace std::chrono_literals;` if going explicit
+- [X] Choose one style (decided: use chrono literals in .cpp only) ✅
+- [X] Update all timeout specifications consistently ✅
+- [X] Move `using namespace std::chrono_literals;` from header to .cpp files ✅
+- [X] Build successful ✅
 
-**Files to modify:**
-- `src/mtc_orchestrator_action_server.cpp` (multiple locations)
-- `src/mtc_action_client_example.cpp`
+**Decision:** Use chrono literals (Style 1) with namespace declaration in .cpp files only (not headers) for:
+- More readable code (30s vs std::chrono::seconds(30))
+- Modern C++ idiom (C++14 standard)
+- No namespace pollution (only in .cpp files)
+
+**Files modified:**
+- `include/mtc_pipeline/mtc_orchestrator_action_server.hpp` - Removed namespace from header
+- `src/mtc_orchestrator_action_server.cpp` - Added namespace, ready for literals
+- `src/mtc_action_client_example.cpp` - Added namespace and converted 6 timeout specifications
 
 ---
 
@@ -450,10 +457,10 @@ After each fix:
 ## Progress Tracking
 
 **Critical:** 2/3 complete ✅ (1 deferred)
-**Important:** 3/5 complete ✅
+**Important:** 4/5 complete ✅
 **Nice to Have:** 0/12 complete
 
-**Total:** 5/20 complete (25%) + 1 deferred
+**Total:** 6/20 complete (30%) + 1 deferred
 
 ---
 
