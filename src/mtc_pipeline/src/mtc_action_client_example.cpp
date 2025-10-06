@@ -45,7 +45,7 @@ public:
      * @param robot_ip IP address of the robot
      * @return 0 = success, 1 = failed, 2 = cancelled
      */
-    int execute_task(const std::string& json_file_path, const std::string& robot_ip = "192.168.1.101") {
+    int execute_task(const std::string& json_file_path, const std::string& robot_ip = "192.168.56.101") {
         auto goal_msg = create_goal(json_file_path, robot_ip);
         if (!goal_msg) {
             return static_cast<int>(Result::Failure);
@@ -233,13 +233,13 @@ int main(int argc, char** argv) {
     // Parse command line arguments
     if (argc < 2) {
         std::cout << "Usage: " << argv[0] << " <json_file_path> [robot_ip] [timeout_seconds]" << std::endl;
-        std::cout << "Example: " << argv[0] << " ./script.json 192.168.1.101 300" << std::endl;
+        std::cout << "Example: " << argv[0] << " ./script.json 192.168.56.101 300" << std::endl;
         std::cout << "Press Ctrl+C to cancel execution at any time" << std::endl;
         return 1;
     }
 
     std::string json_file = argv[1];
-    std::string robot_ip = (argc > 2) ? argv[2] : "192.168.1.101";
+    std::string robot_ip = (argc > 2) ? argv[2] : "192.168.56.101";
     int timeout_seconds = (argc > 3) ? std::stoi(argv[3]) : 300;
 
     // Setup signal handler for Ctrl+C
