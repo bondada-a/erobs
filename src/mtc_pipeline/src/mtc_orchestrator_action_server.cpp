@@ -331,8 +331,10 @@ bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& 
 bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& step, const std::string& poses_json) {
     return call_action_generic<PickPlaceAction>(pickplace_action_client_, "pick_and_place", step, poses_json, [](PickPlaceAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
         goal.gripper = step.value("gripper", "");
-        goal.pick_pose = step.value("pick_pose", "");
-        goal.place_pose = step.value("place_pose", "");
+        goal.pick_approach = step.value("pick_approach", "");
+        goal.pick_target = step.value("pick_target", "");
+        goal.place_approach = step.value("place_approach", "");
+        goal.place_target = step.value("place_target", "");
         goal.planning_type = step.value("planning_type", "joint");
         goal.poses_json = poses_json;
     });

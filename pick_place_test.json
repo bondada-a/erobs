@@ -15,15 +15,17 @@
   "tasks": [
     {
       "task_type": "moveto",
-      "target_type": "named_state",
       "target": "moveit_home",
       "planning_type": "joint"
     },
     {
       "task_type": "pick_and_place",
-      "pick_poses": ["pickup_approach", "pickup"],
-      "place_poses": ["place_approach", "place"],
-      "return_home": true
+      "gripper": "hande",
+      "pick_approach": "pickup_approach",
+      "pick_target": "pickup",
+      "place_approach": "place_approach",
+      "place_target": "place",
+      "planning_type": "joint"
     }
   ]
 }

@@ -12,13 +12,11 @@ protected:
     {
         nlohmann::json step;
         step["gripper"] = goal.gripper;
-        step["pick_pose"] = goal.pick_pose;
-        step["place_pose"] = goal.place_pose;
         step["planning_type"] = goal.planning_type;
 
-        // Create pick and place poses arrays for the stage
-        step["pick_poses"] = {goal.pick_pose + "_approach", goal.pick_pose};
-        step["place_poses"] = {goal.place_pose + "_approach", goal.place_pose};
+        // Use explicit approach and target poses (no magic suffix)
+        step["pick_poses"] = {goal.pick_approach, goal.pick_target};
+        step["place_poses"] = {goal.place_approach, goal.place_target};
 
         return step;
     }
