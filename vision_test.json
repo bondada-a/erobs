@@ -1,0 +1,24 @@
+{
+  "robot_ip": "192.168.56.101",
+  "start_gripper": "epick",
+  "poses_json": "{}",
+  "steps": [
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 0,
+      "approach_distance": 0.1,
+      "timeout": 10.0,
+      "approach_direction": "z",
+      "use_preset_height": true,
+      "preset_height": 0.15
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 1,
+      "approach_distance": 0.15,
+      "timeout": 5.0,
+      "approach_direction": "-z",
+      "use_preset_height": false
+    }
+  ]
+}

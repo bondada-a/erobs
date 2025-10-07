@@ -1,0 +1,41 @@
+# AprilTag Detection Configuration
+apriltag_detector:
+  ros__parameters:
+    # Tag family - common options: tag36h11, tag25h9, tag16h5
+    tag_family: "tag36h11"
+
+    # Size of the tag edge in meters (important for pose estimation)
+    tag_edge_size: 0.05  # 50mm tags
+
+    # Camera parameters (will be overridden by camera_info topic)
+    camera_frame: "zivid_optical_frame"
+    publish_tf: true
+
+    # Detection parameters
+    max_hamming_distance: 0  # Maximum bit errors allowed (0 = perfect match required)
+    decimate_factor: 1.0      # Reduce image resolution for faster processing (1.0 = full res)
+    blur_sigma: 0.0           # Gaussian blur to reduce noise (0.0 = no blur)
+    refine_edges: true        # Refine tag edges for better accuracy
+    refine_decode: false      # Additional decoding refinement
+    refine_pose: true         # Refine pose estimation
+    debug_mode: false         # Enable visualization/debug output
+
+    # Thread tuning (for performance)
+    num_threads: 4
+
+# Tag definitions - specify size for each tag ID if they differ
+# This is useful when different objects have different tag sizes
+tag_sizes:
+  0: 0.05   # Tag 0: 50mm
+  1: 0.05   # Tag 1: 50mm
+  2: 0.08   # Tag 2: 80mm (larger tag for bigger objects)
+  3: 0.03   # Tag 3: 30mm (smaller tag for small objects)
+
+# Known tag locations (optional) - for calibration or fixed tags
+# Format: [x, y, z, qx, qy, qz, qw]
+known_tags:
+  # Example: Tag 100 is fixed on the table for calibration
+  100:
+    frame_id: "base_link"
+    position: [0.5, 0.0, 0.0]
+    orientation: [0.0, 0.0, 0.0, 1.0]

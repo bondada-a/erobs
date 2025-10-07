@@ -1,0 +1,21 @@
+# Goal: What tag to detect and how to approach it
+int32 tag_id                      # AprilTag ID to detect
+float64 approach_distance 0.1      # Distance from tag to stop (meters)
+float64 timeout 5.0                # Detection timeout (seconds)
+string approach_direction "z"      # Which direction to approach from (x/y/z/-x/-y/-z)
+bool use_preset_height false       # Use a fixed Z height instead of tag's Z
+float64 preset_height 0.15         # Fixed height if use_preset_height is true
+
+---
+# Result: Success and final pose
+bool success
+string error_message
+geometry_msgs/PoseStamped final_pose  # Final robot pose after movement
+float64 tag_distance               # Final distance to tag
+
+---
+# Feedback: Detection and movement progress
+bool tag_detected
+geometry_msgs/PoseStamped tag_pose    # Detected tag pose in robot frame
+float32 progress_percentage
+string status_message

@@ -61,6 +61,7 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
         endeffector_action_client_ = rclcpp_action::create_client<EndEffectorAction>(this, "end_effector_action");
         toolexchange_action_client_ = rclcpp_action::create_client<ToolExchangeAction>(this, "tool_exchange_action");
         pickplace_action_client_ = rclcpp_action::create_client<PickPlaceAction>(this, "pick_place_action");
+        vision_action_client_ = rclcpp_action::create_client<VisionMoveToAction>(this, "vision_move_to_action");
 
         RCLCPP_INFO(this->get_logger(), "MTC Orchestrator Action Server started");
     }
@@ -190,6 +191,7 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& task_type, con
     if (task_type == "pick_and_place") return call_pickplace_action(step, poses_json);
     if (task_type == "moveto") return call_moveto_action(step, poses_json);
     if (task_type == "end_effector") return call_endeffector_action(step, poses_json);
+    if (task_type == "vision_moveto") return call_vision_action(step, poses_json);
 
     return false;
 }
@@ -350,6 +352,17 @@ bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& st
         goal.place_target = step.value("place_target", "");
         goal.planning_type = step.value("planning_type", "joint");
         goal.poses_json = poses_json;
+    });
+}
+
+bool MTCOrchestratorActionServer::call_vision_action(const nlohmann::json& step, const std::string& poses_json) {
+    return call_action_generic<VisionMoveToAction>(vision_action_client_, "vision_moveto", step, poses_json, [](VisionMoveToAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
+        goal.tag_id = step.value("tag_id", 0);
+        goal.approach_distance = step.value("approach_distance", 0.1);
+        goal.timeout = step.value("timeout", 5.0);
+        goal.approach_direction = step.value("approach_direction", "z");
+        goal.use_preset_height = step.value("use_preset_height", false);
+        goal.preset_height = step.value("preset_height", 0.15);
     });
 }
 

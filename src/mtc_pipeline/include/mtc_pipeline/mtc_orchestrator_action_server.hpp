@@ -33,6 +33,7 @@ class SimpleProcessManager;
 #include "mtc_pipeline/action/end_effector_action.hpp"
 #include "mtc_pipeline/action/tool_exchange_action.hpp"
 #include "mtc_pipeline/action/pick_place_action.hpp"
+#include "mtc_pipeline/action/vision_move_to_action.hpp"
 
 using MTCExecution = mtc_pipeline::action::MTCExecution;
 using GoalHandleMTCExecution = rclcpp_action::ServerGoalHandle<MTCExecution>;
@@ -40,6 +41,7 @@ using MoveToAction = mtc_pipeline::action::MoveToAction;
 using EndEffectorAction = mtc_pipeline::action::EndEffectorAction;
 using ToolExchangeAction = mtc_pipeline::action::ToolExchangeAction;
 using PickPlaceAction = mtc_pipeline::action::PickPlaceAction;
+using VisionMoveToAction = mtc_pipeline::action::VisionMoveToAction;
 
 
 class MTCOrchestratorActionServer : public rclcpp::Node
@@ -62,6 +64,7 @@ private:
     rclcpp_action::Client<EndEffectorAction>::SharedPtr endeffector_action_client_;
     rclcpp_action::Client<ToolExchangeAction>::SharedPtr toolexchange_action_client_;
     rclcpp_action::Client<PickPlaceAction>::SharedPtr pickplace_action_client_;
+    rclcpp_action::Client<VisionMoveToAction>::SharedPtr vision_action_client_;
     
     
 
@@ -101,6 +104,7 @@ private:
     bool call_endeffector_action(const nlohmann::json& step, const std::string& poses_json);
     bool call_toolexchange_action(const nlohmann::json& step, const std::string& poses_json);
     bool call_pickplace_action(const nlohmann::json& step, const std::string& poses_json);
+    bool call_vision_action(const nlohmann::json& step, const std::string& poses_json);
 
     // Helper functions for execute_step
     bool handle_tool_exchange(const nlohmann::json& step, const std::string& poses_json, const std::string& robot_ip);

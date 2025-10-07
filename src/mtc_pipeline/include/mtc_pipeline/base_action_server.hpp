@@ -7,6 +7,7 @@
 #include <string>
 #include <thread>
 #include <functional>
+#include <type_traits>
 
 template<typename ActionType, typename StagesType>
 class BaseActionServer : public rclcpp::Node
@@ -68,6 +69,24 @@ private:
         std::thread{[self, goal_handle]() { self->execute(goal_handle); }}.detach();
     }
 
+    // Helper to get poses_json if it exists
+    template<typename T>
+    nlohmann::json get_poses_json(const T& goal, std::true_type) {
+        return nlohmann::json::parse(goal.poses_json);
+    }
+
+    template<typename T>
+    nlohmann::json get_poses_json(const T&, std::false_type) {
+        return nlohmann::json::object();
+    }
+
+    // SFINAE helper to detect if poses_json exists
+    template<typename T, typename = void>
+    struct has_poses_json : std::false_type {};
+
+    template<typename T>
+    struct has_poses_json<T, std::void_t<decltype(std::declval<T>().poses_json)>> : std::true_type {};
+
     void execute(const std::shared_ptr<GoalHandle> goal_handle)
     {
         RCLCPP_INFO(this->get_logger(), "Executing goal");
@@ -79,10 +98,10 @@ private:
             // Convert goal to step JSON using derived class implementation
             nlohmann::json step = goal_to_step(*goal);
 
-            // Parse poses JSON with explicit error handling
+            // Parse poses JSON if available
             nlohmann::json poses;
             try {
-                poses = nlohmann::json::parse(goal->poses_json);
+                poses = get_poses_json(*goal, has_poses_json<typename ActionType::Goal>{});
             } catch (const nlohmann::json::exception& e) {
                 RCLCPP_ERROR(this->get_logger(), "Invalid poses JSON: %s", e.what());
                 result->success = false;
