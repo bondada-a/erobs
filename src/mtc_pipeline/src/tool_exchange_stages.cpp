@@ -61,7 +61,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     }
 
     // Execute tool loading sequence
-    auto attach_stage = create_relative_move_stage("attach_tool", "forward", 0.1, cartesian_planner);
+    auto attach_stage = create_relative_move_stage("attach_tool", "forward", 0.2, cartesian_planner);
     attach_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
     task.add(std::move(attach_stage));
 
@@ -109,7 +109,7 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
     detach_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
     task.add(std::move(detach_stage));
 
-    auto dock_stage = create_relative_move_stage("dock connect", "backward", 0.1, cartesian_planner);
+    auto dock_stage = create_relative_move_stage("dock connect", "backward", 0.2, cartesian_planner);
     dock_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
     task.add(std::move(dock_stage));
   }
