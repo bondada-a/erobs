@@ -15,6 +15,16 @@ bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& p
   const int dock_number = step.value("dock_number", 3);
   const std::string approach_pose = step.at("approach_pose");
 
+  // Calculate lateral offset to align with specific dock
+  // Assumption: approach_pose is aligned with Dock 3 (reference dock)
+  // Docks are spaced 6 inches (0.1524m) apart horizontally
+  // Dock numbering: 1 2 3 4 5 (lower numbers = right, higher = left)
+  // Examples:
+  //   Dock 1: offset = +0.3048m (shift RIGHT 12 inches from Dock 3)
+  //   Dock 2: offset = +0.1524m (shift RIGHT 6 inches from Dock 3)
+  //   Dock 3: offset = 0.0m     (NO SHIFT - reference position)
+  //   Dock 4: offset = -0.1524m (shift LEFT 6 inches from Dock 3)
+  //   Dock 5: offset = -0.3048m (shift LEFT 12 inches from Dock 3)
   const double dock_offset_y = DOCK_SPACING_METERS * static_cast<double>(3 - dock_number);
   const std::string task_name = (operation == "load") ? "Load Tool Task" :
                                  (operation == "dock") ? "Dock Tool Task" :

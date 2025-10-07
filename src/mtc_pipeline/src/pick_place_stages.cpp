@@ -89,26 +89,32 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   // 1. Open gripper
   task.add(make_gripper_stage("open gripper", gripper_planner, true));
 
-  // 2. Move to pickup approach
+  // 2. Move to pickup approach (with wrist constraint to prevent tilt)
   {
     auto stage = make_move_to_named_stage("pickup approach", pick_approach, poses, pipeline_planner);
     if (!stage) return false;
+    if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
+      move_to_stage->setPathConstraints(createWrist3Constraint());
+    }
     task.add(std::move(stage));
   }
 
-  // 3. Move to pickup position
+  // 3. Move to pickup position (with wrist constraint to prevent tilt)
   {
-    auto stage = make_move_to_named_stage("pickup", pick_target, poses, cartesian_planner);
+    auto stage = make_move_to_named_stage("pickup", pick_target, poses, pipeline_planner);
     if (!stage) return false;
+    if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
+      move_to_stage->setPathConstraints(createWrist3Constraint());
+    }
     task.add(std::move(stage));
   }
 
   // 4. Close gripper
   task.add(make_gripper_stage("close gripper", gripper_planner, false));
 
-  // 5. Pickup retreat (with wrist constraint to keep wrist orientation)
+  // 5. Pickup retreat (with wrist constraint to prevent tilt while holding object)
   {
-    auto stage = make_move_to_named_stage("pickup retreat", pick_approach, poses, cartesian_planner);
+    auto stage = make_move_to_named_stage("pickup retreat", pick_approach, poses, pipeline_planner);
     if (!stage) return false;
     if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
       move_to_stage->setPathConstraints(createWrist3Constraint());
@@ -124,19 +130,21 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   {
     auto stage = make_move_to_named_stage("place approach", place_approach, poses, pipeline_planner);
     if (!stage) return false;
-    if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
-      move_to_stage->setPathConstraints(createWrist3Constraint());
-    }
+    // TEMPORARILY DISABLED: Testing if wrist constraint causes issues
+    // if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
+    //   move_to_stage->setPathConstraints(createWrist3Constraint());
+    // }
     task.add(std::move(stage));
   }
 
   // 7. Move to place position (with wrist constraint)
   {
-    auto stage = make_move_to_named_stage("place", place_target, poses, cartesian_planner);
+    auto stage = make_move_to_named_stage("place", place_target, poses, pipeline_planner);
     if (!stage) return false;
-    if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
-      move_to_stage->setPathConstraints(createWrist3Constraint());
-    }
+    // TEMPORARILY DISABLED: Testing if wrist constraint causes issues
+    // if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
+    //   move_to_stage->setPathConstraints(createWrist3Constraint());
+    // }
     task.add(std::move(stage));
   }
 
@@ -145,7 +153,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
 
   // 9. Place retreat
   {
-    auto stage = make_move_to_named_stage("place retreat", place_approach, poses, cartesian_planner);
+    auto stage = make_move_to_named_stage("place retreat", place_approach, poses, pipeline_planner);
     if (!stage) return false;
     task.add(std::move(stage));
   }
