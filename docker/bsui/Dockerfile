@@ -62,6 +62,9 @@ RUN chmod +x /bin/bsui
 RUN apt-get update && apt-get install -y fontconfig 
 RUN mkdir /root/.ipython
 
+WORKDIR /root/ws/
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio"
+
 # Clean up
 # TODO (maffettone): this image is rather large, there may be some source and build files we can clean up here. 
 RUN apt-get autoremove -y \
