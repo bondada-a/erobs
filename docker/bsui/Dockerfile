@@ -72,7 +72,7 @@ RUN apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Bluesky environment variables
-ENV BS_ENV="/nsls2/conda/envs/2025-2.2-py312-tiled"
+ENV BS_ENV="/nsls2/conda/envs/2025-2.2-py310-tiled"
 ENV BS_PROFILE="collection"
 
 # Start a shell session with BSUI when we run the container
