@@ -13,12 +13,7 @@ protected:
   nlohmann::json goal_to_step(const VisionMoveToAction::Goal& goal) override {
     nlohmann::json step;
     step["tag_id"] = goal.tag_id;
-    step["approach_distance"] = goal.approach_distance;
     step["timeout"] = goal.timeout;
-    step["approach_direction"] = goal.approach_direction;
-    step["use_preset_height"] = goal.use_preset_height;
-    step["preset_height"] = goal.preset_height;
-    step["planning_type"] = "joint";  // Default to joint planning
     return step;
   }
 };

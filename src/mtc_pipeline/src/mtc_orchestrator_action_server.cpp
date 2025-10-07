@@ -358,11 +358,7 @@ bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& st
 bool MTCOrchestratorActionServer::call_vision_action(const nlohmann::json& step, const std::string& poses_json) {
     return call_action_generic<VisionMoveToAction>(vision_action_client_, "vision_moveto", step, poses_json, [](VisionMoveToAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
         goal.tag_id = step.value("tag_id", 0);
-        goal.approach_distance = step.value("approach_distance", 0.1);
         goal.timeout = step.value("timeout", 5.0);
-        goal.approach_direction = step.value("approach_direction", "z");
-        goal.use_preset_height = step.value("use_preset_height", false);
-        goal.preset_height = step.value("preset_height", 0.15);
     });
 }
 
