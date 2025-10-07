@@ -73,4 +73,4 @@ ENV BS_ENV="/nsls2/conda/envs/2025-2.2-py312-tiled"
 ENV BS_PROFILE="collection"
 
 # Start a shell session with BSUI when we run the container
-CMD ["/bin/bash", "-c", ".  /opt/ros/${ROS_DISTRO}/setup.bash &&  . /root/ws/install/setup.bash && bsui"]
+CMD ["/bin/bash", "-c", ".  /opt/ros/${ROS_DISTRO}/setup.bash &&  . /root/ws/erobs/install/setup.bash && bsui"]
