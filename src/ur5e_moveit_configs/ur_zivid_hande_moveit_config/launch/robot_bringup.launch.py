@@ -118,6 +118,17 @@ def generate_launch_description():
         arguments=["gripper_action_controller", "-c", "/controller_manager"],
     )
 
+    # Shared planning scene
+    scene_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare("erobs_planning_scene"),
+                "launch",
+                "load_scene.launch.py"
+            ])
+        ])
+    )
+
 
     return LaunchDescription([
         ## arguments 
@@ -136,4 +147,5 @@ def generate_launch_description():
         rviz_node,
         robot_state_publisher,
         hande_controller_spawner,
+        scene_launch,
     ])

@@ -20,18 +20,14 @@ RUN apt-get update && apt-get install -y \
 RUN pip3 install numpy rosdep && \
   rosdep update
 
-ARG GITHUB_TOKEN
-RUN mkdir /root/ws/src -p
-WORKDIR  /root/ws/src
-RUN git clone https://maffettone:${GITHUB_TOKEN}@github.com/maffettone/erobs.git -b humble
-WORKDIR  /root/ws/
-RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash  && \
-  rosdep install -r --from-paths . --ignore-src --rosdistro $ROS_DISTRO -y"
-WORKDIR  /root/ws/src
-RUN git clone https://maffettone:${GITHUB_TOKEN}@github.com/ChandimaFernando/ERoBS_ur3e.git -b action_client_basic
-WORKDIR  /root/ws/
-RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && \
-  colcon build --packages-select hello_moveit_interfaces custom_msgs"
+
+RUN mkdir /root/ws -p
+WORKDIR /root/ws
+
+RUN git clone https://github.com/bondada-a/erobs.git -b zivid_integration
+
+WORKDIR /root/ws/erobs/
+RUN /bin/bash -c ". ./setup.sh"
 
 
 # This is an exit hatch for testing when conda envs not avail
@@ -73,7 +69,7 @@ RUN apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Bluesky environment variables
-ENV BS_ENV="/nsls2/conda/envs/2023-2.1-py310-tiled"
+ENV BS_ENV="/nsls2/conda/envs/2025-2.2-py312-tiled"
 ENV BS_PROFILE="collection"
 
 # Start a shell session with BSUI when we run the container

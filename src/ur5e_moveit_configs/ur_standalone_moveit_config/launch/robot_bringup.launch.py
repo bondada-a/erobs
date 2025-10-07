@@ -111,6 +111,16 @@ def generate_launch_description():
         parameters=[moveit_config.robot_description],
     )
 
+    # Shared planning scene
+    scene_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare("erobs_planning_scene"),
+                "launch",
+                "load_scene.launch.py"
+            ])
+        ])
+    )
 
     return LaunchDescription([
         ## arguments 
@@ -128,6 +138,7 @@ def generate_launch_description():
         run_move_group_node,
         rviz_node,
         robot_state_publisher,
+        scene_launch,
     ])
 
     

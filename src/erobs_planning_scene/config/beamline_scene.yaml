@@ -1,0 +1,58 @@
+# Shared planning scene for all MoveIt configurations
+# All obstacles that should be present regardless of end-effector
+
+obstacles:
+  # Work table / platform
+  - name: "table"
+    type: "box"
+    frame: "map"
+    pose:
+      x: 0.0
+      y: 0.0
+      z: -0.05
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    size: [2.0, 2.0, 0.1]  # [length, width, height] in meters
+
+  # Hutch/enclosure wall
+  - name: "hutch_wall"
+    type: "box"
+    frame: "map"
+    pose:
+      x: 0.0
+      y: -0.6
+      z: 0.5
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    size: [2.0, 0.05, 1.0]
+
+  # Tool dock rack structure
+  - name: "tool_dock_rack"
+    type: "box"
+    frame: "map"
+    pose:
+      x: 0.5
+      y: 0.5
+      z: 0.2
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    size: [0.3, 0.3, 0.4]
+
+  # Sample area / measurement position
+  - name: "sample_platform"
+    type: "box"
+    frame: "map"
+    pose:
+      x: -0.4
+      y: 0.3
+      z: 0.1
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    size: [0.2, 0.2, 0.2]
+
+# Note: Add more obstacles as needed for your beamline setup
+# Supported types: box, cylinder, sphere
