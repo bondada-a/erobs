@@ -54,13 +54,11 @@
     <!-- This is where point clouds and images are measured from -->
     <link name="zivid_optical_frame"/>
 
-    <!-- Optical joint connecting camera body to optical center -->
-    <!-- Based on Zivid specifications - perform hand-eye calibration for precision -->
+    <!-- Optical joint - TEMPORARY: optical frame at camera body origin for testing -->
     <joint name="zivid_optical_joint" type="fixed">
       <parent link="zivid_camera"/>
       <child link="zivid_optical_frame"/>
-      <origin xyz="${optical_center_x} ${optical_center_y} ${optical_center_z}"
-              rpy="${-pi/2} 0 ${-pi/2 - optical_angle_deg*pi/180.0}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
     </joint>
 
   </xacro:macro>

@@ -1,13 +1,14 @@
 {
-  "start_gripper": "none",
+  "start_gripper": "hande",
   "poses": {
     "load_approach": [-67.51,-49.60,123.72,-164.22,-89.98,-67.08],
     "dock_approach": [-53.59, -43.65, 105.82, -152.27, -90.01, -53.15]},
   "tasks": [
     {
       "task_type": "moveto",
-      "target": "dock_approach",
-      "planning_type": "joint"
+      "direction": "forward",
+      "distance": 0.1,
+      "planning_type": "cartesian"
     }
   ]
 }

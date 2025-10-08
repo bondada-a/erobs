@@ -1,41 +1,48 @@
 # AprilTag Detection Configuration
+# Parameter reference: https://github.com/christianrauch/apriltag_ros
 apriltag_detector:
   ros__parameters:
-    # Tag family - common options: tag36h11, tag25h9, tag16h5
-    tag_family: "tag36h11"
+    # Tag family: 16h5, 25h9, 36h11, Circle21h7, etc.
+    family: 36h11
 
-    # Size of the tag edge in meters (important for pose estimation)
-    tag_edge_size: 0.05  # 50mm tags
+    # Default tag edge size in meters (used if not specified in tag.sizes)
+    size: 0.008  # 8mm tags (measured after printing)
 
-    # Camera parameters (will be overridden by camera_info topic)
-    camera_frame: "zivid_optical_frame"
-    publish_tf: true
+    # Image format
+    image_transport: raw
+
+    # Pose estimation method
+    pose_estimation_method: pnp
+
+    # Profiling
+    profile: false
+
+    # QoS overrides for image subscription (must match camera publisher)
+    qos_overrides:
+      /color/image_color:
+        subscription:
+          reliability: reliable
+          durability: volatile
+      /color/camera_info:
+        subscription:
+          reliability: reliable
+          durability: volatile
 
     # Detection parameters
-    max_hamming_distance: 0  # Maximum bit errors allowed (0 = perfect match required)
-    decimate_factor: 1.0      # Reduce image resolution for faster processing (1.0 = full res)
-    blur_sigma: 0.0           # Gaussian blur to reduce noise (0.0 = no blur)
-    refine_edges: true        # Refine tag edges for better accuracy
-    refine_decode: false      # Additional decoding refinement
-    refine_pose: true         # Refine pose estimation
-    debug_mode: false         # Enable visualization/debug output
+    max_hamming: 0  # Maximum allowed hamming distance (corrected bits)
 
-    # Thread tuning (for performance)
-    num_threads: 4
+    detector:
+      threads: 4          # Number of threads for detection
+      decimate: 1.0       # Decimate resolution for quad detection (1.0 = full res)
+      blur: 0.0           # Sigma of Gaussian blur for quad detection
+      refine: true        # Snap to strong gradients
+      sharpening: 0.25    # Sharpening of decoded images
+      debug: false        # Write debugging images to working directory
 
-# Tag definitions - specify size for each tag ID if they differ
-# This is useful when different objects have different tag sizes
-tag_sizes:
-  0: 0.05   # Tag 0: 50mm
-  1: 0.05   # Tag 1: 50mm
-  2: 0.08   # Tag 2: 80mm (larger tag for bigger objects)
-  3: 0.03   # Tag 3: 30mm (smaller tag for small objects)
-
-# Known tag locations (optional) - for calibration or fixed tags
-# Format: [x, y, z, qx, qy, qz, qw]
-known_tags:
-  # Example: Tag 100 is fixed on the table for calibration
-  100:
-    frame_id: "base_link"
-    position: [0.5, 0.0, 0.0]
-    orientation: [0.0, 0.0, 0.0, 1.0]
+    # Tag-specific configuration
+    # REQUIRED: tag.ids must be specified to publish TF transforms!
+    # If tag.ids is empty, detections work but NO TF is published
+    tag:
+      ids: [0, 1]              # Tag IDs for which to publish TF transforms
+      sizes: [0.008, 0.008]    # Tag-specific sizes (must match length of ids)
+      # frames: []             # Optional: custom frame names (omitted = use default tag36h11:X)
