@@ -122,16 +122,16 @@ def generate_launch_description():
         arguments=["epick_status_publisher_controller", "-c", "/controller_manager"],
     )
 
-    # Shared planning scene
-    scene_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare("erobs_planning_scene"),
-                "launch",
-                "load_scene.launch.py"
-            ])
-        ])
-    )
+    # Shared planning scene - TEMPORARILY DISABLED
+    # scene_launch = IncludeLaunchDescription(
+    #     PythonLaunchDescriptionSource([
+    #         PathJoinSubstitution([
+    #             FindPackageShare("erobs_planning_scene"),
+    #             "launch",
+    #             "load_scene.launch.py"
+    #         ])
+    #     ])
+    # )
 
 
     return LaunchDescription([
@@ -152,7 +152,7 @@ def generate_launch_description():
         robot_state_publisher,
         epick_controller_spawner,
         epick_status_controller_spawner,
-        scene_launch,
+        # scene_launch,  # TEMPORARILY DISABLED
     ])
 
     

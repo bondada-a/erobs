@@ -50,7 +50,5 @@ Make sure:
 
 ## Files
 - `src/vision_stages.cpp` - Core logic: detect tag, move to it
-- `src/mock_apriltag_detector.cpp` - Fake tag publisher for testing
-- `launch/vision_system.launch.py` - Real camera launch
-- `launch/vision_system_sim.launch.py` - Simulation launch
+- `launch/vision_system.launch.py` - Launch file for vision system
 - `scripts/test_vision.py` - Simple test script

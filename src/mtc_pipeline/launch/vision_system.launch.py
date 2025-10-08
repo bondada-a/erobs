@@ -38,8 +38,8 @@ def generate_launch_description():
             'apriltag_config.yaml'
         ])],
         remappings=[
-            ('image_rect', '/zivid_camera/color/image_raw'),
-            ('camera_info', '/zivid_camera/color/camera_info'),
+            ('image_rect', '/color/image_color'),
+            ('camera_info', '/color/camera_info'),
         ]
     )
 

@@ -19,6 +19,9 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
     }
   );
 
+  // Create service client for Zivid camera capture
+  capture_client_ = node->create_client<std_srvs::srv::Trigger>("/capture_2d");
+
   RCLCPP_INFO(node->get_logger(), "VisionStages initialized");
 }
 
@@ -27,6 +30,13 @@ bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
   // Parse minimal parameters
   const int tag_id = step.at("tag_id").get<int>();
   const double timeout = step.value("timeout", 5.0);
+
+  // Trigger Zivid camera capture
+  RCLCPP_INFO(node()->get_logger(), "Triggering camera capture...");
+  if (!trigger_capture()) {
+    RCLCPP_ERROR(node()->get_logger(), "Failed to trigger camera capture");
+    return false;
+  }
 
   RCLCPP_INFO(node()->get_logger(), "Detecting tag %d...", tag_id);
 
@@ -46,6 +56,36 @@ bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
 
   // Move to the detected pose
   return move_to_pose(*tag_pose_opt);
+}
+
+bool VisionStages::trigger_capture()
+{
+  // Wait for service
+  if (!capture_client_->wait_for_service(std::chrono::seconds(2))) {
+    RCLCPP_ERROR(node()->get_logger(), "Capture service not available");
+    return false;
+  }
+
+  // Call capture service
+  auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  auto future = capture_client_->async_send_request(request);
+
+  // Wait for result (Zivid captures can take ~1-2 seconds)
+  if (rclcpp::spin_until_future_complete(node(), future, std::chrono::seconds(5)) !=
+      rclcpp::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(node()->get_logger(), "Capture service call failed");
+    return false;
+  }
+
+  auto result = future.get();
+  if (!result->success) {
+    RCLCPP_ERROR(node()->get_logger(), "Capture failed: %s", result->message.c_str());
+    return false;
+  }
+
+  RCLCPP_INFO(node()->get_logger(), "Camera capture successful");
+  return true;
 }
 
 std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_tag(

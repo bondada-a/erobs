@@ -2,11 +2,20 @@
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="zivid_camera_mount">
 
   <!--
-    Zivid camera mount macro
+    Zivid 2 Plus MR60 camera mount macro
     - Modeled after tool_exchanger.xacro style
     - Parameters allow positioning/orientation relative to the parent link
+    - Includes optical frame for vision system compatibility
+    - Configured for Zivid 2 Plus MR60 (with M60 optics)
   -->
   <xacro:macro name="zivid_camera_mount" params="parent_link xyz:='0 0 0' rpy:='0 0 0' scale:='1.0' mass:='1.1'">
+
+    <!-- Optical center values for Zivid 2 Plus MR60 -->
+    <!-- From official Zivid specs - adjust after hand-eye calibration -->
+    <xacro:property name="optical_center_x" value="0.049" />
+    <xacro:property name="optical_center_y" value="0.03202" />
+    <xacro:property name="optical_center_z" value="0.0295" />
+    <xacro:property name="optical_angle_deg" value="2.5" />
 
     <link name="zivid_camera">
       <visual>
@@ -39,6 +48,19 @@
       <parent link="${parent_link}"/>
       <child link="zivid_camera"/>
       <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+
+    <!-- Zivid optical frame (measurement/camera frame) -->
+    <!-- This is where point clouds and images are measured from -->
+    <link name="zivid_optical_frame"/>
+
+    <!-- Optical joint connecting camera body to optical center -->
+    <!-- Based on Zivid specifications - perform hand-eye calibration for precision -->
+    <joint name="zivid_optical_joint" type="fixed">
+      <parent link="zivid_camera"/>
+      <child link="zivid_optical_frame"/>
+      <origin xyz="${optical_center_x} ${optical_center_y} ${optical_center_z}"
+              rpy="${-pi/2} 0 ${-pi/2 - optical_angle_deg*pi/180.0}"/>
     </joint>
 
   </xacro:macro>

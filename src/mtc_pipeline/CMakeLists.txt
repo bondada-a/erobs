@@ -80,7 +80,6 @@ add_executable(tool_exchange_action_server src/tool_exchange_action_server.cpp)
 add_executable(move_to_action_server src/move_to_action_server.cpp)
 add_executable(end_effector_action_server src/end_effector_action_server.cpp)
 add_executable(vision_action_server src/vision_action_server.cpp)
-add_executable(mock_apriltag_detector src/mock_apriltag_detector.cpp)
 
 
 rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
@@ -93,7 +92,6 @@ ament_target_dependencies(tool_exchange_action_server ${MODULAR_ACTION_SERVER_DE
 ament_target_dependencies(move_to_action_server ${MODULAR_ACTION_SERVER_DEPS})
 ament_target_dependencies(end_effector_action_server ${MODULAR_ACTION_SERVER_DEPS})
 ament_target_dependencies(vision_action_server ${MODULAR_ACTION_SERVER_DEPS})
-ament_target_dependencies(mock_apriltag_detector rclcpp tf2_ros apriltag_msgs geometry_msgs)
 
 # Link Libraries
 target_link_libraries(mtc_orchestrator_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
@@ -103,7 +101,6 @@ target_link_libraries(tool_exchange_action_server "${cpp_typesupport_target}" nl
 target_link_libraries(move_to_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 target_link_libraries(end_effector_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 target_link_libraries(vision_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
-target_link_libraries(mock_apriltag_detector "${cpp_typesupport_target}")
 
 target_compile_features(mtc_orchestrator_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(mtc_action_client_example PUBLIC c_std_99 cxx_std_17)
@@ -112,7 +109,6 @@ target_compile_features(tool_exchange_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(move_to_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(end_effector_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(vision_action_server PUBLIC c_std_99 cxx_std_17)
-target_compile_features(mock_apriltag_detector PUBLIC c_std_99 cxx_std_17)
 
 install(TARGETS
   mtc_orchestrator_action_server
@@ -122,7 +118,6 @@ install(TARGETS
   move_to_action_server
   end_effector_action_server
   vision_action_server
-  mock_apriltag_detector
   DESTINATION lib/${PROJECT_NAME}
 )
 install(TARGETS
