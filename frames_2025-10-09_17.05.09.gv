@@ -1,0 +1,28 @@
+digraph G {
+"map" -> "base_link"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"base_link" -> "base"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"base_link" -> "base_link_inertia"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"flange" -> "tool0"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"wrist_3_link" -> "flange"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"robotiq_hande_coupler" -> "robotiq_hande_link"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"tool_block" -> "robotiq_hande_coupler"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"zivid_camera" -> "tool_block"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"robotiq_hande_link" -> "robotiq_hande_end"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"robotiq_hande_end" -> "robotiq_hande_tcp"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"flange" -> "zivid_camera"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"wrist_2_link" -> "wrist_3_link"[label=" Broadcaster: default_authority\nAverage rate: 19.806\nBuffer length: 4.948\nMost recent transform: 1760043909.113752\nOldest transform: 1760043904.165751\n"];
+"wrist_3_link" -> "ft_frame"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"zivid_camera" -> "zivid_optical_frame"[label=" Broadcaster: default_authority\nAverage rate: 10000.0\nBuffer length: 0.0\nMost recent transform: 0.0\nOldest transform: 0.0\n"];
+"upper_arm_link" -> "forearm_link"[label=" Broadcaster: default_authority\nAverage rate: 19.806\nBuffer length: 4.948\nMost recent transform: 1760043909.113752\nOldest transform: 1760043904.165751\n"];
+"shoulder_link" -> "upper_arm_link"[label=" Broadcaster: default_authority\nAverage rate: 19.806\nBuffer length: 4.948\nMost recent transform: 1760043909.113752\nOldest transform: 1760043904.165751\n"];
+"robotiq_hande_link" -> "robotiq_hande_left_finger"[label=" Broadcaster: default_authority\nAverage rate: 19.806\nBuffer length: 4.948\nMost recent transform: 1760043909.113752\nOldest transform: 1760043904.165751\n"];
+"robotiq_hande_link" -> "robotiq_hande_right_finger"[label=" Broadcaster: default_authority\nAverage rate: 19.806\nBuffer length: 4.948\nMost recent transform: 1760043909.113752\nOldest transform: 1760043904.165751\n"];
+"base_link_inertia" -> "shoulder_link"[label=" Broadcaster: default_authority\nAverage rate: 19.806\nBuffer length: 4.948\nMost recent transform: 1760043909.113752\nOldest transform: 1760043904.165751\n"];
+"forearm_link" -> "wrist_1_link"[label=" Broadcaster: default_authority\nAverage rate: 19.806\nBuffer length: 4.948\nMost recent transform: 1760043909.113752\nOldest transform: 1760043904.165751\n"];
+"wrist_1_link" -> "wrist_2_link"[label=" Broadcaster: default_authority\nAverage rate: 19.806\nBuffer length: 4.948\nMost recent transform: 1760043909.113752\nOldest transform: 1760043904.165751\n"];
+"base" -> "tool0_controller"[label=" Broadcaster: default_authority\nAverage rate: 500.247\nBuffer length: 4.068\nMost recent transform: 1760043909.137737\nOldest transform: 1760043905.069748\n"];
+edge [style=invis];
+ subgraph cluster_legend { style=bold; color=black; label ="view_frames Result";
+"Recorded at time: 1760043909.154189"[ shape=plaintext ] ;
+}->"map";
+}

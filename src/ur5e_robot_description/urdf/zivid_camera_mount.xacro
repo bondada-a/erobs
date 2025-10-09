@@ -54,11 +54,12 @@
     <!-- This is where point clouds and images are measured from -->
     <link name="zivid_optical_frame"/>
 
-    <!-- Optical joint - TEMPORARY: optical frame at camera body origin for testing -->
+    <!-- Optical joint - Uses Zivid 2 Plus MR60 factory specs (uncalibrated) -->
+    <!-- For production accuracy, perform hand-eye calibration and update these values -->
     <joint name="zivid_optical_joint" type="fixed">
       <parent link="zivid_camera"/>
       <child link="zivid_optical_frame"/>
-      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <origin xyz="${optical_center_x} ${optical_center_y} ${optical_center_z}" rpy="0 ${optical_angle_deg * 3.14159265 / 180.0} 0"/>
     </joint>
 
   </xacro:macro>
