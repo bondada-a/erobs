@@ -1,5 +1,8 @@
 #include "mtc_pipeline/vision_stages.hpp"
 #include <moveit/task_constructor/stages/move_to.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#include <tf2/LinearMath/Quaternion.h>
+#include <tf2/LinearMath/Matrix3x3.h>
 #include <chrono>
 #include <thread>
 
@@ -12,9 +15,13 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
 
   // Subscribe to AprilTag detections
   tag_subscription_ = node->create_subscription<apriltag_msgs::msg::AprilTagDetectionArray>(
-    "/apriltag/detections",
+    "/detections",
     10,
-    [this](apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr msg) {
+    [this, node](apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr msg) {
+      RCLCPP_INFO(node->get_logger(), "Received %zu AprilTag detections", msg->detections.size());
+      for (const auto& det : msg->detections) {
+        RCLCPP_INFO(node->get_logger(), "  - Tag ID: %d, Family: %s", det.id, det.family.c_str());
+      }
       latest_detections_ = msg;
     }
   );
@@ -29,7 +36,7 @@ bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
 {
   // Parse minimal parameters
   const int tag_id = step.at("tag_id").get<int>();
-  const double timeout = step.value("timeout", 5.0);
+  const double timeout = step.value("timeout", 10.0);
 
   // Trigger Zivid camera capture
   RCLCPP_INFO(node()->get_logger(), "Triggering camera capture...");
@@ -71,10 +78,11 @@ bool VisionStages::trigger_capture()
   auto future = capture_client_->async_send_request(request);
 
   // Wait for result (Zivid captures can take ~1-2 seconds)
-  if (rclcpp::spin_until_future_complete(node(), future, std::chrono::seconds(5)) !=
-      rclcpp::FutureReturnCode::SUCCESS)
+  // Use wait_for instead of spin_until_future_complete to avoid executor conflict
+  auto status = future.wait_for(std::chrono::seconds(5));
+  if (status != std::future_status::ready)
   {
-    RCLCPP_ERROR(node()->get_logger(), "Capture service call failed");
+    RCLCPP_ERROR(node()->get_logger(), "Capture service call timeout");
     return false;
   }
 
@@ -104,8 +112,8 @@ std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_tag(
       return std::nullopt;
     }
 
-    // Process callbacks
-    rclcpp::spin_some(node());
+    // Don't call spin_some - node is already being spun by action server executor
+    // Just check if data has arrived via subscription callback
 
     // Check for detections
     if (latest_detections_ && !latest_detections_->detections.empty()) {
@@ -142,6 +150,7 @@ std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_tag(
       }
     }
 
+    // Sleep briefly to allow callbacks to be processed by main executor
     std::this_thread::sleep_for(std::chrono::milliseconds(100));
   }
 
@@ -150,15 +159,52 @@ std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_tag(
 
 bool VisionStages::move_to_pose(const geometry_msgs::msg::PoseStamped& target_pose)
 {
-  // Create MTC task
-  auto task = create_task_template("Vision Move");
+  // Create approach pose by applying rotation to tag pose
+  // This ensures the gripper approaches from the correct direction
+  geometry_msgs::msg::PoseStamped approach_pose = target_pose;
 
-  // Create simple MoveTo stage
-  auto move_stage = std::make_unique<mtc::stages::MoveTo>("move to tag", make_pipeline_planner());
+  // Convert quaternion to tf2
+  tf2::Quaternion tag_orientation;
+  tf2::fromMsg(target_pose.pose.orientation, tag_orientation);
+
+  // Create rotation: 180° around Y-axis to flip approach direction
+  // This makes the TCP approach the tag from the correct side
+  tf2::Quaternion approach_rotation;
+  approach_rotation.setRPY(0, M_PI, 0);  // 180° around Y
+
+  // Apply rotation: new_orientation = tag_orientation * approach_rotation
+  tf2::Quaternion final_orientation = tag_orientation * approach_rotation;
+  final_orientation.normalize();
+
+  // Convert back to message
+  approach_pose.pose.orientation = tf2::toMsg(final_orientation);
+
+  RCLCPP_INFO(node()->get_logger(),
+    "Approach pose: pos=[%.3f, %.3f, %.3f]",
+    approach_pose.pose.position.x,
+    approach_pose.pose.position.y,
+    approach_pose.pose.position.z);
+
+  // Create MTC task with TCP frame set in template
+  auto task = create_task_template("Vision Move", "", "robotiq_hande_tcp");
+
+  // Use Cartesian planner for straight-line TCP motion to detected pose
+  // This creates more direct paths than OMPL joint-space planning
+  auto planner = make_cartesian_planner();
+
+  // Create MoveTo stage
+  auto move_stage = std::make_unique<mtc::stages::MoveTo>("move to tag", planner);
+
+  // Inherit properties (group, ik_frame) from parent task - standard pattern
+  move_stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
   move_stage->setGroup(default_arm_group_name());
-  move_stage->setGoal(target_pose);
+  move_stage->setGoal(approach_pose);
 
   task.add(std::move(move_stage));
+
+  // Small delay to ensure robot state is settled before execution
+  RCLCPP_INFO(node()->get_logger(), "Waiting for robot to settle before execution...");
+  std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
   // Execute
   return load_plan_execute(task);
