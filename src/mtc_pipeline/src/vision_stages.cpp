@@ -38,28 +38,61 @@ bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
   const int tag_id = step.at("tag_id").get<int>();
   const double timeout = step.value("timeout", 10.0);
 
-  // Trigger Zivid camera capture
-  RCLCPP_INFO(node()->get_logger(), "Triggering camera capture...");
-  if (!trigger_capture()) {
-    RCLCPP_ERROR(node()->get_logger(), "Failed to trigger camera capture");
-    return false;
+  // Retry capture until tag is detected or timeout
+  const auto start_time = std::chrono::steady_clock::now();
+  const auto timeout_duration = std::chrono::duration<double>(timeout);
+  int capture_attempt = 0;
+  std::optional<geometry_msgs::msg::PoseStamped> tag_pose_opt;
+
+  while (rclcpp::ok()) {
+    // Check overall timeout
+    if (std::chrono::steady_clock::now() - start_time > timeout_duration) {
+      RCLCPP_ERROR(node()->get_logger(),
+        "Failed to detect tag %d after %d capture attempts (timeout: %.1fs)",
+        tag_id, capture_attempt, timeout);
+      return false;
+    }
+
+    capture_attempt++;
+    RCLCPP_INFO(node()->get_logger(), "Capture attempt %d: Triggering camera...", capture_attempt);
+
+    // Clear old detections BEFORE capture
+    latest_detections_ = nullptr;
+
+    // Trigger Zivid camera capture
+    if (!trigger_capture()) {
+      RCLCPP_WARN(node()->get_logger(), "Capture attempt %d failed, retrying...", capture_attempt);
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      continue;
+    }
+
+    RCLCPP_INFO(node()->get_logger(), "Detecting tag %d (attempt %d)...", tag_id, capture_attempt);
+
+    // Wait for detection processing (AprilTag detector needs time)
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    // Try to detect the tag with a shorter timeout per attempt (3 seconds)
+    tag_pose_opt = detect_tag(tag_id, 3.0);
+
+    if (tag_pose_opt) {
+      // Tag detected successfully!
+      RCLCPP_INFO(node()->get_logger(),
+        "Tag %d detected on attempt %d at [%.3f, %.3f, %.3f]",
+        tag_id,
+        capture_attempt,
+        tag_pose_opt->pose.position.x,
+        tag_pose_opt->pose.position.y,
+        tag_pose_opt->pose.position.z);
+      break;
+    }
+
+    RCLCPP_WARN(node()->get_logger(), "Tag %d not detected on attempt %d, retrying...", tag_id, capture_attempt);
   }
 
-  RCLCPP_INFO(node()->get_logger(), "Detecting tag %d...", tag_id);
-
-  // Detect the tag
-  auto tag_pose_opt = detect_tag(tag_id, timeout);
   if (!tag_pose_opt) {
     RCLCPP_ERROR(node()->get_logger(), "Failed to detect tag %d", tag_id);
     return false;
   }
-
-  RCLCPP_INFO(node()->get_logger(),
-    "Tag %d detected at [%.3f, %.3f, %.3f]",
-    tag_id,
-    tag_pose_opt->pose.position.x,
-    tag_pose_opt->pose.position.y,
-    tag_pose_opt->pose.position.z);
 
   // Move to the detected pose
   return move_to_pose(*tag_pose_opt);
@@ -77,13 +110,25 @@ bool VisionStages::trigger_capture()
   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto future = capture_client_->async_send_request(request);
 
-  // Wait for result (Zivid captures can take ~1-2 seconds)
-  // Use wait_for instead of spin_until_future_complete to avoid executor conflict
-  auto status = future.wait_for(std::chrono::seconds(5));
-  if (status != std::future_status::ready)
-  {
-    RCLCPP_ERROR(node()->get_logger(), "Capture service call timeout");
-    return false;
+  // Wait for result while spinning (Zivid captures can take ~1-2 seconds)
+  // We need to manually spin to process callbacks since we're in an action callback
+  const auto timeout = std::chrono::seconds(5);
+  const auto start = std::chrono::steady_clock::now();
+
+  while (rclcpp::ok()) {
+    // Check if future is ready
+    if (future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
+      break;
+    }
+
+    // Check timeout
+    if (std::chrono::steady_clock::now() - start > timeout) {
+      RCLCPP_ERROR(node()->get_logger(), "Capture service call timeout");
+      return false;
+    }
+
+    // Sleep briefly to allow executor to process callbacks
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
   }
 
   auto result = future.get();
@@ -103,7 +148,7 @@ std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_tag(
   const auto start_time = std::chrono::steady_clock::now();
   const auto timeout = std::chrono::duration<double>(timeout_seconds);
 
-  latest_detections_ = nullptr;
+  // Don't clear detections here - they should be cleared before capture
 
   while (rclcpp::ok()) {
     // Check timeout
