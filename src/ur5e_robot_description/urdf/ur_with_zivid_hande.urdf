@@ -607,15 +607,13 @@
     <parent link="flange"/>
     <child link="tool0"/>
   </joint>
-  <!-- ============================================= -->
   <!-- ARM MOUNT LINK (Easily replaceable)          -->
-  <!-- ============================================= -->
   <link name="zivid_arm_mount">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <!-- MOUNT MESH - Replace this when Zivid provides new model -->
-        <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_onarm_mount.stl" scale="0.001 0.001 0.001"/>
+        <!-- MOUNT MESH - Updated with custom mount from Zivid -->
+        <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_custom_mount.dae" scale="1.0 1.0 1.0"/>
       </geometry>
       <material name="mount_dark">
         <color rgba="0.2 0.2 0.2 1.0"/>
@@ -624,7 +622,7 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_onarm_mount.stl" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_custom_mount.dae" scale="0.001 0.001 0.001"/>
       </geometry>
     </collision>
     <inertial>
@@ -638,7 +636,7 @@
   <joint name="zivid_arm_mount_joint" type="fixed">
     <parent link="flange"/>
     <child link="zivid_arm_mount"/>
-    <origin rpy="-1.5708 0 -1.5708" xyz="0 0 0"/>
+    <origin rpy="-1.5708 0 -1.5708" xyz="0.005 0 0"/>
   </joint>
   <!-- Zivid base link -->
   <link name="zivid_base_link">
@@ -668,10 +666,8 @@
     <parent link="zivid_base_link"/>
     <child link="zivid_optical_frame"/>
   </joint>
-  <!-- ============================================= -->
   <!-- Joint: Arm Mount -> Camera                   -->
   <!-- CALIBRATION: Adjust xyz/rpy to match setup   -->
-  <!-- ============================================= -->
   <joint name="mount_to_camera_joint" type="fixed">
     <parent link="zivid_arm_mount"/>
     <child link="zivid_base_link"/>
@@ -705,7 +701,7 @@
   <joint name="tool_block_joint" type="fixed">
     <parent link="zivid_arm_mount"/>
     <child link="tool_block"/>
-    <origin rpy="-1.5708 0 3.14159" xyz="0 0 0.03"/>
+    <origin rpy="-1.5708 0 3.14159" xyz="0 0 0.05"/>
   </joint>
   <ros2_control name="robotiq_hande_gripper" type="system">
     <hardware>

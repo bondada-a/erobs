@@ -109,12 +109,12 @@
   <!-- Modular Zivid: Arm Mount + Camera (with calibrated camera position) -->
   <xacro:zivid_modular_mount
     parent_link="$(arg tf_prefix)flange"
-    xyz="0 0 0"
+    xyz="0.005 0 0"
     rpy="-1.5708 0 -1.5708"
     zivid_model="ZIVID_2_PLUS_MR60"/>
 
   <!-- Tool block attached to the Zivid arm mount (not the camera) -->
-  <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.03" rpy="-1.5708 0 3.14159"/>
+  <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.05" rpy="-1.5708 0 3.14159"/>
 
   <!-- gripper pos wrt camera    -->
   <xacro:arg name="grip_pos_min" default="0"/>

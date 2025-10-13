@@ -107,7 +107,7 @@
   <!-- Zivid Arm Mount Only (camera commented out in zivid_modular_mount.xacro) -->
   <xacro:zivid_modular_mount
     parent_link="$(arg tf_prefix)flange"
-    xyz="0 0 0"
+    xyz="0.005 0 0"
     rpy="-1.5708 0 -1.5708"
     zivid_model="ZIVID_2_PLUS_MR60"/>
 
