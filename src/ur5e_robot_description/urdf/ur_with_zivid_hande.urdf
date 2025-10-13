@@ -701,7 +701,7 @@
   <joint name="tool_block_joint" type="fixed">
     <parent link="zivid_arm_mount"/>
     <child link="tool_block"/>
-    <origin rpy="-1.5708 0 3.14159" xyz="0 0 0.05"/>
+    <origin rpy="-1.5708 0 3.14159" xyz="0 0 0.055"/>
   </joint>
   <ros2_control name="robotiq_hande_gripper" type="system">
     <hardware>

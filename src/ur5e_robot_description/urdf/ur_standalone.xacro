@@ -5,7 +5,7 @@
    <xacro:arg name="name" default="ur5e"/>
    <!-- import main macro -->
    <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
-   <xacro:include filename="$(find ur5e_robot_description)/urdf/zivid_camera_mount.xacro"/>
+   <xacro:include filename="$(find ur5e_robot_description)/urdf/zivid_modular_mount.xacro"/>
    <xacro:include filename="$(find ur5e_robot_description)/urdf/te_robotside.xacro"/>
   
 
@@ -104,11 +104,15 @@
      <origin xyz="0 0 0" rpy="0 0 0" />          <!-- position robot in the map -->
    </xacro:ur_robot>
 
-  <!-- Zivid camera mount attached to flange -->
-  <xacro:zivid_camera_mount parent_link="$(arg tf_prefix)flange" xyz="0.025 0 -0.105" rpy="-1.5708 0 -1.5708"/>
+  <!-- Modular Zivid: Arm Mount + Camera (with calibrated camera position) -->
+  <xacro:zivid_modular_mount
+    parent_link="$(arg tf_prefix)flange"
+    xyz="0.005 0 0"
+    rpy="-1.5708 0 -1.5708"
+    zivid_model="ZIVID_2_PLUS_MR60"/>
 
-  <!-- Tool exchanger robotside attached to camera -->
-  <xacro:te_robotside parent_link="zivid_camera" xyz="0 -0.105 0" rpy="-1.5708 0 0"/>
+  <!-- Tool exchanger robotside attached to arm mount (not camera) -->
+  <xacro:te_robotside parent_link="zivid_arm_mount" xyz="0 0 0.055" rpy="-1.5708 0 3.14159"/>
 
 
 </robot>
