@@ -2,7 +2,7 @@ from moveit_configs_utils import MoveItConfigsBuilder
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
 from launch import LaunchDescription
 from ament_index_python.packages import get_package_share_directory
 import os
@@ -111,6 +111,22 @@ def generate_launch_description():
         parameters=[moveit_config.robot_description],
     )
 
+    # Payload configuration for UR controller
+    # Total: 1.430 kg = 0.170 kg (mount) + 1.260 kg (camera + housing) + 0.000 kg (no gripper)
+    # CoG: Center of Gravity relative to flange frame [x, y, z] in meters
+    # Send URScript command to set payload after robot driver starts
+    set_payload = TimerAction(
+        period=5.0,  # Wait 5 seconds for robot driver to start
+        actions=[
+            ExecuteProcess(
+                cmd=['ros2', 'topic', 'pub', '--once', '/urscript_interface/script_command',
+                     'std_msgs/msg/String',
+                     '{data: "set_payload(1.430, [-0.038, -0.022, -0.055])"}'],
+                output='screen'
+            )
+        ]
+    )
+
     # # Shared planning scene
     # scene_launch = IncludeLaunchDescription(
     #     PythonLaunchDescriptionSource([
@@ -138,6 +154,7 @@ def generate_launch_description():
         run_move_group_node,
         rviz_node,
         robot_state_publisher,
+        set_payload,  # Set UR payload
         # scene_launch,
     ])
 
