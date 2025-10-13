@@ -9,7 +9,8 @@ import rclpy
 from rclpy.node import Node
 from moveit_msgs.msg import PlanningScene, CollisionObject
 from geometry_msgs.msg import Pose
-from shape_msgs.msg import SolidPrimitive
+from shape_msgs.msg import SolidPrimitive, Mesh, MeshTriangle
+from geometry_msgs.msg import Point
 import yaml
 import math
 from ament_index_python.packages import get_package_share_directory
@@ -91,9 +92,26 @@ class SharedPlanningScenePublisher(Node):
         pose.orientation.z = quat[2]
         pose.orientation.w = quat[3]
 
-        # Create primitive shape
-        primitive = SolidPrimitive()
         obj_type = obstacle_config['type'].lower()
+
+        # Handle mesh objects
+        if obj_type == 'mesh':
+            mesh_path = obstacle_config['mesh']
+            scale = obstacle_config.get('scale', [1.0, 1.0, 1.0])
+
+            # Load mesh from file
+            mesh_msg = self.load_mesh_from_file(mesh_path, scale)
+            if mesh_msg:
+                collision_object.meshes.append(mesh_msg)
+                collision_object.mesh_poses.append(pose)
+                collision_object.operation = CollisionObject.ADD
+                return collision_object
+            else:
+                self.get_logger().error(f"Failed to load mesh: {mesh_path}")
+                return None
+
+        # Handle primitive shapes
+        primitive = SolidPrimitive()
 
         if obj_type == 'box':
             primitive.type = SolidPrimitive.BOX
@@ -117,6 +135,55 @@ class SharedPlanningScenePublisher(Node):
         collision_object.operation = CollisionObject.ADD
 
         return collision_object
+
+    def load_mesh_from_file(self, mesh_path, scale):
+        """Load mesh from STL/DAE/OBJ file using MoveIt's mesh loader"""
+        try:
+            import trimesh
+
+            # Resolve package:// URIs
+            if mesh_path.startswith('package://'):
+                parts = mesh_path.split('/')
+                package_name = parts[2]
+                relative_path = '/'.join(parts[3:])
+                try:
+                    package_share = get_package_share_directory(package_name)
+                    mesh_path = os.path.join(package_share, relative_path)
+                except:
+                    self.get_logger().error(f"Package not found: {package_name}")
+                    return None
+
+            # Load mesh using trimesh
+            mesh = trimesh.load(mesh_path)
+
+            # Apply scale
+            if scale != [1.0, 1.0, 1.0]:
+                mesh.apply_scale(scale)
+
+            # Convert to ROS Mesh message
+            mesh_msg = Mesh()
+
+            for vertex in mesh.vertices:
+                point = Point()
+                point.x = float(vertex[0])
+                point.y = float(vertex[1])
+                point.z = float(vertex[2])
+                mesh_msg.vertices.append(point)
+
+            for face in mesh.faces:
+                triangle = MeshTriangle()
+                triangle.vertex_indices = [int(face[0]), int(face[1]), int(face[2])]
+                mesh_msg.triangles.append(triangle)
+
+            self.get_logger().info(f"Loaded mesh: {mesh_path} ({len(mesh.vertices)} vertices)")
+            return mesh_msg
+
+        except ImportError:
+            self.get_logger().error("trimesh not installed. Install with: pip install trimesh")
+            return None
+        except Exception as e:
+            self.get_logger().error(f"Error loading mesh {mesh_path}: {str(e)}")
+            return None
 
     def euler_to_quaternion(self, roll, pitch, yaw):
         """Convert Euler angles to quaternion"""

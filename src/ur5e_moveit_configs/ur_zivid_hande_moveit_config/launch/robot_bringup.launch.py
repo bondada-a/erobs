@@ -134,16 +134,16 @@ def generate_launch_description():
         ]
     )
 
-    # Shared planning scene - TEMPORARILY DISABLED
-    # scene_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource([
-    #         PathJoinSubstitution([
-    #             FindPackageShare("erobs_planning_scene"),
-    #             "launch",
-    #             "load_scene.launch.py"
-    #         ])
-    #     ])
-    # )
+    # Shared planning scene
+    scene_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare("erobs_planning_scene"),
+                "launch",
+                "load_scene.launch.py"
+            ])
+        ])
+    )
 
 
     return LaunchDescription([
@@ -164,5 +164,5 @@ def generate_launch_description():
         robot_state_publisher,
         hande_controller_spawner,
         set_payload,  # Set UR payload
-        # scene_launch,  # TEMPORARILY DISABLED
+        scene_launch,
     ])

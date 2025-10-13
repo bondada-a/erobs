@@ -127,16 +127,16 @@ def generate_launch_description():
         ]
     )
 
-    # # Shared planning scene
-    # scene_launch = IncludeLaunchDescription(
-    #     PythonLaunchDescriptionSource([
-    #         PathJoinSubstitution([
-    #             FindPackageShare("erobs_planning_scene"),
-    #             "launch",
-    #             "load_scene.launch.py"
-    #         ])
-    #     ])
-    # )
+    # Shared planning scene
+    scene_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare("erobs_planning_scene"),
+                "launch",
+                "load_scene.launch.py"
+            ])
+        ])
+    )
 
     return LaunchDescription([
         ## arguments 
@@ -155,7 +155,7 @@ def generate_launch_description():
         rviz_node,
         robot_state_publisher,
         set_payload,  # Set UR payload
-        # scene_launch,
+        scene_launch,
     ])
 
     
