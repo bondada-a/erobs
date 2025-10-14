@@ -116,6 +116,7 @@ class MTCGUIClient:
         ttk.Button(toolbar, text="Add Pick&Place", command=lambda: self.add_task_step("pick_and_place")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar, text="Add Tool Exchange", command=lambda: self.add_task_step("tool_exchange")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar, text="Add End Effector", command=lambda: self.add_task_step("end_effector")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar, text="Add Vision MoveTo", command=lambda: self.add_task_step("vision_moveto")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar, text="Remove Step", command=self.remove_task_step).pack(side="left", padx=(20, 0))
         
         # Task sequence tree
@@ -237,6 +238,12 @@ class MTCGUIClient:
                 "end_effector_type": "epick",
                 "end_effector_action": "vacuum_on"
             }
+        elif action_type == "vision_moveto":
+            step = {
+                "task_type": "vision_moveto",
+                "tag_id": 0,
+                "timeout": 10.0
+            }
 
         self.current_config["tasks"].append(step)
         self.update_task_tree()
@@ -291,6 +298,8 @@ class MTCGUIClient:
             self.create_toolexchange_edit_form(dialog, step, step_index)
         elif step["task_type"] == "end_effector":
             self.create_end_effector_edit_form(dialog, step, step_index)
+        elif step["task_type"] == "vision_moveto":
+            self.create_vision_moveto_edit_form(dialog, step, step_index)
 
     def create_moveto_edit_form(self, dialog, step, step_index):
         """Create edit form for moveto steps"""
@@ -456,28 +465,82 @@ class MTCGUIClient:
     def create_end_effector_edit_form(self, dialog, step, step_index):
         """Create edit form for end effector steps"""
         ttk.Label(dialog, text="End Effector Configuration", font=("Arial", 12, "bold")).pack(pady=10)
-        
+
         # End effector type
         ttk.Label(dialog, text="End Effector Type:").pack(anchor="w", padx=20)
         type_var = tk.StringVar(value=step.get("end_effector_type", "epick"))
-        type_combo = ttk.Combobox(dialog, textvariable=type_var, 
+        type_combo = ttk.Combobox(dialog, textvariable=type_var,
                                  values=["epick", "hande"], width=30)
         type_combo.pack(padx=20, pady=(0, 10))
-        
+
         # Action
         ttk.Label(dialog, text="Action:").pack(anchor="w", padx=20)
         action_var = tk.StringVar(value=step.get("end_effector_action", "vacuum_on"))
-        action_combo = ttk.Combobox(dialog, textvariable=action_var, 
+        action_combo = ttk.Combobox(dialog, textvariable=action_var,
                                   values=["vacuum_on", "vacuum_off", "open", "close"], width=30)
         action_combo.pack(padx=20, pady=(0, 20))
-        
+
         def save_changes():
             step["end_effector_type"] = type_var.get()
             step["end_effector_action"] = action_var.get()
             self.update_task_tree()
             dialog.destroy()
             self.log_message(f"Updated step {step_index + 1}")
-        
+
+        ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
+
+    def create_vision_moveto_edit_form(self, dialog, step, step_index):
+        """Create edit form for vision moveto steps"""
+        ttk.Label(dialog, text="Vision MoveTo Configuration", font=("Arial", 12, "bold")).pack(pady=10)
+
+        # Add description
+        description = ttk.Label(dialog,
+                               text="Detect AprilTag and move gripper to tag location",
+                               font=("Arial", 9),
+                               foreground="gray")
+        description.pack(padx=20, pady=(0, 20))
+
+        # Tag ID
+        ttk.Label(dialog, text="AprilTag ID:").pack(anchor="w", padx=20)
+        tag_id_var = tk.StringVar(value=str(step.get("tag_id", 0)))
+        tag_id_entry = ttk.Entry(dialog, textvariable=tag_id_var, width=30)
+        tag_id_entry.pack(padx=20, pady=(0, 10))
+
+        ttk.Label(dialog, text="The ID number of the AprilTag to detect",
+                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
+
+        # Timeout
+        ttk.Label(dialog, text="Timeout (seconds):").pack(anchor="w", padx=20)
+        timeout_var = tk.StringVar(value=str(step.get("timeout", 10.0)))
+        timeout_entry = ttk.Entry(dialog, textvariable=timeout_var, width=30)
+        timeout_entry.pack(padx=20, pady=(0, 10))
+
+        ttk.Label(dialog, text="Maximum time to wait for tag detection",
+                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 20))
+
+        # Information box
+        info_frame = ttk.LabelFrame(dialog, text="Info", padding="10")
+        info_frame.pack(padx=20, pady=(10, 20), fill="x")
+
+        info_text = ("Vision MoveTo will:\n"
+                    "1. Continuously capture images from Zivid camera\n"
+                    "2. Detect the specified AprilTag\n"
+                    "3. Move gripper to the detected tag position\n"
+                    "4. Use Cartesian planning for straight-line motion")
+        ttk.Label(info_frame, text=info_text, justify="left",
+                 font=("Arial", 8)).pack()
+
+        def save_changes():
+            try:
+                step["tag_id"] = int(tag_id_var.get())
+                step["timeout"] = float(timeout_var.get())
+                self.update_task_tree()
+                dialog.destroy()
+                self.log_message(f"Updated step {step_index + 1}")
+            except ValueError:
+                messagebox.showerror("Invalid Input",
+                                   "Tag ID must be an integer and timeout must be a number")
+
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
     def update_task_tree(self):
@@ -515,6 +578,10 @@ class MTCGUIClient:
                 ee_type = step.get('end_effector_type', 'unknown')
                 ee_action = step.get('end_effector_action', 'unknown')
                 details = f"{ee_type} {ee_action}"
+            elif action == "vision_moveto":
+                tag_id = step.get('tag_id', 0)
+                timeout = step.get('timeout', 10.0)
+                details = f"Detect tag {tag_id} (timeout: {timeout}s)"
 
             self.task_tree.insert("", "end", iid=step_id, text=step_id,
                                 values=(action, details))
