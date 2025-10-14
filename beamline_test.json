@@ -6,10 +6,19 @@
     "vision_approach":[142.02, -188.94, -33.48, 43.20, -50.44, 1.18]},
   "tasks": [
     {
-      "task_type": "moveto",
-      "direction": "forward",
-      "distance": 0.1,
-      "planning_type": "cartesian"
-    }
+      "task_type": "tool_exchange",
+      "operation": "dock",
+      "gripper": "hande",
+      "dock_number": 3,
+      "approach_pose": "dock_approach"
+    },
+    {
+      "task_type": "tool_exchange",
+      "operation": "load",
+      "gripper": "epick",
+      "dock_number": 2,
+      "approach_pose": "load_approach"
+    }    
+
   ]
 }

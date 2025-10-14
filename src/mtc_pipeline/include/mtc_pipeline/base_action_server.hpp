@@ -128,8 +128,13 @@ private:
 
         // Send result
         if (rclcpp::ok()) {
-            goal_handle->succeed(result);
-            RCLCPP_INFO(this->get_logger(), "Goal completed");
+            if (result->success) {
+                goal_handle->succeed(result);
+                RCLCPP_INFO(this->get_logger(), "Goal completed successfully");
+            } else {
+                goal_handle->abort(result);
+                RCLCPP_ERROR(this->get_logger(), "Goal aborted: %s", result->error_message.c_str());
+            }
         }
     }
 };
