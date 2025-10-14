@@ -9,6 +9,22 @@ import sys
 import os
 import subprocess
 import tempfile
+import numpy as np
+from PIL import Image, ImageTk, ImageDraw, ImageFont
+import cv2
+
+# ROS2 imports
+try:
+    import rclpy
+    from rclpy.node import Node
+    from sensor_msgs.msg import Image as RosImage
+    from apriltag_msgs.msg import AprilTagDetectionArray
+    from std_srvs.srv import Trigger
+    from cv_bridge import CvBridge
+    ROS2_AVAILABLE = True
+except ImportError:
+    print("Warning: ROS2 or cv_bridge not available. Camera view will be disabled.")
+    ROS2_AVAILABLE = False
 
 # Import local modules
 try:
@@ -26,34 +42,51 @@ class MTCGUIClient:
     def __init__(self):
         self.name = 'mtc_gui_client'
         self.logger = type('Logger', (), {'info': print, 'error': print, 'warn': print})()
-        
+
         # GUI state
         self.current_goal_handle = None
         self.execution_thread = None
         self.stop_execution = False
         self.temp_json_file = None
-        
+
+        # Camera state
+        self.current_image = None
+        self.current_detections = None
+        self.camera_label = None
+        self.bridge = CvBridge() if ROS2_AVAILABLE else None
+        self.ros_node = None
+        self.ros_spin_thread = None
+
+        # Initialize ROS2 if available
+        if ROS2_AVAILABLE:
+            self.init_ros2()
+
         # Create GUI
         self.setup_gui()
-        
+
         # Load default configuration
         self.load_default_config()
 
     def setup_gui(self):
         """Setup the main GUI window"""
         self.root = tk.Tk()
-        self.root.title("MTC Action Client GUI - Working Version")
-        self.root.geometry("1000x800")
-        
-        # Configure grid weights
-        self.root.grid_columnconfigure(0, weight=1)
+        self.root.title("MTC Action Client GUI with Camera View")
+        self.root.geometry("1400x800")
+
+        # Configure grid weights - 2 columns now
+        self.root.grid_columnconfigure(0, weight=2)  # Left side - task editor (2x weight)
+        self.root.grid_columnconfigure(1, weight=1)  # Right side - camera view
         self.root.grid_rowconfigure(1, weight=1)
-        
+
         self.create_menu()
         self.create_robot_config_frame()
         self.create_task_editor_frame()
         self.create_execution_frame()
         self.create_status_frame()
+
+        # Add camera view on the right side
+        if ROS2_AVAILABLE:
+            self.create_camera_panel()
 
     def create_menu(self):
         """Create menu bar"""
@@ -844,12 +877,240 @@ class MTCGUIClient:
 
     def show_about(self):
         """Show about dialog"""
-        messagebox.showinfo("About", 
+        messagebox.showinfo("About",
                           "MTC Action Client GUI - Working Version\n\n"
                           "A graphical interface for the MoveIt Task Constructor (MTC) action client.\n"
                           "This version communicates with the actual MTC action server.\n"
                           "Allows you to create, edit, and execute robot task sequences.\n\n"
                           "Version: 1.0 (Working)")
+
+    def create_camera_panel(self):
+        """Create camera view panel on the right side"""
+        camera_frame = ttk.LabelFrame(self.root, text="Camera View", padding="10")
+        camera_frame.grid(row=0, column=1, rowspan=4, sticky="nsew", padx=(0, 10), pady=5)
+        camera_frame.grid_rowconfigure(1, weight=1)
+        camera_frame.grid_columnconfigure(0, weight=1)
+
+        # Control buttons
+        button_frame = ttk.Frame(camera_frame)
+        button_frame.grid(row=0, column=0, sticky="ew", pady=(0, 10))
+
+        ttk.Button(button_frame, text="Capture Image",
+                  command=self.trigger_capture).pack(side="left", padx=(0, 5))
+
+        self.camera_status_label = ttk.Label(button_frame, text="Waiting for camera...",
+                                             foreground="gray")
+        self.camera_status_label.pack(side="left", padx=(10, 0))
+
+        # Image display area
+        self.camera_label = tk.Label(camera_frame, bg="black", text="No camera feed",
+                                     fg="white", font=("Arial", 14))
+        self.camera_label.grid(row=1, column=0, sticky="nsew")
+
+        # Detection info
+        self.detection_info = scrolledtext.ScrolledText(camera_frame, height=6, wrap=tk.WORD)
+        self.detection_info.grid(row=2, column=0, sticky="ew", pady=(10, 0))
+        self.detection_info.insert(tk.END, "No detections yet\n")
+
+    def init_ros2(self):
+        """Initialize ROS2 node and subscriptions"""
+        try:
+            if not rclpy.ok():
+                rclpy.init()
+
+            self.ros_node = rclpy.create_node('mtc_gui_camera_client')
+
+            # Subscribe to camera image
+            self.image_sub = self.ros_node.create_subscription(
+                RosImage,
+                '/color/image_color',
+                self.image_callback,
+                10
+            )
+
+            # Subscribe to AprilTag detections
+            self.detection_sub = self.ros_node.create_subscription(
+                AprilTagDetectionArray,
+                '/detections',
+                self.detection_callback,
+                10
+            )
+
+            # Create capture service client
+            self.capture_client = self.ros_node.create_client(Trigger, '/capture_2d')
+
+            # Start ROS2 spinning in background thread
+            self.ros_spin_thread = threading.Thread(target=self.spin_ros, daemon=True)
+            self.ros_spin_thread.start()
+
+            print("ROS2 node initialized for camera view")
+
+        except Exception as e:
+            print(f"Failed to initialize ROS2: {e}")
+
+    def spin_ros(self):
+        """Spin ROS2 node in background thread"""
+        while rclpy.ok():
+            try:
+                rclpy.spin_once(self.ros_node, timeout_sec=0.1)
+            except Exception as e:
+                print(f"ROS2 spin error: {e}")
+                break
+
+    def image_callback(self, msg):
+        """Handle incoming camera images"""
+        try:
+            # Convert ROS image to OpenCV format
+            cv_image = self.bridge.imgmsg_to_cv2(msg, desired_encoding='bgr8')
+            self.current_image = cv_image
+
+            # Update GUI in main thread
+            self.root.after(0, self.update_camera_display)
+
+        except Exception as e:
+            print(f"Image callback error: {e}")
+
+    def detection_callback(self, msg):
+        """Handle AprilTag detections"""
+        self.current_detections = msg
+
+        # Update detection info in GUI
+        self.root.after(0, self.update_detection_info)
+
+    def update_camera_display(self):
+        """Update camera image display with AprilTag overlays"""
+        if self.current_image is None or self.camera_label is None:
+            return
+
+        try:
+            # Clone image for drawing
+            display_image = self.current_image.copy()
+
+            # Draw AprilTag overlays if we have detections
+            if self.current_detections and len(self.current_detections.detections) > 0:
+                for detection in self.current_detections.detections:
+                    # Get corners
+                    corners = detection.corners
+
+                    if len(corners) == 4:
+                        # Draw bounding box
+                        pts = np.array([[int(c.x), int(c.y)] for c in corners], np.int32)
+                        pts = pts.reshape((-1, 1, 2))
+                        cv2.polylines(display_image, [pts], True, (0, 255, 0), 3)
+
+                        # Draw tag ID
+                        center_x = int(sum(c.x for c in corners) / 4)
+                        center_y = int(sum(c.y for c in corners) / 4)
+
+                        # Add background rectangle for text
+                        text = f"ID: {detection.id}"
+                        font = cv2.FONT_HERSHEY_SIMPLEX
+                        font_scale = 1.5
+                        thickness = 3
+                        (text_width, text_height), _ = cv2.getTextSize(text, font, font_scale, thickness)
+
+                        cv2.rectangle(display_image,
+                                    (center_x - 10, center_y - text_height - 10),
+                                    (center_x + text_width + 10, center_y + 10),
+                                    (0, 255, 0), -1)
+
+                        cv2.putText(display_image, text, (center_x, center_y),
+                                   font, font_scale, (0, 0, 0), thickness)
+
+                self.camera_status_label.config(
+                    text=f"{len(self.current_detections.detections)} tag(s) detected",
+                    foreground="green"
+                )
+            else:
+                self.camera_status_label.config(
+                    text="No tags detected",
+                    foreground="orange"
+                )
+
+            # Resize image to fit display (maintain aspect ratio)
+            height, width = display_image.shape[:2]
+            max_width = 600
+            max_height = 600
+
+            scale = min(max_width / width, max_height / height)
+            new_width = int(width * scale)
+            new_height = int(height * scale)
+
+            display_image = cv2.resize(display_image, (new_width, new_height))
+
+            # Convert to PIL Image then to PhotoImage
+            display_image_rgb = cv2.cvtColor(display_image, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(display_image_rgb)
+            photo = ImageTk.PhotoImage(image=pil_image)
+
+            # Update label
+            self.camera_label.config(image=photo, text="")
+            self.camera_label.image = photo  # Keep reference
+
+        except Exception as e:
+            print(f"Display update error: {e}")
+
+    def update_detection_info(self):
+        """Update detection information display"""
+        if self.detection_info is None:
+            return
+
+        try:
+            self.detection_info.delete(1.0, tk.END)
+
+            if self.current_detections and len(self.current_detections.detections) > 0:
+                self.detection_info.insert(tk.END, f"Detected {len(self.current_detections.detections)} tag(s):\n\n")
+
+                for detection in self.current_detections.detections:
+                    self.detection_info.insert(tk.END,
+                        f"Tag ID: {detection.id}\n"
+                        f"Family: {detection.family}\n"
+                        f"Hamming: {detection.hamming}\n"
+                        f"Decision Margin: {detection.decision_margin:.2f}\n"
+                        f"---\n"
+                    )
+            else:
+                self.detection_info.insert(tk.END, "No tags detected\n")
+
+        except Exception as e:
+            print(f"Detection info update error: {e}")
+
+    def trigger_capture(self):
+        """Manually trigger Zivid camera capture"""
+        if not self.capture_client:
+            messagebox.showwarning("Camera", "Capture service not available")
+            return
+
+        def capture_thread():
+            try:
+                self.log_message("Triggering camera capture...")
+
+                if not self.capture_client.wait_for_service(timeout_sec=2.0):
+                    self.log_message("Capture service not available")
+                    return
+
+                request = Trigger.Request()
+                future = self.capture_client.call_async(request)
+
+                # Wait for result
+                timeout = 10.0
+                start_time = time.time()
+                while not future.done():
+                    if time.time() - start_time > timeout:
+                        self.log_message("Capture timeout")
+                        return
+                    time.sleep(0.1)
+
+                response = future.result()
+                if response.success:
+                    self.log_message("✓ Camera capture successful")
+                else:
+                    self.log_message(f"✗ Capture failed: {response.message}")
+
+            except Exception as e:
+                self.log_message(f"Capture error: {e}")
+
+        threading.Thread(target=capture_thread, daemon=True).start()
 
     def run(self):
         """Start the GUI main loop"""
