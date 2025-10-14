@@ -244,8 +244,9 @@ bool VisionStages::move_to_pose(const geometry_msgs::msg::PoseStamped& target_po
     approach_pose.pose.position.y,
     approach_pose.pose.position.z);
 
-  // Create MTC task with TCP frame set in template
-  auto task = create_task_template("Vision Move", "", "robotiq_hande_tcp");
+  // Create MTC task using robotiq_hande_end frame (finger tips)
+  // This avoids dependency on custom TCP definitions in third-party packages
+  auto task = create_task_template("Vision Move", "", "robotiq_hande_end");
 
   // Use Cartesian planner for straight-line TCP motion to detected pose
   // This creates more direct paths than OMPL joint-space planning

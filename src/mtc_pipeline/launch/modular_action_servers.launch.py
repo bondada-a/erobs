@@ -2,8 +2,9 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
 
 def generate_launch_description():
     # Declare launch arguments
@@ -63,6 +64,31 @@ def generate_launch_description():
         parameters=action_server_parameters
     )
 
+    vision_action_server = Node(
+        package='mtc_pipeline',
+        executable='vision_action_server',
+        name='vision_action_server',
+        output='screen',
+        parameters=action_server_parameters
+    )
+
+    # AprilTag detector for vision-based tasks
+    apriltag_detector = Node(
+        package='apriltag_ros',
+        executable='apriltag_node',
+        name='apriltag_detector',
+        output='screen',
+        parameters=[PathJoinSubstitution([
+            FindPackageShare('mtc_pipeline'),
+            'config',
+            'apriltag_config.yaml'
+        ])],
+        remappings=[
+            ('image_rect', '/color/image_color'),
+            ('camera_info', '/color/camera_info'),
+        ]
+    )
+
     # Main Orchestrator - manages MoveIt lifecycle
     orchestrator = Node(
         package='mtc_pipeline',
@@ -81,5 +107,7 @@ def generate_launch_description():
         tool_exchange_action_server,
         move_to_action_server,
         end_effector_action_server,
+        vision_action_server,
+        apriltag_detector,
         orchestrator,
     ])
