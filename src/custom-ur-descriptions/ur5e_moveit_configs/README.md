@@ -129,4 +129,5 @@ These MoveIt configurations work with robot descriptions from:
 
 ## TODO
 
-- Have consistent "moveit_home" values across SRDFs
+- **Improve Payload Configuration**: Currently, payload values are hardcoded in launch files and set via ROS2 service at startup. This works but generates a harmless warning about the script command interface. Future improvement should read payload values generically from URDF inertial properties or configuration parameters, making the system fully config-agnostic and eliminating the timing-dependent warning.
+

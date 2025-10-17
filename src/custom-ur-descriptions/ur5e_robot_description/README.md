@@ -39,23 +39,26 @@ Chain: UR5e → Zivid Camera → Tool Block → ePick Gripper
 ### Mesh Files (`meshes/`)
 
 - **tool_exchanger/**: Tool exchanger system STL files
-- **zivid/**: Zivid camera mesh files and protective housing
+- **zivid/**: Custom Zivid arm mount mesh file
 
 ### Dependencies
 
 This package requires the following external packages:
 
 - **[Universal_Robots_ROS2_Description](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description)**: Official UR robot descriptions
+- **[zivid-ros](https://github.com/zivid/zivid-ros)**: Official Zivid ROS2 package for camera descriptions
 - **robotiq_hande_description**: Robotiq Hand-E gripper descriptions (included in `src/end_effectors/`)
 
 ```xml
 <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+<xacro:include filename="$(find zivid_description)/urdf/macros/zivid_camera.xacro"/>
 <xacro:include filename="$(find robotiq_hande_description)/urdf/robotiq_hande_gripper.xacro"/>
 ```
 
 ### Mesh Sources
 
-- **Zivid camera**: Official mesh files from [Zivid Downloads](https://www.zivid.com/downloads)
+- **Zivid camera**: Official URDF from [zivid-ros](https://github.com/zivid/zivid-ros) package
+- **Zivid arm mount**: Custom mesh file for mounting Zivid camera to robot flange
 - **Tool exchanger**: Custom STL files for the tool exchanger system
 - **Hand-E gripper**: Provided by external `robotiq_hande_description` package
 
@@ -69,12 +72,8 @@ This package requires the following external packages:
 
 ### TODO
 
-- For the zivid camera:
-  - Use meshes/description/XACRO files from the official `zivid_ros` package instead of local mesh files
-  - Remove strain relief part as we aren't using it for the actual robot
 - Make `use_fake_hardware` parameter dynamic for end effectors instead of hardcoded values
 - Add custom suction cup to the ePick gripper (pen_vacuum)
-- Add the robot mount
 
 ## Usage
 
