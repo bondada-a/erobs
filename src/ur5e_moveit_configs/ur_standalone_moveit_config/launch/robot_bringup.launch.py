@@ -114,14 +114,14 @@ def generate_launch_description():
     # Payload configuration for UR controller
     # Total: 1.430 kg = 0.170 kg (mount) + 1.260 kg (camera + housing) + 0.000 kg (no gripper)
     # CoG: Center of Gravity relative to flange frame [x, y, z] in meters
-    # Send URScript command to set payload after robot driver starts
     set_payload = TimerAction(
         period=5.0,  # Wait 5 seconds for robot driver to start
         actions=[
             ExecuteProcess(
-                cmd=['ros2', 'topic', 'pub', '--once', '/urscript_interface/script_command',
-                     'std_msgs/msg/String',
-                     '{data: "set_payload(1.430, [-0.038, -0.022, -0.055])"}'],
+                cmd=['ros2', 'service', 'call',
+                     '/io_and_status_controller/set_payload',
+                     'ur_msgs/srv/SetPayload',
+                     '{mass: 1.430, center_of_gravity: {x: -0.038, y: -0.022, z: -0.055}}'],
                 output='screen'
             )
         ]

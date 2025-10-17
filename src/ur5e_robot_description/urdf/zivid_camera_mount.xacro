@@ -6,7 +6,7 @@
 
   <xacro:macro name="zivid_camera_mount" params="parent_link xyz:='0 0 0' rpy:='0 0 0' zivid_model:='ZIVID_2_PLUS_MR60'">
 
-    <!-- ARM MOUNT LINK (Easily replaceable)          -->
+    <!-- ARM MOUNT LINK -->
     <link name="zivid_arm_mount">
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
@@ -27,7 +27,7 @@
         </geometry>
       </collision>
       <inertial>
-        <mass value="0.170"/>  <!-- Actual measured mass: 170g -->
+        <mass value="0.170"/>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <inertia ixx="0.0003" ixy="0.0" ixz="0.0"
                  iyy="0.0005" iyz="0.0"
@@ -54,11 +54,11 @@
       <parent link="zivid_arm_mount"/>
       <child link="zivid_base_link"/>
       <!-- for forward mounted camera bracket -->
-            <!-- <origin xyz="0.025 0.062 0.0" rpy="0 -1.5708 -1.5708"/> --> 
-              
+            <!-- <origin xyz="0.025 0.062 0.0" rpy="0 -1.5708 -1.5708"/> -->
+
       <!-- for backward mounted camera bracket -->
       <origin xyz="0.025 0.062 -0.049" rpy="0 -1.5708 -1.5708"/>
-      
+
     </joint>
 
   </xacro:macro>

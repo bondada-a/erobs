@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
- 
+
 <!--   Chain: map -> UR -> flange -> zivid_camera_mount -> zivid_camera -> EPick gripper -->
 
   <!-- robot name parameter -->
