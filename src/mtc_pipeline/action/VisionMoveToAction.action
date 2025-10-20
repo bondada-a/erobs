@@ -1,12 +1,11 @@
-# Goal: Detect and move to tag
-int32 tag_id           # AprilTag ID to detect
-float64 timeout 5.0    # Detection timeout (seconds)
-
+# Goal
+int32 tag_id                # AprilTag ID to detect
+float64 timeout             # Detection timeout in seconds (0.0 = use default 5.0s)
 ---
 # Result
 bool success
 string error_message
-
 ---
 # Feedback
-string status_message
+string current_operation
+float32 progress_percentage

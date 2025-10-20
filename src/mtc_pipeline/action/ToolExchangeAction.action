@@ -1,9 +1,9 @@
 # Goal
-string operation          # "load", "dock"
-string gripper           # "hande", "epick", "none"
-int32 dock_number        # Dock position (1-5)
-string approach_pose     # Approach pose key
-string poses_json        # JSON string containing all poses from the task
+string operation            # "load" or "dock"
+string gripper              # "hande", "epick", "none"
+int32 dock_number           # Dock position (1-5)
+string approach_pose        # Approach pose name
+string poses_json           # Pose definitions from task
 ---
 # Result
 bool success
@@ -12,4 +12,3 @@ string error_message
 # Feedback
 string current_operation
 float32 progress_percentage
-string current_pose      # Current pose being executed

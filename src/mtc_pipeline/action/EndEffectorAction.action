@@ -1,7 +1,6 @@
 # Goal
-string end_effector_type    # "hande", "epick", etc.
+string end_effector_type    # "hande", "epick"
 string end_effector_action  # "open", "close", "activate", "deactivate"
-string poses_json         # JSON string containing all poses from the task
 ---
 # Result
 bool success

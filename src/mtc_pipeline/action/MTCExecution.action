@@ -1,6 +1,6 @@
 # Goal
-string full_json           # JSON string containing the complete task script (poses, tasks, start_gripper)
-string robot_ip            # Robot IP address (optional, can use default)
+string full_json           # Complete task script JSON (poses, tasks, start_gripper)
+string robot_ip            # Robot IP (empty = use default)
 ---
 # Result
 bool success

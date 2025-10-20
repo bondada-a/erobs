@@ -1,17 +1,9 @@
 # Goal
-# Target can be:
-#   - Pose name from poses_json (e.g., "pickup", "place_approach")
-#   - Named state from SRDF (e.g., "moveit_home", "ready")
-#   - Ignored for relative moves (direction/distance used instead)
-string target               # Target pose or named state
-
+string target               # Pose name, SRDF state, or empty for relative moves
 string planning_type        # "joint" or "cartesian"
-
-# For relative moves only (leave empty for pose/named_state moves)
 string direction            # "forward", "backward", "left", "right", "up", "down"
 float64 distance            # Distance in meters
-
-string poses_json           # JSON string containing all poses from the task
+string poses_json           # Pose definitions from task
 ---
 # Result
 bool success

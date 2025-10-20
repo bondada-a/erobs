@@ -337,9 +337,9 @@ bool MTCOrchestratorActionServer::call_moveto_action(const nlohmann::json& step,
 
 bool MTCOrchestratorActionServer::call_endeffector_action(const nlohmann::json& step, const std::string& poses_json) {
     return call_action_generic<EndEffectorAction>(endeffector_action_client_, "end_effector", step, poses_json, [](EndEffectorAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
+        (void)poses_json;  // Unused - EndEffectorAction doesn't need poses
         goal.end_effector_type = step.value("end_effector_type", "");
         goal.end_effector_action = step.value("end_effector_action", "");
-        goal.poses_json = poses_json;
     });
 }
 
@@ -357,6 +357,7 @@ bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& st
 
 bool MTCOrchestratorActionServer::call_vision_action(const nlohmann::json& step, const std::string& poses_json) {
     return call_action_generic<VisionMoveToAction>(vision_action_client_, "vision_moveto", step, poses_json, [](VisionMoveToAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
+        (void)poses_json;  // Unused - VisionMoveToAction doesn't need poses
         goal.tag_id = step.value("tag_id", 0);
         goal.timeout = step.value("timeout", 5.0);
     });
