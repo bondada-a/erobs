@@ -113,30 +113,17 @@ bool VisionStages::trigger_capture()
   auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto future = capture_client_->async_send_request(request);
 
-  // Wait for result while spinning (Zivid captures can take ~1-2 seconds)
-  // We need to manually spin to process callbacks since we're in an action callback
+  // Wait for result with timeout (Zivid captures take ~1-2 seconds)
   const auto timeout = std::chrono::seconds(5);
-  const auto start = std::chrono::steady_clock::now();
 
-  while (rclcpp::ok()) {
-    // Check if future is ready
-    if (future.wait_for(std::chrono::milliseconds(0)) == std::future_status::ready) {
-      break;
-    }
-
-    // Check timeout
-    if (std::chrono::steady_clock::now() - start > timeout) {
-      RCLCPP_ERROR(node()->get_logger(), "Capture service call timeout");
-      return false;
-    }
-
-    // Sleep briefly to allow executor to process callbacks
-    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  if (future.wait_for(timeout) != std::future_status::ready) {
+    RCLCPP_ERROR(node()->get_logger(), "Capture service call timeout after 5s");
+    return false;
   }
 
   auto result = future.get();
   if (!result->success) {
-    RCLCPP_ERROR(node()->get_logger(), "Capture failed: %s", result->message.c_str());
+    RCLCPP_ERROR(node()->get_logger(), "Camera capture failed: %s", result->message.c_str());
     return false;
   }
 
