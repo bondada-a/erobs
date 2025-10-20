@@ -23,7 +23,7 @@
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
           <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_custom_mount.dae"
-                scale="0.001 0.001 0.001"/>
+                scale="1.0 1.0 1.0"/>
         </geometry>
       </collision>
       <inertial>

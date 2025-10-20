@@ -1,0 +1,359 @@
+================================================================================
+EROBS ARCHITECTURE - DEPENDENCY AND DATA FLOW DIAGRAMS
+================================================================================
+
+1. PACKAGE DEPENDENCY HIERARCHY
+================================================================================
+
+                            ┌─────────────────────────┐
+                            │  Task JSON from User    │
+                            │  (specifies gripper)    │
+                            └────────────┬────────────┘
+                                         │
+                        ┌────────────────▼────────────────┐
+                        │  MTCOrchestratorActionServer    │
+                        │  (mtc_pipeline/orchestrator)    │
+                        └────────┬──────────────┬──────────┘
+                                 │              │
+                    ┌────────────▼─┐   ┌───────▼────────────┐
+                    │ Gripper Pkg  │   │ Initialize        │
+                    │ Registry     │   │ Action Servers    │
+                    │ (Hardcoded)  │   └───────┬────────────┘
+                    └────────┬─────┘           │
+                             │                 │
+        ┌────────────────────▼─────────────────▼──────────────────┐
+        │                                                          │
+        │ Launch MoveIt Configuration                            │
+        │ (ros2 launch ur_{gripper}_moveit_config robot_bringup) │
+        │                                                          │
+        └────────────┬──────────────┬───────────────┬─────────────┘
+                     │              │               │
+          ┌──────────▼──┐  ┌────────▼─────┐  ┌─────▼──────────┐
+          │ ur_urdesc   │  │ MoveIt Core  │  │ Controller     │
+          │ (XACRO)     │  │ (move_group) │  │ Spawner        │
+          └──────────┬──┘  └────────┬─────┘  └─────┬──────────┘
+                     │              │              │
+          ┌──────────▼──────────────▼──────────────▼─────┐
+          │                                              │
+          │ /robot_description (published by move_group)│
+          │                                              │
+          └──────────┬───────────────────────────────────┘
+                     │
+        ┌────────────▼────────────────────────┐
+        │ Modular Action Servers (subscribe)  │
+        │                                      │
+        │  - move_to_action_server            │
+        │  - pick_place_action_server         │
+        │  - tool_exchange_action_server      │
+        │  - end_effector_action_server       │
+        │  - vision_move_to_action_server     │
+        │                                      │
+        └────────────┬────────────────────────┘
+                     │
+          ┌──────────▼──────────┐
+          │  MTC Stage Execution│
+          │  (Cartesian/Joint)  │
+          │  + Collision Checks │
+          │  + Gripper Control  │
+          │                      │
+          └──────────┬───────────┘
+                     │
+          ┌──────────▼──────────┐
+          │  Robot Execution    │
+          │  (ur_driver)        │
+          └─────────────────────┘
+
+
+2. DATA FLOW - TASK EXECUTION
+================================================================================
+
+STARTUP:
+┌──────────────────────────────────────────────────────────────────────┐
+│ User JSON:                                                           │
+│ {                                                                    │
+│   "start_gripper": "hande",                                         │
+│   "tasks": [                                                        │
+│     {"task_type": "moveto", "target": "pick_pose", ...},           │
+│     {"task_type": "end_effector", "end_effector_action": "close"}, │
+│     {"task_type": "moveto", "target": "place_pose", ...},          │
+│     ...                                                             │
+│   ],                                                                │
+│   "poses": {...}                                                    │
+│ }                                                                    │
+└────────────────┬─────────────────────────────────────────────────────┘
+                 │
+                 ▼
+         ┌───────────────────┐
+         │ Parse Gripper ID  │ (Line 117 in orchestrator)
+         └────────┬──────────┘
+                  │
+                  ▼
+    ┌─────────────────────────────────┐
+    │ Lookup Gripper Package          │ (Line 250 - HARDCODED MAP)
+    │ "hande" → ur_zivid_hande_config │
+    └────────────┬────────────────────┘
+                 │
+                 ▼
+    ┌─────────────────────────────────────────┐
+    │ Launch MoveIt Process                   │
+    │ ros2 launch ur_zivid_hande_moveit_config│
+    │   robot_bringup.launch.py               │
+    │   robot_ip:=192.168.1.10 (hardcoded)    │
+    └────────────┬────────────────────────────┘
+                 │
+                 ▼
+    ┌──────────────────────────────────┐
+    │ Wait for MoveIt Initialization   │
+    │ Check /plan_kinematic_path service
+    │ (30s timeout)                    │
+    └────────────┬─────────────────────┘
+                 │
+                 ▼
+    ┌──────────────────────────────────┐
+    │ Set Robot Payload                │ (Line 124 - 45s delay)
+    │ SetPayload service call          │
+    │ mass: 2.520, cog: [0.018, ...]   │ (HARDCODED)
+    └────────────┬─────────────────────┘
+                 │
+                 ▼
+    ┌────────────────────────────────────────┐
+    │ For Each Task in JSON:                 │
+    │                                        │
+    │ 1. Extract task_type                   │
+    │ 2. Call appropriate action server      │
+    │ 3. Wait for result (120s timeout)      │
+    │ 4. Check for gripper change request    │
+    │    ▶ If yes: goto step 1 (reload)     │
+    │                                        │
+    └────────────┬───────────────────────────┘
+                 │
+                 ▼
+         ┌──────────────┐
+         │ Task Complete│
+         └──────────────┘
+
+
+3. RUNTIME CONFIGURATION RESOLUTION
+================================================================================
+
+Current State (Hardcoded):
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  C++ Code (mtc_orchestrator_action_server.cpp)                 │
+│  ├─ Gripper Package Map (L249-254)                            │
+│  ├─ Action Server Names (L60-64)                              │
+│  ├─ Dashboard Client Path (L275)                              │
+│  └─ Process Management (fork/exec)                            │
+│                                                                 │
+│  Launch Files (robot_bringup.launch.py)                        │
+│  ├─ Default Robot IP (L17)                                    │
+│  ├─ Default Robot Type (L16)                                  │
+│  ├─ URDF file selection (L19)                                 │
+│  ├─ Payload mass (L124, L131)                                 │
+│  ├─ Payload CoG (L131)                                        │
+│  ├─ Payload delay timing (L125)                               │
+│  └─ Camera topic remappings (L86-89)                          │
+│                                                                 │
+│  XACRO Files (ur_with_zivid_*.xacro)                          │
+│  ├─ Camera model: ZIVID_2_PLUS_MR60 (L114)                    │
+│  ├─ Camera position: xyz="0.005 0 0" (L112)                   │
+│  ├─ Socat IP: 192.168.1.101 (L129)                            │
+│  ├─ Socat Port: 54321 (L130)                                  │
+│  ├─ HandE hardware mode: use_fake_hardware="true" (L144)      │
+│  └─ HandE serial: /tmp/ttyUR (L122)                           │
+│                                                                 │
+│  Config YAML Files (well-structured)                           │
+│  ├─ apriltag_config.yaml (camera-specific)                    │
+│  ├─ moveit_controllers.yaml (controller maps)                 │
+│  ├─ kinematics.yaml (IK solver config)                        │
+│  └─ joint_limits.yaml (velocity/accel limits)                 │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+
+Proposed State (Externalized Configuration):
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  Beamline Config Directory                                     │
+│  ├─ robot_params.yaml                                         │
+│  │  ├─ robot_ip: 192.168.1.10                                 │
+│  │  ├─ robot_type: ur5e                                       │
+│  │  ├─ dashboard_client: /dashboard_client/play               │
+│  │  └─ ...                                                    │
+│  │                                                            │
+│  ├─ gripper_configs.yaml                                      │
+│  │  └─ grippers:                                              │
+│  │     ├─ hande:                                              │
+│  │     │  ├─ package: ur_zivid_hande_moveit_config           │
+│  │     │  ├─ payload_mass: 2.520                              │
+│  │     │  ├─ payload_cog: [0.018, -0.013, -0.031]            │
+│  │     │  └─ delay: 45s                                      │
+│  │     ├─ epick: {...}                                       │
+│  │     └─ none: {...}                                        │
+│  │                                                            │
+│  ├─ camera_config.yaml                                        │
+│  │  ├─ camera_type: zivid                                     │
+│  │  ├─ image_topic: /color/image_color                        │
+│  │  ├─ camera_info_topic: /color/camera_info                  │
+│  │  └─ frame_id: zivid_camera_link                            │
+│  │                                                            │
+│  ├─ scene_config.yaml                                         │
+│  │  ├─ base_frame: pdf_map                                    │
+│  │  └─ obstacles: [...]                                      │
+│  │                                                            │
+│  └─ action_servers.yaml                                       │
+│     ├─ move_to: move_to_action                               │
+│     ├─ pick_place: pick_place_action                         │
+│     ├─ tool_exchange: tool_exchange_action                   │
+│     ├─ end_effector: end_effector_action                     │
+│     └─ vision_moveto: vision_move_to_action                  │
+│                                                               │
+│  ┌──────────────────────────────────────────────────────────┐
+│  │ Orchestrator loads configs at startup:                  │
+│  │ load_gripper_config(config_dir)                         │
+│  │ load_camera_config(config_dir)                          │
+│  │ load_action_server_config(config_dir)                   │
+│  └──────────────────────────────────────────────────────────┘
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+
+
+4. MoveIT CONFIGURATION HIERARCHY
+================================================================================
+
+Current (3 Separate Packages):
+
+ur_standalone_moveit_config/          ur_zivid_hande_moveit_config/
+├─ config/                            ├─ config/
+│  ├─ ur.srdf                         │  ├─ ur.srdf (DUPLICATE!)
+│  ├─ kinematics.yaml                 │  ├─ kinematics.yaml (SAME)
+│  ├─ joint_limits.yaml               │  ├─ joint_limits.yaml (SAME)
+│  ├─ ompl_planning.yaml              │  ├─ ompl_planning.yaml (SAME)
+│  ├─ moveit_controllers.yaml         │  ├─ moveit_controllers.yaml (DIFFERENT)
+│  └─ ur_controllers.yaml             │  └─ ur_hande_controllers.yaml
+├─ launch/                            ├─ launch/
+│  └─ robot_bringup.launch.py         │  └─ robot_bringup.launch.py
+│     (mostly identical code)          │     (mostly identical code)
+└─ rviz/                              └─ rviz/
+   └─ view_robot_mtc.rviz                └─ view_robot_mtc.rviz
+
+Proposed (1 Parameterized Package):
+
+ur_moveit_config/
+├─ config/
+│  ├─ ur.srdf (SHARED)
+│  ├─ kinematics.yaml (SHARED)
+│  ├─ joint_limits.yaml (SHARED)
+│  ├─ ompl_planning.yaml (SHARED)
+│  ├─ moveit_controllers.yaml (SHARED)
+│  ├─ gripper_plugins/
+│  │  ├─ hande_gripper.srdf
+│  │  ├─ hande_controllers.yaml
+│  │  ├─ epick_gripper.srdf
+│  │  ├─ epick_controllers.yaml
+│  │  └─ none_gripper.srdf
+│  └─ camera_plugins/
+│     ├─ zivid_camera.srdf
+│     ├─ zed_camera.srdf
+│     └─ generic_camera.srdf
+├─ launch/
+│  └─ robot_bringup.launch.py
+│     (single, parameterized)
+└─ rviz/
+   └─ view_robot_mtc.rviz
+
+Launch Usage:
+  ros2 launch ur_moveit_config robot_bringup.launch.py \
+      gripper:=hande \
+      camera:=zivid \
+      robot_ip:=192.168.1.10
+
+
+5. ACTION SERVER PATTERN (Generic Template)
+================================================================================
+
+BaseActionServer<ActionType, StagesType>
+│
+├─ Constructor
+│  ├─ Create action server
+│  ├─ Register callbacks
+│  └─ Print startup message
+│
+├─ execute() [generic]
+│  ├─ Get goal from client
+│  ├─ Convert goal to JSON step via goal_to_step()
+│  ├─ Load poses JSON (if present)
+│  ├─ Call stages->run(step, poses)
+│  ├─ Package result
+│  └─ Send result to client
+│
+├─ handle_goal() [generic]
+│  └─ Return ACCEPT_AND_EXECUTE
+│
+├─ handle_cancel() [generic]
+│  └─ Return ACCEPT
+│
+├─ handle_accepted() [generic]
+│  └─ Spawn execution thread
+│
+└─ goal_to_step() [PURE VIRTUAL - Implemented by each server]
+   └─ Convert goal fields to JSON step format
+
+Concrete Implementations:
+├─ MoveToActionServer → MoveToStages
+├─ PickPlaceActionServer → PickPlaceStages
+├─ ToolExchangeActionServer → ToolExchangeStages
+├─ EndEffectorActionServer → EndEffectorStages
+└─ VisionMoveToActionServer → VisionStages
+
+Each server:
+1. Receives specific goal message
+2. Converts to generic step JSON
+3. Calls generic stages executor
+4. Returns success/failure result
+
+This design allows:
+- Same robot description works with all servers
+- Single URDF loaded once by move_group
+- Servers query /robot_description topic
+- Gripper-agnostic kinematics (arm-only)
+
+
+6. GRIPPER SWITCHING FLOW
+================================================================================
+
+Start with Gripper: "hande"
+    │
+    ▼
+JSON: "tasks": [..., {"task_type": "tool_exchange", "gripper": "epick", ...}, ...]
+    │
+    ▼
+Orchestrator receives tool_exchange task
+    │
+    ├─ Call tool_exchange_action_server
+    │  ├─ Execute tool exchange stages
+    │  ├─ Move to dock position
+    │  ├─ Release hande gripper
+    │  ├─ Exit dock area
+    │  └─ Return success
+    │
+    ├─ Switch gripper registry
+    │  │  process_manager_->current_gripper_ = "epick"
+    │  │
+    │  └─ Update state for next tasks
+    │
+    ├─ Operation == "load"?
+    │  ├─ Yes: initialize_moveit_stack("epick", robot_ip)
+    │  │  ├─ Kill existing MoveIt process
+    │  │  ├─ Lookup "epick" in registry
+    │  │  ├─ Launch: ros2 launch ur_zivid_epick_moveit_config...
+    │  │  ├─ Wait for /plan_kinematic_path (30s)
+    │  │  ├─ Set new payload
+    │  │  └─ Resume execution
+    │  │
+    │  └─ No: continue with current gripper
+    │
+    ▼
+Continue task execution with new gripper/MoveIt config
+
+
+================================================================================
