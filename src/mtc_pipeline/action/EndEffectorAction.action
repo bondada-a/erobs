@@ -1,6 +1,7 @@
 # Goal
 string end_effector_type    # "hande", "epick"
 string end_effector_action  # "open", "close", "activate", "deactivate"
+string poses_json           # Pose definitions from task (unused for end effector)
 ---
 # Result
 bool success

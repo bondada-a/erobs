@@ -46,19 +46,6 @@ const std::string& BaseStages::default_ik_frame() {
   return frame;
 }
 
-// Planner default constants
-const double BaseStages::PipelinePlannerDefaults::vel_scale = 0.2;
-const double BaseStages::PipelinePlannerDefaults::acc_scale = 0.2;
-const char* const BaseStages::PipelinePlannerDefaults::pipeline_id = "ompl";
-
-const double BaseStages::CartesianPlannerDefaults::vel_scale = 0.2;
-const double BaseStages::CartesianPlannerDefaults::acc_scale = 0.2;
-const double BaseStages::CartesianPlannerDefaults::step = 0.001;
-const double BaseStages::CartesianPlannerDefaults::min_fraction = 0.6; // 60% of the path should be valid
-
-const double BaseStages::JointInterpolationPlannerDefaults::vel_scale = 0.2;
-const double BaseStages::JointInterpolationPlannerDefaults::acc_scale = 0.2;
-
 // ============================================================================
 // Class Implementation
 // ============================================================================
@@ -151,32 +138,26 @@ std::map<std::string, double> BaseStages::joints_from_degrees(const std::vector<
 // Planner Configuration & Factories
 // ============================================================================
 
-mtc::solvers::PlannerInterfacePtr BaseStages::make_pipeline_planner(const std::string& pipeline_id,
-                                                                    double vel_scale,
-                                                                    double acc_scale) const {
-  auto planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_, pipeline_id);
-  planner->setMaxVelocityScalingFactor(vel_scale);
-  planner->setMaxAccelerationScalingFactor(acc_scale);
+mtc::solvers::PlannerInterfacePtr BaseStages::make_pipeline_planner() const {
+  auto planner = std::make_shared<mtc::solvers::PipelinePlanner>(node_, "ompl");
+  planner->setMaxVelocityScalingFactor(0.2);  // 20% of max velocity
+  planner->setMaxAccelerationScalingFactor(0.2);  // 20% of max acceleration
   return planner;
 }
 
-mtc::solvers::PlannerInterfacePtr BaseStages::make_cartesian_planner(double vel_scale,
-                                                                      double acc_scale,
-                                                                      double step,
-                                                                      double min_fraction) const {
+mtc::solvers::PlannerInterfacePtr BaseStages::make_cartesian_planner() const {
   auto planner = std::make_shared<mtc::solvers::CartesianPath>();
-  planner->setMaxVelocityScalingFactor(vel_scale);
-  planner->setMaxAccelerationScalingFactor(acc_scale);
-  planner->setStepSize(step);
-  planner->setMinFraction(min_fraction);
+  planner->setMaxVelocityScalingFactor(0.2);  // 20% of max velocity
+  planner->setMaxAccelerationScalingFactor(0.2);  // 20% of max acceleration
+  planner->setStepSize(0.001);  // 1mm step size
+  planner->setMinFraction(0.6);  // 60% of path must be valid
   return planner;
 }
 
-mtc::solvers::PlannerInterfacePtr BaseStages::make_joint_interpolation_planner(double vel_scale,
-                                                                                double acc_scale) const {
+mtc::solvers::PlannerInterfacePtr BaseStages::make_joint_interpolation_planner() const {
   auto planner = std::make_shared<mtc::solvers::JointInterpolationPlanner>();
-  planner->setMaxVelocityScalingFactor(vel_scale);
-  planner->setMaxAccelerationScalingFactor(acc_scale);
+  planner->setMaxVelocityScalingFactor(0.2);  // 20% of max velocity
+  planner->setMaxAccelerationScalingFactor(0.2);  // 20% of max acceleration
   return planner;
 }
 

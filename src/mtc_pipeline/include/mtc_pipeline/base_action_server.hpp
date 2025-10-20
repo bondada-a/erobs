@@ -6,16 +6,12 @@
 #include <memory>
 #include <string>
 #include <thread>
-#include <functional>
-#include <type_traits>
 
 template<typename ActionType, typename StagesType>
 class BaseActionServer : public rclcpp::Node
 {
 public:
-
     using GoalHandle = rclcpp_action::ServerGoalHandle<ActionType>;
-
 
     BaseActionServer(const std::string& node_name, const std::string& action_name)
         : Node(node_name)
@@ -24,8 +20,11 @@ public:
         this->action_server_ = rclcpp_action::create_server<ActionType>(
             this,
             action_name,
-            [this](const auto& uuid, const auto& goal) { return handle_goal(uuid, goal); },
-            [this](const auto& goal_handle) { return handle_cancel(goal_handle); },
+            [this](const auto&, const auto&) {
+                RCLCPP_INFO(this->get_logger(), "Received goal");
+                return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+            },
+            nullptr,  // Reject cancellation - individual actions can't be safely canceled mid-execution (TODO)
             [this](const auto& goal_handle) { handle_accepted(goal_handle); });
 
         RCLCPP_INFO(this->get_logger(), "%s Action Server started", node_name.c_str());
@@ -37,56 +36,23 @@ public:
     }
 
 protected:
-    // Pure virtual function that each derived class must implement
-    // This is the only part that differs between action servers
+    // Derived classes must implement this to convert their specific goal format to JSON
     virtual nlohmann::json goal_to_step(const typename ActionType::Goal& goal) = 0;
 
 private:
+    // Member variables
     typename rclcpp_action::Server<ActionType>::SharedPtr action_server_;
     std::unique_ptr<StagesType> stages_;
 
-    rclcpp_action::GoalResponse handle_goal(
-        const rclcpp_action::GoalUUID & uuid,
-        std::shared_ptr<const typename ActionType::Goal> goal)
-    {
-        (void)uuid;
-        (void)goal;
-        RCLCPP_INFO(this->get_logger(), "Received goal");
-        return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
-    }
-
-    rclcpp_action::CancelResponse handle_cancel(
-        const std::shared_ptr<GoalHandle> goal_handle)
-    {
-        RCLCPP_INFO(this->get_logger(), "Goal cancellation requested");
-        (void)goal_handle;
-        return rclcpp_action::CancelResponse::ACCEPT;
-    }
-
+    // Action server callbacks
     void handle_accepted(const std::shared_ptr<GoalHandle> goal_handle)
     {
-        auto self = std::static_pointer_cast<BaseActionServer>(this->shared_from_this());
-        std::thread{[self, goal_handle]() { self->execute(goal_handle); }}.detach();
+        std::thread{[this, node_lifetime = shared_from_this(), goal_handle]() {
+            this->execute(goal_handle);
+        }}.detach();
     }
 
-    // Helper to get poses_json if it exists
-    template<typename T>
-    nlohmann::json get_poses_json(const T& goal, std::true_type) {
-        return nlohmann::json::parse(goal.poses_json);
-    }
-
-    template<typename T>
-    nlohmann::json get_poses_json(const T&, std::false_type) {
-        return nlohmann::json::object();
-    }
-
-    // SFINAE helper to detect if poses_json exists
-    template<typename T, typename = void>
-    struct has_poses_json : std::false_type {};
-
-    template<typename T>
-    struct has_poses_json<T, std::void_t<decltype(std::declval<T>().poses_json)>> : std::true_type {};
-
+    // Main execution logic
     void execute(const std::shared_ptr<GoalHandle> goal_handle)
     {
         RCLCPP_INFO(this->get_logger(), "Executing goal");
@@ -98,17 +64,8 @@ private:
             // Convert goal to step JSON using derived class implementation
             nlohmann::json step = goal_to_step(*goal);
 
-            // Parse poses JSON if available
-            nlohmann::json poses;
-            try {
-                poses = get_poses_json(*goal, has_poses_json<typename ActionType::Goal>{});
-            } catch (const nlohmann::json::exception& e) {
-                RCLCPP_ERROR(this->get_logger(), "Invalid poses JSON: %s", e.what());
-                result->success = false;
-                result->error_message = std::string("Invalid poses JSON: ") + e.what();
-                goal_handle->abort(result);
-                return;
-            }
+            // Parse poses JSON
+            nlohmann::json poses = nlohmann::json::parse(goal->poses_json);
 
             // Execute using stages - timeout is handled at orchestrator level
             bool success = stages_->run(step, poses);
@@ -118,6 +75,12 @@ private:
                 result->error_message = "Stage execution failed";
             }
 
+        } catch (const nlohmann::json::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "JSON error: %s", e.what());
+            result->success = false;
+            result->error_message = std::string("JSON error: ") + e.what();
+            goal_handle->abort(result);
+            return;
         } catch (const std::exception& e) {
             RCLCPP_ERROR(this->get_logger(), "Execution exception: %s", e.what());
             result->success = false;
