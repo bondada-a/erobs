@@ -111,11 +111,23 @@ bool BaseStages::load_plan_execute(mtc::Task& task) const {
 
   // Plan
   if (!task.plan()) {
+    RCLCPP_ERROR(node_->get_logger(), "MTC task planning failed");
     return false;
   }
 
+  // Check if we actually got any solutions
+  if (task.solutions().empty()) {
+    RCLCPP_ERROR(node_->get_logger(), "MTC planning succeeded but found no solutions");
+    return false;
+  }
+
+  RCLCPP_INFO(node_->get_logger(), "Found %zu solution(s)", task.solutions().size());
+
   // Execute
   auto result = task.execute(*task.solutions().front());
+  if (result.val != moveit_msgs::msg::MoveItErrorCodes::SUCCESS) {
+    RCLCPP_ERROR(node_->get_logger(), "MTC execution failed with error code: %d", result.val);
+  }
   return result.val == moveit_msgs::msg::MoveItErrorCodes::SUCCESS;
 }
 
