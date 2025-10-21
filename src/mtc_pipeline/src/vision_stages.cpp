@@ -3,30 +3,15 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
+#include <rclcpp/wait_for_message.hpp>
 #include <chrono>
 #include <thread>
 
 VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
   : BaseStages(node)
 {
-  // Initialize TF2
   tf_buffer_ = std::make_shared<tf2_ros::Buffer>(node->get_clock());
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
-
-  // Subscribe to AprilTag detections
-  tag_subscription_ = node->create_subscription<apriltag_msgs::msg::AprilTagDetectionArray>(
-    "/detections",
-    10,
-    [this, node](apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr msg) {
-      RCLCPP_INFO(node->get_logger(), "Received %zu AprilTag detections", msg->detections.size());
-      for (const auto& det : msg->detections) {
-        RCLCPP_INFO(node->get_logger(), "  - Tag ID: %d, Family: %s", det.id, det.family.c_str());
-      }
-      latest_detections_ = msg;
-    }
-  );
-
-  // Create service client for Zivid camera capture
   capture_client_ = node->create_client<std_srvs::srv::Trigger>("/capture_2d");
 
   RCLCPP_INFO(node->get_logger(), "VisionStages initialized");
@@ -34,18 +19,14 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
 
 bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
 {
-  // Parse minimal parameters
   const int tag_id = step.at("tag_id").get<int>();
   const double timeout = step.value("timeout", 10.0);
 
-  // Continuously capture and check for tag until timeout
   const auto start_time = std::chrono::steady_clock::now();
   const auto timeout_duration = std::chrono::duration<double>(timeout);
   int capture_attempt = 0;
-  std::optional<geometry_msgs::msg::PoseStamped> tag_pose_opt;
 
   while (rclcpp::ok()) {
-    // Check overall timeout
     if (std::chrono::steady_clock::now() - start_time > timeout_duration) {
       RCLCPP_ERROR(node()->get_logger(),
         "Failed to detect tag %d after %d capture attempts (timeout: %.1fs)",
@@ -56,49 +37,44 @@ bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
     capture_attempt++;
     RCLCPP_INFO(node()->get_logger(), "Capture attempt %d: Triggering camera...", capture_attempt);
 
-    // Clear old detections BEFORE capture to ensure we get fresh data
-    latest_detections_ = nullptr;
-
-    // Trigger Zivid camera capture
     if (!trigger_capture()) {
       RCLCPP_WARN(node()->get_logger(), "Capture attempt %d failed, retrying...", capture_attempt);
       std::this_thread::sleep_for(std::chrono::milliseconds(500));
       continue;
     }
 
-    // Wait for AprilTag to process the new image
-    // This gives time for image publishing and AprilTag detection
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    // Wait for one detection message (blocks until message arrives or timeout)
+    apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr detections;
+    bool received = rclcpp::wait_for_message(
+      detections,
+      node(),
+      "/detections",
+      std::chrono::seconds(2)
+    );
 
-    // Quick check if detection arrived (1 second timeout)
-    // We use a short timeout here because we want to capture again quickly
-    tag_pose_opt = detect_tag(tag_id, 1.0);
+    if (!received) {
+      RCLCPP_WARN(node()->get_logger(), "No detections received after capture");
+      std::this_thread::sleep_for(std::chrono::milliseconds(300));
+      continue;
+    }
 
-    if (tag_pose_opt) {
-      // Tag detected successfully!
+    auto tag_pose = detect_tag(tag_id, detections);
+    if (tag_pose) {
       RCLCPP_INFO(node()->get_logger(),
         "Tag %d detected on attempt %d at [%.3f, %.3f, %.3f]",
-        tag_id,
-        capture_attempt,
-        tag_pose_opt->pose.position.x,
-        tag_pose_opt->pose.position.y,
-        tag_pose_opt->pose.position.z);
-      break;
+        tag_id, capture_attempt,
+        tag_pose->pose.position.x,
+        tag_pose->pose.position.y,
+        tag_pose->pose.position.z);
+      return move_to_pose(*tag_pose);
     }
 
     RCLCPP_WARN(node()->get_logger(), "Tag %d not detected on attempt %d, capturing again...", tag_id, capture_attempt);
-
-    // Small delay before next capture to avoid overwhelming the camera
     std::this_thread::sleep_for(std::chrono::milliseconds(300));
   }
 
-  if (!tag_pose_opt) {
-    RCLCPP_ERROR(node()->get_logger(), "Failed to detect tag %d", tag_id);
-    return false;
-  }
-
-  // Move to the detected pose
-  return move_to_pose(*tag_pose_opt);
+  RCLCPP_ERROR(node()->get_logger(), "Failed to detect tag %d", tag_id);
+  return false;
 }
 
 bool VisionStages::trigger_capture()
@@ -133,73 +109,45 @@ bool VisionStages::trigger_capture()
 
 std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_tag(
   int tag_id,
-  double timeout_seconds)
+  const apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr& detections)
 {
-  const auto start_time = std::chrono::steady_clock::now();
-  const auto timeout = std::chrono::duration<double>(timeout_seconds);
-
-  // Don't clear detections here - they should be cleared before capture
-
-  while (rclcpp::ok()) {
-    // Check timeout
-    if (std::chrono::steady_clock::now() - start_time > timeout) {
-      RCLCPP_DEBUG(node()->get_logger(), "Tag detection timeout after %.1fs", timeout_seconds);
-      return std::nullopt;
-    }
-
-    // Check if we have received a detection message
-    if (latest_detections_) {
-      // If we got an empty detection array, AprilTag has processed but found nothing
-      // Return immediately so we can capture a new image
-      if (latest_detections_->detections.empty()) {
-        RCLCPP_DEBUG(node()->get_logger(), "AprilTag processed image but found no tags");
-        return std::nullopt;
-      }
-
-      // Check if our specific tag was detected
-      for (const auto& detection : latest_detections_->detections) {
-        if (detection.id == tag_id) {
-          // Tag frame format: "tag36h11:ID"
-          std::string tag_frame = detection.family + ":" + std::to_string(detection.id);
-
-          try {
-            // Get transform from tag to base_link
-            if (!tf_buffer_->canTransform("base_link", tag_frame,
-                                         tf2::TimePointZero, std::chrono::milliseconds(100))) {
-              RCLCPP_WARN(node()->get_logger(), "Cannot transform from %s to base_link", tag_frame.c_str());
-              continue;
-            }
-
-            auto transform = tf_buffer_->lookupTransform("base_link", tag_frame, tf2::TimePointZero);
-
-            // Convert to PoseStamped
-            geometry_msgs::msg::PoseStamped tag_pose;
-            tag_pose.header.frame_id = "base_link";
-            tag_pose.header.stamp = node()->now();
-            tag_pose.pose.position.x = transform.transform.translation.x;
-            tag_pose.pose.position.y = transform.transform.translation.y;
-            tag_pose.pose.position.z = transform.transform.translation.z;
-            tag_pose.pose.orientation = transform.transform.rotation;
-
-            return tag_pose;
-
-          } catch (const tf2::TransformException& ex) {
-            RCLCPP_WARN(node()->get_logger(), "TF error for tag %d: %s", tag_id, ex.what());
-            continue;
-          }
-        }
-      }
-
-      // If we get here, we got detections but not for our tag ID
-      RCLCPP_DEBUG(node()->get_logger(), "Detected %zu tags but not tag %d",
-                   latest_detections_->detections.size(), tag_id);
-      return std::nullopt;
-    }
-
-    // No detection message yet, keep waiting
-    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  if (detections->detections.empty()) {
+    RCLCPP_DEBUG(node()->get_logger(), "Detection array is empty");
+    return std::nullopt;
   }
 
+  for (const auto& detection : detections->detections) {
+    if (detection.id == tag_id) {
+      std::string tag_frame = detection.family + ":" + std::to_string(detection.id);
+
+      try {
+        if (!tf_buffer_->canTransform("base_link", tag_frame,
+                                     tf2::TimePointZero, std::chrono::milliseconds(500))) {
+          RCLCPP_WARN(node()->get_logger(), "Cannot transform from %s to base_link", tag_frame.c_str());
+          continue;
+        }
+
+        auto transform = tf_buffer_->lookupTransform("base_link", tag_frame, tf2::TimePointZero);
+
+        geometry_msgs::msg::PoseStamped tag_pose;
+        tag_pose.header.frame_id = "base_link";
+        tag_pose.header.stamp = node()->now();
+        tag_pose.pose.position.x = transform.transform.translation.x;
+        tag_pose.pose.position.y = transform.transform.translation.y;
+        tag_pose.pose.position.z = transform.transform.translation.z;
+        tag_pose.pose.orientation = transform.transform.rotation;
+
+        return tag_pose;
+
+      } catch (const tf2::TransformException& ex) {
+        RCLCPP_WARN(node()->get_logger(), "TF error for tag %d: %s", tag_id, ex.what());
+        continue;
+      }
+    }
+  }
+
+  RCLCPP_DEBUG(node()->get_logger(), "Detected %zu tags but not tag %d",
+               detections->detections.size(), tag_id);
   return std::nullopt;
 }
 
