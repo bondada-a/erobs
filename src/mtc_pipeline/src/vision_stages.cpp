@@ -14,13 +14,33 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
   tf_listener_ = std::make_shared<tf2_ros::TransformListener>(*tf_buffer_);
   capture_client_ = node->create_client<std_srvs::srv::Trigger>("/capture_2d");
 
-  RCLCPP_INFO(node->get_logger(), "VisionStages initialized");
+  detection_sub_ = node->create_subscription<apriltag_msgs::msg::AprilTagDetectionArray>(
+    "/detections", 10,
+    std::bind(&VisionStages::detection_callback, this, std::placeholders::_1));
+
+  joint_state_sub_ = node->create_subscription<sensor_msgs::msg::JointState>(
+    "/joint_states", 10,
+    std::bind(&VisionStages::joint_state_callback, this, std::placeholders::_1));
+
+  RCLCPP_INFO(node->get_logger(), "VisionStages initialized with detection caching (30s timeout)");
 }
 
 bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
 {
   const int tag_id = step.at("tag_id").get<int>();
   const double timeout = step.value("timeout", 10.0);
+
+  // Check if we have a valid cached detection
+  if (has_valid_cached_detection(tag_id)) {
+    const auto& cached = detection_cache_[tag_id];
+    double age = (node()->now() - cached.timestamp).seconds();
+    RCLCPP_INFO(node()->get_logger(),
+      "Using cached detection for tag %d (age: %.1fs, robot stationary)",
+      tag_id, age);
+    return move_to_pose(cached.pose);
+  }
+
+  RCLCPP_INFO(node()->get_logger(), "No valid cached detection for tag %d, capturing...", tag_id);
 
   const auto start_time = std::chrono::steady_clock::now();
   const auto timeout_duration = std::chrono::duration<double>(timeout);
@@ -203,4 +223,89 @@ bool VisionStages::move_to_pose(const geometry_msgs::msg::PoseStamped& target_po
 
   // Execute
   return load_plan_execute(task);
+}
+
+void VisionStages::detection_callback(const apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr msg)
+{
+  if (msg->detections.empty() || current_joints_.empty()) {
+    return;
+  }
+
+  for (const auto& detection : msg->detections) {
+    int tag_id = detection.id;
+    std::string tag_frame = detection.family + ":" + std::to_string(detection.id);
+
+    try {
+      if (!tf_buffer_->canTransform("base_link", tag_frame,
+                                   tf2::TimePointZero, std::chrono::milliseconds(100))) {
+        continue;
+      }
+
+      auto transform = tf_buffer_->lookupTransform("base_link", tag_frame, tf2::TimePointZero);
+
+      geometry_msgs::msg::PoseStamped tag_pose;
+      tag_pose.header.frame_id = "base_link";
+      tag_pose.header.stamp = node()->now();
+      tag_pose.pose.position.x = transform.transform.translation.x;
+      tag_pose.pose.position.y = transform.transform.translation.y;
+      tag_pose.pose.position.z = transform.transform.translation.z;
+      tag_pose.pose.orientation = transform.transform.rotation;
+
+      CachedDetection cached;
+      cached.pose = tag_pose;
+      cached.timestamp = node()->now();
+      cached.robot_joints = current_joints_;
+
+      detection_cache_[tag_id] = cached;
+
+      RCLCPP_DEBUG(node()->get_logger(), "Cached detection for tag %d", tag_id);
+
+    } catch (const tf2::TransformException& ex) {
+      continue;
+    }
+  }
+}
+
+void VisionStages::joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
+{
+  if (msg->position.empty()) {
+    return;
+  }
+  current_joints_ = msg->position;
+}
+
+bool VisionStages::has_valid_cached_detection(int tag_id)
+{
+  auto it = detection_cache_.find(tag_id);
+  if (it == detection_cache_.end()) {
+    return false;
+  }
+
+  double age = (node()->now() - it->second.timestamp).seconds();
+  if (age > cache_timeout_sec_) {
+    RCLCPP_DEBUG(node()->get_logger(), "Cached detection for tag %d expired (age: %.1fs)", tag_id, age);
+    return false;
+  }
+
+  if (robot_has_moved(it->second.robot_joints)) {
+    RCLCPP_DEBUG(node()->get_logger(), "Cached detection for tag %d invalid (robot moved)", tag_id);
+    return false;
+  }
+
+  return true;
+}
+
+bool VisionStages::robot_has_moved(const std::vector<double>& old_joints)
+{
+  if (current_joints_.empty() || old_joints.size() != current_joints_.size()) {
+    return true;
+  }
+
+  for (size_t i = 0; i < old_joints.size(); i++) {
+    if (std::abs(old_joints[i] - current_joints_[i]) > joint_movement_threshold_) {
+      return true;
+    }
+  }
+
+  return false;
 }
