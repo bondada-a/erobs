@@ -371,7 +371,7 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& ste
         return false;
     }
 
-    // Handle gripper switching after tool exchange                 //TODO : validate have the right gripper attached and no gripper while loading.
+    // Handle gripper switching after tool exchange
     if (operation == "dock") {
         return initialize_moveit_stack("none", robot_ip);
     } else if (operation == "load") {
@@ -381,9 +381,10 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& ste
 }
 
 bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json& step, const std::string& poses_json) {
-    return call_action_generic<ToolExchangeAction>(toolexchange_action_client_, "tool_exchange", step, poses_json, [](ToolExchangeAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
+    return call_action_generic<ToolExchangeAction>(toolexchange_action_client_, "tool_exchange", step, poses_json, [this](ToolExchangeAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
         goal.operation = step.value("operation", "");
         goal.gripper = step.value("gripper", "");
+        goal.current_attached_gripper = process_manager_->current_gripper_;
         goal.dock_number = step.value("dock_number", 0);
         goal.approach_pose = step.value("approach_pose", "");
         goal.poses_json = poses_json;

@@ -13,6 +13,7 @@ protected:
         nlohmann::json step;
         step["operation"] = goal.operation;
         step["gripper"] = goal.gripper;
+        step["current_attached_gripper"] = goal.current_attached_gripper;
         step["dock_number"] = goal.dock_number;
         step["approach_pose"] = goal.approach_pose;
 
