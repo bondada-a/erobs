@@ -213,15 +213,7 @@ rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_goal(
 rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
     const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
 {
-    RCLCPP_WARN(this->get_logger(), "Cancel request received from client");
-
-    if (is_executing_) {
-        RCLCPP_INFO(this->get_logger(), "Stopping current task execution");
-        is_executing_ = false;
-    } else {
-        RCLCPP_INFO(this->get_logger(), "No active task to cancel");
-    }
-
+    RCLCPP_INFO(this->get_logger(), "Cancel request received - will stop after current task completes");
     return rclcpp_action::CancelResponse::ACCEPT;
 }
 
@@ -263,6 +255,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     auto plan_client = this->create_client<moveit_msgs::srv::GetMotionPlan>("/plan_kinematic_path");
     if (!plan_client->wait_for_service(30s)) {
         RCLCPP_ERROR(this->get_logger(), "MoveIt planning service not ready within 30s");
+        process_manager_->kill_moveit_process();
         return false;
     }
     RCLCPP_INFO(this->get_logger(), "MoveIt fully initialized and ready for planning");
