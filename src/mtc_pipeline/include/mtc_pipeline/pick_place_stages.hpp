@@ -31,6 +31,7 @@ private:
   std::unique_ptr<mtc::Stage> make_gripper_stage(
     const std::string& label,
     const mtc::solvers::PlannerInterfacePtr& planner,
-    bool open
+    bool open,
+    const std::string& gripper_type
   );
 };

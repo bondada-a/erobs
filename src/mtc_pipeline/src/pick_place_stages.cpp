@@ -5,9 +5,21 @@
 #include <moveit_msgs/msg/joint_constraint.hpp>
 
 namespace {
-constexpr const char* GRIPPER_GROUP = "hande_gripper";
-constexpr const char* GRIPPER_OPEN_STATE = "hande_open";
-constexpr const char* GRIPPER_CLOSED_STATE = "hande_closed";
+struct GripperConfig {
+  std::string group;
+  std::string release_state;  // State name when gripper is open/released
+  std::string grasp_state;    // State name when gripper is closed/gripping
+};
+
+GripperConfig get_gripper_config(const std::string& gripper_type) {
+  if (gripper_type == "epick") {
+    // EPick: vacuum_off = released, vacuum_on = gripping
+    return {"epick_gripper", "vacuum_off", "vacuum_on"};
+  }
+  // HandE: hande_open = released, hande_closed = gripping
+  return {"hande_gripper", "hande_open", "hande_closed"};
+}
+
 constexpr const char* WRIST3_JOINT_NAME = "wrist_3_joint";
 constexpr double WRIST3_POSITION = 0.0;
 constexpr double WRIST3_TOLERANCE = 0.01;
@@ -52,11 +64,13 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::make_move_to_named_stage(
 std::unique_ptr<mtc::Stage> PickPlaceStages::make_gripper_stage(
   const std::string& label,
   const mtc::solvers::PlannerInterfacePtr& planner,
-  bool open)
+  bool open,
+  const std::string& gripper_type)
 {
+  auto config = get_gripper_config(gripper_type);
   auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-  stage->setGroup(GRIPPER_GROUP);
-  stage->setGoal(open ? GRIPPER_OPEN_STATE : GRIPPER_CLOSED_STATE);
+  stage->setGroup(config.group);
+  stage->setGoal(open ? config.release_state : config.grasp_state);
   return stage;
 }
 
@@ -77,9 +91,11 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   const std::string place_approach = step["place_approach"].get<std::string>();
   const std::string place_target = step["place_target"].get<std::string>();
 
+  // Extract gripper type (default to hande for backward compatibility)
+  const std::string gripper_type = step.value("gripper", "hande");
+
   auto task = create_task_template("Pick and Place");
   auto pipeline_planner = make_pipeline_planner();
-  auto cartesian_planner = make_cartesian_planner();
   auto gripper_planner = make_joint_interpolation_planner();
 
   // ============================================================================
@@ -87,7 +103,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   // ============================================================================
 
   // 1. Open gripper
-  task.add(make_gripper_stage("open gripper", gripper_planner, true));
+  task.add(make_gripper_stage("open gripper", gripper_planner, true, gripper_type));
 
   // 2. Move to pickup approach (with wrist constraint to prevent tilt)
   {
@@ -110,7 +126,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   }
 
   // 4. Close gripper
-  task.add(make_gripper_stage("close gripper", gripper_planner, false));
+  task.add(make_gripper_stage("close gripper", gripper_planner, false, gripper_type));
 
   // 5. Pickup retreat (with wrist constraint to prevent tilt while holding object)
   {
@@ -149,7 +165,7 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   }
 
   // 8. Open gripper
-  task.add(make_gripper_stage("open gripper", gripper_planner, true));
+  task.add(make_gripper_stage("open gripper", gripper_planner, true, gripper_type));
 
   // 9. Place retreat
   {

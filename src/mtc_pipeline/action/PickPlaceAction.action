@@ -1,10 +1,9 @@
 # Goal
-string gripper              # "hande", "epick"
+string gripper              # "hande" or "epick"
 string pick_approach        # Approach pose name
 string pick_target          # Grasp pose name
 string place_approach       # Place approach pose name
 string place_target         # Place target pose name
-string planning_type        # "joint" or "cartesian"
 string poses_json           # Pose definitions from task
 ---
 # Result

@@ -350,7 +350,6 @@ bool MTCOrchestratorActionServer::call_pickplace_action(const nlohmann::json& st
         goal.pick_target = step.value("pick_target", "");
         goal.place_approach = step.value("place_approach", "");
         goal.place_target = step.value("place_target", "");
-        goal.planning_type = step.value("planning_type", "joint");
         goal.poses_json = poses_json;
     });
 }

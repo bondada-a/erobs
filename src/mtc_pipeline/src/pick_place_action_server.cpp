@@ -12,7 +12,6 @@ protected:
     {
         nlohmann::json step;
         step["gripper"] = goal.gripper;
-        step["planning_type"] = goal.planning_type;
 
         // Pass individual pose fields directly (no array conversion)
         step["pick_approach"] = goal.pick_approach;
