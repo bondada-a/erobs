@@ -28,6 +28,6 @@ private:
   bool trigger_capture();
   std::optional<geometry_msgs::msg::PoseStamped> detect_tag(
     int tag_id,
-    const apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr& detections);
+    const apriltag_msgs::msg::AprilTagDetectionArray& detections);
   bool move_to_pose(const geometry_msgs::msg::PoseStamped& target_pose);
 };

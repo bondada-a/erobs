@@ -254,8 +254,7 @@ class MTCGUIClient:
                 "pick_approach": "pickup_approach",
                 "pick_target": "pickup",
                 "place_approach": "place_approach",
-                "place_target": "place",
-                "planning_type": "joint"
+                "place_target": "place"
             }
         elif action_type == "tool_exchange":
             step = {
@@ -432,14 +431,7 @@ class MTCGUIClient:
         ttk.Label(dialog, text="Place Target Pose:").pack(anchor="w", padx=20)
         place_target_var = tk.StringVar(value=step.get("place_target", ""))
         place_target_entry = ttk.Entry(dialog, textvariable=place_target_var, width=30)
-        place_target_entry.pack(padx=20, pady=(0, 10))
-
-        # Planning type
-        ttk.Label(dialog, text="Planning Type:").pack(anchor="w", padx=20)
-        planning_var = tk.StringVar(value=step.get("planning_type", "joint"))
-        planning_combo = ttk.Combobox(dialog, textvariable=planning_var,
-                                     values=["joint", "cartesian"], width=30)
-        planning_combo.pack(padx=20, pady=(0, 20))
+        place_target_entry.pack(padx=20, pady=(0, 20))
 
         def save_changes():
             step["gripper"] = gripper_var.get()
@@ -447,7 +439,6 @@ class MTCGUIClient:
             step["pick_target"] = pick_target_var.get()
             step["place_approach"] = place_approach_var.get()
             step["place_target"] = place_target_var.get()
-            step["planning_type"] = planning_var.get()
             self.update_task_tree()
             dialog.destroy()
             self.log_message(f"Updated step {step_index + 1}")

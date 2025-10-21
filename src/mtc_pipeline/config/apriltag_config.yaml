@@ -43,6 +43,6 @@ apriltag_detector:
     # REQUIRED: tag.ids must be specified to publish TF transforms!
     # If tag.ids is empty, detections work but NO TF is published
     tag:
-      ids: [0, 1]              # Tag IDs for which to publish TF transforms
-      sizes: [0.008, 0.008]    # Tag-specific sizes (must match length of ids)
+      ids: [0, 1, 2, 3, 4, 5, 6, 7, 8]              # Tag IDs for which to publish TF transforms
+      sizes: [0.008, 0.008, 0.008, 0.008, 0.008, 0.008, 0.008, 0.008, 0.008]    # Tag-specific sizes (all measured as 8mm after printing 10mm PDFs)
       # frames: []             # Optional: custom frame names (omitted = use default tag36h11:X)

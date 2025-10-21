@@ -24,8 +24,8 @@ def generate_launch_description():
                 'ur_arm': {
                     'kinematics_solver': 'kdl_kinematics_plugin/KDLKinematicsPlugin',
                     'kinematics_solver_search_resolution': 0.001,
-                    'kinematics_solver_timeout': 0.1,
-                    'kinematics_solver_attempts': 3
+                    'kinematics_solver_timeout': 1.0,
+                    'kinematics_solver_attempts': 10
                 }
             }
         }

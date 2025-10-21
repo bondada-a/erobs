@@ -44,7 +44,7 @@ bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
     }
 
     // Wait for one detection message (blocks until message arrives or timeout)
-    apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr detections;
+    apriltag_msgs::msg::AprilTagDetectionArray detections;
     bool received = rclcpp::wait_for_message(
       detections,
       node(),
@@ -109,14 +109,14 @@ bool VisionStages::trigger_capture()
 
 std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_tag(
   int tag_id,
-  const apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr& detections)
+  const apriltag_msgs::msg::AprilTagDetectionArray& detections)
 {
-  if (detections->detections.empty()) {
+  if (detections.detections.empty()) {
     RCLCPP_DEBUG(node()->get_logger(), "Detection array is empty");
     return std::nullopt;
   }
 
-  for (const auto& detection : detections->detections) {
+  for (const auto& detection : detections.detections) {
     if (detection.id == tag_id) {
       std::string tag_frame = detection.family + ":" + std::to_string(detection.id);
 
@@ -147,7 +147,7 @@ std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_tag(
   }
 
   RCLCPP_DEBUG(node()->get_logger(), "Detected %zu tags but not tag %d",
-               detections->detections.size(), tag_id);
+               detections.detections.size(), tag_id);
   return std::nullopt;
 }
 
