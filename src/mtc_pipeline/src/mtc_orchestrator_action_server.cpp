@@ -62,6 +62,7 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
         toolexchange_action_client_ = rclcpp_action::create_client<ToolExchangeAction>(this, "tool_exchange_action");
         pickplace_action_client_ = rclcpp_action::create_client<PickPlaceAction>(this, "pick_place_action");
         vision_action_client_ = rclcpp_action::create_client<VisionMoveToAction>(this, "vision_move_to_action");
+        pipettor_action_client_ = rclcpp_action::create_client<PipettorAction>(this, "pipettor_action");
 
         RCLCPP_INFO(this->get_logger(), "MTC Orchestrator Action Server started");
     }
@@ -192,6 +193,7 @@ bool MTCOrchestratorActionServer::execute_step(const std::string& task_type, con
     if (task_type == "moveto") return call_moveto_action(step, poses_json);
     if (task_type == "end_effector") return call_endeffector_action(step, poses_json);
     if (task_type == "vision_moveto") return call_vision_action(step, poses_json);
+    if (task_type == "pipettor") return call_pipettor_action(step, poses_json);
 
     return false;
 }
@@ -242,7 +244,8 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     static const std::unordered_map<std::string, std::string> gripper_packages = {
         {"none", "ur_standalone_moveit_config"},  // Temporary fix - use hande config for none gripper
         {"epick", "ur_zivid_epick_moveit_config"},
-        {"hande", "ur_zivid_hande_moveit_config"}
+        {"hande", "ur_zivid_hande_moveit_config"},
+        {"pipettor", "ur_zivid_pipettor_moveit_config"}
     };
 
     // Start MoveIt configuration
@@ -352,6 +355,21 @@ bool MTCOrchestratorActionServer::call_vision_action(const nlohmann::json& step,
         goal.tag_id = step.value("tag_id", 0);
         goal.timeout = step.value("timeout", 5.0);
         goal.poses_json = poses_json;
+    });
+}
+
+bool MTCOrchestratorActionServer::call_pipettor_action(const nlohmann::json& step, const std::string& poses_json) {
+    return call_action_generic<PipettorAction>(pipettor_action_client_, "pipettor", step, poses_json, [](PipettorAction::Goal& goal, const nlohmann::json& step, const std::string& poses_json) {
+        goal.operation = step.value("operation", "");
+        goal.volume_pct = step.value("volume_pct", 0.0);
+        goal.poses_json = poses_json;
+        // LED color if specified
+        if (step.contains("led_color")) {
+            goal.led_color.r = step["led_color"].value("r", 0.0);
+            goal.led_color.g = step["led_color"].value("g", 0.0);
+            goal.led_color.b = step["led_color"].value("b", 0.0);
+            goal.led_color.a = step["led_color"].value("a", 1.0);
+        }
     });
 }
 

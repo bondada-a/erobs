@@ -18,6 +18,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(apriltag_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(pipette_driver REQUIRED)
 
 
 set(MODULAR_ACTION_SERVER_DEPS
@@ -31,6 +32,7 @@ set(ORCHESTRATOR_DEPS
   rclcpp
   rclcpp_action
   std_srvs
+  pipette_driver
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
@@ -40,6 +42,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/ToolExchangeAction.action"
   "action/PickPlaceAction.action"
   "action/VisionMoveToAction.action"
+  "action/PipettorAction.action"
   DEPENDENCIES std_srvs geometry_msgs
   ADD_LINTER_TESTS
 )
@@ -52,16 +55,20 @@ add_library(mtc_pipeline_core
   src/move_to_stages.cpp
   src/end_effector_stages.cpp
   src/vision_stages.cpp
+  src/pipettor_stages.cpp
+  src/pipettor_operation_stage.cpp
 )
 ament_target_dependencies(mtc_pipeline_core
   moveit_task_constructor_core
   rclcpp
+  rclcpp_action
   nlohmann_json
   tf2_eigen
   tf2_ros
   tf2_geometry_msgs
   apriltag_msgs
   geometry_msgs
+  pipette_driver
 )
 target_include_directories(mtc_pipeline_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
@@ -80,6 +87,7 @@ add_executable(tool_exchange_action_server src/tool_exchange_action_server.cpp)
 add_executable(move_to_action_server src/move_to_action_server.cpp)
 add_executable(end_effector_action_server src/end_effector_action_server.cpp)
 add_executable(vision_action_server src/vision_action_server.cpp)
+add_executable(pipettor_action_server src/pipettor_action_server.cpp)
 
 
 rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
@@ -92,6 +100,7 @@ ament_target_dependencies(tool_exchange_action_server ${MODULAR_ACTION_SERVER_DE
 ament_target_dependencies(move_to_action_server ${MODULAR_ACTION_SERVER_DEPS})
 ament_target_dependencies(end_effector_action_server ${MODULAR_ACTION_SERVER_DEPS})
 ament_target_dependencies(vision_action_server ${MODULAR_ACTION_SERVER_DEPS})
+ament_target_dependencies(pipettor_action_server ${MODULAR_ACTION_SERVER_DEPS} pipette_driver)
 
 # Link Libraries
 target_link_libraries(mtc_orchestrator_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
@@ -101,6 +110,7 @@ target_link_libraries(tool_exchange_action_server "${cpp_typesupport_target}" nl
 target_link_libraries(move_to_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 target_link_libraries(end_effector_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 target_link_libraries(vision_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
+target_link_libraries(pipettor_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 
 target_compile_features(mtc_orchestrator_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(mtc_action_client_example PUBLIC c_std_99 cxx_std_17)
@@ -109,6 +119,7 @@ target_compile_features(tool_exchange_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(move_to_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(end_effector_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(vision_action_server PUBLIC c_std_99 cxx_std_17)
+target_compile_features(pipettor_action_server PUBLIC c_std_99 cxx_std_17)
 
 install(TARGETS
   mtc_orchestrator_action_server
@@ -118,6 +129,7 @@ install(TARGETS
   move_to_action_server
   end_effector_action_server
   vision_action_server
+  pipettor_action_server
   DESTINATION lib/${PROJECT_NAME}
 )
 install(TARGETS

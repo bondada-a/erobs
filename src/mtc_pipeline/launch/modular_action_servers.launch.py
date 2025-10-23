@@ -72,6 +72,14 @@ def generate_launch_description():
         parameters=action_server_parameters
     )
 
+    pipettor_action_server = Node(
+        package='mtc_pipeline',
+        executable='pipettor_action_server',
+        name='pipettor_action_server',
+        output='screen',
+        parameters=action_server_parameters
+    )
+
     # AprilTag detector for vision-based tasks
     apriltag_detector = Node(
         package='apriltag_ros',
@@ -88,6 +96,9 @@ def generate_launch_description():
             ('camera_info', '/color/camera_info'),
         ]
     )
+
+    # Pipettor driver - launched by ur_zivid_pipettor_moveit_config (not here)
+    # This ensures /tmp/ttyUR exists before pipette_driver_node starts
 
     # Main Orchestrator - manages MoveIt lifecycle
     orchestrator = Node(
@@ -108,6 +119,8 @@ def generate_launch_description():
         move_to_action_server,
         end_effector_action_server,
         vision_action_server,
+        pipettor_action_server,
         apriltag_detector,
+        # pipettor_driver launched by MoveIt config, not here
         orchestrator,
     ])

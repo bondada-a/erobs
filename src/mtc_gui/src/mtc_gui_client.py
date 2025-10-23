@@ -121,8 +121,8 @@ class MTCGUIClient:
         # Start Gripper
         ttk.Label(config_frame, text="Start Gripper:").grid(row=0, column=2, sticky="w", padx=(20, 10))
         self.start_gripper_var = tk.StringVar(value="epick")
-        gripper_combo = ttk.Combobox(config_frame, textvariable=self.start_gripper_var, 
-                                    values=["epick", "hande", "none"], width=10)
+        gripper_combo = ttk.Combobox(config_frame, textvariable=self.start_gripper_var,
+                                    values=["epick", "hande", "pipettor", "none"], width=10)
         gripper_combo.grid(row=0, column=3, sticky="w")
         
         # Test Connection Button
@@ -150,6 +150,7 @@ class MTCGUIClient:
         ttk.Button(toolbar, text="Add Tool Exchange", command=lambda: self.add_task_step("tool_exchange")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar, text="Add End Effector", command=lambda: self.add_task_step("end_effector")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar, text="Add Vision MoveTo", command=lambda: self.add_task_step("vision_moveto")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar, text="Add Pipettor", command=lambda: self.add_task_step("pipettor")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar, text="Remove Step", command=self.remove_task_step).pack(side="left", padx=(20, 0))
         
         # Task sequence tree
@@ -276,6 +277,12 @@ class MTCGUIClient:
                 "tag_id": 0,
                 "timeout": 10.0
             }
+        elif action_type == "pipettor":
+            step = {
+                "task_type": "pipettor",
+                "operation": "SUCK",
+                "volume_pct": 0.5
+            }
 
         self.current_config["tasks"].append(step)
         self.update_task_tree()
@@ -314,7 +321,13 @@ class MTCGUIClient:
 
         dialog = tk.Toplevel(self.root)
         dialog.title(f"Edit Step {step_index + 1}")
-        dialog.geometry("500x600")
+
+        # Larger dialog for pipettor due to LED controls
+        if step["task_type"] == "pipettor":
+            dialog.geometry("550x900")
+        else:
+            dialog.geometry("500x600")
+
         dialog.transient(self.root)
         try:
             dialog.grab_set()
@@ -332,6 +345,8 @@ class MTCGUIClient:
             self.create_end_effector_edit_form(dialog, step, step_index)
         elif step["task_type"] == "vision_moveto":
             self.create_vision_moveto_edit_form(dialog, step, step_index)
+        elif step["task_type"] == "pipettor":
+            self.create_pipettor_edit_form(dialog, step, step_index)
 
     def create_moveto_edit_form(self, dialog, step, step_index):
         """Create edit form for moveto steps"""
@@ -567,6 +582,158 @@ class MTCGUIClient:
 
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
+    def create_pipettor_edit_form(self, dialog, step, step_index):
+        """Create edit form for pipettor steps"""
+        ttk.Label(dialog, text="Pipettor Configuration", font=("Arial", 12, "bold")).pack(pady=10)
+
+        # Add description
+        description = ttk.Label(dialog,
+                               text="Control pipettor operations: aspirate, dispense, eject tip, and LED color",
+                               font=("Arial", 9),
+                               foreground="gray")
+        description.pack(padx=20, pady=(0, 20))
+
+        # Operation
+        ttk.Label(dialog, text="Operation:").pack(anchor="w", padx=20)
+        operation_var = tk.StringVar(value=step.get("operation", "SUCK"))
+        operation_combo = ttk.Combobox(dialog, textvariable=operation_var,
+                                     values=["SUCK", "EXPEL", "EJECT_TIP", "SET_LED"],
+                                     width=30, state="readonly")
+        operation_combo.pack(padx=20, pady=(0, 10))
+
+        # Volume percentage
+        ttk.Label(dialog, text="Volume Percentage (0.0 - 1.0):").pack(anchor="w", padx=20)
+        volume_var = tk.StringVar(value=str(step.get("volume_pct", 0.5)))
+        volume_entry = ttk.Entry(dialog, textvariable=volume_var, width=30)
+        volume_entry.pack(padx=20, pady=(0, 5))
+
+        # Volume slider for easier control
+        volume_slider_var = tk.DoubleVar(value=step.get("volume_pct", 0.5))
+        volume_slider = ttk.Scale(dialog, from_=0.0, to=1.0, orient="horizontal",
+                                 variable=volume_slider_var, length=300)
+        volume_slider.pack(padx=20, pady=(0, 10))
+
+        # Sync slider with entry
+        def update_volume_entry(val):
+            volume_var.set(f"{float(val):.2f}")
+
+        volume_slider.config(command=update_volume_entry)
+
+        ttk.Label(dialog, text="Used for SUCK and EXPEL operations (0.0 = empty, 1.0 = full)",
+                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 20))
+
+        # LED Color section
+        ttk.Separator(dialog, orient='horizontal').pack(fill='x', padx=20, pady=10)
+        ttk.Label(dialog, text="LED Color (for SET_LED operation)", font=("Arial", 10, "bold")).pack(pady=5)
+
+        # Get current LED color or use defaults
+        led_color = step.get("led_color", {"r": 0.0, "g": 1.0, "b": 0.0, "a": 1.0})
+
+        # Red slider
+        ttk.Label(dialog, text="Red (0.0 - 1.0):").pack(anchor="w", padx=20)
+        red_var = tk.DoubleVar(value=led_color.get("r", 0.0))
+        red_slider = ttk.Scale(dialog, from_=0.0, to=1.0, orient="horizontal",
+                              variable=red_var, length=300)
+        red_slider.pack(padx=20, pady=(0, 5))
+
+        # Green slider
+        ttk.Label(dialog, text="Green (0.0 - 1.0):").pack(anchor="w", padx=20)
+        green_var = tk.DoubleVar(value=led_color.get("g", 1.0))
+        green_slider = ttk.Scale(dialog, from_=0.0, to=1.0, orient="horizontal",
+                                variable=green_var, length=300)
+        green_slider.pack(padx=20, pady=(0, 5))
+
+        # Blue slider
+        ttk.Label(dialog, text="Blue (0.0 - 1.0):").pack(anchor="w", padx=20)
+        blue_var = tk.DoubleVar(value=led_color.get("b", 0.0))
+        blue_slider = ttk.Scale(dialog, from_=0.0, to=1.0, orient="horizontal",
+                               variable=blue_var, length=300)
+        blue_slider.pack(padx=20, pady=(0, 5))
+
+        # Alpha slider
+        ttk.Label(dialog, text="Alpha/Brightness (0.0 - 1.0):").pack(anchor="w", padx=20)
+        alpha_var = tk.DoubleVar(value=led_color.get("a", 1.0))
+        alpha_slider = ttk.Scale(dialog, from_=0.0, to=1.0, orient="horizontal",
+                                variable=alpha_var, length=300)
+        alpha_slider.pack(padx=20, pady=(0, 10))
+
+        # Color preview
+        color_preview = tk.Canvas(dialog, width=100, height=30, bg="white")
+        color_preview.pack(padx=20, pady=(5, 10))
+
+        def update_color_preview(*args):
+            r = int(red_var.get() * 255)
+            g = int(green_var.get() * 255)
+            b = int(blue_var.get() * 255)
+            color_hex = f"#{r:02x}{g:02x}{b:02x}"
+            color_preview.config(bg=color_hex)
+
+        # Bind sliders to preview update
+        red_var.trace('w', update_color_preview)
+        green_var.trace('w', update_color_preview)
+        blue_var.trace('w', update_color_preview)
+
+        # Initial preview
+        update_color_preview()
+
+        # Preset color buttons
+        preset_frame = ttk.LabelFrame(dialog, text="Color Presets", padding="5")
+        preset_frame.pack(padx=20, pady=(10, 20), fill="x")
+
+        def set_preset_color(r, g, b):
+            red_var.set(r)
+            green_var.set(g)
+            blue_var.set(b)
+            alpha_var.set(1.0)
+
+        ttk.Button(preset_frame, text="Red",
+                  command=lambda: set_preset_color(1.0, 0.0, 0.0)).pack(side="left", padx=2)
+        ttk.Button(preset_frame, text="Green",
+                  command=lambda: set_preset_color(0.0, 1.0, 0.0)).pack(side="left", padx=2)
+        ttk.Button(preset_frame, text="Blue",
+                  command=lambda: set_preset_color(0.0, 0.0, 1.0)).pack(side="left", padx=2)
+        ttk.Button(preset_frame, text="Yellow",
+                  command=lambda: set_preset_color(1.0, 1.0, 0.0)).pack(side="left", padx=2)
+        ttk.Button(preset_frame, text="Purple",
+                  command=lambda: set_preset_color(0.5, 0.0, 0.5)).pack(side="left", padx=2)
+        ttk.Button(preset_frame, text="White",
+                  command=lambda: set_preset_color(1.0, 1.0, 1.0)).pack(side="left", padx=2)
+        ttk.Button(preset_frame, text="Off",
+                  command=lambda: set_preset_color(0.0, 0.0, 0.0)).pack(side="left", padx=2)
+
+        # Info box
+        info_frame = ttk.LabelFrame(dialog, text="Operation Info", padding="10")
+        info_frame.pack(padx=20, pady=(10, 20), fill="x")
+
+        info_text = ("SUCK: Aspirate liquid (uses volume_pct)\n"
+                    "EXPEL: Dispense liquid (uses volume_pct)\n"
+                    "EJECT_TIP: Eject pipette tip (volume_pct ignored)\n"
+                    "SET_LED: Change LED color (uses led_color, volume_pct ignored)")
+        ttk.Label(info_frame, text=info_text, justify="left",
+                 font=("Arial", 8)).pack()
+
+        def save_changes():
+            try:
+                step["operation"] = operation_var.get()
+                step["volume_pct"] = float(volume_var.get())
+
+                # Always include led_color for consistency
+                step["led_color"] = {
+                    "r": float(red_var.get()),
+                    "g": float(green_var.get()),
+                    "b": float(blue_var.get()),
+                    "a": float(alpha_var.get())
+                }
+
+                self.update_task_tree()
+                dialog.destroy()
+                self.log_message(f"Updated pipettor step {step_index + 1}: {operation_var.get()}")
+            except ValueError:
+                messagebox.showerror("Invalid Input",
+                                   "Volume percentage must be a number between 0.0 and 1.0")
+
+        ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
+
     def update_task_tree(self):
         """Update the task sequence tree display"""
         # Clear existing items
@@ -606,6 +773,19 @@ class MTCGUIClient:
                 tag_id = step.get('tag_id', 0)
                 timeout = step.get('timeout', 10.0)
                 details = f"Detect tag {tag_id} (timeout: {timeout}s)"
+            elif action == "pipettor":
+                operation = step.get('operation', 'SUCK')
+                volume_pct = step.get('volume_pct', 0.0)
+                if operation in ["SUCK", "EXPEL"]:
+                    details = f"{operation} at {volume_pct*100:.0f}% volume"
+                elif operation == "SET_LED":
+                    led_color = step.get('led_color', {})
+                    r = led_color.get('r', 0.0)
+                    g = led_color.get('g', 0.0)
+                    b = led_color.get('b', 0.0)
+                    details = f"SET_LED (R:{r:.1f}, G:{g:.1f}, B:{b:.1f})"
+                else:
+                    details = f"{operation}"
 
             self.task_tree.insert("", "end", iid=step_id, text=step_id,
                                 values=(action, details))
