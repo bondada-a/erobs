@@ -1,0 +1,12 @@
+# Goal
+string end_effector_type    # "hande", "epick"
+string end_effector_action  # SRDF group_state name: "hande_open", "hande_closed", "vacuum_on", "vacuum_off"
+string poses_json           # Pose definitions from task (unused for end effector)
+---
+# Result
+bool success
+string error_message
+---
+# Feedback
+string current_operation
+float32 progress_percentage

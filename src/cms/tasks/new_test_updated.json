@@ -1,0 +1,116 @@
+{
+  "start_gripper": "hande",
+  "poses": {
+    "pickup_approach": [-22.61, -126.79, -120.7, 67.84, -14.53, -0.35],
+    "pickup": [-34.61, -128.22, -117.66, 68.05, -2.52, -2.17],
+    "place_approach": [-17.12, -121.2, -136.91, 79.19, -17.48, -4.08],
+    "place": [-34.7, -122.84, -131.03, 84.98, -0.42, -12.02],
+    "load_approach": [-28.53, -115.34, -110.39, -45.11, 88.99, 5.39],
+    "dock_approach": [-29.53, -125.19, -76.68, -68.96, 88.98, 4.39],
+    "vacuum_pickup_approach": [-78.24, -107.03, -57.53, -108.75, 89.19, 50.98],
+    "vacuum_pickup": [-78.44, -104.27, -76.1, -92.93, 89.21, 50.86],
+    "vacuum_place_approach": [-123.27, -46.81, -116.56, -212.17, 89.2, 48.89],
+    "vacuum_place": [-127.04, -65.95, -109.12, -191.63, 89.18, 48.9]
+  },
+  "tasks": [
+    {
+      "task_type": "moveto",
+      "target": "moveit_home",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pickup_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pickup",
+      "planning_type": "cartesian"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "hande_gripper",
+      "end_effector_action": "hande_closed"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pickup_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "place_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "place",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "hande_gripper",
+      "end_effector_action": "hande_open"
+    },
+    {
+      "task_type": "moveto",
+      "target": "place_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "tool_exchange",
+      "operation": "dock",
+      "gripper": "hande",
+      "dock_number": 3,
+      "approach_pose": "dock_approach"
+    },
+    {
+      "task_type": "tool_exchange",
+      "operation": "load",
+      "gripper": "epick",
+      "dock_number": 2,
+      "approach_pose": "load_approach"
+    },
+    {
+      "task_type": "moveto",
+      "target": "vacuum_pickup_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "vacuum_pickup",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "epick_gripper",
+      "end_effector_action": "vacuum_on"
+    },
+    {
+      "task_type": "moveto",
+      "target": "vacuum_pickup_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "vacuum_pickup",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "epick_gripper",
+      "end_effector_action": "vacuum_off"
+    },
+    {
+      "task_type": "moveto",
+      "target": "vacuum_pickup_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "moveit_home",
+      "planning_type": "joint"
+    }
+  ]
+}

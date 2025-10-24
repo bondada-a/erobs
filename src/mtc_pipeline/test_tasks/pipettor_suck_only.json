@@ -1,0 +1,11 @@
+{
+  "start_gripper": "pipettor",
+  "poses": {},
+  "tasks": [
+    {
+      "task_type": "pipettor",
+      "operation": "SUCK",
+      "volume_pct": 0.5
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+# Goal
+string operation            # "load" or "dock"
+string gripper              # "hande", "epick", or "none" - gripper being loaded/docked
+string current_attached_gripper  # "hande", "epick", or "none" - what's currently attached
+int32 dock_number           # Dock position (1-5)
+string approach_pose        # Approach pose name
+string poses_json           # Pose definitions from task
+---
+# Result
+bool success
+string error_message
+---
+# Feedback
+string current_operation
+float32 progress_percentage
