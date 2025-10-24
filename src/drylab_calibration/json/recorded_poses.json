@@ -1,0 +1,57 @@
+{
+  "poses": {
+    "pickup_approach": [
+      -27.90,
+      -94.54,
+      -130.85,
+      -125.52,
+      27.27,
+      172.26
+    ],
+    "pickup": [
+      -7.49,
+      -106.94,
+      -129.09,
+      -119.39,
+      26.35,
+      180.0
+    ],
+    "place_approach": [
+      -124.06,
+      -43.13,
+      -114.46,
+      -206.09,
+      -85.92,
+      180.0
+    ],
+    "place": [
+      -33.24,
+      -65.97,
+      -107.91,
+      -189.77,
+      -89.02,
+      180.0
+    ]
+  },
+  "tasks": [
+    {
+      "type": "move",
+      "pose_waypoints": ["pickup_approach"]
+    },
+    {
+      "type": "end_effector",
+      "device": "gripper",
+      "action": "close"
+    },
+    
+    {
+      "type": "move",
+      "pose_waypoints": ["place"]
+    },
+    {
+      "type": "end_effector",
+      "device": "gripper",
+      "action": "open"
+    }
+  ]
+}

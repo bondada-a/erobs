@@ -1,0 +1,32 @@
+# Shared planning scene for all MoveIt configurations
+# All obstacles that should be present regardless of end-effector
+
+obstacles:
+  # Robot base pedestal/mount (8in x 8in x 10in)
+  - name: "robot_base"
+    type: "box"
+    frame: "map"
+    pose:
+      x: 0.0
+      y: 0.0
+      z: -0.1275  # Half height (10in/2 = 5in = 0.127m) below origin
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    size: [0.203, 0.203, 0.254]  # [8in, 8in, 10in] in meters
+
+  # Thorlabs optical table B3648FX (36" x 48" x 2.28")
+  - name: "thorlabs_table"
+    type: "box"
+    frame: "map"
+    pose:
+      x: -0.3810   # 9" from edge along 48" dimension = -15" from center
+      y: -0.3556   # 4" from edge along 36" dimension = -14" from center
+      z: -0.283  # Table top below robot base
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    size: [1.2192, 0.9144, 0.05791]  # [48in, 36in, 2.28in] in meters
+
+# Note: Add more obstacles here as needed
+# Supported types: box, cylinder, sphere

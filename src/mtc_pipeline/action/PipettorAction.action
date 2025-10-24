@@ -1,0 +1,12 @@
+# Goal
+string operation        # "SUCK", "EXPEL", "EJECT_TIP", "SET_LED"
+float64 volume_pct     # 0.0-1.0 for SUCK/EXPEL operations
+std_msgs/ColorRGBA led_color  # for SET_LED operation
+string poses_json      # Not used for pipettor, kept for consistency
+---
+# Result
+bool success
+string error_message
+---
+# Feedback
+string status

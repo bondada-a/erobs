@@ -1,0 +1,12 @@
+# Goal
+int32 tag_id                # AprilTag ID to detect
+float64 timeout             # Detection timeout in seconds (0.0 = use default 5.0s)
+string poses_json           # Pose definitions from task (unused for vision)
+---
+# Result
+bool success
+string error_message
+---
+# Feedback
+string current_operation
+float32 progress_percentage
