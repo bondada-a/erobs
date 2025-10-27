@@ -24,7 +24,7 @@ RUN mkdir /root/ws -p
 WORKDIR /root/ws
 
 # Copy and setup VNC startup script
-COPY start-vnc.sh /root/start-vnc.sh
+COPY docker/erobs-common-img/start-vnc.sh /root/start-vnc.sh
 RUN chmod +x /root/start-vnc.sh
 
 RUN git clone https://github.com/bondada-a/erobs.git -b zivid_integration
