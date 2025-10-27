@@ -30,7 +30,12 @@ RUN chmod +x /root/start-vnc.sh
 RUN git clone https://github.com/bondada-a/erobs.git -b zivid_integration
 
 WORKDIR /root/ws/erobs/
-RUN /bin/bash -c ". ./setup.sh"
+RUN /bin/bash -c "set -e && \
+    vcs import < src/ros2.repos src && \
+    vcs import < src/end_effectors/end_effectors.repos src/end_effectors && \
+    apt-get update && \
+    rosdep update && \
+    rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface zivid_description'"
 
 WORKDIR /root/ws/
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio"

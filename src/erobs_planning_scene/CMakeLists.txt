@@ -28,10 +28,12 @@ install(DIRECTORY config
   DESTINATION share/${PROJECT_NAME}/
 )
 
-# Install meshes
-install(DIRECTORY meshes
-  DESTINATION share/${PROJECT_NAME}/
-)
+# Install meshes (if directory exists and is not empty)
+if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/meshes)
+  install(DIRECTORY meshes
+    DESTINATION share/${PROJECT_NAME}/
+  )
+endif()
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
