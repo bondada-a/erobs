@@ -11,7 +11,16 @@ RUN apt-get update \
         build-essential \
         python3-colcon-common-extensions
         
-RUN apt-get install -y x11vnc xvfb 
+RUN apt-get install -y x11vnc xvfb wget
+
+# Install Zivid SDK 2.16.0 for Ubuntu 22.04
+RUN mkdir -p /tmp/zivid && cd /tmp/zivid && \
+    wget https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u22/amd64/zivid_2.16.0+46cdaba6-1_amd64.deb && \
+    wget https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u22/amd64/zivid-tools_2.16.0+46cdaba6-1_amd64.deb && \
+    wget https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u22/amd64/zivid-genicam_2.16.0+46cdaba6-1_amd64.deb && \
+    apt-get install -y ./*.deb && \
+    cd / && rm -rf /tmp/zivid
+
 # Clean up
 RUN apt-get autoremove -y \
         && apt-get clean -y \
@@ -33,6 +42,7 @@ WORKDIR /root/ws/erobs/
 RUN /bin/bash -c "set -e && \
     vcs import < src/ros2.repos src && \
     vcs import < src/end_effectors/end_effectors.repos src/end_effectors && \
+    vcs import < src/vision/vision.repos src/vision && \
     apt-get update && \
     rosdep update && \
     rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface zivid_description'"
