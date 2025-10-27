@@ -80,6 +80,26 @@ def generate_launch_description():
         parameters=action_server_parameters
     )
 
+    vision_pick_place_action_server = Node(
+        package='mtc_pipeline',
+        executable='vision_pick_place_action_server',
+        name='vision_pick_place_action_server',
+        output='screen',
+        parameters=action_server_parameters
+    )
+
+    # Zivid camera node with 2D capture settings
+    zivid_camera = Node(
+        package='zivid_camera',
+        executable='zivid_camera',
+        name='zivid_camera',
+        output='screen',
+        parameters=[{
+            'settings_2d_file_path': '/home/aditya/work/github_ws/erobs/src/zivid_settings.yml',
+            'frame_id': 'zivid_optical_frame'
+        }]
+    )
+
     # AprilTag detector for vision-based tasks
     apriltag_detector = Node(
         package='apriltag_ros',
@@ -120,6 +140,8 @@ def generate_launch_description():
         end_effector_action_server,
         vision_action_server,
         pipettor_action_server,
+        vision_pick_place_action_server,
+        zivid_camera,
         apriltag_detector,
         # pipettor_driver launched by MoveIt config, not here
         orchestrator,

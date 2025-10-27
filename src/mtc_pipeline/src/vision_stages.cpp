@@ -309,3 +309,73 @@ bool VisionStages::robot_has_moved(const std::vector<double>& old_joints)
 
   return false;
 }
+
+std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_and_transform_tag(
+  int tag_id, double timeout)
+{
+  // Check if we have a valid cached detection
+  if (has_valid_cached_detection(tag_id)) {
+    const auto& cached = detection_cache_[tag_id];
+    double age = (node()->now() - cached.timestamp).seconds();
+    RCLCPP_INFO(node()->get_logger(),
+      "Using cached detection for tag %d (age: %.1fs, robot stationary)",
+      tag_id, age);
+    return cached.pose;
+  }
+
+  RCLCPP_INFO(node()->get_logger(), "No valid cached detection for tag %d, capturing...", tag_id);
+
+  const auto start_time = std::chrono::steady_clock::now();
+  const auto timeout_duration = std::chrono::duration<double>(timeout);
+  int capture_attempt = 0;
+
+  while (rclcpp::ok()) {
+    if (std::chrono::steady_clock::now() - start_time > timeout_duration) {
+      RCLCPP_ERROR(node()->get_logger(),
+        "Failed to detect tag %d after %d capture attempts (timeout: %.1fs)",
+        tag_id, capture_attempt, timeout);
+      return std::nullopt;
+    }
+
+    capture_attempt++;
+    RCLCPP_INFO(node()->get_logger(), "Capture attempt %d: Triggering camera...", capture_attempt);
+
+    if (!trigger_capture()) {
+      RCLCPP_WARN(node()->get_logger(), "Capture attempt %d failed, retrying...", capture_attempt);
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      continue;
+    }
+
+    // Wait for one detection message (blocks until message arrives or timeout)
+    apriltag_msgs::msg::AprilTagDetectionArray detections;
+    bool received = rclcpp::wait_for_message(
+      detections,
+      node(),
+      "/detections",
+      std::chrono::seconds(2)
+    );
+
+    if (!received) {
+      RCLCPP_WARN(node()->get_logger(), "No detections received after capture");
+      std::this_thread::sleep_for(std::chrono::milliseconds(300));
+      continue;
+    }
+
+    auto tag_pose = detect_tag(tag_id, detections);
+    if (tag_pose) {
+      RCLCPP_INFO(node()->get_logger(),
+        "Tag %d detected on attempt %d at [%.3f, %.3f, %.3f]",
+        tag_id, capture_attempt,
+        tag_pose->pose.position.x,
+        tag_pose->pose.position.y,
+        tag_pose->pose.position.z);
+      return tag_pose;
+    }
+
+    RCLCPP_WARN(node()->get_logger(), "Tag %d not detected on attempt %d, capturing again...", tag_id, capture_attempt);
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+  }
+
+  RCLCPP_ERROR(node()->get_logger(), "Failed to detect tag %d", tag_id);
+  return std::nullopt;
+}

@@ -24,7 +24,7 @@ if [ $EXIT_CODE -eq 0 ]; then
     echo "Would you like to apply these settings now? (y/n)"
     read -r response
     if [[ "$response" =~ ^[Yy]$ ]]; then
-        SETTINGS_FILE="$(pwd)/src/zivid-ros/cam_settings_2d_auto.yml"
+        SETTINGS_FILE="$(pwd)/src/vision/zivid-ros/cam_settings_2d_auto.yml"
         echo "Applying settings..."
         ros2 param set /zivid_camera settings_2d_file_path "$SETTINGS_FILE"
 

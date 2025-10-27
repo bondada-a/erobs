@@ -23,6 +23,9 @@ public:
   // Main execution: detect tag and move to it
   bool run(const nlohmann::json& step, const nlohmann::json& poses);
 
+  // Make detection available to vision-based pick/place
+  std::optional<geometry_msgs::msg::PoseStamped> detect_and_transform_tag(int tag_id, double timeout = 10.0);
+
 private:
   struct CachedDetection {
     geometry_msgs::msg::PoseStamped pose;

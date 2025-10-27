@@ -53,8 +53,13 @@ const std::string& BaseStages::default_ik_frame() {
 BaseStages::BaseStages(const rclcpp::Node::SharedPtr& node)
   : node_(node) {
   // Configure OMPL parameters for pipeline planner
-  node_->declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner");
-  node_->declare_parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization");
+  // Check if parameters are already declared to avoid conflicts
+  if (!node_->has_parameter("ompl.planning_plugin")) {
+    node_->declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner");
+  }
+  if (!node_->has_parameter("ompl.request_adapters")) {
+    node_->declare_parameter("ompl.request_adapters", "default_planner_request_adapters/AddTimeOptimalParameterization");
+  }
 }
 
 rclcpp::Node::SharedPtr BaseStages::node() const {
