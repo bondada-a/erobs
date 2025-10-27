@@ -34,7 +34,7 @@ def generate_launch_description():
             "description_package": LaunchConfiguration("description_package"),
             "description_file": LaunchConfiguration("description_file"),
             "controllers_file": LaunchConfiguration("controllers_file"),
-            "tool_voltage": "24",
+            "tool_voltage": "0",  # 0V during tool exchange to prevent C740A10 error from pipettor inrush current
         }.items()
     )
 

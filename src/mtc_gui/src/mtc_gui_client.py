@@ -18,8 +18,8 @@ try:
     import rclpy
     from rclpy.node import Node
     from sensor_msgs.msg import Image as RosImage
-    from apriltag_msgs.msg import AprilTagDetectionArray
     from std_srvs.srv import Trigger
+    from zivid_interfaces.srv import CaptureAndDetectMarkers
     from cv_bridge import CvBridge
     ROS2_AVAILABLE = True
 except ImportError:
@@ -51,7 +51,7 @@ class MTCGUIClient:
 
         # Camera state
         self.current_image = None
-        self.current_detections = None
+        self.current_detections = []  # List of Zivid MarkerShape objects
         self.camera_label = None
         self.bridge = CvBridge() if ROS2_AVAILABLE else None
         self.ros_node = None
@@ -275,7 +275,8 @@ class MTCGUIClient:
             step = {
                 "task_type": "vision_moveto",
                 "tag_id": 0,
-                "timeout": 10.0
+                "timeout": 10.0,
+                "marker_dictionary": "aruco4x4_50"  # Default ArUco dictionary
             }
         elif action_type == "pipettor":
             step = {
@@ -475,7 +476,7 @@ class MTCGUIClient:
         ttk.Label(dialog, text="Gripper:").pack(anchor="w", padx=20)
         gripper_var = tk.StringVar(value=step.get("gripper", "hande"))
         gripper_combo = ttk.Combobox(dialog, textvariable=gripper_var,
-                                    values=["epick", "hande", "none"], width=30)
+                                    values=["epick", "hande", "pipettor", "none"], width=30)
         gripper_combo.pack(padx=20, pady=(0, 10))
 
         # Dock number
@@ -534,18 +535,32 @@ class MTCGUIClient:
 
         # Add description
         description = ttk.Label(dialog,
-                               text="Detect AprilTag and move gripper to tag location",
+                               text="Detect ArUco Marker using Zivid and move gripper to marker location",
                                font=("Arial", 9),
                                foreground="gray")
         description.pack(padx=20, pady=(0, 20))
 
-        # Tag ID
-        ttk.Label(dialog, text="AprilTag ID:").pack(anchor="w", padx=20)
+        # Marker ID
+        ttk.Label(dialog, text="ArUco Marker ID:").pack(anchor="w", padx=20)
         tag_id_var = tk.StringVar(value=str(step.get("tag_id", 0)))
         tag_id_entry = ttk.Entry(dialog, textvariable=tag_id_var, width=30)
         tag_id_entry.pack(padx=20, pady=(0, 10))
 
-        ttk.Label(dialog, text="The ID number of the AprilTag to detect",
+        ttk.Label(dialog, text="The ID number of the ArUco marker to detect",
+                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
+
+        # Marker Dictionary
+        ttk.Label(dialog, text="Marker Dictionary:").pack(anchor="w", padx=20)
+        marker_dict_var = tk.StringVar(value=step.get("marker_dictionary", "aruco4x4_50"))
+        marker_dict_combo = ttk.Combobox(dialog, textvariable=marker_dict_var,
+                                        values=["aruco4x4_50", "aruco4x4_100", "aruco4x4_250",
+                                               "aruco5x5_50", "aruco5x5_100", "aruco5x5_250",
+                                               "aruco6x6_50", "aruco6x6_100", "aruco6x6_250",
+                                               "aruco7x7_50", "aruco7x7_100", "aruco7x7_250"],
+                                        width=27, state="readonly")
+        marker_dict_combo.pack(padx=20, pady=(0, 10))
+
+        ttk.Label(dialog, text="ArUco dictionary (must match your physical markers)",
                  font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
 
         # Timeout
@@ -554,7 +569,7 @@ class MTCGUIClient:
         timeout_entry = ttk.Entry(dialog, textvariable=timeout_var, width=30)
         timeout_entry.pack(padx=20, pady=(0, 10))
 
-        ttk.Label(dialog, text="Maximum time to wait for tag detection",
+        ttk.Label(dialog, text="Maximum time to wait for marker detection",
                  font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 20))
 
         # Information box
@@ -562,10 +577,11 @@ class MTCGUIClient:
         info_frame.pack(padx=20, pady=(10, 20), fill="x")
 
         info_text = ("Vision MoveTo will:\n"
-                    "1. Continuously capture images from Zivid camera\n"
-                    "2. Detect the specified AprilTag\n"
-                    "3. Move gripper to the detected tag position\n"
-                    "4. Use Cartesian planning for straight-line motion")
+                    "1. Capture 3D point cloud using Zivid camera\n"
+                    "2. Detect ArUco marker using built-in detection\n"
+                    "3. Transform marker pose to robot base frame\n"
+                    "4. Move gripper to detected marker position\n"
+                    "5. Cache detection for efficiency (30s)")
         ttk.Label(info_frame, text=info_text, justify="left",
                  font=("Arial", 8)).pack()
 
@@ -573,12 +589,13 @@ class MTCGUIClient:
             try:
                 step["tag_id"] = int(tag_id_var.get())
                 step["timeout"] = float(timeout_var.get())
+                step["marker_dictionary"] = marker_dict_var.get()
                 self.update_task_tree()
                 dialog.destroy()
                 self.log_message(f"Updated step {step_index + 1}")
             except ValueError:
                 messagebox.showerror("Invalid Input",
-                                   "Tag ID must be an integer and timeout must be a number")
+                                   "Marker ID must be an integer and timeout must be a number")
 
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
@@ -772,7 +789,8 @@ class MTCGUIClient:
             elif action == "vision_moveto":
                 tag_id = step.get('tag_id', 0)
                 timeout = step.get('timeout', 10.0)
-                details = f"Detect tag {tag_id} (timeout: {timeout}s)"
+                marker_dict = step.get('marker_dictionary', 'aruco4x4_50')
+                details = f"Detect ArUco {tag_id} ({marker_dict}, timeout: {timeout}s)"
             elif action == "pipettor":
                 operation = step.get('operation', 'SUCK')
                 volume_pct = step.get('volume_pct', 0.0)
@@ -1069,6 +1087,9 @@ class MTCGUIClient:
         ttk.Button(button_frame, text="Capture Image",
                   command=self.trigger_capture).pack(side="left", padx=(0, 5))
 
+        ttk.Button(button_frame, text="Detect Markers",
+                  command=self.trigger_marker_detection).pack(side="left", padx=(0, 5))
+
         self.camera_status_label = ttk.Label(button_frame, text="Waiting for camera...",
                                              foreground="gray")
         self.camera_status_label.pack(side="left", padx=(10, 0))
@@ -1099,16 +1120,14 @@ class MTCGUIClient:
                 10
             )
 
-            # Subscribe to AprilTag detections
-            self.detection_sub = self.ros_node.create_subscription(
-                AprilTagDetectionArray,
-                '/detections',
-                self.detection_callback,
-                10
+            # Create Zivid service clients
+            self.capture_client = self.ros_node.create_client(Trigger, '/capture_2d')
+            self.marker_detection_client = self.ros_node.create_client(
+                CaptureAndDetectMarkers,
+                '/capture_and_detect_markers'
             )
 
-            # Create capture service client
-            self.capture_client = self.ros_node.create_client(Trigger, '/capture_2d')
+            # Detection is now manual via button (no periodic timer)
 
             # Start ROS2 spinning in background thread
             self.ros_spin_thread = threading.Thread(target=self.spin_ros, daemon=True)
@@ -1141,15 +1160,71 @@ class MTCGUIClient:
         except Exception as e:
             print(f"Image callback error: {e}")
 
-    def detection_callback(self, msg):
-        """Handle AprilTag detections"""
-        self.current_detections = msg
+    def trigger_marker_detection(self):
+        """Manually trigger ArUco marker detection from Zivid (called by button)"""
+        if not self.marker_detection_client:
+            print("Marker detection client not available")
+            return
 
-        # Update detection info in GUI
-        self.root.after(0, self.update_detection_info)
+        if not self.marker_detection_client.service_is_ready():
+            self.camera_status_label.config(
+                text="Zivid service not ready",
+                foreground="orange"
+            )
+            return
+
+        try:
+            # Update status
+            self.camera_status_label.config(
+                text="Detecting markers...",
+                foreground="blue"
+            )
+
+            # Request detection for common marker IDs (0-20) using default dictionary
+            request = CaptureAndDetectMarkers.Request()
+            request.marker_ids = list(range(21))  # Detect IDs 0-20
+            request.marker_dictionary = "aruco4x4_50"  # Default dictionary
+
+            # Send async request
+            future = self.marker_detection_client.call_async(request)
+            future.add_done_callback(self.detection_response_callback)
+
+        except Exception as e:
+            print(f"Marker detection request error: {e}")
+            self.camera_status_label.config(
+                text=f"Detection error: {e}",
+                foreground="red"
+            )
+
+    def detection_response_callback(self, future):
+        """Handle Zivid marker detection response"""
+        try:
+            response = future.result()
+            if response.success:
+                # Store detected markers (cached for overlay on live stream)
+                self.current_detections = response.detection_result.detected_markers
+
+                # Update GUI in main thread
+                self.root.after(0, self.update_detection_info)
+                self.root.after(0, self.update_camera_display)
+            else:
+                print(f"Marker detection failed: {response.message}")
+                self.current_detections = []
+                self.root.after(0, lambda: self.camera_status_label.config(
+                    text=f"Detection failed: {response.message}",
+                    foreground="red"
+                ))
+
+        except Exception as e:
+            print(f"Detection response error: {e}")
+            self.current_detections = []
+            self.root.after(0, lambda: self.camera_status_label.config(
+                text=f"Detection error",
+                foreground="red"
+            ))
 
     def update_camera_display(self):
-        """Update camera image display with AprilTag overlays"""
+        """Update camera image display with ArUco marker overlays"""
         if self.current_image is None or self.camera_label is None:
             return
 
@@ -1157,24 +1232,24 @@ class MTCGUIClient:
             # Clone image for drawing
             display_image = self.current_image.copy()
 
-            # Draw AprilTag overlays if we have detections
-            if self.current_detections and len(self.current_detections.detections) > 0:
-                for detection in self.current_detections.detections:
-                    # Get corners
-                    corners = detection.corners
+            # Draw marker overlays if we have detections
+            if self.current_detections and len(self.current_detections) > 0:
+                for marker in self.current_detections:
+                    # Get 2D pixel corners from Zivid detection
+                    corners = marker.corners_in_pixel_coordinates
 
                     if len(corners) == 4:
-                        # Draw bounding box
+                        # Draw bounding box (green for detected markers)
                         pts = np.array([[int(c.x), int(c.y)] for c in corners], np.int32)
                         pts = pts.reshape((-1, 1, 2))
                         cv2.polylines(display_image, [pts], True, (0, 255, 0), 3)
 
-                        # Draw tag ID
+                        # Draw tag ID at center
                         center_x = int(sum(c.x for c in corners) / 4)
                         center_y = int(sum(c.y for c in corners) / 4)
 
                         # Add background rectangle for text
-                        text = f"ID: {detection.id}"
+                        text = f"ID: {marker.id}"
                         font = cv2.FONT_HERSHEY_SIMPLEX
                         font_scale = 1.5
                         thickness = 3
@@ -1189,12 +1264,12 @@ class MTCGUIClient:
                                    font, font_scale, (0, 0, 0), thickness)
 
                 self.camera_status_label.config(
-                    text=f"{len(self.current_detections.detections)} tag(s) detected",
+                    text=f"{len(self.current_detections)} ArUco marker(s) detected",
                     foreground="green"
                 )
             else:
                 self.camera_status_label.config(
-                    text="No tags detected",
+                    text="No markers detected",
                     foreground="orange"
                 )
 
@@ -1229,19 +1304,22 @@ class MTCGUIClient:
         try:
             self.detection_info.delete(1.0, tk.END)
 
-            if self.current_detections and len(self.current_detections.detections) > 0:
-                self.detection_info.insert(tk.END, f"Detected {len(self.current_detections.detections)} tag(s):\n\n")
+            if self.current_detections and len(self.current_detections) > 0:
+                self.detection_info.insert(tk.END, f"Detected {len(self.current_detections)} ArUco marker(s):\n\n")
 
-                for detection in self.current_detections.detections:
+                for marker in self.current_detections:
+                    # Get 3D position from marker pose
+                    pos = marker.pose.position
                     self.detection_info.insert(tk.END,
-                        f"Tag ID: {detection.id}\n"
-                        f"Family: {detection.family}\n"
-                        f"Hamming: {detection.hamming}\n"
-                        f"Decision Margin: {detection.decision_margin:.2f}\n"
+                        f"Marker ID: {marker.id}\n"
+                        f"Position (camera frame):\n"
+                        f"  X: {pos.x:.3f} m\n"
+                        f"  Y: {pos.y:.3f} m\n"
+                        f"  Z: {pos.z:.3f} m\n"
                         f"---\n"
                     )
             else:
-                self.detection_info.insert(tk.END, "No tags detected\n")
+                self.detection_info.insert(tk.END, "No markers detected\n")
 
         except Exception as e:
             print(f"Detection info update error: {e}")

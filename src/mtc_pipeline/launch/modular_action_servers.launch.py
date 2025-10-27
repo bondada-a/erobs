@@ -69,7 +69,11 @@ def generate_launch_description():
         executable='vision_action_server',
         name='vision_action_server',
         output='screen',
-        parameters=action_server_parameters
+        parameters=action_server_parameters + [
+            {'publish_marker_frames': True},  # Enable TF publishing for RViz visualization
+            {'ik_frame': 'epick_tip'},  # Auto-detect: '' | Force EPick: 'epick_tip' | Force Hand-E: 'robotiq_hande_end'
+            {'z_offset': 0.025}  # Positive = higher above marker (10cm above)
+        ]
     )
 
     pipettor_action_server = Node(
@@ -88,7 +92,7 @@ def generate_launch_description():
         parameters=action_server_parameters
     )
 
-    # Zivid camera node with 2D capture settings
+    # Zivid camera node with 2D and 3D capture settings
     zivid_camera = Node(
         package='zivid_camera',
         executable='zivid_camera',
@@ -96,26 +100,13 @@ def generate_launch_description():
         output='screen',
         parameters=[{
             'settings_2d_file_path': '/home/aditya/work/github_ws/erobs/src/zivid_settings.yml',
+            'settings_file_path': '/home/aditya/work/github_ws/erobs/src/zivid_3d_settings.yml',  # For 3D marker detection
             'frame_id': 'zivid_optical_frame'
         }]
     )
 
-    # AprilTag detector for vision-based tasks
-    apriltag_detector = Node(
-        package='apriltag_ros',
-        executable='apriltag_node',
-        name='apriltag_detector',
-        output='screen',
-        parameters=[PathJoinSubstitution([
-            FindPackageShare('mtc_pipeline'),
-            'config',
-            'apriltag_config.yaml'
-        ])],
-        remappings=[
-            ('image_rect', '/color/image_color'),
-            ('camera_info', '/color/camera_info'),
-        ]
-    )
+    # AprilTag detector REMOVED - now using Zivid built-in ArUco detection
+    # Detection happens via /capture_and_detect_markers service (no separate node needed)
 
     # Pipettor driver - launched by ur_zivid_pipettor_moveit_config (not here)
     # This ensures /tmp/ttyUR exists before pipette_driver_node starts
@@ -142,7 +133,7 @@ def generate_launch_description():
         pipettor_action_server,
         vision_pick_place_action_server,
         zivid_camera,
-        apriltag_detector,
+        # apriltag_detector removed - using Zivid built-in ArUco detection
         # pipettor_driver launched by MoveIt config, not here
         orchestrator,
     ])

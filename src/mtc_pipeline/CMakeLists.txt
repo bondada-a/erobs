@@ -16,7 +16,7 @@ find_package(std_srvs REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
-find_package(apriltag_msgs REQUIRED)
+find_package(zivid_interfaces REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(pipette_driver REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
@@ -69,7 +69,7 @@ ament_target_dependencies(mtc_pipeline_core
   tf2_eigen
   tf2_ros
   tf2_geometry_msgs
-  apriltag_msgs
+  zivid_interfaces
   geometry_msgs
   pipette_driver
   moveit_ros_planning_interface
@@ -151,6 +151,7 @@ install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
 install(PROGRAMS
   scripts/vision_pick_predefined_place.py
   scripts/test_vision.py
+  scripts/test_zivid_marker_detection.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
