@@ -48,7 +48,10 @@ RUN /bin/bash -c "set -e && \
     rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface zivid_description'"
 
 WORKDIR /root/ws/
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio"
+# Build zivid_interfaces first so other packages can find it
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces"
+# Build remaining packages
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio"
 
 ENV ROBOT_IP=10.69.26.90
 ENV REVERSE_IP=10.69.26.42
