@@ -23,6 +23,10 @@ RUN mkdir /root/ws -p
 
 WORKDIR /root/ws
 
+# Copy and setup VNC startup script
+COPY start-vnc.sh /root/start-vnc.sh
+RUN chmod +x /root/start-vnc.sh
+
 RUN git clone https://github.com/bondada-a/erobs.git -b zivid_integration
 
 WORKDIR /root/ws/erobs/
@@ -35,10 +39,9 @@ ENV ROBOT_IP=10.69.26.90
 ENV REVERSE_IP=10.69.26.42
 ENV UR_TYPE="ur5e"
 ENV LAUNCH_RVIZ="false"
-ENV DESCRIPTION_PKG="ur5e_robot_description"
-ENV DESCRIPTION_FILE="ur_with_hande.xacro"
-ENV CONFIG_PKG="ur_standalone_moveit_config"
-ENV CONFIG_FILE="ur.srdf"
 
 # VNC viewer
 EXPOSE 5901
+
+# Auto-start VNC server and source ROS workspace
+CMD ["/bin/bash", "-c", "source /root/ws/erobs/install/setup.bash && /root/start-vnc.sh && exec /bin/bash"]
