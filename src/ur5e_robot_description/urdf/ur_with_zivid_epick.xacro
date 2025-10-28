@@ -117,7 +117,7 @@
   <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.055" rpy="-1.5708 0 3.14159"/>
 
   <!-- ZEpick Gripper -->
-  <xacro:epick_overlay use_fake_hardware="true" parent="tool_block"
+  <xacro:epick_overlay use_fake_hardware="false" parent="tool_block"
                   origin_xyz="0 -0.02 0"
                   origin_rpy="-1.5708 0 3.1416"/>
 </robot>

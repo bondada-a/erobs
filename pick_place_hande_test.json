@@ -1,0 +1,179 @@
+{
+  "start_gripper": "hande",
+  "poses": {
+    "load_approach": [
+      143.56,
+      -130.16,
+      -124.15,
+      -15.53,
+      -270.41,
+      -36.47
+    ],
+    "dock_approach": [
+      152.15,
+      -136.08,
+      -106.39,
+      -27.44,
+      -270.43,
+      -27.89
+    ],
+    "vision_approach": [
+      142.02,
+      -188.94,
+      -33.48,
+      43.2,
+      -50.44,
+      1.18
+    ],
+    "pre_pickup_approach": [
+      140.95,
+      -124.9,
+      -80.47,
+      -64.48,
+      -270.41,
+      -39.08
+    ],
+    "pre_pickup_orientation": [
+      145.56,
+      -152.77,
+      -29.59,
+      -179.47,
+      -304.44,
+      1.46
+    ],
+    "pickup_approach": [
+      143.3,
+      -161.2,
+      -53.98,
+      -146.7,
+      -306.72,
+      1.54
+    ],
+    "pickup": [
+      139.32,
+      -155.13,
+      -67.91,
+      -138.94,
+      -310.65,
+      1.74
+    ],
+    "post_pickup_camera_safety": [
+      134.93,
+      -139.07,
+      -66.37,
+      -156.67,
+      -315.05,
+      1.94
+    ],
+    "place": [
+      107.97,
+      -127.79,
+      -89.81,
+      -147.09,
+      -341.88,
+      5.0
+    ],
+    "place_approach": [
+      107.83,
+      -126.41,
+      -89.25,
+      -149.01,
+      -342.02,
+      5.01
+    ],
+    "vacuum_pickup_approach": [
+      113.48,
+      -100.34,
+      -104.2,
+      -65.81,
+      -270.22,
+      19.35
+    ],
+    "vacuum_pickup": [
+      113.46,
+      -107.83,
+      -111.64,
+      -50.88,
+      -270.25,
+      19.4
+    ]
+  },
+  "tasks": [
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "hande",
+      "end_effector_action": "open"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pre_pickup_orientation",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pickup_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pickup",
+      "planning_type": "cartesian"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "hande",
+      "end_effector_action": "close"
+    },
+    {
+      "task_type": "moveto",
+      "direction": "down",
+      "distance": 0.005,
+      "planning_type": "cartesian"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pickup_approach",
+      "planning_type": "cartesian"
+    },
+    {
+      "task_type": "moveto",
+      "target": "post_pickup_camera_safety",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "place_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "place",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "hande",
+      "end_effector_action": "open"
+    },
+    {
+      "task_type": "moveto",
+      "target": "place_approach",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "post_pickup_camera_safety",
+      "planning_type": "cartesian"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "hande",
+      "end_effector_action": "open"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "hande",
+      "end_effector_action": "close"
+    }
+  ]
+}

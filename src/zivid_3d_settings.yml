@@ -2,24 +2,24 @@ __version__: 27
 Settings:
   Acquisitions:
     - Acquisition:
-        Aperture: 4
-        Brightness: 2.5
-        ExposureTime: 2000
-        Gain: 1
+        Aperture: 2.83
+        Brightness: 1
+        ExposureTime: 900
+        Gain: 2
     - Acquisition:
-        Aperture: 4
+        Aperture: 2.83
         Brightness: 2.5
-        ExposureTime: 20000
-        Gain: 1
+        ExposureTime: 5000
+        Gain: 2
   Color:
     __version__: 7
     Settings2D:
       Acquisitions:
         - Acquisition:
-            Aperture: 4
+            Aperture: 2.83
             Brightness: 2.5
-            ExposureTime: 4000
-            Gain: 1
+            ExposureTime: 2000
+            Gain: 2
       Processing:
         Color:
           Balance:
@@ -31,10 +31,10 @@ Settings:
           Gamma: 1
       Sampling:
         Color: rgb
-        Pixel: all
+        Pixel: by2x2
   Diagnostics:
     Enabled: no
-  Engine: sage
+  Engine: stripe
   Processing:
     Color:
       Balance:
@@ -49,11 +49,11 @@ Settings:
         Removal:
           Enabled: yes
           MaxNeighborDistance: 3.5
-          MinArea: 25
+          MinArea: 50
       Experimental:
         ContrastDistortion:
           Correction:
-            Enabled: no
+            Enabled: yes
             Strength: 0.2
           Removal:
             Enabled: yes
@@ -66,7 +66,7 @@ Settings:
       Noise:
         Removal:
           Enabled: yes
-          Threshold: 7
+          Threshold: 2
         Repair:
           Enabled: yes
         Suppression:
@@ -82,7 +82,7 @@ Settings:
       Smoothing:
         Gaussian:
           Enabled: yes
-          Sigma: 1
+          Sigma: 1.5
     Resampling:
       Mode: disabled
   RegionOfInterest:
@@ -97,4 +97,4 @@ Settings:
       Range: [300, 1100]
   Sampling:
     Color: __not_set__
-    Pixel: all
+    Pixel: by2x2

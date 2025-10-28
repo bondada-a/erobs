@@ -30,11 +30,13 @@ except ImportError:
 try:
     from pose_editor import PoseManager
     from poses_manager import PosesManager
+    from save_current_pose_dialog import SaveCurrentPoseDialog
 except ImportError:
     print("Warning: Local modules not found. Running with limited functionality.")
     # Fallback if modules not found
     PoseManager = None
     PosesManager = None
+    SaveCurrentPoseDialog = None
 
 class MTCGUIClient:
     """Working MTC GUI Client that communicates with the actual MTC action server"""
@@ -48,6 +50,7 @@ class MTCGUIClient:
         self.execution_thread = None
         self.stop_execution = False
         self.temp_json_file = None
+        self.current_json_file = None  # Track currently loaded JSON file
 
         # Camera state
         self.current_image = None
@@ -56,6 +59,9 @@ class MTCGUIClient:
         self.bridge = CvBridge() if ROS2_AVAILABLE else None
         self.ros_node = None
         self.ros_spin_thread = None
+
+        # Robot state
+        self.current_robot_pose = None  # Current robot joint positions in degrees
 
         # Initialize ROS2 if available
         if ROS2_AVAILABLE:
@@ -131,8 +137,13 @@ class MTCGUIClient:
         
         # Manage Poses Button
         if PosesManager:
-            ttk.Button(config_frame, text="Manage Poses", 
+            ttk.Button(config_frame, text="Manage Poses",
                       command=self.manage_poses).grid(row=0, column=5, padx=(20, 0))
+
+        # Save Current Pose Button
+        if ROS2_AVAILABLE:
+            ttk.Button(config_frame, text="Save Current Pose",
+                      command=self.save_current_pose).grid(row=0, column=6, padx=(20, 0))
 
     def create_task_editor_frame(self):
         """Create task sequence editor frame"""
@@ -226,17 +237,79 @@ class MTCGUIClient:
         if not PosesManager:
             messagebox.showwarning("Warning", "Poses manager not available")
             return
-        
+
         try:
             manager = PosesManager(self.root, self.current_config.get("poses", {}))
             result = manager.show()
-            
+
             if result is not None:
                 self.current_config["poses"] = result
                 self.log_message(f"Updated poses configuration ({len(result)} poses)")
-                
+
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open poses manager: {str(e)}")
+
+    def save_current_pose(self):
+        """Open dialog to save the current robot pose"""
+        if not ROS2_AVAILABLE:
+            messagebox.showwarning("Warning", "ROS2 not available")
+            return
+
+        if not SaveCurrentPoseDialog:
+            messagebox.showwarning("Warning", "Save Current Pose dialog not available")
+            return
+
+        if self.current_robot_pose is None:
+            messagebox.showwarning("Warning",
+                                 "No robot pose available. Make sure the robot is connected and publishing joint states.")
+            return
+
+        try:
+            dialog = SaveCurrentPoseDialog(self.root, self.current_robot_pose,
+                                          self.current_config, self.current_json_file)
+            result = dialog.show()
+
+            if result:
+                action = result["action"]
+                pose_name = result["pose_name"]
+                pose_values = result["pose_values"]
+
+                if action == "add_to_config":
+                    # Add to current configuration
+                    self.current_config["poses"][pose_name] = pose_values
+                    self.log_message(f"Added pose '{pose_name}' to current configuration")
+
+                elif action == "save_to_current":
+                    # Save to currently loaded JSON file
+                    if self.current_json_file:
+                        self.current_config["poses"][pose_name] = pose_values
+                        self.current_config["start_gripper"] = self.start_gripper_var.get()
+
+                        with open(self.current_json_file, 'w') as f:
+                            json.dump(self.current_config, f, indent=2)
+
+                        self.log_message(f"Saved pose '{pose_name}' to {self.current_json_file}")
+                    else:
+                        messagebox.showerror("Error", "No JSON file currently loaded")
+
+                elif action == "save_to_new":
+                    # Save to new JSON file
+                    file_path = result.get("file_path")
+                    if file_path:
+                        # Update or create poses dictionary
+                        if "poses" not in self.current_config:
+                            self.current_config["poses"] = {}
+                        self.current_config["poses"][pose_name] = pose_values
+
+                        # Save to file
+                        with open(file_path, 'w') as f:
+                            json.dump(self.current_config, f, indent=2)
+
+                        self.current_json_file = file_path
+                        self.log_message(f"Saved pose '{pose_name}' to new file: {file_path}")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save pose: {str(e)}")
 
     def add_task_step(self, action_type):
         """Add a new task step"""
@@ -1015,19 +1088,22 @@ class MTCGUIClient:
             title="Load JSON Configuration",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )
-        
+
         if file_path:
             try:
                 with open(file_path, 'r') as f:
                     self.current_config = json.load(f)
-                
+
                 # Update GUI with loaded configuration
                 if "start_gripper" in self.current_config:
                     self.start_gripper_var.set(self.current_config["start_gripper"])
-                
+
+                # Track the current JSON file path
+                self.current_json_file = file_path
+
                 self.update_task_tree()
                 self.log_message(f"Loaded configuration from {file_path}")
-                
+
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load file: {str(e)}")
 
@@ -1120,6 +1196,15 @@ class MTCGUIClient:
                 10
             )
 
+            # Subscribe to joint states for pose capture
+            from sensor_msgs.msg import JointState
+            self.joint_state_sub = self.ros_node.create_subscription(
+                JointState,
+                '/joint_states',
+                self.joint_state_callback,
+                10
+            )
+
             # Create Zivid service clients
             self.capture_client = self.ros_node.create_client(Trigger, '/capture_2d')
             self.marker_detection_client = self.ros_node.create_client(
@@ -1159,6 +1244,31 @@ class MTCGUIClient:
 
         except Exception as e:
             print(f"Image callback error: {e}")
+
+    def joint_state_callback(self, msg):
+        """Handle incoming joint state messages"""
+        try:
+            import math
+            # Map joint names to positions
+            joint_dict = dict(zip(msg.name, msg.position))
+
+            # UR robot joint order for JSON: [shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3]
+            joint_order = [
+                'shoulder_pan_joint',
+                'shoulder_lift_joint',
+                'elbow_joint',
+                'wrist_1_joint',
+                'wrist_2_joint',
+                'wrist_3_joint'
+            ]
+
+            # Convert radians to degrees and round to 2 decimal places
+            if all(j in joint_dict for j in joint_order):
+                pose_deg = [round(math.degrees(joint_dict[j]), 2) for j in joint_order]
+                self.current_robot_pose = pose_deg
+
+        except Exception as e:
+            print(f"Joint state callback error: {e}")
 
     def trigger_marker_detection(self):
         """Manually trigger ArUco marker detection from Zivid (called by button)"""

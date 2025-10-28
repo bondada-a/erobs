@@ -1,24 +1,84 @@
 {
   "start_gripper": "hande",
   "poses": {
-    "load_approach": [-67.51,-49.60,123.72,-164.22,-89.98,-67.08],
-    "dock_approach": [-53.59, -43.65, 105.82, -152.27, -90.01, -53.15],
-    "vision_approach":[142.02, -188.94, -33.48, 43.20, -50.44, 1.18]},
+    "load_approach": [
+      143.56,
+      -130.16,
+      -124.15,
+      -15.53,
+      -270.41,
+      -36.47
+    ],
+    "dock_approach": [
+      152.15,
+      -136.08,
+      -106.39,
+      -27.44,
+      -270.43,
+      -27.89
+    ],
+    "vision_approach": [
+      142.02,
+      -188.94,
+      -33.48,
+      43.2,
+      -50.44,
+      1.18
+    ],
+    "pre_pickup_approach": [
+      140.95,
+      -124.9,
+      -80.47,
+      -64.48,
+      -270.41,
+      -39.08
+    ],
+    "pre_pickup_orientation": [
+      145.56,
+      -152.77,
+      -29.59,
+      -179.47,
+      -304.44,
+      1.46
+    ],
+    "pickup_approach": [
+      143.3,
+      -161.2,
+      -53.98,
+      -146.7,
+      -306.72,
+      1.54
+    ],
+    "pickup": [
+      139.32,
+      -155.13,
+      -67.91,
+      -138.94,
+      -310.65,
+      1.74
+    ],
+    "post_pickup_camera_safety": [
+      134.93,
+      -139.07,
+      -66.37,
+      -156.67,
+      -315.05,
+      1.94
+    ],
+    "place": [
+      107.97,
+      -127.79,
+      -89.81,
+      -147.09,
+      -341.88,
+      5.0
+    ]
+  },
   "tasks": [
     {
-      "task_type": "tool_exchange",
-      "operation": "dock",
-      "gripper": "hande",
-      "dock_number": 3,
-      "approach_pose": "dock_approach"
-    },
-    {
-      "task_type": "tool_exchange",
-      "operation": "load",
-      "gripper": "epick",
-      "dock_number": 2,
-      "approach_pose": "load_approach"
-    }    
-
+      "task_type": "moveto",
+      "target": "pickup_approach",
+      "planning_type": "cartesian"
+    }
   ]
 }

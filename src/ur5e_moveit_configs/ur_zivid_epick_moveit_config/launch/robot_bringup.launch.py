@@ -92,13 +92,13 @@ def generate_launch_description():
     )
 
     # # Tool Communication Node
-    # tool_communication = Node(
-    #     package="ur_robot_driver",
-    #     executable="tool_communication.py",
-    #     name="tool_communication_node",
-    #     output="screen",
-    #     parameters=[{"robot_ip": LaunchConfiguration("robot_ip")}]
-    # )
+    tool_communication = Node(
+        package="ur_robot_driver",
+        executable="tool_communication.py",
+        name="tool_communication_node",
+        output="screen",
+        parameters=[{"robot_ip": LaunchConfiguration("robot_ip")}]
+    )
 
 
     # Publish TF
@@ -161,7 +161,7 @@ def generate_launch_description():
 
 
         ## Nodes
-        # tool_communication,
+        tool_communication,
         ur_control_launch,
         run_move_group_node,
         rviz_node,
