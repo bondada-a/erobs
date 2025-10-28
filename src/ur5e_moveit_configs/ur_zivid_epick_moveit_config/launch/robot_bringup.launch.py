@@ -149,6 +149,11 @@ def generate_launch_description():
         ])
     )
 
+    # Delay ur_control_launch to ensure tool_communication creates /tmp/ttyUR first
+    delayed_ur_control_launch = TimerAction(
+        period=1.5,  # Wait 1.5 seconds for tool_communication to create /tmp/ttyUR via socat
+        actions=[ur_control_launch]
+    )
 
     return LaunchDescription([
         ## arguments
@@ -161,8 +166,8 @@ def generate_launch_description():
 
 
         ## Nodes
-        tool_communication,
-        ur_control_launch,
+        tool_communication,  # Start this first to create /tmp/ttyUR
+        delayed_ur_control_launch,  # Then start ur_control after delay
         run_move_group_node,
         rviz_node,
         robot_state_publisher,
