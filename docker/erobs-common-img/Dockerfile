@@ -13,13 +13,9 @@ RUN apt-get update \
         
 RUN apt-get install -y x11vnc xvfb wget
 
-# Install Zivid SDK 2.16.0 for Ubuntu 22.04
-RUN mkdir -p /tmp/zivid && cd /tmp/zivid && \
-    wget https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u22/amd64/zivid_2.16.0+46cdaba6-1_amd64.deb && \
-    wget https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u22/amd64/zivid-tools_2.16.0+46cdaba6-1_amd64.deb && \
-    wget https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u22/amd64/zivid-genicam_2.16.0+46cdaba6-1_amd64.deb && \
-    apt-get install -y ./*.deb && \
-    cd / && rm -rf /tmp/zivid
+# Install Zivid SDK 2.16.0 for Ubuntu 22.04 (using local files)
+COPY docker/erobs-common-img/zivid-debs/*.deb /tmp/zivid/
+RUN apt-get update && apt-get install -y /tmp/zivid/*.deb && rm -rf /tmp/zivid
 
 # Clean up
 RUN apt-get autoremove -y \
