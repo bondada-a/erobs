@@ -63,7 +63,10 @@ RUN apt-get update && apt-get install -y fontconfig
 RUN mkdir /root/.ipython
 
 WORKDIR /root/ws/
-RUN /bin/bash -c "export PATH=/usr/bin:$PATH && source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio"
+# Build interface packages first so other packages can find them
+RUN /bin/bash -c "export PATH=/usr/bin:$PATH && source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
+# Build remaining packages
+RUN /bin/bash -c "export PATH=/usr/bin:$PATH && source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio"
 
 # Clean up
 # TODO (maffettone): this image is rather large, there may be some source and build files we can clean up here. 
