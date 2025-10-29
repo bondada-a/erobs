@@ -37,13 +37,6 @@ RUN pip3 install\
   nslsii \
   ipython
 
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
-  chmod +x miniconda.sh && \
-  ./miniconda.sh -b -p /opt/conda && \
-  rm miniconda.sh
-
-ENV PATH="/opt/conda/bin:$PATH"
-
 # Install Epics
 RUN mkdir $HOME/EPICS && cd $HOME/EPICS && \
   git clone --recursive https://github.com/epics-base/epics-base.git && \
@@ -53,20 +46,28 @@ RUN mkdir $HOME/EPICS && cd $HOME/EPICS && \
 ENV EPICS_BASE=/root/EPICS/epics-base
 # ENV EPICS_HOST_ARCH=$(/root/EPICS/epics-base/startup/EpicsHostArch)
 # Set host arch manually
-ENV PATH=${EPICS_BASE}/bin/linux-x86_64:${PATH} 
+ENV PATH=${EPICS_BASE}/bin/linux-x86_64:${PATH}
 
 # Add our custom bsui
 COPY bsui.bash /bin/bsui
 RUN chmod +x /bin/bsui
 
-RUN apt-get update && apt-get install -y fontconfig 
+RUN apt-get update && apt-get install -y fontconfig
 RUN mkdir /root/.ipython
 
 WORKDIR /root/ws/
 # Build interface packages first so other packages can find them
-RUN /bin/bash -c "export PATH=/usr/bin:$PATH && source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
 # Build remaining packages
-RUN /bin/bash -c "export PATH=/usr/bin:$PATH && source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio"
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio"
+
+# Install Conda AFTER ROS builds to avoid Python environment conflicts
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
+  chmod +x miniconda.sh && \
+  ./miniconda.sh -b -p /opt/conda && \
+  rm miniconda.sh
+
+ENV PATH="/opt/conda/bin:$PATH"
 
 # Clean up
 # TODO (maffettone): this image is rather large, there may be some source and build files we can clean up here. 
