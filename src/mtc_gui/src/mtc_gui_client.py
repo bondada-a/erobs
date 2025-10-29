@@ -975,18 +975,32 @@ class MTCGUIClient:
             
             self.log_message(f"Created temporary configuration file: {self.temp_json_file}")
             
-            # Find the MTC action client executable
+            # Find the MTC action client executable using ROS2 package resolution
             mtc_client_path = None
-            possible_paths = [
-                "/home/aditya/work/github_ws/erobs/install/mtc_pipeline/lib/mtc_pipeline/mtc_action_client_example",
-                "/home/aditya/work/github_ws/erobs/build/mtc_pipeline/mtc_action_client_example"
-            ]
-            
-            for path in possible_paths:
-                if os.path.exists(path):
-                    mtc_client_path = path
-                    break
-            
+            try:
+                # Use ros2 pkg prefix to find the package installation path
+                result = subprocess.run(
+                    ['ros2', 'pkg', 'prefix', 'mtc_pipeline'],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+
+                if result.returncode == 0:
+                    pkg_prefix = result.stdout.strip()
+                    mtc_client_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_action_client_example')
+
+                    if not os.path.exists(mtc_client_path):
+                        self.log_message(f"ERROR: Executable not found at: {mtc_client_path}")
+                        mtc_client_path = None
+                else:
+                    self.log_message(f"ERROR: Could not locate mtc_pipeline package: {result.stderr}")
+
+            except subprocess.TimeoutExpired:
+                self.log_message("ERROR: Timeout while looking for mtc_pipeline package")
+            except Exception as e:
+                self.log_message(f"ERROR: Exception while finding package: {e}")
+
             if not mtc_client_path:
                 self.log_message("ERROR: Could not find MTC action client executable")
                 return
@@ -1063,10 +1077,23 @@ class MTCGUIClient:
             try:
                 self.log_message("Testing MTC action server availability...")
                 
-                # Check if the MTC action server executable exists
-                mtc_server_path = "/home/aditya/work/github_ws/erobs/install/mtc_pipeline/lib/mtc_pipeline/mtc_orchestrator_action_server"
-                
-                if os.path.exists(mtc_server_path):
+                # Check if the MTC action server executable exists using ROS2 package resolution
+                mtc_server_path = None
+                try:
+                    result = subprocess.run(
+                        ['ros2', 'pkg', 'prefix', 'mtc_pipeline'],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+
+                    if result.returncode == 0:
+                        pkg_prefix = result.stdout.strip()
+                        mtc_server_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_orchestrator_action_server')
+                except Exception as e:
+                    self.log_message(f"⚠ Could not locate package: {e}")
+
+                if mtc_server_path and os.path.exists(mtc_server_path):
                     self.log_message("✓ MTC action server executable found")
                     
                     # Try to check if it's running

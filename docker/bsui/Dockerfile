@@ -59,7 +59,7 @@ WORKDIR /root/ws/
 # Build interface packages first so other packages can find them
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
 # Build remaining packages
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio"
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio zivid_camera zivid_samples"
 
 # Install Conda AFTER ROS builds to avoid Python environment conflicts
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
