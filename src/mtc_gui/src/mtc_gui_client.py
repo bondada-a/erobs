@@ -77,11 +77,7 @@ class MTCGUIClient:
         """Setup the main GUI window"""
         self.root = tk.Tk()
         self.root.title("MTC Action Client GUI with Camera View")
-        # Make window fullscreen or set a larger size
-        self.root.attributes('-fullscreen', True)
-        # Press Escape to exit fullscreen (bind below)
-        self.root.bind('<Escape>', lambda e: self.root.attributes('-fullscreen', False))
-        # Alternatively, use a larger size: self.root.geometry("1920x1080")
+        self.root.geometry("1920x1080")
 
         # Configure grid weights - 2 columns now
         self.root.grid_columnconfigure(0, weight=2)  # Left side - task editor (2x weight)
