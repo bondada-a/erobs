@@ -80,7 +80,7 @@ class MTCGUIClient:
         self.root.geometry("1920x1080")
 
         # Configure grid weights - 2 columns now
-        self.root.grid_columnconfigure(0, weight=2)  # Left side - task editor (2x weight)
+        self.root.grid_columnconfigure(0, weight=3)  # Left side - task editor (3x weight for more space)
         self.root.grid_columnconfigure(1, weight=1)  # Right side - camera view
         self.root.grid_rowconfigure(1, weight=1)
 
@@ -121,7 +121,7 @@ class MTCGUIClient:
         # Robot IP
         ttk.Label(config_frame, text="Robot IP:").grid(row=0, column=0, sticky="w", padx=(0, 10))
         self.robot_ip_var = tk.StringVar(value="192.168.1.101")
-        self.robot_ip_entry = ttk.Entry(config_frame, textvariable=self.robot_ip_var, width=20)
+        self.robot_ip_entry = ttk.Entry(config_frame, textvariable=self.robot_ip_var, width=30)
         self.robot_ip_entry.grid(row=0, column=1, sticky="ew", padx=(0, 10))
         
         # Start Gripper
@@ -152,17 +152,24 @@ class MTCGUIClient:
         editor_frame.grid_columnconfigure(0, weight=1)
         editor_frame.grid_rowconfigure(1, weight=1)
         
-        # Toolbar
+        # Toolbar - organize in two rows to prevent overflow
         toolbar = ttk.Frame(editor_frame)
         toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 10))
-        
-        ttk.Button(toolbar, text="Add MoveTo", command=lambda: self.add_task_step("moveto")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Add Pick&Place", command=lambda: self.add_task_step("pick_and_place")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Add Tool Exchange", command=lambda: self.add_task_step("tool_exchange")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Add End Effector", command=lambda: self.add_task_step("end_effector")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Add Vision MoveTo", command=lambda: self.add_task_step("vision_moveto")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Add Pipettor", command=lambda: self.add_task_step("pipettor")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Remove Step", command=self.remove_task_step).pack(side="left", padx=(20, 0))
+
+        # First row of buttons
+        toolbar_row1 = ttk.Frame(toolbar)
+        toolbar_row1.pack(fill="x", pady=(0, 5))
+        ttk.Button(toolbar_row1, text="Add MoveTo", command=lambda: self.add_task_step("moveto")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row1, text="Add Pick&Place", command=lambda: self.add_task_step("pick_and_place")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row1, text="Add Tool Exchange", command=lambda: self.add_task_step("tool_exchange")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row1, text="Add End Effector", command=lambda: self.add_task_step("end_effector")).pack(side="left", padx=(0, 5))
+
+        # Second row of buttons
+        toolbar_row2 = ttk.Frame(toolbar)
+        toolbar_row2.pack(fill="x")
+        ttk.Button(toolbar_row2, text="Add Vision MoveTo", command=lambda: self.add_task_step("vision_moveto")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row2, text="Add Pipettor", command=lambda: self.add_task_step("pipettor")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row2, text="Remove Step", command=self.remove_task_step).pack(side="left", padx=(20, 0))
         
         # Task sequence tree
         self.task_tree = ttk.Treeview(editor_frame, columns=("Action", "Details"), show="tree headings")
