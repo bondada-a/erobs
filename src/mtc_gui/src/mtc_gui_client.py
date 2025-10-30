@@ -989,12 +989,16 @@ class MTCGUIClient:
                 if result.returncode == 0:
                     pkg_prefix = result.stdout.strip()
                     mtc_client_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_action_client_example')
+                    self.log_message(f"Package prefix found: {pkg_prefix}")
+                    self.log_message(f"Looking for executable at: {mtc_client_path}")
 
                     if not os.path.exists(mtc_client_path):
                         self.log_message(f"ERROR: Executable not found at: {mtc_client_path}")
                         mtc_client_path = None
                 else:
-                    self.log_message(f"ERROR: Could not locate mtc_pipeline package: {result.stderr}")
+                    self.log_message(f"ERROR: ros2 pkg prefix failed with code {result.returncode}")
+                    self.log_message(f"ERROR: stderr: {result.stderr.strip()}")
+                    self.log_message(f"ERROR: stdout: {result.stdout.strip()}")
 
             except subprocess.TimeoutExpired:
                 self.log_message("ERROR: Timeout while looking for mtc_pipeline package")
@@ -1076,7 +1080,17 @@ class MTCGUIClient:
         def test_thread():
             try:
                 self.log_message("Testing MTC action server availability...")
-                
+
+                # Check if ROS2 is available
+                try:
+                    ros2_check = subprocess.run(['which', 'ros2'], capture_output=True, text=True, timeout=2)
+                    if ros2_check.returncode == 0:
+                        self.log_message(f"ros2 command found at: {ros2_check.stdout.strip()}")
+                    else:
+                        self.log_message("⚠ ros2 command not found - is ROS2 sourced?")
+                except Exception as e:
+                    self.log_message(f"⚠ Could not check for ros2 command: {e}")
+
                 # Check if the MTC action server executable exists using ROS2 package resolution
                 mtc_server_path = None
                 try:
@@ -1090,6 +1104,12 @@ class MTCGUIClient:
                     if result.returncode == 0:
                         pkg_prefix = result.stdout.strip()
                         mtc_server_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_orchestrator_action_server')
+                        self.log_message(f"Package prefix found: {pkg_prefix}")
+                        self.log_message(f"Looking for executable at: {mtc_server_path}")
+                    else:
+                        self.log_message(f"⚠ ros2 pkg prefix failed with code {result.returncode}")
+                        self.log_message(f"⚠ stderr: {result.stderr.strip()}")
+                        self.log_message(f"⚠ stdout: {result.stdout.strip()}")
                 except Exception as e:
                     self.log_message(f"⚠ Could not locate package: {e}")
 
