@@ -160,11 +160,11 @@ __version__: 1
 Cameras:
   NetworkCameras:
     - NetworkCamera:
-        Host: 10.69.26.41  # Replace with your camera's IP
+        Host: 10.68.81.52  # Replace with your camera's IP
 EOF
 
 # Verify camera connectivity
-ping 10.69.26.41 -c 3
+ping 10.69.81.52 -c 3
 
 # Test camera discovery
 ZividListCameras
