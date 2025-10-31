@@ -34,7 +34,8 @@ def generate_launch_description():
             "description_package": LaunchConfiguration("description_package"),
             "description_file": LaunchConfiguration("description_file"),
             "controllers_file": LaunchConfiguration("controllers_file"),
-            "tool_voltage": "24",  
+            "use_tool_communication": "true",
+            "tool_voltage": "0",  
         }.items()
     )
 
@@ -127,6 +128,20 @@ def generate_launch_description():
         ]
     )
 
+    # Tool voltage initialization for standalone config (no gripper attached)
+    set_tool_voltage = TimerAction(
+        period=6.0,  # Wait 6 seconds (after set_payload completes)
+        actions=[
+            ExecuteProcess(
+                cmd=['ros2', 'topic', 'pub', '--once',
+                     '/urscript_interface/script_command',
+                     'std_msgs/msg/String',
+                     '{data: "set_tool_voltage(0)"}'],
+                output='screen'
+            )
+        ]
+    )
+
     # Shared planning scene
     scene_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
@@ -139,7 +154,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
-        ## arguments 
+        ## arguments
         robot_ip,
         ur_type,
         description_package,
@@ -155,6 +170,7 @@ def generate_launch_description():
         rviz_node,
         robot_state_publisher,
         set_payload,  # Set UR payload
+        set_tool_voltage,  # Set tool voltage to 0V
         scene_launch,
     ])
 

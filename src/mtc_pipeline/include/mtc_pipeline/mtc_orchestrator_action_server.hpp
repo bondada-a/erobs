@@ -21,6 +21,9 @@
 #include <string>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
 #include <thread>
 #include <unistd.h>
 #include <unordered_map>
@@ -91,6 +94,7 @@ private:
 
     // Execute function helpers
     bool initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip);
+    bool set_tool_voltage_via_socket(const std::string& robot_ip, int voltage);
 
     // Generic template for action client calls
     template<typename ActionType>
