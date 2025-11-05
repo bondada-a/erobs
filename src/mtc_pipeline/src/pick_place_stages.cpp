@@ -1,25 +1,11 @@
 #include "mtc_pipeline/pick_place_stages.hpp"
+#include "../../end_effectors/gripper_config.hpp"
 
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit_msgs/msg/constraints.hpp>
 #include <moveit_msgs/msg/joint_constraint.hpp>
 
 namespace {
-struct GripperConfig {
-  std::string group;
-  std::string release_state;  // State name when gripper is open/released
-  std::string grasp_state;    // State name when gripper is closed/gripping
-};
-
-GripperConfig get_gripper_config(const std::string& gripper_type) {
-  if (gripper_type == "epick") {
-    // EPick: vacuum_off = released, vacuum_on = gripping
-    return {"epick_gripper", "vacuum_off", "vacuum_on"};
-  }
-  // HandE: hande_open = released, hande_closed = gripping
-  return {"hande_gripper", "hande_open", "hande_closed"};
-}
-
 constexpr const char* WRIST3_JOINT_NAME = "wrist_3_joint";
 constexpr double WRIST3_POSITION = 0.0;
 constexpr double WRIST3_TOLERANCE = 0.01;
@@ -67,7 +53,7 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::make_gripper_stage(
   bool open,
   const std::string& gripper_type)
 {
-  auto config = get_gripper_config(gripper_type);
+  auto config = gripper_config::get_gripper_config(gripper_type);
   auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
   stage->setGroup(config.group);
   stage->setGoal(open ? config.release_state : config.grasp_state);

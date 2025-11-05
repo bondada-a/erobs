@@ -1,4 +1,5 @@
 #include "mtc_pipeline/vision_pick_place_stages.hpp"
+#include "../../end_effectors/gripper_config.hpp"
 
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit/task_constructor/solvers/cartesian_path.h>
@@ -10,7 +11,7 @@
 #include <tf2/LinearMath/Transform.h>
 
 namespace {
-// Reuse wrist constraint from pick_place_stages.cpp to prevent tilting
+// Wrist constraint to prevent tilting during pick/place
 constexpr const char* WRIST3_JOINT_NAME = "wrist_3_joint";
 constexpr double WRIST3_POSITION = 0.0;
 constexpr double WRIST3_TOLERANCE = 0.01;
@@ -26,22 +27,6 @@ moveit_msgs::msg::Constraints createWrist3Constraint() {
   jc.weight = WRIST3_WEIGHT;
   constraint.joint_constraints.push_back(jc);
   return constraint;
-}
-
-// Reuse gripper configuration from pick_place_stages.cpp
-struct GripperConfig {
-  std::string group;
-  std::string release_state;  // State name when gripper is open/released
-  std::string grasp_state;    // State name when gripper is closed/gripping
-};
-
-GripperConfig get_gripper_config(const std::string& gripper_type) {
-  if (gripper_type == "epick") {
-    // EPick: vacuum_off = released, vacuum_on = gripping
-    return {"epick_gripper", "vacuum_off", "vacuum_on"};
-  }
-  // HandE: hande_open = released, hande_closed = gripping
-  return {"hande_gripper", "hande_open", "hande_closed"};
 }
 }  // namespace
 
@@ -392,7 +377,7 @@ std::unique_ptr<mtc::Stage> VisionPickPlaceStages::make_gripper_stage(
   bool open,
   const std::string& gripper_type)
 {
-  auto config = get_gripper_config(gripper_type);
+  auto config = gripper_config::get_gripper_config(gripper_type);
   auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
   stage->setGroup(config.group);
   stage->setGoal(open ? config.release_state : config.grasp_state);

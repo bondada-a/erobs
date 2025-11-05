@@ -1,4 +1,5 @@
 #include "mtc_pipeline/end_effector_stages.hpp"
+#include "../../end_effectors/gripper_config.hpp"
 
 #include <moveit/task_constructor/stages/move_to.h>
 
@@ -7,36 +8,31 @@ EndEffectorStages::EndEffectorStages(const rclcpp::Node::SharedPtr& node)
 
 std::string EndEffectorStages::get_gripper_group_name(const std::string& end_effector_type)
 {
-  // Map end effector types to their MoveIt group names
-  // epick and hande have movable joints, pipettor is static
-  if (end_effector_type == "epick") {
-    return "epick_gripper";
-  } else if (end_effector_type == "hande") {
-    return "hande_gripper";
-  } else if (end_effector_type == "pipettor") {
-    // Pipettor has no movable joints, no group defined
+  // Use shared gripper configuration
+  auto config = gripper_config::get_gripper_config(end_effector_type);
+
+  if (config.group.empty()) {
     RCLCPP_ERROR(node()->get_logger(),
                  "Pipettor is a static end effector with no movable joints. "
                  "End effector actions (open/close) are not supported for pipettor.");
-    return "";
-  } else {
-    RCLCPP_ERROR(node()->get_logger(),
-                 "Unknown end effector type: %s", end_effector_type.c_str());
-    return "";
   }
+
+  return config.group;
 }
 
 std::string EndEffectorStages::get_goal_state_name(
     const std::string& end_effector_type,
     const std::string& action)
 {
-  // Map generic action names to SRDF group state names
-  // Different grippers use different naming conventions in SRDF
+  // Use shared gripper configuration
+  auto config = gripper_config::get_gripper_config(end_effector_type);
 
   if (end_effector_type == "epick") {
-    // EPick uses vacuum_on/vacuum_off directly in SRDF
-    if (action == "vacuum_on" || action == "vacuum_off") {
-      return action;
+    // EPick uses vacuum_on/vacuum_off directly in action names
+    if (action == "vacuum_on") {
+      return config.grasp_state;
+    } else if (action == "vacuum_off") {
+      return config.release_state;
     } else {
       RCLCPP_ERROR(node()->get_logger(),
                    "Invalid action '%s' for epick. Valid actions: vacuum_on, vacuum_off",
@@ -44,11 +40,11 @@ std::string EndEffectorStages::get_goal_state_name(
       return "";
     }
   } else if (end_effector_type == "hande") {
-    // Hande uses hande_open/hande_closed in SRDF (not just open/close)
+    // Hande uses open/close in action names
     if (action == "open") {
-      return "hande_open";
+      return config.release_state;
     } else if (action == "close") {
-      return "hande_closed";
+      return config.grasp_state;
     } else {
       RCLCPP_ERROR(node()->get_logger(),
                    "Invalid action '%s' for hande. Valid actions: open, close",

@@ -3,22 +3,47 @@ Settings:
   Acquisitions:
     - Acquisition:
         Aperture: 4
+        Brightness: 2
+        ExposureTime: 30000
+        Gain: 1
+    - Acquisition:
+        Aperture: 3.08
         Brightness: 2.5
-        ExposureTime: 2000
+        ExposureTime: 60000
         Gain: 1
     - Acquisition:
         Aperture: 4
+        Brightness: 2
+        ExposureTime: 30000
+        Gain: 1
+    - Acquisition:
+        Aperture: 3.08
         Brightness: 2.5
-        ExposureTime: 20000
+        ExposureTime: 60000
         Gain: 1
   Color:
     __version__: 7
     Settings2D:
       Acquisitions:
         - Acquisition:
-            Aperture: 4
+            Aperture: 4.36
+            Brightness: 2
+            ExposureTime: 20000
+            Gain: 1
+        - Acquisition:
+            Aperture: 3.08
             Brightness: 2.5
-            ExposureTime: 4000
+            ExposureTime: 20000
+            Gain: 1
+        - Acquisition:
+            Aperture: 4.36
+            Brightness: 2
+            ExposureTime: 20000
+            Gain: 1
+        - Acquisition:
+            Aperture: 3.08
+            Brightness: 2.5
+            ExposureTime: 20000
             Gain: 1
       Processing:
         Color:
@@ -47,54 +72,54 @@ Settings:
     Filters:
       Cluster:
         Removal:
-          Enabled: yes
-          MaxNeighborDistance: 3.5
-          MinArea: 25
+          Enabled: no
+          MaxNeighborDistance: 10
+          MinArea: 100
       Experimental:
         ContrastDistortion:
           Correction:
             Enabled: no
-            Strength: 0.2
+            Strength: 0.4
           Removal:
-            Enabled: yes
-            Threshold: 0.3
+            Enabled: no
+            Threshold: 0.5
       Hole:
         Repair:
-          Enabled: yes
-          HoleSize: 0.1
-          Strictness: 4
+          Enabled: no
+          HoleSize: 0.2
+          Strictness: 2
       Noise:
         Removal:
           Enabled: yes
-          Threshold: 7
+          Threshold: 5
         Repair:
           Enabled: yes
         Suppression:
-          Enabled: no
+          Enabled: yes
       Outlier:
         Removal:
           Enabled: yes
-          Threshold: 5
+          Threshold: 10
       Reflection:
         Removal:
           Enabled: yes
           Mode: global
       Smoothing:
         Gaussian:
-          Enabled: yes
-          Sigma: 1
+          Enabled: no
+          Sigma: 5
     Resampling:
       Mode: disabled
   RegionOfInterest:
     Box:
       Enabled: no
-      Extents: [-10, 100]
-      PointA: [0, 0, 0]
-      PointB: [0, 0, 0]
-      PointO: [0, 0, 0]
+      Extents: [0, 28.7470703125]
+      PointA: [173.611496, 127.998672, 364.130157]
+      PointB: [-123.173767, -120.128548, 364.130157]
+      PointO: [-123.173767, 127.998672, 364.130157]
     Depth:
       Enabled: no
-      Range: [300, 1100]
+      Range: [300, 3000]
   Sampling:
     Color: __not_set__
     Pixel: all
