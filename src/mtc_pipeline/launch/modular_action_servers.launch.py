@@ -71,8 +71,8 @@ def generate_launch_description():
         output='screen',
         parameters=action_server_parameters + [
             {'publish_marker_frames': True},  # Enable TF publishing for RViz visualization
-            {'ik_frame': 'epick_tip'},  # Auto-detect: '' | Force EPick: 'epick_tip' | Force Hand-E: 'robotiq_hande_end'
-            {'z_offset': 0.025}  # Positive = higher above marker (10cm above)
+            {'ik_frame': ''},  # Auto-detect: '' | Force EPick: 'epick_tip' | Force Hand-E: 'robotiq_hande_end'
+            {'z_offset': 0.027}  # Positive = higher above marker (10cm above)
         ]
     )
 

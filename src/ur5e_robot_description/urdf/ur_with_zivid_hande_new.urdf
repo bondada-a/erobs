@@ -635,9 +635,9 @@
   </link>
   <!-- Joint: Flange -> Arm Mount -->
   <joint name="zivid_arm_mount_joint" type="fixed">
-    <parent link="tool0"/>
+    <parent link="flange"/>
     <child link="zivid_arm_mount"/>
-    <origin rpy="0.00000 0.00000 3.14159" xyz="0.00000 0.00000 0.00500"/>
+    <origin rpy="-1.5708 0 -1.5708" xyz="0.005 0 0"/>
   </joint>
   <!-- Zivid base link -->
   <link name="zivid_base_link">
@@ -667,16 +667,31 @@
     <parent link="zivid_base_link"/>
     <child link="zivid_optical_frame"/>
   </joint>
-  <!-- Joint: Arm Mount -> Camera Base Link -->
-  <!-- CALIBRATED: Using tool0 as parent frame (not flange) -->
-  <!-- Zivid calibration uses tool0 frame per: https://github.com/zivid/zivid-ros/issues/124 -->
-  <joint name="mount_to_camera_joint" type="fixed">
+  <!-- Joint: Arm Mount -> Camera                   -->
+  <!-- CALIBRATION: Using hand-eye calibration results   -->
+  <!-- OLD UNCALIBRATED TRANSFORM (DISABLED) -->
+  <!-- <joint name="mount_to_camera_joint" type="fixed">
+      <parent link="zivid_arm_mount"/>
+      <child link="zivid_base_link"/>
+      <origin xyz="0.025 0.062 -0.049" rpy="0 -1.5708 -1.5708"/>
+    </joint> -->
+  <!-- CALIBRATED TRANSFORM: Direct flange to optical frame -->
+  <!-- This transform was obtained from hand-eye calibration on 2025-11-06 -->
+  <!-- Calibration method: Zivid GUI, Euler XYZ, Degrees, Extrinsic -->
+  <!-- Translation values converted from millimeters to meters -->
+  <joint name="flange_to_zivid_optical_calibrated" type="fixed">
+    <parent link="flange"/>
+    <!-- This is the flange -->
+    <child link="zivid_optical_frame"/>
+    <origin rpy="-0.03035 0.05310 -0.01815" xyz="-0.05435 -0.10490 -0.19139"/>
+  </joint>
+  <!-- Keep connection to base_link for camera model visualization -->
+  <joint name="mount_to_camera_visual_only" type="fixed">
     <parent link="zivid_arm_mount"/>
     <child link="zivid_base_link"/>
-    <origin rpy="0.30355 -1.53903 -1.89103" xyz="0.02234 0.07744 -0.24656"/>
+    <!-- Approximate position for visualization only -->
+    <origin rpy="0 -1.5708 -1.5708" xyz="0.025 0.062 -0.049"/>
   </joint>
-  <!-- PREVIOUS VALUES (when using flange as parent): -->
-  <!-- <origin xyz="0.025 0.062 -0.049" rpy="0 -1.5708 -1.5708"/> -->
   <link name="tool_block">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>

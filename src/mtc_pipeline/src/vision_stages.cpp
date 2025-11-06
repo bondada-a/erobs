@@ -68,7 +68,7 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
 
     if (epick_found) {
       ik_frame_ = "epick_tip";
-      z_offset_ = -0.08;  // EPick default offset
+      z_offset_ = 0.1;  // EPick default offset
       RCLCPP_INFO(node->get_logger(), "  ✓ Detected: Robotiq EPick gripper (epick_tip)");
     }
     else if (hande_found) {
@@ -80,7 +80,7 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
       RCLCPP_ERROR(node->get_logger(), "  ✗ Could not auto-detect gripper!");
       RCLCPP_ERROR(node->get_logger(), "  → Using fallback: epick_tip (adjust in launch file if needed)");
       ik_frame_ = "epick_tip";  // Changed fallback to EPick since that's what you're using
-      z_offset_ = -0.08;
+      z_offset_ = 0.1;
     }
   } else {
     ik_frame_ = ik_frame_param;
