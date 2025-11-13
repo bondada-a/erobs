@@ -29,67 +29,27 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
   }
   publish_marker_frames_ = node->get_parameter("publish_marker_frames").as_bool();
 
-  // Auto-detect gripper if not explicitly set
+  // Read ik_frame parameter (empty string = auto-detect at runtime)
   if (!node->has_parameter("ik_frame")) {
-    node->declare_parameter("ik_frame", "");  // Empty = auto-detect
+    node->declare_parameter("ik_frame", "");
   }
-  std::string ik_frame_param = node->get_parameter("ik_frame").as_string();
+  ik_frame_ = node->get_parameter("ik_frame").as_string();
 
-  if (ik_frame_param.empty()) {
-    // Auto-detect by checking which frames exist in TF
-    RCLCPP_INFO(node->get_logger(), "Auto-detecting gripper TCP frame...");
-    RCLCPP_INFO(node->get_logger(), "  Waiting for TF tree to populate (5 seconds)...");
+  // Read z_offset parameter (0.0 = auto-set based on detected gripper)
+  if (!node->has_parameter("z_offset")) {
+    node->declare_parameter("z_offset", 0.0);
+  }
+  z_offset_ = node->get_parameter("z_offset").as_double();
 
-    // Wait longer for TF tree to populate
-    std::this_thread::sleep_for(std::chrono::seconds(5));
-
-    // Try multiple times with delays
-    bool epick_found = false;
-    bool hande_found = false;
-
-    for (int attempt = 0; attempt < 10; ++attempt) {
-      // Check for EPick first (more specific)
-      if (tf_buffer_->canTransform("base", "epick_tip", tf2::TimePointZero, std::chrono::milliseconds(100))) {
-        epick_found = true;
-        break;
-      }
-      // Check for Hand-E
-      if (tf_buffer_->canTransform("base", "robotiq_hande_end", tf2::TimePointZero, std::chrono::milliseconds(100))) {
-        hande_found = true;
-        break;
-      }
-      std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    }
-
-    if (epick_found) {
-      ik_frame_ = "epick_tip";
-      z_offset_ = 0.1;  // EPick default offset
-      RCLCPP_INFO(node->get_logger(), "  ✓ Detected: Robotiq EPick gripper (epick_tip)");
-    }
-    else if (hande_found) {
-      ik_frame_ = "robotiq_hande_end";
-      z_offset_ = -0.02;  // Hand-E default offset
-      RCLCPP_INFO(node->get_logger(), "  ✓ Detected: Robotiq Hand-E gripper (robotiq_hande_end)");
-    }
-    else {
-      RCLCPP_ERROR(node->get_logger(), "  ✗ Could not auto-detect gripper!");
-      RCLCPP_ERROR(node->get_logger(), "  → Using fallback: epick_tip (adjust in launch file if needed)");
-      ik_frame_ = "epick_tip";  // Changed fallback to EPick since that's what you're using
-      z_offset_ = 0.1;
-    }
+  // Log initialization mode
+  if (ik_frame_.empty()) {
+    RCLCPP_INFO(node->get_logger(),
+      "VisionStages initialized (ik_frame will be auto-detected at runtime)");
   } else {
-    ik_frame_ = ik_frame_param;
-
-    // Still allow manual z_offset override
-    if (!node->has_parameter("z_offset")) {
-      node->declare_parameter("z_offset", z_offset_);
-    }
-    z_offset_ = node->get_parameter("z_offset").as_double();
+    RCLCPP_INFO(node->get_logger(),
+      "VisionStages initialized with manual config (ik_frame: %s, z_offset: %.3fm)",
+      ik_frame_.c_str(), z_offset_);
   }
-
-  RCLCPP_INFO(node->get_logger(),
-    "VisionStages initialized with Zivid ArUco detection (dictionary: %s, ik_frame: %s, z_offset: %.3fm)",
-    marker_dictionary_.c_str(), ik_frame_.c_str(), z_offset_);
 }
 
 bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
@@ -247,6 +207,36 @@ void VisionStages::broadcast_marker_tf(int marker_id,
 
 bool VisionStages::move_to_pose(const geometry_msgs::msg::PoseStamped& target_pose)
 {
+  // Determine which ik_frame and z_offset to use
+  std::string active_ik_frame;
+  double active_z_offset;
+
+  if (ik_frame_.empty()) {
+    // Runtime auto-detection (when MoveIt is running)
+    auto detection = detect_current_gripper();
+    active_ik_frame = detection.ik_frame;
+    active_z_offset = detection.z_offset;
+    RCLCPP_INFO(node()->get_logger(),
+      "Auto-detected gripper: %s (z_offset: %.3fm)",
+      active_ik_frame.c_str(), active_z_offset);
+  } else {
+    // Use manually configured values from launch parameters
+    active_ik_frame = ik_frame_;
+
+    // If z_offset is default (0.0), infer from ik_frame
+    if (std::abs(z_offset_) < 1e-6) {
+      active_z_offset = (active_ik_frame.find("epick") != std::string::npos) ? 0.1 : -0.02;
+      RCLCPP_INFO(node()->get_logger(),
+        "Using configured ik_frame: %s with inferred z_offset: %.3fm",
+        active_ik_frame.c_str(), active_z_offset);
+    } else {
+      active_z_offset = z_offset_;
+      RCLCPP_INFO(node()->get_logger(),
+        "Using configured gripper: %s (z_offset: %.3fm)",
+        active_ik_frame.c_str(), active_z_offset);
+    }
+  }
+
   RCLCPP_INFO(node()->get_logger(),
     "Target pose in base_link:");
   RCLCPP_INFO(node()->get_logger(),
@@ -277,13 +267,13 @@ bool VisionStages::move_to_pose(const geometry_msgs::msg::PoseStamped& target_po
   approach_pose.pose.orientation = tf2::toMsg(final_orientation);
 
   // Add Z-offset to account for TCP position (configurable per gripper)
-  approach_pose.pose.position.z += z_offset_;
+  approach_pose.pose.position.z += active_z_offset;
 
   RCLCPP_INFO(node()->get_logger(),
-    "  Using detected pose with 180° Z-rotation and %.3fm Z-offset", z_offset_);
+    "  Using detected pose with 180° Z-rotation and %.3fm Z-offset", active_z_offset);
 
   // Create MTC task using configured IK frame (TCP)
-  auto task = create_task_template("Vision Move", "", ik_frame_);
+  auto task = create_task_template("Vision Move", "", active_ik_frame);
 
   // Use Cartesian planner for straight-line motion to detected position
   auto planner = make_cartesian_planner();
@@ -304,4 +294,33 @@ bool VisionStages::move_to_pose(const geometry_msgs::msg::PoseStamped& target_po
 
   // Execute
   return load_plan_execute(task);
+}
+
+VisionStages::GripperDetection VisionStages::detect_current_gripper() {
+  GripperDetection detection;
+
+  // Check for EPick first (more specific frame)
+  if (tf_buffer_->canTransform("base", "epick_tip", tf2::TimePointZero,
+                                std::chrono::seconds(1))) {
+    detection.ik_frame = "epick_tip";
+    detection.z_offset = 0.1;  // 10cm above marker
+    RCLCPP_DEBUG(node()->get_logger(), "Auto-detected EPick gripper (epick_tip)");
+    return detection;
+  }
+
+  // Check for Hand-E
+  if (tf_buffer_->canTransform("base", "robotiq_hande_end", tf2::TimePointZero,
+                                std::chrono::seconds(1))) {
+    detection.ik_frame = "robotiq_hande_end";
+    detection.z_offset = -0.02;  // 2cm below marker (TCP below fingers)
+    RCLCPP_DEBUG(node()->get_logger(), "Auto-detected Hand-E gripper (robotiq_hande_end)");
+    return detection;
+  }
+
+  // Fallback to flange (standalone mode - no gripper attached)
+  RCLCPP_INFO(node()->get_logger(),
+    "No gripper-specific TCP frame detected. Using 'flange' (standalone mode).");
+  detection.ik_frame = "flange";
+  detection.z_offset = 0.0;  // No offset needed for flange
+  return detection;
 }

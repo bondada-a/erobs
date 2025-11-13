@@ -35,10 +35,17 @@ private:
   // Parameters
   std::string marker_dictionary_ = "aruco4x4_50";  // Default ArUco dictionary
   bool publish_marker_frames_ = false;  // Publish TF for RViz debugging
-  std::string ik_frame_ = "robotiq_hande_end";  // TCP frame (robotiq_hande_end, epick_tip, etc.)
-  double z_offset_ = -0.02;  // Z offset in meters (negative moves down)
+  std::string ik_frame_ = "";  // Empty = auto-detect at runtime, or specify TCP frame
+  double z_offset_ = 0.0;  // 0.0 = auto-set based on detected gripper
+
+  // Gripper detection result
+  struct GripperDetection {
+    std::string ik_frame;
+    double z_offset;
+  };
 
   // Helper methods
+  GripperDetection detect_current_gripper();
   std::optional<geometry_msgs::msg::PoseStamped> transform_to_base_link(const geometry_msgs::msg::Pose& pose_camera);
   void broadcast_marker_tf(int marker_id, const geometry_msgs::msg::PoseStamped& pose_base);
 

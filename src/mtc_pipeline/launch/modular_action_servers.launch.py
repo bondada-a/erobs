@@ -71,8 +71,13 @@ def generate_launch_description():
         output='screen',
         parameters=action_server_parameters + [
             {'publish_marker_frames': True},  # Enable TF publishing for RViz visualization
-            {'ik_frame': ''},  # Auto-detect: '' | Force EPick: 'epick_tip' | Force Hand-E: 'robotiq_hande_end'
-            {'z_offset': 0.027}  # Positive = higher above marker (10cm above)
+            # ik_frame: '' = auto-detect current gripper at runtime (recommended)
+            #           'epick_tip' = force EPick (testing/debugging)
+            #           'robotiq_hande_end' = force Hand-E (testing/debugging)
+            {'ik_frame': ''},
+            # z_offset: 0.0 = auto-set based on detected gripper (EPick: 0.1m, Hand-E: -0.02m)
+            #           custom value = manual override for specific setup
+            {'z_offset': 0.0}
         ]
     )
 

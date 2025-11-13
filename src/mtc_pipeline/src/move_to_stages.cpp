@@ -18,7 +18,9 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
     const std::string direction = step.at("direction");
     const double distance = step.at("distance").get<double>();
     const std::string label = "move_" + direction + "_" + std::to_string(distance) + "m";
-    task.add(create_relative_move_stage(label, direction, distance, planner));
+    auto stage = create_relative_move_stage(label, direction, distance, planner);
+    stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    task.add(std::move(stage));
   }
 
   // 2. POSE or NAMED STATE: Check if target exists
