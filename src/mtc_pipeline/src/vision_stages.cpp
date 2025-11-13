@@ -303,7 +303,7 @@ VisionStages::GripperDetection VisionStages::detect_current_gripper() {
   if (tf_buffer_->canTransform("base", "epick_tip", tf2::TimePointZero,
                                 std::chrono::seconds(1))) {
     detection.ik_frame = "epick_tip";
-    detection.z_offset = 0.1;  // 10cm above marker
+    detection.z_offset = 0.027;  // 10cm above marker
     RCLCPP_DEBUG(node()->get_logger(), "Auto-detected EPick gripper (epick_tip)");
     return detection;
   }
