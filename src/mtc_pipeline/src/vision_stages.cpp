@@ -18,11 +18,6 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
   capture_marker_client_ = node->create_client<zivid_interfaces::srv::CaptureAndDetectMarkers>(
     "/capture_and_detect_markers");
 
-  // Joint state tracking for cache invalidation
-  joint_state_sub_ = node->create_subscription<sensor_msgs::msg::JointState>(
-    "/joint_states", 10,
-    std::bind(&VisionStages::joint_state_callback, this, std::placeholders::_1));
-
   // Read parameters
   if (!node->has_parameter("marker_dictionary")) {
     node->declare_parameter("marker_dictionary", marker_dictionary_);
@@ -93,7 +88,7 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
   }
 
   RCLCPP_INFO(node->get_logger(),
-    "VisionStages initialized with Zivid ArUco detection (dictionary: %s, ik_frame: %s, z_offset: %.3fm, cache: 30s)",
+    "VisionStages initialized with Zivid ArUco detection (dictionary: %s, ik_frame: %s, z_offset: %.3fm)",
     marker_dictionary_.c_str(), ik_frame_.c_str(), z_offset_);
 }
 
@@ -114,18 +109,8 @@ bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
 std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_and_transform_tag(
   int tag_id, double timeout)
 {
-  // Check if we have a valid cached detection
-  if (has_valid_cached_detection(tag_id)) {
-    const auto& cached = detection_cache_[tag_id];
-    double age = (node()->now() - cached.timestamp).seconds();
-    RCLCPP_INFO(node()->get_logger(),
-      "Using cached detection for tag %d (age: %.1fs, robot stationary)",
-      tag_id, age);
-    return cached.pose;
-  }
-
   RCLCPP_INFO(node()->get_logger(),
-    "No valid cached detection for tag %d, capturing with Zivid...", tag_id);
+    "Capturing fresh detection for tag %d with Zivid...", tag_id);
 
   // Wait for service
   if (!capture_marker_client_->wait_for_service(std::chrono::seconds(2))) {
@@ -189,13 +174,6 @@ std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_and_transfor
         pose_base->pose.position.x,
         pose_base->pose.position.y,
         pose_base->pose.position.z);
-
-      // Cache the detection with 3D corners
-      std::array<geometry_msgs::msg::Point, 4> corners;
-      for (size_t i = 0; i < 4 && i < marker.corners_in_camera_coordinates.size(); i++) {
-        corners[i] = marker.corners_in_camera_coordinates[i];
-      }
-      cache_detection(tag_id, *pose_base, corners);
 
       // Optionally broadcast TF for RViz debugging
       if (publish_marker_frames_) {
@@ -267,22 +245,6 @@ void VisionStages::broadcast_marker_tf(int marker_id,
     "Published TF: aruco_%d in base_link", marker_id);
 }
 
-void VisionStages::cache_detection(int marker_id,
-                                    const geometry_msgs::msg::PoseStamped& pose,
-                                    const std::array<geometry_msgs::msg::Point, 4>& corners)
-{
-  CachedDetection cached;
-  cached.pose = pose;
-  cached.timestamp = node()->now();
-  cached.robot_joints = current_joints_;
-  cached.corners_3d = corners;
-
-  detection_cache_[marker_id] = cached;
-
-  RCLCPP_DEBUG(node()->get_logger(),
-    "Cached detection for marker %d with 3D corners", marker_id);
-}
-
 bool VisionStages::move_to_pose(const geometry_msgs::msg::PoseStamped& target_pose)
 {
   RCLCPP_INFO(node()->get_logger(),
@@ -342,50 +304,4 @@ bool VisionStages::move_to_pose(const geometry_msgs::msg::PoseStamped& target_po
 
   // Execute
   return load_plan_execute(task);
-}
-
-void VisionStages::joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg)
-{
-  if (msg->position.empty()) {
-    return;
-  }
-  current_joints_ = msg->position;
-}
-
-bool VisionStages::has_valid_cached_detection(int tag_id)
-{
-  auto it = detection_cache_.find(tag_id);
-  if (it == detection_cache_.end()) {
-    return false;
-  }
-
-  double age = (node()->now() - it->second.timestamp).seconds();
-  if (age > cache_timeout_sec_) {
-    RCLCPP_DEBUG(node()->get_logger(),
-      "Cached detection for tag %d expired (age: %.1fs)", tag_id, age);
-    return false;
-  }
-
-  if (robot_has_moved(it->second.robot_joints)) {
-    RCLCPP_DEBUG(node()->get_logger(),
-      "Cached detection for tag %d invalid (robot moved)", tag_id);
-    return false;
-  }
-
-  return true;
-}
-
-bool VisionStages::robot_has_moved(const std::vector<double>& old_joints)
-{
-  if (current_joints_.empty() || old_joints.size() != current_joints_.size()) {
-    return true;
-  }
-
-  for (size_t i = 0; i < old_joints.size(); i++) {
-    if (std::abs(old_joints[i] - current_joints_[i]) > joint_movement_threshold_) {
-      return true;
-    }
-  }
-
-  return false;
 }
