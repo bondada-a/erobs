@@ -14,7 +14,7 @@ std::string EndEffectorStages::get_gripper_group_name(const std::string& end_eff
   if (config.group.empty()) {
     RCLCPP_ERROR(node()->get_logger(),
                  "Pipettor is a static end effector with no movable joints. "
-                 "End effector actions (open/close) are not supported for pipettor.");
+                 "End effector state changes are not supported for pipettor.");
   }
 
   return config.group;
@@ -24,39 +24,21 @@ std::string EndEffectorStages::get_goal_state_name(
     const std::string& end_effector_type,
     const std::string& action)
 {
-  // Use shared gripper configuration
+  // Action is expected to be the SRDF state name directly
+  // Examples: "hande_open", "hande_closed", "vacuum_on", "vacuum_off"
+
+  // Validate that we have a known end effector type
   auto config = gripper_config::get_gripper_config(end_effector_type);
 
-  if (end_effector_type == "epick") {
-    // EPick uses vacuum_on/vacuum_off directly in action names
-    if (action == "vacuum_on") {
-      return config.grasp_state;
-    } else if (action == "vacuum_off") {
-      return config.release_state;
-    } else {
-      RCLCPP_ERROR(node()->get_logger(),
-                   "Invalid action '%s' for epick. Valid actions: vacuum_on, vacuum_off",
-                   action.c_str());
-      return "";
-    }
-  } else if (end_effector_type == "hande") {
-    // Hande uses open/close in action names
-    if (action == "open") {
-      return config.release_state;
-    } else if (action == "close") {
-      return config.grasp_state;
-    } else {
-      RCLCPP_ERROR(node()->get_logger(),
-                   "Invalid action '%s' for hande. Valid actions: open, close",
-                   action.c_str());
-      return "";
-    }
-  } else {
+  if (config.group.empty()) {
     RCLCPP_ERROR(node()->get_logger(),
-                 "Cannot map goal state for unknown end effector type: %s",
+                 "Unknown end effector type: %s",
                  end_effector_type.c_str());
     return "";
   }
+
+  // Return the action as the SRDF state name directly
+  return action;
 }
 
 bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& poses)
@@ -74,7 +56,7 @@ bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& po
     return false;
   }
 
-  // Map generic action to SRDF goal state name
+  // Get SRDF goal state name (action should already be SRDF state name)
   const std::string goal_state = get_goal_state_name(end_effector_type, action);
 
   if (goal_state.empty()) {

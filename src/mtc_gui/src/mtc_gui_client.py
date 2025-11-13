@@ -597,7 +597,7 @@ class MTCGUIClient:
         ttk.Label(dialog, text="Action:").pack(anchor="w", padx=20)
         action_var = tk.StringVar(value=step.get("end_effector_action", "vacuum_on"))
         action_combo = ttk.Combobox(dialog, textvariable=action_var,
-                                  values=["vacuum_on", "vacuum_off", "open", "close"], width=30)
+                                  values=["hande_open", "hande_closed", "vacuum_on", "vacuum_off"], width=30)
         action_combo.pack(padx=20, pady=(0, 20))
 
         def save_changes():

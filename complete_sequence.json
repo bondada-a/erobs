@@ -126,7 +126,7 @@
     {
       "task_type": "end_effector",
       "end_effector_type": "hande",
-      "end_effector_action": "open"
+      "end_effector_action": "hande_open"
     },
     {
       "task_type": "moveto",
@@ -146,7 +146,7 @@
     {
       "task_type": "end_effector",
       "end_effector_type": "hande",
-      "end_effector_action": "close"
+      "end_effector_action": "hande_closed"
     },
     {
       "task_type": "moveto",
@@ -177,7 +177,7 @@
     {
       "task_type": "end_effector",
       "end_effector_type": "hande",
-      "end_effector_action": "open"
+      "end_effector_action": "hande_open"
     },
     {
       "task_type": "moveto",
@@ -192,7 +192,7 @@
     {
       "task_type": "end_effector",
       "end_effector_type": "hande",
-      "end_effector_action": "open"
+      "end_effector_action": "hande_open"
     },
     {
       "task_type": "tool_exchange",
