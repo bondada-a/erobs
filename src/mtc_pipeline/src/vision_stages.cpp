@@ -1,10 +1,15 @@
 #include "mtc_pipeline/vision_stages.hpp"
 #include <moveit/task_constructor/stages/move_to.h>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit_msgs/msg/collision_object.hpp>
+#include <shape_msgs/msg/solid_primitive.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <chrono>
 #include <thread>
+#include <fstream>
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
   : BaseStages(node)
@@ -40,6 +45,22 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
     node->declare_parameter("z_offset", 0.0);
   }
   z_offset_ = node->get_parameter("z_offset").as_double();
+
+  // Initialize PlanningSceneInterface for collision object management
+  planning_scene_interface_ = std::make_shared<moveit::planning_interface::PlanningSceneInterface>();
+
+  // Read vision objects config path
+  if (!node->has_parameter("vision_objects_config")) {
+    // Default to package config directory
+    std::string package_share = ament_index_cpp::get_package_share_directory("mtc_pipeline");
+    vision_objects_config_path_ = package_share + "/config/vision_objects.json";
+    node->declare_parameter("vision_objects_config", vision_objects_config_path_);
+  } else {
+    vision_objects_config_path_ = node->get_parameter("vision_objects_config").as_string();
+  }
+
+  // Load vision objects configuration
+  load_vision_objects_config(vision_objects_config_path_);
 
   // Log initialization mode
   if (ik_frame_.empty()) {
@@ -115,7 +136,7 @@ std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_and_transfor
   for (const auto& marker : result->detection_result.detected_markers) {
     if (marker.id == tag_id) {
       RCLCPP_INFO(node()->get_logger(),
-        "ArUco marker %d detected at [%.3f, %.3f, %.3f] in camera frame",
+        "ArUco marker %d detected at [%.3f, %.3f, %.3f] in camera frame (zivid_optical_frame)",
         marker.id,
         marker.pose.position.x,
         marker.pose.position.y,
@@ -139,6 +160,9 @@ std::optional<geometry_msgs::msg::PoseStamped> VisionStages::detect_and_transfor
       if (publish_marker_frames_) {
         broadcast_marker_tf(tag_id, *pose_base);
       }
+
+      // Add collision object to planning scene
+      add_collision_object_for_tag(tag_id, *pose_base);
 
       return pose_base;
     }
@@ -176,6 +200,15 @@ std::optional<geometry_msgs::msg::PoseStamped> VisionStages::transform_to_base_l
     // Transform to base_link
     geometry_msgs::msg::PoseStamped pose_base;
     tf2::doTransform(pose_camera_stamped, pose_base, transform);
+
+    // Explicitly set frame_id after transform (tf2::doTransform doesn't always set it)
+    pose_base.header.frame_id = "base_link";
+    pose_base.header.stamp = node()->now();
+
+    RCLCPP_DEBUG(node()->get_logger(),
+      "After transform: frame_id='%s', position=[%.3f, %.3f, %.3f]",
+      pose_base.header.frame_id.c_str(),
+      pose_base.pose.position.x, pose_base.pose.position.y, pose_base.pose.position.z);
 
     return pose_base;
 
@@ -323,4 +356,207 @@ VisionStages::GripperDetection VisionStages::detect_current_gripper() {
   detection.ik_frame = "flange";
   detection.z_offset = 0.0;  // No offset needed for flange
   return detection;
+}
+
+// ============================================================================
+// COLLISION OBJECT MANAGEMENT
+// ============================================================================
+
+void VisionStages::load_vision_objects_config(const std::string& config_path) {
+  RCLCPP_INFO(node()->get_logger(),
+    "Loading vision objects config from: %s", config_path.c_str());
+
+  std::ifstream config_file(config_path);
+  if (!config_file.is_open()) {
+    RCLCPP_WARN(node()->get_logger(),
+      "Could not open vision objects config file: %s. Collision objects disabled.",
+      config_path.c_str());
+    return;
+  }
+
+  try {
+    nlohmann::json config;
+    config_file >> config;
+
+    if (!config.contains("vision_objects")) {
+      RCLCPP_WARN(node()->get_logger(),
+        "Config file missing 'vision_objects' field. No objects loaded.");
+      return;
+    }
+
+    // Parse each object entry
+    for (auto& [tag_id_str, obj_json] : config["vision_objects"].items()) {
+      int tag_id = std::stoi(tag_id_str);
+
+      ObjectInfo info;
+      info.name = obj_json.at("name").get<std::string>();
+      info.shape = obj_json.at("shape").get<std::string>();
+      info.dimensions = obj_json.at("dimensions").get<std::vector<double>>();
+      info.tag_offset = obj_json.at("tag_offset").get<std::vector<double>>();
+
+      object_database_[tag_id] = info;
+
+      RCLCPP_INFO(node()->get_logger(),
+        "Loaded object config: tag_id=%d -> '%s' (%s)",
+        tag_id, info.name.c_str(), info.shape.c_str());
+    }
+
+    RCLCPP_INFO(node()->get_logger(),
+      "Successfully loaded %zu vision object definitions", object_database_.size());
+
+  } catch (const std::exception& e) {
+    RCLCPP_ERROR(node()->get_logger(),
+      "Failed to parse vision objects config: %s", e.what());
+  }
+}
+
+std::optional<VisionStages::ObjectInfo> VisionStages::get_object_info_for_tag(int tag_id) const {
+  auto it = object_database_.find(tag_id);
+  if (it != object_database_.end()) {
+    return it->second;
+  }
+  return std::nullopt;
+}
+
+geometry_msgs::msg::PoseStamped VisionStages::calculate_object_pose(
+  const geometry_msgs::msg::PoseStamped& tag_pose,
+  const std::vector<double>& tag_offset) const {
+
+  // Extract only the rotation from tag pose (not translation!)
+  tf2::Quaternion tag_rotation;
+  tf2::fromMsg(tag_pose.pose.orientation, tag_rotation);
+
+  // Create offset vector in tag's local frame
+  tf2::Vector3 offset_local(tag_offset[0], tag_offset[1], tag_offset[2]);
+
+  // Rotate offset to world frame (using only rotation, not full transform)
+  tf2::Vector3 offset_world = tf2::quatRotate(tag_rotation, offset_local);
+
+  // Create object pose by adding rotated offset to tag position
+  geometry_msgs::msg::PoseStamped object_pose = tag_pose;
+  object_pose.pose.position.x += offset_world.x();
+  object_pose.pose.position.y += offset_world.y();
+  object_pose.pose.position.z += offset_world.z();
+  // Orientation stays the same as tag (no rotation offset)
+
+  return object_pose;
+}
+
+void VisionStages::add_collision_object_for_tag(
+  int tag_id,
+  const geometry_msgs::msg::PoseStamped& tag_pose) {
+
+  // Look up object info
+  auto object_info = get_object_info_for_tag(tag_id);
+  if (!object_info) {
+    RCLCPP_DEBUG(node()->get_logger(),
+      "No collision object defined for tag_id=%d. Skipping.", tag_id);
+    return;
+  }
+
+  RCLCPP_INFO(node()->get_logger(),
+    "Adding collision object '%s' for tag %d to planning scene",
+    object_info->name.c_str(), tag_id);
+
+  // Remove existing object if present (re-detection logic)
+  remove_collision_object(object_info->name);
+
+  // Calculate object pose from tag pose + offset
+  auto object_pose = calculate_object_pose(tag_pose, object_info->tag_offset);
+
+  RCLCPP_INFO(node()->get_logger(),
+    "Tag pose (input): [%.3f, %.3f, %.3f] in frame '%s'",
+    tag_pose.pose.position.x, tag_pose.pose.position.y, tag_pose.pose.position.z,
+    tag_pose.header.frame_id.c_str());
+
+  RCLCPP_INFO(node()->get_logger(),
+    "Object pose (calculated): [%.3f, %.3f, %.3f] in frame '%s'",
+    object_pose.pose.position.x, object_pose.pose.position.y, object_pose.pose.position.z,
+    object_pose.header.frame_id.c_str());
+
+  // Create collision object message
+  moveit_msgs::msg::CollisionObject collision_object;
+  collision_object.header.frame_id = object_pose.header.frame_id;  // Use same frame as object pose
+  collision_object.header.stamp = node()->now();
+  collision_object.id = object_info->name;
+  collision_object.operation = collision_object.ADD;
+
+  // Verify frame consistency
+  if (object_pose.header.frame_id != "base_link") {
+    RCLCPP_WARN(node()->get_logger(),
+      "Object pose is in frame '%s', expected 'base_link'. This may cause incorrect placement!",
+      object_pose.header.frame_id.c_str());
+  }
+
+  // Create shape primitive
+  shape_msgs::msg::SolidPrimitive primitive;
+
+  if (object_info->shape == "box") {
+    if (object_info->dimensions.size() != 3) {
+      RCLCPP_ERROR(node()->get_logger(),
+        "Box shape requires 3 dimensions [x, y, z], got %zu",
+        object_info->dimensions.size());
+      return;
+    }
+    primitive.type = primitive.BOX;
+    primitive.dimensions.resize(3);
+    primitive.dimensions[0] = object_info->dimensions[0];  // x
+    primitive.dimensions[1] = object_info->dimensions[1];  // y
+    primitive.dimensions[2] = object_info->dimensions[2];  // z
+
+  } else if (object_info->shape == "cylinder") {
+    if (object_info->dimensions.size() != 2) {
+      RCLCPP_ERROR(node()->get_logger(),
+        "Cylinder shape requires 2 dimensions [height, radius], got %zu",
+        object_info->dimensions.size());
+      return;
+    }
+    primitive.type = primitive.CYLINDER;
+    primitive.dimensions.resize(2);
+    primitive.dimensions[0] = object_info->dimensions[0];  // height
+    primitive.dimensions[1] = object_info->dimensions[1];  // radius
+
+  } else {
+    RCLCPP_ERROR(node()->get_logger(),
+      "Unknown shape type: '%s'. Supported: 'box', 'cylinder'",
+      object_info->shape.c_str());
+    return;
+  }
+
+  collision_object.primitives.push_back(primitive);
+  collision_object.primitive_poses.push_back(object_pose.pose);
+
+  RCLCPP_INFO(node()->get_logger(),
+    "Publishing collision object '%s' with dimensions [%.3f, %.3f, %.3f] at pose [%.3f, %.3f, %.3f]",
+    object_info->name.c_str(),
+    primitive.dimensions[0], primitive.dimensions[1], primitive.dimensions[2],
+    object_pose.pose.position.x, object_pose.pose.position.y, object_pose.pose.position.z);
+
+  // Apply to planning scene
+  std::vector<moveit_msgs::msg::CollisionObject> objects = {collision_object};
+  planning_scene_interface_->applyCollisionObjects(objects);
+
+  RCLCPP_INFO(node()->get_logger(),
+    "✓ Collision object '%s' successfully added to planning scene",
+    object_info->name.c_str());
+}
+
+void VisionStages::remove_collision_object(const std::string& object_name) {
+  // Check if object exists in scene
+  auto known_objects = planning_scene_interface_->getKnownObjectNames();
+
+  bool exists = std::find(known_objects.begin(), known_objects.end(), object_name)
+                != known_objects.end();
+
+  if (!exists) {
+    RCLCPP_DEBUG(node()->get_logger(),
+      "Object '%s' not in scene, skipping removal", object_name.c_str());
+    return;
+  }
+
+  RCLCPP_INFO(node()->get_logger(),
+    "Removing existing collision object: '%s'", object_name.c_str());
+
+  std::vector<std::string> object_ids = {object_name};
+  planning_scene_interface_->removeCollisionObjects(object_ids);
 }

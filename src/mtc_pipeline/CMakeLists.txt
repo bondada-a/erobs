@@ -7,6 +7,7 @@ endif()
 
 
 find_package(ament_cmake REQUIRED)
+find_package(ament_index_cpp REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(moveit_task_constructor_core REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -73,6 +74,7 @@ ament_target_dependencies(mtc_pipeline_core
   geometry_msgs
   pipette_driver
   moveit_ros_planning_interface
+  ament_index_cpp
 )
 target_include_directories(mtc_pipeline_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>

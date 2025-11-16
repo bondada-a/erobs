@@ -77,7 +77,10 @@ def generate_launch_description():
             {'ik_frame': ''},
             # z_offset: 0.0 = auto-set based on detected gripper (EPick: 0.1m, Hand-E: -0.02m)
             #           custom value = manual override for specific setup
-            {'z_offset': 0.0}
+            {'z_offset': 0.0},
+            # vision_objects_config: path to JSON defining collision objects for detected tags
+            #                        defaults to package://mtc_pipeline/config/vision_objects.json
+            #                        override: {'vision_objects_config': '/custom/path/objects.json'}
         ]
     )
 
