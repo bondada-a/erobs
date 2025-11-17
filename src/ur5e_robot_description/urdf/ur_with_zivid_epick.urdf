@@ -85,6 +85,7 @@
       <param name="servoj_gain">2000</param>
       <param name="servoj_lookahead_time">0.03</param>
       <param name="use_tool_communication">False</param>
+      <param name="kinematics/hash">calib_12788084448423163542</param>
       <param name="tool_voltage">0</param>
       <param name="tool_parity">0</param>
       <param name="tool_baud_rate">115200</param>
@@ -361,7 +362,9 @@
       <command_interface name="abort"/>
     </gpio>
     <gpio name="get_robot_software_version">
-      <state_interface name="get_version_major"/>
+      <state_interface name="get_version_major">
+        <param name="initial_value">1</param>
+      </state_interface>
       <state_interface name="get_version_minor"/>
       <state_interface name="get_version_build"/>
       <state_interface name="get_version_bugfix"/>
@@ -603,7 +606,7 @@
     <parent link="flange"/>
     <child link="tool0"/>
   </joint>
-  <!-- ARM MOUNT LINK (Easily replaceable)          -->
+  <!-- ARM MOUNT LINK -->
   <link name="zivid_arm_mount">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
@@ -618,21 +621,20 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_custom_mount.dae" scale="0.001 0.001 0.001"/>
+        <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_custom_mount.dae" scale="1.0 1.0 1.0"/>
       </geometry>
     </collision>
     <inertial>
-      <mass value="0.5"/>
-      <!-- Approximate arm mount mass -->
+      <mass value="0.170"/>
       <origin rpy="0 0 0" xyz="0 0 0"/>
-      <inertia ixx="0.001" ixy="0.0" ixz="0.0" iyy="0.001" iyz="0.0" izz="0.001"/>
+      <inertia ixx="0.0003" ixy="0.0" ixz="0.0" iyy="0.0005" iyz="0.0" izz="0.0006"/>
     </inertial>
   </link>
   <!-- Joint: Flange -> Arm Mount -->
   <joint name="zivid_arm_mount_joint" type="fixed">
-    <parent link="flange"/>
+    <parent link="tool0"/>
     <child link="zivid_arm_mount"/>
-    <origin rpy="-1.5708 0 -1.5708" xyz="0.005 0 0"/>
+    <origin rpy="0 0 3.14159" xyz="0 0 0.005"/>
   </joint>
   <!-- Zivid base link -->
   <link name="zivid_base_link">
@@ -662,15 +664,12 @@
     <parent link="zivid_base_link"/>
     <child link="zivid_optical_frame"/>
   </joint>
-  <!-- Joint: Arm Mount -> Camera                   -->
-  <!-- CALIBRATION: Adjust xyz/rpy to match setup   -->
+  <!-- Joint: Arm Mount -> Camera Base Link -->
+  <!-- Zivid calibration uses tool0 frame per: https://github.com/zivid/zivid-ros/issues/124 -->
   <joint name="mount_to_camera_joint" type="fixed">
     <parent link="zivid_arm_mount"/>
     <child link="zivid_base_link"/>
-    <!-- for forward mounted camera bracket -->
-    <!-- <origin xyz="0.025 0.062 0.0" rpy="0 -1.5708 -1.5708"/> -->
-    <!-- for backward mounted camera bracket -->
-    <origin rpy="0 -1.5708 -1.5708" xyz="0.025 0.062 -0.049"/>
+    <origin rpy="0.53964 -1.53712 -2.13794" xyz="0.02803 0.07664 -0.04577"/>
   </joint>
   <link name="tool_block">
     <visual>
@@ -708,7 +707,7 @@
       <param name="timeout">0.2</param>
       <!-- Gripper parameters /////////////////////////////////////////// -->
       <!-- Set use_dummy to true to connect to a dummy driver for testing purposes. -->
-      <param name="use_dummy">True</param>
+      <param name="use_dummy">False</param>
       <!-- The address of the gripper. -->
       <param name="slave_address">0x9</param>
       <!-- The gripper operation mode: AutomaticMode or AdvancedMode. -->
