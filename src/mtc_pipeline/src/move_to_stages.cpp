@@ -5,7 +5,7 @@ MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node)
   : BaseStages(node) {}
 
 
-bool MoveToStages::run(const mtc_pipeline::action::MoveToAction::Goal& goal, const nlohmann::json& poses) {
+bool MoveToStages::run(const mtc_pipeline::action::MoveToAction::Goal& goal) {
   const std::string& planning_type = goal.planning_type;
 
   auto task = create_task_template("MoveTo Task");
@@ -26,6 +26,15 @@ bool MoveToStages::run(const mtc_pipeline::action::MoveToAction::Goal& goal, con
   // 2. POSE or NAMED STATE: Check if target exists
   else if (!goal.target.empty()) {
     const std::string& target = goal.target;
+
+    // Parse poses JSON to check if target is a pose definition
+    nlohmann::json poses;
+    try {
+      poses = nlohmann::json::parse(goal.poses_json);
+    } catch (const nlohmann::json::exception& e) {
+      RCLCPP_ERROR(node()->get_logger(), "Failed to parse poses_json: %s", e.what());
+      return false;
+    }
 
     // Check if target exists in poses JSON
     if (poses.contains(target)) {

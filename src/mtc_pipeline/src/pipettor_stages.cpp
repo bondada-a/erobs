@@ -10,7 +10,7 @@ PipettorStages::PipettorStages(const rclcpp::Node::SharedPtr& node)
   // No longer need action client here—PipettorOperationStage handles it
 }
 
-bool PipettorStages::run(const mtc_pipeline::action::PipettorAction::Goal& goal, const nlohmann::json& /*poses*/)
+bool PipettorStages::run(const mtc_pipeline::action::PipettorAction::Goal& goal)
 {
   // Extract pipettor parameters from goal
   const std::string& operation = goal.operation;

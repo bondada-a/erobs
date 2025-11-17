@@ -60,21 +60,12 @@ private:
         auto result = std::make_shared<typename ActionType::Result>();
 
         try {
-            nlohmann::json poses = nlohmann::json::parse(goal->poses_json);
-
-            bool success = stages_->run(*goal, poses);
+            bool success = stages_->run(*goal);
 
             result->success = success;
             if (!success) {
                 result->error_message = "Stage execution failed";
             }
-
-        } catch (const nlohmann::json::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "JSON error: %s", e.what());
-            result->success = false;
-            result->error_message = std::string("JSON error: ") + e.what();
-            goal_handle->abort(result);
-            return;
 
         } catch (const std::exception& e) {
             RCLCPP_ERROR(this->get_logger(), "Execution exception: %s", e.what());

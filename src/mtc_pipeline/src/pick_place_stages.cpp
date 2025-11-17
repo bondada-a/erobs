@@ -60,9 +60,17 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::make_gripper_stage(
   return stage;
 }
 
-bool PickPlaceStages::run(const mtc_pipeline::action::PickPlaceAction::Goal& goal,
-                          const nlohmann::json& poses)
+bool PickPlaceStages::run(const mtc_pipeline::action::PickPlaceAction::Goal& goal)
 {
+  // Parse poses JSON
+  nlohmann::json poses;
+  try {
+    poses = nlohmann::json::parse(goal.poses_json);
+  } catch (const nlohmann::json::exception& e) {
+    RCLCPP_ERROR(node()->get_logger(), "Failed to parse poses_json: %s", e.what());
+    return false;
+  }
+
   // Extract individual pose names from goal
   const std::string& pick_approach = goal.pick_approach;
   const std::string& pick_target = goal.pick_target;

@@ -9,7 +9,7 @@ class PipettorStages : public BaseStages {
 public:
     PipettorStages(const rclcpp::Node::SharedPtr& node);
 
-    bool run(const mtc_pipeline::action::PipettorAction::Goal& goal, const nlohmann::json& poses);
+    bool run(const mtc_pipeline::action::PipettorAction::Goal& goal);
 
 private:
     // Helper to format operation name for RViz display

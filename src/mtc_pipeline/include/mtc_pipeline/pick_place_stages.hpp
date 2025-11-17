@@ -17,7 +17,7 @@ public:
   PickPlaceStages(const rclcpp::Node::SharedPtr& node);
 
   // Orchestrator step runner
-  bool run(const mtc_pipeline::action::PickPlaceAction::Goal& goal, const nlohmann::json& poses);
+  bool run(const mtc_pipeline::action::PickPlaceAction::Goal& goal);
 
 private:
   // Internal helper: Create move stage to named pose

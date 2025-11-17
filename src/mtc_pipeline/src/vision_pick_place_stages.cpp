@@ -37,20 +37,24 @@ VisionPickPlaceStages::VisionPickPlaceStages(const rclcpp::Node::SharedPtr& node
   RCLCPP_INFO(node->get_logger(), "VisionPickPlaceStages initialized");
 }
 
-bool VisionPickPlaceStages::run(const nlohmann::json& step, const nlohmann::json& poses)
+bool VisionPickPlaceStages::run(const mtc_pipeline::action::VisionPickPlaceAction::Goal& goal)
 {
-  // Extract parameters from step
-  const int pick_tag_id = step.at("pick_tag_id").get<int>();
-  const int place_tag_id = step.value("place_tag_id", -1);
-  const std::string gripper = step.value("gripper", "hande");
-  const double approach_offset = step.value("approach_offset", 0.1);
-  const double retreat_offset = step.value("retreat_offset", 0.15);
+  // Extract parameters from goal
+  const int pick_tag_id = goal.pick_tag_id;
+  const int place_tag_id = goal.place_tag_id;
+  const std::string& gripper = goal.gripper;
+  const double approach_offset = goal.approach_offset;
+  const double retreat_offset = goal.retreat_offset;
 
   // Parse grasp offset configuration
   nlohmann::json grasp_offset;
-  if (step.contains("grasp_offset_json")) {
-    std::string offset_str = step["grasp_offset_json"].get<std::string>();
-    grasp_offset = nlohmann::json::parse(offset_str);
+  if (!goal.grasp_offset_json.empty()) {
+    try {
+      grasp_offset = nlohmann::json::parse(goal.grasp_offset_json);
+    } catch (const nlohmann::json::exception& e) {
+      RCLCPP_ERROR(node()->get_logger(), "Failed to parse grasp_offset_json: %s", e.what());
+      return false;
+    }
   } else {
     // Default offset: 5cm above tag, rotated 180 degrees around roll
     grasp_offset = nlohmann::json::parse(R"({"x":0,"y":0,"z":0.05,"rpy":[0,3.14159,0]})");
@@ -148,9 +152,14 @@ bool VisionPickPlaceStages::run(const nlohmann::json& step, const nlohmann::json
     RCLCPP_INFO(node()->get_logger(), "Using predefined place poses");
 
     // Parse place poses from JSON if provided
-    if (step.contains("place_poses_json")) {
-      std::string place_poses_str = step["place_poses_json"].get<std::string>();
-      nlohmann::json place_poses = nlohmann::json::parse(place_poses_str);
+    if (!goal.place_poses_json.empty()) {
+      nlohmann::json place_poses;
+      try {
+        place_poses = nlohmann::json::parse(goal.place_poses_json);
+      } catch (const nlohmann::json::exception& e) {
+        RCLCPP_ERROR(node()->get_logger(), "Failed to parse place_poses_json: %s", e.what());
+        return false;
+      }
 
       // We need to use a hybrid approach - use predefined joint positions
       // but we'll create dummy Cartesian poses for consistency

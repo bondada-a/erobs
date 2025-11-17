@@ -21,7 +21,7 @@ public:
   VisionStages(const rclcpp::Node::SharedPtr& node);
 
   // Main execution: detect tag and move to it
-  bool run(const mtc_pipeline::action::VisionMoveToAction::Goal& goal, const nlohmann::json& poses);
+  bool run(const mtc_pipeline::action::VisionMoveToAction::Goal& goal);
 
   // Make detection available to vision-based pick/place
   std::optional<geometry_msgs::msg::PoseStamped> detect_and_transform_tag(int tag_id, double timeout = 10.0);

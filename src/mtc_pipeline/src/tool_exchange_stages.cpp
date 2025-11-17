@@ -10,7 +10,16 @@ constexpr double DOCK_SPACING_METERS = 0.1524;
 ToolExchangeStages::ToolExchangeStages(const rclcpp::Node::SharedPtr& node)
   : BaseStages(node) {}
 
-bool ToolExchangeStages::run(const mtc_pipeline::action::ToolExchangeAction::Goal& goal, const nlohmann::json& poses){
+bool ToolExchangeStages::run(const mtc_pipeline::action::ToolExchangeAction::Goal& goal){
+  // Parse poses JSON
+  nlohmann::json poses;
+  try {
+    poses = nlohmann::json::parse(goal.poses_json);
+  } catch (const nlohmann::json::exception& e) {
+    RCLCPP_ERROR(node()->get_logger(), "Failed to parse poses_json: %s", e.what());
+    return false;
+  }
+
   const std::string& operation = goal.operation;
   const std::string& gripper = goal.gripper;
   const std::string& current_attached = goal.current_attached_gripper;

@@ -11,5 +11,5 @@ public:
   MoveToStages(const rclcpp::Node::SharedPtr& node);
 
   // Main orchestrator step runner
-  bool run(const mtc_pipeline::action::MoveToAction::Goal& goal, const nlohmann::json& poses);
+  bool run(const mtc_pipeline::action::MoveToAction::Goal& goal);
 };

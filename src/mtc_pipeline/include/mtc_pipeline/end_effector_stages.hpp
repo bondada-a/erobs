@@ -10,7 +10,7 @@ class EndEffectorStages : public BaseStages {
 public:
     EndEffectorStages(const rclcpp::Node::SharedPtr& node);
 
-    bool run(const mtc_pipeline::action::EndEffectorAction::Goal& goal, const nlohmann::json& poses);
+    bool run(const mtc_pipeline::action::EndEffectorAction::Goal& goal);
 
 private:
     std::string get_gripper_group_name(const std::string& end_effector_type);

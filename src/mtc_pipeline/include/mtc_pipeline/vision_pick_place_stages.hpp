@@ -2,6 +2,7 @@
 
 #include "mtc_pipeline/base_stages.hpp"
 #include "mtc_pipeline/vision_stages.hpp"
+#include "mtc_pipeline/action/vision_pick_place_action.hpp"
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <moveit/task_constructor/solvers/planner_interface.h>
@@ -15,7 +16,7 @@ public:
   VisionPickPlaceStages(const rclcpp::Node::SharedPtr& node);
 
   // Main execution: detect tags and perform pick and place
-  bool run(const nlohmann::json& step, const nlohmann::json& poses);
+  bool run(const mtc_pipeline::action::VisionPickPlaceAction::Goal& goal);
 
 private:
   std::shared_ptr<VisionStages> vision_;

@@ -8,5 +8,5 @@
 class ToolExchangeStages : public BaseStages {
 public:
   ToolExchangeStages(const rclcpp::Node::SharedPtr& node);
-  bool run(const mtc_pipeline::action::ToolExchangeAction::Goal& goal, const nlohmann::json& poses);
+  bool run(const mtc_pipeline::action::ToolExchangeAction::Goal& goal);
 };
