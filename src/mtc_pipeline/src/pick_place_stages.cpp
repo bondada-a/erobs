@@ -60,25 +60,15 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::make_gripper_stage(
   return stage;
 }
 
-bool PickPlaceStages::run(const nlohmann::json& step,
+bool PickPlaceStages::run(const mtc_pipeline::action::PickPlaceAction::Goal& goal,
                           const nlohmann::json& poses)
 {
-  // Validation - check for individual pose fields
-  if (!step.contains("pick_approach") || !step.contains("pick_target") ||
-      !step.contains("place_approach") || !step.contains("place_target")) {
-    RCLCPP_ERROR(node()->get_logger(),
-                "Step must contain pick_approach, pick_target, place_approach, and place_target");
-    return false;
-  }
-
-  // Extract individual pose names
-  const std::string pick_approach = step["pick_approach"].get<std::string>();
-  const std::string pick_target = step["pick_target"].get<std::string>();
-  const std::string place_approach = step["place_approach"].get<std::string>();
-  const std::string place_target = step["place_target"].get<std::string>();
-
-  // Extract gripper type (default to hande for backward compatibility)
-  const std::string gripper_type = step.value("gripper", "hande");
+  // Extract individual pose names from goal
+  const std::string& pick_approach = goal.pick_approach;
+  const std::string& pick_target = goal.pick_target;
+  const std::string& place_approach = goal.place_approach;
+  const std::string& place_target = goal.place_target;
+  const std::string& gripper_type = goal.gripper;
 
   auto task = create_task_template("Pick and Place");
   auto pipeline_planner = make_pipeline_planner();
@@ -161,9 +151,9 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   }
 
   // ============================================================================
-  // RETURN HOME (optional)
+  // RETURN HOME
   // ============================================================================
-  if (step.value("return_home", true)) {
+  {
     auto stage = std::make_unique<mtc::stages::MoveTo>("return home", pipeline_planner);
     stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
     stage->setGroup(default_arm_group_name());

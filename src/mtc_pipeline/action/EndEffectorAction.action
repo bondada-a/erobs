@@ -6,3 +6,5 @@ string poses_json           # Pose definitions from task (unused for end effecto
 # Result
 bool success
 string error_message
+---
+# Feedback

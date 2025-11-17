@@ -38,10 +38,6 @@ public:
         stages_ = std::make_unique<StagesType>(this->shared_from_this());
     }
 
-protected:
-    // Convert action-specific goal to JSON step format
-    virtual nlohmann::json goal_to_step(const typename ActionType::Goal& goal) = 0;
-
 private:
     typename rclcpp_action::Server<ActionType>::SharedPtr action_server_;
     std::unique_ptr<StagesType> stages_;
@@ -49,7 +45,6 @@ private:
     // Callbacks
     void handle_accepted(const std::shared_ptr<GoalHandle> goal_handle)
     {
-        // Spawn execution thread to prevent blocking single-threaded executor
         std::thread{
             [this, node_lifetime = shared_from_this(), goal_handle]() {
                 this->execute(goal_handle);
@@ -65,11 +60,9 @@ private:
         auto result = std::make_shared<typename ActionType::Result>();
 
         try {
-            nlohmann::json step = goal_to_step(*goal);
             nlohmann::json poses = nlohmann::json::parse(goal->poses_json);
 
-            // Timeout handled at orchestrator level
-            bool success = stages_->run(step, poses);
+            bool success = stages_->run(*goal, poses);
 
             result->success = success;
             if (!success) {

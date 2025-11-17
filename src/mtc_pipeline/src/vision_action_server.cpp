@@ -2,28 +2,18 @@
 #include "mtc_pipeline/vision_stages.hpp"
 #include "mtc_pipeline/action/vision_move_to_action.hpp"
 
-using VisionMoveToAction = mtc_pipeline::action::VisionMoveToAction;
-using BaseServer = BaseActionServer<VisionMoveToAction, VisionStages>;
-
-class VisionActionServer : public BaseServer {
+class VisionActionServer : public BaseActionServer<mtc_pipeline::action::VisionMoveToAction, VisionStages>
+{
 public:
-  VisionActionServer() : BaseServer("vision_action_server", "vision_move_to_action") {}
-
-protected:
-  nlohmann::json goal_to_step(const VisionMoveToAction::Goal& goal) override {
-    nlohmann::json step;
-    step["tag_id"] = goal.tag_id;
-    step["timeout"] = goal.timeout;
-    return step;
-  }
+    VisionActionServer() : BaseActionServer("vision_action_server", "vision_move_to_action") {}
 };
 
 int main(int argc, char** argv)
 {
-  rclcpp::init(argc, argv);
-  auto node = std::make_shared<VisionActionServer>();
-  node->initialize_stages();  // Initialize stages after node is created
-  rclcpp::spin(node);
-  rclcpp::shutdown();
-  return 0;
+    rclcpp::init(argc, argv);
+    auto node = std::make_shared<VisionActionServer>();
+    node->initialize_stages();
+    rclcpp::spin(node);
+    rclcpp::shutdown();
+    return 0;
 }

@@ -82,6 +82,9 @@ target_include_directories(mtc_pipeline_core PUBLIC
 )
 target_compile_features(mtc_pipeline_core PUBLIC c_std_99 cxx_std_17)
 
+# Make sure the library depends on the generated interfaces
+rosidl_target_interfaces(mtc_pipeline_core ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
 
 include_directories(include)
 

@@ -6,15 +6,6 @@ class EndEffectorActionServer : public BaseActionServer<mtc_pipeline::action::En
 {
 public:
     EndEffectorActionServer() : BaseActionServer("end_effector_action_server", "end_effector_action") {}
-
-protected:
-    nlohmann::json goal_to_step(const mtc_pipeline::action::EndEffectorAction::Goal& goal) override
-    {
-        nlohmann::json step;
-        step["end_effector_type"] = goal.end_effector_type;
-        step["end_effector_action"] = goal.end_effector_action;
-        return step;
-    }
 };
 
 int main(int argc, char ** argv)

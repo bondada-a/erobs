@@ -73,10 +73,10 @@ VisionStages::VisionStages(const rclcpp::Node::SharedPtr& node)
   }
 }
 
-bool VisionStages::run(const nlohmann::json& step, const nlohmann::json& poses)
+bool VisionStages::run(const mtc_pipeline::action::VisionMoveToAction::Goal& goal, const nlohmann::json& poses)
 {
-  const int tag_id = step.at("tag_id").get<int>();
-  const double timeout = step.value("timeout", 10.0);
+  const int tag_id = goal.tag_id;
+  const double timeout = goal.timeout;
 
   auto tag_pose = detect_and_transform_tag(tag_id, timeout);
   if (!tag_pose) {

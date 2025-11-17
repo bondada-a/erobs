@@ -7,3 +7,5 @@ string poses_json      # Not used for pipettor, kept for consistency
 # Result
 bool success
 string error_message
+---
+# Feedback

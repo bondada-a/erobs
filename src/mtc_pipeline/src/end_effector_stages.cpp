@@ -41,10 +41,10 @@ std::string EndEffectorStages::get_goal_state_name(
   return action;
 }
 
-bool EndEffectorStages::run(const nlohmann::json& step, const nlohmann::json& poses)
+bool EndEffectorStages::run(const mtc_pipeline::action::EndEffectorAction::Goal& goal, const nlohmann::json& poses)
 {
-  const std::string end_effector_type = step.at("end_effector_type");
-  const std::string action = step.at("end_effector_action");
+  const std::string& end_effector_type = goal.end_effector_type;
+  const std::string& action = goal.end_effector_action;
 
   // Map end effector type to MoveIt group name
   const std::string group_name = get_gripper_group_name(end_effector_type);

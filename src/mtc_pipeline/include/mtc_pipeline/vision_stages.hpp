@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mtc_pipeline/base_stages.hpp"
+#include "mtc_pipeline/action/vision_move_to_action.hpp"
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <tf2_ros/buffer.h>
@@ -20,7 +21,7 @@ public:
   VisionStages(const rclcpp::Node::SharedPtr& node);
 
   // Main execution: detect tag and move to it
-  bool run(const nlohmann::json& step, const nlohmann::json& poses);
+  bool run(const mtc_pipeline::action::VisionMoveToAction::Goal& goal, const nlohmann::json& poses);
 
   // Make detection available to vision-based pick/place
   std::optional<geometry_msgs::msg::PoseStamped> detect_and_transform_tag(int tag_id, double timeout = 10.0);

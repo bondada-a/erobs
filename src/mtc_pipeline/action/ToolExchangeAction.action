@@ -9,3 +9,5 @@ string poses_json           # Pose definitions from task
 # Result
 bool success
 string error_message
+---
+# Feedback
