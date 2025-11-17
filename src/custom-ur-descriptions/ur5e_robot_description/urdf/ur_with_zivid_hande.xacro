@@ -106,11 +106,16 @@
     <origin xyz="0 0 0" rpy="0 0 0" />
   </xacro:ur_robot>
 
-  <!-- Camera_mount -->
-  <xacro:zivid_camera_mount parent_link="$(arg tf_prefix)flange" xyz="0.025 0 -0.105" rpy="-1.5708 0 -1.5708"/>
+  <!-- Modular Zivid: Arm Mount + Camera (with calibrated camera position) -->
+  <!-- Using tool0 instead of flange - Zivid calibration uses tool0 frame -->
+  <xacro:zivid_camera_mount
+    parent_link="$(arg tf_prefix)tool0"
+    xyz="0.00000 0.00000 0.00500"
+    rpy="0.00000 0.00000 3.14159"
+    zivid_model="ZIVID_2_PLUS_MR60"/>
 
-  <!-- Tool block attached to the Zivid camera -->
-  <xacro:tool_block parent_link="zivid_camera" xyz="0 -0.105 0.03" rpy="-1.5708 0 0"/>
+  <!-- Tool block attached to the Zivid arm mount (not the camera) -->
+  <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.055" rpy="-1.5708 0 3.14159"/>
 
   <!-- gripper pos wrt camera    -->
   <xacro:arg name="grip_pos_min" default="0"/>
@@ -137,7 +142,7 @@
     data_bits="$(arg data_bits)"
     stop_bit="$(arg stop_bit)"
     slave_id="$(arg slave_id)"
-    use_fake_hardware="true"
+    use_fake_hardware="false"
     xyz="0 -0.02 0"
     rpy="-1.5708 0 3.1416"
     create_socat_tty="$(arg create_socat_tty)"
@@ -145,7 +150,6 @@
     socat_port="$(arg socat_port)"
   />
 </robot>
-
 
 
 

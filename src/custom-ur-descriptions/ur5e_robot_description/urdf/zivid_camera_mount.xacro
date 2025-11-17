@@ -1,48 +1,62 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://ros.org/wiki/xacro" name="zivid_camera_mount">
 
-  <!--
-    Zivid camera mount macro
-    - Modeled after tool_exchanger.xacro style
-    - Parameters allow positioning/orientation relative to the parent link
-  -->
-  <xacro:macro name="zivid_camera_mount" params="parent_link xyz:='0 0 0' rpy:='0 0 0' scale:='1.0' mass:='1.1'">
+  <!-- Import official Zivid camera from zivid-ros -->
+  <xacro:include filename="$(find zivid_description)/urdf/macros/zivid_camera.xacro"/>
 
-    <link name="zivid_camera">
+  <xacro:macro name="zivid_camera_mount" params="parent_link xyz:='0 0 0' rpy:='0 0 0' zivid_model:='ZIVID_2_PLUS_MR60'">
+
+    <!-- ARM MOUNT LINK -->
+    <link name="zivid_arm_mount">
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_assembly_decimated.stl"
-                scale="${scale} ${scale} ${scale}"/>
+          <!-- MOUNT MESH - Updated with custom mount from Zivid -->
+          <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_custom_mount.dae"
+                scale="1.0 1.0 1.0"/>
         </geometry>
-        <material name="grey">
-          <color rgba="0.5 0.5 0.5 1.0"/>
+        <material name="mount_dark">
+          <color rgba="0.2 0.2 0.2 1.0"/>
         </material>
       </visual>
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_assembly_decimated.stl"
-                scale="${scale} ${scale} ${scale}"/>
+          <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_custom_mount.dae"
+                scale="1.0 1.0 1.0"/>
         </geometry>
       </collision>
       <inertial>
-        <mass value="${mass}"/>
+        <mass value="0.170"/>
         <origin xyz="0 0 0" rpy="0 0 0"/>
-        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
-                 iyy="0.001" iyz="0.0"
-                 izz="0.001"/>
+        <inertia ixx="0.0003" ixy="0.0" ixz="0.0"
+                 iyy="0.0005" iyz="0.0"
+                 izz="0.0006"/>
       </inertial>
     </link>
 
-    <joint name="zivid_camera_mount_joint" type="fixed">
+    <!-- Joint: Flange -> Arm Mount -->
+    <joint name="zivid_arm_mount_joint" type="fixed">
       <parent link="${parent_link}"/>
-      <child link="zivid_camera"/>
+      <child link="zivid_arm_mount"/>
       <origin xyz="${xyz}" rpy="${rpy}"/>
+    </joint>
+
+    <!-- ZIVID CAMERA (From official zivid-ros)       -->
+    <xacro:zivid_camera
+      prefix="zivid_"
+      model="${zivid_model}"
+      field_of_view="false"/>
+
+    <!-- Joint: Arm Mount -> Camera Base Link -->
+    <!-- Zivid calibration uses tool0 frame per: https://github.com/zivid/zivid-ros/issues/124 -->
+    <joint name="mount_to_camera_joint" type="fixed">
+      <parent link="zivid_arm_mount"/>
+      <child link="zivid_base_link"/>
+      <origin xyz="0.02803 0.07664 -0.04577"
+              rpy="0.53964 -1.53712 -2.13794"/>
     </joint>
 
   </xacro:macro>
 
 </robot>
-
-
