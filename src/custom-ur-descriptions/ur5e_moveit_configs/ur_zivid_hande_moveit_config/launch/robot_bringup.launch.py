@@ -2,7 +2,7 @@ from moveit_configs_utils import MoveItConfigsBuilder
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
 from launch import LaunchDescription
 from ament_index_python.packages import get_package_share_directory
 import os
@@ -22,7 +22,7 @@ def generate_launch_description():
 
     xacro_args = {"name": LaunchConfiguration("ur_type"), "ur_type": LaunchConfiguration("ur_type"), "tf_prefix": "" }
 
-    ## ur_driver 
+    ## ur_driver
     ur_control_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([FindPackageShare("ur_robot_driver"), "launch", "ur_control.launch.py"])
@@ -34,6 +34,7 @@ def generate_launch_description():
             "description_package": LaunchConfiguration("description_package"),
             "description_file": LaunchConfiguration("description_file"),
             "controllers_file": LaunchConfiguration("controllers_file"),
+            "kinematics_params_file": os.path.join(get_package_share_directory("ur5e_robot_description"), "config", "ur5e_calibration.yaml"),
             "tool_voltage": "24",
         }.items()
     )
@@ -118,6 +119,33 @@ def generate_launch_description():
         arguments=["gripper_action_controller", "-c", "/controller_manager"],
     )
 
+    # Payload configuration for UR controller
+    # Total: 2.520 kg = 0.170 kg (mount) + 1.260 kg (camera + housing) + 1.090 kg (HandE gripper)
+    # CoG: Center of Gravity relative to flange frame [x, y, z] in meters
+    set_payload = TimerAction(
+        period=5.0,  # Wait 5 seconds for robot driver to start
+        actions=[
+            ExecuteProcess(
+                cmd=['ros2', 'service', 'call',
+                     '/io_and_status_controller/set_payload',
+                     'ur_msgs/srv/SetPayload',
+                     '{mass: 2.520, center_of_gravity: {x: 0.018, y: -0.013, z: -0.031}}'],
+                output='screen'
+            )
+        ]
+    )
+
+    # Shared planning scene
+    scene_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([
+                FindPackageShare("erobs_planning_scene"),
+                "launch",
+                "load_scene.launch.py"
+            ])
+        ])
+    )
+
 
     return LaunchDescription([
         ## arguments 
@@ -136,4 +164,6 @@ def generate_launch_description():
         rviz_node,
         robot_state_publisher,
         hande_controller_spawner,
+        set_payload,  # Set UR payload
+        scene_launch,
     ])
