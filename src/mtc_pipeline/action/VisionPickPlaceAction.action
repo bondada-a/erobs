@@ -1,6 +1,6 @@
 # Goal
-int32 pick_tag_id              # AprilTag ID to detect for pick
-int32 place_tag_id             # AprilTag ID for place (-1 = use place_poses_json)
+int32 pick_tag_id              # ArUco marker ID to detect for pick
+int32 place_tag_id             # ArUco marker ID for place (-1 = use place_poses_json)
 string gripper                 # "hande" or "epick"
 string grasp_offset_json       # JSON string: {"x": 0, "y": 0, "z": 0.05, "rpy": [0, 3.14, 0]}
 string place_poses_json        # Fallback named poses if place_tag_id = -1
@@ -10,7 +10,3 @@ float64 retreat_offset         # Vertical retreat distance (default 0.15m)
 # Result
 bool success
 string error_message
----
-# Feedback
-string current_operation
-float32 progress_percentage

@@ -6,20 +6,6 @@
       "dimensions": [0.026, 0.013, 0.11],
       "tag_offset": [0.0, 0.0, 0.0],
       "comment": "Bar standing upright: 2.6cm wide, 1.3cm deep, 11cm tall (z=height)"
-    },
-    "3": {
-      "name": "petri_dish",
-      "shape": "cylinder",
-      "dimensions": [0.015, 0.045],
-      "tag_offset": [0.0, 0.0, 0.0075],
-      "comment": "90mm diameter petri dish (45mm radius), 15mm height, tag on top center"
-    },
-    "4": {
-      "name": "test_cube",
-      "shape": "box",
-      "dimensions": [0.05, 0.05, 0.05],
-      "tag_offset": [0.0, 0.0, 0.025],
-      "comment": "5cm cube, tag centered on top face"
     }
   }
 }

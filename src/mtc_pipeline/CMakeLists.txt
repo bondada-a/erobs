@@ -150,13 +150,6 @@ install(TARGETS
 
 install(DIRECTORY launch DESTINATION share/${PROJECT_NAME})
 install(DIRECTORY config DESTINATION share/${PROJECT_NAME})
-install(PROGRAMS
-  scripts/vision_pick_predefined_place.py
-  scripts/test_vision.py
-  scripts/test_zivid_marker_detection.py
-  DESTINATION lib/${PROJECT_NAME}
-)
-
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
