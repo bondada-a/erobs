@@ -1,2 +1,0 @@
-error: <class 'ament_index_python.packages.PackageNotFoundError'>: "package 'ur5e_robot_description' not found, searching: ['/opt/ros/humble']" "package 'ur5e_robot_description' not found, searching: ['/opt/ros/humble']"
-when processing file: ur_with_zivid_hande.xacro
