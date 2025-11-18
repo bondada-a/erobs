@@ -29,18 +29,18 @@ obstacles:
     size: [1.2192, 0.9144, 0.05791]  # [48in, 36in, 2.28in] in meters
 
   # Custom cylinder obstacle (5cm radius, 42" length minus 15cm)
-  # - name: "beam_cylinder"
-  #   type: "cylinder"
-  #   frame: "base"
-  #   pose:
-  #     x: 0.36     # 15 inches in meters (relative to base)
-  #     y: 0.0       # 0 inches
-  #     z: 0.205     # 10 inches in meters (relative to base)
-  #     roll: 1.5708  # 90 degrees rotation around X axis
-  #     pitch: 0.0
-  #     yaw: 0.0
-  #   height: 1.0668   # 42 inches in meters
-  #   radius: 0.05     # 5cm in meters
+  - name: "beam_cylinder"
+    type: "cylinder"
+    frame: "base"
+    pose:
+      x: 0.36     # 15 inches in meters (relative to base)
+      y: 0.0       # 0 inches
+      z: 0.205     # 10 inches in meters (relative to base)
+      roll: 1.5708  # 90 degrees rotation around X axis
+      pitch: 0.0
+      yaw: 0.0
+    height: 1.0668   # 42 inches in meters
+    radius: 0.05     # 5cm in meters
 
   # Custom box obstacle (16" x 28" x 50")
   - name: "detector"
