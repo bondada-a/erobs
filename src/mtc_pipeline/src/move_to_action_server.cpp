@@ -6,24 +6,6 @@ class MoveToActionServer : public BaseActionServer<mtc_pipeline::action::MoveToA
 {
 public:
     MoveToActionServer() : BaseActionServer("move_to_action_server", "move_to_action") {}
-
-protected:
-    nlohmann::json goal_to_step(const mtc_pipeline::action::MoveToAction::Goal& goal) override
-    {
-        nlohmann::json step;
-        // Only add fields that are actually used
-        if (!goal.target.empty()) {
-            step["target"] = goal.target;
-        }
-        if (!goal.planning_type.empty()) {
-            step["planning_type"] = goal.planning_type;
-        }
-        if (!goal.direction.empty()) {
-            step["direction"] = goal.direction;
-            step["distance"] = goal.distance;
-        }
-        return step;
-    }
 };
 
 int main(int argc, char ** argv)

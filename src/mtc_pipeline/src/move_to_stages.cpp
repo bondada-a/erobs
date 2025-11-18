@@ -5,8 +5,8 @@ MoveToStages::MoveToStages(const rclcpp::Node::SharedPtr& node)
   : BaseStages(node) {}
 
 
-bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) {
-  const std::string planning_type = step.value("planning_type", "joint");
+bool MoveToStages::run(const mtc_pipeline::action::MoveToAction::Goal& goal) {
+  const std::string& planning_type = goal.planning_type;
 
   auto task = create_task_template("MoveTo Task");
   auto planner = (planning_type == "cartesian") ? make_cartesian_planner() : make_pipeline_planner();
@@ -14,16 +14,27 @@ bool MoveToStages::run(const nlohmann::json& step, const nlohmann::json& poses) 
   // Auto-detect target type based on fields present
 
   // 1. RELATIVE: Move relative to current position (e.g., "forward", "up")
-  if (step.contains("direction") && step.contains("distance")) {
-    const std::string direction = step.at("direction");
-    const double distance = step.at("distance").get<double>();
+  if (!goal.direction.empty() && goal.distance != 0.0) {
+    const std::string& direction = goal.direction;
+    const double distance = goal.distance;
     const std::string label = "move_" + direction + "_" + std::to_string(distance) + "m";
-    task.add(create_relative_move_stage(label, direction, distance, planner));
+    auto stage = create_relative_move_stage(label, direction, distance, planner);
+    stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    task.add(std::move(stage));
   }
 
   // 2. POSE or NAMED STATE: Check if target exists
-  else if (step.contains("target")) {
-    const std::string target = step.at("target");
+  else if (!goal.target.empty()) {
+    const std::string& target = goal.target;
+
+    // Parse poses JSON to check if target is a pose definition
+    nlohmann::json poses;
+    try {
+      poses = nlohmann::json::parse(goal.poses_json);
+    } catch (const nlohmann::json::exception& e) {
+      RCLCPP_ERROR(node()->get_logger(), "Failed to parse poses_json: %s", e.what());
+      return false;
+    }
 
     // Check if target exists in poses JSON
     if (poses.contains(target)) {

@@ -10,12 +10,21 @@ constexpr double DOCK_SPACING_METERS = 0.1524;
 ToolExchangeStages::ToolExchangeStages(const rclcpp::Node::SharedPtr& node)
   : BaseStages(node) {}
 
-bool ToolExchangeStages::run(const nlohmann::json& step, const nlohmann::json& poses){
-  const std::string operation = step.at("operation");
-  const std::string gripper = step.at("gripper");
-  const std::string current_attached = step.at("current_attached_gripper");
-  const int dock_number = step.at("dock_number");
-  const std::string approach_pose = step.at("approach_pose");
+bool ToolExchangeStages::run(const mtc_pipeline::action::ToolExchangeAction::Goal& goal){
+  // Parse poses JSON
+  nlohmann::json poses;
+  try {
+    poses = nlohmann::json::parse(goal.poses_json);
+  } catch (const nlohmann::json::exception& e) {
+    RCLCPP_ERROR(node()->get_logger(), "Failed to parse poses_json: %s", e.what());
+    return false;
+  }
+
+  const std::string& operation = goal.operation;
+  const std::string& gripper = goal.gripper;
+  const std::string& current_attached = goal.current_attached_gripper;
+  const int dock_number = goal.dock_number;
+  const std::string& approach_pose = goal.approach_pose;
 
   // Validate state transitions
   if (operation == "load" && current_attached != "none") {

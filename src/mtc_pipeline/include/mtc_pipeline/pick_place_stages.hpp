@@ -1,6 +1,7 @@
 #pragma once
 
 #include "mtc_pipeline/base_stages.hpp"
+#include "mtc_pipeline/action/pick_place_action.hpp"
 
 #include <moveit/task_constructor/solvers/planner_interface.h>
 #include <moveit/task_constructor/stages/move_to.h>
@@ -16,7 +17,7 @@ public:
   PickPlaceStages(const rclcpp::Node::SharedPtr& node);
 
   // Orchestrator step runner
-  bool run(const nlohmann::json& step, const nlohmann::json& poses);
+  bool run(const mtc_pipeline::action::PickPlaceAction::Goal& goal);
 
 private:
   // Internal helper: Create move stage to named pose

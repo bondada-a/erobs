@@ -1,56 +1,80 @@
 #pragma once
 
 #include "mtc_pipeline/base_stages.hpp"
+#include "mtc_pipeline/action/vision_move_to_action.hpp"
 
 #include <geometry_msgs/msg/pose_stamped.hpp>
-#include <sensor_msgs/msg/joint_state.hpp>
 #include <tf2_ros/buffer.h>
 #include <tf2_ros/transform_listener.h>
-#include <apriltag_msgs/msg/april_tag_detection_array.hpp>
-#include <std_srvs/srv/trigger.hpp>
+#include <tf2_ros/transform_broadcaster.h>
+#include <zivid_interfaces/srv/capture_and_detect_markers.hpp>
+#include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <nlohmann/json.hpp>
 
 #include <memory>
 #include <optional>
 #include <string>
-#include <map>
-#include <vector>
+#include <unordered_map>
 
 class VisionStages : public BaseStages {
 public:
   VisionStages(const rclcpp::Node::SharedPtr& node);
 
   // Main execution: detect tag and move to it
-  bool run(const nlohmann::json& step, const nlohmann::json& poses);
+  bool run(const mtc_pipeline::action::VisionMoveToAction::Goal& goal);
+
+  // Make detection available to vision-based pick/place
+  std::optional<geometry_msgs::msg::PoseStamped> detect_and_transform_tag(int tag_id, double timeout = 10.0);
 
 private:
-  struct CachedDetection {
-    geometry_msgs::msg::PoseStamped pose;
-    rclcpp::Time timestamp;
-    std::vector<double> robot_joints;
-  };
-
+  // TF handling
   std::shared_ptr<tf2_ros::Buffer> tf_buffer_;
   std::shared_ptr<tf2_ros::TransformListener> tf_listener_;
-  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr capture_client_;
+  std::shared_ptr<tf2_ros::TransformBroadcaster> tf_broadcaster_;  // Optional for debugging
 
-  rclcpp::Subscription<apriltag_msgs::msg::AprilTagDetectionArray>::SharedPtr detection_sub_;
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_sub_;
+  // Zivid service client
+  rclcpp::Client<zivid_interfaces::srv::CaptureAndDetectMarkers>::SharedPtr capture_marker_client_;
 
-  std::map<int, CachedDetection> detection_cache_;
-  std::vector<double> current_joints_;
-  double cache_timeout_sec_ = 30.0;
-  double joint_movement_threshold_ = 0.01;
+  // Parameters
+  std::string marker_dictionary_ = "aruco4x4_50";  // Default ArUco dictionary
+  bool publish_marker_frames_ = false;  // Publish TF for RViz debugging
+  std::string ik_frame_ = "";  // Empty = auto-detect at runtime, or specify TCP frame
+  double z_offset_ = 0.0;  // 0.0 = auto-set based on detected gripper
 
-  void detection_callback(const apriltag_msgs::msg::AprilTagDetectionArray::SharedPtr msg);
-  void joint_state_callback(const sensor_msgs::msg::JointState::SharedPtr msg);
+  // Gripper detection result
+  struct GripperDetection {
+    std::string ik_frame;
+    double z_offset;
+  };
 
-  bool has_valid_cached_detection(int tag_id);
-  bool robot_has_moved(const std::vector<double>& old_joints);
+  // Collision object info from config
+  struct ObjectInfo {
+    std::string name;
+    std::string shape;  // "box" or "cylinder"
+    std::vector<double> dimensions;  // box: [x, y, z], cylinder: [height, radius]
+    std::vector<double> tag_offset;  // [x, y, z] offset from tag to object center
+  };
 
-  bool trigger_capture();
-  std::optional<geometry_msgs::msg::PoseStamped> detect_tag(
-    int tag_id,
-    const apriltag_msgs::msg::AprilTagDetectionArray& detections);
+  // Helper methods
+  GripperDetection detect_current_gripper();
+  std::optional<geometry_msgs::msg::PoseStamped> transform_to_base_link(const geometry_msgs::msg::Pose& pose_camera);
+  void broadcast_marker_tf(int marker_id, const geometry_msgs::msg::PoseStamped& pose_base);
+
   bool move_to_pose(const geometry_msgs::msg::PoseStamped& target_pose);
+
+  // Collision object management
+  void load_vision_objects_config(const std::string& config_path);
+  std::optional<ObjectInfo> get_object_info_for_tag(int tag_id) const;
+  void add_collision_object_for_tag(int tag_id, const geometry_msgs::msg::PoseStamped& tag_pose);
+  void remove_collision_object(const std::string& object_name);
+  geometry_msgs::msg::PoseStamped calculate_object_pose(
+    const geometry_msgs::msg::PoseStamped& tag_pose,
+    const std::vector<double>& tag_offset) const;
+
+  // Planning scene interface
+  std::shared_ptr<moveit::planning_interface::PlanningSceneInterface> planning_scene_interface_;
+
+  // Object database loaded from config
+  std::unordered_map<int, ObjectInfo> object_database_;
+  std::string vision_objects_config_path_;
 };

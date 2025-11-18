@@ -10,22 +10,12 @@ PipettorStages::PipettorStages(const rclcpp::Node::SharedPtr& node)
   // No longer need action client here—PipettorOperationStage handles it
 }
 
-bool PipettorStages::run(const nlohmann::json& step, const nlohmann::json& /*poses*/)
+bool PipettorStages::run(const mtc_pipeline::action::PipettorAction::Goal& goal)
 {
-  // Extract pipettor parameters
-  const std::string operation = step.at("operation");
-  const double volume_pct = step.value("volume_pct", 0.0);
-
-  std_msgs::msg::ColorRGBA led_color;
-  if (step.contains("led_color")) {
-    led_color.r = step["led_color"].value("r", 0.0);
-    led_color.g = step["led_color"].value("g", 0.0);
-    led_color.b = step["led_color"].value("b", 0.0);
-    led_color.a = step["led_color"].value("a", 1.0);
-  } else {
-    led_color.r = led_color.g = led_color.b = 0.0;
-    led_color.a = 1.0;
-  }
+  // Extract pipettor parameters from goal
+  const std::string& operation = goal.operation;
+  const double volume_pct = goal.volume_pct;
+  const std_msgs::msg::ColorRGBA& led_color = goal.led_color;
 
   // Create descriptive stage name for RViz display
   const std::string stage_name = format_operation_name(operation, volume_pct, led_color);

@@ -9,17 +9,20 @@
 
 <buildtool_depend>ament_cmake</buildtool_depend>
 <buildtool_depend>rosidl_default_generators</buildtool_depend>
+<depend>ament_index_cpp</depend>
 <depend>nlohmann-json-dev</depend>
 <depend>moveit_task_constructor_core</depend>
+<depend>moveit_ros_planning_interface</depend>
 <depend>rclcpp</depend>
 <depend>rclcpp_action</depend>
 <depend>std_srvs</depend>
 <depend>tf2_eigen</depend>
 <depend>tf2_ros</depend>
 <depend>tf2_geometry_msgs</depend>
-<depend>apriltag_msgs</depend>
+<depend>geometry_msgs</depend>
+<depend>zivid_interfaces</depend>
+<depend>pipette_driver</depend>
 <exec_depend>rosidl_default_runtime</exec_depend>
-<exec_depend>apriltag_ros</exec_depend>
 <member_of_group>rosidl_interface_packages</member_of_group>
 
 <test_depend>ament_lint_auto</test_depend>

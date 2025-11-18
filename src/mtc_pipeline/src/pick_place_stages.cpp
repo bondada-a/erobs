@@ -1,25 +1,11 @@
 #include "mtc_pipeline/pick_place_stages.hpp"
+#include "../../end_effectors/gripper_config.hpp"
 
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit_msgs/msg/constraints.hpp>
 #include <moveit_msgs/msg/joint_constraint.hpp>
 
 namespace {
-struct GripperConfig {
-  std::string group;
-  std::string release_state;  // State name when gripper is open/released
-  std::string grasp_state;    // State name when gripper is closed/gripping
-};
-
-GripperConfig get_gripper_config(const std::string& gripper_type) {
-  if (gripper_type == "epick") {
-    // EPick: vacuum_off = released, vacuum_on = gripping
-    return {"epick_gripper", "vacuum_off", "vacuum_on"};
-  }
-  // HandE: hande_open = released, hande_closed = gripping
-  return {"hande_gripper", "hande_open", "hande_closed"};
-}
-
 constexpr const char* WRIST3_JOINT_NAME = "wrist_3_joint";
 constexpr double WRIST3_POSITION = 0.0;
 constexpr double WRIST3_TOLERANCE = 0.01;
@@ -67,32 +53,30 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::make_gripper_stage(
   bool open,
   const std::string& gripper_type)
 {
-  auto config = get_gripper_config(gripper_type);
+  auto config = gripper_config::get_gripper_config(gripper_type);
   auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
   stage->setGroup(config.group);
   stage->setGoal(open ? config.release_state : config.grasp_state);
   return stage;
 }
 
-bool PickPlaceStages::run(const nlohmann::json& step,
-                          const nlohmann::json& poses)
+bool PickPlaceStages::run(const mtc_pipeline::action::PickPlaceAction::Goal& goal)
 {
-  // Validation - check for individual pose fields
-  if (!step.contains("pick_approach") || !step.contains("pick_target") ||
-      !step.contains("place_approach") || !step.contains("place_target")) {
-    RCLCPP_ERROR(node()->get_logger(),
-                "Step must contain pick_approach, pick_target, place_approach, and place_target");
+  // Parse poses JSON
+  nlohmann::json poses;
+  try {
+    poses = nlohmann::json::parse(goal.poses_json);
+  } catch (const nlohmann::json::exception& e) {
+    RCLCPP_ERROR(node()->get_logger(), "Failed to parse poses_json: %s", e.what());
     return false;
   }
 
-  // Extract individual pose names
-  const std::string pick_approach = step["pick_approach"].get<std::string>();
-  const std::string pick_target = step["pick_target"].get<std::string>();
-  const std::string place_approach = step["place_approach"].get<std::string>();
-  const std::string place_target = step["place_target"].get<std::string>();
-
-  // Extract gripper type (default to hande for backward compatibility)
-  const std::string gripper_type = step.value("gripper", "hande");
+  // Extract individual pose names from goal
+  const std::string& pick_approach = goal.pick_approach;
+  const std::string& pick_target = goal.pick_target;
+  const std::string& place_approach = goal.place_approach;
+  const std::string& place_target = goal.place_target;
+  const std::string& gripper_type = goal.gripper;
 
   auto task = create_task_template("Pick and Place");
   auto pipeline_planner = make_pipeline_planner();
@@ -175,9 +159,9 @@ bool PickPlaceStages::run(const nlohmann::json& step,
   }
 
   // ============================================================================
-  // RETURN HOME (optional)
+  // RETURN HOME
   // ============================================================================
-  if (step.value("return_home", true)) {
+  {
     auto stage = std::make_unique<mtc::stages::MoveTo>("return home", pipeline_planner);
     stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
     stage->setGroup(default_arm_group_name());

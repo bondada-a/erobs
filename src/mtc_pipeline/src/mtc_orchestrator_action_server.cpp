@@ -226,6 +226,60 @@ void MTCOrchestratorActionServer::handle_accepted(const std::shared_ptr<GoalHand
 
 // === MOVEIT STACK MANAGEMENT ===
 
+bool MTCOrchestratorActionServer::set_tool_voltage_via_socket(const std::string& robot_ip, int voltage) {
+    RCLCPP_INFO(this->get_logger(), "Setting tool voltage to %dV via direct socket connection", voltage);
+
+    // Create socket
+    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to create socket for voltage setting");
+        return false;
+    }
+
+    // Set timeout to avoid hanging
+    struct timeval timeout;
+    timeout.tv_sec = 2;
+    timeout.tv_usec = 0;
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+
+    // Configure server address
+    struct sockaddr_in server_addr;
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(30002);  // UR secondary client interface
+
+    if (inet_pton(AF_INET, robot_ip.c_str(), &server_addr.sin_addr) <= 0) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid robot IP address: %s", robot_ip.c_str());
+        close(sockfd);
+        return false;
+    }
+
+    // Connect to robot
+    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to connect to robot at %s:30002", robot_ip.c_str());
+        close(sockfd);
+        return false;
+    }
+
+    // Send voltage command
+    std::string command = "set_tool_voltage(" + std::to_string(voltage) + ")\n";
+    ssize_t bytes_sent = send(sockfd, command.c_str(), command.length(), 0);
+
+    close(sockfd);
+
+    if (bytes_sent < 0) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to send voltage command");
+        return false;
+    }
+
+    RCLCPP_INFO(this->get_logger(), "Tool voltage command sent successfully: set_tool_voltage(%d)", voltage);
+
+    // Small delay to let robot process command
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    return true;
+}
+
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
     // Check if we already have the right gripper running
     if (process_manager_->moveit_pid_ > 0 && process_manager_->current_gripper_ == start_gripper) {
@@ -242,11 +296,32 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
 
     // Map gripper types to MoveIt config packages                                          //TODO : Add gripper payload for each gripper
     static const std::unordered_map<std::string, std::string> gripper_packages = {
-        {"none", "ur_standalone_moveit_config"},  // Temporary fix - use hande config for none gripper
+        {"none", "ur_standalone_moveit_config"},
         {"epick", "ur_zivid_epick_moveit_config"},
         {"hande", "ur_zivid_hande_moveit_config"},
         {"pipettor", "ur_zivid_pipettor_moveit_config"}
     };
+
+    // Map gripper types to required tool voltages
+    static const std::unordered_map<std::string, int> gripper_voltages = {
+        {"none", 0},      // No gripper attached
+        {"epick", 24},    // EPick vacuum gripper requires 24V
+        {"hande", 24},    // Hand-E gripper requires 24V
+        {"pipettor", 24}  // Pipettor tool requires 24V
+    };
+
+    // Set tool voltage BEFORE launching MoveIt (critical for gripper initialization)
+    auto voltage_it = gripper_voltages.find(start_gripper);
+    if (voltage_it != gripper_voltages.end()) {
+        int required_voltage = voltage_it->second;
+        RCLCPP_INFO(this->get_logger(), "Setting tool voltage to %dV for %s gripper (before MoveIt launch)",
+                    required_voltage, start_gripper.c_str());
+
+        if (!set_tool_voltage_via_socket(robot_ip, required_voltage)) {
+            RCLCPP_WARN(this->get_logger(), "Failed to set tool voltage, continuing anyway...");
+            // Don't fail the entire initialization - gripper might still work
+        }
+    }
 
     // Start MoveIt configuration
     RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
