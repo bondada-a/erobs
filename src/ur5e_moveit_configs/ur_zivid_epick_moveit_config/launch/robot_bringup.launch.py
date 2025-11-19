@@ -34,6 +34,7 @@ def generate_launch_description():
             "description_file": LaunchConfiguration("description_file"),
             "controllers_file": LaunchConfiguration("controllers_file"),
             "kinematics_params_file": os.path.join(get_package_share_directory("ur5e_robot_description"), "config", "ur5e_calibration.yaml"),
+            "use_tool_communication": "true",  # Enable to make tool_voltage parameter work
             "tool_voltage": "24",
         }.items()
     )

@@ -35,7 +35,7 @@ def generate_launch_description():
             "description_file": LaunchConfiguration("description_file"),
             "controllers_file": LaunchConfiguration("controllers_file"),
             "kinematics_params_file": os.path.join(get_package_share_directory("ur5e_robot_description"), "config", "ur5e_calibration.yaml"),
-            "use_tool_communication": "false",
+            "use_tool_communication": "true",  # Enable to make tool_voltage parameter work
             "tool_voltage": "0",
         }.items()
     )
@@ -129,19 +129,7 @@ def generate_launch_description():
         ]
     )
 
-    # Tool voltage initialization for standalone config (no gripper attached)
-    set_tool_voltage = TimerAction(
-        period=6.0,  # Wait 6 seconds (after set_payload completes)
-        actions=[
-            ExecuteProcess(
-                cmd=['ros2', 'topic', 'pub', '--once',
-                     '/urscript_interface/script_command',
-                     'std_msgs/msg/String',
-                     '{data: "set_tool_voltage(0)"}'],
-                output='screen'
-            )
-        ]
-    )
+    # Tool voltage is now handled by ur_robot_driver with use_tool_communication=true
 
     # Shared planning scene
     scene_launch = IncludeLaunchDescription(
@@ -171,7 +159,6 @@ def generate_launch_description():
         rviz_node,
         robot_state_publisher,
         set_payload,  # Set UR payload
-        set_tool_voltage,  # Set tool voltage to 0V
         scene_launch,
     ])
 

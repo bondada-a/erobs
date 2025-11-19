@@ -22,7 +22,8 @@ obstacles:
     pose:
       x: -0.3810   # 9" from edge along 48" dimension = -15" from center
       y: -0.3556   # 4" from edge along 36" dimension = -14" from center
-      z: -0.283  # Table top below robot base
+      # z: -0.283  # Table top below robot base
+      z: -0.483
       roll: 0.0
       pitch: 0.0
       yaw: 0.0
@@ -48,7 +49,7 @@ obstacles:
     frame: "base"
     pose:
       x: 0.0       # 0 inches (relative to base)
-      y: 0.9652    # 38 inches in meters (relative to base)
+      y: 1.0    # 38 inches in meters (relative to base)
       z: 0.1    # -10 inches in meters (relative to base)
       roll: 0.0
       pitch: 0.0

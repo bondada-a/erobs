@@ -3,6 +3,7 @@ install
 log
 site
 erobs.code-workspace
+recorded_data/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

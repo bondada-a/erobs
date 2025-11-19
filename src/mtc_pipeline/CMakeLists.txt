@@ -21,6 +21,7 @@ find_package(zivid_interfaces REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(pipette_driver REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
+find_package(ur_msgs REQUIRED)
 
 
 set(MODULAR_ACTION_SERVER_DEPS
@@ -35,6 +36,7 @@ set(ORCHESTRATOR_DEPS
   rclcpp_action
   std_srvs
   pipette_driver
+  ur_msgs
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
