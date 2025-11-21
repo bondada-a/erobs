@@ -90,4 +90,7 @@ target/
 .ipynb_checkpoints
 *.code-workspace
 
+# Claude Code
+.claude
+
 
