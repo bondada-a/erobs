@@ -107,8 +107,16 @@ def generate_launch_description():
         name='zivid_camera',
         output='screen',
         parameters=[{
-            'settings_2d_file_path': '/home/aditya/work/github_ws/erobs/src/zivid_settings.yml',
-            'settings_file_path': '/home/aditya/work/github_ws/erobs/src/zivid_3d_settings.yml',  # For 3D marker detection
+            'settings_2d_file_path': PathJoinSubstitution([
+                FindPackageShare('mtc_pipeline'),
+                'config',
+                'zivid_settings.yml'
+            ]),
+            'settings_file_path': PathJoinSubstitution([
+                FindPackageShare('mtc_pipeline'),
+                'config',
+                'zivid_3d_settings.yml'
+            ]),  # For 3D marker detection
             'frame_id': 'zivid_optical_frame'
         }]
     )

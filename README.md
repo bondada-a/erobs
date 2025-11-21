@@ -52,11 +52,6 @@ Gripper drivers and descriptions. See [src/end_effectors/README.md](src/end_effe
 ### ur5e_moveit_configs
 Three MoveIt configurations, one per gripper type. Launch files handle gripper-specific payload and controllers.
 
-## Documentation
-
-- **Zivid Camera Setup**: [ZIVID_CAPTURE_SETTINGS.md](ZIVID_CAPTURE_SETTINGS.md)
-- **Tool Voltage Management**: [TOOL_VOLTAGE_SOCKET_IMPLEMENTATION.md](TOOL_VOLTAGE_SOCKET_IMPLEMENTATION.md)
-- **HandE Troubleshooting**: [docs/troubleshooting/HANDE_MODBUS_FAILURE_ANALYSIS.md](docs/troubleshooting/HANDE_MODBUS_FAILURE_ANALYSIS.md)
 
 ## Testing
 

@@ -93,8 +93,8 @@ RUN /bin/bash -c "set -e && \
     rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface zivid_description'"
 
 # Copy Zivid settings from repository to config directory
-RUN cp /root/ws/erobs/src/zivid_settings.yml /root/zivid_config/default_2d_settings.yml && \
-    cp /root/ws/erobs/src/zivid_3d_settings.yml /root/zivid_config/default_3d_settings.yml
+RUN cp /root/ws/erobs/src/mtc_pipeline/config/zivid_settings.yml /root/zivid_config/default_2d_settings.yml && \
+    cp /root/ws/erobs/src/mtc_pipeline/config/zivid_3d_settings.yml /root/zivid_config/default_3d_settings.yml
 
 WORKDIR /root/ws/
 # Build interface packages first so other packages can find them
