@@ -321,11 +321,7 @@ bool VisionStages::move_to_pose(const geometry_msgs::msg::PoseStamped& target_po
 
   task.add(std::move(move_stage));
 
-  // Small delay to ensure robot state is settled before execution
-  RCLCPP_INFO(node()->get_logger(), "Waiting for robot to settle before execution...");
-  std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-  // Execute
+  // Execute (MoveIt's CurrentStateMonitor ensures robot state is valid)
   return load_plan_execute(task);
 }
 

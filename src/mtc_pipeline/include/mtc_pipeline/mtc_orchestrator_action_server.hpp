@@ -96,7 +96,6 @@ private:
     // Execute function helpers
     bool initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip);
     bool set_tool_voltage_via_socket(const std::string& robot_ip, int voltage);
-    bool restart_robot_program();
     bool verify_tool_voltage(int expected_voltage);
 
     // Generic template for action client calls

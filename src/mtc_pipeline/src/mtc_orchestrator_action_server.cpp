@@ -293,38 +293,6 @@ bool MTCOrchestratorActionServer::set_tool_voltage_via_socket(const std::string&
     return true;
 }
 
-bool MTCOrchestratorActionServer::restart_robot_program() {
-    RCLCPP_INFO(this->get_logger(), "Restarting robot program (required after URScript commands)");
-
-    // Wait for robot to stabilize after voltage change
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    // Send play command to robot dashboard to restart external_control program
-    auto client = this->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
-
-    if (!client->wait_for_service(std::chrono::seconds(5))) {
-        RCLCPP_ERROR(this->get_logger(), "Dashboard play service not available");
-        return false;
-    }
-
-    auto request = std::make_shared<std_srvs::srv::Trigger::Request>();
-
-    // Send request asynchronously without waiting (fire-and-forget)
-    // We can't use spin_until_future_complete here because this node is already spinning
-    // in the main executor, which would cause a deadlock
-    client->async_send_request(request);
-
-    RCLCPP_INFO(this->get_logger(), "Dashboard play command sent, waiting for robot to restart...");
-
-    // Wait for robot program to restart and be ready
-    // This is a simple blocking wait - the dashboard service will process the request
-    // and the robot will restart the external_control program
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-
-    RCLCPP_INFO(this->get_logger(), "Robot program restart complete");
-    return true;
-}
-
 void MTCOrchestratorActionServer::tool_data_callback(const ur_msgs::msg::ToolDataMsg::SharedPtr msg) {
     // Update the current tool voltage reading
     current_tool_voltage_.store(msg->tool_output_voltage);
