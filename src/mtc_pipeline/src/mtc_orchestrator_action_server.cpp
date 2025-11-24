@@ -25,18 +25,23 @@ public:
 
   void kill_moveit_process() {
     if (moveit_pid_ > 0) {
-      kill(-moveit_pid_, SIGTERM);  // Graceful termination of process group
+      kill(-moveit_pid_, SIGTERM);
 
-      // Wait up to 3 seconds for graceful shutdown
-      for (int i = 0; i < 30; i++) {
-        if (kill(moveit_pid_, 0) != 0) {
-          break;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      // Poll for graceful exit (check every 50ms, timeout after 2s)
+      auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
+      while (std::chrono::steady_clock::now() < deadline && kill(moveit_pid_, 0) == 0) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
       }
 
-      kill(-moveit_pid_, SIGKILL);  // Force kill if still alive
-      waitpid(moveit_pid_, nullptr, WNOHANG);  // Clean up zombie process
+      // Force kill if still alive
+      if (kill(moveit_pid_, 0) == 0) {
+        kill(-moveit_pid_, SIGKILL);
+      }
+
+      // CRITICAL: Block until process fully exits and DDS cleanup completes
+      // This prevents launching new MoveIt before old one is completely gone
+      int status;
+      waitpid(moveit_pid_, &status, 0);  // Blocking wait
       moveit_pid_ = 0;
     }
   }
