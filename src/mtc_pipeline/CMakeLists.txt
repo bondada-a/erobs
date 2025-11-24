@@ -38,6 +38,7 @@ set(ORCHESTRATOR_DEPS
   std_srvs
   pipette_driver
   ur_msgs
+  ament_index_cpp
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

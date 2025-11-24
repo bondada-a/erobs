@@ -131,17 +131,6 @@ def generate_launch_description():
 
     # Tool voltage is now handled by ur_robot_driver with use_tool_communication=true
 
-    # Shared planning scene
-    scene_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare("erobs_planning_scene"),
-                "launch",
-                "load_scene.launch.py"
-            ])
-        ])
-    )
-
     return LaunchDescription([
         ## arguments
         robot_ip,
@@ -159,7 +148,6 @@ def generate_launch_description():
         rviz_node,
         robot_state_publisher,
         set_payload,  # Set UR payload
-        scene_launch,
     ])
 
     

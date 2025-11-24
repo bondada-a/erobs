@@ -140,17 +140,6 @@ def generate_launch_description():
         ]
     )
 
-    # Shared planning scene
-    scene_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare("erobs_planning_scene"),
-                "launch",
-                "load_scene.launch.py"
-            ])
-        ])
-    )
-
     # Delay ur_control_launch to ensure tool_communication creates /tmp/ttyUR first
     delayed_ur_control_launch = TimerAction(
         period=1.5,  # Wait 1.5 seconds for tool_communication to create /tmp/ttyUR via socat
@@ -176,7 +165,6 @@ def generate_launch_description():
         epick_controller_spawner,
         epick_status_controller_spawner,
         set_payload,  # Set UR payload
-        scene_launch,
     ])
 
     

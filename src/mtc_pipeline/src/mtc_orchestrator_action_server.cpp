@@ -1,5 +1,6 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 #include "mtc_pipeline/obstacle_loader.hpp"
+#include <ament_index_cpp/get_package_share_directory.hpp>
 
 using namespace std::chrono_literals;
 
@@ -69,6 +70,9 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
         tool_data_sub_ = this->create_subscription<ur_msgs::msg::ToolDataMsg>(
             "/io_and_status_controller/tool_data", 10,
             std::bind(&MTCOrchestratorActionServer::tool_data_callback, this, std::placeholders::_1));
+
+        // Declare obstacle config parameter with relative path default
+        this->declare_parameter("obstacle_config_path", "config/beamline_scene.yaml");
 
         RCLCPP_INFO(this->get_logger(), "MTC Orchestrator Action Server started");
     }
@@ -227,7 +231,7 @@ rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
 
 void MTCOrchestratorActionServer::handle_accepted(const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
 {
-    std::thread{[this, goal_handle]() { execute(goal_handle); }}.detach();
+    std::thread{[this, self = shared_from_this(), goal_handle]() { execute(goal_handle); }}.detach();
 }
 
 // === MOVEIT STACK MANAGEMENT ===
@@ -415,9 +419,26 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     RCLCPP_INFO(this->get_logger(), "MoveIt fully initialized and ready for planning");
 
     // Load planning scene obstacles
-    std::string obstacle_config = "/root/ws/erobs/src/mtc_pipeline/config/beamline_scene.yaml";
-    if (!mtc_pipeline::loadPlanningSceneObstacles(this->get_logger(), obstacle_config)) {
-        RCLCPP_WARN(this->get_logger(), "Failed to load planning scene obstacles, continuing anyway");
+    std::string config_file = this->get_parameter("obstacle_config_path").as_string();
+    if (!config_file.empty()) {
+        // Resolve relative paths using package share directory
+        if (config_file[0] != '/') {  // Relative path
+            try {
+                std::string pkg_share = ament_index_cpp::get_package_share_directory("mtc_pipeline");
+                config_file = pkg_share + "/" + config_file;
+                RCLCPP_INFO(this->get_logger(), "Resolved obstacle config to: %s", config_file.c_str());
+            } catch (const std::exception& e) {
+                RCLCPP_ERROR(this->get_logger(), "Failed to find package share directory: %s", e.what());
+                RCLCPP_WARN(this->get_logger(), "Cannot load obstacles without package path, continuing anyway");
+                config_file.clear();  // Skip loading
+            }
+        }
+
+        if (!config_file.empty() && !mtc_pipeline::loadPlanningSceneObstacles(this->get_logger(), config_file)) {
+            RCLCPP_WARN(this->get_logger(), "Failed to load planning scene obstacles, continuing anyway");
+        }
+    } else {
+        RCLCPP_INFO(this->get_logger(), "No obstacle config specified, skipping obstacle loading");
     }
 
     // Wait for robot hardware to be ready
