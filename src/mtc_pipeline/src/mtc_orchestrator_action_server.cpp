@@ -289,9 +289,7 @@ bool MTCOrchestratorActionServer::set_tool_voltage_via_socket(const std::string&
 
     RCLCPP_INFO(this->get_logger(), "Tool voltage command sent successfully: set_tool_voltage(%d)", voltage);
 
-    // Small delay to let robot process command
-    std::this_thread::sleep_for(std::chrono::milliseconds(200));
-
+    // Note: No delay needed here - subsequent code waits for voltage stabilization
     return true;
 }
 
@@ -335,34 +333,39 @@ void MTCOrchestratorActionServer::tool_data_callback(const ur_msgs::msg::ToolDat
 bool MTCOrchestratorActionServer::verify_tool_voltage(int expected_voltage) {
     RCLCPP_INFO(this->get_logger(), "Verifying tool voltage is %dV...", expected_voltage);
 
-    // Wait a bit for voltage readings to stabilize
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    // Get the current voltage (updated by the callback)
-    double actual_voltage = current_tool_voltage_.load();
-
-    // Check if we have valid readings
-    if (actual_voltage < 0) {
-        RCLCPP_ERROR(this->get_logger(), "No valid tool voltage reading available!");
-        return false;
-    }
-
-    // Allow some tolerance (±2V)
+    // Poll voltage until it matches expected value (with 2-second timeout)
     const double tolerance = 2.0;
-    bool voltage_ok = std::abs(actual_voltage - expected_voltage) <= tolerance;
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
 
-    if (voltage_ok) {
-        RCLCPP_INFO(this->get_logger(), "✓ Tool voltage verified: %.1fV (expected %dV)",
-                    actual_voltage, expected_voltage);
-        return true;
-    } else {
-        RCLCPP_ERROR(this->get_logger(),
-                     "✗ CRITICAL: Tool voltage mismatch! Actual: %.1fV, Expected: %dV",
-                     actual_voltage, expected_voltage);
-        RCLCPP_ERROR(this->get_logger(),
-                     "Stopping operation to prevent hardware damage!");
-        return false;
+    while (std::chrono::steady_clock::now() < deadline) {
+        double actual_voltage = current_tool_voltage_.load();
+
+        // Check if we have valid readings
+        if (actual_voltage < 0) {
+            RCLCPP_WARN(this->get_logger(), "Waiting for valid voltage reading...");
+            std::this_thread::sleep_for(std::chrono::milliseconds(50));
+            continue;
+        }
+
+        // Check if voltage matches expected value
+        if (std::abs(actual_voltage - expected_voltage) <= tolerance) {
+            RCLCPP_INFO(this->get_logger(), "✓ Tool voltage verified: %.1fV (expected %dV)",
+                        actual_voltage, expected_voltage);
+            return true;
+        }
+
+        // Voltage doesn't match yet, wait and retry
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
+
+    // Timeout - voltage didn't stabilize to expected value
+    double actual_voltage = current_tool_voltage_.load();
+    RCLCPP_ERROR(this->get_logger(),
+                 "✗ CRITICAL: Tool voltage mismatch after 2s! Actual: %.1fV, Expected: %dV",
+                 actual_voltage, expected_voltage);
+    RCLCPP_ERROR(this->get_logger(),
+                 "Stopping operation to prevent hardware damage!");
+    return false;
 }
 
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
@@ -446,9 +449,19 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         RCLCPP_INFO(this->get_logger(), "No obstacle config specified, skipping obstacle loading");
     }
 
-    // Wait for robot hardware to be ready
+    // Poll for robot hardware readiness (indicated by valid tool voltage readings)
     RCLCPP_INFO(this->get_logger(), "Waiting for robot hardware to initialize...");
-    std::this_thread::sleep_for(5s);
+    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
+    while (std::chrono::steady_clock::now() < deadline) {
+        if (current_tool_voltage_.load() >= 0) {
+            RCLCPP_INFO(this->get_logger(), "Robot hardware ready (tool data available)");
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    if (current_tool_voltage_.load() < 0) {
+        RCLCPP_WARN(this->get_logger(), "Robot hardware not ready after 10s, continuing anyway...");
+    }
 
     // CRITICAL: First set the correct voltage BEFORE stopping/starting the program
     // This ensures the voltage is correct when the new program loads
@@ -470,7 +483,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
                 process_manager_->kill_moveit_process();
                 return false;
             }
-            std::this_thread::sleep_for(std::chrono::seconds(1));
+            // No wait needed - voltage will apply when program restarts
         }
     }
 
@@ -479,7 +492,7 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     if (stop_client->wait_for_service(5s)) {
         stop_client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
         RCLCPP_INFO(this->get_logger(), "Stopped existing program to force reload");
-        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));  // Brief delay for stop to register
     }
 
     // Send play command to robot dashboard - this will load and start the NEW program
@@ -487,20 +500,24 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     client->wait_for_service(30s);
     client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
 
-    // CRITICAL: Wait for robot program to fully restart after dashboard play
-    // Without this wait, motion might start before program is ready, causing voltage spikes
+    // Poll for program restart by checking voltage readiness (indicates program is running)
     RCLCPP_INFO(this->get_logger(), "Waiting for robot program to stabilize after restart...");
-    std::this_thread::sleep_for(std::chrono::seconds(3));
-
-    // CHECK VOLTAGE AFTER DASHBOARD PLAY
-    // CRITICAL: We cannot send URScript commands after dashboard play as it kills external_control
-    // We must rely on the tool_voltage parameter being correctly applied by ur_robot_driver
-    RCLCPP_INFO(this->get_logger(), "Checking voltage AFTER dashboard play...");
     if (voltage_check_it != gripper_voltages.end()) {
         int expected_voltage = voltage_check_it->second;
 
-        // Wait a bit for voltage to stabilize after program load
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        // Poll for voltage to reach expected value (indicates program loaded & running)
+        auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
+        bool voltage_ready = false;
+        while (std::chrono::steady_clock::now() < deadline) {
+            double actual_voltage = current_tool_voltage_.load();
+            if (actual_voltage >= 0 && std::abs(actual_voltage - expected_voltage) <= 2.0) {
+                voltage_ready = true;
+                break;
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+
+        // CHECK VOLTAGE AFTER DASHBOARD PLAY
 
         double actual_voltage = current_tool_voltage_.load();
         RCLCPP_INFO(this->get_logger(), "AFTER dashboard play: Current voltage is %.1fV (expecting %dV)",
