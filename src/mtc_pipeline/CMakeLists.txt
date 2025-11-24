@@ -22,6 +22,7 @@ find_package(geometry_msgs REQUIRED)
 find_package(pipette_driver REQUIRED)
 find_package(moveit_ros_planning_interface REQUIRED)
 find_package(ur_msgs REQUIRED)
+find_package(yaml-cpp REQUIRED)
 
 
 set(MODULAR_ACTION_SERVER_DEPS
@@ -87,6 +88,23 @@ target_compile_features(mtc_pipeline_core PUBLIC c_std_99 cxx_std_17)
 # Make sure the library depends on the generated interfaces
 rosidl_target_interfaces(mtc_pipeline_core ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
+# Obstacle loader library
+add_library(obstacle_loader src/obstacle_loader.cpp)
+target_include_directories(obstacle_loader PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(obstacle_loader
+  rclcpp
+  moveit_ros_planning_interface
+  tf2
+  tf2_geometry_msgs
+  geometry_msgs
+  shape_msgs
+  moveit_msgs
+)
+target_link_libraries(obstacle_loader yaml-cpp)
+target_compile_features(obstacle_loader PUBLIC c_std_99 cxx_std_17)
 
 include_directories(include)
 
@@ -116,7 +134,7 @@ ament_target_dependencies(pipettor_action_server ${MODULAR_ACTION_SERVER_DEPS} p
 ament_target_dependencies(vision_pick_place_action_server ${MODULAR_ACTION_SERVER_DEPS})
 
 # Link Libraries
-target_link_libraries(mtc_orchestrator_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
+target_link_libraries(mtc_orchestrator_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core obstacle_loader)
 target_link_libraries(mtc_action_client_example "${cpp_typesupport_target}" nlohmann_json::nlohmann_json)
 target_link_libraries(pick_place_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 target_link_libraries(tool_exchange_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
@@ -150,6 +168,7 @@ install(TARGETS
 )
 install(TARGETS
   mtc_pipeline_core
+  obstacle_loader
   DESTINATION lib
 )
 

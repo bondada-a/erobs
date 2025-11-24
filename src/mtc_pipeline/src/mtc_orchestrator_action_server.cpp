@@ -1,4 +1,5 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
+#include "mtc_pipeline/obstacle_loader.hpp"
 
 using namespace std::chrono_literals;
 
@@ -412,6 +413,12 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         return false;
     }
     RCLCPP_INFO(this->get_logger(), "MoveIt fully initialized and ready for planning");
+
+    // Load planning scene obstacles
+    std::string obstacle_config = "/root/ws/erobs/src/mtc_pipeline/config/beamline_scene.yaml";
+    if (!mtc_pipeline::loadPlanningSceneObstacles(this->get_logger(), obstacle_config)) {
+        RCLCPP_WARN(this->get_logger(), "Failed to load planning scene obstacles, continuing anyway");
+    }
 
     // Wait for robot hardware to be ready
     RCLCPP_INFO(this->get_logger(), "Waiting for robot hardware to initialize...");
