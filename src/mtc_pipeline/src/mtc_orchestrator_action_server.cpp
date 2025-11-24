@@ -242,98 +242,48 @@ void MTCOrchestratorActionServer::handle_accepted(const std::shared_ptr<GoalHand
 // === MOVEIT STACK MANAGEMENT ===
 
 bool MTCOrchestratorActionServer::set_tool_voltage_via_socket(const std::string& robot_ip, int voltage) {
-    RCLCPP_INFO(this->get_logger(), "Setting tool voltage to %dV via direct socket connection", voltage);
+    // NOTE: Uses raw socket instead of ROS services because this is called BEFORE MoveIt launches
+    // During tool exchange: voltage must be set → then MoveIt launched → then ROS services available
+    // This is the "bootstrap" mechanism to configure robot before ROS infrastructure exists
 
-    // Create socket
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to create socket for voltage setting");
+        RCLCPP_ERROR(this->get_logger(), "Failed to create socket");
         return false;
     }
 
-    // Set timeout to avoid hanging
-    struct timeval timeout;
-    timeout.tv_sec = 2;
-    timeout.tv_usec = 0;
+    // Set 2-second timeout to avoid hanging
+    struct timeval timeout = {2, 0};
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
     setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
 
-    // Configure server address
-    struct sockaddr_in server_addr;
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(30002);  // UR secondary client interface
+    // Configure connection to UR secondary interface (port 30002)
+    // Note: IP is already validated (robot is connected and MoveIt is running)
+    struct sockaddr_in addr = {};
+    addr.sin_family = AF_INET;
+    addr.sin_port = htons(30002);
+    inet_pton(AF_INET, robot_ip.c_str(), &addr.sin_addr);
 
-    if (inet_pton(AF_INET, robot_ip.c_str(), &server_addr.sin_addr) <= 0) {
-        RCLCPP_ERROR(this->get_logger(), "Invalid robot IP address: %s", robot_ip.c_str());
+    if (connect(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
         close(sockfd);
+        RCLCPP_ERROR(this->get_logger(), "Connection failed: %s:30002", robot_ip.c_str());
         return false;
     }
 
-    // Connect to robot
-    if (connect(sockfd, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to connect to robot at %s:30002", robot_ip.c_str());
-        close(sockfd);
-        return false;
-    }
-
-    // Send voltage command
+    // Send URScript command
     std::string command = "set_tool_voltage(" + std::to_string(voltage) + ")\n";
-    ssize_t bytes_sent = send(sockfd, command.c_str(), command.length(), 0);
-
+    bool success = send(sockfd, command.c_str(), command.length(), 0) > 0;
     close(sockfd);
 
-    if (bytes_sent < 0) {
+    if (!success) {
         RCLCPP_ERROR(this->get_logger(), "Failed to send voltage command");
-        return false;
     }
-
-    RCLCPP_INFO(this->get_logger(), "Tool voltage command sent successfully: set_tool_voltage(%d)", voltage);
-
-    // Note: No delay needed here - subsequent code waits for voltage stabilization
-    return true;
+    return success;
 }
 
 void MTCOrchestratorActionServer::tool_data_callback(const ur_msgs::msg::ToolDataMsg::SharedPtr msg) {
     // Update the current tool voltage reading
     current_tool_voltage_.store(msg->tool_output_voltage);
-}
-
-bool MTCOrchestratorActionServer::verify_tool_voltage(int expected_voltage) {
-    RCLCPP_INFO(this->get_logger(), "Verifying tool voltage is %dV...", expected_voltage);
-
-    // Poll voltage until it matches expected value (with 2-second timeout)
-    const double tolerance = 2.0;
-    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(2);
-
-    while (std::chrono::steady_clock::now() < deadline) {
-        double actual_voltage = current_tool_voltage_.load();
-
-        // Check if we have valid readings
-        if (actual_voltage < 0) {
-            RCLCPP_WARN(this->get_logger(), "Waiting for valid voltage reading...");
-            std::this_thread::sleep_for(std::chrono::milliseconds(50));
-            continue;
-        }
-
-        // Check if voltage matches expected value
-        if (std::abs(actual_voltage - expected_voltage) <= tolerance) {
-            RCLCPP_INFO(this->get_logger(), "✓ Tool voltage verified: %.1fV (expected %dV)",
-                        actual_voltage, expected_voltage);
-            return true;
-        }
-
-        // Voltage doesn't match yet, wait and retry
-        std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
-
-    // Timeout - voltage didn't stabilize to expected value
-    double actual_voltage = current_tool_voltage_.load();
-    RCLCPP_ERROR(this->get_logger(),
-                 "✗ CRITICAL: Tool voltage mismatch after 2s! Actual: %.1fV, Expected: %dV",
-                 actual_voltage, expected_voltage);
-    RCLCPP_ERROR(this->get_logger(),
-                 "Stopping operation to prevent hardware damage!");
-    return false;
 }
 
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
@@ -370,12 +320,12 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     auto voltage_it = gripper_voltages.find(start_gripper);
     if (voltage_it != gripper_voltages.end()) {
         int required_voltage = voltage_it->second;
-        RCLCPP_INFO(this->get_logger(), "Setting tool voltage to %dV for %s gripper (before MoveIt launch)",
+        RCLCPP_INFO(this->get_logger(), "Setting tool voltage to %dV for %s gripper",
                     required_voltage, start_gripper.c_str());
 
         if (!set_tool_voltage_via_socket(robot_ip, required_voltage)) {
-            RCLCPP_WARN(this->get_logger(), "Failed to set tool voltage, continuing anyway...");
-            // Don't fail the entire initialization - gripper might still work
+            RCLCPP_ERROR(this->get_logger(), "Failed to set tool voltage to %dV", required_voltage);
+            return false;  // Fail fast - voltage setting is critical
         }
     }
 
@@ -417,95 +367,12 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
         RCLCPP_INFO(this->get_logger(), "No obstacle config specified, skipping obstacle loading");
     }
 
-    // Poll for robot hardware readiness (indicated by valid tool voltage readings)
-    RCLCPP_INFO(this->get_logger(), "Waiting for robot hardware to initialize...");
-    auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(10);
-    while (std::chrono::steady_clock::now() < deadline) {
-        if (current_tool_voltage_.load() >= 0) {
-            RCLCPP_INFO(this->get_logger(), "Robot hardware ready (tool data available)");
-            break;
-        }
-        std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    }
-    if (current_tool_voltage_.load() < 0) {
-        RCLCPP_WARN(this->get_logger(), "Robot hardware not ready after 10s, continuing anyway...");
-    }
-
-    // CRITICAL: First set the correct voltage BEFORE stopping/starting the program
-    // This ensures the voltage is correct when the new program loads
-    auto voltage_check_it = gripper_voltages.find(start_gripper);
-    if (voltage_check_it != gripper_voltages.end()) {
-        int expected_voltage = voltage_check_it->second;
-
-        // Read current voltage
-        double actual_voltage = current_tool_voltage_.load();
-        RCLCPP_INFO(this->get_logger(), "Current voltage is %.1fV, need %dV for %s",
-                    actual_voltage, expected_voltage, start_gripper.c_str());
-
-        // Set voltage if different (do this BEFORE stopping the program)
-        if (std::abs(actual_voltage - expected_voltage) > 1.0) {
-            RCLCPP_INFO(this->get_logger(), "Setting tool voltage to %dV before program restart",
-                        expected_voltage);
-            if (!set_tool_voltage_via_socket(robot_ip, expected_voltage)) {
-                RCLCPP_ERROR(this->get_logger(), "Failed to set tool voltage to %dV", expected_voltage);
-                process_manager_->kill_moveit_process();
-                return false;
-            }
-            // No wait needed - voltage will apply when program restarts
-        }
-    }
-
-    // Now stop any running program to force reload
-    auto stop_client = this->create_client<std_srvs::srv::Trigger>("/dashboard_client/stop");
-    if (stop_client->wait_for_service(5s)) {
-        stop_client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
-        RCLCPP_INFO(this->get_logger(), "Stopped existing program to force reload");
-        std::this_thread::sleep_for(std::chrono::milliseconds(200));  // Brief delay for stop to register
-    }
-
-    // Send play command to robot dashboard - this will load and start the NEW program
+    // Send play command to restart external_control program
+    // Required because: URScript commands (like set_tool_voltage) stop external_control
+    // Play restarts the program and re-establishes ROS communication
     auto client = this->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
     client->wait_for_service(30s);
     client->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
-
-    // Poll for program restart by checking voltage readiness (indicates program is running)
-    RCLCPP_INFO(this->get_logger(), "Waiting for robot program to stabilize after restart...");
-    if (voltage_check_it != gripper_voltages.end()) {
-        int expected_voltage = voltage_check_it->second;
-
-        // Poll for voltage to reach expected value (indicates program loaded & running)
-        auto deadline = std::chrono::steady_clock::now() + std::chrono::seconds(5);
-        bool voltage_ready = false;
-        while (std::chrono::steady_clock::now() < deadline) {
-            double actual_voltage = current_tool_voltage_.load();
-            if (actual_voltage >= 0 && std::abs(actual_voltage - expected_voltage) <= 2.0) {
-                voltage_ready = true;
-                break;
-            }
-            std::this_thread::sleep_for(std::chrono::milliseconds(100));
-        }
-
-        // CHECK VOLTAGE AFTER DASHBOARD PLAY
-
-        double actual_voltage = current_tool_voltage_.load();
-        RCLCPP_INFO(this->get_logger(), "AFTER dashboard play: Current voltage is %.1fV (expecting %dV)",
-                    actual_voltage, expected_voltage);
-
-        if (std::abs(actual_voltage - expected_voltage) > 1.0) {
-            RCLCPP_ERROR(this->get_logger(),
-                        "CRITICAL: Voltage mismatch after dashboard play! Expected %dV but got %.1fV",
-                        expected_voltage, actual_voltage);
-            RCLCPP_ERROR(this->get_logger(),
-                        "The tool_voltage parameter may not be correctly set in the launch file for %s",
-                        start_gripper.c_str());
-            RCLCPP_ERROR(this->get_logger(), "Killing MoveIt process due to voltage mismatch");
-            process_manager_->kill_moveit_process();
-            return false;
-        }
-
-        RCLCPP_INFO(this->get_logger(), "✓ Tool voltage is correct at %.1fV for %s configuration",
-                    actual_voltage, start_gripper.c_str());
-    }
 
     process_manager_->current_gripper_ = start_gripper;
     RCLCPP_INFO(this->get_logger(), "Robot ready with %s configuration", start_gripper.c_str());
@@ -613,56 +480,19 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& ste
     const std::string operation = step.value("operation", "");
     const std::string requested_tool = step.value("gripper", process_manager_->current_gripper_);
 
-    // For LOAD operation: Voltage should ALREADY be 0V from previous dock/standalone initialization
-    // DO NOT send voltage commands here - they stop the running program and create race conditions
-    if (operation == "load") {
-        RCLCPP_INFO(this->get_logger(), "Loading %s - voltage should already be 0V from previous standalone mode",
-                    requested_tool.c_str());
-
-        // CRITICAL: Verify voltage is 0V before attempting to attach tool
-        // This prevents hardware damage from attaching with voltage present
-        if (!verify_tool_voltage(0)) {
-            RCLCPP_ERROR(this->get_logger(),
-                        "CRITICAL: Cannot load %s - voltage is not 0V! Aborting to prevent damage!",
-                        requested_tool.c_str());
-            return false;
-        }
-        RCLCPP_INFO(this->get_logger(), "Voltage confirmed at 0V, safe to proceed with tool attachment");
-    }
-
-    // For DOCK operation: Keep voltage ON during detachment (gripper controller needs power)
-    // Voltage will be set to 0V AFTER detachment in initialize_moveit_stack("none")
-    if (operation == "dock") {
-        // Verify voltage is appropriate for the currently attached gripper
-        static const std::unordered_map<std::string, int> gripper_voltages = {
-            {"none", 0}, {"epick", 24}, {"hande", 24}, {"pipettor", 24}
-        };
-
-        auto voltage_it = gripper_voltages.find(process_manager_->current_gripper_);
-        if (voltage_it != gripper_voltages.end()) {
-            int expected_voltage = voltage_it->second;
-            if (!verify_tool_voltage(expected_voltage)) {
-                RCLCPP_ERROR(this->get_logger(),
-                            "CRITICAL: Cannot dock %s - voltage is not %dV! Current gripper may lose power!",
-                            process_manager_->current_gripper_.c_str(), expected_voltage);
-                return false;
-            }
-        }
-    }
-
     // Execute tool exchange action (physical motion)
     if (!call_toolexchange_action(step, poses_json)) {
         return false;
     }
 
-    // Handle gripper switching after tool exchange
+    // Switch gripper configuration after tool exchange
+    // initialize_moveit_stack handles voltage management automatically
     if (operation == "dock") {
-        // After docking, switch to standalone mode (this will set voltage to 0V)
-        return initialize_moveit_stack("none", robot_ip);
+        return initialize_moveit_stack("none", robot_ip);  // Sets voltage to 0V
     } else if (operation == "load") {
-        // After loading, power up the tool to its required voltage (e.g., 24V for pipettor)
-        return initialize_moveit_stack(requested_tool, robot_ip);
+        return initialize_moveit_stack(requested_tool, robot_ip);  // Sets voltage to 24V
     }
+
     return true;
 }
 
