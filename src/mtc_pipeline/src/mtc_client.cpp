@@ -26,11 +26,13 @@ public:
         action_client_ = rclcpp_action::create_client<MTCExecution>(this, "mtc_execution");
     }
 
-    bool wait_for_server(std::chrono::seconds timeout = 10s) {
-        return action_client_->wait_for_action_server(timeout);
-    }
-
     int execute_task(const std::string& json_path, const std::string& robot_ip) {
+        // Wait for orchestrator to be available
+        if (!action_client_->wait_for_action_server(10s)) {
+            RCLCPP_ERROR(get_logger(), "Orchestrator action server unavailable");
+            return static_cast<int>(Result::Failure);
+        }
+
         auto goal = create_goal(json_path, robot_ip);
         if (!goal) return static_cast<int>(Result::Failure);
 
@@ -138,13 +140,6 @@ int main(int argc, char** argv) {
     signal(SIGTERM, cancel_handler);
 
     auto client = std::make_shared<MTCActionClient>(std::chrono::seconds(timeout));
-
-    RCLCPP_INFO(client->get_logger(), "Waiting for server...");
-    if (!client->wait_for_server(10s)) {
-        RCLCPP_ERROR(client->get_logger(), "Server unavailable");
-        rclcpp::shutdown();
-        return 1;
-    }
 
     int code = client->execute_task(json, ip);
     rclcpp::shutdown();
