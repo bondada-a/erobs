@@ -7,7 +7,6 @@
 #include <std_srvs/srv/trigger.hpp>
 #include <moveit_msgs/srv/get_planning_scene.hpp>
 #include <moveit_msgs/srv/get_motion_plan.hpp>
-#include <ur_msgs/msg/tool_data_msg.hpp>
 
 // Third-party includes
 #include <nlohmann/json.hpp>
@@ -122,10 +121,5 @@ private:
     void update_feedback(std::shared_ptr<MTCExecution::Feedback> feedback,
                         std::shared_ptr<GoalHandleMTCExecution> goal_handle,
                         size_t current_step, size_t total_steps, const std::string& task_type);
-
-    // Tool data subscriber for voltage verification
-    rclcpp::Subscription<ur_msgs::msg::ToolDataMsg>::SharedPtr tool_data_sub_;
-    std::atomic<double> current_tool_voltage_{-1.0};
-    void tool_data_callback(const ur_msgs::msg::ToolDataMsg::SharedPtr msg);
 
 };

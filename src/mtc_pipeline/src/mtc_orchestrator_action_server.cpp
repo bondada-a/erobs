@@ -71,11 +71,6 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
         vision_action_client_ = rclcpp_action::create_client<VisionMoveToAction>(this, "vision_move_to_action");
         pipettor_action_client_ = rclcpp_action::create_client<PipettorAction>(this, "pipettor_action");
 
-        // Subscribe to tool data for voltage monitoring
-        tool_data_sub_ = this->create_subscription<ur_msgs::msg::ToolDataMsg>(
-            "/io_and_status_controller/tool_data", 10,
-            std::bind(&MTCOrchestratorActionServer::tool_data_callback, this, std::placeholders::_1));
-
         // Declare obstacle config parameter with relative path default
         this->declare_parameter("obstacle_config_path", "config/beamline_scene.yaml");
 
@@ -190,7 +185,6 @@ void MTCOrchestratorActionServer::execute(const std::shared_ptr<GoalHandleMTCExe
 
     // Success
     result->success = true;
-    result->error_message = "";
     result->total_steps = tasks.size();
 
     update_feedback(feedback, goal_handle, tasks.size(), tasks.size(), "");
@@ -281,11 +275,6 @@ bool MTCOrchestratorActionServer::set_tool_voltage_via_socket(const std::string&
     return success;
 }
 
-void MTCOrchestratorActionServer::tool_data_callback(const ur_msgs::msg::ToolDataMsg::SharedPtr msg) {
-    // Update the current tool voltage reading
-    current_tool_voltage_.store(msg->tool_output_voltage);
-}
-
 bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& start_gripper, const std::string& robot_ip) {
     // Check if we already have the right gripper running
     if (process_manager_->moveit_pid_ > 0 && process_manager_->current_gripper_ == start_gripper) {
@@ -317,23 +306,16 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     };
 
     // Set tool voltage BEFORE launching MoveIt (critical for gripper initialization)
-    auto voltage_it = gripper_voltages.find(start_gripper);
-    if (voltage_it != gripper_voltages.end()) {
-        int required_voltage = voltage_it->second;
-        RCLCPP_INFO(this->get_logger(), "Setting tool voltage to %dV for %s gripper",
-                    required_voltage, start_gripper.c_str());
-
-        if (!set_tool_voltage_via_socket(robot_ip, required_voltage)) {
-            RCLCPP_ERROR(this->get_logger(), "Failed to set tool voltage to %dV", required_voltage);
-            return false;  // Fail fast - voltage setting is critical
-        }
+    int voltage = gripper_voltages.at(start_gripper);
+    RCLCPP_INFO(this->get_logger(), "Setting tool voltage to %dV for %s gripper", voltage, start_gripper.c_str());
+    if (!set_tool_voltage_via_socket(robot_ip, voltage)) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to set tool voltage to %dV", voltage);
+        return false;
     }
 
     // Start MoveIt configuration
     RCLCPP_INFO(this->get_logger(), "Starting MoveIt configuration for gripper: %s", start_gripper.c_str());
-    auto it = gripper_packages.find(start_gripper);
-    const std::string launch_cmd = "ros2 launch " + it->second + " robot_bringup.launch.py robot_ip:=" + robot_ip;
-    process_manager_->launch_process(launch_cmd);
+    process_manager_->launch_process("ros2 launch " + gripper_packages.at(start_gripper) + " robot_bringup.launch.py robot_ip:=" + robot_ip);
 
     // Wait for planning service (loaded after OMPL pipeline initialization)
     auto plan_client = this->create_client<moveit_msgs::srv::GetMotionPlan>("/plan_kinematic_path");
@@ -344,27 +326,17 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(const std::string& sta
     }
     RCLCPP_INFO(this->get_logger(), "MoveIt fully initialized and ready for planning");
 
-    // Load planning scene obstacles
+    // Load planning scene obstacles (optional - continues if loading fails)
     std::string config_file = this->get_parameter("obstacle_config_path").as_string();
+    if (!config_file.empty() && config_file[0] != '/') {
+        try {
+            config_file = ament_index_cpp::get_package_share_directory("mtc_pipeline") + "/" + config_file;
+        } catch (...) {
+            config_file.clear();
+        }
+    }
     if (!config_file.empty()) {
-        // Resolve relative paths using package share directory
-        if (config_file[0] != '/') {  // Relative path
-            try {
-                std::string pkg_share = ament_index_cpp::get_package_share_directory("mtc_pipeline");
-                config_file = pkg_share + "/" + config_file;
-                RCLCPP_INFO(this->get_logger(), "Resolved obstacle config to: %s", config_file.c_str());
-            } catch (const std::exception& e) {
-                RCLCPP_ERROR(this->get_logger(), "Failed to find package share directory: %s", e.what());
-                RCLCPP_WARN(this->get_logger(), "Cannot load obstacles without package path, continuing anyway");
-                config_file.clear();  // Skip loading
-            }
-        }
-
-        if (!config_file.empty() && !mtc_pipeline::loadPlanningSceneObstacles(this->get_logger(), config_file)) {
-            RCLCPP_WARN(this->get_logger(), "Failed to load planning scene obstacles, continuing anyway");
-        }
-    } else {
-        RCLCPP_INFO(this->get_logger(), "No obstacle config specified, skipping obstacle loading");
+        mtc_pipeline::loadPlanningSceneObstacles(this->get_logger(), config_file);
     }
 
     // Send play command to restart external_control program
@@ -477,22 +449,17 @@ bool MTCOrchestratorActionServer::call_pipettor_action(const nlohmann::json& ste
 }
 
 bool MTCOrchestratorActionServer::handle_tool_exchange(const nlohmann::json& step, const std::string& poses_json, const std::string& robot_ip) {
-    const std::string operation = step.value("operation", "");
-    const std::string requested_tool = step.value("gripper", process_manager_->current_gripper_);
-
-    // Execute tool exchange action (physical motion)
     if (!call_toolexchange_action(step, poses_json)) {
         return false;
     }
 
-    // Switch gripper configuration after tool exchange
-    // initialize_moveit_stack handles voltage management automatically
+    const std::string operation = step.value("operation", "");
     if (operation == "dock") {
-        return initialize_moveit_stack("none", robot_ip);  // Sets voltage to 0V
-    } else if (operation == "load") {
-        return initialize_moveit_stack(requested_tool, robot_ip);  // Sets voltage to 24V
+        return initialize_moveit_stack("none", robot_ip);
     }
-
+    if (operation == "load") {
+        return initialize_moveit_stack(step.value("gripper", process_manager_->current_gripper_), robot_ip);
+    }
     return true;
 }
 
@@ -507,8 +474,6 @@ bool MTCOrchestratorActionServer::call_toolexchange_action(const nlohmann::json&
     });
 }
 
-
-
 // === UTILITY FUNCTIONS ===
 
 void MTCOrchestratorActionServer::update_feedback(std::shared_ptr<MTCExecution::Feedback> feedback,
@@ -521,7 +486,6 @@ void MTCOrchestratorActionServer::update_feedback(std::shared_ptr<MTCExecution::
     feedback->current_gripper = process_manager_ ? process_manager_->current_gripper_ : std::string("none");
     goal_handle->publish_feedback(feedback);
 }
-
 
 // === MAIN ===
 
