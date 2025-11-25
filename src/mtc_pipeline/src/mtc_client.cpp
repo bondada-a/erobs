@@ -1,8 +1,9 @@
+// MTC action client: sends task JSON to orchestrator and reports progress.
+
 #include "mtc_pipeline/action/mtc_execution.hpp"
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <fstream>
-#include <iostream>
 #include <chrono>
 #include <optional>
 #include <signal.h>
@@ -13,14 +14,9 @@ using MTCExecution = mtc_pipeline::action::MTCExecution;
 using GoalHandleMTCExecution = rclcpp_action::ClientGoalHandle<MTCExecution>;
 
 namespace {
-// Signal flag for Ctrl+C cancellation (accessed by signal handler and main thread)
 std::atomic<bool> should_cancel{false};
 }
 
-/**
- * Client node that sends task execution requests to the MTC action server
- * Reads JSON task files and sends them as action goals
- */
 class MTCActionClient : public rclcpp::Node {
 public:
     enum class Result { Success = 0, Failure = 1, Cancelled = 2 };
@@ -30,45 +26,28 @@ public:
         action_client_ = rclcpp_action::create_client<MTCExecution>(this, "mtc_execution");
     }
 
-    /**
-     * Wait for the action server to become available
-     * @param timeout How long to wait for the server
-     * @return true if server is available, false if timeout
-     */
     bool wait_for_server(std::chrono::seconds timeout = 10s) {
         return action_client_->wait_for_action_server(timeout);
     }
 
-    /**
-     * Execute a task from a JSON file
-     * @param json_file_path Path to the JSON task file
-     * @param robot_ip IP address of the robot
-     * @return 0 = success, 1 = failed, 2 = cancelled
-     */
-    int execute_task(const std::string& json_file_path, const std::string& robot_ip = "192.168.56.101") {
-        auto goal_msg = create_goal(json_file_path, robot_ip);
-        if (!goal_msg) {
-            return static_cast<int>(Result::Failure);
-        }
+    int execute_task(const std::string& json_path, const std::string& robot_ip) {
+        auto goal = create_goal(json_path, robot_ip);
+        if (!goal) return static_cast<int>(Result::Failure);
 
-        auto goal_handle = send_goal(*goal_msg);
-        if (!goal_handle) {
-            return static_cast<int>(Result::Failure);
-        }
+        auto handle = send_goal(*goal);
+        if (!handle) return static_cast<int>(Result::Failure);
 
-        return static_cast<int>(wait_for_completion(goal_handle));
+        return static_cast<int>(wait_for_completion(handle));
     }
 
 private:
-    /**
-     * Create action goal from JSON file
-     */
-    std::optional<MTCExecution::Goal> create_goal(const std::string& json_file_path, const std::string& robot_ip) {
+    std::optional<MTCExecution::Goal> create_goal(const std::string& path, const std::string& ip) {
         try {
-            std::ifstream file(json_file_path);
+            std::ifstream file(path);
             MTCExecution::Goal goal;
-            goal.full_json = std::string((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-            goal.robot_ip = robot_ip;
+            goal.full_json = std::string((std::istreambuf_iterator<char>(file)),
+                                          std::istreambuf_iterator<char>());
+            goal.robot_ip = ip;
             return goal;
         } catch (const std::exception& e) {
             RCLCPP_ERROR(get_logger(), "Error reading file: %s", e.what());
@@ -76,153 +55,67 @@ private:
         }
     }
 
-    /**
-     * Send goal to action server
-     */
     std::shared_ptr<GoalHandleMTCExecution> send_goal(const MTCExecution::Goal& goal) {
-        RCLCPP_INFO(get_logger(), "Sending task execution goal...");
+        RCLCPP_INFO(get_logger(), "Sending goal...");
 
-        auto send_goal_options = rclcpp_action::Client<MTCExecution>::SendGoalOptions();
-        send_goal_options.feedback_callback =
-            [this](GoalHandleMTCExecution::SharedPtr goal,
-                   const std::shared_ptr<const MTCExecution::Feedback>& feedback) {
-                feedback_callback(goal, feedback);
-            };
-        send_goal_options.result_callback =
-            [this](const GoalHandleMTCExecution::WrappedResult& result) {
-                result_callback(result);
-            };
+        auto options = rclcpp_action::Client<MTCExecution>::SendGoalOptions();
+        options.feedback_callback = [this](auto, const auto& fb) {
+            RCLCPP_INFO(get_logger(), "Progress: %.1f%% - %s - %s",
+                fb->progress_percentage, fb->current_action.c_str(), fb->status_message.c_str());
+        };
+        options.result_callback = [this](const auto& result) {
+            if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
+                RCLCPP_INFO(get_logger(), "Task completed (%d/%d steps)",
+                    result.result->completed_steps, result.result->total_steps);
+            } else if (result.code == rclcpp_action::ResultCode::ABORTED) {
+                RCLCPP_ERROR(get_logger(), "Aborted: %s", result.result->error_message.c_str());
+            } else if (result.code == rclcpp_action::ResultCode::CANCELED) {
+                RCLCPP_WARN(get_logger(), "Canceled");
+            }
+        };
 
-        auto goal_handle_future = action_client_->async_send_goal(goal, send_goal_options);
-        auto node = shared_from_this();
-
-        auto status = rclcpp::spin_until_future_complete(node, goal_handle_future, 10s);
-        if (status != rclcpp::FutureReturnCode::SUCCESS) {
-            RCLCPP_ERROR(get_logger(), "Failed to send goal (timeout or error)");
+        auto future = action_client_->async_send_goal(goal, options);
+        if (rclcpp::spin_until_future_complete(shared_from_this(), future, 10s) !=
+            rclcpp::FutureReturnCode::SUCCESS) {
+            RCLCPP_ERROR(get_logger(), "Failed to send goal");
             return nullptr;
         }
 
-        auto goal_handle = goal_handle_future.get();
-        if (!goal_handle) {
-            RCLCPP_ERROR(get_logger(), "Goal was rejected by server");
+        auto handle = future.get();
+        if (!handle) {
+            RCLCPP_ERROR(get_logger(), "Goal rejected");
             return nullptr;
         }
-
-        RCLCPP_INFO(get_logger(), "Goal accepted, task execution started");
-        return goal_handle;
+        RCLCPP_INFO(get_logger(), "Goal accepted");
+        return handle;
     }
 
-    /**
-     * Wait for task completion with cancellation support
-     */
-    Result wait_for_completion(std::shared_ptr<GoalHandleMTCExecution> goal_handle) {
-        auto result_future = action_client_->async_get_result(goal_handle);
-        auto node = shared_from_this();
-
-        const auto check_interval = 100ms;
-        auto start_time = std::chrono::steady_clock::now();
+    Result wait_for_completion(std::shared_ptr<GoalHandleMTCExecution> handle) {
+        auto future = action_client_->async_get_result(handle);
+        auto start = std::chrono::steady_clock::now();
 
         while (true) {
-            // Check if we should cancel (Ctrl+C was pressed)
             if (should_cancel.load()) {
-                RCLCPP_INFO(get_logger(), "Cancellation requested, stopping execution...");
-                if (cancel_goal(goal_handle)) {
-                    return Result::Cancelled;
-                } else {
-                    return Result::Failure;
-                }
+                RCLCPP_INFO(get_logger(), "Cancelling...");
+                action_client_->async_cancel_goal(handle);
+                return Result::Cancelled;
             }
 
-            // Check if result is ready with short timeout (allows for cancellation)
-            auto status = rclcpp::spin_until_future_complete(node, result_future, check_interval);
-
-            if (status == rclcpp::FutureReturnCode::SUCCESS) {
-                auto result = result_future.get();
-                if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
-                    return Result::Success;
-                } else if (result.code == rclcpp_action::ResultCode::CANCELED) {
-                    return Result::Cancelled;
-                } else {
-                    return Result::Failure;
-                }
+            if (rclcpp::spin_until_future_complete(shared_from_this(), future, 100ms) ==
+                rclcpp::FutureReturnCode::SUCCESS) {
+                auto result = future.get();
+                if (result.code == rclcpp_action::ResultCode::SUCCEEDED) return Result::Success;
+                if (result.code == rclcpp_action::ResultCode::CANCELED) return Result::Cancelled;
+                return Result::Failure;
             }
 
-            // Check for overall timeout
-            auto elapsed = std::chrono::steady_clock::now() - start_time;
-            if (elapsed > timeout_) {
-                RCLCPP_ERROR(get_logger(), "Task execution timed out");
+            if (std::chrono::steady_clock::now() - start > timeout_) {
+                RCLCPP_ERROR(get_logger(), "Timeout");
                 return Result::Failure;
             }
         }
     }
 
-    /**
-     * Cancel the current goal
-     */
-    bool cancel_goal(std::shared_ptr<GoalHandleMTCExecution> goal_handle) {
-        if (!goal_handle) {
-            RCLCPP_WARN(get_logger(), "No active goal to cancel");
-            return false;
-        }
-
-        RCLCPP_INFO(get_logger(), "Sending cancel request...");
-
-        auto cancel_future = action_client_->async_cancel_goal(goal_handle);
-        auto node = shared_from_this();
-
-        auto status = rclcpp::spin_until_future_complete(node, cancel_future, 5s);
-
-        if (status == rclcpp::FutureReturnCode::SUCCESS) {
-            auto cancel_response = cancel_future.get();
-            if (cancel_response->goals_canceling.size() > 0) {
-                RCLCPP_INFO(get_logger(), "Cancel request accepted by server");
-                return true;
-            } else {
-                RCLCPP_WARN(get_logger(), "Cancel request rejected by server");
-                return false;
-            }
-        } else {
-            RCLCPP_ERROR(get_logger(), "Cancel request timed out");
-            return false;
-        }
-    }
-
-    /**
-     * Callback for receiving progress updates during task execution
-     */
-    void feedback_callback(GoalHandleMTCExecution::SharedPtr,
-                          const std::shared_ptr<const MTCExecution::Feedback> feedback) {
-        RCLCPP_INFO(get_logger(),
-                   "Progress: %.1f%% - Step %d - Action: %s - Status: %s - Gripper: %s",
-                   feedback->progress_percentage,
-                   feedback->current_step,
-                   feedback->current_action.c_str(),
-                   feedback->status_message.c_str(),
-                   feedback->current_gripper.c_str());
-    }
-
-    /**
-     * Callback for receiving the final result when task completes
-     */
-    void result_callback(const GoalHandleMTCExecution::WrappedResult& result) {
-        switch (result.code) {
-            case rclcpp_action::ResultCode::SUCCEEDED:
-                RCLCPP_INFO(get_logger(), "Task completed successfully! (%d/%d steps)",
-                           result.result->completed_steps, result.result->total_steps);
-                break;
-            case rclcpp_action::ResultCode::ABORTED:
-                RCLCPP_ERROR(get_logger(), "Task aborted: %s", result.result->error_message.c_str());
-                break;
-            case rclcpp_action::ResultCode::CANCELED:
-                RCLCPP_WARN(get_logger(), "Task canceled");
-                break;
-            default:
-                RCLCPP_ERROR(get_logger(), "Unknown result code");
-                break;
-        }
-    }
-
-    // Member variables
     rclcpp_action::Client<MTCExecution>::SharedPtr action_client_;
     std::chrono::seconds timeout_;
 };
@@ -230,36 +123,27 @@ private:
 int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
 
-    // Parse command line arguments
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <json_file_path> [robot_ip] [timeout_seconds]" << std::endl;
-        std::cout << "Example: " << argv[0] << " ./script.json 192.168.56.101 300" << std::endl;
-        std::cout << "Press Ctrl+C to cancel execution at any time" << std::endl;
+        std::cout << "Usage: " << argv[0] << " <json_file> [robot_ip] [timeout_sec]\n";
         return 1;
     }
 
-    std::string json_file = argv[1];
-    std::string robot_ip = (argc > 2) ? argv[2] : "192.168.56.101";
-    int timeout_seconds = (argc > 3) ? std::stoi(argv[3]) : 300;
+    std::string json = argv[1];
+    std::string ip = (argc > 2) ? argv[2] : "192.168.56.101";
+    int timeout = (argc > 3) ? std::stoi(argv[3]) : 300;
 
-    // Setup signal handler for Ctrl+C
     signal(SIGINT, [](int) { should_cancel.store(true); });
 
-    // Create the action client with timeout
-    auto client = std::make_shared<MTCActionClient>(std::chrono::seconds(timeout_seconds));
+    auto client = std::make_shared<MTCActionClient>(std::chrono::seconds(timeout));
 
-    // Wait for the action server to become available
-    RCLCPP_INFO(client->get_logger(), "Waiting for action server...");
+    RCLCPP_INFO(client->get_logger(), "Waiting for server...");
     if (!client->wait_for_server(10s)) {
-        RCLCPP_ERROR(client->get_logger(), "Action server not available after 10 seconds");
+        RCLCPP_ERROR(client->get_logger(), "Server unavailable");
         rclcpp::shutdown();
         return 1;
     }
 
-    // Execute the task
-    RCLCPP_INFO(client->get_logger(), "Starting task execution. Press Ctrl+C to cancel at any time.");
-    int exit_code = client->execute_task(json_file, robot_ip);
-
+    int code = client->execute_task(json, ip);
     rclcpp::shutdown();
-    return exit_code;
+    return code;
 }

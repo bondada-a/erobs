@@ -988,7 +988,7 @@ class MTCGUIClient:
 
                 if result.returncode == 0:
                     pkg_prefix = result.stdout.strip()
-                    mtc_client_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_action_client_example')
+                    mtc_client_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_client')
                     self.log_message(f"Package prefix found: {pkg_prefix}")
                     self.log_message(f"Looking for executable at: {mtc_client_path}")
 

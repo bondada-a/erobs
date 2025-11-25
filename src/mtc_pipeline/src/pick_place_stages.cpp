@@ -6,168 +6,108 @@
 #include <moveit_msgs/msg/joint_constraint.hpp>
 
 namespace {
-constexpr const char* WRIST3_JOINT_NAME = "wrist_3_joint";
-constexpr double WRIST3_POSITION = 0.0;
-constexpr double WRIST3_TOLERANCE = 0.01;
-constexpr double WRIST3_WEIGHT = 1.0;
 
+// Constrains wrist_3 to 0 radians to keep gripper level during motion
 moveit_msgs::msg::Constraints createWrist3Constraint() {
-  moveit_msgs::msg::Constraints constraint;
-  moveit_msgs::msg::JointConstraint jc;
-  jc.joint_name = WRIST3_JOINT_NAME;
-  jc.position = WRIST3_POSITION;
-  jc.tolerance_above = WRIST3_TOLERANCE;
-  jc.tolerance_below = WRIST3_TOLERANCE;
-  jc.weight = WRIST3_WEIGHT;
-  constraint.joint_constraints.push_back(jc);
-  return constraint;
+    moveit_msgs::msg::Constraints constraint;
+    moveit_msgs::msg::JointConstraint jc;
+    jc.joint_name = "wrist_3_joint";
+    jc.position = 0.0;
+    jc.tolerance_above = 0.01;
+    jc.tolerance_below = 0.01;
+    jc.weight = 1.0;
+    constraint.joint_constraints.push_back(jc);
+    return constraint;
 }
-}
+
+}  // namespace
 
 PickPlaceStages::PickPlaceStages(const rclcpp::Node::SharedPtr& node)
-  : BaseStages(node) {}
+    : BaseStages(node) {}
 
 std::unique_ptr<mtc::Stage> PickPlaceStages::make_move_to_named_stage(
-  const std::string& label,
-  const std::string& pose_key,
-  const nlohmann::json& poses,
-  const mtc::solvers::PlannerInterfacePtr& planner)
+    const std::string& label,
+    const std::string& pose_key,
+    const nlohmann::json& poses,
+    const mtc::solvers::PlannerInterfacePtr& planner)
 {
-  const auto& joint_pose = poses.at(pose_key);
-  if (!joint_pose.is_array() || joint_pose.size() != BaseStages::default_joint_names().size()) {
-    RCLCPP_ERROR(node()->get_logger(), "'%s' must be an array of 6 numbers", pose_key.c_str());
-    return nullptr;
-  }
+    const auto& joint_pose = poses.at(pose_key);
+    if (!joint_pose.is_array() || joint_pose.size() != 6) {
+        RCLCPP_ERROR(node()->get_logger(), "'%s' must be array of 6 joint angles", pose_key.c_str());
+        return nullptr;
+    }
 
-  auto joint_angles_deg = joint_pose.get<std::vector<double>>();
-  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-  stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-  stage->setGroup(default_arm_group_name());
-  stage->setGoal(joints_from_degrees(joint_angles_deg));
-  return stage;
+    auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
+    stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    stage->setGroup(default_arm_group_name());
+    stage->setGoal(joints_from_degrees(joint_pose.get<std::vector<double>>()));
+    return stage;
 }
 
 std::unique_ptr<mtc::Stage> PickPlaceStages::make_gripper_stage(
-  const std::string& label,
-  const mtc::solvers::PlannerInterfacePtr& planner,
-  bool open,
-  const std::string& gripper_type)
+    const std::string& label,
+    const mtc::solvers::PlannerInterfacePtr& planner,
+    bool open,
+    const std::string& gripper_type)
 {
-  auto config = gripper_config::get_gripper_config(gripper_type);
-  auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-  stage->setGroup(config.group);
-  stage->setGoal(open ? config.release_state : config.grasp_state);
-  return stage;
+    auto config = gripper_config::get_gripper_config(gripper_type);
+    auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
+    stage->setGroup(config.group);
+    stage->setGoal(open ? config.release_state : config.grasp_state);
+    return stage;
 }
 
 bool PickPlaceStages::run(const mtc_pipeline::action::PickPlaceAction::Goal& goal)
 {
-  // Parse poses JSON
-  nlohmann::json poses;
-  try {
-    poses = nlohmann::json::parse(goal.poses_json);
-  } catch (const nlohmann::json::exception& e) {
-    RCLCPP_ERROR(node()->get_logger(), "Failed to parse poses_json: %s", e.what());
-    return false;
-  }
-
-  // Extract individual pose names from goal
-  const std::string& pick_approach = goal.pick_approach;
-  const std::string& pick_target = goal.pick_target;
-  const std::string& place_approach = goal.place_approach;
-  const std::string& place_target = goal.place_target;
-  const std::string& gripper_type = goal.gripper;
-
-  auto task = create_task_template("Pick and Place");
-  auto pipeline_planner = make_pipeline_planner();
-  auto gripper_planner = make_joint_interpolation_planner();
-
-  // ============================================================================
-  // PICK SEQUENCE
-  // ============================================================================
-
-  // 1. Open gripper
-  task.add(make_gripper_stage("open gripper", gripper_planner, true, gripper_type));
-
-  // 2. Move to pickup approach (with wrist constraint to prevent tilt)
-  {
-    auto stage = make_move_to_named_stage("pickup approach", pick_approach, poses, pipeline_planner);
-    if (!stage) return false;
-    if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
-      move_to_stage->setPathConstraints(createWrist3Constraint());
+    nlohmann::json poses;
+    try {
+        poses = nlohmann::json::parse(goal.poses_json);
+    } catch (const nlohmann::json::exception& e) {
+        RCLCPP_ERROR(node()->get_logger(), "Failed to parse poses_json: %s", e.what());
+        return false;
     }
-    task.add(std::move(stage));
-  }
 
-  // 3. Move to pickup position (with wrist constraint to prevent tilt)
-  {
-    auto stage = make_move_to_named_stage("pickup", pick_target, poses, pipeline_planner);
-    if (!stage) return false;
-    if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
-      move_to_stage->setPathConstraints(createWrist3Constraint());
-    }
-    task.add(std::move(stage));
-  }
+    auto task = create_task_template("Pick and Place");
+    auto pipeline = make_pipeline_planner();
+    auto gripper_planner = make_joint_interpolation_planner();
 
-  // 4. Close gripper
-  task.add(make_gripper_stage("close gripper", gripper_planner, false, gripper_type));
+    // Helper to add constrained move stage
+    auto add_constrained_move = [&](const std::string& label, const std::string& pose_key) {
+        auto stage = make_move_to_named_stage(label, pose_key, poses, pipeline);
+        if (!stage) return false;
+        if (auto* move = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
+            move->setPathConstraints(createWrist3Constraint());
+        }
+        task.add(std::move(stage));
+        return true;
+    };
 
-  // 5. Pickup retreat (with wrist constraint to prevent tilt while holding object)
-  {
-    auto stage = make_move_to_named_stage("pickup retreat", pick_approach, poses, pipeline_planner);
-    if (!stage) return false;
-    if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
-      move_to_stage->setPathConstraints(createWrist3Constraint());
-    }
-    task.add(std::move(stage));
-  }
+    // Pick sequence
+    task.add(make_gripper_stage("open gripper", gripper_planner, true, goal.gripper));
+    if (!add_constrained_move("pickup approach", goal.pick_approach)) return false;
+    if (!add_constrained_move("pickup", goal.pick_target)) return false;
+    task.add(make_gripper_stage("close gripper", gripper_planner, false, goal.gripper));
+    if (!add_constrained_move("pickup retreat", goal.pick_approach)) return false;
 
-  // ============================================================================
-  // PLACE SEQUENCE
-  // ============================================================================
+    // Place sequence (no wrist constraint - more flexibility needed)
+    auto add_move = [&](const std::string& label, const std::string& pose_key) {
+        auto stage = make_move_to_named_stage(label, pose_key, poses, pipeline);
+        if (!stage) return false;
+        task.add(std::move(stage));
+        return true;
+    };
 
-  // 6. Move to place approach (with wrist constraint)
-  {
-    auto stage = make_move_to_named_stage("place approach", place_approach, poses, pipeline_planner);
-    if (!stage) return false;
-    // TEMPORARILY DISABLED: Testing if wrist constraint causes issues
-    // if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
-    //   move_to_stage->setPathConstraints(createWrist3Constraint());
-    // }
-    task.add(std::move(stage));
-  }
+    if (!add_move("place approach", goal.place_approach)) return false;
+    if (!add_move("place", goal.place_target)) return false;
+    task.add(make_gripper_stage("release", gripper_planner, true, goal.gripper));
+    if (!add_move("place retreat", goal.place_approach)) return false;
 
-  // 7. Move to place position (with wrist constraint)
-  {
-    auto stage = make_move_to_named_stage("place", place_target, poses, pipeline_planner);
-    if (!stage) return false;
-    // TEMPORARILY DISABLED: Testing if wrist constraint causes issues
-    // if (auto* move_to_stage = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
-    //   move_to_stage->setPathConstraints(createWrist3Constraint());
-    // }
-    task.add(std::move(stage));
-  }
+    // Return home
+    auto home = std::make_unique<mtc::stages::MoveTo>("return home", pipeline);
+    home->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
+    home->setGroup(default_arm_group_name());
+    home->setGoal("moveit_home");
+    task.add(std::move(home));
 
-  // 8. Open gripper
-  task.add(make_gripper_stage("open gripper", gripper_planner, true, gripper_type));
-
-  // 9. Place retreat
-  {
-    auto stage = make_move_to_named_stage("place retreat", place_approach, poses, pipeline_planner);
-    if (!stage) return false;
-    task.add(std::move(stage));
-  }
-
-  // ============================================================================
-  // RETURN HOME
-  // ============================================================================
-  {
-    auto stage = std::make_unique<mtc::stages::MoveTo>("return home", pipeline_planner);
-    stage->properties().configureInitFrom(mtc::Stage::PARENT, {"group", "ik_frame"});
-    stage->setGroup(default_arm_group_name());
-    stage->setGoal("moveit_home");
-    task.add(std::move(stage));
-  }
-
-  return load_plan_execute(task);
+    return load_plan_execute(task);
 }

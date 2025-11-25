@@ -37,7 +37,7 @@ class MTCDevice:
 
         try:
             # Use existing C++ client with the provided JSON file
-            cmd = ['ros2', 'run', 'mtc_pipeline', 'mtc_action_client_example',
+            cmd = ['ros2', 'run', 'mtc_pipeline', 'mtc_client',
                    json_file_path, robot_ip, '300']
             
             print(f"Executing MTC task from: {json_file_path}")
