@@ -9,7 +9,7 @@
 #include <nlohmann/json.hpp>
 
 #include <atomic>
-#include <functional>
+#include <chrono>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -78,14 +78,13 @@ private:
     bool initialize_moveit_stack(const std::string& gripper, const std::string& robot_ip);
     bool set_tool_voltage_via_socket(const std::string& robot_ip, int voltage);
 
-    // Generic action client template
+    // Generic send-and-wait helper for action clients
     template<typename ActionType>
-    bool call_action_generic(
+    bool send_and_wait(
         typename rclcpp_action::Client<ActionType>::SharedPtr client,
-        const std::string& task_type,
-        const nlohmann::json& step,
-        const std::string& poses_json,
-        std::function<void(typename ActionType::Goal&, const nlohmann::json&, const std::string&)> populate_goal);
+        const typename ActionType::Goal& goal,
+        const std::string& name,
+        std::chrono::seconds timeout);
 
     // Action client calls
     bool call_moveto_action(const nlohmann::json& step, const std::string& poses_json);
