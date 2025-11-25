@@ -1,5 +1,5 @@
 #include "mtc_pipeline/pick_place_stages.hpp"
-#include "../../end_effectors/gripper_config.hpp"
+#include "mtc_pipeline/config/gripper_config.hpp"
 
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit_msgs/msg/constraints.hpp>

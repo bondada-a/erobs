@@ -11,7 +11,6 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <atomic>
 #include <memory>
 #include <string>
 #include <thread>
@@ -46,11 +45,11 @@ public:
 private:
     typename rclcpp_action::Server<ActionType>::SharedPtr action_server_;
     std::unique_ptr<StagesType> stages_;
-    std::atomic<bool> executing_{false};
+    bool executing_{false};
 
     void handle_accepted(const std::shared_ptr<GoalHandle> goal_handle)
     {
-        if (executing_.exchange(true)) {
+        if (executing_) {
             RCLCPP_WARN(this->get_logger(), "Rejecting goal: server busy");
             auto result = std::make_shared<typename ActionType::Result>();
             result->success = false;
@@ -58,6 +57,7 @@ private:
             goal_handle->abort(result);
             return;
         }
+        executing_ = true;
 
         // Worker thread keeps main executor responsive for callbacks
         std::thread{[this, node_lifetime = shared_from_this(), goal_handle]() {

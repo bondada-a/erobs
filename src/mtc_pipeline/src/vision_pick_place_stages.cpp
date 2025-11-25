@@ -1,5 +1,5 @@
 #include "mtc_pipeline/vision_pick_place_stages.hpp"
-#include "../../end_effectors/gripper_config.hpp"
+#include "mtc_pipeline/config/gripper_config.hpp"
 
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit/task_constructor/solvers/cartesian_path.h>

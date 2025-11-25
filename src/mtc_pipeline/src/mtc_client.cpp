@@ -132,7 +132,10 @@ int main(int argc, char** argv) {
     std::string ip = (argc > 2) ? argv[2] : "192.168.56.101";
     int timeout = (argc > 3) ? std::stoi(argv[3]) : 300;
 
-    signal(SIGINT, [](int) { should_cancel.store(true); });
+    // Handle both Ctrl+C and process.terminate() from GUI
+    auto cancel_handler = [](int) { should_cancel.store(true); };
+    signal(SIGINT, cancel_handler);
+    signal(SIGTERM, cancel_handler);
 
     auto client = std::make_shared<MTCActionClient>(std::chrono::seconds(timeout));
 

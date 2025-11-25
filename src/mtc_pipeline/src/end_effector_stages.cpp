@@ -1,5 +1,5 @@
 #include "mtc_pipeline/end_effector_stages.hpp"
-#include "../../end_effectors/gripper_config.hpp"
+#include "mtc_pipeline/config/gripper_config.hpp"
 #include <moveit/task_constructor/stages/move_to.h>
 
 EndEffectorStages::EndEffectorStages(const rclcpp::Node::SharedPtr& node)
