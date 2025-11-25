@@ -111,7 +111,7 @@ include_directories(include)
 
 
 add_executable(mtc_orchestrator_action_server src/mtc_orchestrator_action_server.cpp)
-add_executable(mtc_action_client_example src/mtc_action_client_example.cpp)
+add_executable(mtc_client src/mtc_client.cpp)
 add_executable(pick_place_action_server src/pick_place_action_server.cpp)
 add_executable(tool_exchange_action_server src/tool_exchange_action_server.cpp)
 add_executable(move_to_action_server src/move_to_action_server.cpp)
@@ -125,7 +125,7 @@ rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_t
 
 
 ament_target_dependencies(mtc_orchestrator_action_server ${ORCHESTRATOR_DEPS})
-ament_target_dependencies(mtc_action_client_example rclcpp rclcpp_action)
+ament_target_dependencies(mtc_client rclcpp rclcpp_action)
 ament_target_dependencies(pick_place_action_server ${MODULAR_ACTION_SERVER_DEPS})
 ament_target_dependencies(tool_exchange_action_server ${MODULAR_ACTION_SERVER_DEPS})
 ament_target_dependencies(move_to_action_server ${MODULAR_ACTION_SERVER_DEPS})
@@ -136,7 +136,7 @@ ament_target_dependencies(vision_pick_place_action_server ${MODULAR_ACTION_SERVE
 
 # Link Libraries
 target_link_libraries(mtc_orchestrator_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core obstacle_loader)
-target_link_libraries(mtc_action_client_example "${cpp_typesupport_target}" nlohmann_json::nlohmann_json)
+target_link_libraries(mtc_client "${cpp_typesupport_target}" nlohmann_json::nlohmann_json)
 target_link_libraries(pick_place_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 target_link_libraries(tool_exchange_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 target_link_libraries(move_to_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
@@ -146,7 +146,7 @@ target_link_libraries(pipettor_action_server "${cpp_typesupport_target}" nlohman
 target_link_libraries(vision_pick_place_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 
 target_compile_features(mtc_orchestrator_action_server PUBLIC c_std_99 cxx_std_17)
-target_compile_features(mtc_action_client_example PUBLIC c_std_99 cxx_std_17)
+target_compile_features(mtc_client PUBLIC c_std_99 cxx_std_17)
 target_compile_features(pick_place_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(tool_exchange_action_server PUBLIC c_std_99 cxx_std_17)
 target_compile_features(move_to_action_server PUBLIC c_std_99 cxx_std_17)
@@ -157,7 +157,7 @@ target_compile_features(vision_pick_place_action_server PUBLIC c_std_99 cxx_std_
 
 install(TARGETS
   mtc_orchestrator_action_server
-  mtc_action_client_example
+  mtc_client
   pick_place_action_server
   tool_exchange_action_server
   move_to_action_server
