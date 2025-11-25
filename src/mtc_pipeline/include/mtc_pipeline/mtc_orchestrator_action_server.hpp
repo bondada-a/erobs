@@ -28,8 +28,6 @@
 #include "mtc_pipeline/action/vision_move_to_action.hpp"
 #include "mtc_pipeline/action/pipettor_action.hpp"
 
-class SimpleProcessManager;
-
 using MTCExecution = mtc_pipeline::action::MTCExecution;
 using GoalHandleMTCExecution = rclcpp_action::ServerGoalHandle<MTCExecution>;
 using MoveToAction = mtc_pipeline::action::MoveToAction;
@@ -50,7 +48,12 @@ public:
 private:
     ActionServer::SharedPtr action_server_;
     std::atomic<bool> is_executing_;
-    std::unique_ptr<SimpleProcessManager> process_manager_;
+
+    // MoveIt process management
+    std::string current_gripper_;
+    pid_t moveit_pid_{0};
+    pid_t launch_moveit_process(const std::string& command);
+    void kill_moveit_process();
 
     // Action clients
     rclcpp_action::Client<MoveToAction>::SharedPtr moveto_action_client_;

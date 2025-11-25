@@ -1,5 +1,4 @@
 #include "mtc_pipeline/vision_pick_place_stages.hpp"
-#include "mtc_pipeline/config/gripper_config.hpp"
 
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit/task_constructor/solvers/cartesian_path.h>
@@ -11,6 +10,16 @@
 #include <tf2/LinearMath/Transform.h>
 
 namespace {
+
+// Gripper helpers - derive MoveIt names from gripper type
+std::string get_gripper_group(const std::string& type) {
+    return type + "_gripper";  // hande -> hande_gripper
+}
+
+std::string get_gripper_state(const std::string& type, bool open) {
+    if (type == "epick") return open ? "vacuum_off" : "vacuum_on";
+    return type + (open ? "_open" : "_closed");  // hande_open, hande_closed
+}
 
 moveit_msgs::msg::Constraints createWrist3Constraint() {
     moveit_msgs::msg::Constraints c;
@@ -166,10 +175,9 @@ std::unique_ptr<mtc::Stage> VisionPickPlaceStages::make_gripper_stage(
     bool open,
     const std::string& gripper_type)
 {
-    auto config = gripper_config::get_gripper_config(gripper_type);
     auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-    stage->setGroup(config.group);
-    stage->setGoal(open ? config.release_state : config.grasp_state);
+    stage->setGroup(get_gripper_group(gripper_type));
+    stage->setGoal(get_gripper_state(gripper_type, open));
     return stage;
 }
 
