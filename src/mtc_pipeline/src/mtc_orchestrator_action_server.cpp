@@ -23,6 +23,16 @@ using namespace std::chrono_literals;
 MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options)
     : Node("mtc_orchestrator_action_server", options), is_executing_(false)
 {
+    // Load gripper configurations from YAML
+    try {
+        gripper_registry_ = std::make_shared<mtc_pipeline::GripperConfigRegistry>(
+            this, "config/grippers.yaml");
+    } catch (const std::exception& e) {
+        RCLCPP_FATAL(this->get_logger(),
+                     "Failed to load gripper configuration: %s", e.what());
+        throw;
+    }
+
     // Create action server (receives task scripts from clients)
     action_server_ = rclcpp_action::create_server<MTCExecution>(
         this, "mtc_execution",
@@ -302,30 +312,32 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(
         kill_moveit_process();
     }
 
-    // Gripper → MoveIt config package mapping
-    static const std::unordered_map<std::string, std::string> gripper_packages = {
-        {"none",     "ur_standalone_moveit_config"},
-        {"epick",    "ur_zivid_epick_moveit_config"},
-        {"hande",    "ur_zivid_hande_moveit_config"},
-        {"pipettor", "ur_zivid_pipettor_moveit_config"}
-    };
-
-    // Gripper → tool voltage mapping
-    static const std::unordered_map<std::string, int> gripper_voltages = {
-        {"none", 0}, {"epick", 24}, {"hande", 24}, {"pipettor", 24}
-    };
+    // Get gripper configuration from registry
+    auto config = gripper_registry_->get_config(gripper);
+    if (!config) {
+        RCLCPP_ERROR(this->get_logger(),
+                     "Unknown gripper type: %s (available: %s)",
+                     gripper.c_str(),
+                     [&]() {
+                         std::string list;
+                         for (const auto& g : gripper_registry_->available_grippers()) {
+                             list += g + " ";
+                         }
+                         return list;
+                     }().c_str());
+        return false;
+    }
 
     // Step 1: Set tool voltage (must happen BEFORE MoveIt launches)
-    int voltage = gripper_voltages.at(gripper);
-    RCLCPP_INFO(this->get_logger(), "Setting tool voltage: %dV", voltage);
-    if (!set_tool_voltage_via_socket(robot_ip, voltage)) {
+    RCLCPP_INFO(this->get_logger(), "Setting tool voltage: %dV", config->tool_voltage);
+    if (!set_tool_voltage_via_socket(robot_ip, config->tool_voltage)) {
         RCLCPP_ERROR(this->get_logger(), "Failed to set tool voltage");
         return false;
     }
 
     // Step 2: Launch MoveIt
     RCLCPP_INFO(this->get_logger(), "Launching MoveIt for %s gripper", gripper.c_str());
-    std::string launch_cmd = "ros2 launch " + gripper_packages.at(gripper) +
+    std::string launch_cmd = "ros2 launch " + config->moveit_package +
                              " robot_bringup.launch.py robot_ip:=" + robot_ip;
     launch_moveit_process(launch_cmd);
 

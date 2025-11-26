@@ -28,6 +28,7 @@
 #include "mtc_pipeline/action/pick_place_action.hpp"
 #include "mtc_pipeline/action/vision_move_to_action.hpp"
 #include "mtc_pipeline/action/pipettor_action.hpp"
+#include "mtc_pipeline/gripper_config_registry.hpp"
 
 using MTCExecution = mtc_pipeline::action::MTCExecution;
 using GoalHandleMTCExecution = rclcpp_action::ServerGoalHandle<MTCExecution>;
@@ -49,6 +50,9 @@ public:
 private:
     ActionServer::SharedPtr action_server_;
     std::atomic<bool> is_executing_;
+
+    // Gripper configuration (loaded from YAML)
+    std::shared_ptr<mtc_pipeline::GripperConfigRegistry> gripper_registry_;
 
     // MoveIt process management
     std::string current_gripper_;

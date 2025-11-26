@@ -65,6 +65,7 @@ add_library(mtc_pipeline_core
   src/pipettor_stages.cpp
   src/pipettor_operation_stage.cpp
   src/vision_pick_place_stages.cpp
+  src/gripper_config_registry.cpp
 )
 ament_target_dependencies(mtc_pipeline_core
   moveit_task_constructor_core
@@ -84,6 +85,7 @@ target_include_directories(mtc_pipeline_core PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
 )
+target_link_libraries(mtc_pipeline_core yaml-cpp)
 target_compile_features(mtc_pipeline_core PUBLIC c_std_99 cxx_std_17)
 
 # Make sure the library depends on the generated interfaces
