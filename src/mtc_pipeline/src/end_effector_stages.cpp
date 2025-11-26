@@ -1,20 +1,16 @@
 #include "mtc_pipeline/end_effector_stages.hpp"
+#include "mtc_pipeline/gripper_utils.hpp"
+
 #include <moveit/task_constructor/stages/move_to.h>
 
-namespace {
-// Derives MoveIt group name from gripper type
-std::string get_gripper_group(const std::string& type) {
-    if (type == "pipettor") return "";  // No movable joints
-    return type + "_gripper";  // hande -> hande_gripper, epick -> epick_gripper
-}
-}  // namespace
+// Note: Gripper helper functions moved to gripper_utils.hpp to eliminate duplication
 
 EndEffectorStages::EndEffectorStages(const rclcpp::Node::SharedPtr& node)
     : BaseStages(node) {}
 
 bool EndEffectorStages::run(const mtc_pipeline::action::EndEffectorAction::Goal& goal)
 {
-    std::string group = get_gripper_group(goal.end_effector_type);
+    std::string group = mtc_pipeline::gripper_utils::get_group_name(goal.end_effector_type);
     if (group.empty()) {
         RCLCPP_ERROR(node()->get_logger(), "Unknown end effector: %s", goal.end_effector_type.c_str());
         return false;

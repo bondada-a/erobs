@@ -49,6 +49,10 @@ protected:
         double distance,
         const mtc::solvers::PlannerInterfacePtr& planner) const;
 
+    // Creates path constraint to keep wrist_3 at 0 radians (gripper level)
+    // Used during pick/place approach/retreat to prevent tipping objects
+    moveit_msgs::msg::Constraints create_wrist3_level_constraint() const;
+
 private:
     rclcpp::Node::SharedPtr node_;
 };

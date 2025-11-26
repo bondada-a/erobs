@@ -1,35 +1,13 @@
 #include "mtc_pipeline/pick_place_stages.hpp"
+#include "mtc_pipeline/gripper_utils.hpp"
 
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit_msgs/msg/constraints.hpp>
 #include <moveit_msgs/msg/joint_constraint.hpp>
 
-namespace {
-
-// Gripper helpers - derive MoveIt names from gripper type
-std::string get_gripper_group(const std::string& type) {
-    return type + "_gripper";  // hande -> hande_gripper
-}
-
-std::string get_gripper_state(const std::string& type, bool open) {
-    if (type == "epick") return open ? "vacuum_off" : "vacuum_on";
-    return type + (open ? "_open" : "_closed");  // hande_open, hande_closed
-}
-
-// Constrains wrist_3 to 0 radians to keep gripper level during motion
-moveit_msgs::msg::Constraints createWrist3Constraint() {
-    moveit_msgs::msg::Constraints constraint;
-    moveit_msgs::msg::JointConstraint jc;
-    jc.joint_name = "wrist_3_joint";
-    jc.position = 0.0;
-    jc.tolerance_above = 0.01;
-    jc.tolerance_below = 0.01;
-    jc.weight = 1.0;
-    constraint.joint_constraints.push_back(jc);
-    return constraint;
-}
-
-}  // namespace
+// Note: Helper functions moved to eliminate duplication:
+//   - Gripper utilities -> gripper_utils.hpp
+//   - Wrist constraint -> BaseStages::create_wrist3_level_constraint()
 
 PickPlaceStages::PickPlaceStages(const rclcpp::Node::SharedPtr& node)
     : BaseStages(node) {}
@@ -60,8 +38,8 @@ std::unique_ptr<mtc::Stage> PickPlaceStages::make_gripper_stage(
     const std::string& gripper_type)
 {
     auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-    stage->setGroup(get_gripper_group(gripper_type));
-    stage->setGoal(get_gripper_state(gripper_type, open));
+    stage->setGroup(mtc_pipeline::gripper_utils::get_group_name(gripper_type));
+    stage->setGoal(mtc_pipeline::gripper_utils::get_state_name(gripper_type, open));
     return stage;
 }
 
@@ -84,7 +62,7 @@ bool PickPlaceStages::run(const mtc_pipeline::action::PickPlaceAction::Goal& goa
         auto stage = make_move_to_named_stage(label, pose_key, poses, pipeline);
         if (!stage) return false;
         if (auto* move = dynamic_cast<mtc::stages::MoveTo*>(stage.get())) {
-            move->setPathConstraints(createWrist3Constraint());
+            move->setPathConstraints(create_wrist3_level_constraint());
         }
         task.add(std::move(stage));
         return true;

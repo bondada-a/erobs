@@ -152,3 +152,15 @@ std::unique_ptr<mtc::Stage> BaseStages::create_relative_move_stage(
     stage->setDirection(vec);
     return stage;
 }
+
+moveit_msgs::msg::Constraints BaseStages::create_wrist3_level_constraint() const {
+    moveit_msgs::msg::Constraints constraint;
+    moveit_msgs::msg::JointConstraint jc;
+    jc.joint_name = "wrist_3_joint";
+    jc.position = 0.0;
+    jc.tolerance_above = 0.01;
+    jc.tolerance_below = 0.01;
+    jc.weight = 1.0;
+    constraint.joint_constraints.push_back(jc);
+    return constraint;
+}

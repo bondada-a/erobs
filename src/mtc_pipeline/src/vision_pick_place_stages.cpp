@@ -1,4 +1,5 @@
 #include "mtc_pipeline/vision_pick_place_stages.hpp"
+#include "mtc_pipeline/gripper_utils.hpp"
 
 #include <moveit/task_constructor/stages/move_to.h>
 #include <moveit/task_constructor/solvers/cartesian_path.h>
@@ -9,31 +10,9 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/LinearMath/Transform.h>
 
-namespace {
-
-// Gripper helpers - derive MoveIt names from gripper type
-std::string get_gripper_group(const std::string& type) {
-    return type + "_gripper";  // hande -> hande_gripper
-}
-
-std::string get_gripper_state(const std::string& type, bool open) {
-    if (type == "epick") return open ? "vacuum_off" : "vacuum_on";
-    return type + (open ? "_open" : "_closed");  // hande_open, hande_closed
-}
-
-moveit_msgs::msg::Constraints createWrist3Constraint() {
-    moveit_msgs::msg::Constraints c;
-    moveit_msgs::msg::JointConstraint jc;
-    jc.joint_name = "wrist_3_joint";
-    jc.position = 0.0;
-    jc.tolerance_above = 0.01;
-    jc.tolerance_below = 0.01;
-    jc.weight = 1.0;
-    c.joint_constraints.push_back(jc);
-    return c;
-}
-
-}  // namespace
+// Note: Helper functions moved to eliminate duplication:
+//   - Gripper utilities -> gripper_utils.hpp
+//   - Wrist constraint -> BaseStages::create_wrist3_level_constraint()
 
 VisionPickPlaceStages::VisionPickPlaceStages(const rclcpp::Node::SharedPtr& node)
     : BaseStages(node)
@@ -176,8 +155,8 @@ std::unique_ptr<mtc::Stage> VisionPickPlaceStages::make_gripper_stage(
     const std::string& gripper_type)
 {
     auto stage = std::make_unique<mtc::stages::MoveTo>(label, planner);
-    stage->setGroup(get_gripper_group(gripper_type));
-    stage->setGoal(get_gripper_state(gripper_type, open));
+    stage->setGroup(mtc_pipeline::gripper_utils::get_group_name(gripper_type));
+    stage->setGoal(mtc_pipeline::gripper_utils::get_state_name(gripper_type, open));
     return stage;
 }
 
@@ -193,7 +172,7 @@ std::unique_ptr<mtc::Stage> VisionPickPlaceStages::make_cartesian_move_stage(
     stage->setGoal(target);
 
     if (apply_wrist_constraint) {
-        stage->setPathConstraints(createWrist3Constraint());
+        stage->setPathConstraints(create_wrist3_level_constraint());
     }
     return stage;
 }
