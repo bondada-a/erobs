@@ -81,21 +81,23 @@ void MTCOrchestratorActionServer::handle_accepted(
 }
 
 // ============================================================================
-// TASK EXECUTION (Main Workflow)
+// TASK EXECUTION (Main Workflow) - REFACTORED HELPERS
 // ============================================================================
 
-void MTCOrchestratorActionServer::execute(
-    const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
+std::optional<MTCOrchestratorActionServer::ParsedGoal>
+MTCOrchestratorActionServer::parse_and_validate_goal(
+    const MTCExecution::Goal::ConstSharedPtr& goal,
+    std::shared_ptr<MTCExecution::Result>& result)
 {
-    RCLCPP_INFO(this->get_logger(), "Executing goal");
-    is_executing_ = true;
+    // Validate robot_ip field
+    if (goal->robot_ip.empty()) {
+        RCLCPP_ERROR(this->get_logger(), "Goal missing required robot_ip");
+        result->success = false;
+        result->error_message = "Goal missing required robot_ip";
+        return std::nullopt;
+    }
 
-    const auto goal = goal_handle->get_goal();
-    auto feedback = std::make_shared<MTCExecution::Feedback>();
-    auto result = std::make_shared<MTCExecution::Result>();
-
-    // --- Parse and validate input ---
-
+    // Parse JSON
     nlohmann::json full_script;
     try {
         full_script = nlohmann::json::parse(goal->full_json);
@@ -103,94 +105,163 @@ void MTCOrchestratorActionServer::execute(
         RCLCPP_ERROR(this->get_logger(), "Invalid JSON: %s", e.what());
         result->success = false;
         result->error_message = std::string("Invalid JSON: ") + e.what();
-        goal_handle->abort(result);
-        is_executing_ = false;
-        return;
+        return std::nullopt;
     }
 
-    if (goal->robot_ip.empty()) {
-        RCLCPP_ERROR(this->get_logger(), "Goal missing required robot_ip");
-        result->success = false;
-        result->error_message = "Goal missing required robot_ip";
-        goal_handle->abort(result);
-        is_executing_ = false;
-        return;
-    }
-
+    // Validate start_gripper field
     if (!full_script.contains("start_gripper") || !full_script["start_gripper"].is_string()) {
         RCLCPP_ERROR(this->get_logger(), "Task script missing required start_gripper");
         result->success = false;
         result->error_message = "Task script missing required start_gripper";
-        goal_handle->abort(result);
-        is_executing_ = false;
-        return;
+        return std::nullopt;
     }
 
-    const std::string start_gripper = full_script["start_gripper"].get<std::string>();
-    const auto& tasks = full_script["tasks"];
-    const std::string poses_json = full_script["poses"].dump();
+    // Validate tasks field
+    if (!full_script.contains("tasks") || !full_script["tasks"].is_array()) {
+        RCLCPP_ERROR(this->get_logger(), "Task script missing required 'tasks' array");
+        result->success = false;
+        result->error_message = "Task script missing required 'tasks' array";
+        return std::nullopt;
+    }
 
-    // --- Initialize MoveIt ---
+    // Build and return parsed goal
+    ParsedGoal parsed;
+    parsed.robot_ip = goal->robot_ip;
+    parsed.start_gripper = full_script["start_gripper"].get<std::string>();
+    parsed.tasks = full_script["tasks"];
+    parsed.poses_json = full_script.value("poses", nlohmann::json::object()).dump();
 
-    update_feedback(feedback, goal_handle, 0, tasks.size(), "Initializing MoveIt");
+    return parsed;
+}
 
-    if (!initialize_moveit_stack(start_gripper, goal->robot_ip)) {
+bool MTCOrchestratorActionServer::initialize_robot_for_task(
+    const ParsedGoal& parsed_goal,
+    std::shared_ptr<MTCExecution::Feedback>& feedback,
+    std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+    std::shared_ptr<MTCExecution::Result>& result)
+{
+    update_feedback(feedback, goal_handle, 0, parsed_goal.task_count(), "Initializing MoveIt");
+
+    if (!initialize_moveit_stack(parsed_goal.start_gripper, parsed_goal.robot_ip)) {
         RCLCPP_ERROR(this->get_logger(), "Failed to initialize MoveIt stack");
         result->success = false;
         result->error_message = "Failed to initialize MoveIt stack";
-        goal_handle->abort(result);
-        is_executing_ = false;
-        return;
+        return false;
     }
 
-    // --- Execute task steps ---
+    return true;
+}
 
-    for (size_t i = 0; i < tasks.size(); ++i) {
+bool MTCOrchestratorActionServer::execute_single_task(
+    size_t task_index,
+    const ParsedGoal& parsed_goal,
+    std::shared_ptr<MTCExecution::Feedback>& feedback,
+    std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+    std::shared_ptr<MTCExecution::Result>& result)
+{
+    const auto& step = parsed_goal.tasks[task_index];
+    std::string task_type = step.value("task_type", "");
+
+    // Validate task_type field
+    if (task_type.empty()) {
+        RCLCPP_ERROR(this->get_logger(), "Step %zu missing 'task_type' field", task_index);
+        result->success = false;
+        result->error_message = "Step missing 'task_type' field";
+        result->completed_steps = task_index;
+        return false;
+    }
+
+    // Update progress feedback
+    update_feedback(feedback, goal_handle, task_index + 1, parsed_goal.task_count(), task_type);
+
+    // Execute the step
+    if (!execute_step(task_type, step, parsed_goal.poses_json, parsed_goal.robot_ip)) {
+        RCLCPP_ERROR(this->get_logger(), "%s step failed", task_type.c_str());
+        result->success = false;
+        result->error_message = task_type + " step failed";
+        result->completed_steps = task_index;
+        return false;
+    }
+
+    return true;
+}
+
+bool MTCOrchestratorActionServer::execute_all_tasks(
+    const ParsedGoal& parsed_goal,
+    std::shared_ptr<MTCExecution::Feedback>& feedback,
+    std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+    std::shared_ptr<MTCExecution::Result>& result)
+{
+    for (size_t i = 0; i < parsed_goal.task_count(); ++i) {
+        // Check for cancellation request
         if (goal_handle->is_canceling()) {
             result->success = false;
             result->error_message = "Task was canceled";
             goal_handle->canceled(result);
-            is_executing_ = false;
-            return;
+            return false;
         }
 
-        const auto& step = tasks[i];
-        std::string task_type = step.value("task_type", "");
-
-        if (task_type.empty()) {
-            RCLCPP_ERROR(this->get_logger(), "Step missing 'task_type' field");
-            result->success = false;
-            result->error_message = "Step missing 'task_type' field";
-            result->completed_steps = i;
-            goal_handle->abort(result);
-            is_executing_ = false;
-            return;
-        }
-
-        update_feedback(feedback, goal_handle, i + 1, tasks.size(), task_type);
-
-        if (!execute_step(task_type, step, poses_json, goal->robot_ip)) {
-            RCLCPP_ERROR(this->get_logger(), "%s step failed", task_type.c_str());
-            result->success = false;
-            result->error_message = task_type + " step failed";
-            result->completed_steps = i;
-            goal_handle->abort(result);
-            is_executing_ = false;
-            return;
+        // Execute single task
+        if (!execute_single_task(i, parsed_goal, feedback, goal_handle, result)) {
+            return false;
         }
 
         result->completed_steps = i + 1;
     }
 
-    // --- Success ---
+    return true;
+}
 
+void MTCOrchestratorActionServer::finalize_successful_execution(
+    const ParsedGoal& parsed_goal,
+    std::shared_ptr<MTCExecution::Feedback>& feedback,
+    std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+    std::shared_ptr<MTCExecution::Result>& result)
+{
     result->success = true;
-    result->total_steps = tasks.size();
-    update_feedback(feedback, goal_handle, tasks.size(), tasks.size(), "");
+    result->total_steps = parsed_goal.task_count();
+    update_feedback(feedback, goal_handle, parsed_goal.task_count(), parsed_goal.task_count(), "");
+}
+
+// ============================================================================
+// TASK EXECUTION (Main execute() method - REFACTORED)
+// ============================================================================
+
+void MTCOrchestratorActionServer::execute(
+    const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
+{
+    RCLCPP_INFO(this->get_logger(), "Executing goal");
+
+    // RAII guard automatically resets is_executing_ on all exit paths (including exceptions)
+    ExecutionGuard guard(is_executing_);
+
+    auto result = std::make_shared<MTCExecution::Result>();
+    auto feedback = std::make_shared<MTCExecution::Feedback>();
+
+    // Step 1: Parse and validate goal
+    auto parsed_goal = parse_and_validate_goal(goal_handle->get_goal(), result);
+    if (!parsed_goal) {
+        goal_handle->abort(result);
+        return;
+    }
+
+    // Step 2: Initialize robot for task
+    if (!initialize_robot_for_task(*parsed_goal, feedback, goal_handle, result)) {
+        goal_handle->abort(result);
+        return;
+    }
+
+    // Step 3: Execute all tasks
+    if (!execute_all_tasks(*parsed_goal, feedback, goal_handle, result)) {
+        // Note: cancellation is handled inside execute_all_tasks
+        return;
+    }
+
+    // Step 4: Finalize success
+    finalize_successful_execution(*parsed_goal, feedback, goal_handle, result);
     goal_handle->succeed(result);
 
     RCLCPP_INFO(this->get_logger(), "Goal succeeded - keeping MoveIt running");
-    is_executing_ = false;
 }
 
 bool MTCOrchestratorActionServer::execute_step(

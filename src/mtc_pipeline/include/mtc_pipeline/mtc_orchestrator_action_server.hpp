@@ -11,6 +11,7 @@
 #include <atomic>
 #include <chrono>
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <sys/types.h>
@@ -98,4 +99,73 @@ private:
     void update_feedback(std::shared_ptr<MTCExecution::Feedback> feedback,
                         std::shared_ptr<GoalHandleMTCExecution> goal_handle,
                         size_t current_step, size_t total_steps, const std::string& task_type);
+
+    // ========================================================================
+    // REFACTORED EXECUTION HELPERS (extracted from monolithic execute())
+    // ========================================================================
+
+    // Encapsulates validated goal data
+    struct ParsedGoal {
+        std::string robot_ip;
+        std::string start_gripper;
+        nlohmann::json tasks;
+        std::string poses_json;
+
+        size_t task_count() const { return tasks.size(); }
+    };
+
+    // RAII guard to automatically reset is_executing_ flag on all exit paths
+    class ExecutionGuard {
+    public:
+        explicit ExecutionGuard(std::atomic<bool>& flag) : flag_(flag) {
+            flag_ = true;
+        }
+
+        ~ExecutionGuard() {
+            flag_ = false;
+        }
+
+        // Non-copyable, non-movable
+        ExecutionGuard(const ExecutionGuard&) = delete;
+        ExecutionGuard& operator=(const ExecutionGuard&) = delete;
+        ExecutionGuard(ExecutionGuard&&) = delete;
+        ExecutionGuard& operator=(ExecutionGuard&&) = delete;
+
+    private:
+        std::atomic<bool>& flag_;
+    };
+
+    // Parse and validate goal JSON, returns nullopt on failure
+    std::optional<ParsedGoal> parse_and_validate_goal(
+        const MTCExecution::Goal::ConstSharedPtr& goal,
+        std::shared_ptr<MTCExecution::Result>& result);
+
+    // Initialize MoveIt stack for the task
+    bool initialize_robot_for_task(
+        const ParsedGoal& parsed_goal,
+        std::shared_ptr<MTCExecution::Feedback>& feedback,
+        std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+        std::shared_ptr<MTCExecution::Result>& result);
+
+    // Execute all tasks in sequence
+    bool execute_all_tasks(
+        const ParsedGoal& parsed_goal,
+        std::shared_ptr<MTCExecution::Feedback>& feedback,
+        std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+        std::shared_ptr<MTCExecution::Result>& result);
+
+    // Execute a single task (helper for execute_all_tasks)
+    bool execute_single_task(
+        size_t task_index,
+        const ParsedGoal& parsed_goal,
+        std::shared_ptr<MTCExecution::Feedback>& feedback,
+        std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+        std::shared_ptr<MTCExecution::Result>& result);
+
+    // Finalize successful execution (set result fields)
+    void finalize_successful_execution(
+        const ParsedGoal& parsed_goal,
+        std::shared_ptr<MTCExecution::Feedback>& feedback,
+        std::shared_ptr<GoalHandleMTCExecution> goal_handle,
+        std::shared_ptr<MTCExecution::Result>& result);
 };
