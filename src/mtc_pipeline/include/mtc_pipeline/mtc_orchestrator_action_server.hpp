@@ -144,13 +144,6 @@ private:
         const MTCExecution::Goal::ConstSharedPtr& goal,
         std::shared_ptr<MTCExecution::Result>& result);
 
-    // Initialize MoveIt stack for the task
-    bool initialize_robot_for_task(
-        const ParsedGoal& parsed_goal,
-        std::shared_ptr<MTCExecution::Feedback>& feedback,
-        std::shared_ptr<GoalHandleMTCExecution> goal_handle,
-        std::shared_ptr<MTCExecution::Result>& result);
-
     // Execute all tasks in sequence
     bool execute_all_tasks(
         const ParsedGoal& parsed_goal,
@@ -161,13 +154,6 @@ private:
     // Execute a single task (helper for execute_all_tasks)
     bool execute_single_task(
         size_t task_index,
-        const ParsedGoal& parsed_goal,
-        std::shared_ptr<MTCExecution::Feedback>& feedback,
-        std::shared_ptr<GoalHandleMTCExecution> goal_handle,
-        std::shared_ptr<MTCExecution::Result>& result);
-
-    // Finalize successful execution (set result fields)
-    void finalize_successful_execution(
         const ParsedGoal& parsed_goal,
         std::shared_ptr<MTCExecution::Feedback>& feedback,
         std::shared_ptr<GoalHandleMTCExecution> goal_handle,

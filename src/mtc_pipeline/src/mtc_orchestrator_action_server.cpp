@@ -144,24 +144,6 @@ MTCOrchestratorActionServer::parse_and_validate_goal(
     return parsed;
 }
 
-bool MTCOrchestratorActionServer::initialize_robot_for_task(
-    const ParsedGoal& parsed_goal,
-    std::shared_ptr<MTCExecution::Feedback>& feedback,
-    std::shared_ptr<GoalHandleMTCExecution> goal_handle,
-    std::shared_ptr<MTCExecution::Result>& result)
-{
-    update_feedback(feedback, goal_handle, 0, parsed_goal.task_count(), "Initializing MoveIt");
-
-    if (!initialize_moveit_stack(parsed_goal.start_gripper, parsed_goal.robot_ip)) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to initialize MoveIt stack");
-        result->success = false;
-        result->error_message = "Failed to initialize MoveIt stack";
-        return false;
-    }
-
-    return true;
-}
-
 bool MTCOrchestratorActionServer::execute_single_task(
     size_t task_index,
     const ParsedGoal& parsed_goal,
@@ -222,17 +204,6 @@ bool MTCOrchestratorActionServer::execute_all_tasks(
     return true;
 }
 
-void MTCOrchestratorActionServer::finalize_successful_execution(
-    const ParsedGoal& parsed_goal,
-    std::shared_ptr<MTCExecution::Feedback>& feedback,
-    std::shared_ptr<GoalHandleMTCExecution> goal_handle,
-    std::shared_ptr<MTCExecution::Result>& result)
-{
-    result->success = true;
-    result->total_steps = parsed_goal.task_count();
-    update_feedback(feedback, goal_handle, parsed_goal.task_count(), parsed_goal.task_count(), "");
-}
-
 // ============================================================================
 // TASK EXECUTION (Main execute() method - REFACTORED)
 // ============================================================================
@@ -255,8 +226,12 @@ void MTCOrchestratorActionServer::execute(
         return;
     }
 
-    // Step 2: Initialize robot for task
-    if (!initialize_robot_for_task(*parsed_goal, feedback, goal_handle, result)) {
+    // Step 2: Initialize MoveIt stack for gripper
+    update_feedback(feedback, goal_handle, 0, parsed_goal->task_count(), "Initializing MoveIt");
+    if (!initialize_moveit_stack(parsed_goal->start_gripper, parsed_goal->robot_ip)) {
+        RCLCPP_ERROR(this->get_logger(), "Failed to initialize MoveIt stack");
+        result->success = false;
+        result->error_message = "Failed to initialize MoveIt stack";
         goal_handle->abort(result);
         return;
     }
@@ -267,8 +242,10 @@ void MTCOrchestratorActionServer::execute(
         return;
     }
 
-    // Step 4: Finalize success
-    finalize_successful_execution(*parsed_goal, feedback, goal_handle, result);
+    // Step 4: Finalize and report success
+    result->success = true;
+    result->total_steps = parsed_goal->task_count();
+    update_feedback(feedback, goal_handle, parsed_goal->task_count(), parsed_goal->task_count(), "");
     goal_handle->succeed(result);
 
     RCLCPP_INFO(this->get_logger(), "Goal succeeded - keeping MoveIt running");
@@ -315,16 +292,14 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(
     // Get gripper configuration from registry
     auto config = gripper_registry_->get_config(gripper);
     if (!config) {
+        // Build list of available grippers for error message
+        std::string available_grippers;
+        for (const auto& g : gripper_registry_->available_grippers()) {
+            available_grippers += g + " ";
+        }
         RCLCPP_ERROR(this->get_logger(),
                      "Unknown gripper type: %s (available: %s)",
-                     gripper.c_str(),
-                     [&]() {
-                         std::string list;
-                         for (const auto& g : gripper_registry_->available_grippers()) {
-                             list += g + " ";
-                         }
-                         return list;
-                     }().c_str());
+                     gripper.c_str(), available_grippers.c_str());
         return false;
     }
 
