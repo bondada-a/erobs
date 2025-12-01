@@ -15,4 +15,4 @@ bool loadPlanningSceneObstacles(const rclcpp::Logger& logger, const std::string&
 // Convert roll-pitch-yaw (radians) to quaternion.
 geometry_msgs::msg::Quaternion rpyToQuaternion(double roll, double pitch, double yaw);
 
-}  // namespace mtc_pipeline
+}

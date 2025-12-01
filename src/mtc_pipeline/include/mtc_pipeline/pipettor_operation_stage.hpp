@@ -15,11 +15,13 @@ class PipettorOperationStage : public mtc::PropagatingEitherWay {
 public:
     PipettorOperationStage(const std::string& name, const rclcpp::Node::SharedPtr& node);
 
+    // Configuration setters
     void setOperation(const std::string& operation);
     void setVolumePct(double volume_pct);
     void setLedColor(const std_msgs::msg::ColorRGBA& color);
 
 protected:
+    // MTC interface overrides
     void computeForward(const mtc::InterfaceState& from) override;
     void computeBackward(const mtc::InterfaceState& to) override;
 

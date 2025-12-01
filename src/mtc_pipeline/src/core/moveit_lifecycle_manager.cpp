@@ -1,16 +1,11 @@
-/**
- * MoveIt Lifecycle Manager Implementation
- *
- * Manages MoveIt move_group lifecycle for gripper-specific configurations.
- * Handles process spawning, zombie cleanup, and graceful shutdown.
- */
+// Manages MoveIt process lifecycle for different gripper configurations.
 
 #include "mtc_pipeline/core/moveit_lifecycle_manager.hpp"
 #include "mtc_pipeline/core/ur_tool_interface.hpp"
 #include "mtc_pipeline/gripper_config_registry.hpp"
 #include "mtc_pipeline/obstacle_loader.hpp"
 #include <ament_index_cpp/get_package_share_directory.hpp>
-#include <csignal>  // For signal(), SIGCHLD
+#include <csignal>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <thread>
@@ -18,28 +13,19 @@
 
 using namespace std::chrono_literals;
 
-namespace mtc_pipeline {
-namespace core {
+namespace mtc_pipeline::core {
 
-// ============================================================================
-// ZOMBIE PROCESS CLEANUP
-// ============================================================================
+// Zombie process cleanup
 
-// SIGCHLD handler: automatically reaps zombie child processes
-// Called by kernel when any child process exits
+// SIGCHLD handler: reaps zombie children when they exit
 static void sigchld_handler(int sig) {
-    (void)sig;  // Unused parameter
-    int saved_errno = errno;  // Save errno (signal handlers should be reentrant)
-
-    // Reap all dead children (WNOHANG = don't block)
+    (void)sig;
+    int saved_errno = errno;
     while (waitpid(-1, nullptr, WNOHANG) > 0);
-
-    errno = saved_errno;  // Restore errno
+    errno = saved_errno;
 }
 
-// ============================================================================
-// CONSTRUCTION & DESTRUCTION
-// ============================================================================
+// Construction & destruction
 
 MoveItLifecycleManager::MoveItLifecycleManager(
     rclcpp::Node* node,
@@ -50,7 +36,6 @@ MoveItLifecycleManager::MoveItLifecycleManager(
       tool_interface_(tool_interface),
       moveit_pid_(0)
 {
-    // Install SIGCHLD handler for automatic zombie cleanup
     signal(SIGCHLD, sigchld_handler);
 }
 
@@ -59,9 +44,7 @@ MoveItLifecycleManager::~MoveItLifecycleManager()
     kill_current_process();
 }
 
-// ============================================================================
-// PUBLIC INTERFACE
-// ============================================================================
+// Public interface
 
 std::string MoveItLifecycleManager::current_gripper() const
 {
@@ -72,23 +55,19 @@ bool MoveItLifecycleManager::launch_for_gripper(
     const std::string& gripper,
     const std::string& robot_ip)
 {
-    // Reuse existing MoveIt if same gripper
     if (moveit_pid_ > 0 && current_gripper_ == gripper) {
         RCLCPP_INFO(node_->get_logger(), "MoveIt already running for %s, reusing", gripper.c_str());
         return true;
     }
 
-    // Kill existing MoveIt if different gripper
     if (moveit_pid_ > 0) {
         RCLCPP_INFO(node_->get_logger(), "Switching gripper: %s → %s",
                     current_gripper_.c_str(), gripper.c_str());
         kill_current_process();
     }
 
-    // Get gripper configuration from registry
     auto config = gripper_registry_->get_config(gripper);
     if (!config) {
-        // Build list of available grippers for error message
         std::string available_grippers;
         for (const auto& g : gripper_registry_->available_grippers()) {
             available_grippers += g + " ";
@@ -99,20 +78,20 @@ bool MoveItLifecycleManager::launch_for_gripper(
         return false;
     }
 
-    // Step 1: Set tool voltage (must happen BEFORE MoveIt launches)
+    // Set tool voltage (must happen BEFORE MoveIt launches)
     RCLCPP_INFO(node_->get_logger(), "Setting tool voltage: %dV", config->tool_voltage);
     if (!tool_interface_->set_tool_voltage(config->tool_voltage)) {
         RCLCPP_ERROR(node_->get_logger(), "Failed to set tool voltage");
         return false;
     }
 
-    // Step 2: Launch MoveIt
+    // Launch MoveIt
     RCLCPP_INFO(node_->get_logger(), "Launching MoveIt for %s gripper", gripper.c_str());
     launch_moveit_process(config->moveit_package,
                          "robot_bringup.launch.py",
                          robot_ip);
 
-    // Step 3: Wait for MoveIt to be ready
+    // Wait for MoveIt planning service
     auto plan_client = node_->create_client<moveit_msgs::srv::GetMotionPlan>("/plan_kinematic_path");
     if (!plan_client->wait_for_service(30s)) {
         RCLCPP_ERROR(node_->get_logger(), "MoveIt planning service not ready within 30s");
@@ -121,7 +100,7 @@ bool MoveItLifecycleManager::launch_for_gripper(
     }
     RCLCPP_INFO(node_->get_logger(), "MoveIt ready");
 
-    // Step 4: Load collision obstacles (REQUIRED for safety)
+    // Load collision obstacles
     std::string config_file = node_->get_parameter("obstacle_config_path").as_string();
     if (!config_file.empty() && config_file[0] != '/') {
         try {
@@ -138,7 +117,7 @@ bool MoveItLifecycleManager::launch_for_gripper(
         return false;
     }
 
-    // Step 5: Restart UR external_control program (voltage command stops it)
+    // Restart UR external_control (voltage command stops it)
     if (!tool_interface_->restart_external_control()) {
         RCLCPP_ERROR(node_->get_logger(), "Failed to restart external_control");
         kill_current_process();
@@ -154,7 +133,6 @@ void MoveItLifecycleManager::kill_current_process()
 {
     if (moveit_pid_ <= 0) return;
 
-    // Send SIGTERM to process group
     kill(-moveit_pid_, SIGTERM);
 
     // Wait up to 2s for graceful exit
@@ -168,15 +146,12 @@ void MoveItLifecycleManager::kill_current_process()
         kill(-moveit_pid_, SIGKILL);
     }
 
-    // Wait for process to fully exit
     int status;
     waitpid(moveit_pid_, &status, 0);
     moveit_pid_ = 0;
 }
 
-// ============================================================================
-// PRIVATE HELPERS
-// ============================================================================
+// Private helpers
 
 pid_t MoveItLifecycleManager::launch_moveit_process(
     const std::string& package,
@@ -186,10 +161,9 @@ pid_t MoveItLifecycleManager::launch_moveit_process(
     pid_t pid = fork();
 
     if (pid == 0) {
-        // Child: create new process group and exec
+        // Child: create new process group
         setsid();
 
-        // Build argument array for direct execution (no shell!)
         std::string robot_ip_arg = "robot_ip:=" + robot_ip;
         char* args[] = {
             (char*)"ros2",
@@ -197,13 +171,10 @@ pid_t MoveItLifecycleManager::launch_moveit_process(
             (char*)package.c_str(),
             (char*)launch_file.c_str(),
             (char*)robot_ip_arg.c_str(),
-            nullptr  // Must be null-terminated
+            nullptr
         };
 
-        // Execute directly without shell - no command injection possible
         execvp("ros2", args);
-
-        // Only reached if exec fails
         _exit(1);
     }
 
@@ -214,5 +185,4 @@ pid_t MoveItLifecycleManager::launch_moveit_process(
     return pid;
 }
 
-}  // namespace core
-}  // namespace mtc_pipeline
+}

@@ -16,6 +16,7 @@ public:
 private:
     std::shared_ptr<VisionStages> vision_;
 
+    // Pose computation
     geometry_msgs::msg::PoseStamped compute_grasp_pose(
         const geometry_msgs::msg::PoseStamped& tag_pose,
         const nlohmann::json& offset);
@@ -24,6 +25,7 @@ private:
         const geometry_msgs::msg::PoseStamped& base_pose,
         double z_offset);
 
+    // Stage builders
     std::unique_ptr<mtc::Stage> make_gripper_stage(
         const std::string& label,
         const mtc::solvers::PlannerInterfacePtr& planner,

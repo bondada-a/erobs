@@ -1,15 +1,11 @@
-/**
- * UR Tool Interface Implementation
- *
- * Manages low-level robot tool interface operations via socket and ROS services.
- */
+// UR Tool Interface Implementation
+
 
 #include "mtc_pipeline/core/ur_tool_interface.hpp"
 
 using namespace std::chrono_literals;
 
-namespace mtc_pipeline {
-namespace core {
+namespace mtc_pipeline::core {
 
 URToolInterface::URToolInterface(rclcpp::Node* node, const std::string& robot_ip)
     : node_(node), robot_ip_(robot_ip)
@@ -77,5 +73,4 @@ bool URToolInterface::restart_external_control()
     return true;
 }
 
-}  // namespace core
-}  // namespace mtc_pipeline
+}

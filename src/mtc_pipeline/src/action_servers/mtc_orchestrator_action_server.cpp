@@ -1,28 +1,15 @@
-/**
- * MTC Orchestrator Action Server
- *
- * Coordinates multi-step robot tasks by:
- * 1. Receiving task scripts (JSON) from clients
- * 2. Managing MoveIt process lifecycle (launch/kill based on gripper type)
- * 3. Dispatching individual steps to specialized action servers
- *
- * Execution Flow:
- *   Client → handle_goal → handle_accepted → execute → execute_step → call_*_action
- */
+// Coordinates multi-step robot tasks by dispatching to specialized action servers.
 
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
 using namespace std::chrono_literals;
 
-// ============================================================================
-// CONSTRUCTION & DESTRUCTION
-// ============================================================================
+// Construction & destruction
 
 MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options)
     : Node("mtc_orchestrator_action_server", options), is_executing_(false)
 {
-    // Load gripper configurations from YAML
     try {
         gripper_registry_ = std::make_shared<mtc_pipeline::GripperConfigRegistry>(
             this, "config/grippers.yaml");
@@ -32,9 +19,8 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
         throw;
     }
 
-    // Create core components (refactored for better separation of concerns)
     tool_interface_ = std::make_unique<mtc_pipeline::core::URToolInterface>(
-        this, "" // robot_ip will be set from goal
+        this, ""
     );
     moveit_manager_ = std::make_unique<mtc_pipeline::core::MoveItLifecycleManager>(
         this,
@@ -42,14 +28,12 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
         tool_interface_.get()
     );
 
-    // Create action server (receives task scripts from clients)
     action_server_ = rclcpp_action::create_server<MTCExecution>(
         this, "mtc_execution",
         [this](const auto& uuid, const auto& goal) { return handle_goal(uuid, goal); },
         [this](const auto& goal_handle) { return handle_cancel(goal_handle); },
         [this](const auto& goal_handle) { handle_accepted(goal_handle); });
 
-    // Create action clients (dispatch steps to specialized servers)
     moveto_action_client_ = rclcpp_action::create_client<MoveToAction>(this, "move_to_action");
     endeffector_action_client_ = rclcpp_action::create_client<EndEffectorAction>(this, "end_effector_action");
     toolexchange_action_client_ = rclcpp_action::create_client<ToolExchangeAction>(this, "tool_exchange_action");
@@ -57,7 +41,6 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
     vision_action_client_ = rclcpp_action::create_client<VisionMoveToAction>(this, "vision_move_to_action");
     pipettor_action_client_ = rclcpp_action::create_client<PipettorAction>(this, "pipettor_action");
 
-    // Parameters
     this->declare_parameter("obstacle_config_path", "config/beamline_scene.yaml");
 
     RCLCPP_INFO(this->get_logger(), "MTC Orchestrator Action Server started");
@@ -65,13 +48,10 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
 
 MTCOrchestratorActionServer::~MTCOrchestratorActionServer()
 {
-    // Cleanup is handled by component destructors
-    // moveit_manager_->~MoveItLifecycleManager() calls kill_current_process()
+    // Cleanup handled by component destructors
 }
 
-// ============================================================================
-// ACTION SERVER CALLBACKS (Entry Points)
-// ============================================================================
+// Action server callbacks
 
 rclcpp_action::GoalResponse MTCOrchestratorActionServer::handle_goal(
     const rclcpp_action::GoalUUID& /*uuid*/,
@@ -94,22 +74,19 @@ rclcpp_action::CancelResponse MTCOrchestratorActionServer::handle_cancel(
 void MTCOrchestratorActionServer::handle_accepted(
     const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
 {
-    // Execute in detached thread to avoid blocking the action server
+    // Execute in detached thread to avoid blocking
     std::thread{[this, self = shared_from_this(), goal_handle]() {
         execute(goal_handle);
     }}.detach();
 }
 
-// ============================================================================
-// TASK EXECUTION (Main Workflow) - REFACTORED HELPERS
-// ============================================================================
+// Task execution helpers
 
 std::optional<MTCOrchestratorActionServer::ParsedGoal>
 MTCOrchestratorActionServer::parse_and_validate_goal(
     const MTCExecution::Goal::ConstSharedPtr& goal,
     std::shared_ptr<MTCExecution::Result>& result)
 {
-    // Validate robot_ip field
     if (goal->robot_ip.empty()) {
         RCLCPP_ERROR(this->get_logger(), "Goal missing required robot_ip");
         result->success = false;
@@ -117,7 +94,6 @@ MTCOrchestratorActionServer::parse_and_validate_goal(
         return std::nullopt;
     }
 
-    // Parse JSON
     nlohmann::json full_script;
     try {
         full_script = nlohmann::json::parse(goal->full_json);
@@ -128,7 +104,6 @@ MTCOrchestratorActionServer::parse_and_validate_goal(
         return std::nullopt;
     }
 
-    // Validate start_gripper field
     if (!full_script.contains("start_gripper") || !full_script["start_gripper"].is_string()) {
         RCLCPP_ERROR(this->get_logger(), "Task script missing required start_gripper");
         result->success = false;
@@ -136,7 +111,6 @@ MTCOrchestratorActionServer::parse_and_validate_goal(
         return std::nullopt;
     }
 
-    // Validate tasks field
     if (!full_script.contains("tasks") || !full_script["tasks"].is_array()) {
         RCLCPP_ERROR(this->get_logger(), "Task script missing required 'tasks' array");
         result->success = false;
@@ -144,7 +118,6 @@ MTCOrchestratorActionServer::parse_and_validate_goal(
         return std::nullopt;
     }
 
-    // Build and return parsed goal
     ParsedGoal parsed;
     parsed.robot_ip = goal->robot_ip;
     parsed.start_gripper = full_script["start_gripper"].get<std::string>();
@@ -164,7 +137,6 @@ bool MTCOrchestratorActionServer::execute_single_task(
     const auto& step = parsed_goal.tasks[task_index];
     std::string task_type = step.value("task_type", "");
 
-    // Validate task_type field
     if (task_type.empty()) {
         RCLCPP_ERROR(this->get_logger(), "Step %zu missing 'task_type' field", task_index);
         result->success = false;
@@ -174,10 +146,8 @@ bool MTCOrchestratorActionServer::execute_single_task(
         return false;
     }
 
-    // Update progress feedback
     update_feedback(feedback, goal_handle, task_index + 1, parsed_goal.task_count(), task_type);
 
-    // Execute the step
     if (!execute_step(task_type, step, parsed_goal.poses_json, parsed_goal.robot_ip)) {
         RCLCPP_ERROR(this->get_logger(), "%s step failed", task_type.c_str());
         result->success = false;
@@ -196,7 +166,6 @@ bool MTCOrchestratorActionServer::execute_all_tasks(
     std::shared_ptr<MTCExecution::Result>& result)
 {
     for (size_t i = 0; i < parsed_goal.task_count(); ++i) {
-        // Check for cancellation request
         if (goal_handle->is_canceling()) {
             result->success = false;
             result->error_message = "Task was canceled";
@@ -204,7 +173,6 @@ bool MTCOrchestratorActionServer::execute_all_tasks(
             return false;
         }
 
-        // Execute single task
         if (!execute_single_task(i, parsed_goal, feedback, goal_handle, result)) {
             return false;
         }
@@ -215,29 +183,24 @@ bool MTCOrchestratorActionServer::execute_all_tasks(
     return true;
 }
 
-// ============================================================================
-// TASK EXECUTION (Main execute() method - REFACTORED)
-// ============================================================================
+// Main execution
 
 void MTCOrchestratorActionServer::execute(
     const std::shared_ptr<GoalHandleMTCExecution> goal_handle)
 {
     RCLCPP_INFO(this->get_logger(), "Executing goal");
 
-    // RAII guard automatically resets is_executing_ on all exit paths (including exceptions)
     ExecutionGuard guard(is_executing_);
 
     auto result = std::make_shared<MTCExecution::Result>();
     auto feedback = std::make_shared<MTCExecution::Feedback>();
 
-    // Step 1: Parse and validate goal
     auto parsed_goal = parse_and_validate_goal(goal_handle->get_goal(), result);
     if (!parsed_goal) {
         goal_handle->abort(result);
         return;
     }
 
-    // Step 2: Initialize MoveIt stack for gripper
     update_feedback(feedback, goal_handle, 0, parsed_goal->task_count(), "Initializing MoveIt");
     tool_interface_->set_robot_ip(parsed_goal->robot_ip);
     if (!moveit_manager_->launch_for_gripper(parsed_goal->start_gripper, parsed_goal->robot_ip)) {
@@ -248,13 +211,10 @@ void MTCOrchestratorActionServer::execute(
         return;
     }
 
-    // Step 3: Execute all tasks
     if (!execute_all_tasks(*parsed_goal, feedback, goal_handle, result)) {
-        // Note: cancellation is handled inside execute_all_tasks
         return;
     }
 
-    // Step 4: Finalize and report success
     result->success = true;
     result->total_steps = parsed_goal->task_count();
     update_feedback(feedback, goal_handle, parsed_goal->task_count(), parsed_goal->task_count(), "");
@@ -280,11 +240,7 @@ bool MTCOrchestratorActionServer::execute_step(
     return false;
 }
 
-// ============================================================================
-// ACTION CLIENT CALLS
-// ============================================================================
-
-// --- Helper: Send goal and wait for result ---
+// Action client calls
 
 template<typename ActionType>
 bool MTCOrchestratorActionServer::send_and_wait(
@@ -315,8 +271,6 @@ bool MTCOrchestratorActionServer::send_and_wait(
     return result.code == rclcpp_action::ResultCode::SUCCEEDED && result.result->success;
 }
 
-// --- Basic movement actions ---
-
 bool MTCOrchestratorActionServer::call_moveto_action(
     const nlohmann::json& step,
     const std::string& poses_json)
@@ -342,8 +296,6 @@ bool MTCOrchestratorActionServer::call_endeffector_action(
 
     return send_and_wait<EndEffectorAction>(endeffector_action_client_, goal, "end_effector", 30s);
 }
-
-// --- Complex manipulation actions ---
 
 bool MTCOrchestratorActionServer::call_pickplace_action(
     const nlohmann::json& step,
@@ -391,8 +343,6 @@ bool MTCOrchestratorActionServer::call_pipettor_action(
     return send_and_wait<PipettorAction>(pipettor_action_client_, goal, "pipettor", 60s);
 }
 
-// --- Tool exchange (special: requires MoveIt restart) ---
-
 bool MTCOrchestratorActionServer::call_toolexchange_action(
     const nlohmann::json& step,
     const std::string& poses_json)
@@ -413,12 +363,10 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(
     const std::string& poses_json,
     const std::string& robot_ip)
 {
-    // First execute the physical tool exchange motion
     if (!call_toolexchange_action(step, poses_json)) {
         return false;
     }
 
-    // Then restart MoveIt with new gripper configuration
     const std::string operation = step.value("operation", "");
 
     if (operation == "dock") {
@@ -432,9 +380,7 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(
     return true;
 }
 
-// ============================================================================
-// UTILITIES
-// ============================================================================
+// Utilities
 
 void MTCOrchestratorActionServer::update_feedback(
     std::shared_ptr<MTCExecution::Feedback> feedback,
@@ -452,9 +398,7 @@ void MTCOrchestratorActionServer::update_feedback(
     goal_handle->publish_feedback(feedback);
 }
 
-// ============================================================================
-// MAIN
-// ============================================================================
+// Main
 
 int main(int argc, char** argv)
 {

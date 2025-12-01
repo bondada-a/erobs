@@ -12,6 +12,7 @@ public:
     bool run(const mtc_pipeline::action::PickPlaceAction::Goal& goal);
 
 private:
+    // Stage builders
     std::unique_ptr<mtc::Stage> make_move_to_named_stage(
         const std::string& label,
         const std::string& pose_key,

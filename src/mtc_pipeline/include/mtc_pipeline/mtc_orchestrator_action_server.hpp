@@ -94,9 +94,7 @@ private:
                         std::shared_ptr<GoalHandleMTCExecution> goal_handle,
                         size_t current_step, size_t total_steps, const std::string& task_type);
 
-    // ========================================================================
-    // REFACTORED EXECUTION HELPERS (extracted from monolithic execute())
-    // ========================================================================
+    // Execution helpers
 
     // Encapsulates validated goal data
     struct ParsedGoal {

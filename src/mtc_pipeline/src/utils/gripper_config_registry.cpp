@@ -152,4 +152,4 @@ std::string GripperConfigRegistry::resolve_config_path(const std::string& relati
     }
 }
 
-}  // namespace mtc_pipeline
+}
