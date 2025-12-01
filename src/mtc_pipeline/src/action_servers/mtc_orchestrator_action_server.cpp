@@ -11,27 +11,9 @@
  */
 
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
-#include "mtc_pipeline/obstacle_loader.hpp"
 #include <ament_index_cpp/get_package_share_directory.hpp>
-#include <csignal>  // For signal(), SIGCHLD
 
 using namespace std::chrono_literals;
-
-// ============================================================================
-// ZOMBIE PROCESS CLEANUP
-// ============================================================================
-
-// SIGCHLD handler: automatically reaps zombie child processes
-// Called by kernel when any child process exits
-static void sigchld_handler(int sig) {
-    (void)sig;  // Unused parameter
-    int saved_errno = errno;  // Save errno (signal handlers should be reentrant)
-
-    // Reap all dead children (WNOHANG = don't block)
-    while (waitpid(-1, nullptr, WNOHANG) > 0);
-
-    errno = saved_errno;  // Restore errno
-}
 
 // ============================================================================
 // CONSTRUCTION & DESTRUCTION
@@ -50,8 +32,15 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
         throw;
     }
 
-    // Install SIGCHLD handler for automatic zombie cleanup
-    signal(SIGCHLD, sigchld_handler);
+    // Create core components (refactored for better separation of concerns)
+    tool_interface_ = std::make_unique<mtc_pipeline::core::URToolInterface>(
+        shared_from_this(), "" // robot_ip will be set from goal
+    );
+    moveit_manager_ = std::make_unique<mtc_pipeline::core::MoveItLifecycleManager>(
+        shared_from_this(),
+        gripper_registry_,
+        tool_interface_.get()
+    );
 
     // Create action server (receives task scripts from clients)
     action_server_ = rclcpp_action::create_server<MTCExecution>(
@@ -76,7 +65,8 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
 
 MTCOrchestratorActionServer::~MTCOrchestratorActionServer()
 {
-    kill_moveit_process();
+    // Cleanup is handled by component destructors
+    // moveit_manager_->~MoveItLifecycleManager() calls kill_current_process()
 }
 
 // ============================================================================
@@ -248,7 +238,8 @@ void MTCOrchestratorActionServer::execute(
 
     // Step 2: Initialize MoveIt stack for gripper
     update_feedback(feedback, goal_handle, 0, parsed_goal->task_count(), "Initializing MoveIt");
-    if (!initialize_moveit_stack(parsed_goal->start_gripper, parsed_goal->robot_ip)) {
+    tool_interface_->set_robot_ip(parsed_goal->robot_ip);
+    if (!moveit_manager_->launch_for_gripper(parsed_goal->start_gripper, parsed_goal->robot_ip)) {
         RCLCPP_ERROR(this->get_logger(), "Failed to initialize MoveIt stack");
         result->success = false;
         result->error_message = "Failed to initialize MoveIt stack";
@@ -286,187 +277,6 @@ bool MTCOrchestratorActionServer::execute_step(
 
     RCLCPP_ERROR(this->get_logger(), "Unknown task type: %s", task_type.c_str());
     return false;
-}
-
-// ============================================================================
-// MOVEIT PROCESS MANAGEMENT
-// ============================================================================
-
-bool MTCOrchestratorActionServer::initialize_moveit_stack(
-    const std::string& gripper,
-    const std::string& robot_ip)
-{
-    // Reuse existing MoveIt if same gripper
-    if (moveit_pid_ > 0 && current_gripper_ == gripper) {
-        RCLCPP_INFO(this->get_logger(), "MoveIt already running for %s, reusing", gripper.c_str());
-        return true;
-    }
-
-    // Kill existing MoveIt if different gripper
-    if (moveit_pid_ > 0) {
-        RCLCPP_INFO(this->get_logger(), "Switching gripper: %s → %s",
-                    current_gripper_.c_str(), gripper.c_str());
-        kill_moveit_process();
-    }
-
-    // Get gripper configuration from registry
-    auto config = gripper_registry_->get_config(gripper);
-    if (!config) {
-        // Build list of available grippers for error message
-        std::string available_grippers;
-        for (const auto& g : gripper_registry_->available_grippers()) {
-            available_grippers += g + " ";
-        }
-        RCLCPP_ERROR(this->get_logger(),
-                     "Unknown gripper type: %s (available: %s)",
-                     gripper.c_str(), available_grippers.c_str());
-        return false;
-    }
-
-    // Step 1: Set tool voltage (must happen BEFORE MoveIt launches)
-    RCLCPP_INFO(this->get_logger(), "Setting tool voltage: %dV", config->tool_voltage);
-    if (!set_tool_voltage_via_socket(robot_ip, config->tool_voltage)) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to set tool voltage");
-        return false;
-    }
-
-    // Step 2: Launch MoveIt
-    RCLCPP_INFO(this->get_logger(), "Launching MoveIt for %s gripper", gripper.c_str());
-    launch_moveit_process(config->moveit_package,
-                         "robot_bringup.launch.py",
-                         robot_ip);
-
-    // Step 3: Wait for MoveIt to be ready
-    auto plan_client = this->create_client<moveit_msgs::srv::GetMotionPlan>("/plan_kinematic_path");
-    if (!plan_client->wait_for_service(30s)) {
-        RCLCPP_ERROR(this->get_logger(), "MoveIt planning service not ready within 30s");
-        kill_moveit_process();
-        return false;
-    }
-    RCLCPP_INFO(this->get_logger(), "MoveIt ready");
-
-    // Step 4: Load collision obstacles (REQUIRED for safety)
-    std::string config_file = this->get_parameter("obstacle_config_path").as_string();
-    if (!config_file.empty() && config_file[0] != '/') {
-        try {
-            config_file = ament_index_cpp::get_package_share_directory("mtc_pipeline") + "/" + config_file;
-        } catch (...) {
-            RCLCPP_ERROR(this->get_logger(), "Failed to resolve obstacle config path");
-            kill_moveit_process();
-            return false;
-        }
-    }
-    if (config_file.empty() || !mtc_pipeline::loadPlanningSceneObstacles(this->get_logger(), config_file)) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to load obstacles - aborting for safety");
-        kill_moveit_process();
-        return false;
-    }
-
-    // Step 5: Restart UR external_control program (voltage command stops it)
-    auto dashboard = this->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
-    dashboard->wait_for_service(30s);
-    dashboard->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
-
-    current_gripper_ = gripper;
-    RCLCPP_INFO(this->get_logger(), "Robot ready with %s configuration", gripper.c_str());
-    return true;
-}
-
-pid_t MTCOrchestratorActionServer::launch_moveit_process(
-    const std::string& package,
-    const std::string& launch_file,
-    const std::string& robot_ip)
-{
-    pid_t pid = fork();
-
-    if (pid == 0) {
-        // Child: create new process group and exec
-        setsid();
-
-        // Build argument array for direct execution (no shell!)
-        std::string robot_ip_arg = "robot_ip:=" + robot_ip;
-        char* args[] = {
-            (char*)"ros2",
-            (char*)"launch",
-            (char*)package.c_str(),
-            (char*)launch_file.c_str(),
-            (char*)robot_ip_arg.c_str(),
-            nullptr  // Must be null-terminated
-        };
-
-        // Execute directly without shell - no command injection possible
-        execvp("ros2", args);
-
-        // Only reached if exec fails
-        _exit(1);
-    }
-
-    if (pid > 0) {
-        moveit_pid_ = pid;
-    }
-
-    return pid;
-}
-
-void MTCOrchestratorActionServer::kill_moveit_process()
-{
-    if (moveit_pid_ <= 0) return;
-
-    // Send SIGTERM to process group
-    kill(-moveit_pid_, SIGTERM);
-
-    // Wait up to 2s for graceful exit
-    auto deadline = std::chrono::steady_clock::now() + 2s;
-    while (std::chrono::steady_clock::now() < deadline && kill(moveit_pid_, 0) == 0) {
-        std::this_thread::sleep_for(50ms);
-    }
-
-    // Force kill if still alive
-    if (kill(moveit_pid_, 0) == 0) {
-        kill(-moveit_pid_, SIGKILL);
-    }
-
-    // Wait for process to fully exit
-    int status;
-    waitpid(moveit_pid_, &status, 0);
-    moveit_pid_ = 0;
-}
-
-bool MTCOrchestratorActionServer::set_tool_voltage_via_socket(
-    const std::string& robot_ip,
-    int voltage)
-{
-    // Uses raw socket because this runs BEFORE MoveIt/ROS services are available
-
-    int sockfd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sockfd < 0) {
-        RCLCPP_ERROR(this->get_logger(), "Failed to create socket");
-        return false;
-    }
-
-    // 2-second timeout
-    struct timeval timeout = {2, 0};
-    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
-    setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
-
-    // Connect to UR secondary interface (port 30002)
-    struct sockaddr_in addr = {};
-    addr.sin_family = AF_INET;
-    addr.sin_port = htons(30002);
-    inet_pton(AF_INET, robot_ip.c_str(), &addr.sin_addr);
-
-    if (connect(sockfd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-        close(sockfd);
-        RCLCPP_ERROR(this->get_logger(), "Failed to connect to %s:30002", robot_ip.c_str());
-        return false;
-    }
-
-    // Send URScript command
-    std::string cmd = "set_tool_voltage(" + std::to_string(voltage) + ")\n";
-    bool success = send(sockfd, cmd.c_str(), cmd.length(), 0) > 0;
-    close(sockfd);
-
-    return success;
 }
 
 // ============================================================================
@@ -589,7 +399,7 @@ bool MTCOrchestratorActionServer::call_toolexchange_action(
     ToolExchangeAction::Goal goal;
     goal.operation = step.value("operation", "");
     goal.gripper = step.value("gripper", "");
-    goal.current_attached_gripper = current_gripper_;
+    goal.current_attached_gripper = moveit_manager_->current_gripper();
     goal.dock_number = step.value("dock_number", 0);
     goal.approach_pose = step.value("approach_pose", "");
     goal.poses_json = poses_json;
@@ -611,10 +421,11 @@ bool MTCOrchestratorActionServer::handle_tool_exchange(
     const std::string operation = step.value("operation", "");
 
     if (operation == "dock") {
-        return initialize_moveit_stack("none", robot_ip);
+        return moveit_manager_->launch_for_gripper("none", robot_ip);
     }
     if (operation == "load") {
-        return initialize_moveit_stack(step.value("gripper", current_gripper_), robot_ip);
+        return moveit_manager_->launch_for_gripper(
+            step.value("gripper", moveit_manager_->current_gripper()), robot_ip);
     }
 
     return true;
@@ -635,7 +446,7 @@ void MTCOrchestratorActionServer::update_feedback(
     feedback->current_action = task_type;
     feedback->progress_percentage = static_cast<float>(current_step) / total_steps * 100.0f;
     feedback->status_message = task_type.empty() ? "Task completed" : "Executing: " + task_type;
-    feedback->current_gripper = current_gripper_.empty() ? "none" : current_gripper_;
+    feedback->current_gripper = moveit_manager_->current_gripper();
 
     goal_handle->publish_feedback(feedback);
 }

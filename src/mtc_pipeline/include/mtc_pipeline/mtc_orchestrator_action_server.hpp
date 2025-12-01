@@ -4,8 +4,6 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <std_srvs/srv/trigger.hpp>
-#include <moveit_msgs/srv/get_motion_plan.hpp>
 #include <nlohmann/json.hpp>
 
 #include <atomic>
@@ -14,12 +12,6 @@
 #include <optional>
 #include <string>
 #include <unordered_map>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <unistd.h>
 
 #include "mtc_pipeline/action/mtc_execution.hpp"
 #include "mtc_pipeline/action/move_to_action.hpp"
@@ -29,6 +21,8 @@
 #include "mtc_pipeline/action/vision_move_to_action.hpp"
 #include "mtc_pipeline/action/pipettor_action.hpp"
 #include "mtc_pipeline/gripper_config_registry.hpp"
+#include "mtc_pipeline/core/moveit_lifecycle_manager.hpp"
+#include "mtc_pipeline/core/ur_tool_interface.hpp"
 
 using MTCExecution = mtc_pipeline::action::MTCExecution;
 using GoalHandleMTCExecution = rclcpp_action::ServerGoalHandle<MTCExecution>;
@@ -54,13 +48,9 @@ private:
     // Gripper configuration (loaded from YAML)
     std::shared_ptr<mtc_pipeline::GripperConfigRegistry> gripper_registry_;
 
-    // MoveIt process management
-    std::string current_gripper_;
-    pid_t moveit_pid_{0};
-    pid_t launch_moveit_process(const std::string& package,
-                               const std::string& launch_file,
-                               const std::string& robot_ip);
-    void kill_moveit_process();
+    // Core components (refactored from monolithic orchestrator)
+    std::unique_ptr<mtc_pipeline::core::URToolInterface> tool_interface_;
+    std::unique_ptr<mtc_pipeline::core::MoveItLifecycleManager> moveit_manager_;
 
     // Action clients
     rclcpp_action::Client<MoveToAction>::SharedPtr moveto_action_client_;
@@ -82,8 +72,6 @@ private:
     // Step execution
     bool execute_step(const std::string& task_type, const nlohmann::json& step,
                      const std::string& poses_json, const std::string& robot_ip);
-    bool initialize_moveit_stack(const std::string& gripper, const std::string& robot_ip);
-    bool set_tool_voltage_via_socket(const std::string& robot_ip, int voltage);
 
     // Generic send-and-wait helper for action clients
     template<typename ActionType>

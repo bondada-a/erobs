@@ -109,6 +109,25 @@ ament_target_dependencies(obstacle_loader
 target_link_libraries(obstacle_loader yaml-cpp)
 target_compile_features(obstacle_loader PUBLIC c_std_99 cxx_std_17)
 
+# Core orchestrator components library
+add_library(orchestrator_core
+  src/core/ur_tool_interface.cpp
+  src/core/moveit_lifecycle_manager.cpp
+)
+target_include_directories(orchestrator_core PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+  $<INSTALL_INTERFACE:include>
+)
+ament_target_dependencies(orchestrator_core
+  rclcpp
+  std_srvs
+  moveit_msgs
+  ament_index_cpp
+)
+target_link_libraries(orchestrator_core mtc_pipeline_core obstacle_loader)
+target_compile_features(orchestrator_core PUBLIC c_std_99 cxx_std_17)
+rosidl_target_interfaces(orchestrator_core ${PROJECT_NAME} "rosidl_typesupport_cpp")
+
 include_directories(include)
 
 
@@ -137,7 +156,7 @@ ament_target_dependencies(pipettor_action_server ${MODULAR_ACTION_SERVER_DEPS} p
 ament_target_dependencies(vision_pick_place_action_server ${MODULAR_ACTION_SERVER_DEPS})
 
 # Link Libraries
-target_link_libraries(mtc_orchestrator_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core obstacle_loader)
+target_link_libraries(mtc_orchestrator_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core obstacle_loader orchestrator_core)
 target_link_libraries(mtc_client "${cpp_typesupport_target}" nlohmann_json::nlohmann_json)
 target_link_libraries(pick_place_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
 target_link_libraries(tool_exchange_action_server "${cpp_typesupport_target}" nlohmann_json::nlohmann_json mtc_pipeline_core)
@@ -172,6 +191,7 @@ install(TARGETS
 install(TARGETS
   mtc_pipeline_core
   obstacle_loader
+  orchestrator_core
   DESTINATION lib
 )
 
