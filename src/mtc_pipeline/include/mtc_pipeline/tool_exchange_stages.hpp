@@ -8,6 +8,9 @@
 
 class ToolExchangeStages : public BaseStages {
 public:
+    /// @brief Construct ToolExchange stages with ROS 2 node
     ToolExchangeStages(const rclcpp::Node::SharedPtr& node);
+
+    /// @brief Execute tool exchange operation from goal specification
     bool run(const mtc_pipeline::action::ToolExchangeAction::Goal& goal);
 };

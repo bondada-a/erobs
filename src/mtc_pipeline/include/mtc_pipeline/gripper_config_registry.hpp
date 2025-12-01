@@ -18,21 +18,29 @@ public:
         int tool_voltage;            // Voltage: 0, 12, or 24V
     };
 
-    // Loads configuration from YAML file (path relative to package share dir)
+    /// @brief Load gripper configurations from YAML file
     GripperConfigRegistry(rclcpp::Node* node, const std::string& config_file);
 
-    // Query interface
+    /// @brief Get configuration for specified gripper type
     std::optional<GripperConfig> get_config(const std::string& gripper_type) const;
+
+    /// @brief Check if configuration exists for gripper type
     bool has_config(const std::string& gripper_type) const;
+
+    /// @brief Get list of all configured gripper types
     std::vector<std::string> available_grippers() const;
+
+    /// @brief Get number of loaded gripper configurations
     size_t size() const { return configs_.size(); }
 
 private:
     rclcpp::Node* node_;
     std::unordered_map<std::string, GripperConfig> configs_;
 
-    // YAML parsing and path resolution
+    /// @brief Parse YAML file and populate configuration map
     void load_from_yaml(const std::string& config_file);
+
+    /// @brief Resolve relative path to absolute package share directory path
     std::string resolve_config_path(const std::string& relative_path) const;
 };
 

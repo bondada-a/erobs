@@ -22,6 +22,7 @@ namespace mtc_pipeline::core {
 class MoveItLifecycleManager
 {
 public:
+    /// @brief Construct MoveIt lifecycle manager with dependencies
     MoveItLifecycleManager(
         rclcpp::Node* node,
         std::shared_ptr<mtc_pipeline::GripperConfigRegistry> registry,
@@ -30,12 +31,13 @@ public:
 
     ~MoveItLifecycleManager();
 
-    // Launch MoveIt with gripper config (reuses existing if same gripper)
+    /// @brief Launch MoveIt for specified gripper configuration
     bool launch_for_gripper(const std::string& gripper, const std::string& robot_ip);
 
-    // Kill current MoveIt process (SIGTERM then SIGKILL if needed)
+    /// @brief Kill current MoveIt process gracefully then forcefully
     void kill_current_process();
 
+    /// @brief Get currently loaded gripper type
     std::string current_gripper() const;
 
 private:
@@ -46,7 +48,7 @@ private:
     std::string current_gripper_;
     pid_t moveit_pid_{0};
 
-    // Fork and exec MoveIt launch file, returns child PID
+    /// @brief Fork and execute MoveIt launch file
     pid_t launch_moveit_process(
         const std::string& package,
         const std::string& launch_file,

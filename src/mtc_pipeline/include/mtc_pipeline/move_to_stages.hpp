@@ -7,6 +7,9 @@
 
 class MoveToStages : public BaseStages {
 public:
+    /// @brief Construct MoveTo stages with ROS 2 node
     MoveToStages(const rclcpp::Node::SharedPtr& node);
+
+    /// @brief Execute move-to task from goal specification
     bool run(const mtc_pipeline::action::MoveToAction::Goal& goal);
 };

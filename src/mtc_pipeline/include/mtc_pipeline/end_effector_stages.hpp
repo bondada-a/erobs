@@ -7,6 +7,9 @@
 
 class EndEffectorStages : public BaseStages {
 public:
+    /// @brief Construct EndEffector stages with ROS 2 node
     EndEffectorStages(const rclcpp::Node::SharedPtr& node);
+
+    /// @brief Execute end effector action from goal specification
     bool run(const mtc_pipeline::action::EndEffectorAction::Goal& goal);
 };

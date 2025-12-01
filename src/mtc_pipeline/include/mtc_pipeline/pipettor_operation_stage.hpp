@@ -13,20 +13,30 @@ namespace mtc = moveit::task_constructor;
 
 class PipettorOperationStage : public mtc::PropagatingEitherWay {
 public:
+    /// @brief Construct PipettorOperation stage with name and ROS 2 node
     PipettorOperationStage(const std::string& name, const rclcpp::Node::SharedPtr& node);
 
-    // Configuration setters
+    /// @brief Set pipettor operation type
     void setOperation(const std::string& operation);
+
+    /// @brief Set volume percentage for operation
     void setVolumePct(double volume_pct);
+
+    /// @brief Set LED color for operation
     void setLedColor(const std_msgs::msg::ColorRGBA& color);
 
 protected:
-    // MTC interface overrides
+    /// @brief Compute forward propagation for MTC
     void computeForward(const mtc::InterfaceState& from) override;
+
+    /// @brief Compute backward propagation for MTC
     void computeBackward(const mtc::InterfaceState& to) override;
 
 private:
+    /// @brief Execute pipettor action via action client
     bool execute_pipettor_action();
+
+    /// @brief Propagate state unchanged through this stage
     void propagate_state(const mtc::InterfaceState& state, bool forward);
 
     rclcpp::Node::SharedPtr node_;
