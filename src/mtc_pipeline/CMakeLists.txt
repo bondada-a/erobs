@@ -56,16 +56,16 @@ rosidl_generate_interfaces(${PROJECT_NAME}
 
 
 add_library(mtc_pipeline_core
-  src/base_stages.cpp
-  src/pick_place_stages.cpp
-  src/tool_exchange_stages.cpp
-  src/move_to_stages.cpp
-  src/end_effector_stages.cpp
-  src/vision_stages.cpp
-  src/pipettor_stages.cpp
-  src/pipettor_operation_stage.cpp
-  src/vision_pick_place_stages.cpp
-  src/gripper_config_registry.cpp
+  src/stages/base_stages.cpp
+  src/stages/pick_place_stages.cpp
+  src/stages/tool_exchange_stages.cpp
+  src/stages/move_to_stages.cpp
+  src/stages/end_effector_stages.cpp
+  src/stages/vision_stages.cpp
+  src/stages/pipettor_stages.cpp
+  src/stages/pipettor_operation_stage.cpp
+  src/stages/vision_pick_place_stages.cpp
+  src/utils/gripper_config_registry.cpp
 )
 ament_target_dependencies(mtc_pipeline_core
   moveit_task_constructor_core
@@ -92,7 +92,7 @@ target_compile_features(mtc_pipeline_core PUBLIC c_std_99 cxx_std_17)
 rosidl_target_interfaces(mtc_pipeline_core ${PROJECT_NAME} "rosidl_typesupport_cpp")
 
 # Obstacle loader library
-add_library(obstacle_loader src/obstacle_loader.cpp)
+add_library(obstacle_loader src/utils/obstacle_loader.cpp)
 target_include_directories(obstacle_loader PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>
@@ -112,15 +112,15 @@ target_compile_features(obstacle_loader PUBLIC c_std_99 cxx_std_17)
 include_directories(include)
 
 
-add_executable(mtc_orchestrator_action_server src/mtc_orchestrator_action_server.cpp)
-add_executable(mtc_client src/mtc_client.cpp)
-add_executable(pick_place_action_server src/pick_place_action_server.cpp)
-add_executable(tool_exchange_action_server src/tool_exchange_action_server.cpp)
-add_executable(move_to_action_server src/move_to_action_server.cpp)
-add_executable(end_effector_action_server src/end_effector_action_server.cpp)
-add_executable(vision_action_server src/vision_action_server.cpp)
-add_executable(pipettor_action_server src/pipettor_action_server.cpp)
-add_executable(vision_pick_place_action_server src/vision_pick_place_action_server.cpp)
+add_executable(mtc_orchestrator_action_server src/action_servers/mtc_orchestrator_action_server.cpp)
+add_executable(mtc_client src/utils/mtc_client.cpp)
+add_executable(pick_place_action_server src/action_servers/pick_place_action_server.cpp)
+add_executable(tool_exchange_action_server src/action_servers/tool_exchange_action_server.cpp)
+add_executable(move_to_action_server src/action_servers/move_to_action_server.cpp)
+add_executable(end_effector_action_server src/action_servers/end_effector_action_server.cpp)
+add_executable(vision_action_server src/action_servers/vision_action_server.cpp)
+add_executable(pipettor_action_server src/action_servers/pipettor_action_server.cpp)
+add_executable(vision_pick_place_action_server src/action_servers/vision_pick_place_action_server.cpp)
 
 
 rosidl_get_typesupport_target(cpp_typesupport_target "${PROJECT_NAME}" "rosidl_typesupport_cpp")
