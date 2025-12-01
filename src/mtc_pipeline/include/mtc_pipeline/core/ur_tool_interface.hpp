@@ -1,5 +1,4 @@
 // UR Tool Interface: Configure tool electrical interface via socket + dashboard service
-//
 // Extracted from MTCOrchestratorActionServer for better separation of concerns.
 // Handles low-level communication with UR robot's secondary interface (port 30002)
 // and dashboard service calls.

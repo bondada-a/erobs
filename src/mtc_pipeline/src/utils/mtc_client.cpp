@@ -126,7 +126,8 @@ int main(int argc, char** argv) {
     rclcpp::init(argc, argv);
 
     if (argc < 2) {
-        std::cout << "Usage: " << argv[0] << " <json_file> [robot_ip] [timeout_sec]\n";
+        RCLCPP_ERROR(rclcpp::get_logger("mtc_client"),
+                     "Usage: %s <json_file> [robot_ip] [timeout_sec]", argv[0]);
         return 1;
     }
 

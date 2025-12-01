@@ -1,6 +1,5 @@
 // Template base class for MTC action servers.
 // Handles goal lifecycle, threading, and concurrent execution prevention.
-//
 // Usage:
 //   class MyServer : public BaseActionServer<MyAction, MyStages> { ... };
 //   auto node = std::make_shared<MyServer>();

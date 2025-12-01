@@ -1,5 +1,4 @@
 // MoveIt Lifecycle Manager: Launch/kill MoveIt processes based on gripper configuration
-//
 // Extracted from MTCOrchestratorActionServer for better separation of concerns.
 // Manages the lifecycle of MoveIt move_group processes, including:
 // - Forking and launching MoveIt with gripper-specific configurations
