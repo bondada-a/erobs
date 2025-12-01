@@ -20,7 +20,8 @@ public:
     URToolInterface(rclcpp::Node* node, const std::string& robot_ip);
 
     /// @brief Update robot IP address for socket connections
-    void set_robot_ip(const std::string& robot_ip);
+    /// @return false if IP address format is invalid
+    bool set_robot_ip(const std::string& robot_ip);
 
     /// @brief Set tool output voltage via URScript socket command
     bool set_tool_voltage(int voltage);

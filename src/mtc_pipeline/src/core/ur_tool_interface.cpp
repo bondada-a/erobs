@@ -12,9 +12,16 @@ URToolInterface::URToolInterface(rclcpp::Node* node, const std::string& robot_ip
 {
 }
 
-void URToolInterface::set_robot_ip(const std::string& robot_ip)
+bool URToolInterface::set_robot_ip(const std::string& robot_ip)
 {
+    // Validate IP address format
+    struct in_addr addr;
+    if (inet_pton(AF_INET, robot_ip.c_str(), &addr) != 1) {
+        RCLCPP_ERROR(node_->get_logger(), "Invalid IP address format: %s", robot_ip.c_str());
+        return false;
+    }
     robot_ip_ = robot_ip;
+    return true;
 }
 
 bool URToolInterface::set_tool_voltage(int voltage)

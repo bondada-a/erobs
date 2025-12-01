@@ -202,7 +202,13 @@ void MTCOrchestratorActionServer::execute(
     }
 
     update_feedback(feedback, goal_handle, 0, parsed_goal->task_count(), "Initializing MoveIt");
-    tool_interface_->set_robot_ip(parsed_goal->robot_ip);
+    if (!tool_interface_->set_robot_ip(parsed_goal->robot_ip)) {
+        RCLCPP_ERROR(this->get_logger(), "Invalid robot IP address: %s", parsed_goal->robot_ip.c_str());
+        result->success = false;
+        result->error_message = "Invalid robot IP address format";
+        goal_handle->abort(result);
+        return;
+    }
     if (!moveit_manager_->launch_for_gripper(parsed_goal->start_gripper, parsed_goal->robot_ip)) {
         RCLCPP_ERROR(this->get_logger(), "Failed to initialize MoveIt stack");
         result->success = false;
