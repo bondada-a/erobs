@@ -1,13 +1,8 @@
 /**
  * MoveIt Lifecycle Manager Implementation
  *
- * Extracted from MTCOrchestratorActionServer:
- * - Lines 26-34: SIGCHLD handler
- * - Lines 295-373: initialize_moveit_stack()
- * - Lines 375-409: launch_moveit_process()
- * - Lines 411-433: kill_moveit_process()
- *
- * All logic preserved exactly as-is for behavior compatibility.
+ * Manages MoveIt move_group lifecycle for gripper-specific configurations.
+ * Handles process spawning, zombie cleanup, and graceful shutdown.
  */
 
 #include "mtc_pipeline/core/moveit_lifecycle_manager.hpp"
@@ -32,7 +27,6 @@ namespace core {
 
 // SIGCHLD handler: automatically reaps zombie child processes
 // Called by kernel when any child process exits
-// (EXACT copy from orchestrator lines 26-34)
 static void sigchld_handler(int sig) {
     (void)sig;  // Unused parameter
     int saved_errno = errno;  // Save errno (signal handlers should be reentrant)
@@ -78,8 +72,6 @@ bool MoveItLifecycleManager::launch_for_gripper(
     const std::string& gripper,
     const std::string& robot_ip)
 {
-    // (EXACT copy from orchestrator lines 295-373: initialize_moveit_stack)
-
     // Reuse existing MoveIt if same gripper
     if (moveit_pid_ > 0 && current_gripper_ == gripper) {
         RCLCPP_INFO(node_->get_logger(), "MoveIt already running for %s, reusing", gripper.c_str());
@@ -160,8 +152,6 @@ bool MoveItLifecycleManager::launch_for_gripper(
 
 void MoveItLifecycleManager::kill_current_process()
 {
-    // (EXACT copy from orchestrator lines 411-433: kill_moveit_process)
-
     if (moveit_pid_ <= 0) return;
 
     // Send SIGTERM to process group
@@ -193,8 +183,6 @@ pid_t MoveItLifecycleManager::launch_moveit_process(
     const std::string& launch_file,
     const std::string& robot_ip)
 {
-    // (EXACT copy from orchestrator lines 375-409: launch_moveit_process)
-
     pid_t pid = fork();
 
     if (pid == 0) {

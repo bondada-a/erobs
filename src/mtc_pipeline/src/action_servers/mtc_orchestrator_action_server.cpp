@@ -168,7 +168,8 @@ bool MTCOrchestratorActionServer::execute_single_task(
     if (task_type.empty()) {
         RCLCPP_ERROR(this->get_logger(), "Step %zu missing 'task_type' field", task_index);
         result->success = false;
-        result->error_message = "Step missing 'task_type' field";
+        result->error_message = "Step " + std::to_string(task_index) +
+                                " missing required 'task_type' field";
         result->completed_steps = task_index;
         return false;
     }

@@ -1,8 +1,7 @@
 /**
  * UR Tool Interface Implementation
  *
- * Extracted from MTCOrchestratorActionServer (lines 435-470 + 365-368)
- * All logic preserved exactly as-is for behavior compatibility.
+ * Manages low-level robot tool interface operations via socket and ROS services.
  */
 
 #include "mtc_pipeline/core/ur_tool_interface.hpp"
@@ -25,8 +24,6 @@ void URToolInterface::set_robot_ip(const std::string& robot_ip)
 bool URToolInterface::set_tool_voltage(int voltage)
 {
     // Uses raw socket because this runs BEFORE MoveIt/ROS services are available
-    // (EXACT copy from orchestrator lines 435-470)
-
     int sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
         RCLCPP_ERROR(node_->get_logger(), "Failed to create socket");
