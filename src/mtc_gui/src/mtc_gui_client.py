@@ -18,8 +18,8 @@ try:
     import rclpy
     from rclpy.node import Node
     from sensor_msgs.msg import Image as RosImage
-    from apriltag_msgs.msg import AprilTagDetectionArray
     from std_srvs.srv import Trigger
+    from zivid_interfaces.srv import CaptureAndDetectMarkers
     from cv_bridge import CvBridge
     ROS2_AVAILABLE = True
 except ImportError:
@@ -30,11 +30,13 @@ except ImportError:
 try:
     from pose_editor import PoseManager
     from poses_manager import PosesManager
+    from save_current_pose_dialog import SaveCurrentPoseDialog
 except ImportError:
     print("Warning: Local modules not found. Running with limited functionality.")
     # Fallback if modules not found
     PoseManager = None
     PosesManager = None
+    SaveCurrentPoseDialog = None
 
 class MTCGUIClient:
     """Working MTC GUI Client that communicates with the actual MTC action server"""
@@ -48,14 +50,18 @@ class MTCGUIClient:
         self.execution_thread = None
         self.stop_execution = False
         self.temp_json_file = None
+        self.current_json_file = None  # Track currently loaded JSON file
 
         # Camera state
         self.current_image = None
-        self.current_detections = None
+        self.current_detections = []  # List of Zivid MarkerShape objects
         self.camera_label = None
         self.bridge = CvBridge() if ROS2_AVAILABLE else None
         self.ros_node = None
         self.ros_spin_thread = None
+
+        # Robot state
+        self.current_robot_pose = None  # Current robot joint positions in degrees
 
         # Initialize ROS2 if available
         if ROS2_AVAILABLE:
@@ -71,10 +77,10 @@ class MTCGUIClient:
         """Setup the main GUI window"""
         self.root = tk.Tk()
         self.root.title("MTC Action Client GUI with Camera View")
-        self.root.geometry("1400x800")
+        self.root.geometry("1920x1080")
 
         # Configure grid weights - 2 columns now
-        self.root.grid_columnconfigure(0, weight=2)  # Left side - task editor (2x weight)
+        self.root.grid_columnconfigure(0, weight=3)  # Left side - task editor (3x weight for more space)
         self.root.grid_columnconfigure(1, weight=1)  # Right side - camera view
         self.root.grid_rowconfigure(1, weight=1)
 
@@ -115,7 +121,7 @@ class MTCGUIClient:
         # Robot IP
         ttk.Label(config_frame, text="Robot IP:").grid(row=0, column=0, sticky="w", padx=(0, 10))
         self.robot_ip_var = tk.StringVar(value="192.168.1.101")
-        self.robot_ip_entry = ttk.Entry(config_frame, textvariable=self.robot_ip_var, width=20)
+        self.robot_ip_entry = ttk.Entry(config_frame, textvariable=self.robot_ip_var, width=30)
         self.robot_ip_entry.grid(row=0, column=1, sticky="ew", padx=(0, 10))
         
         # Start Gripper
@@ -131,8 +137,13 @@ class MTCGUIClient:
         
         # Manage Poses Button
         if PosesManager:
-            ttk.Button(config_frame, text="Manage Poses", 
+            ttk.Button(config_frame, text="Manage Poses",
                       command=self.manage_poses).grid(row=0, column=5, padx=(20, 0))
+
+        # Save Current Pose Button
+        if ROS2_AVAILABLE:
+            ttk.Button(config_frame, text="Save Current Pose",
+                      command=self.save_current_pose).grid(row=0, column=6, padx=(20, 0))
 
     def create_task_editor_frame(self):
         """Create task sequence editor frame"""
@@ -141,17 +152,24 @@ class MTCGUIClient:
         editor_frame.grid_columnconfigure(0, weight=1)
         editor_frame.grid_rowconfigure(1, weight=1)
         
-        # Toolbar
+        # Toolbar - organize in two rows to prevent overflow
         toolbar = ttk.Frame(editor_frame)
         toolbar.grid(row=0, column=0, sticky="ew", pady=(0, 10))
-        
-        ttk.Button(toolbar, text="Add MoveTo", command=lambda: self.add_task_step("moveto")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Add Pick&Place", command=lambda: self.add_task_step("pick_and_place")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Add Tool Exchange", command=lambda: self.add_task_step("tool_exchange")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Add End Effector", command=lambda: self.add_task_step("end_effector")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Add Vision MoveTo", command=lambda: self.add_task_step("vision_moveto")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Add Pipettor", command=lambda: self.add_task_step("pipettor")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar, text="Remove Step", command=self.remove_task_step).pack(side="left", padx=(20, 0))
+
+        # First row of buttons
+        toolbar_row1 = ttk.Frame(toolbar)
+        toolbar_row1.pack(fill="x", pady=(0, 5))
+        ttk.Button(toolbar_row1, text="Add MoveTo", command=lambda: self.add_task_step("moveto")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row1, text="Add Pick&Place", command=lambda: self.add_task_step("pick_and_place")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row1, text="Add Tool Exchange", command=lambda: self.add_task_step("tool_exchange")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row1, text="Add End Effector", command=lambda: self.add_task_step("end_effector")).pack(side="left", padx=(0, 5))
+
+        # Second row of buttons
+        toolbar_row2 = ttk.Frame(toolbar)
+        toolbar_row2.pack(fill="x")
+        ttk.Button(toolbar_row2, text="Add Vision MoveTo", command=lambda: self.add_task_step("vision_moveto")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row2, text="Add Pipettor", command=lambda: self.add_task_step("pipettor")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row2, text="Remove Step", command=self.remove_task_step).pack(side="left", padx=(20, 0))
         
         # Task sequence tree
         self.task_tree = ttk.Treeview(editor_frame, columns=("Action", "Details"), show="tree headings")
@@ -226,17 +244,79 @@ class MTCGUIClient:
         if not PosesManager:
             messagebox.showwarning("Warning", "Poses manager not available")
             return
-        
+
         try:
             manager = PosesManager(self.root, self.current_config.get("poses", {}))
             result = manager.show()
-            
+
             if result is not None:
                 self.current_config["poses"] = result
                 self.log_message(f"Updated poses configuration ({len(result)} poses)")
-                
+
         except Exception as e:
             messagebox.showerror("Error", f"Failed to open poses manager: {str(e)}")
+
+    def save_current_pose(self):
+        """Open dialog to save the current robot pose"""
+        if not ROS2_AVAILABLE:
+            messagebox.showwarning("Warning", "ROS2 not available")
+            return
+
+        if not SaveCurrentPoseDialog:
+            messagebox.showwarning("Warning", "Save Current Pose dialog not available")
+            return
+
+        if self.current_robot_pose is None:
+            messagebox.showwarning("Warning",
+                                 "No robot pose available. Make sure the robot is connected and publishing joint states.")
+            return
+
+        try:
+            dialog = SaveCurrentPoseDialog(self.root, self.current_robot_pose,
+                                          self.current_config, self.current_json_file)
+            result = dialog.show()
+
+            if result:
+                action = result["action"]
+                pose_name = result["pose_name"]
+                pose_values = result["pose_values"]
+
+                if action == "add_to_config":
+                    # Add to current configuration
+                    self.current_config["poses"][pose_name] = pose_values
+                    self.log_message(f"Added pose '{pose_name}' to current configuration")
+
+                elif action == "save_to_current":
+                    # Save to currently loaded JSON file
+                    if self.current_json_file:
+                        self.current_config["poses"][pose_name] = pose_values
+                        self.current_config["start_gripper"] = self.start_gripper_var.get()
+
+                        with open(self.current_json_file, 'w') as f:
+                            json.dump(self.current_config, f, indent=2)
+
+                        self.log_message(f"Saved pose '{pose_name}' to {self.current_json_file}")
+                    else:
+                        messagebox.showerror("Error", "No JSON file currently loaded")
+
+                elif action == "save_to_new":
+                    # Save to new JSON file
+                    file_path = result.get("file_path")
+                    if file_path:
+                        # Update or create poses dictionary
+                        if "poses" not in self.current_config:
+                            self.current_config["poses"] = {}
+                        self.current_config["poses"][pose_name] = pose_values
+
+                        # Save to file
+                        with open(file_path, 'w') as f:
+                            json.dump(self.current_config, f, indent=2)
+
+                        self.current_json_file = file_path
+                        self.log_message(f"Saved pose '{pose_name}' to new file: {file_path}")
+
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to save pose: {str(e)}")
 
     def add_task_step(self, action_type):
         """Add a new task step"""
@@ -275,7 +355,8 @@ class MTCGUIClient:
             step = {
                 "task_type": "vision_moveto",
                 "tag_id": 0,
-                "timeout": 10.0
+                "timeout": 10.0,
+                "marker_dictionary": "aruco4x4_50"  # Default ArUco dictionary
             }
         elif action_type == "pipettor":
             step = {
@@ -475,7 +556,7 @@ class MTCGUIClient:
         ttk.Label(dialog, text="Gripper:").pack(anchor="w", padx=20)
         gripper_var = tk.StringVar(value=step.get("gripper", "hande"))
         gripper_combo = ttk.Combobox(dialog, textvariable=gripper_var,
-                                    values=["epick", "hande", "none"], width=30)
+                                    values=["epick", "hande", "pipettor", "none"], width=30)
         gripper_combo.pack(padx=20, pady=(0, 10))
 
         # Dock number
@@ -516,7 +597,7 @@ class MTCGUIClient:
         ttk.Label(dialog, text="Action:").pack(anchor="w", padx=20)
         action_var = tk.StringVar(value=step.get("end_effector_action", "vacuum_on"))
         action_combo = ttk.Combobox(dialog, textvariable=action_var,
-                                  values=["vacuum_on", "vacuum_off", "open", "close"], width=30)
+                                  values=["hande_open", "hande_closed", "vacuum_on", "vacuum_off"], width=30)
         action_combo.pack(padx=20, pady=(0, 20))
 
         def save_changes():
@@ -534,18 +615,32 @@ class MTCGUIClient:
 
         # Add description
         description = ttk.Label(dialog,
-                               text="Detect AprilTag and move gripper to tag location",
+                               text="Detect ArUco Marker using Zivid and move gripper to marker location",
                                font=("Arial", 9),
                                foreground="gray")
         description.pack(padx=20, pady=(0, 20))
 
-        # Tag ID
-        ttk.Label(dialog, text="AprilTag ID:").pack(anchor="w", padx=20)
+        # Marker ID
+        ttk.Label(dialog, text="ArUco Marker ID:").pack(anchor="w", padx=20)
         tag_id_var = tk.StringVar(value=str(step.get("tag_id", 0)))
         tag_id_entry = ttk.Entry(dialog, textvariable=tag_id_var, width=30)
         tag_id_entry.pack(padx=20, pady=(0, 10))
 
-        ttk.Label(dialog, text="The ID number of the AprilTag to detect",
+        ttk.Label(dialog, text="The ID number of the ArUco marker to detect",
+                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
+
+        # Marker Dictionary
+        ttk.Label(dialog, text="Marker Dictionary:").pack(anchor="w", padx=20)
+        marker_dict_var = tk.StringVar(value=step.get("marker_dictionary", "aruco4x4_50"))
+        marker_dict_combo = ttk.Combobox(dialog, textvariable=marker_dict_var,
+                                        values=["aruco4x4_50", "aruco4x4_100", "aruco4x4_250",
+                                               "aruco5x5_50", "aruco5x5_100", "aruco5x5_250",
+                                               "aruco6x6_50", "aruco6x6_100", "aruco6x6_250",
+                                               "aruco7x7_50", "aruco7x7_100", "aruco7x7_250"],
+                                        width=27, state="readonly")
+        marker_dict_combo.pack(padx=20, pady=(0, 10))
+
+        ttk.Label(dialog, text="ArUco dictionary (must match your physical markers)",
                  font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
 
         # Timeout
@@ -554,7 +649,7 @@ class MTCGUIClient:
         timeout_entry = ttk.Entry(dialog, textvariable=timeout_var, width=30)
         timeout_entry.pack(padx=20, pady=(0, 10))
 
-        ttk.Label(dialog, text="Maximum time to wait for tag detection",
+        ttk.Label(dialog, text="Maximum time to wait for marker detection",
                  font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 20))
 
         # Information box
@@ -562,10 +657,11 @@ class MTCGUIClient:
         info_frame.pack(padx=20, pady=(10, 20), fill="x")
 
         info_text = ("Vision MoveTo will:\n"
-                    "1. Continuously capture images from Zivid camera\n"
-                    "2. Detect the specified AprilTag\n"
-                    "3. Move gripper to the detected tag position\n"
-                    "4. Use Cartesian planning for straight-line motion")
+                    "1. Capture 3D point cloud using Zivid camera\n"
+                    "2. Detect ArUco marker using built-in detection\n"
+                    "3. Transform marker pose to robot base frame\n"
+                    "4. Move gripper to detected marker position\n"
+                    "5. Cache detection for efficiency (30s)")
         ttk.Label(info_frame, text=info_text, justify="left",
                  font=("Arial", 8)).pack()
 
@@ -573,12 +669,13 @@ class MTCGUIClient:
             try:
                 step["tag_id"] = int(tag_id_var.get())
                 step["timeout"] = float(timeout_var.get())
+                step["marker_dictionary"] = marker_dict_var.get()
                 self.update_task_tree()
                 dialog.destroy()
                 self.log_message(f"Updated step {step_index + 1}")
             except ValueError:
                 messagebox.showerror("Invalid Input",
-                                   "Tag ID must be an integer and timeout must be a number")
+                                   "Marker ID must be an integer and timeout must be a number")
 
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
@@ -772,7 +869,8 @@ class MTCGUIClient:
             elif action == "vision_moveto":
                 tag_id = step.get('tag_id', 0)
                 timeout = step.get('timeout', 10.0)
-                details = f"Detect tag {tag_id} (timeout: {timeout}s)"
+                marker_dict = step.get('marker_dictionary', 'aruco4x4_50')
+                details = f"Detect ArUco {tag_id} ({marker_dict}, timeout: {timeout}s)"
             elif action == "pipettor":
                 operation = step.get('operation', 'SUCK')
                 volume_pct = step.get('volume_pct', 0.0)
@@ -877,18 +975,36 @@ class MTCGUIClient:
             
             self.log_message(f"Created temporary configuration file: {self.temp_json_file}")
             
-            # Find the MTC action client executable
+            # Find the MTC action client executable using ROS2 package resolution
             mtc_client_path = None
-            possible_paths = [
-                "/home/aditya/work/github_ws/erobs/install/mtc_pipeline/lib/mtc_pipeline/mtc_action_client_example",
-                "/home/aditya/work/github_ws/erobs/build/mtc_pipeline/mtc_action_client_example"
-            ]
-            
-            for path in possible_paths:
-                if os.path.exists(path):
-                    mtc_client_path = path
-                    break
-            
+            try:
+                # Use ros2 pkg prefix to find the package installation path
+                result = subprocess.run(
+                    ['ros2', 'pkg', 'prefix', 'mtc_pipeline'],
+                    capture_output=True,
+                    text=True,
+                    timeout=5
+                )
+
+                if result.returncode == 0:
+                    pkg_prefix = result.stdout.strip()
+                    mtc_client_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_client')
+                    self.log_message(f"Package prefix found: {pkg_prefix}")
+                    self.log_message(f"Looking for executable at: {mtc_client_path}")
+
+                    if not os.path.exists(mtc_client_path):
+                        self.log_message(f"ERROR: Executable not found at: {mtc_client_path}")
+                        mtc_client_path = None
+                else:
+                    self.log_message(f"ERROR: ros2 pkg prefix failed with code {result.returncode}")
+                    self.log_message(f"ERROR: stderr: {result.stderr.strip()}")
+                    self.log_message(f"ERROR: stdout: {result.stdout.strip()}")
+
+            except subprocess.TimeoutExpired:
+                self.log_message("ERROR: Timeout while looking for mtc_pipeline package")
+            except Exception as e:
+                self.log_message(f"ERROR: Exception while finding package: {e}")
+
             if not mtc_client_path:
                 self.log_message("ERROR: Could not find MTC action client executable")
                 return
@@ -964,11 +1080,40 @@ class MTCGUIClient:
         def test_thread():
             try:
                 self.log_message("Testing MTC action server availability...")
-                
-                # Check if the MTC action server executable exists
-                mtc_server_path = "/home/aditya/work/github_ws/erobs/install/mtc_pipeline/lib/mtc_pipeline/mtc_orchestrator_action_server"
-                
-                if os.path.exists(mtc_server_path):
+
+                # Check if ROS2 is available
+                try:
+                    ros2_check = subprocess.run(['which', 'ros2'], capture_output=True, text=True, timeout=2)
+                    if ros2_check.returncode == 0:
+                        self.log_message(f"ros2 command found at: {ros2_check.stdout.strip()}")
+                    else:
+                        self.log_message("⚠ ros2 command not found - is ROS2 sourced?")
+                except Exception as e:
+                    self.log_message(f"⚠ Could not check for ros2 command: {e}")
+
+                # Check if the MTC action server executable exists using ROS2 package resolution
+                mtc_server_path = None
+                try:
+                    result = subprocess.run(
+                        ['ros2', 'pkg', 'prefix', 'mtc_pipeline'],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+
+                    if result.returncode == 0:
+                        pkg_prefix = result.stdout.strip()
+                        mtc_server_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_orchestrator_action_server')
+                        self.log_message(f"Package prefix found: {pkg_prefix}")
+                        self.log_message(f"Looking for executable at: {mtc_server_path}")
+                    else:
+                        self.log_message(f"⚠ ros2 pkg prefix failed with code {result.returncode}")
+                        self.log_message(f"⚠ stderr: {result.stderr.strip()}")
+                        self.log_message(f"⚠ stdout: {result.stdout.strip()}")
+                except Exception as e:
+                    self.log_message(f"⚠ Could not locate package: {e}")
+
+                if mtc_server_path and os.path.exists(mtc_server_path):
                     self.log_message("✓ MTC action server executable found")
                     
                     # Try to check if it's running
@@ -997,19 +1142,22 @@ class MTCGUIClient:
             title="Load JSON Configuration",
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")]
         )
-        
+
         if file_path:
             try:
                 with open(file_path, 'r') as f:
                     self.current_config = json.load(f)
-                
+
                 # Update GUI with loaded configuration
                 if "start_gripper" in self.current_config:
                     self.start_gripper_var.set(self.current_config["start_gripper"])
-                
+
+                # Track the current JSON file path
+                self.current_json_file = file_path
+
                 self.update_task_tree()
                 self.log_message(f"Loaded configuration from {file_path}")
-                
+
             except Exception as e:
                 messagebox.showerror("Error", f"Failed to load file: {str(e)}")
 
@@ -1069,6 +1217,9 @@ class MTCGUIClient:
         ttk.Button(button_frame, text="Capture Image",
                   command=self.trigger_capture).pack(side="left", padx=(0, 5))
 
+        ttk.Button(button_frame, text="Detect Markers",
+                  command=self.trigger_marker_detection).pack(side="left", padx=(0, 5))
+
         self.camera_status_label = ttk.Label(button_frame, text="Waiting for camera...",
                                              foreground="gray")
         self.camera_status_label.pack(side="left", padx=(10, 0))
@@ -1099,16 +1250,23 @@ class MTCGUIClient:
                 10
             )
 
-            # Subscribe to AprilTag detections
-            self.detection_sub = self.ros_node.create_subscription(
-                AprilTagDetectionArray,
-                '/detections',
-                self.detection_callback,
+            # Subscribe to joint states for pose capture
+            from sensor_msgs.msg import JointState
+            self.joint_state_sub = self.ros_node.create_subscription(
+                JointState,
+                '/joint_states',
+                self.joint_state_callback,
                 10
             )
 
-            # Create capture service client
+            # Create Zivid service clients
             self.capture_client = self.ros_node.create_client(Trigger, '/capture_2d')
+            self.marker_detection_client = self.ros_node.create_client(
+                CaptureAndDetectMarkers,
+                '/capture_and_detect_markers'
+            )
+
+            # Detection is now manual via button (no periodic timer)
 
             # Start ROS2 spinning in background thread
             self.ros_spin_thread = threading.Thread(target=self.spin_ros, daemon=True)
@@ -1141,15 +1299,96 @@ class MTCGUIClient:
         except Exception as e:
             print(f"Image callback error: {e}")
 
-    def detection_callback(self, msg):
-        """Handle AprilTag detections"""
-        self.current_detections = msg
+    def joint_state_callback(self, msg):
+        """Handle incoming joint state messages"""
+        try:
+            import math
+            # Map joint names to positions
+            joint_dict = dict(zip(msg.name, msg.position))
 
-        # Update detection info in GUI
-        self.root.after(0, self.update_detection_info)
+            # UR robot joint order for JSON: [shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3]
+            joint_order = [
+                'shoulder_pan_joint',
+                'shoulder_lift_joint',
+                'elbow_joint',
+                'wrist_1_joint',
+                'wrist_2_joint',
+                'wrist_3_joint'
+            ]
+
+            # Convert radians to degrees and round to 2 decimal places
+            if all(j in joint_dict for j in joint_order):
+                pose_deg = [round(math.degrees(joint_dict[j]), 2) for j in joint_order]
+                self.current_robot_pose = pose_deg
+
+        except Exception as e:
+            print(f"Joint state callback error: {e}")
+
+    def trigger_marker_detection(self):
+        """Manually trigger ArUco marker detection from Zivid (called by button)"""
+        if not self.marker_detection_client:
+            print("Marker detection client not available")
+            return
+
+        if not self.marker_detection_client.service_is_ready():
+            self.camera_status_label.config(
+                text="Zivid service not ready",
+                foreground="orange"
+            )
+            return
+
+        try:
+            # Update status
+            self.camera_status_label.config(
+                text="Detecting markers...",
+                foreground="blue"
+            )
+
+            # Request detection for common marker IDs (0-20) using default dictionary
+            request = CaptureAndDetectMarkers.Request()
+            request.marker_ids = list(range(21))  # Detect IDs 0-20
+            request.marker_dictionary = "aruco4x4_50"  # Default dictionary
+
+            # Send async request
+            future = self.marker_detection_client.call_async(request)
+            future.add_done_callback(self.detection_response_callback)
+
+        except Exception as e:
+            print(f"Marker detection request error: {e}")
+            self.camera_status_label.config(
+                text=f"Detection error: {e}",
+                foreground="red"
+            )
+
+    def detection_response_callback(self, future):
+        """Handle Zivid marker detection response"""
+        try:
+            response = future.result()
+            if response.success:
+                # Store detected markers (cached for overlay on live stream)
+                self.current_detections = response.detection_result.detected_markers
+
+                # Update GUI in main thread
+                self.root.after(0, self.update_detection_info)
+                self.root.after(0, self.update_camera_display)
+            else:
+                print(f"Marker detection failed: {response.message}")
+                self.current_detections = []
+                self.root.after(0, lambda: self.camera_status_label.config(
+                    text=f"Detection failed: {response.message}",
+                    foreground="red"
+                ))
+
+        except Exception as e:
+            print(f"Detection response error: {e}")
+            self.current_detections = []
+            self.root.after(0, lambda: self.camera_status_label.config(
+                text=f"Detection error",
+                foreground="red"
+            ))
 
     def update_camera_display(self):
-        """Update camera image display with AprilTag overlays"""
+        """Update camera image display with ArUco marker overlays"""
         if self.current_image is None or self.camera_label is None:
             return
 
@@ -1157,24 +1396,24 @@ class MTCGUIClient:
             # Clone image for drawing
             display_image = self.current_image.copy()
 
-            # Draw AprilTag overlays if we have detections
-            if self.current_detections and len(self.current_detections.detections) > 0:
-                for detection in self.current_detections.detections:
-                    # Get corners
-                    corners = detection.corners
+            # Draw marker overlays if we have detections
+            if self.current_detections and len(self.current_detections) > 0:
+                for marker in self.current_detections:
+                    # Get 2D pixel corners from Zivid detection
+                    corners = marker.corners_in_pixel_coordinates
 
                     if len(corners) == 4:
-                        # Draw bounding box
+                        # Draw bounding box (green for detected markers)
                         pts = np.array([[int(c.x), int(c.y)] for c in corners], np.int32)
                         pts = pts.reshape((-1, 1, 2))
                         cv2.polylines(display_image, [pts], True, (0, 255, 0), 3)
 
-                        # Draw tag ID
+                        # Draw tag ID at center
                         center_x = int(sum(c.x for c in corners) / 4)
                         center_y = int(sum(c.y for c in corners) / 4)
 
                         # Add background rectangle for text
-                        text = f"ID: {detection.id}"
+                        text = f"ID: {marker.id}"
                         font = cv2.FONT_HERSHEY_SIMPLEX
                         font_scale = 1.5
                         thickness = 3
@@ -1189,12 +1428,12 @@ class MTCGUIClient:
                                    font, font_scale, (0, 0, 0), thickness)
 
                 self.camera_status_label.config(
-                    text=f"{len(self.current_detections.detections)} tag(s) detected",
+                    text=f"{len(self.current_detections)} ArUco marker(s) detected",
                     foreground="green"
                 )
             else:
                 self.camera_status_label.config(
-                    text="No tags detected",
+                    text="No markers detected",
                     foreground="orange"
                 )
 
@@ -1229,19 +1468,22 @@ class MTCGUIClient:
         try:
             self.detection_info.delete(1.0, tk.END)
 
-            if self.current_detections and len(self.current_detections.detections) > 0:
-                self.detection_info.insert(tk.END, f"Detected {len(self.current_detections.detections)} tag(s):\n\n")
+            if self.current_detections and len(self.current_detections) > 0:
+                self.detection_info.insert(tk.END, f"Detected {len(self.current_detections)} ArUco marker(s):\n\n")
 
-                for detection in self.current_detections.detections:
+                for marker in self.current_detections:
+                    # Get 3D position from marker pose
+                    pos = marker.pose.position
                     self.detection_info.insert(tk.END,
-                        f"Tag ID: {detection.id}\n"
-                        f"Family: {detection.family}\n"
-                        f"Hamming: {detection.hamming}\n"
-                        f"Decision Margin: {detection.decision_margin:.2f}\n"
+                        f"Marker ID: {marker.id}\n"
+                        f"Position (camera frame):\n"
+                        f"  X: {pos.x:.3f} m\n"
+                        f"  Y: {pos.y:.3f} m\n"
+                        f"  Z: {pos.z:.3f} m\n"
                         f"---\n"
                     )
             else:
-                self.detection_info.insert(tk.END, "No tags detected\n")
+                self.detection_info.insert(tk.END, "No markers detected\n")
 
         except Exception as e:
             print(f"Detection info update error: {e}")

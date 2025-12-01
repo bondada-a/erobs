@@ -8,5 +8,3 @@ bool success
 string error_message
 ---
 # Feedback
-string current_operation
-float32 progress_percentage

@@ -1,12 +1,12 @@
+// End effector control: open/close grippers via SRDF states.
+
 #pragma once
 
 #include "mtc_pipeline/base_stages.hpp"
-
-#include <nlohmann/json.hpp>
+#include "mtc_pipeline/action/end_effector_action.hpp"
 
 class EndEffectorStages : public BaseStages {
 public:
     EndEffectorStages(const rclcpp::Node::SharedPtr& node);
-
-    bool run(const nlohmann::json& step, const nlohmann::json& poses);
+    bool run(const mtc_pipeline::action::EndEffectorAction::Goal& goal);
 };

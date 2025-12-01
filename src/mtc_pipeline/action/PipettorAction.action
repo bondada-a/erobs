@@ -9,4 +9,3 @@ bool success
 string error_message
 ---
 # Feedback
-string status

@@ -2,23 +2,35 @@
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
   <name>mtc_gui</name>
-  <version>0.0.0</version>
+  <version>0.0.1</version>
   <description>Graphical User Interface for MoveIt Task Constructor (MTC) Pipeline</description>
   <maintainer email="youremail@domain.com">user</maintainer>
   <license>TODO: License declaration</license>
 
-  <buildtool_depend>ament_cmake</buildtool_depend>
-  
-  <!-- Dependencies for the GUI -->
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <!-- ROS2 dependencies -->
   <depend>rclpy</depend>
-  <depend>mtc_pipeline</depend>
-  
+  <depend>sensor_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>cv_bridge</depend>
+  <depend>zivid_interfaces</depend>
+
   <!-- Python dependencies -->
   <exec_depend>python3-tk</exec_depend>
-  
-  <!-- Export -->
+  <exec_depend>python3-pil</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+
+  <!-- Related packages -->
+  <exec_depend>mtc_pipeline</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
   <export>
-    <build_type>ament_cmake</build_type>
+    <build_type>ament_python</build_type>
   </export>
 </package>
-
