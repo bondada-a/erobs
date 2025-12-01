@@ -61,11 +61,21 @@ bool URToolInterface::set_tool_voltage(int voltage)
 bool URToolInterface::restart_external_control()
 {
     // Restart UR external_control program (voltage command stops it)
-    // (EXACT copy from orchestrator lines 365-368)
-
     auto dashboard = node_->create_client<std_srvs::srv::Trigger>("/dashboard_client/play");
-    dashboard->wait_for_service(30s);
-    dashboard->async_send_request(std::make_shared<std_srvs::srv::Trigger::Request>());
+    auto future = dashboard->async_send_request(
+        std::make_shared<std_srvs::srv::Trigger::Request>());
+
+    if (future.wait_for(5s) != std::future_status::ready) {
+        RCLCPP_ERROR(node_->get_logger(), "Dashboard play command timeout");
+        return false;
+    }
+
+    auto result = future.get();
+    if (!result->success) {
+        RCLCPP_ERROR(node_->get_logger(), "Failed to restart external_control: %s",
+                     result->message.c_str());
+        return false;
+    }
 
     return true;
 }

@@ -1012,17 +1012,25 @@ class MTCGUIClient:
             self.log_message(f"Using MTC client: {mtc_client_path}")
             
             # Execute the MTC action client
-            cmd = [mtc_client_path, self.temp_json_file, self.robot_ip_var.get()]
-            self.log_message(f"Executing: {' '.join(cmd)}")
-            
+            # Use stdbuf to force unbuffered output (most reliable method)
+            cmd = ['stdbuf', '-oL', '-eL', mtc_client_path, self.temp_json_file, self.robot_ip_var.get()]
+            self.log_message(f"Executing: {' '.join(cmd[3:])}")  # Don't show stdbuf in log
+
             # Run the command and capture output
+            # PYTHONUNBUFFERED forces line-buffered output for Python scripts
+            # RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED forces ROS 2 to flush after each log
+            env = os.environ.copy()
+            env['PYTHONUNBUFFERED'] = '1'
+            env['RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED'] = '1'
+
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # Merge stderr into stdout
                 text=True,
-                bufsize=1,
-                universal_newlines=True
+                bufsize=0,  # Unbuffered
+                universal_newlines=True,
+                env=env
             )
             
             # Monitor the process
@@ -1044,10 +1052,7 @@ class MTCGUIClient:
             if return_code == 0:
                 self.log_message("✓ Task completed successfully!")
             else:
-                stderr_output = process.stderr.read()
                 self.log_message(f"✗ Task failed with return code {return_code}")
-                if stderr_output:
-                    self.log_message(f"Error: {stderr_output}")
                 
         except Exception as e:
             self.log_message(f"ERROR: {str(e)}")
