@@ -4,7 +4,7 @@
 <name>mtc_pipeline</name>
 <version>0.0.0</version>
 <description>Motion planning pipeline</description>
-<maintainer email="youremail@domain.com">user</maintainer>
+<maintainer email="abondada@bnl.gov">abondada</maintainer>
 <license>TODO: License declaration</license>
 
 <buildtool_depend>ament_cmake</buildtool_depend>
@@ -16,10 +16,14 @@
 <depend>rclcpp</depend>
 <depend>rclcpp_action</depend>
 <depend>std_srvs</depend>
+<depend>tf2</depend>
 <depend>tf2_eigen</depend>
 <depend>tf2_ros</depend>
 <depend>tf2_geometry_msgs</depend>
 <depend>geometry_msgs</depend>
+<depend>shape_msgs</depend>
+<depend>moveit_msgs</depend>
+<depend>yaml-cpp</depend>
 <depend>zivid_interfaces</depend>
 <depend>pipette_driver</depend>
 <exec_depend>rosidl_default_runtime</exec_depend>

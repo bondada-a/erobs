@@ -28,9 +28,9 @@ except ImportError:
 
 # Import local modules
 try:
-    from pose_editor import PoseManager
-    from poses_manager import PosesManager
-    from save_current_pose_dialog import SaveCurrentPoseDialog
+    from .pose_editor import PoseManager
+    from .poses_manager import PosesManager
+    from .save_current_pose_dialog import SaveCurrentPoseDialog
 except ImportError:
     print("Warning: Local modules not found. Running with limited functionality.")
     # Fallback if modules not found
@@ -1012,17 +1012,25 @@ class MTCGUIClient:
             self.log_message(f"Using MTC client: {mtc_client_path}")
             
             # Execute the MTC action client
-            cmd = [mtc_client_path, self.temp_json_file, self.robot_ip_var.get()]
-            self.log_message(f"Executing: {' '.join(cmd)}")
-            
+            # Use stdbuf to force unbuffered output (most reliable method)
+            cmd = ['stdbuf', '-oL', '-eL', mtc_client_path, self.temp_json_file, self.robot_ip_var.get()]
+            self.log_message(f"Executing: {' '.join(cmd[3:])}")  # Don't show stdbuf in log
+
             # Run the command and capture output
+            # PYTHONUNBUFFERED forces line-buffered output for Python scripts
+            # RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED forces ROS 2 to flush after each log
+            env = os.environ.copy()
+            env['PYTHONUNBUFFERED'] = '1'
+            env['RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED'] = '1'
+
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
+                stderr=subprocess.STDOUT,  # Merge stderr into stdout
                 text=True,
-                bufsize=1,
-                universal_newlines=True
+                bufsize=0,  # Unbuffered
+                universal_newlines=True,
+                env=env
             )
             
             # Monitor the process
@@ -1030,24 +1038,33 @@ class MTCGUIClient:
                 if self.stop_execution:
                     self.log_message("Stopping execution...")
                     process.terminate()
+
+                    # Wait for graceful shutdown (client will cancel the action)
+                    try:
+                        process.wait(timeout=5.0)
+                        self.log_message("Task cancelled successfully")
+                    except subprocess.TimeoutExpired:
+                        self.log_message("Force killing process...")
+                        process.kill()
+                        process.wait()
                     break
-                
+
                 # Read output
                 output = process.stdout.readline()
                 if output:
                     self.log_message(f"MTC: {output.strip()}")
-                
+
                 time.sleep(0.1)
             
             # Get final result
+            # Return codes: 0=Success, 1=Failure, 2=Cancelled
             return_code = process.poll()
             if return_code == 0:
                 self.log_message("✓ Task completed successfully!")
+            elif return_code == 2:
+                self.log_message("⊗ Task was cancelled")
             else:
-                stderr_output = process.stderr.read()
                 self.log_message(f"✗ Task failed with return code {return_code}")
-                if stderr_output:
-                    self.log_message(f"Error: {stderr_output}")
                 
         except Exception as e:
             self.log_message(f"ERROR: {str(e)}")

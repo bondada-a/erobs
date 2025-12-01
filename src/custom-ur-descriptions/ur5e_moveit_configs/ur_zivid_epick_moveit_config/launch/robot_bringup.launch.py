@@ -34,6 +34,7 @@ def generate_launch_description():
             "description_file": LaunchConfiguration("description_file"),
             "controllers_file": LaunchConfiguration("controllers_file"),
             "kinematics_params_file": os.path.join(get_package_share_directory("ur5e_robot_description"), "config", "ur5e_calibration.yaml"),
+            "use_tool_communication": "true",  # Enable to make tool_voltage parameter work
             "tool_voltage": "24",
         }.items()
     )
@@ -139,17 +140,6 @@ def generate_launch_description():
         ]
     )
 
-    # Shared planning scene
-    scene_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare("erobs_planning_scene"),
-                "launch",
-                "load_scene.launch.py"
-            ])
-        ])
-    )
-
     # Delay ur_control_launch to ensure tool_communication creates /tmp/ttyUR first
     delayed_ur_control_launch = TimerAction(
         period=1.5,  # Wait 1.5 seconds for tool_communication to create /tmp/ttyUR via socat
@@ -175,7 +165,6 @@ def generate_launch_description():
         epick_controller_spawner,
         epick_status_controller_spawner,
         set_payload,  # Set UR payload
-        scene_launch,
     ])
 
     

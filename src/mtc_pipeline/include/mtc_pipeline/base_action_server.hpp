@@ -1,8 +1,15 @@
+// Template base class for MTC action servers.
+// Handles goal lifecycle, threading, and concurrent execution prevention.
+// Usage:
+//   class MyServer : public BaseActionServer<MyAction, MyStages> { ... };
+//   auto node = std::make_shared<MyServer>();
+//   node->initialize_stages();  // Required: shared_from_this() not available in ctor
+//   rclcpp::spin(node);
+
 #pragma once
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <nlohmann/json.hpp>
 #include <memory>
 #include <string>
 #include <thread>
@@ -16,21 +23,17 @@ public:
     BaseActionServer(const std::string& node_name, const std::string& action_name)
         : Node(node_name)
     {
-        this->action_server_ = rclcpp_action::create_server<ActionType>(
+        action_server_ = rclcpp_action::create_server<ActionType>(
             this,
             action_name,
             [this](const auto&, const auto&) {
                 RCLCPP_INFO(this->get_logger(), "Received goal");
                 return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
             },
-            // Cancellation disabled - actions cannot be safely aborted mid-execution yet (TODO)
-            nullptr,
-            [this](const auto& goal_handle) {
-                handle_accepted(goal_handle);
-            }
+            nullptr,  // Cancel not supported (can't safely abort mid-motion)
+            [this](const auto& gh) { handle_accepted(gh); }
         );
-
-        RCLCPP_INFO(this->get_logger(), "%s Action Server started", node_name.c_str());
+        RCLCPP_INFO(this->get_logger(), "%s started", node_name.c_str());
     }
 
     void initialize_stages()
@@ -41,48 +44,60 @@ public:
 private:
     typename rclcpp_action::Server<ActionType>::SharedPtr action_server_;
     std::unique_ptr<StagesType> stages_;
+    bool executing_{false};
 
-    // Callbacks
     void handle_accepted(const std::shared_ptr<GoalHandle> goal_handle)
     {
-        std::thread{
-            [this, node_lifetime = shared_from_this(), goal_handle]() {
-                this->execute(goal_handle);
-            }
-        }.detach();
+        if (executing_) {
+            RCLCPP_WARN(this->get_logger(), "Rejecting goal: server busy");
+            auto result = std::make_shared<typename ActionType::Result>();
+            result->success = false;
+            result->error_message = "Server busy";
+            goal_handle->abort(result);
+            return;
+        }
+        executing_ = true;
+
+        // Worker thread keeps main executor responsive for callbacks
+        std::thread{[this, node_lifetime = shared_from_this(), goal_handle]() {
+            execute(goal_handle);
+            executing_ = false;
+        }}.detach();
     }
 
     void execute(const std::shared_ptr<GoalHandle> goal_handle)
     {
-        RCLCPP_INFO(this->get_logger(), "Executing goal");
-
-        auto goal = goal_handle->get_goal();
         auto result = std::make_shared<typename ActionType::Result>();
 
-        try {
-            bool success = stages_->run(*goal);
-
-            result->success = success;
-            if (!success) {
-                result->error_message = "Stage execution failed";
-            }
-
-        } catch (const std::exception& e) {
-            RCLCPP_ERROR(this->get_logger(), "Execution exception: %s", e.what());
+        if (!stages_) {
+            RCLCPP_ERROR(this->get_logger(), "Stages not initialized");
             result->success = false;
-            result->error_message = std::string("Execution exception: ") + e.what();
+            result->error_message = "Stages not initialized";
             goal_handle->abort(result);
             return;
         }
 
-        if (rclcpp::ok()) {
-            if (result->success) {
-                goal_handle->succeed(result);
-                RCLCPP_INFO(this->get_logger(), "Goal completed successfully");
-            } else {
-                goal_handle->abort(result);
-                RCLCPP_ERROR(this->get_logger(), "Goal aborted: %s", result->error_message.c_str());
+        RCLCPP_INFO(this->get_logger(), "Executing goal");
+
+        try {
+            result->success = stages_->run(*goal_handle->get_goal());
+            if (!result->success) {
+                result->error_message = "Execution failed";
             }
+        } catch (const std::exception& e) {
+            RCLCPP_ERROR(this->get_logger(), "Exception: %s", e.what());
+            result->success = false;
+            result->error_message = e.what();
+        }
+
+        if (!rclcpp::ok()) return;
+
+        if (result->success) {
+            goal_handle->succeed(result);
+            RCLCPP_INFO(this->get_logger(), "Goal succeeded");
+        } else {
+            goal_handle->abort(result);
+            RCLCPP_ERROR(this->get_logger(), "Goal failed: %s", result->error_message.c_str());
         }
     }
 };

@@ -139,18 +139,6 @@ def generate_launch_description():
         ]
     )
 
-    # Shared planning scene
-    scene_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare("erobs_planning_scene"),
-                "launch",
-                "load_scene.launch.py"
-            ])
-        ])
-    )
-
-
     return LaunchDescription([
         ## arguments
         robot_ip,
@@ -168,5 +156,4 @@ def generate_launch_description():
         robot_state_publisher,
         pipette_driver,  # Pipettor driver node
         set_payload,  # Set UR payload
-        scene_launch,
     ])

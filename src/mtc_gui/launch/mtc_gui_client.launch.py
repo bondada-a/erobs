@@ -18,7 +18,7 @@ def generate_launch_description():
     # MTC GUI Client node
     gui_client_node = Node(
         package='mtc_gui',
-        executable='mtc_gui_client.py',
+        executable='mtc_gui_client',
         name='mtc_gui_client',
         output='screen',
         parameters=[
