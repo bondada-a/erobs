@@ -12,7 +12,7 @@ using namespace std::chrono_literals;
 namespace mtc_pipeline {
 namespace core {
 
-URToolInterface::URToolInterface(rclcpp::Node::SharedPtr node, const std::string& robot_ip)
+URToolInterface::URToolInterface(rclcpp::Node* node, const std::string& robot_ip)
     : node_(node), robot_ip_(robot_ip)
 {
 }

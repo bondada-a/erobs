@@ -48,7 +48,7 @@ static void sigchld_handler(int sig) {
 // ============================================================================
 
 MoveItLifecycleManager::MoveItLifecycleManager(
-    rclcpp::Node::SharedPtr node,
+    rclcpp::Node* node,
     std::shared_ptr<mtc_pipeline::GripperConfigRegistry> registry,
     URToolInterface* tool_interface)
     : node_(node),

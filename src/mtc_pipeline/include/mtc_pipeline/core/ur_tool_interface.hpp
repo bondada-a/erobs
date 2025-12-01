@@ -21,7 +21,7 @@ namespace core {
 class URToolInterface
 {
 public:
-    URToolInterface(rclcpp::Node::SharedPtr node, const std::string& robot_ip);
+    URToolInterface(rclcpp::Node* node, const std::string& robot_ip);
 
     // Set robot IP (can be called later if not known at construction)
     void set_robot_ip(const std::string& robot_ip);
@@ -37,7 +37,7 @@ public:
     bool restart_external_control();
 
 private:
-    rclcpp::Node::SharedPtr node_;
+    rclcpp::Node* node_;
     std::string robot_ip_;
 };
 

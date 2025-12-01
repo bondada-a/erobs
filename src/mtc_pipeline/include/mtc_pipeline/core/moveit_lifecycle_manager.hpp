@@ -30,7 +30,7 @@ class MoveItLifecycleManager
 {
 public:
     MoveItLifecycleManager(
-        rclcpp::Node::SharedPtr node,
+        rclcpp::Node* node,
         std::shared_ptr<mtc_pipeline::GripperConfigRegistry> registry,
         URToolInterface* tool_interface
     );
@@ -52,7 +52,7 @@ public:
     std::string current_gripper() const;
 
 private:
-    rclcpp::Node::SharedPtr node_;
+    rclcpp::Node* node_;
     std::shared_ptr<mtc_pipeline::GripperConfigRegistry> gripper_registry_;
     URToolInterface* tool_interface_;  // NOT owned
 

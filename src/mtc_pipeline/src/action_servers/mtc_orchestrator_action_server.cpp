@@ -34,10 +34,10 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
 
     // Create core components (refactored for better separation of concerns)
     tool_interface_ = std::make_unique<mtc_pipeline::core::URToolInterface>(
-        shared_from_this(), "" // robot_ip will be set from goal
+        this, "" // robot_ip will be set from goal
     );
     moveit_manager_ = std::make_unique<mtc_pipeline::core::MoveItLifecycleManager>(
-        shared_from_this(),
+        this,
         gripper_registry_,
         tool_interface_.get()
     );
