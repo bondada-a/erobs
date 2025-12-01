@@ -1,6 +1,7 @@
 // Coordinates multi-step robot tasks by dispatching to specialized action servers.
 
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
+#include "mtc_pipeline/beamline_config.hpp"
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
 using namespace std::chrono_literals;
@@ -10,14 +11,26 @@ using namespace std::chrono_literals;
 MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptions& options)
     : Node("mtc_orchestrator_action_server", options), is_executing_(false)
 {
+    // Load beamline configuration
+    std::string beamline_config_file = this->get_parameter_or<std::string>(
+        "beamline_config", "config/default_beamline.yaml");
+
     try {
-        gripper_registry_ = std::make_shared<mtc_pipeline::GripperConfigRegistry>(
-            this, "config/grippers.yaml");
+        beamline_config_ = mtc_pipeline::load_beamline_config(beamline_config_file);
+        RCLCPP_INFO(this->get_logger(), "Loaded beamline config: %s", beamline_config_.name.c_str());
+        RCLCPP_INFO(this->get_logger(), "Robot: %s @ %s",
+                    beamline_config_.robot.model.c_str(),
+                    beamline_config_.robot.ip.c_str());
     } catch (const std::exception& e) {
         RCLCPP_FATAL(this->get_logger(),
-                     "Failed to load gripper configuration: %s", e.what());
+                     "Failed to load beamline configuration from '%s': %s",
+                     beamline_config_file.c_str(), e.what());
         throw;
     }
+
+    // Create gripper registry from beamline config
+    gripper_registry_ = std::make_shared<mtc_pipeline::GripperConfigRegistry>(
+        this, beamline_config_);
 
     tool_interface_ = std::make_unique<mtc_pipeline::core::URToolInterface>(
         this, ""

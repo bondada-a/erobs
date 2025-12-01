@@ -11,6 +11,9 @@
 
 namespace mtc_pipeline {
 
+// Forward declaration
+struct BeamlineConfig;
+
 class GripperConfigRegistry {
 public:
     struct GripperConfig {
@@ -20,6 +23,9 @@ public:
 
     /// @brief Load gripper configurations from YAML file
     GripperConfigRegistry(rclcpp::Node* node, const std::string& config_file);
+
+    /// @brief Load gripper configurations from BeamlineConfig
+    GripperConfigRegistry(rclcpp::Node* node, const struct BeamlineConfig& beamline_config);
 
     /// @brief Get configuration for specified gripper type
     std::optional<GripperConfig> get_config(const std::string& gripper_type) const;

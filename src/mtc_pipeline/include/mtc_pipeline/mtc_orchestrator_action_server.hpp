@@ -23,6 +23,7 @@
 #include "mtc_pipeline/gripper_config_registry.hpp"
 #include "mtc_pipeline/core/moveit_lifecycle_manager.hpp"
 #include "mtc_pipeline/core/ur_tool_interface.hpp"
+#include "mtc_pipeline/beamline_config.hpp"
 
 using MTCExecution = mtc_pipeline::action::MTCExecution;
 using GoalHandleMTCExecution = rclcpp_action::ServerGoalHandle<MTCExecution>;
@@ -46,6 +47,7 @@ private:
     ActionServer::SharedPtr action_server_;
     std::atomic<bool> is_executing_;
 
+    mtc_pipeline::BeamlineConfig beamline_config_;  // Beamline deployment configuration
     std::shared_ptr<mtc_pipeline::GripperConfigRegistry> gripper_registry_;
 
     std::unique_ptr<mtc_pipeline::core::URToolInterface> tool_interface_;
