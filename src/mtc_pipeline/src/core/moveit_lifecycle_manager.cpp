@@ -5,7 +5,6 @@
 #include "mtc_pipeline/gripper_config_registry.hpp"
 #include "mtc_pipeline/obstacle_loader.hpp"
 #include <ament_index_cpp/get_package_share_directory.hpp>
-#include <csignal>
 #include <sys/wait.h>
 #include <unistd.h>
 #include <thread>
@@ -14,16 +13,6 @@
 using namespace std::chrono_literals;
 
 namespace mtc_pipeline::core {
-
-// Zombie process cleanup
-
-// SIGCHLD handler: reaps zombie children when they exit
-static void sigchld_handler(int sig) {
-    (void)sig;
-    int saved_errno = errno;
-    while (waitpid(-1, nullptr, WNOHANG) > 0);
-    errno = saved_errno;
-}
 
 // Construction & destruction
 
@@ -36,7 +25,8 @@ MoveItLifecycleManager::MoveItLifecycleManager(
       tool_interface_(tool_interface),
       moveit_pid_(0)
 {
-    signal(SIGCHLD, sigchld_handler);
+    // Note: Manual cleanup in kill_current_process() is sufficient.
+    // No signal handler needed - prevents race conditions during shutdown.
 }
 
 MoveItLifecycleManager::~MoveItLifecycleManager()
