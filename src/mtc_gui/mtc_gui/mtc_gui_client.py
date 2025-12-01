@@ -1038,19 +1038,31 @@ class MTCGUIClient:
                 if self.stop_execution:
                     self.log_message("Stopping execution...")
                     process.terminate()
+
+                    # Wait for graceful shutdown (client will cancel the action)
+                    try:
+                        process.wait(timeout=5.0)
+                        self.log_message("Task cancelled successfully")
+                    except subprocess.TimeoutExpired:
+                        self.log_message("Force killing process...")
+                        process.kill()
+                        process.wait()
                     break
-                
+
                 # Read output
                 output = process.stdout.readline()
                 if output:
                     self.log_message(f"MTC: {output.strip()}")
-                
+
                 time.sleep(0.1)
             
             # Get final result
+            # Return codes: 0=Success, 1=Failure, 2=Cancelled
             return_code = process.poll()
             if return_code == 0:
                 self.log_message("✓ Task completed successfully!")
+            elif return_code == 2:
+                self.log_message("⊗ Task was cancelled")
             else:
                 self.log_message(f"✗ Task failed with return code {return_code}")
                 

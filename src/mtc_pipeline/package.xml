@@ -4,7 +4,7 @@
 <name>mtc_pipeline</name>
 <version>0.0.0</version>
 <description>Motion planning pipeline</description>
-<maintainer email="youremail@domain.com">user</maintainer>
+<maintainer email="abondada@bnl.gov">abondada</maintainer>
 <license>TODO: License declaration</license>
 
 <buildtool_depend>ament_cmake</buildtool_depend>
