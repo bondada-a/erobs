@@ -33,6 +33,7 @@
   <exec_depend>moveit_configs_utils</exec_depend>
   <exec_depend>moveit_ros_move_group</exec_depend>
   <exec_depend>ur5e_robot_description</exec_depend>
+  <exec_depend>ur_robot_driver</exec_depend>
   <exec_depend>xacro</exec_depend>
 
 
