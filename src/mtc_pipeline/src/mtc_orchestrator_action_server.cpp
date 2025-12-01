@@ -13,8 +13,25 @@
 #include "mtc_pipeline/mtc_orchestrator_action_server.hpp"
 #include "mtc_pipeline/obstacle_loader.hpp"
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#include <csignal>  // For signal(), SIGCHLD
 
 using namespace std::chrono_literals;
+
+// ============================================================================
+// ZOMBIE PROCESS CLEANUP
+// ============================================================================
+
+// SIGCHLD handler: automatically reaps zombie child processes
+// Called by kernel when any child process exits
+static void sigchld_handler(int sig) {
+    (void)sig;  // Unused parameter
+    int saved_errno = errno;  // Save errno (signal handlers should be reentrant)
+
+    // Reap all dead children (WNOHANG = don't block)
+    while (waitpid(-1, nullptr, WNOHANG) > 0);
+
+    errno = saved_errno;  // Restore errno
+}
 
 // ============================================================================
 // CONSTRUCTION & DESTRUCTION
@@ -32,6 +49,9 @@ MTCOrchestratorActionServer::MTCOrchestratorActionServer(const rclcpp::NodeOptio
                      "Failed to load gripper configuration: %s", e.what());
         throw;
     }
+
+    // Install SIGCHLD handler for automatic zombie cleanup
+    signal(SIGCHLD, sigchld_handler);
 
     // Create action server (receives task scripts from clients)
     action_server_ = rclcpp_action::create_server<MTCExecution>(
@@ -312,9 +332,9 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(
 
     // Step 2: Launch MoveIt
     RCLCPP_INFO(this->get_logger(), "Launching MoveIt for %s gripper", gripper.c_str());
-    std::string launch_cmd = "ros2 launch " + config->moveit_package +
-                             " robot_bringup.launch.py robot_ip:=" + robot_ip;
-    launch_moveit_process(launch_cmd);
+    launch_moveit_process(config->moveit_package,
+                         "robot_bringup.launch.py",
+                         robot_ip);
 
     // Step 3: Wait for MoveIt to be ready
     auto plan_client = this->create_client<moveit_msgs::srv::GetMotionPlan>("/plan_kinematic_path");
@@ -352,14 +372,32 @@ bool MTCOrchestratorActionServer::initialize_moveit_stack(
     return true;
 }
 
-pid_t MTCOrchestratorActionServer::launch_moveit_process(const std::string& command)
+pid_t MTCOrchestratorActionServer::launch_moveit_process(
+    const std::string& package,
+    const std::string& launch_file,
+    const std::string& robot_ip)
 {
     pid_t pid = fork();
 
     if (pid == 0) {
         // Child: create new process group and exec
         setsid();
-        execl("/bin/bash", "bash", "-c", command.c_str(), static_cast<char*>(nullptr));
+
+        // Build argument array for direct execution (no shell!)
+        std::string robot_ip_arg = "robot_ip:=" + robot_ip;
+        char* args[] = {
+            (char*)"ros2",
+            (char*)"launch",
+            (char*)package.c_str(),
+            (char*)launch_file.c_str(),
+            (char*)robot_ip_arg.c_str(),
+            nullptr  // Must be null-terminated
+        };
+
+        // Execute directly without shell - no command injection possible
+        execvp("ros2", args);
+
+        // Only reached if exec fails
         _exit(1);
     }
 

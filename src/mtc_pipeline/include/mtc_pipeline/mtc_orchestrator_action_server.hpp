@@ -57,7 +57,9 @@ private:
     // MoveIt process management
     std::string current_gripper_;
     pid_t moveit_pid_{0};
-    pid_t launch_moveit_process(const std::string& command);
+    pid_t launch_moveit_process(const std::string& package,
+                               const std::string& launch_file,
+                               const std::string& robot_ip);
     void kill_moveit_process();
 
     // Action clients
