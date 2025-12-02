@@ -124,8 +124,11 @@ Examples:
         # Create RunEngine
         RE = RunEngine({})
 
-        # Docker workspace path
-        WORKSPACE_ROOT = "/root/ws/erobs"
+        # Workspace path (auto-detect Docker vs local)
+        if os.path.exists("/root/ws/erobs"):
+            WORKSPACE_ROOT = "/root/ws/erobs"
+        else:
+            WORKSPACE_ROOT = os.path.expanduser("~/work/github_ws/erobs")
 
         # Process JSON file arguments
         if args.json_files:
