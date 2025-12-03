@@ -4,8 +4,6 @@ Tool exchange: load/dock grippers at magnetic holder stations.
 Uses Cartesian moves for precise tool attachment/detachment.
 """
 
-import json
-from typing import Dict, Any, Optional
 from moveit.task_constructor import core, stages
 from mtc_py_lib.stages.base_stages import BaseStages, DOCK_SPACING_METERS
 
@@ -57,8 +55,8 @@ class ToolExchangeStages(BaseStages):
             )
             return False
 
-        # Parse poses
-        poses = self._parse_poses(goal.poses_json)
+        # Parse poses (required for tool exchange operations)
+        poses = self.parse_poses(goal.poses_json, required=True)
         if poses is None:
             return False
 
@@ -137,22 +135,3 @@ class ToolExchangeStages(BaseStages):
             return False
 
         return self.load_plan_execute(task)
-
-    def _parse_poses(self, poses_json: str) -> Optional[Dict[str, Any]]:
-        """Parse poses JSON string.
-
-        Args:
-            poses_json: JSON string containing pose definitions
-
-        Returns:
-            Dictionary of pose names to values, or None on error
-        """
-        if not poses_json:
-            self.logger.error("poses_json is empty")
-            return None
-
-        try:
-            return json.loads(poses_json)
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Failed to parse poses_json: {e}")
-            return None

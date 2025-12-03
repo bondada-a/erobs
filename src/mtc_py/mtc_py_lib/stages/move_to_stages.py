@@ -5,8 +5,6 @@ Handles MoveTo operations:
 - Target-based moves (joint poses from JSON or named SRDF states)
 """
 
-import json
-from typing import Dict, Any
 from moveit.task_constructor import core, stages
 from mtc_py_lib.stages.base_stages import BaseStages
 
@@ -54,7 +52,8 @@ class MoveToStages(BaseStages):
 
         # Case 2: Target-based move
         elif goal.target:
-            poses = self._parse_poses(goal.poses_json)
+            # Poses are optional for MoveTo (might use SRDF named state)
+            poses = self.parse_poses(goal.poses_json, required=False)
 
             move_stage = stages.MoveTo(f"move_to_{goal.target}", planner)
             move_stage.group = self.arm_group
@@ -86,21 +85,3 @@ class MoveToStages(BaseStages):
             return False
 
         return self.load_plan_execute(task)
-
-    def _parse_poses(self, poses_json: str) -> Dict[str, Any]:
-        """Parse poses JSON string.
-
-        Args:
-            poses_json: JSON string containing pose definitions
-
-        Returns:
-            Dictionary of pose names to values
-        """
-        if not poses_json:
-            return {}
-
-        try:
-            return json.loads(poses_json)
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Failed to parse poses JSON: {e}")
-            return {}

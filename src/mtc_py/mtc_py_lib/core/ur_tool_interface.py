@@ -121,14 +121,12 @@ class URToolInterface:
             request = Trigger.Request()
             future = client.call_async(request)
 
-            # Wait for result (with timeout)
-            import time
-            start = time.time()
-            while not future.done():
-                if time.time() - start > 5.0:
-                    self._logger.error("Dashboard play command timeout")
-                    return False
-                time.sleep(0.1)
+            # Wait for result with timeout (using rclpy's efficient waiting)
+            import rclpy
+            rclpy.spin_until_future_complete(self._node, future, timeout_sec=5.0)
+            if not future.done():
+                self._logger.error("Dashboard play command timeout")
+                return False
 
             result = future.result()
             if not result.success:

@@ -4,8 +4,9 @@ Provides the BaseStages class which all stage implementations inherit from.
 Contains planner factories, direction vectors, and common utilities.
 """
 
+import json
 import math
-from typing import Dict, Tuple, List
+from typing import Any, Dict, List, Optional, Tuple
 from moveit.task_constructor import core, stages
 from geometry_msgs.msg import PoseStamped, Vector3, Vector3Stamped
 from std_msgs.msg import Header
@@ -308,3 +309,41 @@ class BaseStages:
         jc.weight = 1.0
         constraint.joint_constraints.append(jc)
         return constraint
+
+    def parse_poses(
+        self, poses_json: str, required: bool = False
+    ) -> Optional[Dict[str, Any]]:
+        """Parse poses JSON string with consistent error handling.
+
+        Consolidates the duplicate _parse_poses() methods from subclasses.
+
+        Args:
+            poses_json: JSON string containing pose definitions
+            required: If True, empty/invalid JSON returns None (error case).
+                     If False, returns empty dict (poses optional).
+
+        Returns:
+            Dictionary of pose names to values.
+            Returns None if required=True and poses_json is empty/invalid.
+            Returns {} if required=False and poses_json is empty/invalid.
+
+        Example:
+            # For operations where poses are required (pick_place, tool_exchange)
+            poses = self.parse_poses(goal.poses_json, required=True)
+            if poses is None:
+                return False
+
+            # For operations where poses are optional (moveto with named state)
+            poses = self.parse_poses(goal.poses_json, required=False)
+        """
+        if not poses_json:
+            if required:
+                self.logger.error("poses_json is required but empty")
+                return None
+            return {}
+
+        try:
+            return json.loads(poses_json)
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Failed to parse poses_json: {e}")
+            return None if required else {}

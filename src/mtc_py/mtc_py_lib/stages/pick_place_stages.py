@@ -4,8 +4,7 @@ Pick and place sequence: approach -> grip -> retreat -> approach -> release -> r
 Uses constrained motion during pick to maintain tool orientation.
 """
 
-import json
-from typing import Dict, Any, Optional
+from typing import Any, Dict, Optional
 from moveit.task_constructor import core, stages
 from mtc_py_lib.stages.base_stages import BaseStages
 from mtc_py_lib.utils.gripper_utils import get_group_name, get_state_name
@@ -41,8 +40,8 @@ class PickPlaceStages(BaseStages):
         Returns:
             True if successful, False otherwise
         """
-        # Parse poses
-        poses = self._parse_poses(goal.poses_json)
+        # Parse poses (required for pick/place operations)
+        poses = self.parse_poses(goal.poses_json, required=True)
         if poses is None:
             return False
 
@@ -128,25 +127,6 @@ class PickPlaceStages(BaseStages):
         task.add(home)
 
         return self.load_plan_execute(task)
-
-    def _parse_poses(self, poses_json: str) -> Optional[Dict[str, Any]]:
-        """Parse poses JSON string.
-
-        Args:
-            poses_json: JSON string containing pose definitions
-
-        Returns:
-            Dictionary of pose names to values, or None on error
-        """
-        if not poses_json:
-            self.logger.error("poses_json is empty")
-            return None
-
-        try:
-            return json.loads(poses_json)
-        except json.JSONDecodeError as e:
-            self.logger.error(f"Failed to parse poses_json: {e}")
-            return None
 
     def _make_move_to_named_stage(
         self,

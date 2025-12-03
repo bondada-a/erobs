@@ -46,8 +46,9 @@ class MTCOrchestratorServer(Node):
     steps to specialized MTC action servers (MoveTo, EndEffector, etc.)
     """
 
-    # Timeouts for each action type (seconds)
-    TIMEOUTS = {
+    # Default timeouts for each action type (seconds)
+    # Can be overridden via ROS parameters: timeout.moveto, timeout.end_effector, etc.
+    DEFAULT_TIMEOUTS = {
         "moveto": 120.0,
         "end_effector": 30.0,
         "pick_and_place": 180.0,
@@ -60,6 +61,15 @@ class MTCOrchestratorServer(Node):
         self._executing = False
         self._lock = threading.Lock()
         self._current_gripper = "none"
+
+        # Declare timeout parameters (configurable at launch)
+        self._timeouts = {}
+        for action_type, default_timeout in self.DEFAULT_TIMEOUTS.items():
+            param_name = f"timeout.{action_type}"
+            self.declare_parameter(param_name, default_timeout)
+            self._timeouts[action_type] = self.get_parameter(param_name).value
+
+        self.get_logger().info(f"Timeouts configured: {self._timeouts}")
 
         # Callback group for concurrent operations
         self._callback_group = ReentrantCallbackGroup()
@@ -264,8 +274,12 @@ class MTCOrchestratorServer(Node):
     def _send_and_wait(
         self, client: ActionClient, goal, name: str, timeout: float
     ) -> bool:
-        """Send a goal to an action client and wait for result."""
-        import time
+        """Send a goal to an action client and wait for result.
+
+        Uses rclpy.spin_until_future_complete with timeout for efficient waiting,
+        matching C++ std::future::wait_for() behavior. No polling loops needed.
+        """
+        import rclpy
 
         # Wait for server
         if not client.wait_for_server(timeout_sec=5.0):
@@ -275,13 +289,11 @@ class MTCOrchestratorServer(Node):
         # Send goal and wait for acceptance
         send_future = client.send_goal_async(goal)
 
-        # Wait for goal acceptance with timeout
-        start = time.time()
-        while not send_future.done():
-            if time.time() - start > 10.0:  # 10s timeout for goal acceptance
-                self.get_logger().error(f"{name} goal acceptance timed out")
-                return False
-            time.sleep(0.05)
+        # Wait for goal acceptance (10s timeout)
+        rclpy.spin_until_future_complete(self, send_future, timeout_sec=10.0)
+        if not send_future.done():
+            self.get_logger().error(f"{name} goal acceptance timed out")
+            return False
 
         goal_handle = send_future.result()
 
@@ -292,13 +304,11 @@ class MTCOrchestratorServer(Node):
         # Wait for result with timeout
         result_future = goal_handle.get_result_async()
 
-        start = time.time()
-        while not result_future.done():
-            if time.time() - start > timeout:
-                self.get_logger().error(f"{name} timed out after {timeout}s")
-                goal_handle.cancel_goal_async()
-                return False
-            time.sleep(0.1)
+        rclpy.spin_until_future_complete(self, result_future, timeout_sec=timeout)
+        if not result_future.done():
+            self.get_logger().error(f"{name} timed out after {timeout}s")
+            goal_handle.cancel_goal_async()
+            return False
 
         result = result_future.result()
         return result.result.success
@@ -313,7 +323,7 @@ class MTCOrchestratorServer(Node):
         goal.poses_json = poses_json
 
         return self._send_and_wait(
-            self._moveto_client, goal, "moveto", self.TIMEOUTS["moveto"]
+            self._moveto_client, goal, "moveto", self._timeouts["moveto"]
         )
 
     def _call_endeffector(self, step: Dict[str, Any], poses_json: str) -> bool:
@@ -324,7 +334,7 @@ class MTCOrchestratorServer(Node):
         goal.poses_json = poses_json
 
         return self._send_and_wait(
-            self._endeffector_client, goal, "end_effector", self.TIMEOUTS["end_effector"]
+            self._endeffector_client, goal, "end_effector", self._timeouts["end_effector"]
         )
 
     def _call_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
@@ -338,7 +348,7 @@ class MTCOrchestratorServer(Node):
         goal.poses_json = poses_json
 
         return self._send_and_wait(
-            self._pickplace_client, goal, "pick_place", self.TIMEOUTS["pick_and_place"]
+            self._pickplace_client, goal, "pick_place", self._timeouts["pick_and_place"]
         )
 
     def _call_toolexchange(self, step: Dict[str, Any], poses_json: str) -> bool:
@@ -352,7 +362,7 @@ class MTCOrchestratorServer(Node):
         goal.poses_json = poses_json
 
         return self._send_and_wait(
-            self._toolexchange_client, goal, "tool_exchange", self.TIMEOUTS["tool_exchange"]
+            self._toolexchange_client, goal, "tool_exchange", self._timeouts["tool_exchange"]
         )
 
     def _handle_tool_exchange(self, step: Dict[str, Any], poses_json: str) -> bool:
