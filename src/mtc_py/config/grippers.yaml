@@ -1,0 +1,31 @@
+# Gripper Configuration for MTC Pipeline
+# Each gripper type defines its MoveIt package and tool voltage requirements
+#
+# To add a new gripper:
+# 1. Add entry below with required fields
+# 2. Restart the mtc_orchestrator node (no rebuild needed!)
+#
+# Fields:
+#   moveit_package: ROS 2 package containing MoveIt configuration
+#   tool_voltage: Voltage to set on UR robot tool output (0, 12, or 24V)
+
+grippers:
+  # No gripper attached (bare UR arm)
+  none:
+    moveit_package: "ur_standalone_moveit_config"
+    tool_voltage: 0
+
+  # OnRobot ePick vacuum gripper
+  epick:
+    moveit_package: "ur_zivid_epick_moveit_config"
+    tool_voltage: 24
+
+  # OnRobot Hand-E adaptive gripper
+  hande:
+    moveit_package: "ur_zivid_hande_moveit_config"
+    tool_voltage: 24
+
+  # Custom pipettor tool
+  pipettor:
+    moveit_package: "ur_zivid_pipettor_moveit_config"
+    tool_voltage: 24
