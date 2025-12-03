@@ -5,6 +5,7 @@ Uses constrained motion during pick to maintain tool orientation.
 """
 
 from typing import Any, Dict, Optional
+from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 from mtc_py_lib.stages.base_stages import BaseStages
 from mtc_py_lib.utils.gripper_utils import get_group_name, get_state_name
@@ -123,6 +124,12 @@ class PickPlaceStages(BaseStages):
         # 10. Return home
         home = stages.MoveTo("return home", pipeline)
         home.group = self.arm_group
+
+        # Set ik_frame for Cartesian planning (matches C++ configureInitFrom)
+        ik_frame_pose = PoseStamped()
+        ik_frame_pose.header.frame_id = self.ik_frame
+        home.ik_frame = ik_frame_pose
+
         home.setGoal("moveit_home")
         task.add(home)
 
@@ -160,6 +167,12 @@ class PickPlaceStages(BaseStages):
 
         stage = stages.MoveTo(label, planner)
         stage.group = self.arm_group
+
+        # Set ik_frame for Cartesian planning (matches C++ configureInitFrom)
+        ik_frame_pose = PoseStamped()
+        ik_frame_pose.header.frame_id = self.ik_frame
+        stage.ik_frame = ik_frame_pose
+
         stage.setGoal(self.joints_from_degrees(joint_pose))
         return stage
 

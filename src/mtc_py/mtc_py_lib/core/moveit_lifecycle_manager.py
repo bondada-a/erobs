@@ -11,6 +11,7 @@ Complete launch sequence (matching C++):
 5. Restart UR external_control via dashboard
 """
 
+import atexit
 import os
 import signal
 import subprocess
@@ -50,6 +51,9 @@ class MoveItLifecycleManager:
         self._current_gripper: str = ""
         self._robot_ip: str = ""  # Track for potential relaunch
 
+        # Ensure MoveIt is killed when orchestrator exits
+        atexit.register(self.kill_current_process)
+
     @property
     def current_gripper(self) -> str:
         """Get the current gripper type.
@@ -58,6 +62,15 @@ class MoveItLifecycleManager:
             Current gripper name, or "none" if no gripper
         """
         return self._current_gripper if self._current_gripper else "none"
+
+    @property
+    def robot_ip(self) -> str:
+        """Get the current robot IP address.
+
+        Returns:
+            Robot IP address, or empty string if not set
+        """
+        return self._robot_ip
 
     def launch_for_gripper(self, gripper: str, robot_ip: str) -> bool:
         """Launch MoveIt with configuration for the specified gripper.
@@ -202,10 +215,9 @@ class MoveItLifecycleManager:
             self._logger.info(f"Executing: {' '.join(cmd)}")
 
             # Start in new process group for clean shutdown
+            # Note: No stdout/stderr redirect - logs flow to terminal like C++ version
             self._moveit_process = subprocess.Popen(
                 cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,
                 start_new_session=True,  # Creates new process group
             )
 

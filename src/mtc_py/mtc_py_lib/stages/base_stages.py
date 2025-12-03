@@ -37,8 +37,8 @@ DEFAULT_JOINT_NAMES: List[str] = [
 ]
 
 # Hardcoded scaling factors (matching C++ at 20%)
-VELOCITY_SCALING = 0.2
-ACCELERATION_SCALING = 0.2
+VELOCITY_SCALING = 0.8
+ACCELERATION_SCALING = 0.8
 
 # Default group/frame names matching C++ (base_stages.cpp)
 DEFAULT_ARM_GROUP = "ur_arm"

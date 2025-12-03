@@ -393,7 +393,7 @@ class MTCOrchestratorServer(Node):
 
             # Get robot_ip from the manager's current state
             # We need to relaunch MoveIt with the new gripper config
-            robot_ip = self._moveit_manager._robot_ip if hasattr(self._moveit_manager, '_robot_ip') else ""
+            robot_ip = self._moveit_manager.robot_ip
             if robot_ip and not self._moveit_manager.launch_for_gripper(new_gripper, robot_ip):
                 self.get_logger().error("Failed to restart MoveIt with new gripper config")
                 return False
