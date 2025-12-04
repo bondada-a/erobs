@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
 """ToolExchangeAction server - handles tool load/dock via MTC."""
 
-from mtc_py_lib.actions.base_action_server import BaseActionServer
+import rclpy
+
+from mtc_py_lib.action_servers.base_action_server import BaseActionServer
 from mtc_py_lib.stages.tool_exchange_stages import ToolExchangeStages
 from mtc_py.action import ToolExchangeAction  # Generated interface - stays mtc_py
 
@@ -59,3 +62,21 @@ class ToolExchangeActionServer(BaseActionServer):
             self.get_logger().error(f"ToolExchange execution error: {e}")
 
         return result
+
+
+def main(args=None):
+    """Run the ToolExchange action server."""
+    rclpy.init(args=args)
+    node = ToolExchangeActionServer()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down ToolExchange server...")
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

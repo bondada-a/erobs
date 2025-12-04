@@ -40,13 +40,16 @@ install(DIRECTORY config/
 
 # Install Python scripts as executables
 install(PROGRAMS
-  scripts/move_to_server_node.py
-  scripts/end_effector_server_node.py
-  scripts/pick_place_server_node.py
-  scripts/tool_exchange_server_node.py
+  # Action servers (consolidated - main() is in each server file)
+  mtc_py_lib/action_servers/move_to_server.py
+  mtc_py_lib/action_servers/end_effector_server.py
+  mtc_py_lib/action_servers/pick_place_server.py
+  mtc_py_lib/action_servers/tool_exchange_server.py
+  mtc_py_lib/action_servers/orchestrator.py
+  # Vision servers (placeholders - not yet implemented)
   scripts/vision_server_node.py
   scripts/vision_pick_place_server_node.py
-  scripts/orchestrator_node.py
+  # Client utilities
   scripts/send_task_goal.py
   DESTINATION lib/${PROJECT_NAME}
 )

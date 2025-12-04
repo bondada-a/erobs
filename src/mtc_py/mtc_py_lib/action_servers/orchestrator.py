@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """MTC Orchestrator - coordinates multi-step robot tasks.
 
 Python equivalent of mtc_orchestrator_action_server.cpp.
@@ -10,10 +11,12 @@ import threading
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
 
+import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, ActionClient
 from rclpy.action.server import ServerGoalHandle, GoalResponse, CancelResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
+from rclpy.executors import MultiThreadedExecutor
 
 from mtc_py.action import (
     MTCExecution,
@@ -425,3 +428,25 @@ class MTCOrchestratorServer(Node):
         result.success = False
         result.error_message = error_message
         return result
+
+
+def main(args=None):
+    """Run the MTC Orchestrator server."""
+    rclpy.init(args=args)
+    node = MTCOrchestratorServer()
+
+    # Use multithreaded executor for concurrent action client calls
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+
+    try:
+        executor.spin()
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down MTC Orchestrator...")
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
 """EndEffectorAction server - handles gripper commands via MTC."""
 
-from mtc_py_lib.actions.base_action_server import BaseActionServer
+import rclpy
+
+from mtc_py_lib.action_servers.base_action_server import BaseActionServer
 from mtc_py_lib.stages.end_effector_stages import EndEffectorStages
 from mtc_py.action import EndEffectorAction  # Generated interface - stays mtc_py
 
@@ -51,3 +54,21 @@ class EndEffectorActionServer(BaseActionServer):
             self.get_logger().error(f"EndEffector execution error: {e}")
 
         return result
+
+
+def main(args=None):
+    """Run the EndEffector action server."""
+    rclpy.init(args=args)
+    node = EndEffectorActionServer()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down EndEffector server...")
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

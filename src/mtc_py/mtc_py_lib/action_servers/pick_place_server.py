@@ -1,6 +1,9 @@
+#!/usr/bin/env python3
 """PickPlaceAction server - handles pick and place sequences via MTC."""
 
-from mtc_py_lib.actions.base_action_server import BaseActionServer
+import rclpy
+
+from mtc_py_lib.action_servers.base_action_server import BaseActionServer
 from mtc_py_lib.stages.pick_place_stages import PickPlaceStages
 from mtc_py.action import PickPlaceAction  # Generated interface - stays mtc_py
 
@@ -60,3 +63,21 @@ class PickPlaceActionServer(BaseActionServer):
             self.get_logger().error(f"PickPlace execution error: {e}")
 
         return result
+
+
+def main(args=None):
+    """Run the PickPlace action server."""
+    rclpy.init(args=args)
+    node = PickPlaceActionServer()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down PickPlace server...")
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

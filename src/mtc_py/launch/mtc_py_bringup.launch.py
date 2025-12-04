@@ -39,7 +39,7 @@ def generate_launch_description():
     # MoveTo action server
     move_to_server = Node(
         package='mtc_py',
-        executable='move_to_server_node.py',
+        executable='move_to_server.py',
         name='mtc_moveto_server_py',
         output='screen',
         parameters=action_server_parameters,
@@ -48,7 +48,7 @@ def generate_launch_description():
     # EndEffector action server
     end_effector_server = Node(
         package='mtc_py',
-        executable='end_effector_server_node.py',
+        executable='end_effector_server.py',
         name='mtc_endeffector_server_py',
         output='screen',
         parameters=action_server_parameters,
@@ -57,7 +57,7 @@ def generate_launch_description():
     # PickPlace action server
     pick_place_server = Node(
         package='mtc_py',
-        executable='pick_place_server_node.py',
+        executable='pick_place_server.py',
         name='mtc_pickplace_server_py',
         output='screen',
         parameters=action_server_parameters,
@@ -66,7 +66,7 @@ def generate_launch_description():
     # ToolExchange action server
     tool_exchange_server = Node(
         package='mtc_py',
-        executable='tool_exchange_server_node.py',
+        executable='tool_exchange_server.py',
         name='mtc_toolexchange_server_py',
         output='screen',
         parameters=action_server_parameters,
@@ -75,7 +75,7 @@ def generate_launch_description():
     # Orchestrator
     orchestrator = Node(
         package='mtc_py',
-        executable='orchestrator_node.py',
+        executable='orchestrator.py',
         name='mtc_orchestrator_py',
         output='screen',
     )
