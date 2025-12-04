@@ -10,7 +10,9 @@ MTC operations use rclcpp.Node internally via MTCNode singleton.
 """
 
 import threading
-from typing import TypeVar, Generic, Type, Optional
+from typing import TypeVar, Generic, Type
+
+import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, GoalResponse, CancelResponse
 from rclpy.action.server import ServerGoalHandle
@@ -32,7 +34,7 @@ class BaseActionServer(Node, Generic[ActionT]):
     - _execute(): Handle the actual goal execution
 
     Example:
-        class MoveToActionServer(BaseActionServer[MoveToAction]):
+        class MoveToActionServer(BaseActionServer):
             def __init__(self):
                 super().__init__(
                     node_name="mtc_moveto_server_py",
@@ -44,10 +46,12 @@ class BaseActionServer(Node, Generic[ActionT]):
             def initialize_stages(self):
                 self._stages = MoveToStages(self)
 
-            def _execute(self, goal_handle):
-                result = MoveToAction.Result()
-                result.success = self._stages.run(goal_handle.request)
-                return result
+            def _get_failure_message(self) -> str:
+                return "Motion planning or execution failed"
+
+        # In main:
+        if __name__ == '__main__':
+            run_server(MoveToActionServer)
     """
 
     def __init__(
@@ -146,6 +150,15 @@ class BaseActionServer(Node, Generic[ActionT]):
                 return result
             self._executing = True
 
+        # Check stages initialized
+        if self._stages is None:
+            self.get_logger().error("Stages not initialized")
+            result = self._create_error_result("Stages not initialized")
+            goal_handle.abort()
+            with self._lock:
+                self._executing = False
+            return result
+
         try:
             # Execute the goal
             result = self._execute(goal_handle)
@@ -172,18 +185,35 @@ class BaseActionServer(Node, Generic[ActionT]):
                 self._executing = False
 
     def _execute(self, goal_handle: ServerGoalHandle):
-        """Execute goal - override in subclass.
+        """Execute goal with default implementation.
+
+        Default behavior: calls self._stages.run(goal) and sets error message
+        on failure using _get_failure_message().
+
+        Override this method if you need custom behavior like logging goal
+        details before execution.
 
         Args:
             goal_handle: The goal handle with request data
 
         Returns:
             Action result with success and error_message fields
-
-        Raises:
-            NotImplementedError: Always - subclass must override
         """
-        raise NotImplementedError("Subclass must implement _execute()")
+        result = self._action_type.Result()
+        result.success = self._stages.run(goal_handle.request)
+        if not result.success:
+            result.error_message = self._get_failure_message()
+        return result
+
+    def _get_failure_message(self) -> str:
+        """Get the error message for when stages.run() returns False.
+
+        Override in subclass to customize the error message.
+
+        Returns:
+            Error message string
+        """
+        return "Operation failed"
 
     def _create_error_result(self, error_message: str):
         """Create an error result with the given message.
@@ -208,3 +238,28 @@ class BaseActionServer(Node, Generic[ActionT]):
         """
         with self._lock:
             return self._executing
+
+
+def run_server(server_class: Type[BaseActionServer], args=None):
+    """Run an action server with standard lifecycle management.
+
+    Handles rclpy init/shutdown and KeyboardInterrupt gracefully.
+
+    Args:
+        server_class: The action server class to instantiate and run
+        args: Command line arguments (default: None)
+
+    Example:
+        if __name__ == '__main__':
+            run_server(MoveToActionServer)
+    """
+    rclpy.init(args=args)
+    node = server_class()
+
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        node.get_logger().info("Shutting down...")
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()

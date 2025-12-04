@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """PickPlaceAction server - handles pick and place sequences via MTC."""
 
-import rclpy
-
-from mtc_py_lib.action_servers.base_action_server import BaseActionServer
+from mtc_py_lib.action_servers.base_action_server import BaseActionServer, run_server
 from mtc_py_lib.stages.pick_place_stages import PickPlaceStages
-from mtc_py.action import PickPlaceAction  # Generated interface - stays mtc_py
+from mtc_py.action import PickPlaceAction
 
 
 class PickPlaceActionServer(BaseActionServer):
@@ -31,47 +29,21 @@ class PickPlaceActionServer(BaseActionServer):
         self._stages = PickPlaceStages(self)
 
     def _execute(self, goal_handle):
-        """Execute PickPlace goal.
-
-        Args:
-            goal_handle: The goal handle with PickPlaceAction.Goal
-
-        Returns:
-            PickPlaceAction.Result with success and error_message
-        """
-        result = PickPlaceAction.Result()
+        """Execute PickPlace goal with logging."""
         goal = goal_handle.request
-
-        if self._stages is None:
-            result.success = False
-            result.error_message = "Stages not initialized"
-            return result
-
-        # Log the operation
         self.get_logger().info(
             f"Executing pick/place: gripper={goal.gripper}, "
             f"pick={goal.pick_target}, place={goal.place_target}"
         )
+        return super()._execute(goal_handle)
 
-        result.success = self._stages.run(goal)
-        if not result.success:
-            result.error_message = "Pick/place motion planning or execution failed"
-
-        return result
+    def _get_failure_message(self) -> str:
+        """Custom error message for pick/place failures."""
+        return "Pick/place motion planning or execution failed"
 
 
 def main(args=None):
-    """Run the PickPlace action server."""
-    rclpy.init(args=args)
-    node = PickPlaceActionServer()
-
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        node.get_logger().info("Shutting down PickPlace server...")
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+    run_server(PickPlaceActionServer, args)
 
 
 if __name__ == '__main__':

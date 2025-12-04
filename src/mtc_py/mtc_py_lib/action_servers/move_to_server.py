@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """MoveToAction server - handles MoveTo goals via MTC."""
 
-import rclpy
-
-from mtc_py_lib.action_servers.base_action_server import BaseActionServer
+from mtc_py_lib.action_servers.base_action_server import BaseActionServer, run_server
 from mtc_py_lib.stages.move_to_stages import MoveToStages
-from mtc_py.action import MoveToAction  # Generated interface - stays mtc_py
+from mtc_py.action import MoveToAction
 
 
 class MoveToActionServer(BaseActionServer):
@@ -30,42 +28,13 @@ class MoveToActionServer(BaseActionServer):
         """Create MoveToStages instance."""
         self._stages = MoveToStages(self)
 
-    def _execute(self, goal_handle):
-        """Execute MoveTo goal.
-
-        Args:
-            goal_handle: The goal handle with MoveToAction.Goal
-
-        Returns:
-            MoveToAction.Result with success and error_message
-        """
-        result = MoveToAction.Result()
-        goal = goal_handle.request
-
-        if self._stages is None:
-            result.success = False
-            result.error_message = "Stages not initialized"
-            return result
-
-        result.success = self._stages.run(goal)
-        if not result.success:
-            result.error_message = "Motion planning or execution failed"
-
-        return result
+    def _get_failure_message(self) -> str:
+        """Custom error message for MoveTo failures."""
+        return "Motion planning or execution failed"
 
 
 def main(args=None):
-    """Run the MoveTo action server."""
-    rclpy.init(args=args)
-    node = MoveToActionServer()
-
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        node.get_logger().info("Shutting down MoveTo server...")
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+    run_server(MoveToActionServer, args)
 
 
 if __name__ == '__main__':

@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
 """ToolExchangeAction server - handles tool load/dock via MTC."""
 
-import rclpy
-
-from mtc_py_lib.action_servers.base_action_server import BaseActionServer
+from mtc_py_lib.action_servers.base_action_server import BaseActionServer, run_server
 from mtc_py_lib.stages.tool_exchange_stages import ToolExchangeStages
-from mtc_py.action import ToolExchangeAction  # Generated interface - stays mtc_py
+from mtc_py.action import ToolExchangeAction
 
 
 class ToolExchangeActionServer(BaseActionServer):
@@ -30,47 +28,21 @@ class ToolExchangeActionServer(BaseActionServer):
         self._stages = ToolExchangeStages(self)
 
     def _execute(self, goal_handle):
-        """Execute ToolExchange goal.
-
-        Args:
-            goal_handle: The goal handle with ToolExchangeAction.Goal
-
-        Returns:
-            ToolExchangeAction.Result with success and error_message
-        """
-        result = ToolExchangeAction.Result()
+        """Execute ToolExchange goal with logging."""
         goal = goal_handle.request
-
-        if self._stages is None:
-            result.success = False
-            result.error_message = "Stages not initialized"
-            return result
-
-        # Log the operation
         self.get_logger().info(
             f"Executing tool exchange: operation={goal.operation}, "
             f"gripper={goal.gripper}, dock={goal.dock_number}"
         )
+        return super()._execute(goal_handle)
 
-        result.success = self._stages.run(goal)
-        if not result.success:
-            result.error_message = "Tool exchange motion planning or execution failed"
-
-        return result
+    def _get_failure_message(self) -> str:
+        """Custom error message for tool exchange failures."""
+        return "Tool exchange motion planning or execution failed"
 
 
 def main(args=None):
-    """Run the ToolExchange action server."""
-    rclpy.init(args=args)
-    node = ToolExchangeActionServer()
-
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        node.get_logger().info("Shutting down ToolExchange server...")
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+    run_server(ToolExchangeActionServer, args)
 
 
 if __name__ == '__main__':
