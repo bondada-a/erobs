@@ -52,14 +52,9 @@ class ToolExchangeActionServer(BaseActionServer):
             f"gripper={goal.gripper}, dock={goal.dock_number}"
         )
 
-        try:
-            result.success = self._stages.run(goal)
-            if not result.success:
-                result.error_message = "Tool exchange motion planning or execution failed"
-        except Exception as e:
-            result.success = False
-            result.error_message = str(e)
-            self.get_logger().error(f"ToolExchange execution error: {e}")
+        result.success = self._stages.run(goal)
+        if not result.success:
+            result.error_message = "Tool exchange motion planning or execution failed"
 
         return result
 

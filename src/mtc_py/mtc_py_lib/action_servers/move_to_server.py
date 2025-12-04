@@ -47,14 +47,9 @@ class MoveToActionServer(BaseActionServer):
             result.error_message = "Stages not initialized"
             return result
 
-        try:
-            result.success = self._stages.run(goal)
-            if not result.success:
-                result.error_message = "Motion planning or execution failed"
-        except Exception as e:
-            result.success = False
-            result.error_message = str(e)
-            self.get_logger().error(f"MoveTo execution error: {e}")
+        result.success = self._stages.run(goal)
+        if not result.success:
+            result.error_message = "Motion planning or execution failed"
 
         return result
 

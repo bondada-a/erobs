@@ -53,14 +53,9 @@ class PickPlaceActionServer(BaseActionServer):
             f"pick={goal.pick_target}, place={goal.place_target}"
         )
 
-        try:
-            result.success = self._stages.run(goal)
-            if not result.success:
-                result.error_message = "Pick/place motion planning or execution failed"
-        except Exception as e:
-            result.success = False
-            result.error_message = str(e)
-            self.get_logger().error(f"PickPlace execution error: {e}")
+        result.success = self._stages.run(goal)
+        if not result.success:
+            result.error_message = "Pick/place motion planning or execution failed"
 
         return result
 
