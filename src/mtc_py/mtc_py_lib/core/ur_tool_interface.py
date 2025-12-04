@@ -9,6 +9,7 @@ Handles:
 import socket
 from typing import Optional
 
+import rclpy
 from rclpy.node import Node
 from std_srvs.srv import Trigger
 
@@ -122,7 +123,6 @@ class URToolInterface:
             future = client.call_async(request)
 
             # Wait for result with timeout (using rclpy's efficient waiting)
-            import rclpy
             rclpy.spin_until_future_complete(self._node, future, timeout_sec=5.0)
             if not future.done():
                 self._logger.error("Dashboard play command timeout")

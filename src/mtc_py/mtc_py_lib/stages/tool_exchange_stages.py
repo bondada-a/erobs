@@ -4,7 +4,6 @@ Tool exchange: load/dock grippers at magnetic holder stations.
 Uses Cartesian moves for precise tool attachment/detachment.
 """
 
-from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 from mtc_py_lib.stages.base_stages import BaseStages, DOCK_SPACING_METERS
 
@@ -67,25 +66,13 @@ class ToolExchangeStages(BaseStages):
         cartesian = self.make_cartesian_planner()
 
         # 1. Move to approach pose
-        if goal.approach_pose not in poses:
-            self.logger.error(f"Approach pose '{goal.approach_pose}' not found")
-            return False
-
-        joint_pose = poses[goal.approach_pose]
-        if not isinstance(joint_pose, list) or len(joint_pose) != 6:
-            self.logger.error(
-                f"'{goal.approach_pose}' must be array of 6 joint angles"
-            )
+        joint_pose = self.get_joint_pose(poses, goal.approach_pose)
+        if joint_pose is None:
             return False
 
         approach = stages.MoveTo("approach", sampling)
         approach.group = self.arm_group
-
-        # Set ik_frame for Cartesian planning (matches C++ configureInitFrom)
-        ik_frame_pose = PoseStamped()
-        ik_frame_pose.header.frame_id = self.ik_frame
-        approach.ik_frame = ik_frame_pose
-
+        self._set_ik_frame(approach)
         approach.setGoal(self.joints_from_degrees(joint_pose))
         task.add(approach)
 

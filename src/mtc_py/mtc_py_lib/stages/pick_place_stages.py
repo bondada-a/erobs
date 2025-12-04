@@ -5,7 +5,6 @@ Uses constrained motion during pick to maintain tool orientation.
 """
 
 from typing import Any, Dict, Optional
-from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 from mtc_py_lib.stages.base_stages import BaseStages
 from mtc_py_lib.utils.gripper_utils import get_group_name, get_state_name
@@ -124,12 +123,7 @@ class PickPlaceStages(BaseStages):
         # 10. Return home
         home = stages.MoveTo("return home", pipeline)
         home.group = self.arm_group
-
-        # Set ik_frame for Cartesian planning (matches C++ configureInitFrom)
-        ik_frame_pose = PoseStamped()
-        ik_frame_pose.header.frame_id = self.ik_frame
-        home.ik_frame = ik_frame_pose
-
+        self._set_ik_frame(home)
         home.setGoal("moveit_home")
         task.add(home)
 
@@ -153,26 +147,13 @@ class PickPlaceStages(BaseStages):
         Returns:
             Configured MoveTo stage, or None on error
         """
-        if pose_key not in poses:
-            self.logger.error(f"Pose '{pose_key}' not found in poses_json")
-            return None
-
-        joint_pose = poses[pose_key]
-        if not isinstance(joint_pose, list) or len(joint_pose) != 6:
-            self.logger.error(
-                f"'{pose_key}' must be array of 6 joint angles, "
-                f"got {type(joint_pose).__name__}"
-            )
+        joint_pose = self.get_joint_pose(poses, pose_key)
+        if joint_pose is None:
             return None
 
         stage = stages.MoveTo(label, planner)
         stage.group = self.arm_group
-
-        # Set ik_frame for Cartesian planning (matches C++ configureInitFrom)
-        ik_frame_pose = PoseStamped()
-        ik_frame_pose.header.frame_id = self.ik_frame
-        stage.ik_frame = ik_frame_pose
-
+        self._set_ik_frame(stage)
         stage.setGoal(self.joints_from_degrees(joint_pose))
         return stage
 

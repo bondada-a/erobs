@@ -5,7 +5,6 @@ Handles MoveTo operations:
 - Target-based moves (joint poses from JSON or named SRDF states)
 """
 
-from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 from mtc_py_lib.stages.base_stages import BaseStages
 
@@ -58,11 +57,7 @@ class MoveToStages(BaseStages):
 
             move_stage = stages.MoveTo(f"move_to_{goal.target}", planner)
             move_stage.group = self.arm_group
-
-            # Set ik_frame for Cartesian planning (matches C++ configureInitFrom)
-            ik_frame_pose = PoseStamped()
-            ik_frame_pose.header.frame_id = self.ik_frame
-            move_stage.ik_frame = ik_frame_pose
+            self._set_ik_frame(move_stage)
 
             # Check if target is a defined joint pose in the JSON
             if goal.target in poses:

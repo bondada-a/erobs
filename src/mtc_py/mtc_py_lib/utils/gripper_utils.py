@@ -52,16 +52,3 @@ def get_state_name(gripper_type: str, open: bool) -> str:
     return f"{gripper_type}_{'open' if open else 'closed'}"
 
 
-def get_end_effector_action(gripper_type: str, open: bool) -> str:
-    """Get the action name for end effector commands.
-
-    This matches the end_effector_action field in EndEffectorAction.
-
-    Args:
-        gripper_type: Gripper identifier
-        open: True for open position, False for closed
-
-    Returns:
-        Action name for the end effector command
-    """
-    return get_state_name(gripper_type, open)

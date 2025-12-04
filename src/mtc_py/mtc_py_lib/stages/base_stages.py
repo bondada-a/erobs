@@ -104,11 +104,12 @@ class BaseStages:
         Matches C++ behavior: PipelinePlanner(node_, "ompl")
 
         Returns:
-            Configured PipelinePlanner using OMPL with RRTConnect
+            Configured PipelinePlanner using OMPL with RRTConnect (default)
         """
         # Specify "ompl" pipeline explicitly (matches C++)
+        # Note: Don't set planner.planner to avoid "Cannot find planning configuration"
+        # warning - OMPL defaults to RRTConnect anyway
         planner = core.PipelinePlanner(self.mtc_node.node, "ompl")
-        planner.planner = "RRTConnectkConfigDefault"
         planner.goal_joint_tolerance = 1e-4
         planner.max_velocity_scaling_factor = VELOCITY_SCALING
         planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
@@ -137,6 +138,19 @@ class BaseStages:
         planner.max_velocity_scaling_factor = VELOCITY_SCALING
         planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
         return planner
+
+    def _set_ik_frame(self, stage) -> None:
+        """Set the ik_frame property on a stage.
+
+        This is required for IK calculations in MTC stages.
+        Matches C++: stage->properties().configureInitFrom(PARENT, {"ik_frame"})
+
+        Args:
+            stage: MTC stage (MoveTo, MoveRelative, etc.)
+        """
+        ik_frame_pose = PoseStamped()
+        ik_frame_pose.header.frame_id = self.ik_frame
+        stage.ik_frame = ik_frame_pose
 
     def create_relative_move_stage(
         self,
@@ -170,12 +184,7 @@ class BaseStages:
 
         stage = stages.MoveRelative(label, planner)
         stage.group = self.arm_group
-
-        # Set ik_frame for IK calculations (required by MTC)
-        # This matches C++: stage->properties().configureInitFrom(PARENT, {"ik_frame"})
-        ik_frame_pose = PoseStamped()
-        ik_frame_pose.header.frame_id = self.ik_frame
-        stage.ik_frame = ik_frame_pose
+        self._set_ik_frame(stage)
 
         # Create direction vector
         header = Header(frame_id=self.ik_frame)
@@ -347,3 +356,29 @@ class BaseStages:
         except json.JSONDecodeError as e:
             self.logger.error(f"Failed to parse poses_json: {e}")
             return None if required else {}
+
+    def get_joint_pose(
+        self, poses: Dict[str, Any], pose_key: str
+    ) -> Optional[List[float]]:
+        """Get and validate a joint pose from the poses dictionary.
+
+        Args:
+            poses: Dictionary of pose definitions
+            pose_key: Key to look up in poses dict
+
+        Returns:
+            List of 6 joint angles in degrees, or None if invalid/missing
+        """
+        if pose_key not in poses:
+            self.logger.error(f"Pose '{pose_key}' not found in poses_json")
+            return None
+
+        joint_pose = poses[pose_key]
+        if not isinstance(joint_pose, list) or len(joint_pose) != 6:
+            self.logger.error(
+                f"'{pose_key}' must be array of 6 joint angles, "
+                f"got {type(joint_pose).__name__}"
+            )
+            return None
+
+        return joint_pose
