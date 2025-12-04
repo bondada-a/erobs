@@ -20,6 +20,7 @@ class BaseActionServer : public rclcpp::Node
 public:
     using GoalHandle = rclcpp_action::ServerGoalHandle<ActionType>;
 
+    /// @brief Construct action server with node and action names
     BaseActionServer(const std::string& node_name, const std::string& action_name)
         : Node(node_name)
     {
@@ -36,6 +37,7 @@ public:
         RCLCPP_INFO(this->get_logger(), "%s started", node_name.c_str());
     }
 
+    /// @brief Initialize stages object after construction
     void initialize_stages()
     {
         stages_ = std::make_unique<StagesType>(this->shared_from_this());

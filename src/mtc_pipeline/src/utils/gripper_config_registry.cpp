@@ -1,4 +1,5 @@
 #include "mtc_pipeline/gripper_config_registry.hpp"
+#include "mtc_pipeline/beamline_config.hpp"
 #include <ament_index_cpp/get_package_share_directory.hpp>
 #include <yaml-cpp/yaml.h>
 #include <fstream>
@@ -34,6 +35,53 @@ GripperConfigRegistry::GripperConfigRegistry(
         RCLCPP_ERROR(node_->get_logger(),
                      "Failed to load gripper configuration: %s", e.what());
         throw;
+    }
+}
+
+GripperConfigRegistry::GripperConfigRegistry(
+    rclcpp::Node* node,
+    const BeamlineConfig& beamline_config)
+    : node_(node)
+{
+    // Load gripper configurations from BeamlineConfig
+    for (const auto& [gripper_name, gripper_entry] : beamline_config.grippers) {
+        GripperConfig config;
+        config.moveit_package = gripper_entry.moveit_package;
+        config.tool_voltage = gripper_entry.tool_voltage;
+
+        // Validate tool voltage
+        if (config.tool_voltage != 0 && config.tool_voltage != 12 && config.tool_voltage != 24) {
+            RCLCPP_WARN(node_->get_logger(),
+                       "Gripper '%s' has unusual tool_voltage %dV (expected 0, 12, or 24)",
+                       gripper_name.c_str(), config.tool_voltage);
+        }
+
+        configs_[gripper_name] = config;
+
+        RCLCPP_DEBUG(node_->get_logger(),
+                    "Loaded gripper '%s': package=%s, voltage=%dV",
+                    gripper_name.c_str(),
+                    config.moveit_package.c_str(),
+                    config.tool_voltage);
+    }
+
+    if (configs_.empty()) {
+        throw std::runtime_error("No gripper configurations found in beamline config");
+    }
+
+    RCLCPP_INFO(node_->get_logger(),
+                "Loaded %zu gripper configuration(s) from beamline config '%s'",
+                configs_.size(), beamline_config.name.c_str());
+
+    // Log available grippers
+    auto grippers = available_grippers();
+    if (!grippers.empty()) {
+        std::string gripper_list;
+        for (size_t i = 0; i < grippers.size(); ++i) {
+            gripper_list += grippers[i];
+            if (i < grippers.size() - 1) gripper_list += ", ";
+        }
+        RCLCPP_INFO(node_->get_logger(), "Available grippers: %s", gripper_list.c_str());
     }
 }
 
@@ -152,4 +200,4 @@ std::string GripperConfigRegistry::resolve_config_path(const std::string& relati
     }
 }
 
-}  // namespace mtc_pipeline
+}

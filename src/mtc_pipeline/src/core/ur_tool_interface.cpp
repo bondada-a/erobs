@@ -1,24 +1,27 @@
-/**
- * UR Tool Interface Implementation
- *
- * Manages low-level robot tool interface operations via socket and ROS services.
- */
+// UR Tool Interface Implementation
+
 
 #include "mtc_pipeline/core/ur_tool_interface.hpp"
 
 using namespace std::chrono_literals;
 
-namespace mtc_pipeline {
-namespace core {
+namespace mtc_pipeline::core {
 
 URToolInterface::URToolInterface(rclcpp::Node* node, const std::string& robot_ip)
     : node_(node), robot_ip_(robot_ip)
 {
 }
 
-void URToolInterface::set_robot_ip(const std::string& robot_ip)
+bool URToolInterface::set_robot_ip(const std::string& robot_ip)
 {
+    // Validate IP address format
+    struct in_addr addr;
+    if (inet_pton(AF_INET, robot_ip.c_str(), &addr) != 1) {
+        RCLCPP_ERROR(node_->get_logger(), "Invalid IP address format: %s", robot_ip.c_str());
+        return false;
+    }
     robot_ip_ = robot_ip;
+    return true;
 }
 
 bool URToolInterface::set_tool_voltage(int voltage)
@@ -77,5 +80,4 @@ bool URToolInterface::restart_external_control()
     return true;
 }
 
-}  // namespace core
-}  // namespace mtc_pipeline
+}
