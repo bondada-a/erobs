@@ -12,7 +12,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
-# Generate action interfaces (copied from mtc_pipeline, without PipettorAction)
+# Generate action interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/MTCExecution.action"
   "action/MoveToAction.action"
@@ -21,6 +21,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/ToolExchangeAction.action"
   "action/VisionMoveToAction.action"
   "action/VisionPickPlaceAction.action"
+  "action/PipettorAction.action"
   DEPENDENCIES geometry_msgs std_msgs
 )
 
@@ -45,10 +46,10 @@ install(PROGRAMS
   mtc_py_lib/action_servers/end_effector_server.py
   mtc_py_lib/action_servers/pick_place_server.py
   mtc_py_lib/action_servers/tool_exchange_server.py
+  mtc_py_lib/action_servers/vision_server.py
+  mtc_py_lib/action_servers/vision_pick_place_server.py
+  mtc_py_lib/action_servers/pipettor_server.py
   mtc_py_lib/action_servers/orchestrator.py
-  # Vision servers (placeholders - not yet implemented)
-  scripts/vision_server_node.py
-  scripts/vision_pick_place_server_node.py
   # Client utilities
   scripts/send_task_goal.py
   DESTINATION lib/${PROJECT_NAME}

@@ -24,6 +24,9 @@ from mtc_py.action import (
     EndEffectorAction,
     PickPlaceAction,
     ToolExchangeAction,
+    VisionMoveToAction,
+    VisionPickPlaceAction,
+    PipettorAction,
 )
 
 from mtc_py_lib.core.moveit_lifecycle_manager import MoveItLifecycleManager
@@ -56,6 +59,9 @@ class MTCOrchestratorServer(Node):
         "end_effector": 30.0,
         "pick_and_place": 180.0,
         "tool_exchange": 180.0,
+        "vision_moveto": 60.0,
+        "vision_pick_place": 180.0,
+        "pipettor": 60.0,
     }
 
     def __init__(self):
@@ -106,6 +112,18 @@ class MTCOrchestratorServer(Node):
         )
         self._toolexchange_client = ActionClient(
             self, ToolExchangeAction, "mtc_toolexchange_py",
+            callback_group=self._callback_group
+        )
+        self._vision_client = ActionClient(
+            self, VisionMoveToAction, "mtc_vision_moveto_py",
+            callback_group=self._callback_group
+        )
+        self._vision_pickplace_client = ActionClient(
+            self, VisionPickPlaceAction, "mtc_vision_pickplace_py",
+            callback_group=self._callback_group
+        )
+        self._pipettor_client = ActionClient(
+            self, PipettorAction, "mtc_pipettor_py",
             callback_group=self._callback_group
         )
 
@@ -270,6 +288,12 @@ class MTCOrchestratorServer(Node):
             return self._call_pickplace(step, poses_json)
         elif task_type == "tool_exchange":
             return self._handle_tool_exchange(step, poses_json)
+        elif task_type == "vision_moveto":
+            return self._call_vision_moveto(step, poses_json)
+        elif task_type == "vision_pick_place":
+            return self._call_vision_pickplace(step, poses_json)
+        elif task_type == "pipettor":
+            return self._call_pipettor(step, poses_json)
         else:
             self.get_logger().error(f"Unknown task type: {task_type}")
             return False
@@ -404,6 +428,55 @@ class MTCOrchestratorServer(Node):
             self._current_gripper = new_gripper
 
         return True
+
+    def _call_vision_moveto(self, step: Dict[str, Any], poses_json: str) -> bool:
+        """Call the VisionMoveTo action server."""
+        goal = VisionMoveToAction.Goal()
+        goal.tag_id = int(step.get("tag_id", 0))
+        goal.timeout = float(step.get("timeout", 10.0))
+        goal.poses_json = poses_json
+
+        return self._send_and_wait(
+            self._vision_client, goal, "vision_moveto", self._timeouts["vision_moveto"]
+        )
+
+    def _call_vision_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
+        """Call the VisionPickPlace action server."""
+        goal = VisionPickPlaceAction.Goal()
+        goal.pick_tag_id = int(step.get("pick_tag_id", 0))
+        goal.place_tag_id = int(step.get("place_tag_id", -1))
+        goal.gripper = step.get("gripper", "")
+        goal.grasp_offset_json = step.get("grasp_offset_json", "")
+        goal.place_poses_json = step.get("place_poses_json", "")
+        goal.approach_offset = float(step.get("approach_offset", 0.1))
+        goal.retreat_offset = float(step.get("retreat_offset", 0.15))
+
+        return self._send_and_wait(
+            self._vision_pickplace_client, goal, "vision_pick_place",
+            self._timeouts["vision_pick_place"]
+        )
+
+    def _call_pipettor(self, step: Dict[str, Any], poses_json: str) -> bool:
+        """Call the Pipettor action server."""
+        from std_msgs.msg import ColorRGBA
+
+        goal = PipettorAction.Goal()
+        goal.operation = step.get("operation", "")
+        goal.volume_pct = float(step.get("volume_pct", 0.0))
+        goal.poses_json = poses_json
+
+        # Parse LED color if provided
+        if "led_color" in step:
+            led = step["led_color"]
+            goal.led_color = ColorRGBA()
+            goal.led_color.r = float(led.get("r", 0.0))
+            goal.led_color.g = float(led.get("g", 0.0))
+            goal.led_color.b = float(led.get("b", 0.0))
+            goal.led_color.a = 1.0
+
+        return self._send_and_wait(
+            self._pipettor_client, goal, "pipettor", self._timeouts["pipettor"]
+        )
 
     def _update_feedback(
         self,

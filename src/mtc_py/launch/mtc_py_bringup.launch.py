@@ -5,20 +5,41 @@ This launch file starts all the Python MTC action servers:
 - mtc_endeffector_py: Gripper operations
 - mtc_pickplace_py: Pick and place sequences
 - mtc_toolexchange_py: Tool exchange operations
-- mtc_vision_py: Vision-guided moves
+- mtc_vision_moveto_py: Vision-guided moves
 - mtc_vision_pickplace_py: Vision-guided pick/place
+- mtc_pipettor_py: Pipettor operations
 - mtc_orchestrator_py: Central coordinator
 
 Usage:
     ros2 launch mtc_py mtc_py_bringup.launch.py
+    ros2 launch mtc_py mtc_py_bringup.launch.py enable_vision:=false
 """
 
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
     """Generate launch description for mtc_py servers."""
+
+    # Declare launch arguments
+    declare_enable_vision = DeclareLaunchArgument(
+        'enable_vision',
+        default_value='true',
+        description='Enable vision servers (requires Zivid camera)'
+    )
+
+    declare_enable_pipettor = DeclareLaunchArgument(
+        'enable_pipettor',
+        default_value='true',
+        description='Enable pipettor server'
+    )
+
+    enable_vision = LaunchConfiguration('enable_vision')
+    enable_pipettor = LaunchConfiguration('enable_pipettor')
 
     # Action servers need kinematics for Cartesian planning (matches C++ mtc_bringup.launch.py)
     # Robot URDF comes from /robot_description topic published by move_group
@@ -72,6 +93,35 @@ def generate_launch_description():
         parameters=action_server_parameters,
     )
 
+    # Vision MoveTo action server (conditional)
+    vision_server = Node(
+        package='mtc_py',
+        executable='vision_server.py',
+        name='mtc_vision_server_py',
+        output='screen',
+        parameters=action_server_parameters,
+        condition=IfCondition(enable_vision),
+    )
+
+    # Vision PickPlace action server (conditional)
+    vision_pick_place_server = Node(
+        package='mtc_py',
+        executable='vision_pick_place_server.py',
+        name='mtc_vision_pickplace_server_py',
+        output='screen',
+        parameters=action_server_parameters,
+        condition=IfCondition(enable_vision),
+    )
+
+    # Pipettor action server (conditional)
+    pipettor_server = Node(
+        package='mtc_py',
+        executable='pipettor_server.py',
+        name='mtc_pipettor_server_py',
+        output='screen',
+        condition=IfCondition(enable_pipettor),
+    )
+
     # Orchestrator
     orchestrator = Node(
         package='mtc_py',
@@ -81,9 +131,19 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        # Launch arguments
+        declare_enable_vision,
+        declare_enable_pipettor,
+        # Core servers (always launched)
         move_to_server,
         end_effector_server,
         pick_place_server,
         tool_exchange_server,
+        # Vision servers (conditional)
+        vision_server,
+        vision_pick_place_server,
+        # Pipettor server (conditional)
+        pipettor_server,
+        # Orchestrator (always launched)
         orchestrator,
     ])
