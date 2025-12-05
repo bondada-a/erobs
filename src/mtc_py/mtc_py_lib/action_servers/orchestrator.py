@@ -4,6 +4,8 @@
 Python equivalent of mtc_orchestrator_action_server.cpp.
 Receives task scripts (JSON) and dispatches steps to specialized action servers.
 Manages MoveIt lifecycle based on gripper configuration.
+
+Supports beamline-agnostic deployment via beamline configuration files.
 """
 
 import json
@@ -29,6 +31,8 @@ from mtc_py.action import (
     PipettorAction,
 )
 
+from mtc_py_lib.core.beamline_config import BeamlineConfig, load_beamline_config
+from mtc_py_lib.core.gripper_config_registry import GripperConfigRegistry
 from mtc_py_lib.core.moveit_lifecycle_manager import MoveItLifecycleManager
 
 
@@ -50,6 +54,8 @@ class MTCOrchestratorServer(Node):
 
     Receives task scripts in JSON format and dispatches individual
     steps to specialized MTC action servers (MoveTo, EndEffector, etc.)
+
+    Supports beamline-agnostic deployment via beamline configuration files.
     """
 
     # Default timeouts for each action type (seconds)
@@ -70,6 +76,36 @@ class MTCOrchestratorServer(Node):
         self._executing = False
         self._lock = threading.Lock()
         self._current_gripper = "none"
+        self._beamline_config: Optional[BeamlineConfig] = None
+        self._default_robot_ip: str = ""
+
+        # Load beamline configuration
+        self.declare_parameter("beamline_config", "config/default_beamline.yaml")
+        self.declare_parameter("robot_ip", "")  # Can override beamline default
+
+        beamline_config_file = self.get_parameter("beamline_config").value
+        try:
+            self._beamline_config = load_beamline_config(beamline_config_file)
+            self.get_logger().info(
+                f"Loaded beamline config: {self._beamline_config.name}"
+            )
+            self.get_logger().info(
+                f"Robot: {self._beamline_config.robot.model} @ "
+                f"{self._beamline_config.robot.ip}"
+            )
+            self._default_robot_ip = self._beamline_config.robot.ip
+        except Exception as e:
+            self.get_logger().warn(
+                f"Failed to load beamline config '{beamline_config_file}': {e}. "
+                "Falling back to grippers.yaml"
+            )
+            self._beamline_config = None
+
+        # Override default robot IP if provided as parameter
+        robot_ip_param = self.get_parameter("robot_ip").value
+        if robot_ip_param:
+            self._default_robot_ip = robot_ip_param
+            self.get_logger().info(f"Robot IP overridden to: {self._default_robot_ip}")
 
         # Declare timeout parameters (configurable at launch)
         self._timeouts = {}
@@ -83,8 +119,16 @@ class MTCOrchestratorServer(Node):
         # Callback group for concurrent operations
         self._callback_group = ReentrantCallbackGroup()
 
+        # Create gripper registry from beamline config or fall back to YAML file
+        if self._beamline_config:
+            gripper_registry = GripperConfigRegistry.from_beamline_config(
+                self._beamline_config, self.get_logger()
+            )
+        else:
+            gripper_registry = GripperConfigRegistry(self.get_logger())
+
         # MoveIt lifecycle manager - launches MoveIt based on gripper config
-        self._moveit_manager = MoveItLifecycleManager(self)
+        self._moveit_manager = MoveItLifecycleManager(self, gripper_registry)
 
         # Create action server
         self._action_server = ActionServer(
@@ -177,12 +221,7 @@ class MTCOrchestratorServer(Node):
             feedback, goal_handle, 0, parsed.task_count, "Initializing MoveIt"
         )
 
-        if not parsed.robot_ip:
-            result.success = False
-            result.error_message = "Goal missing required robot_ip"
-            goal_handle.abort()
-            return result
-
+        # robot_ip is validated in _parse_goal, so we know it's valid here
         if not self._moveit_manager.launch_for_gripper(
             parsed.start_gripper, parsed.robot_ip
         ):
@@ -241,6 +280,8 @@ class MTCOrchestratorServer(Node):
     ) -> Optional[ParsedGoal]:
         """Parse and validate the goal JSON.
 
+        Uses default robot_ip from beamline config if not provided in goal.
+
         Returns:
             ParsedGoal if valid, None if invalid (result populated with error)
         """
@@ -267,8 +308,18 @@ class MTCOrchestratorServer(Node):
             result.error_message = "Task script missing required 'tasks' array"
             return None
 
+        # Use goal robot_ip, or fall back to default from beamline config
+        robot_ip = goal.robot_ip if goal.robot_ip else self._default_robot_ip
+        if not robot_ip:
+            result.success = False
+            result.error_message = (
+                "No robot_ip provided in goal and no default configured. "
+                "Set robot_ip in goal or configure beamline_config parameter."
+            )
+            return None
+
         return ParsedGoal(
-            robot_ip=goal.robot_ip or "",
+            robot_ip=robot_ip,
             start_gripper=script["start_gripper"],
             tasks=script["tasks"],
             poses_json=json.dumps(script.get("poses", {})),

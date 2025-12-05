@@ -92,8 +92,10 @@ class MoveItLifecycleManager:
         Returns:
             True if MoveIt is ready, False on failure
         """
-        # Store robot IP for tool interface
-        self._tool_interface.set_robot_ip(robot_ip)
+        # Store robot IP for tool interface (with validation)
+        if not self._tool_interface.set_robot_ip(robot_ip):
+            self._logger.error(f"Invalid robot IP address: {robot_ip}")
+            return False
         self._robot_ip = robot_ip
 
         # Reuse existing MoveIt if same gripper

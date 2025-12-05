@@ -6,6 +6,7 @@ Handles:
 - External control restart via dashboard service
 """
 
+import ipaddress
 import socket
 from typing import Optional
 
@@ -35,13 +36,25 @@ class URToolInterface:
         self._logger = node.get_logger()
         self._robot_ip = robot_ip
 
-    def set_robot_ip(self, robot_ip: str):
-        """Set the robot IP address.
+    def set_robot_ip(self, robot_ip: str) -> bool:
+        """Set the robot IP address with validation.
+
+        Validates that the IP address is a valid IPv4 format before accepting.
+        This prevents cryptic socket errors later if an invalid IP is provided.
 
         Args:
-            robot_ip: Robot IP address
+            robot_ip: Robot IP address (must be valid IPv4 format)
+
+        Returns:
+            True if IP is valid and was set, False otherwise
         """
-        self._robot_ip = robot_ip
+        try:
+            ipaddress.IPv4Address(robot_ip)
+            self._robot_ip = robot_ip
+            return True
+        except ipaddress.AddressValueError:
+            self._logger.error(f"Invalid IP address format: {robot_ip}")
+            return False
 
     @property
     def robot_ip(self) -> str:

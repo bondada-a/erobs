@@ -13,6 +13,7 @@ This launch file starts all the Python MTC action servers:
 Usage:
     ros2 launch mtc_py mtc_py_bringup.launch.py
     ros2 launch mtc_py mtc_py_bringup.launch.py enable_vision:=false
+    ros2 launch mtc_py mtc_py_bringup.launch.py beamline_config:=config/ur3e_beamline.yaml
 """
 
 from launch import LaunchDescription
@@ -26,6 +27,18 @@ def generate_launch_description():
     """Generate launch description for mtc_py servers."""
 
     # Declare launch arguments
+    declare_robot_ip = DeclareLaunchArgument(
+        'robot_ip',
+        default_value='192.168.56.101',
+        description='Robot IP address (can be overridden by goal)'
+    )
+
+    declare_beamline_config = DeclareLaunchArgument(
+        'beamline_config',
+        default_value='config/default_beamline.yaml',
+        description='Path to beamline configuration YAML (relative to mtc_pipeline package)'
+    )
+
     declare_enable_vision = DeclareLaunchArgument(
         'enable_vision',
         default_value='true',
@@ -38,6 +51,8 @@ def generate_launch_description():
         description='Enable pipettor server'
     )
 
+    robot_ip = LaunchConfiguration('robot_ip')
+    beamline_config = LaunchConfiguration('beamline_config')
     enable_vision = LaunchConfiguration('enable_vision')
     enable_pipettor = LaunchConfiguration('enable_pipettor')
 
@@ -122,16 +137,22 @@ def generate_launch_description():
         condition=IfCondition(enable_pipettor),
     )
 
-    # Orchestrator
+    # Orchestrator - manages MoveIt lifecycle and task coordination
     orchestrator = Node(
         package='mtc_py',
         executable='orchestrator.py',
         name='mtc_orchestrator_py',
         output='screen',
+        parameters=[
+            {'robot_ip': robot_ip},
+            {'beamline_config': beamline_config},
+        ],
     )
 
     return LaunchDescription([
         # Launch arguments
+        declare_robot_ip,
+        declare_beamline_config,
         declare_enable_vision,
         declare_enable_pipettor,
         # Core servers (always launched)
