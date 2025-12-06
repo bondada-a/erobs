@@ -1,0 +1,146 @@
+from moveit_configs_utils import MoveItConfigsBuilder
+from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
+from launch_ros.substitutions import FindPackageShare
+from launch_ros.actions import Node
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
+from launch import LaunchDescription
+from ament_index_python.packages import get_package_share_directory
+import os
+from launch.actions import IncludeLaunchDescription
+from launch.launch_description_sources import PythonLaunchDescriptionSource
+
+
+def generate_launch_description():
+    ## Arguments
+
+    ur_type = DeclareLaunchArgument('ur_type', default_value='ur3e')
+    robot_ip = DeclareLaunchArgument('robot_ip', default_value='192.168.1.10')
+    description_package = DeclareLaunchArgument('description_package', default_value='ur_description')
+    description_file = DeclareLaunchArgument('description_file', default_value=os.path.join(get_package_share_directory("ur3e_hande_robot_description"), "urdf", "ur_with_camera_hande.xacro"))
+    controllers_file = DeclareLaunchArgument('controllers_file', default_value=os.path.join(get_package_share_directory("ur_robot_driver"), "config", "ur_controllers.yaml"))
+
+
+    xacro_args = {"name": LaunchConfiguration("ur_type"), "ur_type": LaunchConfiguration("ur_type"), "tf_prefix": "" }
+
+    ## ur_driver
+    ur_control_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource([
+            PathJoinSubstitution([FindPackageShare("ur_robot_driver"), "launch", "ur_control.launch.py"])
+        ]),
+        launch_arguments={
+            "ur_type": LaunchConfiguration("ur_type"),
+            "robot_ip": LaunchConfiguration("robot_ip"),
+            "launch_rviz": "false",
+            "description_package": LaunchConfiguration("description_package"),
+            "description_file": LaunchConfiguration("description_file"),
+            "controllers_file": LaunchConfiguration("controllers_file"),
+            "kinematics_params_file": os.path.join(get_package_share_directory("ur3e_hande_robot_description"), "config", "hande", "default_kinematics.yaml"),
+            "use_tool_communication": "true",  # Enable to make tool_voltage parameter work
+            "tool_voltage": "24",
+        }.items()
+    )
+
+
+    # Load MoveIt! configuration
+    moveit_config = (
+        MoveItConfigsBuilder("ur", package_name="ur3e_hande_moveit_config")
+        .robot_description(file_path=os.path.join(get_package_share_directory("ur3e_hande_robot_description"), "urdf", "ur_with_camera_hande.xacro"),mappings=xacro_args)
+        .trajectory_execution(file_path="config/moveit_controllers.yaml")
+        .robot_description_kinematics(file_path="config/kinematics.yaml")
+        .planning_scene_monitor(
+            publish_robot_description=True, publish_robot_description_semantic=True
+        )
+        .planning_pipelines(pipelines=["ompl"])
+        .to_moveit_configs()
+    )
+    # Load  ExecuteTaskSolutionCapability so we can execute found solutions in simulation
+    move_group_capabilities = {
+        "capabilities": "move_group/ExecuteTaskSolutionCapability"
+    }
+
+    run_move_group_node = Node(
+        package="moveit_ros_move_group",
+        executable="move_group",
+        output="screen",
+        parameters=[
+            moveit_config.robot_description_kinematics,
+            moveit_config.to_dict(),
+            move_group_capabilities,
+        ],
+    )
+
+    # RViz
+    rviz_arg = DeclareLaunchArgument(
+        "rviz_config",
+        default_value="view_robot.rviz",
+        description="RViz config file"
+    )
+
+    rviz_config = PathJoinSubstitution([
+        FindPackageShare("ur3e_hande_moveit_config"), "rviz", LaunchConfiguration("rviz_config")
+    ])
+
+    rviz_node = Node(
+        package="rviz2",
+        executable="rviz2",
+        output="log",
+        arguments=["-d", rviz_config],
+        parameters=[
+            moveit_config.robot_description,
+            moveit_config.robot_description_semantic,
+            moveit_config.robot_description_kinematics,
+            moveit_config.planning_pipelines,
+            moveit_config.joint_limits,
+        ],
+    )
+
+    # Publish TF
+    robot_state_publisher = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        name="robot_state_publisher",
+        output="both",
+        parameters=[moveit_config.robot_description],
+    )
+
+    # HandE controller spawner
+    hande_controller_spawner = Node(
+        package="controller_manager",
+        executable="spawner",
+        arguments=["gripper_action_controller", "-c", "/controller_manager"],
+    )
+
+    # Payload configuration for UR controller
+    # UR3e with Hand-E gripper + camera mount
+    # Adjust mass and CoG values based on your actual setup
+    set_payload = TimerAction(
+        period=5.0,  # Wait 5 seconds for robot driver to start
+        actions=[
+            ExecuteProcess(
+                cmd=['ros2', 'service', 'call',
+                     '/io_and_status_controller/set_payload',
+                     'ur_msgs/srv/SetPayload',
+                     '{mass: 2.520, center_of_gravity: {x: 0.018, y: -0.013, z: -0.031}}'],
+                output='screen'
+            )
+        ]
+    )
+
+    return LaunchDescription([
+        ## arguments
+        robot_ip,
+        ur_type,
+        description_package,
+        description_file,
+        controllers_file,
+        rviz_arg,
+
+
+        ## Nodes
+        ur_control_launch,
+        run_move_group_node,
+        rviz_node,
+        robot_state_publisher,
+        hande_controller_spawner,
+        set_payload,  # Set UR payload
+    ])

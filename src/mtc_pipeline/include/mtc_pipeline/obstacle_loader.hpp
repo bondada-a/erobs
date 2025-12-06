@@ -8,11 +8,10 @@
 
 namespace mtc_pipeline {
 
-// Load obstacles from YAML into MoveIt planning scene.
-// Supports: box, cylinder, sphere primitives with position + RPY orientation.
+/// @brief Load obstacles from YAML into MoveIt planning scene
 bool loadPlanningSceneObstacles(const rclcpp::Logger& logger, const std::string& yaml_path);
 
-// Convert roll-pitch-yaw (radians) to quaternion.
+/// @brief Convert roll-pitch-yaw angles to quaternion
 geometry_msgs::msg::Quaternion rpyToQuaternion(double roll, double pitch, double yaw);
 
-}  // namespace mtc_pipeline
+}

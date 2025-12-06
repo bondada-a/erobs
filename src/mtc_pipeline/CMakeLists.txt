@@ -66,6 +66,7 @@ add_library(mtc_pipeline_core
   src/stages/pipettor_operation_stage.cpp
   src/stages/vision_pick_place_stages.cpp
   src/utils/gripper_config_registry.cpp
+  src/utils/beamline_config.cpp
 )
 ament_target_dependencies(mtc_pipeline_core
   moveit_task_constructor_core

@@ -21,6 +21,12 @@ def generate_launch_description():
         description='Enable vision system (Zivid camera + vision action servers). Set to false for robots without camera.'
     )
 
+    beamline_config_arg = DeclareLaunchArgument(
+        'beamline_config',
+        default_value='config/default_beamline.yaml',
+        description='Path to beamline configuration YAML file (relative to mtc_pipeline package share directory)'
+    )
+
     # Action servers need kinematics for Cartesian planning
     # Use arm-only kinematics (works with all grippers)
     # Robot URDF comes from /robot_description topic published by move_group
@@ -146,6 +152,7 @@ def generate_launch_description():
         parameters=[
             {'use_sim_time': False},
             {'robot_ip': LaunchConfiguration('robot_ip')},
+            {'beamline_config': LaunchConfiguration('beamline_config')},
         ]
     )
 
@@ -153,6 +160,7 @@ def generate_launch_description():
         # Launch arguments
         robot_ip_arg,
         enable_vision_arg,
+        beamline_config_arg,
 
         # Core action servers (always launched)
         pick_place_action_server,

@@ -1,0 +1,20 @@
+{
+  "tasks": [
+    {
+      "type": "print",
+      "message": "Demo starting..."
+    },
+    {
+      "type": "move",
+      "target": "home"
+    },
+    {
+      "type": "print",
+      "message": "Reached home position"
+    },
+    {
+      "type": "print",
+      "message": "Demo complete!"
+    }
+  ]
+}

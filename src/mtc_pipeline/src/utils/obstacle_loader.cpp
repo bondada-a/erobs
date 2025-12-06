@@ -118,4 +118,4 @@ bool loadPlanningSceneObstacles(const rclcpp::Logger& logger, const std::string&
     }
 }
 
-}  // namespace mtc_pipeline
+}

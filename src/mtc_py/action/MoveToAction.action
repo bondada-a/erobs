@@ -1,0 +1,12 @@
+# Goal
+string target               # Pose name, SRDF state, or empty for relative moves
+string planning_type        # "joint" or "cartesian" (default: "joint")
+string direction            # "forward", "backward", "left", "right", "up", "down"
+float64 distance            # Distance in meters
+string poses_json           # Pose definitions from task
+---
+# Result
+bool success
+string error_message
+---
+# Feedback
