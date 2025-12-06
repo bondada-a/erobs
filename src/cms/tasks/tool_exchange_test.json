@@ -1,5 +1,5 @@
 {
-  "start_gripper": "hande",
+  "start_gripper": "epick",
   "poses": {
     "load_approach": [
       143.56,
@@ -72,13 +72,57 @@
       -147.09,
       -341.88,
       5.0
+    ],
+    "place_approach": [
+      107.83,
+      -126.41,
+      -89.25,
+      -149.01,
+      -342.02,
+      5.01
+    ],
+    "vacuum_pickup_approach": [
+      110.29,
+      -111.35,
+      -89.67,
+      -69.31,
+      -270.24,
+      16.13
+    ],
+    "vacuum_pickup": [
+      110.28,
+      -117.61,
+      -96.76,
+      -55.97,
+      -270.26,
+      16.18
+    ],
+    "vacuum_post_pickup": [
+      111.71,
+      -100.61,
+      -84.51,
+      -85.22,
+      -270.23,
+      17.47
+    ],
+    "vacuum_place_approach": [
+      74.8,
+      -109.66,
+      -70.54,
+      -89.79,
+      -270.34,
+      -19.48
+    ],
+    "vacuum_place": [
+      74.79,
+      -110.32,
+      -78.51,
+      -81.17,
+      -270.34,
+      -19.45
     ]
   },
   "tasks": [
-    {
-      "task_type": "moveto",
-      "target": "pickup_approach",
-      "planning_type": "cartesian"
-    }
+
   ]
 }
