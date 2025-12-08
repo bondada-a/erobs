@@ -6,7 +6,7 @@ Enables beamline-agnostic framework deployment.
 
 import os
 from dataclasses import dataclass, field
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 import yaml
 from ament_index_python.packages import get_package_share_directory
@@ -48,6 +48,14 @@ class BeamlineConfig:
     available_grippers: List[str] = field(default_factory=list)
     obstacle_config: str = "config/beamline_scene.yaml"
     planning: PlanningConfig = field(default_factory=PlanningConfig)
+
+    def get_gripper(self, name: str) -> Optional[GripperEntry]:
+        """Get gripper configuration by name."""
+        return self.grippers.get(name)
+
+    def get_available_grippers(self) -> List[str]:
+        """Get list of available gripper names."""
+        return list(self.grippers.keys())
 
 
 def load_beamline_config(yaml_file: str) -> BeamlineConfig:

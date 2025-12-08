@@ -22,24 +22,10 @@ class VisionPickPlaceActionServer(BaseActionServer):
             action_name="mtc_vision_pickplace_py",
             action_type=VisionPickPlaceAction,
         )
-        self.initialize_stages()
 
     def initialize_stages(self):
         """Create VisionPickPlaceStages instance."""
         self._stages = VisionPickPlaceStages(self)
-
-    def _execute(self, goal_handle):
-        """Execute VisionPickPlace goal with logging."""
-        goal = goal_handle.request
-        self.get_logger().info(
-            f"Executing vision pick/place: pick_tag={goal.pick_tag_id}, "
-            f"place_tag={goal.place_tag_id}, gripper={goal.gripper}"
-        )
-        return super()._execute(goal_handle)
-
-    def _get_failure_message(self) -> str:
-        """Custom error message for vision pick/place failures."""
-        return "Vision-guided pick/place failed"
 
 
 def main(args=None):

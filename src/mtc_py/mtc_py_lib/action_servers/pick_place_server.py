@@ -22,24 +22,10 @@ class PickPlaceActionServer(BaseActionServer):
             action_name="mtc_pickplace_py",
             action_type=PickPlaceAction,
         )
-        self.initialize_stages()
 
     def initialize_stages(self):
         """Create PickPlaceStages instance."""
         self._stages = PickPlaceStages(self)
-
-    def _execute(self, goal_handle):
-        """Execute PickPlace goal with logging."""
-        goal = goal_handle.request
-        self.get_logger().info(
-            f"Executing pick/place: gripper={goal.gripper}, "
-            f"pick={goal.pick_target}, place={goal.place_target}"
-        )
-        return super()._execute(goal_handle)
-
-    def _get_failure_message(self) -> str:
-        """Custom error message for pick/place failures."""
-        return "Pick/place motion planning or execution failed"
 
 
 def main(args=None):

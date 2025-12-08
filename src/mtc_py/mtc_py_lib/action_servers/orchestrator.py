@@ -10,9 +10,7 @@ Supports beamline-agnostic deployment via beamline configuration files.
 
 import json
 import threading
-from typing import Dict, Any, Optional
-from dataclasses import dataclass
-
+from typing import Dict, Any
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, ActionClient
@@ -31,22 +29,8 @@ from mtc_py.action import (
     PipettorAction,
 )
 
-from mtc_py_lib.core.beamline_config import BeamlineConfig, load_beamline_config
-from mtc_py_lib.core.gripper_config_registry import GripperConfigRegistry
+from mtc_py_lib.core.beamline_config import load_beamline_config
 from mtc_py_lib.core.moveit_lifecycle_manager import MoveItLifecycleManager
-
-
-@dataclass
-class ParsedGoal:
-    """Validated and parsed goal data."""
-    robot_ip: str
-    start_gripper: str
-    tasks: list
-    poses_json: str
-
-    @property
-    def task_count(self) -> int:
-        return len(self.tasks)
 
 
 class MTCOrchestratorServer(Node):
@@ -76,36 +60,18 @@ class MTCOrchestratorServer(Node):
         self._executing = False
         self._lock = threading.Lock()
         self._current_gripper = "none"
-        self._beamline_config: Optional[BeamlineConfig] = None
-        self._default_robot_ip: str = ""
 
-        # Load beamline configuration
+        # Load beamline configuration (required)
         self.declare_parameter("beamline_config", "config/default_beamline.yaml")
         self.declare_parameter("robot_ip", "")  # Can override beamline default
 
         beamline_config_file = self.get_parameter("beamline_config").value
-        try:
-            self._beamline_config = load_beamline_config(beamline_config_file)
-            self.get_logger().info(
-                f"Loaded beamline config: {self._beamline_config.name}"
-            )
-            self.get_logger().info(
-                f"Robot: {self._beamline_config.robot.model} @ "
-                f"{self._beamline_config.robot.ip}"
-            )
-            self._default_robot_ip = self._beamline_config.robot.ip
-        except Exception as e:
-            self.get_logger().warn(
-                f"Failed to load beamline config '{beamline_config_file}': {e}. "
-                "Falling back to grippers.yaml"
-            )
-            self._beamline_config = None
+        self._beamline_config = load_beamline_config(beamline_config_file)
+        self.get_logger().info(f"Loaded beamline: {self._beamline_config.name}")
 
-        # Override default robot IP if provided as parameter
+        # Robot IP: parameter overrides beamline config
         robot_ip_param = self.get_parameter("robot_ip").value
-        if robot_ip_param:
-            self._default_robot_ip = robot_ip_param
-            self.get_logger().info(f"Robot IP overridden to: {self._default_robot_ip}")
+        self._default_robot_ip = robot_ip_param or self._beamline_config.robot.ip
 
         # Declare timeout parameters (configurable at launch)
         self._timeouts = {}
@@ -119,16 +85,8 @@ class MTCOrchestratorServer(Node):
         # Callback group for concurrent operations
         self._callback_group = ReentrantCallbackGroup()
 
-        # Create gripper registry from beamline config or fall back to YAML file
-        if self._beamline_config:
-            gripper_registry = GripperConfigRegistry.from_beamline_config(
-                self._beamline_config, self.get_logger()
-            )
-        else:
-            gripper_registry = GripperConfigRegistry(self.get_logger())
-
         # MoveIt lifecycle manager - launches MoveIt based on gripper config
-        self._moveit_manager = MoveItLifecycleManager(self, gripper_registry)
+        self._moveit_manager = MoveItLifecycleManager(self, self._beamline_config)
 
         # Create action server
         self._action_server = ActionServer(
@@ -190,7 +148,9 @@ class MTCOrchestratorServer(Node):
         """Execute the orchestration goal."""
         with self._lock:
             if self._executing:
-                return self._create_error_result("Server busy")
+                result = MTCExecution.Result()
+                result.error_message = "Server busy"
+                return result
             self._executing = True
 
         try:
@@ -212,29 +172,26 @@ class MTCOrchestratorServer(Node):
             goal_handle.abort()
             return result
 
-        # Initialize feedback
-        feedback.current_gripper = parsed.start_gripper
-        self._current_gripper = parsed.start_gripper
+        robot_ip, start_gripper, tasks, poses_json = parsed
+        task_count = len(tasks)
+
+        # Initialize gripper state
+        self._current_gripper = start_gripper
 
         # Step 1: Launch MoveIt for the gripper configuration
         self._update_feedback(
-            feedback, goal_handle, 0, parsed.task_count, "Initializing MoveIt"
+            feedback, goal_handle, 0, task_count, "Initializing MoveIt"
         )
 
-        # robot_ip is validated in _parse_goal, so we know it's valid here
-        if not self._moveit_manager.launch_for_gripper(
-            parsed.start_gripper, parsed.robot_ip
-        ):
-            result.success = False
+        if not self._moveit_manager.launch_for_gripper(start_gripper, robot_ip):
             result.error_message = "Failed to initialize MoveIt stack"
             goal_handle.abort()
             return result
 
         # Execute each task
-        for i, task in enumerate(parsed.tasks):
+        for i, task in enumerate(tasks):
             # Check for cancellation
             if goal_handle.is_cancel_requested:
-                result.success = False
                 result.error_message = "Task was canceled"
                 result.completed_steps = i
                 goal_handle.canceled()
@@ -242,7 +199,6 @@ class MTCOrchestratorServer(Node):
 
             task_type = task.get("task_type", "")
             if not task_type:
-                result.success = False
                 result.error_message = f"Step {i} missing 'task_type' field"
                 result.completed_steps = i
                 goal_handle.abort()
@@ -250,12 +206,11 @@ class MTCOrchestratorServer(Node):
 
             # Update feedback
             self._update_feedback(
-                feedback, goal_handle, i + 1, parsed.task_count, task_type
+                feedback, goal_handle, i + 1, task_count, task_type
             )
 
             # Execute step
-            if not self._execute_step(task_type, task, parsed.poses_json):
-                result.success = False
+            if not self._execute_step(task_type, task, poses_json):
                 result.error_message = f"{task_type} step failed"
                 result.completed_steps = i
                 goal_handle.abort()
@@ -265,64 +220,50 @@ class MTCOrchestratorServer(Node):
 
         # Success
         result.success = True
-        result.total_steps = parsed.task_count
-        result.completed_steps = parsed.task_count
+        result.total_steps = task_count
         self._update_feedback(
-            feedback, goal_handle, parsed.task_count, parsed.task_count, ""
+            feedback, goal_handle, task_count, task_count, ""
         )
         goal_handle.succeed()
 
         self.get_logger().info("Orchestration goal completed successfully")
         return result
 
-    def _parse_goal(
-        self, goal: MTCExecution.Goal, result: MTCExecution.Result
-    ) -> Optional[ParsedGoal]:
+    def _parse_goal(self, goal: MTCExecution.Goal, result: MTCExecution.Result):
         """Parse and validate the goal JSON.
 
-        Uses default robot_ip from beamline config if not provided in goal.
-
         Returns:
-            ParsedGoal if valid, None if invalid (result populated with error)
+            (robot_ip, start_gripper, tasks, poses_json) if valid,
+            None if invalid (result populated with error)
         """
         if not goal.full_json:
-            result.success = False
             result.error_message = "Goal missing required full_json"
             return None
 
         try:
             script = json.loads(goal.full_json)
         except json.JSONDecodeError as e:
-            result.success = False
             result.error_message = f"Invalid JSON: {e}"
             return None
 
-        # Validate required fields
-        if "start_gripper" not in script or not isinstance(script["start_gripper"], str):
-            result.success = False
-            result.error_message = "Task script missing required 'start_gripper'"
+        if "start_gripper" not in script:
+            result.error_message = "Task script missing 'start_gripper'"
             return None
 
-        if "tasks" not in script or not isinstance(script["tasks"], list):
-            result.success = False
-            result.error_message = "Task script missing required 'tasks' array"
+        if "tasks" not in script:
+            result.error_message = "Task script missing 'tasks'"
             return None
 
-        # Use goal robot_ip, or fall back to default from beamline config
-        robot_ip = goal.robot_ip if goal.robot_ip else self._default_robot_ip
+        robot_ip = goal.robot_ip or self._default_robot_ip
         if not robot_ip:
-            result.success = False
-            result.error_message = (
-                "No robot_ip provided in goal and no default configured. "
-                "Set robot_ip in goal or configure beamline_config parameter."
-            )
+            result.error_message = "No robot_ip provided and no default configured"
             return None
 
-        return ParsedGoal(
-            robot_ip=robot_ip,
-            start_gripper=script["start_gripper"],
-            tasks=script["tasks"],
-            poses_json=json.dumps(script.get("poses", {})),
+        return (
+            robot_ip,
+            script["start_gripper"],
+            script["tasks"],
+            json.dumps(script.get("poses", {})),
         )
 
     def _execute_step(
@@ -352,12 +293,7 @@ class MTCOrchestratorServer(Node):
     def _send_and_wait(
         self, client: ActionClient, goal, name: str, timeout: float
     ) -> bool:
-        """Send a goal to an action client and wait for result.
-
-        Uses rclpy.spin_until_future_complete with timeout for efficient waiting,
-        matching C++ std::future::wait_for() behavior. No polling loops needed.
-        """
-        import rclpy
+        """Send a goal to an action client and wait for result."""
 
         # Wait for server
         if not client.wait_for_server(timeout_sec=5.0):
@@ -469,14 +405,10 @@ class MTCOrchestratorServer(Node):
             )
             self._current_gripper = new_gripper
 
-            # Get robot_ip from the manager's current state
-            # We need to relaunch MoveIt with the new gripper config
             robot_ip = self._moveit_manager.robot_ip
             if robot_ip and not self._moveit_manager.launch_for_gripper(new_gripper, robot_ip):
                 self.get_logger().error("Failed to restart MoveIt with new gripper config")
                 return False
-        else:
-            self._current_gripper = new_gripper
 
         return True
 
@@ -545,13 +477,6 @@ class MTCOrchestratorServer(Node):
         feedback.current_gripper = self._current_gripper
 
         goal_handle.publish_feedback(feedback)
-
-    def _create_error_result(self, error_message: str) -> MTCExecution.Result:
-        """Create an error result."""
-        result = MTCExecution.Result()
-        result.success = False
-        result.error_message = error_message
-        return result
 
 
 def main(args=None):

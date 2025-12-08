@@ -22,15 +22,10 @@ class VisionActionServer(BaseActionServer):
             action_name="mtc_vision_moveto_py",
             action_type=VisionMoveToAction,
         )
-        self.initialize_stages()
 
     def initialize_stages(self):
         """Create VisionStages instance."""
         self._stages = VisionStages(self)
-
-    def _get_failure_message(self) -> str:
-        """Custom error message for vision failures."""
-        return "Vision-guided motion failed"
 
 
 def main(args=None):

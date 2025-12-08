@@ -19,15 +19,10 @@ class EndEffectorActionServer(BaseActionServer):
             action_name="mtc_endeffector_py",
             action_type=EndEffectorAction,
         )
-        self.initialize_stages()
 
     def initialize_stages(self):
         """Create EndEffectorStages instance."""
         self._stages = EndEffectorStages(self)
-
-    def _get_failure_message(self) -> str:
-        """Custom error message for gripper failures."""
-        return "Gripper operation failed"
 
 
 def main(args=None):

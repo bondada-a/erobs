@@ -56,6 +56,11 @@ class PipettorStages:
         Returns:
             True if successful, False otherwise
         """
+        self.logger.info(
+            f"Executing pipettor: operation={goal.operation}, "
+            f"volume={goal.volume_pct * 100:.0f}%"
+        )
+
         # Format descriptive name for logging
         name = goal.operation
         if goal.operation in ["SUCK", "EXPEL"]:

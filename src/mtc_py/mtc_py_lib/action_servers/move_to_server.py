@@ -22,15 +22,10 @@ class MoveToActionServer(BaseActionServer):
             action_name="mtc_moveto_py",
             action_type=MoveToAction,
         )
-        self.initialize_stages()
 
     def initialize_stages(self):
         """Create MoveToStages instance."""
         self._stages = MoveToStages(self)
-
-    def _get_failure_message(self) -> str:
-        """Custom error message for MoveTo failures."""
-        return "Motion planning or execution failed"
 
 
 def main(args=None):

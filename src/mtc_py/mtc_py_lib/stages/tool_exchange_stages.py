@@ -40,6 +40,11 @@ class ToolExchangeStages(BaseStages):
         Returns:
             True if successful, False otherwise
         """
+        self.logger.info(
+            f"Executing tool exchange: operation={goal.operation}, "
+            f"gripper={goal.gripper}, dock={goal.dock_number}"
+        )
+
         # Validate state transitions
         if goal.operation == "load" and goal.current_attached_gripper != "none":
             self.logger.error(

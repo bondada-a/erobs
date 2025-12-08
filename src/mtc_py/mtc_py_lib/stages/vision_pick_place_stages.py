@@ -57,6 +57,11 @@ class VisionPickPlaceStages(BaseStages):
         Returns:
             True if successful, False otherwise
         """
+        self.logger.info(
+            f"Executing vision pick/place: pick_tag={goal.pick_tag_id}, "
+            f"place_tag={goal.place_tag_id}, gripper={goal.gripper}"
+        )
+
         # Parse grasp offset (default: 5cm above, 180° rotation)
         if goal.grasp_offset_json:
             try:
