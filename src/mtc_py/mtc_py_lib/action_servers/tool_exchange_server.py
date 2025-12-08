@@ -21,24 +21,10 @@ class ToolExchangeActionServer(BaseActionServer):
             action_name="mtc_toolexchange_py",
             action_type=ToolExchangeAction,
         )
-        self.initialize_stages()
 
     def initialize_stages(self):
         """Create ToolExchangeStages instance."""
         self._stages = ToolExchangeStages(self)
-
-    def _execute(self, goal_handle):
-        """Execute ToolExchange goal with logging."""
-        goal = goal_handle.request
-        self.get_logger().info(
-            f"Executing tool exchange: operation={goal.operation}, "
-            f"gripper={goal.gripper}, dock={goal.dock_number}"
-        )
-        return super()._execute(goal_handle)
-
-    def _get_failure_message(self) -> str:
-        """Custom error message for tool exchange failures."""
-        return "Tool exchange motion planning or execution failed"
 
 
 def main(args=None):

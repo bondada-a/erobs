@@ -40,6 +40,11 @@ class PickPlaceStages(BaseStages):
         Returns:
             True if successful, False otherwise
         """
+        self.logger.info(
+            f"Executing pick/place: gripper={goal.gripper}, "
+            f"pick={goal.pick_target}, place={goal.place_target}"
+        )
+
         # Parse poses (required for pick/place operations)
         poses = self.parse_poses(goal.poses_json, required=True)
         if poses is None:

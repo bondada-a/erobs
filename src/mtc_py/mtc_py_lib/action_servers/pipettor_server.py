@@ -23,24 +23,10 @@ class PipettorActionServer(BaseActionServer):
             action_name="mtc_pipettor_py",
             action_type=PipettorAction,
         )
-        self.initialize_stages()
 
     def initialize_stages(self):
         """Create PipettorStages instance."""
         self._stages = PipettorStages(self)
-
-    def _execute(self, goal_handle):
-        """Execute Pipettor goal with logging."""
-        goal = goal_handle.request
-        self.get_logger().info(
-            f"Executing pipettor: operation={goal.operation}, "
-            f"volume={goal.volume_pct * 100:.0f}%"
-        )
-        return super()._execute(goal_handle)
-
-    def _get_failure_message(self) -> str:
-        """Custom error message for pipettor failures."""
-        return "Pipettor operation failed"
 
 
 def main(args=None):

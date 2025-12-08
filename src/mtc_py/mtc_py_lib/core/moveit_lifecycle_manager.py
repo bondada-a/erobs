@@ -20,7 +20,7 @@ from typing import Optional
 
 from rclpy.node import Node
 
-from mtc_py_lib.core.gripper_config_registry import GripperConfigRegistry
+from mtc_py_lib.core.beamline_config import BeamlineConfig
 from mtc_py_lib.core.ur_tool_interface import URToolInterface
 
 
@@ -35,16 +35,16 @@ class MoveItLifecycleManager:
     - Graceful shutdown when switching grippers
     """
 
-    def __init__(self, node: Node, registry: Optional[GripperConfigRegistry] = None):
+    def __init__(self, node: Node, beamline_config: BeamlineConfig):
         """Initialize the lifecycle manager.
 
         Args:
             node: ROS node for logging and service checks
-            registry: Gripper configuration registry (created if not provided)
+            beamline_config: Beamline configuration with gripper definitions
         """
         self._node = node
         self._logger = node.get_logger()
-        self._registry = registry or GripperConfigRegistry(self._logger)
+        self._beamline_config = beamline_config
         self._tool_interface = URToolInterface(node)
 
         self._moveit_process: Optional[subprocess.Popen] = None
@@ -110,9 +110,9 @@ class MoveItLifecycleManager:
             self.kill_current_process()
 
         # Get gripper configuration
-        config = self._registry.get_config(gripper)
+        config = self._beamline_config.get_gripper(gripper)
         if not config:
-            available = ", ".join(self._registry.available_grippers())
+            available = ", ".join(self._beamline_config.get_available_grippers())
             self._logger.error(
                 f"Unknown gripper type: {gripper} (available: {available})"
             )
