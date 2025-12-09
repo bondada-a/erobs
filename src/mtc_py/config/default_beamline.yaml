@@ -1,12 +1,12 @@
 # Default Beamline Configuration
-# This config maintains the current system behavior
+# This cnfig maintains the current system behavior
 # Use this as a template for creating beamline-specific configs
 
 beamline: "default"
 
 robot:
   model: "ur5e"
-  ip: "10.68.82.41"          # Default IP from current launch files
+  ip: "192.168.1.101"          # Default IP from current launch files
   arm_group: "ur_arm"
   ik_frame: "tool0"
 

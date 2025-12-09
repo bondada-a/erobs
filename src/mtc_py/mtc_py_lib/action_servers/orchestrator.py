@@ -10,6 +10,7 @@ Supports beamline-agnostic deployment via beamline configuration files.
 
 import json
 import threading
+import time
 from typing import Dict, Any
 
 import yaml
@@ -295,7 +296,12 @@ class MTCOrchestratorServer(Node):
     def _send_and_wait(
         self, client: ActionClient, goal, name: str, timeout: float
     ) -> bool:
-        """Send a goal to an action client and wait for result."""
+        """Send a goal to an action client and wait for result.
+
+        Uses polling instead of spin_until_future_complete to avoid
+        executor conflicts (this callback is already being spun by
+        the MultiThreadedExecutor).
+        """
 
         # Wait for server
         if not client.wait_for_server(timeout_sec=5.0):
@@ -305,11 +311,13 @@ class MTCOrchestratorServer(Node):
         # Send goal and wait for acceptance
         send_future = client.send_goal_async(goal)
 
-        # Wait for goal acceptance (10s timeout)
-        rclpy.spin_until_future_complete(self, send_future, timeout_sec=10.0)
-        if not send_future.done():
-            self.get_logger().error(f"{name} goal acceptance timed out")
-            return False
+        # Wait for goal acceptance (10s timeout) - poll instead of spin
+        start_time = time.time()
+        while not send_future.done():
+            if time.time() - start_time > 10.0:
+                self.get_logger().error(f"{name} goal acceptance timed out")
+                return False
+            time.sleep(0.01)
 
         goal_handle = send_future.result()
 
@@ -317,14 +325,16 @@ class MTCOrchestratorServer(Node):
             self.get_logger().error(f"{name} goal was rejected")
             return False
 
-        # Wait for result with timeout
+        # Wait for result with timeout - poll instead of spin
         result_future = goal_handle.get_result_async()
 
-        rclpy.spin_until_future_complete(self, result_future, timeout_sec=timeout)
-        if not result_future.done():
-            self.get_logger().error(f"{name} timed out after {timeout}s")
-            goal_handle.cancel_goal_async()
-            return False
+        start_time = time.time()
+        while not result_future.done():
+            if time.time() - start_time > timeout:
+                self.get_logger().error(f"{name} timed out after {timeout}s")
+                goal_handle.cancel_goal_async()
+                return False
+            time.sleep(0.01)
 
         result = result_future.result()
         return result.result.success
