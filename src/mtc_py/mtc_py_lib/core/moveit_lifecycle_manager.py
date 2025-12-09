@@ -26,6 +26,7 @@ from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Pose
 from moveit_msgs.msg import CollisionObject, PlanningScene
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from shape_msgs.msg import SolidPrimitive
 from std_srvs.srv import Trigger
 from tf_transformations import quaternion_from_euler
@@ -38,18 +39,20 @@ class MoveItLifecycleManager:
     UR_SECONDARY_PORT = 30002  # URScript command port
     SOCKET_TIMEOUT = 2.0
 
-    def __init__(self, node: Node, grippers: dict, robot_ip: str):
+    def __init__(self, node: Node, grippers: dict, robot_ip: str, callback_group=None):
         """Initialize the lifecycle manager.
 
         Args:
             node: ROS node for logging and service checks
             grippers: Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group}
             robot_ip: Robot IP address (constant for beamline)
+            callback_group: Optional callback group for service clients
         """
         self._node = node
         self._logger = node.get_logger()
         self._grippers = grippers
         self._robot_ip = robot_ip
+        self._callback_group = callback_group
 
         self._moveit_process: Optional[subprocess.Popen] = None
         self._current_gripper: str = ""
@@ -155,7 +158,11 @@ class MoveItLifecycleManager:
         for attempt in range(max_attempts):
             try:
                 # Create fresh client each attempt (avoids stale connections)
-                client = self._node.create_client(GetPlanningScene, "/get_planning_scene")
+                # Use callback group for proper threading with MultiThreadedExecutor
+                client = self._node.create_client(
+                    GetPlanningScene, "/get_planning_scene",
+                    callback_group=self._callback_group
+                )
 
                 # Wait briefly for service to exist
                 if not client.wait_for_service(timeout_sec=2.0):
@@ -170,10 +177,11 @@ class MoveItLifecycleManager:
 
                 future = client.call_async(request)
 
-                # Spin to process the call (with timeout)
+                # Wait for future - MultiThreadedExecutor processes callbacks
+                # Don't use spin_once as it can cause executor state issues
                 start = time.time()
                 while not future.done() and (time.time() - start) < 5.0:
-                    rclpy.spin_once(self._node, timeout_sec=0.1)
+                    time.sleep(0.05)
 
                 self._node.destroy_client(client)
 
@@ -227,13 +235,17 @@ class MoveItLifecycleManager:
                 self._logger.info("No obstacles defined in config")
                 return True
 
-            # Create planning scene publisher
-            scene_pub = self._node.create_publisher(
-                PlanningScene, "/planning_scene", 10
+            # Use default QoS with reliable delivery
+            # MoveGroup subscribes with VOLATILE durability, so we must match
+            scene_qos = QoSProfile(
+                depth=10,
+                durability=DurabilityPolicy.VOLATILE,
+                reliability=ReliabilityPolicy.RELIABLE
             )
 
-            # Give publisher time to connect
-            time.sleep(0.5)
+            scene_pub = self._node.create_publisher(
+                PlanningScene, "/planning_scene", scene_qos
+            )
 
             # Build collision objects
             planning_scene = PlanningScene()
@@ -291,12 +303,25 @@ class MoveItLifecycleManager:
                     f"in frame '{collision_object.header.frame_id}'"
                 )
 
-            # Publish planning scene
+            # Publish obstacles to planning scene
             if planning_scene.world.collision_objects:
+                # Wait for MoveGroup to subscribe (it should already be listening)
+                timeout = 5.0
+                start = time.time()
+                while scene_pub.get_subscription_count() == 0 and (time.time() - start) < timeout:
+                    time.sleep(0.1)
+
+                if scene_pub.get_subscription_count() == 0:
+                    self._logger.warn("No subscribers on /planning_scene, publishing anyway")
+
+                # Publish the planning scene
                 scene_pub.publish(planning_scene)
                 self._logger.info(
                     f"Loaded {len(planning_scene.world.collision_objects)} obstacles"
                 )
+
+                # Brief delay to ensure message is processed
+                time.sleep(0.2)
 
             self._node.destroy_publisher(scene_pub)
             return True
@@ -364,22 +389,16 @@ class MoveItLifecycleManager:
                 return False
 
             self._logger.info("Calling /dashboard_client/play...")
-            request = Trigger.Request()
-            future = client.call_async(request)
 
-            rclpy.spin_until_future_complete(self._node, future, timeout_sec=5.0)
+            # Fire-and-forget: send command, don't wait for response
+            # The robot connects asynchronously and we verify via trajectory execution
+            client.call_async(Trigger.Request())
+
+            # Brief delay to let robot process the command
+            time.sleep(1.0)
+
             self._node.destroy_client(client)
-
-            if not future.done():
-                self._logger.error("Dashboard play command timeout")
-                return False
-
-            result = future.result()
-            if not result.success:
-                self._logger.error(f"Failed to restart external_control: {result.message}")
-                return False
-
-            self._logger.info("External control program restarted")
+            self._logger.info("External control program restart requested")
             return True
 
         except Exception as e:

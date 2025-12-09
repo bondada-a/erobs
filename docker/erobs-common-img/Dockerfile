@@ -1,7 +1,7 @@
 FROM osrf/ros:humble-desktop-full
 
 # Set display
-ENV DISPLAY :1
+ENV DISPLAY=:1
 
 # Step 1: Fix APT sandboxing issues for container environments
 RUN echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandboxdisable
@@ -90,7 +90,7 @@ RUN /bin/bash -c "set -e && \
     vcs import < src/vision/vision.repos src/vision && \
     apt-get update && \
     rosdep update && \
-    rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface zivid_description'"
+    rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface zivid_description pytest ament_python pipette_driver zivid_interfaces'"
 
 # Copy Zivid settings from repository to config directory
 RUN cp /root/ws/erobs/src/mtc_pipeline/config/zivid_settings.yml /root/zivid_config/default_2d_settings.yml && \

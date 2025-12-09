@@ -27,7 +27,14 @@ WORKDIR /root/ws
 RUN git clone https://github.com/bondada-a/erobs.git -b humble-experimental
 
 WORKDIR /root/ws/erobs/
-RUN /bin/bash -c ". ./setup.sh"
+# Import all repos including vision and end_effectors
+RUN /bin/bash -c "set -e && \
+  vcs import < src/ros2.repos src && \
+  vcs import < src/end_effectors/end_effectors.repos src/end_effectors && \
+  vcs import < src/vision/vision.repos src/vision && \
+  apt-get update && \
+  rosdep update && \
+  rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface zivid_description pytest ament_python'"
 
 
 # This is an exit hatch for testing when conda envs not avail
@@ -58,7 +65,7 @@ RUN mkdir /root/.ipython
 WORKDIR /root/ws/
 # Build interface packages first so other packages can find them
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
-# Build remaining packages
+# Build remaining packages (skip zivid_camera since no Zivid SDK in this container)
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio zivid_camera zivid_samples"
 
 # Install Conda AFTER ROS builds to avoid Python environment conflicts

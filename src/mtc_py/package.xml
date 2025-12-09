@@ -23,6 +23,7 @@
   <!-- TF2 -->
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
+  <exec_depend>tf_transformations</exec_depend>
 
   <!-- Vision -->
   <depend>zivid_interfaces</depend>

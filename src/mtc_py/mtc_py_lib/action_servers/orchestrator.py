@@ -86,7 +86,9 @@ class MTCOrchestratorServer(Node):
         self._callback_group = ReentrantCallbackGroup()
 
         # MoveIt lifecycle manager - launches MoveIt based on gripper config
-        self._moveit_manager = MoveItLifecycleManager(self, self._grippers, self._robot_ip)
+        self._moveit_manager = MoveItLifecycleManager(
+            self, self._grippers, self._robot_ip, self._callback_group
+        )
 
         # Create action server
         self._action_server = ActionServer(
