@@ -49,7 +49,7 @@ ENV EPICS_BASE=/root/EPICS/epics-base
 ENV PATH=${EPICS_BASE}/bin/linux-x86_64:${PATH}
 
 # Add our custom bsui
-COPY bsui.bash /bin/bsui
+COPY docker/bsui/bsui.bash /bin/bsui
 RUN chmod +x /bin/bsui
 
 RUN apt-get update && apt-get install -y fontconfig
