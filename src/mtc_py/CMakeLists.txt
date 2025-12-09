@@ -51,7 +51,7 @@ install(PROGRAMS
   mtc_py_lib/action_servers/pipettor_server.py
   mtc_py_lib/action_servers/orchestrator.py
   # Client utilities
-  scripts/send_task_goal.py
+  scripts/mtc_py_client.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

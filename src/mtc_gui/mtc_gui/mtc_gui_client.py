@@ -17,13 +17,17 @@ import cv2
 try:
     import rclpy
     from rclpy.node import Node
+    from rclpy.action import ActionClient
+    from action_msgs.msg import GoalStatus
     from sensor_msgs.msg import Image as RosImage
     from std_srvs.srv import Trigger
     from zivid_interfaces.srv import CaptureAndDetectMarkers
     from cv_bridge import CvBridge
+    from mtc_py.action import MTCExecution
     ROS2_AVAILABLE = True
-except ImportError:
-    print("Warning: ROS2 or cv_bridge not available. Camera view will be disabled.")
+except ImportError as e:
+    print(f"Warning: ROS2 or required packages not available: {e}")
+    print("Camera view and task execution will be disabled.")
     ROS2_AVAILABLE = False
 
 # Import local modules
@@ -52,6 +56,9 @@ class MTCGUIClient:
         self.temp_json_file = None
         self.current_json_file = None  # Track currently loaded JSON file
 
+        # Action client state
+        self.mtc_action_client = None
+
         # Camera state
         self.current_image = None
         self.current_detections = []  # List of Zivid MarkerShape objects
@@ -76,7 +83,7 @@ class MTCGUIClient:
     def setup_gui(self):
         """Setup the main GUI window"""
         self.root = tk.Tk()
-        self.root.title("MTC Action Client GUI with Camera View")
+        self.root.title("MTC GUI Client (mtc_py)")
         self.root.geometry("1920x1080")
 
         # Configure grid weights - 2 columns now
@@ -964,121 +971,102 @@ class MTCGUIClient:
         return {"valid": True, "message": "Configuration is valid"}
 
     def _execute_task_thread(self):
-        """Execute task using the MTC action client executable"""
+        """Execute task using the MTC action client (direct ROS2 ActionClient)"""
         try:
             self.log_message("Starting MTC task execution...")
-            
-            # Create temporary JSON file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-                json.dump(self.current_config, f, indent=2)
-                self.temp_json_file = f.name
-            
-            self.log_message(f"Created temporary configuration file: {self.temp_json_file}")
-            
-            # Find the MTC action client executable using ROS2 package resolution
-            mtc_client_path = None
-            try:
-                # Use ros2 pkg prefix to find the package installation path
-                result = subprocess.run(
-                    ['ros2', 'pkg', 'prefix', 'mtc_pipeline'],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+
+            # Check if action client is available
+            if not ROS2_AVAILABLE or self.mtc_action_client is None:
+                self.log_message("ERROR: ROS2 or MTC action client not available")
+                return
+
+            # Wait for action server
+            self.log_message("Waiting for mtc_execution_py action server...")
+            if not self.mtc_action_client.wait_for_server(timeout_sec=10.0):
+                self.log_message("ERROR: Action server 'mtc_execution_py' not available!")
+                self.log_message("Make sure mtc_py is running: ros2 launch mtc_py mtc_py_bringup.launch.py")
+                return
+
+            self.log_message("Action server available, sending goal...")
+
+            # Create goal with JSON configuration
+            goal = MTCExecution.Goal()
+            goal.full_json = json.dumps(self.current_config)
+
+            # Send goal asynchronously
+            send_future = self.mtc_action_client.send_goal_async(
+                goal,
+                feedback_callback=self._action_feedback_callback
+            )
+
+            # Wait for goal to be accepted (with stop check)
+            while not send_future.done():
+                if self.stop_execution:
+                    self.log_message("Execution stopped before goal was accepted")
+                    return
+                time.sleep(0.1)
+
+            self.current_goal_handle = send_future.result()
+
+            if not self.current_goal_handle.accepted:
+                self.log_message("ERROR: Goal was rejected by the action server")
+                return
+
+            self.log_message("Goal accepted, executing task sequence...")
+
+            # Wait for result (with stop check)
+            result_future = self.current_goal_handle.get_result_async()
+
+            while not result_future.done():
+                if self.stop_execution:
+                    self.log_message("Cancelling task execution...")
+                    cancel_future = self.current_goal_handle.cancel_goal_async()
+                    # Wait for cancel to complete
+                    timeout = 5.0
+                    start = time.time()
+                    while not cancel_future.done() and (time.time() - start) < timeout:
+                        time.sleep(0.1)
+                    self.log_message("Task cancelled")
+                    return
+                time.sleep(0.1)
+
+            # Process result
+            result = result_future.result()
+            status = result.status
+
+            if status == GoalStatus.STATUS_SUCCEEDED:
+                self.log_message(
+                    f"✓ Task completed successfully! "
+                    f"Steps: {result.result.completed_steps}/{result.result.total_steps}"
+                )
+                self.root.after(0, lambda: self.progress_var.set(100))
+            elif status == GoalStatus.STATUS_CANCELED:
+                self.log_message(f"⊗ Task was cancelled: {result.result.error_message}")
+            else:
+                self.log_message(
+                    f"✗ Task failed: {result.result.error_message} "
+                    f"(completed {result.result.completed_steps}/{result.result.total_steps} steps)"
                 )
 
-                if result.returncode == 0:
-                    pkg_prefix = result.stdout.strip()
-                    mtc_client_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_client')
-                    self.log_message(f"Package prefix found: {pkg_prefix}")
-                    self.log_message(f"Looking for executable at: {mtc_client_path}")
-
-                    if not os.path.exists(mtc_client_path):
-                        self.log_message(f"ERROR: Executable not found at: {mtc_client_path}")
-                        mtc_client_path = None
-                else:
-                    self.log_message(f"ERROR: ros2 pkg prefix failed with code {result.returncode}")
-                    self.log_message(f"ERROR: stderr: {result.stderr.strip()}")
-                    self.log_message(f"ERROR: stdout: {result.stdout.strip()}")
-
-            except subprocess.TimeoutExpired:
-                self.log_message("ERROR: Timeout while looking for mtc_pipeline package")
-            except Exception as e:
-                self.log_message(f"ERROR: Exception while finding package: {e}")
-
-            if not mtc_client_path:
-                self.log_message("ERROR: Could not find MTC action client executable")
-                return
-            
-            self.log_message(f"Using MTC client: {mtc_client_path}")
-            
-            # Execute the MTC action client
-            # Use stdbuf to force unbuffered output (most reliable method)
-            cmd = ['stdbuf', '-oL', '-eL', mtc_client_path, self.temp_json_file, self.robot_ip_var.get()]
-            self.log_message(f"Executing: {' '.join(cmd[3:])}")  # Don't show stdbuf in log
-
-            # Run the command and capture output
-            # PYTHONUNBUFFERED forces line-buffered output for Python scripts
-            # RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED forces ROS 2 to flush after each log
-            env = os.environ.copy()
-            env['PYTHONUNBUFFERED'] = '1'
-            env['RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED'] = '1'
-
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,  # Merge stderr into stdout
-                text=True,
-                bufsize=0,  # Unbuffered
-                universal_newlines=True,
-                env=env
-            )
-            
-            # Monitor the process
-            while process.poll() is None:
-                if self.stop_execution:
-                    self.log_message("Stopping execution...")
-                    process.terminate()
-
-                    # Wait for graceful shutdown (client will cancel the action)
-                    try:
-                        process.wait(timeout=5.0)
-                        self.log_message("Task cancelled successfully")
-                    except subprocess.TimeoutExpired:
-                        self.log_message("Force killing process...")
-                        process.kill()
-                        process.wait()
-                    break
-
-                # Read output
-                output = process.stdout.readline()
-                if output:
-                    self.log_message(f"MTC: {output.strip()}")
-
-                time.sleep(0.1)
-            
-            # Get final result
-            # Return codes: 0=Success, 1=Failure, 2=Cancelled
-            return_code = process.poll()
-            if return_code == 0:
-                self.log_message("✓ Task completed successfully!")
-            elif return_code == 2:
-                self.log_message("⊗ Task was cancelled")
-            else:
-                self.log_message(f"✗ Task failed with return code {return_code}")
-                
         except Exception as e:
             self.log_message(f"ERROR: {str(e)}")
+            import traceback
+            self.log_message(f"Traceback: {traceback.format_exc()}")
         finally:
-            # Clean up temporary file
-            if self.temp_json_file and os.path.exists(self.temp_json_file):
-                try:
-                    os.unlink(self.temp_json_file)
-                    self.log_message("Cleaned up temporary file")
-                except:
-                    pass
-            
+            self.current_goal_handle = None
             # Reset GUI state
             self.root.after(0, self._reset_execution_state)
+
+    def _action_feedback_callback(self, feedback_msg):
+        """Handle action feedback from the MTC orchestrator"""
+        fb = feedback_msg.feedback
+        # Update progress bar
+        self.root.after(0, lambda: self.progress_var.set(fb.progress_percentage))
+        # Log feedback
+        self.log_message(
+            f"[{fb.progress_percentage:.0f}%] Step {fb.current_step}: "
+            f"{fb.current_action} | Gripper: {fb.current_gripper} | {fb.status_message}"
+        )
 
     def _reset_execution_state(self):
         """Reset execution GUI state"""
@@ -1099,20 +1087,22 @@ class MTCGUIClient:
                 self.log_message("Testing MTC action server availability...")
 
                 # Check if ROS2 is available
-                try:
-                    ros2_check = subprocess.run(['which', 'ros2'], capture_output=True, text=True, timeout=2)
-                    if ros2_check.returncode == 0:
-                        self.log_message(f"ros2 command found at: {ros2_check.stdout.strip()}")
-                    else:
-                        self.log_message("⚠ ros2 command not found - is ROS2 sourced?")
-                except Exception as e:
-                    self.log_message(f"⚠ Could not check for ros2 command: {e}")
+                if not ROS2_AVAILABLE:
+                    self.log_message("✗ ROS2 not available - please source your ROS2 workspace")
+                    return
 
-                # Check if the MTC action server executable exists using ROS2 package resolution
-                mtc_server_path = None
+                # Check if action client exists
+                if self.mtc_action_client is None:
+                    self.log_message("✗ Action client not initialized")
+                    self.log_message("This usually means ROS2 or mtc_py package is not available")
+                    return
+
+                self.log_message("✓ ROS2 available and action client initialized")
+
+                # Check if mtc_py package is available
                 try:
                     result = subprocess.run(
-                        ['ros2', 'pkg', 'prefix', 'mtc_pipeline'],
+                        ['ros2', 'pkg', 'prefix', 'mtc_py'],
                         capture_output=True,
                         text=True,
                         timeout=5
@@ -1120,37 +1110,41 @@ class MTCGUIClient:
 
                     if result.returncode == 0:
                         pkg_prefix = result.stdout.strip()
-                        mtc_server_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_orchestrator_action_server')
-                        self.log_message(f"Package prefix found: {pkg_prefix}")
-                        self.log_message(f"Looking for executable at: {mtc_server_path}")
+                        self.log_message(f"✓ mtc_py package found at: {pkg_prefix}")
                     else:
-                        self.log_message(f"⚠ ros2 pkg prefix failed with code {result.returncode}")
-                        self.log_message(f"⚠ stderr: {result.stderr.strip()}")
-                        self.log_message(f"⚠ stdout: {result.stdout.strip()}")
+                        self.log_message("⚠ mtc_py package not found")
+                        self.log_message("Make sure the package is built: colcon build --packages-select mtc_py")
                 except Exception as e:
-                    self.log_message(f"⚠ Could not locate package: {e}")
+                    self.log_message(f"⚠ Could not check for mtc_py package: {e}")
 
-                if mtc_server_path and os.path.exists(mtc_server_path):
-                    self.log_message("✓ MTC action server executable found")
-                    
-                    # Try to check if it's running
-                    try:
-                        result = subprocess.run(['pgrep', '-f', 'mtc_orchestrator_action_server'], 
-                                             capture_output=True, text=True)
-                        if result.returncode == 0:
-                            self.log_message("✓ MTC action server is running")
-                        else:
-                            self.log_message("⚠ MTC action server is not running")
-                            self.log_message("You may need to start it with: ros2 run mtc_pipeline mtc_orchestrator_action_server")
-                    except Exception as e:
-                        self.log_message(f"⚠ Could not check if server is running: {e}")
+                # Check if action server is available
+                self.log_message("Checking if 'mtc_execution_py' action server is available...")
+                if self.mtc_action_client.wait_for_server(timeout_sec=3.0):
+                    self.log_message("✓ MTC action server (mtc_execution_py) is running!")
                 else:
-                    self.log_message("✗ MTC action server executable not found")
-                    self.log_message("Make sure the package is built: colcon build --packages-select mtc_pipeline")
-                    
+                    self.log_message("⚠ MTC action server is not available")
+                    self.log_message("Start it with: ros2 launch mtc_py mtc_py_bringup.launch.py")
+
+                # List available action servers for debugging
+                try:
+                    result = subprocess.run(
+                        ['ros2', 'action', 'list'],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        actions = result.stdout.strip()
+                        if actions:
+                            self.log_message(f"Available action servers:\n{actions}")
+                        else:
+                            self.log_message("No action servers currently running")
+                except Exception as e:
+                    self.log_message(f"⚠ Could not list action servers: {e}")
+
             except Exception as e:
                 self.log_message(f"✗ Test failed: {str(e)}")
-        
+
         threading.Thread(target=test_thread, daemon=True).start()
 
     def load_json_file(self):
@@ -1214,11 +1208,17 @@ class MTCGUIClient:
     def show_about(self):
         """Show about dialog"""
         messagebox.showinfo("About",
-                          "MTC Action Client GUI - Working Version\n\n"
-                          "A graphical interface for the MoveIt Task Constructor (MTC) action client.\n"
-                          "This version communicates with the actual MTC action server.\n"
-                          "Allows you to create, edit, and execute robot task sequences.\n\n"
-                          "Version: 1.0 (Working)")
+                          "MTC Action Client GUI\n\n"
+                          "A graphical interface for the MoveIt Task Constructor (MTC) pipeline.\n"
+                          "Communicates directly with mtc_py orchestrator via ROS2 ActionClient.\n\n"
+                          "Features:\n"
+                          "- Visual task sequence editor\n"
+                          "- Pose management\n"
+                          "- Live camera view with ArUco detection\n"
+                          "- Real-time execution feedback\n\n"
+                          "Backend: mtc_py (Python MTC implementation)\n"
+                          "Action server: mtc_execution_py\n\n"
+                          "Version: 2.0")
 
     def create_camera_panel(self):
         """Create camera view panel on the right side"""
@@ -1281,6 +1281,13 @@ class MTCGUIClient:
             self.marker_detection_client = self.ros_node.create_client(
                 CaptureAndDetectMarkers,
                 '/capture_and_detect_markers'
+            )
+
+            # Create MTC action client for mtc_py orchestrator
+            self.mtc_action_client = ActionClient(
+                self.ros_node,
+                MTCExecution,
+                'mtc_execution_py'
             )
 
             # Detection is now manual via button (no periodic timer)

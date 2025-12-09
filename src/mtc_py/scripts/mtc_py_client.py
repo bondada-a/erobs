@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Send a task sequence JSON file to the MTC Orchestrator.
+"""MTC Python Client - Send task sequences to the MTC Orchestrator.
 
 Usage:
-    ros2 run mtc_py send_task_goal /path/to/task_sequence.json
+    ros2 run mtc_py mtc_py_client.py /path/to/task_sequence.json
 """
 
 import argparse

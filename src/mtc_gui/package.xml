@@ -22,8 +22,8 @@
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-opencv</exec_depend>
 
-  <!-- Related packages -->
-  <exec_depend>mtc_pipeline</exec_depend>
+  <!-- MTC Python package for action definitions and orchestrator -->
+  <depend>mtc_py</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
