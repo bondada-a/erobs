@@ -17,8 +17,16 @@ else
     exit 1
 fi
 
-# Set up local workspace
-WORKSPACE_ROOT="/home/aditya/work/github_ws/erobs"
+# Set up local workspace (priority: EROBS_WORKSPACE env var, then auto-detect)
+if [ -n "$EROBS_WORKSPACE" ]; then
+    WORKSPACE_ROOT="$EROBS_WORKSPACE"
+    echo "✓ Using EROBS_WORKSPACE: $WORKSPACE_ROOT"
+else
+    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    # Navigate up from src/bluesky_ros/ to workspace root
+    WORKSPACE_ROOT="$(dirname "$(dirname "$SCRIPT_DIR")")"
+fi
+
 if [ -f "$WORKSPACE_ROOT/install/setup.bash" ]; then
     source "$WORKSPACE_ROOT/install/setup.bash"
     echo "✓ ROS workspace sourced from $WORKSPACE_ROOT"
@@ -28,17 +36,19 @@ else
 fi
 
 # Set up EPICS environment (optional - only if EPICS is installed)
-if [ -d "/home/aditya/EPICS/epics-base" ]; then
-    export EPICS_BASE="/home/aditya/EPICS/epics-base"
+if [ -d "$HOME/EPICS/epics-base" ]; then
+    export EPICS_BASE="$HOME/EPICS/epics-base"
     export PATH="${EPICS_BASE}/bin/linux-x86_64:${PATH}"
     echo "✓ EPICS base sourced from $EPICS_BASE"
 fi
 
 # Set up Conda (optional - only if using conda environment)
-if [ -f "/home/aditya/miniconda3/etc/profile.d/conda.sh" ]; then
-    source "/home/aditya/miniconda3/etc/profile.d/conda.sh"
+if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/miniconda3/etc/profile.d/conda.sh"
     # Optionally activate bluesky environment
     # conda activate bluesky
+elif [ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]; then
+    source "$HOME/anaconda3/etc/profile.d/conda.sh"
 fi
 
 # Set up Python path for bluesky_ros modules
@@ -102,6 +112,10 @@ ${BOLD}Environment:${RESET}
     - WORKSPACE: ${WORKSPACE_ROOT}
     - PYTHONPATH: ${PYTHONPATH}
 
+${BOLD}Backend:${RESET}
+    - mtc_py (Python MTC implementation)
+    - Action server: mtc_execution_py
+
 ${BOLD}Available Example Scripts:${RESET}
     - simple_mtc_bluesky.py    : Simple MTC task execution with Bluesky
     - mtc_bluesky_example.py   : Full Ophyd device integration example
@@ -109,7 +123,7 @@ ${BOLD}Available Example Scripts:${RESET}
 ${UNDERLINE}${BOLD}Quick Start:${RESET}
 
 1. Run a simple MTC task:
-   ${BLUE}python3 src/bluesky_ros/simple_mtc_bluesky.py task_sequences/complete_sequence.json${RESET}
+   ${BLUE}python3 src/bluesky_ros/simple_mtc_bluesky.py src/cms/tasks/complete_sequence.json${RESET}
 
 2. Start interactive IPython session:
    ${BLUE}ipython${RESET}
@@ -120,7 +134,8 @@ ${UNDERLINE}${BOLD}Quick Start:${RESET}
    >>> from bluesky_ros.mtc_ophyd_device import MTCExecutionDevice
    >>> rclpy.init()
    >>> RE = RunEngine({})
-   >>> # Your Bluesky plans here
+   >>> robot = MTCExecutionDevice(name="ur5e_robot")
+   >>> # Use RE(your_plan(robot, "task.json"))
 
 3. For interactive exploration with IPython profile:
    ${BLUE}ipython --profile=default${RESET}

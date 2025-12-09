@@ -15,21 +15,38 @@ from pathlib import Path
 class TaskBuilder:
     """Build MTC task JSONs using your existing locations"""
 
-    def __init__(self, locations_file='task_sequences/triple_test_no_tasks.json'):
+    def __init__(self, locations_file='src/cms/tasks/complete_sequence.json'):
         """
         Initialize with locations file
 
         Args:
             locations_file: Path to JSON with poses (relative to workspace root)
         """
-        # Auto-detect workspace root
-        try:
-            if Path("/root/ws/erobs").exists():
-                self.workspace = Path("/root/ws/erobs")
-            else:
-                self.workspace = Path.home() / "work/github_ws/erobs"
-        except PermissionError:
-            self.workspace = Path.home() / "work/github_ws/erobs"
+        import os
+
+        # Workspace path detection (priority order):
+        # 1. EROBS_WORKSPACE environment variable
+        # 2. Auto-detect from script location
+        # 3. Validate workspace markers
+        workspace_root = os.environ.get('EROBS_WORKSPACE')
+
+        if not workspace_root:
+            # Auto-detect from script location (src/bluesky_ros/ -> workspace root)
+            script_dir = Path(__file__).parent
+            candidate = script_dir.parent.parent
+
+            # Verify it's a valid workspace (has install/setup.bash or src/ directory)
+            if (candidate / 'install' / 'setup.bash').exists() or \
+               (candidate / 'src').exists():
+                workspace_root = str(candidate)
+
+        if not workspace_root:
+            raise RuntimeError(
+                "Could not detect workspace. Set EROBS_WORKSPACE environment variable.\n"
+                "  Example: export EROBS_WORKSPACE=/path/to/your/workspace"
+            )
+
+        self.workspace = Path(workspace_root)
 
         # Load locations
         loc_path = self.workspace / locations_file
@@ -95,7 +112,7 @@ class TaskBuilder:
 
         Example:
             json_file = builder.move_to('pickup_approach')
-            yield from bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': '...'})
+            yield from bps.abs_set(mtc, {'json_file': json_file})
         """
         if location not in self.poses:
             raise ValueError(f"Location '{location}' not found. Use list_locations() to see all.")
@@ -194,7 +211,7 @@ class TaskBuilder:
 
         Example:
             json_file = builder.gripper_open('hande')
-            RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+            RE(bps.abs_set(mtc, {'json_file': json_file}))
         """
         action_map = {
             'hande': 'hande_open',
@@ -222,7 +239,7 @@ class TaskBuilder:
 
         Example:
             json_file = builder.gripper_close('hande')
-            RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+            RE(bps.abs_set(mtc, {'json_file': json_file}))
         """
         action_map = {
             'hande': 'hande_closed',
@@ -258,7 +275,7 @@ class TaskBuilder:
 
         Example:
             json_file = builder.move_up(0.05)  # Move up 5cm
-            RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+            RE(bps.abs_set(mtc, {'json_file': json_file}))
         """
         tasks = [{
             "task_type": "moveto",
@@ -329,7 +346,7 @@ class TaskBuilder:
 
         Example:
             json_file = builder.pipettor_suck(0.8)  # Suck 80%
-            RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+            RE(bps.abs_set(mtc, {'json_file': json_file}))
         """
         tasks = [{
             "task_type": "pipettor",
@@ -344,7 +361,7 @@ class TaskBuilder:
 
         Example:
             json_file = builder.pipettor_eject()
-            RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+            RE(bps.abs_set(mtc, {'json_file': json_file}))
         """
         tasks = [{
             "task_type": "pipettor",
@@ -368,7 +385,7 @@ if __name__ == '__main__':
     print("="*60)
     json_file = builder.move_to('pickup_approach')
     print(f"✅ Created: {json_file}")
-    print(f"   Use: yield from bps.abs_set(mtc, {{'json_file': '{json_file}', 'robot_ip': '...'}})")
+    print(f"   Use: yield from bps.abs_set(mtc, {{'json_file': '{json_file}'}})")
 
     print("\n" + "="*60)
     print("Example 2: Pick sequence")

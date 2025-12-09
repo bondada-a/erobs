@@ -10,16 +10,16 @@ Several containers need to be running for our application. Once running, clients
 **TODO (ChandimaFernando)**: Change the repo link to nsls-II repo, and add CI/CD for build on version tag.
 
 ```bash
-export ROBOT_IP=192.168.1.10
-export UR_TYPE="ur5e"
+export ROBOT_IP=192.168.1.100
+export UR_TYPE="ur3e"
 export LAUNCH_RVIZ="false"
-export DESCRIPTION_PKG="ur5e_robot_description"
+export DESCRIPTION_PKG="ur3e_hande_robot_description"
 export DESCRIPTION_FILE="ur_with_camera_hande.xacro"
-export CONFIG_PKG="ur5e_hande_moveit_config"
+export CONFIG_PKG="ur3e_hande_moveit_config"
 export CONFIG_FILE="ur.srdf"
 export ROS_DISTRO=humble
 export ROS_DOMAIN_ID=10
-export GHCR_POINTER=ghcr.io/bondada-a/ur5e-erobs-common-img:latest
+export GHCR_POINTER=ghcr.io/chandimafernando/erobs-common-img:latest
 ```
 
 # Enable the connection between the UR robot and the VM

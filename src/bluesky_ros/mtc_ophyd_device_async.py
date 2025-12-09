@@ -1,4 +1,4 @@
-"""Async MTC Pipeline Ophyd Device for Bluesky Integration
+"""Async MTC Python Ophyd Device for Bluesky Integration
 
 This is an async-capable version of MTCExecutionDevice that properly supports
 Bluesky's wait=True/False parameter and task cancellation.
@@ -9,9 +9,12 @@ Key differences from mtc_ophyd_device.py:
 - Proper cancellation support via cancel_goal()
 - Compatible with Bluesky's pause/resume mechanisms
 
+Backend: mtc_py (Python MTC implementation)
+Action server: mtc_execution_py
+
 Usage:
     from bluesky_ros.mtc_ophyd_device_async import MTCExecutionDeviceAsync
-    robot = MTCExecutionDeviceAsync(name="ur5e_robot", robot_ip="192.168.56.101")
+    robot = MTCExecutionDeviceAsync(name="ur5e_robot")
 
     # Non-blocking execution
     RE(bps.abs_set(robot, "task.json", wait=False))
@@ -57,12 +60,12 @@ class MTCExecutionDeviceAsync(Node, Movable):
         # Set name attribute for Ophyd
         self.name = name
 
-        # Dynamically load the action type
+        # Dynamically load the action type from mtc_py
         from rosidl_runtime_py.utilities import get_action
-        self.action_type = get_action('mtc_pipeline/MTCExecution')
+        self.action_type = get_action('mtc_py/MTCExecution')
 
-        self.robot_ip = robot_ip
-        self._action_client = ActionClient(self, self.action_type, 'mtc_execution')
+        self.robot_ip = robot_ip  # Kept for reference, not sent to action server
+        self._action_client = ActionClient(self, self.action_type, 'mtc_execution_py')
         self._goal_handle = None
         self._bluesky_status = None
         self._send_goal_future = None
@@ -92,7 +95,7 @@ class MTCExecutionDeviceAsync(Node, Movable):
             # Assume it's already a JSON string
             goal.full_json = json_path_or_string
 
-        goal.robot_ip = self.robot_ip
+        # Note: mtc_py gets robot_ip from beamline config, not from action goal
         return goal
 
     def _spin_in_background(self):

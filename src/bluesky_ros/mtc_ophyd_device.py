@@ -1,4 +1,8 @@
-"""MTC Pipeline Ophyd Device for Bluesky Integration"""
+"""MTC Python Ophyd Device for Bluesky Integration
+
+This module provides an Ophyd device wrapper for mtc_py orchestrator,
+enabling Bluesky experiment orchestration with MTC robot tasks.
+"""
 
 import json
 from ophyd.status import DeviceStatus
@@ -27,19 +31,26 @@ class MTCExecutionDevice(Node, Movable):
         # Set name attribute for Ophyd
         self.name = name
 
-        # Dynamically load the action type
+        # Dynamically load the action type from mtc_py
         from rosidl_runtime_py.utilities import get_action
-        self.action_type = get_action('mtc_pipeline/MTCExecution')
+        self.action_type = get_action('mtc_py/MTCExecution')
 
-        self.robot_ip = robot_ip
-        self._action_client = ActionClient(self, self.action_type, 'mtc_execution')
+        self.robot_ip = robot_ip  # Kept for reference, not sent to action server
+        self._action_client = ActionClient(self, self.action_type, 'mtc_execution_py')
         self._goal_handle = None
         self._bluesky_status = None
         self._send_goal_future = None
         self._get_result_future = None
 
     def construct_goal_message(self, json_path_or_string):
-        """Construct goal from JSON file path or JSON string"""
+        """Construct goal from JSON file path or JSON string
+
+        Args:
+            json_path_or_string: Either a path to a .json file or a JSON string
+
+        Returns:
+            MTCExecution.Goal with full_json populated
+        """
         goal = self.action_type.Goal()
 
         # If it's a file path, read the file
@@ -50,7 +61,7 @@ class MTCExecutionDevice(Node, Movable):
             # Assume it's already a JSON string
             goal.full_json = json_path_or_string
 
-        goal.robot_ip = self.robot_ip
+        # Note: mtc_py gets robot_ip from beamline config, not from action goal
         return goal
 
     def set(self, json_path_or_string):

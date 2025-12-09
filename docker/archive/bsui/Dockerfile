@@ -20,14 +20,18 @@ RUN apt-get update && apt-get install -y \
 RUN pip3 install numpy rosdep && \
   rosdep update
 
-
-RUN mkdir /root/ws -p
-WORKDIR /root/ws
-
-RUN git clone https://github.com/bondada-a/erobs.git -b humble-experimental
-
-WORKDIR /root/ws/erobs/
-RUN /bin/bash -c ". ./setup.sh"
+ARG GITHUB_TOKEN
+RUN mkdir /root/ws/src -p
+WORKDIR  /root/ws/src
+RUN git clone https://maffettone:${GITHUB_TOKEN}@github.com/maffettone/erobs.git -b humble
+WORKDIR  /root/ws/
+RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash  && \
+  rosdep install -r --from-paths . --ignore-src --rosdistro $ROS_DISTRO -y"
+WORKDIR  /root/ws/src
+RUN git clone https://maffettone:${GITHUB_TOKEN}@github.com/ChandimaFernando/ERoBS_ur3e.git -b action_client_basic
+WORKDIR  /root/ws/
+RUN /bin/bash -c "source /opt/ros/${ROS_DISTRO}/setup.bash && \
+  colcon build --packages-select hello_moveit_interfaces custom_msgs"
 
 
 # This is an exit hatch for testing when conda envs not avail
@@ -36,6 +40,13 @@ RUN pip3 install\
   ophyd \
   nslsii \
   ipython
+
+RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
+  chmod +x miniconda.sh && \
+  ./miniconda.sh -b -p /opt/conda && \
+  rm miniconda.sh
+
+ENV PATH="/opt/conda/bin:$PATH"
 
 # Install Epics
 RUN mkdir $HOME/EPICS && cd $HOME/EPICS && \
@@ -46,28 +57,14 @@ RUN mkdir $HOME/EPICS && cd $HOME/EPICS && \
 ENV EPICS_BASE=/root/EPICS/epics-base
 # ENV EPICS_HOST_ARCH=$(/root/EPICS/epics-base/startup/EpicsHostArch)
 # Set host arch manually
-ENV PATH=${EPICS_BASE}/bin/linux-x86_64:${PATH}
+ENV PATH=${EPICS_BASE}/bin/linux-x86_64:${PATH} 
 
 # Add our custom bsui
 COPY bsui.bash /bin/bsui
 RUN chmod +x /bin/bsui
 
-RUN apt-get update && apt-get install -y fontconfig
+RUN apt-get update && apt-get install -y fontconfig 
 RUN mkdir /root/.ipython
-
-WORKDIR /root/ws/
-# Build interface packages first so other packages can find them
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
-# Build remaining packages
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio zivid_camera zivid_samples"
-
-# Install Conda AFTER ROS builds to avoid Python environment conflicts
-RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
-  chmod +x miniconda.sh && \
-  ./miniconda.sh -b -p /opt/conda && \
-  rm miniconda.sh
-
-ENV PATH="/opt/conda/bin:$PATH"
 
 # Clean up
 # TODO (maffettone): this image is rather large, there may be some source and build files we can clean up here. 
@@ -76,8 +73,8 @@ RUN apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Bluesky environment variables
-ENV BS_ENV="/nsls2/conda/envs/2025-2.2-py310-tiled"
+ENV BS_ENV="/nsls2/conda/envs/2023-2.1-py310-tiled"
 ENV BS_PROFILE="collection"
 
 # Start a shell session with BSUI when we run the container
-CMD ["/bin/bash", "-c", ".  /opt/ros/${ROS_DISTRO}/setup.bash &&  . /root/ws/erobs/install/setup.bash && bsui"]
+CMD ["/bin/bash", "-c", ".  /opt/ros/${ROS_DISTRO}/setup.bash &&  . /root/ws/install/setup.bash && bsui"]

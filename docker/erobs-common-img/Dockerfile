@@ -3,15 +3,69 @@ FROM osrf/ros:humble-desktop-full
 # Set display
 ENV DISPLAY :1
 
-RUN apt-get update \
-        && apt-get -y install \
-        python3-pip \
-        ros-${ROS_DISTRO}-rclpy \
-        ros-${ROS_DISTRO}-ur \
-        build-essential \
-        python3-colcon-common-extensions
+# Step 1: Fix APT sandboxing issues for container environments
+RUN echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandboxdisable
 
-RUN apt-get install -y x11vnc xvfb 
+# Step 2: Install basic dependencies and OpenCL tools
+RUN apt-get update && apt-get install -y \
+    wget \
+    curl \
+    build-essential \
+    cmake \
+    net-tools \
+    iputils-ping \
+    netcat-openbsd \
+    iproute2 \
+    ocl-icd-libopencl1 \
+    opencl-headers \
+    clinfo \
+    python3-pip \
+    ros-${ROS_DISTRO}-rclpy \
+    ros-${ROS_DISTRO}-ur \
+    python3-colcon-common-extensions \
+    x11vnc \
+    xvfb \
+    gnupg2 \
+    ca-certificates
+
+# Step 3: Install Zivid SDK 2.16.0 for Ubuntu 22.04 (all packages)
+RUN mkdir -p /tmp/zivid && cd /tmp/zivid && \
+    wget -q https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u22/amd64/zivid_2.16.0+46cdaba6-1_amd64.deb && \
+    wget -q https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u22/amd64/zivid-studio_2.16.0+46cdaba6-1_amd64.deb && \
+    wget -q https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u22/amd64/zivid-tools_2.16.0+46cdaba6-1_amd64.deb && \
+    wget -q https://downloads.zivid.com/sdk/releases/2.16.0+46cdaba6-1/u22/amd64/zivid-genicam_2.16.0+46cdaba6-1_amd64.deb && \
+    apt-get update && apt-get install -y /tmp/zivid/*.deb && \
+    rm -rf /tmp/zivid
+
+# Step 4: Setup Intel OpenCL Runtime for CPU (remove PoCL, install Intel runtime)
+RUN apt-get remove -y pocl-opencl-icd || true && \
+    wget -O- https://apt.repos.intel.com/intel-gpg-keys/GPG-PUB-KEY-INTEL-SW-PRODUCTS.PUB | \
+    gpg --dearmor | tee /usr/share/keyrings/oneapi-archive-keyring.gpg > /dev/null && \
+    echo "deb [signed-by=/usr/share/keyrings/oneapi-archive-keyring.gpg] https://apt.repos.intel.com/oneapi all main" | \
+    tee /etc/apt/sources.list.d/oneAPI.list && \
+    apt-get update && \
+    apt-get install -y intel-oneapi-runtime-opencl intel-oneapi-runtime-compilers
+
+# Step 5: Configure Zivid for CPU Mode
+RUN mkdir -p /root/.config/Zivid/API && \
+    echo '__version__:' > /root/.config/Zivid/API/Config.yml && \
+    echo '  serializer: 1' >> /root/.config/Zivid/API/Config.yml && \
+    echo '  data: 19' >> /root/.config/Zivid/API/Config.yml && \
+    echo 'Configuration:' >> /root/.config/Zivid/API/Config.yml && \
+    echo '  ComputeDevice:' >> /root/.config/Zivid/API/Config.yml && \
+    echo '    Type: CPU' >> /root/.config/Zivid/API/Config.yml && \
+    echo '    AllowUnsupported: yes' >> /root/.config/Zivid/API/Config.yml
+
+# Step 6: Configure Camera Network Discovery (default to IP from guide, can be overridden)
+RUN echo '__version__: 1' > /root/.config/Zivid/API/Cameras.yml && \
+    echo 'Cameras:' >> /root/.config/Zivid/API/Cameras.yml && \
+    echo '  NetworkCameras:' >> /root/.config/Zivid/API/Cameras.yml && \
+    echo '    - NetworkCamera:' >> /root/.config/Zivid/API/Cameras.yml && \
+    echo '        Host: 10.68.81.52' >> /root/.config/Zivid/API/Cameras.yml
+
+# Step 8: Copy Zivid settings files from repository
+RUN mkdir -p /root/zivid_config
+
 # Clean up
 RUN apt-get autoremove -y \
         && apt-get clean -y \
@@ -23,22 +77,39 @@ RUN mkdir /root/ws -p
 
 WORKDIR /root/ws
 
-RUN git clone https://github.com/nsls2/erobs.git -b humble
+# Copy and setup VNC startup script
+COPY docker/erobs-common-img/start-vnc.sh /root/start-vnc.sh
+RUN chmod +x /root/start-vnc.sh
+
+RUN git clone https://github.com/bondada-a/erobs.git -b humble-experimental
 
 WORKDIR /root/ws/erobs/
-RUN /bin/bash -c ". ./setup.sh"
+RUN /bin/bash -c "set -e && \
+    vcs import < src/ros2.repos src && \
+    vcs import < src/end_effectors/end_effectors.repos src/end_effectors && \
+    vcs import < src/vision/vision.repos src/vision && \
+    apt-get update && \
+    rosdep update && \
+    rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface zivid_description'"
+
+# Copy Zivid settings from repository to config directory
+RUN cp /root/ws/erobs/src/mtc_pipeline/config/zivid_settings.yml /root/zivid_config/default_2d_settings.yml && \
+    cp /root/ws/erobs/src/mtc_pipeline/config/zivid_3d_settings.yml /root/zivid_config/default_3d_settings.yml
 
 WORKDIR /root/ws/
-RUN /bin/bash -c ". ./erobs/build.sh"
+# Build interface packages first so other packages can find them
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
+# Build remaining packages
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio"
 
-ENV ROBOT_IP=192.168.56.101
-ENV REVERSE_IP=192.168.56.102
-ENV UR_TYPE="ur3e"
+ENV ROBOT_IP=10.69.26.90
+ENV REVERSE_IP=10.69.26.42
+ENV UR_TYPE="ur5e"
 ENV LAUNCH_RVIZ="false"
-ENV DESCRIPTION_PKG="ur3e_hande_robot_description"
-ENV DESCRIPTION_FILE="ur_with_hande.xacro"
-ENV CONFIG_PKG="ur3e_hande_moveit_config"
-ENV CONFIG_FILE="ur.srdf"
 
 # VNC viewer
 EXPOSE 5901
+
+# Auto-start VNC server and source ROS workspace
+# Source Intel oneAPI if available, then ROS workspace
+CMD ["/bin/bash", "-c", "if [ -f /opt/intel/oneapi/setvars.sh ]; then source /opt/intel/oneapi/setvars.sh; fi && source /root/ws/erobs/install/setup.bash && /root/start-vnc.sh && exec /bin/bash"]
