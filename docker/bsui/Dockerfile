@@ -16,8 +16,8 @@ RUN apt-get update && apt-get install -y \
   python3-colcon-common-extensions \
   ros-dev-tools
 
-# Emprical best practice is to do all ros dependencies packages first!
-RUN pip3 install numpy rosdep && \
+# Pin numpy<2 for ROS2 Humble compatibility (cv_bridge, tf_transformations compiled against NumPy 1.x)
+RUN pip3 install 'numpy<2' rosdep && \
   rosdep update
 
 

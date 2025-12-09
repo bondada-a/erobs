@@ -70,7 +70,8 @@ RUN mkdir -p /root/zivid_config
 RUN apt-get autoremove -y \
         && apt-get clean -y \
         && rm -rf /var/lib/apt/lists/*
-RUN pip3 install rosdep && \
+# Pin numpy<2 for ROS2 Humble compatibility (cv_bridge, tf_transformations compiled against NumPy 1.x)
+RUN pip3 install 'numpy<2' rosdep && \
         rosdep update
 
 RUN mkdir /root/ws -p
