@@ -3,9 +3,8 @@
 Handles gripper open/close operations using SRDF-defined group states.
 """
 
-from moveit.task_constructor import core, stages
+from moveit.task_constructor import stages
 from mtc_py_lib.stages.base_stages import BaseStages
-from mtc_py_lib.utils.gripper_utils import get_group_name
 
 
 class EndEffectorStages(BaseStages):
@@ -16,21 +15,14 @@ class EndEffectorStages(BaseStages):
 
         Args:
             goal: EndEffectorAction.Goal with fields:
-                - end_effector_type: "hande", "epick", or "none"
+                - gripper_group: MoveIt group name (from config)
                 - end_effector_action: SRDF state name (e.g., "hande_open")
-                - poses_json: Unused for end effector operations
 
         Returns:
             True if successful, False otherwise
         """
-        # Get the gripper group name from the type
-        gripper_group = get_group_name(goal.end_effector_type)
-
-        if not gripper_group:
-            self.logger.info(
-                f"No gripper group for type: '{goal.end_effector_type}' - "
-                "treating as no-op success"
-            )
+        if not goal.gripper_group:
+            self.logger.info("No gripper group - treating as no-op success")
             return True  # No-op success for "none" or "pipettor" gripper
 
         # Validate we have an action to perform
@@ -43,13 +35,13 @@ class EndEffectorStages(BaseStages):
 
         # Create MoveTo stage for gripper
         stage = stages.MoveTo(f"gripper_{goal.end_effector_action}", planner)
-        stage.group = gripper_group
+        stage.group = goal.gripper_group
         stage.setGoal(goal.end_effector_action)
 
         task.add(stage)
 
         self.logger.info(
             f"Planning gripper action: {goal.end_effector_action} "
-            f"(group: {gripper_group})"
+            f"(group: {goal.gripper_group})"
         )
         return self.load_plan_execute(task)

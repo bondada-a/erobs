@@ -7,10 +7,8 @@ Vision-guided pick and place sequence:
 """
 
 import json
-from typing import Optional
-
 from geometry_msgs.msg import PoseStamped
-from moveit.task_constructor import core, stages
+from moveit.task_constructor import stages
 from tf_transformations import (
     quaternion_from_euler,
     quaternion_multiply,
@@ -19,9 +17,8 @@ from tf_transformations import (
 )
 import numpy as np
 
-from mtc_py_lib.stages.base_stages import BaseStages
+from mtc_py_lib.stages.base_stages import BaseStages, create_wrist3_level_constraint
 from mtc_py_lib.stages.vision_stages import VisionStages
-from mtc_py_lib.utils.gripper_utils import get_group_name, get_state_name
 
 
 class VisionPickPlaceStages(BaseStages):
@@ -49,7 +46,8 @@ class VisionPickPlaceStages(BaseStages):
             goal: VisionPickPlaceAction.Goal with fields:
                 - pick_tag_id: ArUco marker ID for pick
                 - place_tag_id: ArUco marker ID for place (-1 = use default)
-                - gripper: "hande" or "epick"
+                - gripper_group: MoveIt group name (from config)
+                - gripper_states_json: JSON dict of semantic states
                 - grasp_offset_json: JSON offset configuration
                 - approach_offset: Vertical approach distance
                 - retreat_offset: Vertical retreat distance
@@ -59,8 +57,15 @@ class VisionPickPlaceStages(BaseStages):
         """
         self.logger.info(
             f"Executing vision pick/place: pick_tag={goal.pick_tag_id}, "
-            f"place_tag={goal.place_tag_id}, gripper={goal.gripper}"
+            f"place_tag={goal.place_tag_id}, gripper_group={goal.gripper_group}"
         )
+
+        # Parse gripper states
+        try:
+            gripper_states = json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Invalid gripper_states_json: {e}")
+            return False
 
         # Parse grasp offset (default: 5cm above, 180° rotation)
         if goal.grasp_offset_json:
@@ -71,11 +76,6 @@ class VisionPickPlaceStages(BaseStages):
                 return False
         else:
             grasp_offset = {"x": 0, "y": 0, "z": 0.05, "rpy": [0, 3.14159, 0]}
-
-        self.logger.info(
-            f"Vision pick/place: pick_tag={goal.pick_tag_id}, "
-            f"place_tag={goal.place_tag_id}, gripper={goal.gripper}"
-        )
 
         # Detect pick target
         pick_tag_pose = self._vision.detect_and_transform_tag(goal.pick_tag_id, 10.0)
@@ -138,14 +138,18 @@ class VisionPickPlaceStages(BaseStages):
         cartesian.min_fraction = 0.5
 
         # Pick sequence
-        open_stage = self._make_gripper_stage("open gripper", gripper_planner, True, goal.gripper)
+        open_stage = self.make_gripper_stage(
+            "open gripper", gripper_planner, goal.gripper_group, gripper_states.get("release", "")
+        )
         if open_stage:
             task.add(open_stage)
 
         task.add(self._make_cartesian_move_stage("pick approach", pick_approach, pipeline, False))
         task.add(self._make_cartesian_move_stage("grasp", grasp_pose, cartesian, True))
 
-        close_stage = self._make_gripper_stage("close gripper", gripper_planner, False, goal.gripper)
+        close_stage = self.make_gripper_stage(
+            "close gripper", gripper_planner, goal.gripper_group, gripper_states.get("grasp", "")
+        )
         if close_stage:
             task.add(close_stage)
 
@@ -229,34 +233,6 @@ class VisionPickPlaceStages(BaseStages):
         result.pose.position.z = base_pose.pose.position.z + z_offset
         return result
 
-    def _make_gripper_stage(
-        self,
-        label: str,
-        planner,
-        open_gripper: bool,
-        gripper_type: str
-    ) -> Optional[stages.MoveTo]:
-        """Create a gripper open/close stage.
-
-        Args:
-            label: Stage name
-            planner: Planner to use
-            open_gripper: True to open, False to close
-            gripper_type: "hande" or "epick"
-
-        Returns:
-            Configured MoveTo stage for gripper, or None if no gripper
-        """
-        gripper_group = get_group_name(gripper_type)
-        if not gripper_group:
-            self.logger.info(f"No gripper for type '{gripper_type}' - skipping")
-            return None
-
-        stage = stages.MoveTo(label, planner)
-        stage.group = gripper_group
-        stage.setGoal(get_state_name(gripper_type, open_gripper))
-        return stage
-
     def _make_cartesian_move_stage(
         self,
         label: str,
@@ -281,6 +257,6 @@ class VisionPickPlaceStages(BaseStages):
         stage.setGoal(target)
 
         if apply_wrist_constraint:
-            stage.setPathConstraints(self.create_wrist3_level_constraint())
+            stage.setPathConstraints(create_wrist3_level_constraint())
 
         return stage

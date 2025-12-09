@@ -5,8 +5,8 @@ Handles MoveTo operations:
 - Target-based moves (joint poses from JSON or named SRDF states)
 """
 
-from moveit.task_constructor import core, stages
-from mtc_py_lib.stages.base_stages import BaseStages
+from moveit.task_constructor import stages
+from mtc_py_lib.stages.base_stages import BaseStages, joints_from_degrees
 
 
 class MoveToStages(BaseStages):
@@ -53,7 +53,9 @@ class MoveToStages(BaseStages):
         # Case 2: Target-based move
         elif goal.target:
             # Poses are optional for MoveTo (might use SRDF named state)
-            poses = self.parse_poses(goal.poses_json, required=False)
+            poses = self.parse_poses(goal.poses_json)
+            if poses is None:
+                return False
 
             move_stage = stages.MoveTo(f"move_to_{goal.target}", planner)
             move_stage.group = self.arm_group
@@ -63,7 +65,7 @@ class MoveToStages(BaseStages):
             if goal.target in poses:
                 joint_values = poses[goal.target]
                 if isinstance(joint_values, list):
-                    move_stage.setGoal(self.joints_from_degrees(joint_values))
+                    move_stage.setGoal(joints_from_degrees(joint_values))
                     self.logger.info(f"Planning move to joint pose: {goal.target}")
                 else:
                     self.logger.error(

@@ -1,5 +1,6 @@
 # Goal
-string gripper              # "hande" or "epick"
+string gripper_group        # MoveIt group name (from config): "hande_gripper", "epick_gripper", ""
+string gripper_states_json  # JSON dict of semantic states: {"grasp": "hande_closed", "release": "hande_open"}
 string pick_approach        # Approach pose name
 string pick_target          # Grasp pose name
 string place_approach       # Place approach pose name

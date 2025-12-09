@@ -4,10 +4,14 @@ Pick and place sequence: approach -> grip -> retreat -> approach -> release -> r
 Uses constrained motion during pick to maintain tool orientation.
 """
 
+import json
 from typing import Any, Dict, Optional
-from moveit.task_constructor import core, stages
-from mtc_py_lib.stages.base_stages import BaseStages
-from mtc_py_lib.utils.gripper_utils import get_group_name, get_state_name
+from moveit.task_constructor import stages
+from mtc_py_lib.stages.base_stages import (
+    BaseStages,
+    create_wrist3_level_constraint,
+    joints_from_degrees,
+)
 
 
 class PickPlaceStages(BaseStages):
@@ -30,7 +34,8 @@ class PickPlaceStages(BaseStages):
 
         Args:
             goal: PickPlaceAction.Goal with fields:
-                - gripper: "hande" or "epick"
+                - gripper_group: MoveIt group name (from config)
+                - gripper_states_json: JSON dict of semantic states
                 - pick_approach: Approach pose name
                 - pick_target: Grasp pose name
                 - place_approach: Place approach pose name
@@ -41,13 +46,20 @@ class PickPlaceStages(BaseStages):
             True if successful, False otherwise
         """
         self.logger.info(
-            f"Executing pick/place: gripper={goal.gripper}, "
+            f"Executing pick/place: gripper_group={goal.gripper_group}, "
             f"pick={goal.pick_target}, place={goal.place_target}"
         )
 
-        # Parse poses (required for pick/place operations)
-        poses = self.parse_poses(goal.poses_json, required=True)
+        # Parse poses
+        poses = self.parse_poses(goal.poses_json)
         if poses is None:
+            return False
+
+        # Parse gripper states
+        try:
+            gripper_states = json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
+        except json.JSONDecodeError as e:
+            self.logger.error(f"Invalid gripper_states_json: {e}")
             return False
 
         task = self.create_task_template("Pick and Place")
@@ -56,8 +68,8 @@ class PickPlaceStages(BaseStages):
 
         # === PICK SEQUENCE ===
         # 1. Open gripper
-        open_stage = self._make_gripper_stage(
-            "open gripper", gripper_planner, True, goal.gripper
+        open_stage = self.make_gripper_stage(
+            "open gripper", gripper_planner, goal.gripper_group, gripper_states.get("release", "")
         )
         if open_stage:
             task.add(open_stage)
@@ -79,8 +91,8 @@ class PickPlaceStages(BaseStages):
         task.add(stage)
 
         # 4. Close gripper
-        close_stage = self._make_gripper_stage(
-            "close gripper", gripper_planner, False, goal.gripper
+        close_stage = self.make_gripper_stage(
+            "close gripper", gripper_planner, goal.gripper_group, gripper_states.get("grasp", "")
         )
         if close_stage:
             task.add(close_stage)
@@ -111,8 +123,8 @@ class PickPlaceStages(BaseStages):
         task.add(stage)
 
         # 8. Release (open gripper)
-        release_stage = self._make_gripper_stage(
-            "release", gripper_planner, True, goal.gripper
+        release_stage = self.make_gripper_stage(
+            "release", gripper_planner, goal.gripper_group, gripper_states.get("release", "")
         )
         if release_stage:
             task.add(release_stage)
@@ -159,7 +171,7 @@ class PickPlaceStages(BaseStages):
         stage = stages.MoveTo(label, planner)
         stage.group = self.arm_group
         self._set_ik_frame(stage)
-        stage.setGoal(self.joints_from_degrees(joint_pose))
+        stage.setGoal(joints_from_degrees(joint_pose))
         return stage
 
     def _make_constrained_move_stage(
@@ -182,33 +194,5 @@ class PickPlaceStages(BaseStages):
         """
         stage = self._make_move_to_named_stage(label, pose_key, poses, planner)
         if stage:
-            stage.setPathConstraints(self.create_wrist3_level_constraint())
-        return stage
-
-    def _make_gripper_stage(
-        self,
-        label: str,
-        planner,
-        open_gripper: bool,
-        gripper_type: str
-    ) -> Optional[stages.MoveTo]:
-        """Create a gripper open/close stage.
-
-        Args:
-            label: Stage name
-            planner: Planner to use
-            open_gripper: True to open, False to close
-            gripper_type: "hande" or "epick"
-
-        Returns:
-            Configured MoveTo stage for gripper, or None if no gripper
-        """
-        gripper_group = get_group_name(gripper_type)
-        if not gripper_group:
-            self.logger.info(f"No gripper for type '{gripper_type}' - skipping")
-            return None
-
-        stage = stages.MoveTo(label, planner)
-        stage.group = gripper_group
-        stage.setGoal(get_state_name(gripper_type, open_gripper))
+            stage.setPathConstraints(create_wrist3_level_constraint())
         return stage

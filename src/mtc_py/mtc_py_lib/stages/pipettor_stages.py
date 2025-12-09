@@ -10,6 +10,8 @@ Note: Unlike other MTC stages, pipettor operations don't move the robot.
 We directly call the pipettor action server instead of using MTC.
 """
 
+import rclpy
+from action_msgs.msg import GoalStatus
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from std_msgs.msg import ColorRGBA
@@ -56,23 +58,19 @@ class PipettorStages:
         Returns:
             True if successful, False otherwise
         """
-        self.logger.info(
-            f"Executing pipettor: operation={goal.operation}, "
-            f"volume={goal.volume_pct * 100:.0f}%"
-        )
-
-        # Format descriptive name for logging
-        name = goal.operation
+        # Format descriptive log message
         if goal.operation in ["SUCK", "EXPEL"]:
-            name += f" {goal.volume_pct * 100.0:.0f}%"
+            op_desc = f"{goal.operation} {goal.volume_pct * 100.0:.0f}%"
         elif goal.operation == "SET_LED":
-            name += (
-                f" ({int(goal.led_color.r * 255)}, "
+            op_desc = (
+                f"SET_LED ({int(goal.led_color.r * 255)}, "
                 f"{int(goal.led_color.g * 255)}, "
                 f"{int(goal.led_color.b * 255)})"
             )
+        else:
+            op_desc = goal.operation
 
-        self.logger.info(f"Pipettor: {name}")
+        self.logger.info(f"Pipettor: {op_desc}")
 
         return self._execute_pipettor_action(
             goal.operation,
@@ -96,8 +94,6 @@ class PipettorStages:
         Returns:
             True if successful, False otherwise
         """
-        import rclpy
-
         # Wait for action server
         if not self._action_client.wait_for_server(timeout_sec=5.0):
             self.logger.error("Pipettor action server not available")
@@ -108,10 +104,6 @@ class PipettorStages:
         action_goal.operation = operation
         action_goal.volume_pct = volume_pct
         action_goal.led_color = led_color
-
-        self.logger.info(
-            f"Sending pipettor operation: {operation} ({volume_pct * 100.0:.0f}%)"
-        )
 
         # Send goal
         send_goal_future = self._action_client.send_goal_async(action_goal)
@@ -145,7 +137,7 @@ class PipettorStages:
             return False
 
         result = result_future.result()
-        if result.status != 4:  # SUCCEEDED = 4
+        if result.status != GoalStatus.STATUS_SUCCEEDED:
             self.logger.error(f"Pipettor action failed with status: {result.status}")
             return False
 
@@ -155,67 +147,3 @@ class PipettorStages:
 
         self.logger.info(f"Pipettor operation succeeded: {result.result.message}")
         return True
-
-    def suck(self, volume_pct: float = 1.0) -> bool:
-        """Aspirate liquid.
-
-        Args:
-            volume_pct: Volume percentage (0.0-1.0)
-
-        Returns:
-            True if successful
-        """
-        return self._execute_pipettor_action(
-            "SUCK",
-            volume_pct,
-            ColorRGBA()
-        )
-
-    def expel(self, volume_pct: float = 1.0) -> bool:
-        """Dispense liquid.
-
-        Args:
-            volume_pct: Volume percentage (0.0-1.0)
-
-        Returns:
-            True if successful
-        """
-        return self._execute_pipettor_action(
-            "EXPEL",
-            volume_pct,
-            ColorRGBA()
-        )
-
-    def eject_tip(self) -> bool:
-        """Eject the disposable tip.
-
-        Returns:
-            True if successful
-        """
-        return self._execute_pipettor_action(
-            "EJECT_TIP",
-            0.0,
-            ColorRGBA()
-        )
-
-    def set_led(self, r: float, g: float, b: float) -> bool:
-        """Set LED color.
-
-        Args:
-            r: Red component (0.0-1.0)
-            g: Green component (0.0-1.0)
-            b: Blue component (0.0-1.0)
-
-        Returns:
-            True if successful
-        """
-        color = ColorRGBA()
-        color.r = r
-        color.g = g
-        color.b = b
-        color.a = 1.0
-        return self._execute_pipettor_action(
-            "SET_LED",
-            0.0,
-            color
-        )

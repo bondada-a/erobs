@@ -3,9 +3,6 @@
 
 Usage:
     ros2 run mtc_py send_task_goal /path/to/task_sequence.json
-
-    # Or with robot IP:
-    ros2 run mtc_py send_task_goal /path/to/task_sequence.json --robot-ip 192.168.1.100
 """
 
 import argparse
@@ -27,7 +24,7 @@ class TaskGoalSender(Node):
         self._client = ActionClient(self, MTCExecution, 'mtc_execution_py')
         self._goal_handle = None
 
-    def send_goal(self, json_content: str, robot_ip: str = '') -> bool:
+    def send_goal(self, json_content: str) -> bool:
         """Send the task goal and wait for completion."""
 
         self.get_logger().info('Waiting for mtc_execution_py action server...')
@@ -37,7 +34,6 @@ class TaskGoalSender(Node):
 
         goal = MTCExecution.Goal()
         goal.full_json = json_content
-        goal.robot_ip = robot_ip
 
         self.get_logger().info('Sending task goal...')
 
@@ -68,7 +64,7 @@ class TaskGoalSender(Node):
             )
             return True
         elif status == GoalStatus.STATUS_CANCELED:
-            self.get_logger().warn(f'Task was canceled: {result.result.error_message}')
+            self.get_logger().warning(f'Task was canceled: {result.result.error_message}')
             return False
         else:
             self.get_logger().error(
@@ -89,7 +85,6 @@ class TaskGoalSender(Node):
 def main():
     parser = argparse.ArgumentParser(description='Send task sequence to MTC Orchestrator')
     parser.add_argument('json_file', type=str, help='Path to task sequence JSON file')
-    parser.add_argument('--robot-ip', type=str, default='', help='Robot IP address (optional)')
 
     args = parser.parse_args()
 
@@ -116,18 +111,29 @@ def main():
     # Send the goal
     rclpy.init()
     node = TaskGoalSender()
+    exit_code = 1
 
     try:
-        success = node.send_goal(json_content, args.robot_ip)
-        sys.exit(0 if success else 1)
+        success = node.send_goal(json_content)
+        exit_code = 0 if success else 1
     except KeyboardInterrupt:
         print('\nCanceled by user')
         if node._goal_handle:
-            node._goal_handle.cancel_goal_async()
-        sys.exit(130)
+            try:
+                cancel_future = node._goal_handle.cancel_goal_async()
+                # Spin to actually send the cancel request (with timeout)
+                rclpy.spin_until_future_complete(node, cancel_future, timeout_sec=2.0)
+            except KeyboardInterrupt:
+                pass  # User hit Ctrl+C again, just exit
+        exit_code = 130
     finally:
         node.destroy_node()
-        rclpy.shutdown()
+        try:
+            rclpy.shutdown()
+        except Exception:
+            pass  # Already shut down
+
+    sys.exit(exit_code)
 
 
 if __name__ == '__main__':

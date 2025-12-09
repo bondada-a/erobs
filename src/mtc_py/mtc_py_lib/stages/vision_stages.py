@@ -10,16 +10,19 @@ Handles vision-guided robot movement:
 import json
 import math
 from dataclasses import dataclass
-from typing import Any, Dict, Optional
+from typing import Dict, Optional
 
+import numpy as np
+import rclpy
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from moveit.planning_interface import PlanningSceneInterface
 from moveit.task_constructor import stages
 from moveit_msgs.msg import CollisionObject
 from shape_msgs.msg import SolidPrimitive
+from tf2_geometry_msgs import do_transform_pose
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
-from tf_transformations import quaternion_multiply, quaternion_from_euler
+from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix
 
 from zivid_interfaces.srv import CaptureAndDetectMarkers
 
@@ -76,7 +79,6 @@ class VisionStages(BaseStages):
         # Parameters
         self._marker_dictionary = self.DEFAULT_MARKER_DICTIONARY
         self._publish_marker_frames = True
-        self._z_offset = 0.0
 
         # Object database (loaded from config)
         self._object_database: Dict[int, ObjectInfo] = {}
@@ -163,7 +165,6 @@ class VisionStages(BaseStages):
         future = self._capture_client.call_async(request)
 
         # Wait for result
-        import rclpy
         rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=timeout)
 
         if not future.done():
@@ -238,7 +239,6 @@ class VisionStages(BaseStages):
             pose_in.pose = pose_camera
 
             # Transform
-            from tf2_geometry_msgs import do_transform_pose
             transform = self._tf_buffer.lookup_transform(
                 "base_link",
                 self.DEFAULT_CAMERA_FRAME,
@@ -346,8 +346,6 @@ class VisionStages(BaseStages):
         Returns:
             GripperDetection with ik_frame and z_offset
         """
-        import rclpy
-
         # Check for ePick gripper
         if self._tf_buffer.can_transform(
             "base", "epick_tip",
@@ -424,9 +422,6 @@ class VisionStages(BaseStages):
         Returns:
             Object pose in world frame
         """
-        from tf_transformations import quaternion_matrix
-        import numpy as np
-
         # Get rotation matrix from quaternion
         q = [
             tag_pose.pose.orientation.x,

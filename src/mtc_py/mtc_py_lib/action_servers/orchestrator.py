@@ -11,6 +11,8 @@ Supports beamline-agnostic deployment via beamline configuration files.
 import json
 import threading
 from typing import Dict, Any
+
+import yaml
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, ActionClient
@@ -29,7 +31,6 @@ from mtc_py.action import (
     PipettorAction,
 )
 
-from mtc_py_lib.core.beamline_config import load_beamline_config
 from mtc_py_lib.core.moveit_lifecycle_manager import MoveItLifecycleManager
 
 
@@ -61,17 +62,16 @@ class MTCOrchestratorServer(Node):
         self._lock = threading.Lock()
         self._current_gripper = "none"
 
-        # Load beamline configuration (required)
+        # Load beamline configuration (single source of truth)
         self.declare_parameter("beamline_config", "config/default_beamline.yaml")
-        self.declare_parameter("robot_ip", "")  # Can override beamline default
 
-        beamline_config_file = self.get_parameter("beamline_config").value
-        self._beamline_config = load_beamline_config(beamline_config_file)
-        self.get_logger().info(f"Loaded beamline: {self._beamline_config.name}")
+        config_file = self.get_parameter("beamline_config").value
+        with open(config_file, 'r') as f:
+            config = yaml.safe_load(f)
 
-        # Robot IP: parameter overrides beamline config
-        robot_ip_param = self.get_parameter("robot_ip").value
-        self._default_robot_ip = robot_ip_param or self._beamline_config.robot.ip
+        self._grippers = config["grippers"]  # Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group, states}
+        self._robot_ip = config["robot"]["ip"]  # Single source: config file
+        self.get_logger().info(f"Loaded beamline: {config['beamline']} (robot: {self._robot_ip})")
 
         # Declare timeout parameters (configurable at launch)
         self._timeouts = {}
@@ -86,7 +86,7 @@ class MTCOrchestratorServer(Node):
         self._callback_group = ReentrantCallbackGroup()
 
         # MoveIt lifecycle manager - launches MoveIt based on gripper config
-        self._moveit_manager = MoveItLifecycleManager(self, self._beamline_config)
+        self._moveit_manager = MoveItLifecycleManager(self, self._grippers, self._robot_ip)
 
         # Create action server
         self._action_server = ActionServer(
@@ -172,7 +172,7 @@ class MTCOrchestratorServer(Node):
             goal_handle.abort()
             return result
 
-        robot_ip, start_gripper, tasks, poses_json = parsed
+        start_gripper, tasks, poses_json = parsed
         task_count = len(tasks)
 
         # Initialize gripper state
@@ -183,7 +183,7 @@ class MTCOrchestratorServer(Node):
             feedback, goal_handle, 0, task_count, "Initializing MoveIt"
         )
 
-        if not self._moveit_manager.launch_for_gripper(start_gripper, robot_ip):
+        if not self._moveit_manager.launch_moveit_with_gripper(start_gripper):
             result.error_message = "Failed to initialize MoveIt stack"
             goal_handle.abort()
             return result
@@ -233,7 +233,7 @@ class MTCOrchestratorServer(Node):
         """Parse and validate the goal JSON.
 
         Returns:
-            (robot_ip, start_gripper, tasks, poses_json) if valid,
+            (start_gripper, tasks, poses_json) if valid,
             None if invalid (result populated with error)
         """
         if not goal.full_json:
@@ -254,14 +254,14 @@ class MTCOrchestratorServer(Node):
             result.error_message = "Task script missing 'tasks'"
             return None
 
-        robot_ip = goal.robot_ip or self._default_robot_ip
-        if not robot_ip:
-            result.error_message = "No robot_ip provided and no default configured"
+        # Validate gripper exists in config
+        start_gripper = script["start_gripper"]
+        if start_gripper not in self._grippers:
+            result.error_message = f"Unknown gripper: {start_gripper} (available: {', '.join(self._grippers.keys())})"
             return None
 
         return (
-            robot_ip,
-            script["start_gripper"],
+            start_gripper,
             script["tasks"],
             json.dumps(script.get("poses", {})),
         )
@@ -342,10 +342,12 @@ class MTCOrchestratorServer(Node):
 
     def _call_endeffector(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the EndEffector action server."""
+        gripper_type = step.get("end_effector_type", "")
+        gripper_config = self._grippers.get(gripper_type, {})
+
         goal = EndEffectorAction.Goal()
-        goal.end_effector_type = step.get("end_effector_type", "")
+        goal.gripper_group = gripper_config.get("gripper_group", "")
         goal.end_effector_action = step.get("end_effector_action", "")
-        goal.poses_json = poses_json
 
         return self._send_and_wait(
             self._endeffector_client, goal, "end_effector", self._timeouts["end_effector"]
@@ -353,8 +355,12 @@ class MTCOrchestratorServer(Node):
 
     def _call_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the PickPlace action server."""
+        gripper_type = step.get("gripper", "")
+        gripper_config = self._grippers.get(gripper_type, {})
+
         goal = PickPlaceAction.Goal()
-        goal.gripper = step.get("gripper", "")
+        goal.gripper_group = gripper_config.get("gripper_group", "")
+        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
         goal.pick_approach = step.get("pick_approach", "")
         goal.pick_target = step.get("pick_target", "")
         goal.place_approach = step.get("place_approach", "")
@@ -397,6 +403,10 @@ class MTCOrchestratorServer(Node):
             new_gripper = "none"
         elif operation == "load":
             new_gripper = step.get("gripper", self._current_gripper)
+            # Validate gripper exists
+            if new_gripper not in self._grippers:
+                self.get_logger().error(f"Unknown gripper in tool_exchange: {new_gripper}")
+                return False
 
         # If gripper changed, restart MoveIt with new configuration
         if new_gripper != self._current_gripper:
@@ -405,8 +415,7 @@ class MTCOrchestratorServer(Node):
             )
             self._current_gripper = new_gripper
 
-            robot_ip = self._moveit_manager.robot_ip
-            if robot_ip and not self._moveit_manager.launch_for_gripper(new_gripper, robot_ip):
+            if not self._moveit_manager.launch_moveit_with_gripper(new_gripper):
                 self.get_logger().error("Failed to restart MoveIt with new gripper config")
                 return False
 
@@ -425,10 +434,14 @@ class MTCOrchestratorServer(Node):
 
     def _call_vision_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the VisionPickPlace action server."""
+        gripper_type = step.get("gripper", "")
+        gripper_config = self._grippers.get(gripper_type, {})
+
         goal = VisionPickPlaceAction.Goal()
         goal.pick_tag_id = int(step.get("pick_tag_id", 0))
         goal.place_tag_id = int(step.get("place_tag_id", -1))
-        goal.gripper = step.get("gripper", "")
+        goal.gripper_group = gripper_config.get("gripper_group", "")
+        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
         goal.grasp_offset_json = step.get("grasp_offset_json", "")
         goal.place_poses_json = step.get("place_poses_json", "")
         goal.approach_offset = float(step.get("approach_offset", 0.1))

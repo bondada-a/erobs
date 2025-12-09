@@ -6,13 +6,14 @@ Contains planner factories, direction vectors, and common utilities.
 
 import json
 import math
+import traceback
 from typing import Any, Dict, List, Optional, Tuple
+
+import rclcpp
 from moveit.task_constructor import core, stages
 from geometry_msgs.msg import PoseStamped, Vector3, Vector3Stamped
 from std_msgs.msg import Header
-from moveit_msgs.msg import Constraints, JointConstraint
-
-from mtc_py_lib.core.mtc_node import MTCNode
+from moveit_msgs.msg import Constraints, JointConstraint, MoveItErrorCodes
 
 
 # Direction vectors matching C++ implementation in base_stages.cpp
@@ -37,15 +38,75 @@ DEFAULT_JOINT_NAMES: List[str] = [
 ]
 
 # Hardcoded scaling factors (matching C++ at 20%)
-VELOCITY_SCALING = 0.8
-ACCELERATION_SCALING = 0.8
+VELOCITY_SCALING = 0.2
+ACCELERATION_SCALING = 0.2
 
 # Default group/frame names matching C++ (base_stages.cpp)
 DEFAULT_ARM_GROUP = "ur_arm"
 DEFAULT_IK_FRAME = "flange"
 
-# Tool exchange dock spacing
-DOCK_SPACING_METERS = 0.1524  # 6 inches between dock stations
+# Module-level singleton for rclcpp node (MTC requires C++ backed node)
+_mtc_node = None
+
+
+def joints_from_degrees(degrees: List[float]) -> Dict[str, float]:
+    """Convert joint angles from degrees to radians dict.
+
+    Args:
+        degrees: List of 6 joint angles in degrees
+
+    Returns:
+        Dictionary mapping joint names to radian values
+
+    Example:
+        >>> joints_from_degrees([0, -90, 90, -90, -90, 0])
+        {'shoulder_pan_joint': 0.0, 'shoulder_lift_joint': -1.5707..., ...}
+    """
+    if len(degrees) != len(DEFAULT_JOINT_NAMES):
+        raise ValueError(
+            f"Expected {len(DEFAULT_JOINT_NAMES)} joint values, "
+            f"got {len(degrees)}"
+        )
+    return {
+        name: math.radians(deg)
+        for name, deg in zip(DEFAULT_JOINT_NAMES, degrees)
+    }
+
+
+def create_wrist3_level_constraint() -> Constraints:
+    """Create a path constraint to keep wrist_3_joint level.
+
+    Used during pick operations to maintain tool orientation.
+
+    Returns:
+        Constraints message with wrist_3_joint locked at 0.0
+    """
+    constraint = Constraints()
+    jc = JointConstraint()
+    jc.joint_name = "wrist_3_joint"
+    jc.position = 0.0
+    jc.tolerance_above = 0.01
+    jc.tolerance_below = 0.01
+    jc.weight = 1.0
+    constraint.joint_constraints.append(jc)
+    return constraint
+
+
+def _get_mtc_node():
+    """Get or create the singleton rclcpp.Node for MTC operations.
+
+    MTC requires rclcpp.Node (C++ backed), not rclpy.Node, because MTC's
+    C++ code expects rclcpp::Node::SharedPtr. The rclcpp Python module
+    creates actual C++ Node objects via pybind11.
+    """
+    global _mtc_node
+    if _mtc_node is None:
+        rclcpp.init()
+        options = rclcpp.NodeOptions()
+        options.automatically_declare_parameters_from_overrides = True
+        options.allow_undeclared_parameters = True
+        _mtc_node = rclcpp.Node("mtc_py", options)
+    return _mtc_node
 
 
 class BaseStages:
@@ -63,21 +124,18 @@ class BaseStages:
         self,
         rclpy_node,
         arm_group: str = "",
-        gripper_group: str = "",
         ik_frame: str = ""
     ):
         """Initialize base stages.
 
         Args:
-            rclpy_node: The rclpy node (for logging)
+            rclpy_node: The rclpy node (for logging, clock, spinning futures)
             arm_group: MoveIt planning group for arm (default: ur_arm)
-            gripper_group: MoveIt planning group for gripper
             ik_frame: Frame for IK calculations (default: flange)
         """
-        self.rclpy_node = rclpy_node  # For logging
-        self.mtc_node = MTCNode.get_instance()  # For MTC operations
+        self.rclpy_node = rclpy_node
+        self._mtc_node = _get_mtc_node()  # For MTC operations (C++ backed)
         self.arm_group = arm_group if arm_group else DEFAULT_ARM_GROUP
-        self.gripper_group = gripper_group
         self.ik_frame = ik_frame if ik_frame else DEFAULT_IK_FRAME
         self.logger = rclpy_node.get_logger()
 
@@ -92,7 +150,7 @@ class BaseStages:
         """
         task = core.Task()
         task.name = name
-        task.loadRobotModel(self.mtc_node.node)
+        task.loadRobotModel(self._mtc_node)
 
         # Add current state as first stage
         task.add(stages.CurrentState("current_state"))
@@ -109,7 +167,7 @@ class BaseStages:
         # Specify "ompl" pipeline explicitly (matches C++)
         # Note: Don't set planner.planner to avoid "Cannot find planning configuration"
         # warning - OMPL defaults to RRTConnect anyway
-        planner = core.PipelinePlanner(self.mtc_node.node, "ompl")
+        planner = core.PipelinePlanner(self._mtc_node, "ompl")
         planner.goal_joint_tolerance = 1e-4
         planner.max_velocity_scaling_factor = VELOCITY_SCALING
         planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
@@ -214,17 +272,8 @@ class BaseStages:
         Returns:
             True if planning and execution succeeded, False otherwise
         """
-        from moveit_msgs.msg import MoveItErrorCodes
-
         try:
-            # Step 0: Load robot model (matches C++ base_stages.cpp)
-            # This is critical for proper trajectory execution
-            # Note: getRobotModel() return type isn't exposed to Python,
-            # so we always call loadRobotModel (it's idempotent)
-            self.logger.info("Loading robot model...")
-            task.loadRobotModel(self.mtc_node.node)
-
-            # Step 1: Initialize task (critical - C++ does this!)
+            # Step 1: Initialize task
             self.logger.info(f"Initializing task: {task.name}")
             try:
                 task.init()
@@ -263,99 +312,25 @@ class BaseStages:
 
         except Exception as e:
             self.logger.error(f"Task execution failed: {task.name} - {e}")
-            import traceback
             self.logger.error(traceback.format_exc())
             return False
 
-    @staticmethod
-    def joints_from_degrees(degrees: List[float]) -> Dict[str, float]:
-        """Convert joint angles from degrees to radians dict.
-
-        Args:
-            degrees: List of 6 joint angles in degrees
-
-        Returns:
-            Dictionary mapping joint names to radian values
-
-        Example:
-            >>> BaseStages.joints_from_degrees([0, -90, 90, -90, -90, 0])
-            {'shoulder_pan_joint': 0.0, 'shoulder_lift_joint': -1.5707..., ...}
-        """
-        if len(degrees) != len(DEFAULT_JOINT_NAMES):
-            raise ValueError(
-                f"Expected {len(DEFAULT_JOINT_NAMES)} joint values, "
-                f"got {len(degrees)}"
-            )
-        return {
-            name: math.radians(deg)
-            for name, deg in zip(DEFAULT_JOINT_NAMES, degrees)
-        }
-
-    @staticmethod
-    def default_joint_names() -> List[str]:
-        """Get the default UR5e joint names.
-
-        Returns:
-            List of joint names in order
-        """
-        return DEFAULT_JOINT_NAMES.copy()
-
-    @staticmethod
-    def create_wrist3_level_constraint() -> Constraints:
-        """Create a path constraint to keep wrist_3_joint level.
-
-        Used during pick operations to maintain tool orientation.
-
-        Returns:
-            Constraints message with wrist_3_joint locked at 0.0
-        """
-        constraint = Constraints()
-        jc = JointConstraint()
-        jc.joint_name = "wrist_3_joint"
-        jc.position = 0.0
-        jc.tolerance_above = 0.01
-        jc.tolerance_below = 0.01
-        jc.weight = 1.0
-        constraint.joint_constraints.append(jc)
-        return constraint
-
-    def parse_poses(
-        self, poses_json: str, required: bool = False
-    ) -> Optional[Dict[str, Any]]:
-        """Parse poses JSON string with consistent error handling.
-
-        Consolidates the duplicate _parse_poses() methods from subclasses.
+    def parse_poses(self, poses_json: str) -> Optional[Dict[str, Any]]:
+        """Parse poses JSON string.
 
         Args:
             poses_json: JSON string containing pose definitions
-            required: If True, empty/invalid JSON returns None (error case).
-                     If False, returns empty dict (poses optional).
 
         Returns:
-            Dictionary of pose names to values.
-            Returns None if required=True and poses_json is empty/invalid.
-            Returns {} if required=False and poses_json is empty/invalid.
-
-        Example:
-            # For operations where poses are required (pick_place, tool_exchange)
-            poses = self.parse_poses(goal.poses_json, required=True)
-            if poses is None:
-                return False
-
-            # For operations where poses are optional (moveto with named state)
-            poses = self.parse_poses(goal.poses_json, required=False)
+            Parsed dict, empty dict if poses_json is empty, None on parse error.
         """
         if not poses_json:
-            if required:
-                self.logger.error("poses_json is required but empty")
-                return None
             return {}
-
         try:
             return json.loads(poses_json)
         except json.JSONDecodeError as e:
             self.logger.error(f"Failed to parse poses_json: {e}")
-            return None if required else {}
+            return None
 
     def get_joint_pose(
         self, poses: Dict[str, Any], pose_key: str
@@ -382,3 +357,30 @@ class BaseStages:
             return None
 
         return joint_pose
+
+    def make_gripper_stage(
+        self,
+        label: str,
+        planner,
+        gripper_group: str,
+        state_name: str
+    ) -> Optional[stages.MoveTo]:
+        """Create a gripper stage for a specific state.
+
+        Args:
+            label: Stage name
+            planner: Planner to use
+            gripper_group: MoveIt group name (from config)
+            state_name: SRDF state name to move to
+
+        Returns:
+            Configured MoveTo stage for gripper, or None if no gripper/state
+        """
+        if not gripper_group or not state_name:
+            self.logger.info(f"No gripper group or state for '{label}' - skipping")
+            return None
+
+        stage = stages.MoveTo(label, planner)
+        stage.group = gripper_group
+        stage.setGoal(state_name)
+        return stage

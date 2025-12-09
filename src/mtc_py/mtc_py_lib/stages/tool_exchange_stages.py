@@ -4,8 +4,11 @@ Tool exchange: load/dock grippers at magnetic holder stations.
 Uses Cartesian moves for precise tool attachment/detachment.
 """
 
-from moveit.task_constructor import core, stages
-from mtc_py_lib.stages.base_stages import BaseStages, DOCK_SPACING_METERS
+from moveit.task_constructor import stages
+from mtc_py_lib.stages.base_stages import BaseStages, joints_from_degrees
+
+# Tool exchange dock spacing (6 inches between dock stations)
+DOCK_SPACING_METERS = 0.1524
 
 
 class ToolExchangeStages(BaseStages):
@@ -60,8 +63,8 @@ class ToolExchangeStages(BaseStages):
             )
             return False
 
-        # Parse poses (required for tool exchange operations)
-        poses = self.parse_poses(goal.poses_json, required=True)
+        # Parse poses
+        poses = self.parse_poses(goal.poses_json)
         if poses is None:
             return False
 
@@ -78,7 +81,7 @@ class ToolExchangeStages(BaseStages):
         approach = stages.MoveTo("approach", sampling)
         approach.group = self.arm_group
         self._set_ik_frame(approach)
-        approach.setGoal(self.joints_from_degrees(joint_pose))
+        approach.setGoal(joints_from_degrees(joint_pose))
         task.add(approach)
 
         # 2. Lateral shift to align with dock (reference is dock 3)

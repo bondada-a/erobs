@@ -4,7 +4,7 @@ Python equivalent of moveit_lifecycle_manager.cpp.
 Handles launching and killing MoveIt based on gripper configuration.
 
 Complete launch sequence (matching C++):
-1. Set tool voltage via URToolInterface
+1. Set tool voltage via raw socket (port 30002)
 2. Launch MoveIt subprocess
 3. Wait for MoveIt planning service
 4. Load collision obstacles
@@ -14,141 +14,100 @@ Complete launch sequence (matching C++):
 import atexit
 import os
 import signal
+import socket
 import subprocess
 import time
+import traceback
 from typing import Optional
 
+import rclpy
+import yaml
+from ament_index_python.packages import get_package_share_directory
+from geometry_msgs.msg import Pose
+from moveit_msgs.msg import CollisionObject, PlanningScene
 from rclpy.node import Node
-
-from mtc_py_lib.core.beamline_config import BeamlineConfig
-from mtc_py_lib.core.ur_tool_interface import URToolInterface
+from shape_msgs.msg import SolidPrimitive
+from std_srvs.srv import Trigger
+from tf_transformations import quaternion_from_euler
 
 
 class MoveItLifecycleManager:
-    """Manages MoveIt move_group lifecycle for gripper-specific configurations.
+    """Manages MoveIt move_group lifecycle for gripper-specific configurations."""
 
-    Handles:
-    - Setting tool voltage before MoveIt launch
-    - Launching MoveIt with the correct config package for each gripper
-    - Loading collision obstacles for safety
-    - Restarting UR external_control program
-    - Graceful shutdown when switching grippers
-    """
+    # UR robot constants
+    UR_SECONDARY_PORT = 30002  # URScript command port
+    SOCKET_TIMEOUT = 2.0
 
-    def __init__(self, node: Node, beamline_config: BeamlineConfig):
+    def __init__(self, node: Node, grippers: dict, robot_ip: str):
         """Initialize the lifecycle manager.
 
         Args:
             node: ROS node for logging and service checks
-            beamline_config: Beamline configuration with gripper definitions
+            grippers: Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group}
+            robot_ip: Robot IP address (constant for beamline)
         """
         self._node = node
         self._logger = node.get_logger()
-        self._beamline_config = beamline_config
-        self._tool_interface = URToolInterface(node)
+        self._grippers = grippers
+        self._robot_ip = robot_ip
 
         self._moveit_process: Optional[subprocess.Popen] = None
         self._current_gripper: str = ""
-        self._robot_ip: str = ""  # Track for potential relaunch
 
         # Ensure MoveIt is killed when orchestrator exits
         atexit.register(self.kill_current_process)
 
-    @property
-    def current_gripper(self) -> str:
-        """Get the current gripper type.
-
-        Returns:
-            Current gripper name, or "none" if no gripper
-        """
-        return self._current_gripper if self._current_gripper else "none"
-
-    @property
-    def robot_ip(self) -> str:
-        """Get the current robot IP address.
-
-        Returns:
-            Robot IP address, or empty string if not set
-        """
-        return self._robot_ip
-
-    def launch_for_gripper(self, gripper: str, robot_ip: str) -> bool:
+    def launch_moveit_with_gripper(self, gripper: str) -> bool:
         """Launch MoveIt with configuration for the specified gripper.
 
-        Complete sequence (matching C++ moveit_lifecycle_manager.cpp):
-        1. Set tool voltage (must happen BEFORE MoveIt launches)
-        2. Launch MoveIt subprocess
-        3. Wait for MoveIt planning service to be ready
-        4. Load collision obstacles for safety
-        5. Restart UR external_control program (voltage command stops it)
-
-        If MoveIt is already running with the same gripper config, reuses it.
-        If running with different gripper, kills and relaunches.
-
-        Args:
-            gripper: Gripper name (e.g., "epick", "hande", "none")
-            robot_ip: Robot IP address for MoveIt connection
+        Sequence: set voltage → launch MoveIt → wait ready → load obstacles → restart external_control
 
         Returns:
             True if MoveIt is ready, False on failure
         """
-        # Store robot IP for tool interface (with validation)
-        if not self._tool_interface.set_robot_ip(robot_ip):
-            self._logger.error(f"Invalid robot IP address: {robot_ip}")
-            return False
-        self._robot_ip = robot_ip
-
-        # Reuse existing MoveIt if same gripper
-        if self._moveit_process and self._current_gripper == gripper:
-            if self._moveit_process.poll() is None:  # Still running
+        # Check existing MoveIt process
+        if self._moveit_process:
+            if self._current_gripper == gripper and self._moveit_process.poll() is None:
                 self._logger.info(f"MoveIt already running for {gripper}, reusing")
                 return True
-
-        # Kill existing MoveIt if different gripper or process died
-        if self._moveit_process:
+            # Different gripper OR process died - kill and restart
             self._logger.info(f"Switching gripper: {self._current_gripper} → {gripper}")
             self.kill_current_process()
 
-        # Get gripper configuration
-        config = self._beamline_config.get_gripper(gripper)
-        if not config:
-            available = ", ".join(self._beamline_config.get_available_grippers())
-            self._logger.error(
-                f"Unknown gripper type: {gripper} (available: {available})"
-            )
-            return False
+        config = self._grippers[gripper]  # Validated by orchestrator before calling
+        self._logger.info(f"Launching MoveIt for {gripper} ({config['moveit_package']})")
 
-        # === Step 1: Set tool voltage (BEFORE MoveIt launches) ===
-        self._logger.info(f"Step 1/5: Setting tool voltage to {config.tool_voltage}V")
-        if not self._tool_interface.set_tool_voltage(config.tool_voltage):
+        # Set tool voltage (must happen BEFORE MoveIt launches)
+        if not self._set_tool_voltage(config["tool_voltage"]):
             self._logger.error("Failed to set tool voltage")
             return False
 
-        # === Step 2: Launch MoveIt ===
-        self._logger.info(f"Step 2/5: Launching MoveIt for {gripper} gripper")
-        self._logger.info(f"  Package: {config.moveit_package}")
-        self._logger.info(f"  Robot IP: {robot_ip}")
-
-        if not self._launch_moveit_process(config.moveit_package, robot_ip):
-            self._logger.error("Failed to launch MoveIt process")
+        # Launch MoveIt subprocess
+        try:
+            cmd = [
+                "ros2", "launch", config["moveit_package"], "robot_bringup.launch.py",
+                f"robot_ip:={self._robot_ip}",
+            ]
+            self._logger.info(f"Executing: {' '.join(cmd)}")
+            self._moveit_process = subprocess.Popen(cmd, start_new_session=True)
+        except Exception as e:
+            self._logger.error(f"Failed to launch MoveIt process: {e}")
             return False
 
-        # === Step 3: Wait for MoveIt to be ready ===
-        self._logger.info("Step 3/5: Waiting for MoveIt planning service...")
+        # Wait for MoveIt to be ready
         if not self._wait_for_moveit_ready(timeout_sec=45.0):
             self._logger.error("MoveIt not ready within timeout")
             self.kill_current_process()
             return False
 
-        # === Step 4: Load collision obstacles ===
-        self._logger.info("Step 4/5: Loading collision obstacles...")
+        # Load collision obstacles
         if not self._load_collision_obstacles():
-            self._logger.warn("Failed to load obstacles - continuing anyway")
-            # Note: C++ version aborts here, but we'll continue for now
+            self._logger.error("Failed to load collision obstacles")
+            self.kill_current_process()
+            return False
 
-        # === Step 5: Restart external_control program ===
-        self._logger.info("Step 5/5: Restarting UR external_control program...")
-        if not self._tool_interface.restart_external_control():
+        # Restart external_control program (voltage command stops it)
+        if not self._restart_external_control():
             self._logger.error("Failed to restart external_control")
             self.kill_current_process()
             return False
@@ -158,181 +117,107 @@ class MoveItLifecycleManager:
         return True
 
     def kill_current_process(self):
-        """Kill the current MoveIt process gracefully.
-
-        After killing, waits for the MoveIt service to disappear from the
-        ROS graph. This prevents race conditions where the old service is
-        detected before the new one starts.
-        """
+        """Kill the current MoveIt process gracefully."""
         if not self._moveit_process:
             return
 
         self._logger.info("Stopping MoveIt process...")
 
         try:
-            # Send SIGTERM to process group
             pgid = os.getpgid(self._moveit_process.pid)
             os.killpg(pgid, signal.SIGTERM)
-
-            # Wait for graceful shutdown (up to 3 seconds)
-            try:
-                self._moveit_process.wait(timeout=3.0)
-                self._logger.info("MoveIt stopped gracefully")
-            except subprocess.TimeoutExpired:
-                # Force kill if still running
-                self._logger.warn("MoveIt did not stop gracefully, force killing...")
-                os.killpg(pgid, signal.SIGKILL)
-                self._moveit_process.wait(timeout=2.0)
-
-        except (ProcessLookupError, OSError) as e:
-            # Process already dead
-            self._logger.debug(f"Process already terminated: {e}")
+            self._moveit_process.wait(timeout=3.0)
+        except subprocess.TimeoutExpired:
+            os.killpg(pgid, signal.SIGKILL)
+            self._moveit_process.wait()
+        except (ProcessLookupError, OSError):
+            pass  # Process already dead
 
         self._moveit_process = None
         self._current_gripper = ""
 
-        # Wait for old service to disappear from ROS graph
-        # This prevents race conditions where wait_for_moveit_ready() finds
-        # the old (dead) service before it's cleaned up from DDS
-        self._wait_for_service_gone(timeout_sec=10.0)
+    def _wait_for_moveit_ready(self, timeout_sec: float = 45.0) -> bool:
+        """Wait for MoveIt to be ready using polling approach.
 
-    def _launch_moveit_process(self, package: str, robot_ip: str) -> bool:
-        """Launch MoveIt as a subprocess.
-
-        Args:
-            package: MoveIt config package name
-            robot_ip: Robot IP address
-
-        Returns:
-            True if process started, False on failure
+        Polls /get_planning_scene service until it actually responds,
+        not just until it exists. This ensures MoveGroup is fully initialized.
         """
-        try:
-            cmd = [
-                "ros2", "launch",
-                package,
-                "robot_bringup.launch.py",
-                f"robot_ip:={robot_ip}",
-            ]
-
-            self._logger.info(f"Executing: {' '.join(cmd)}")
-
-            # Start in new process group for clean shutdown
-            # Note: No stdout/stderr redirect - logs flow to terminal like C++ version
-            self._moveit_process = subprocess.Popen(
-                cmd,
-                start_new_session=True,  # Creates new process group
-            )
-
-            return True
-
-        except Exception as e:
-            self._logger.error(f"Failed to start MoveIt: {e}")
-            return False
-
-    def _wait_for_service_gone(self, timeout_sec: float = 10.0) -> bool:
-        """Wait for MoveIt planning service to disappear from ROS graph.
-
-        This is critical after killing MoveIt to prevent race conditions.
-        The DDS layer may still advertise the old service for a few seconds
-        after the process is killed.
-
-        Args:
-            timeout_sec: Maximum time to wait for service to disappear
-
-        Returns:
-            True if service disappeared, False on timeout (continues anyway)
-        """
-        service_name = "/plan_kinematic_path"
-        self._logger.info(f"Waiting for old MoveIt service to disappear...")
-
-        start_time = time.time()
-        check_interval = 0.5  # Check every 500ms
-
-        while (time.time() - start_time) < timeout_sec:
-            # Get list of available services
-            service_names_and_types = self._node.get_service_names_and_types()
-            service_names = [name for name, _ in service_names_and_types]
-
-            if service_name not in service_names:
-                elapsed = time.time() - start_time
-                self._logger.info(
-                    f"Old MoveIt service gone after {elapsed:.1f}s"
-                )
-                return True
-
-            time.sleep(check_interval)
-
-        self._logger.warn(
-            f"Old service still visible after {timeout_sec}s - "
-            "continuing anyway (may cause brief delay)"
-        )
-        return False
-
-    def _wait_for_moveit_ready(self, timeout_sec: float = 30.0) -> bool:
-        """Wait for MoveIt to be ready by checking for planning service.
-
-        Args:
-            timeout_sec: Maximum time to wait
-
-        Returns:
-            True if MoveIt is ready, False on timeout
-        """
-        from moveit_msgs.srv import GetMotionPlan
+        from moveit_msgs.srv import GetPlanningScene
 
         self._logger.info("Waiting for MoveIt to be ready...")
 
-        client = self._node.create_client(GetMotionPlan, "/plan_kinematic_path")
+        # Brief delay to let old services clean up after MoveIt restart
+        time.sleep(2.0)
 
-        start_time = time.time()
-        check_interval = 1.0  # Check every second
+        poll_interval = 1.0
+        max_attempts = int(timeout_sec / poll_interval)
 
-        while (time.time() - start_time) < timeout_sec:
-            # Check if process died
-            if self._moveit_process and self._moveit_process.poll() is not None:
-                self._logger.error("MoveIt process died during startup")
-                return False
+        for attempt in range(max_attempts):
+            try:
+                # Create fresh client each attempt (avoids stale connections)
+                client = self._node.create_client(GetPlanningScene, "/get_planning_scene")
 
-            # Check if service is available
-            if client.wait_for_service(timeout_sec=check_interval):
+                # Wait briefly for service to exist
+                if not client.wait_for_service(timeout_sec=2.0):
+                    self._node.destroy_client(client)
+                    self._logger.debug(f"Service not available yet (attempt {attempt + 1}/{max_attempts})")
+                    time.sleep(poll_interval)
+                    continue
+
+                # Actually call the service to verify MoveGroup is responding
+                request = GetPlanningScene.Request()
+                request.components.components = 0  # Minimal request
+
+                future = client.call_async(request)
+
+                # Spin to process the call (with timeout)
+                start = time.time()
+                while not future.done() and (time.time() - start) < 5.0:
+                    rclpy.spin_once(self._node, timeout_sec=0.1)
+
                 self._node.destroy_client(client)
-                return True
 
-            elapsed = time.time() - start_time
-            self._logger.info(f"Still waiting for MoveIt... ({elapsed:.0f}s)")
+                if future.done() and future.result() is not None:
+                    self._logger.info(f"MoveIt ready (verified after {attempt + 1} attempt(s))")
+                    return True
 
-        self._node.destroy_client(client)
+                self._logger.debug(f"Service call failed (attempt {attempt + 1}/{max_attempts})")
+
+            except Exception as e:
+                self._logger.debug(f"Poll attempt {attempt + 1} failed: {e}")
+                try:
+                    self._node.destroy_client(client)
+                except:
+                    pass
+
+            time.sleep(poll_interval)
+
+        self._logger.error("MoveIt not ready within timeout")
         return False
 
     def _load_collision_obstacles(self) -> bool:
         """Load collision obstacles into the planning scene.
 
-        Loads obstacles from mtc_pipeline/config/beamline_scene.yaml.
-        Uses MoveIt's PlanningSceneInterface.
+        Loads obstacles from mtc_py/config/beamline_scene.yaml and publishes
+        them to the /planning_scene topic.
 
         Returns:
             True if successful, False on failure
         """
         try:
-            import yaml
-            from ament_index_python.packages import get_package_share_directory
-            from moveit_msgs.msg import CollisionObject, PlanningScene
-            from shape_msgs.msg import SolidPrimitive
-            from geometry_msgs.msg import Pose
-            from tf_transformations import quaternion_from_euler
-
             # Get obstacle config path
             try:
-                mtc_pipeline_share = get_package_share_directory("mtc_pipeline")
+                mtc_py_share = get_package_share_directory("mtc_py")
                 config_path = os.path.join(
-                    mtc_pipeline_share, "config", "beamline_scene.yaml"
+                    mtc_py_share, "config", "beamline_scene.yaml"
                 )
             except Exception:
-                self._logger.warn("mtc_pipeline package not found, skipping obstacles")
-                return True
+                self._logger.error("mtc_py package not found")
+                return False
 
             if not os.path.exists(config_path):
-                self._logger.warn(f"Obstacle config not found: {config_path}")
-                return True
+                self._logger.error(f"Obstacle config not found: {config_path}")
+                return False
 
             # Load YAML
             with open(config_path, 'r') as f:
@@ -418,10 +303,85 @@ class MoveItLifecycleManager:
 
         except Exception as e:
             self._logger.error(f"Failed to load obstacles: {e}")
-            import traceback
             self._logger.error(traceback.format_exc())
             return False
 
-    def __del__(self):
-        """Cleanup on destruction."""
-        self.kill_current_process()
+    def _set_tool_voltage(self, voltage: int) -> bool:
+        """Set tool voltage via raw socket.
+
+        Uses raw socket because this runs BEFORE MoveIt/ROS services are available.
+        Connects to UR secondary interface (port 30002) and sends URScript command.
+
+        Args:
+            voltage: Tool voltage (0 or 24)
+
+        Returns:
+            True if successful, False on failure
+        """
+        if not self._robot_ip:
+            self._logger.error("Robot IP not set")
+            return False
+
+        try:
+            sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(self.SOCKET_TIMEOUT)
+
+            self._logger.info(f"Connecting to {self._robot_ip}:{self.UR_SECONDARY_PORT}")
+            sock.connect((self._robot_ip, self.UR_SECONDARY_PORT))
+
+            cmd = f"set_tool_voltage({voltage})\n"
+            sock.sendall(cmd.encode())
+
+            sock.close()
+            self._logger.info(f"Tool voltage set to {voltage}V")
+            return True
+
+        except socket.timeout:
+            self._logger.error(f"Timeout connecting to {self._robot_ip}:{self.UR_SECONDARY_PORT}")
+            return False
+        except socket.error as e:
+            self._logger.error(f"Socket error: {e}")
+            return False
+        except Exception as e:
+            self._logger.error(f"Failed to set tool voltage: {e}")
+            return False
+
+    def _restart_external_control(self) -> bool:
+        """Restart UR external_control program via dashboard service.
+
+        The tool voltage command stops the external_control program,
+        so we need to restart it before robot can execute trajectories.
+
+        Returns:
+            True if successful, False on failure
+        """
+        try:
+            client = self._node.create_client(Trigger, "/dashboard_client/play")
+
+            if not client.wait_for_service(timeout_sec=5.0):
+                self._logger.error("Dashboard play service not available")
+                self._node.destroy_client(client)
+                return False
+
+            self._logger.info("Calling /dashboard_client/play...")
+            request = Trigger.Request()
+            future = client.call_async(request)
+
+            rclpy.spin_until_future_complete(self._node, future, timeout_sec=5.0)
+            self._node.destroy_client(client)
+
+            if not future.done():
+                self._logger.error("Dashboard play command timeout")
+                return False
+
+            result = future.result()
+            if not result.success:
+                self._logger.error(f"Failed to restart external_control: {result.message}")
+                return False
+
+            self._logger.info("External control program restarted")
+            return True
+
+        except Exception as e:
+            self._logger.error(f"Failed to restart external_control: {e}")
+            return False
