@@ -16,9 +16,10 @@ import numpy as np
 import rclpy
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
-from moveit.planning_interface import PlanningSceneInterface
 from moveit.task_constructor import stages
-from moveit_msgs.msg import CollisionObject
+from moveit_msgs.msg import CollisionObject, PlanningScene
+from moveit_msgs.srv import GetPlanningScene
+from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from shape_msgs.msg import SolidPrimitive
 from tf2_geometry_msgs import do_transform_pose
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
@@ -73,8 +74,20 @@ class VisionStages(BaseStages):
             "/capture_and_detect_markers"
         )
 
-        # Planning scene interface
-        self._planning_scene = PlanningSceneInterface()
+        # Planning scene publisher (same pattern as moveit_lifecycle_manager)
+        scene_qos = QoSProfile(
+            depth=10,
+            durability=DurabilityPolicy.VOLATILE,
+            reliability=ReliabilityPolicy.RELIABLE
+        )
+        self._planning_scene_pub = rclpy_node.create_publisher(
+            PlanningScene, "/planning_scene", scene_qos
+        )
+
+        # Service client for querying known objects
+        self._get_scene_client = rclpy_node.create_client(
+            GetPlanningScene, "/get_planning_scene"
+        )
 
         # Parameters
         self._marker_dictionary = self.DEFAULT_MARKER_DICTIONARY
@@ -405,7 +418,11 @@ class VisionStages(BaseStages):
         obj.primitives.append(primitive)
         obj.primitive_poses.append(object_pose.pose)
 
-        self._planning_scene.apply_collision_objects([obj])
+        # Publish to planning scene as diff
+        scene_msg = PlanningScene()
+        scene_msg.is_diff = True
+        scene_msg.world.collision_objects.append(obj)
+        self._planning_scene_pub.publish(scene_msg)
         self.logger.info(f"Added collision object '{info.name}'")
 
     def _calculate_object_pose(
@@ -450,6 +467,31 @@ class VisionStages(BaseStages):
         Args:
             name: Object ID to remove
         """
-        known = self._planning_scene.get_known_object_names()
-        if name in known:
-            self._planning_scene.remove_world_object(name)
+        # Query current planning scene to check if object exists
+        if not self._get_scene_client.wait_for_service(timeout_sec=1.0):
+            self.logger.warn("GetPlanningScene service not available, skipping removal check")
+            # Publish removal anyway - it's safe if object doesn't exist
+        else:
+            request = GetPlanningScene.Request()
+            request.components.components = (
+                request.components.WORLD_OBJECT_NAMES
+            )
+            future = self._get_scene_client.call_async(request)
+            rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=2.0)
+
+            if future.done() and future.result() is not None:
+                known_names = [
+                    obj.id for obj in future.result().scene.world.collision_objects
+                ]
+                if name not in known_names:
+                    return  # Object doesn't exist, nothing to remove
+
+        # Publish removal
+        obj = CollisionObject()
+        obj.id = name
+        obj.operation = CollisionObject.REMOVE
+
+        scene_msg = PlanningScene()
+        scene_msg.is_diff = True
+        scene_msg.world.collision_objects.append(obj)
+        self._planning_scene_pub.publish(scene_msg)

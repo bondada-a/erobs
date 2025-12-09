@@ -20,10 +20,35 @@ RUN apt-get update && apt-get install -y \
 RUN pip3 install 'numpy<2' rosdep && \
   rosdep update
 
+# This is an exit hatch for testing when conda envs not avail
+RUN pip3 install \
+  bluesky \
+  ophyd \
+  nslsii \
+  ipython
+
+# Install Epics (before CACHEBUST so it stays cached)
+RUN mkdir $HOME/EPICS && cd $HOME/EPICS && \
+  git clone --recursive https://github.com/epics-base/epics-base.git && \
+  cd epics-base && \
+  make
+
+ENV EPICS_BASE=/root/EPICS/epics-base
+# Set host arch manually
+ENV PATH=${EPICS_BASE}/bin/linux-x86_64:${PATH}
+
+# Add our custom bsui
+COPY docker/bsui/bsui.bash /bin/bsui
+RUN chmod +x /bin/bsui
+
+RUN apt-get update && apt-get install -y fontconfig
+RUN mkdir /root/.ipython
 
 RUN mkdir /root/ws -p
 WORKDIR /root/ws
 
+# Cache-bust arg: use --build-arg CACHEBUST=$(date +%s) to force fresh clone
+ARG CACHEBUST=1
 RUN git clone https://github.com/bondada-a/erobs.git -b humble-experimental
 
 WORKDIR /root/ws/erobs/
@@ -35,32 +60,6 @@ RUN /bin/bash -c "set -e && \
   apt-get update && \
   rosdep update && \
   rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface zivid_description pytest ament_python'"
-
-
-# This is an exit hatch for testing when conda envs not avail
-RUN pip3 install\
-  bluesky \
-  ophyd \
-  nslsii \
-  ipython
-
-# Install Epics
-RUN mkdir $HOME/EPICS && cd $HOME/EPICS && \
-  git clone --recursive https://github.com/epics-base/epics-base.git && \
-  cd epics-base && \
-  make
-
-ENV EPICS_BASE=/root/EPICS/epics-base
-# ENV EPICS_HOST_ARCH=$(/root/EPICS/epics-base/startup/EpicsHostArch)
-# Set host arch manually
-ENV PATH=${EPICS_BASE}/bin/linux-x86_64:${PATH}
-
-# Add our custom bsui
-COPY docker/bsui/bsui.bash /bin/bsui
-RUN chmod +x /bin/bsui
-
-RUN apt-get update && apt-get install -y fontconfig
-RUN mkdir /root/.ipython
 
 WORKDIR /root/ws/
 # Build interface packages first so other packages can find them

@@ -82,6 +82,8 @@ WORKDIR /root/ws
 COPY docker/erobs-common-img/start-vnc.sh /root/start-vnc.sh
 RUN chmod +x /root/start-vnc.sh
 
+# Cache-bust arg: use --build-arg CACHEBUST=$(date +%s) to force fresh clone
+ARG CACHEBUST=1
 RUN git clone https://github.com/bondada-a/erobs.git -b humble-experimental
 
 WORKDIR /root/ws/erobs/
