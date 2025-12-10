@@ -31,6 +31,7 @@ from mtc_py.action import (
     VisionPickPlaceAction,
     PipettorAction,
 )
+from controller_manager_msgs.srv import ListControllers, SwitchController
 
 from mtc_py_lib.core.moveit_lifecycle_manager import MoveItLifecycleManager
 
@@ -132,6 +133,24 @@ class MTCOrchestratorServer(Node):
             callback_group=self._callback_group
         )
 
+        # Controller manager service clients for recovery
+        self._list_controllers_client = self.create_client(
+            ListControllers,
+            "/controller_manager/list_controllers",
+            callback_group=self._callback_group
+        )
+        self._switch_controller_client = self.create_client(
+            SwitchController,
+            "/controller_manager/switch_controller",
+            callback_group=self._callback_group
+        )
+
+        # Controllers that must be active for robot motion
+        self._required_controllers = [
+            "scaled_joint_trajectory_controller",
+            "gripper_action_controller",
+        ]
+
         self.get_logger().info("MTC Orchestrator (Python) started on 'mtc_execution_py'")
 
     def _goal_callback(self, goal_request) -> GoalResponse:
@@ -146,6 +165,76 @@ class MTCOrchestratorServer(Node):
         """Handle cancel requests."""
         self.get_logger().info("Cancel request received - will stop after current task")
         return CancelResponse.ACCEPT
+
+    def _ensure_controllers_active(self) -> bool:
+        """Check if required controllers are active and restart them if needed.
+
+        This handles the case where the UR driver's controller_stopper stops
+        controllers after a connection drop but doesn't restart them.
+
+        Returns:
+            True if all required controllers are active, False on failure
+        """
+        # Check if service is available
+        if not self._list_controllers_client.wait_for_service(timeout_sec=2.0):
+            self.get_logger().warn("Controller manager service not available")
+            return True  # Proceed anyway, let MoveIt handle the error
+
+        # List controllers
+        list_request = ListControllers.Request()
+        future = self._list_controllers_client.call_async(list_request)
+
+        # Wait for response (polling to avoid executor conflicts)
+        start_time = time.time()
+        while not future.done():
+            if time.time() - start_time > 5.0:
+                self.get_logger().warn("Timeout listing controllers")
+                return True  # Proceed anyway
+            time.sleep(0.01)
+
+        list_response = future.result()
+        if list_response is None:
+            self.get_logger().warn("Failed to list controllers")
+            return True  # Proceed anyway
+
+        # Check which required controllers are inactive
+        inactive_controllers = []
+        for controller in list_response.controller:
+            if controller.name in self._required_controllers:
+                if controller.state != "active":
+                    inactive_controllers.append(controller.name)
+                    self.get_logger().warn(
+                        f"Controller '{controller.name}' is {controller.state}, needs restart"
+                    )
+
+        if not inactive_controllers:
+            return True  # All controllers active
+
+        # Try to activate inactive controllers
+        self.get_logger().info(f"Activating controllers: {inactive_controllers}")
+
+        switch_request = SwitchController.Request()
+        switch_request.activate_controllers = inactive_controllers
+        switch_request.deactivate_controllers = []
+        switch_request.strictness = SwitchController.Request.BEST_EFFORT
+        switch_request.activate_asap = True
+
+        future = self._switch_controller_client.call_async(switch_request)
+
+        start_time = time.time()
+        while not future.done():
+            if time.time() - start_time > 5.0:
+                self.get_logger().error("Timeout activating controllers")
+                return False
+            time.sleep(0.01)
+
+        switch_response = future.result()
+        if switch_response is None or not switch_response.ok:
+            self.get_logger().error("Failed to activate controllers")
+            return False
+
+        self.get_logger().info("Controllers reactivated successfully")
+        return True
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute the orchestration goal."""
@@ -273,6 +362,11 @@ class MTCOrchestratorServer(Node):
         self, task_type: str, step: Dict[str, Any], poses_json: str
     ) -> bool:
         """Execute a single step by dispatching to the appropriate action server."""
+        # Ensure controllers are active before executing (handles socket drop recovery)
+        if not self._ensure_controllers_active():
+            self.get_logger().error("Failed to ensure controllers are active")
+            return False
+
         self.get_logger().info(f"Executing step: {task_type}")
 
         if task_type == "moveto":
