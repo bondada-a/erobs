@@ -26,7 +26,8 @@ RUN apt-get update && apt-get install -y \
     x11vnc \
     xvfb \
     gnupg2 \
-    ca-certificates
+    ca-certificates \
+    socat
 
 # Step 3: Install Zivid SDK 2.16.0 for Ubuntu 22.04 (all packages)
 RUN mkdir -p /tmp/zivid && cd /tmp/zivid && \

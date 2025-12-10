@@ -85,6 +85,11 @@ class MoveItLifecycleManager:
             self._logger.error("Failed to set tool voltage")
             return False
 
+        # Wait for gripper to power up after voltage change.
+        # Without this delay, Hand-E activation fails with Modbus errors
+        # because the gripper hardware isn't ready when ros2_control tries to initialize it.
+        time.sleep(2.0)
+
         # Launch MoveIt subprocess
         try:
             cmd = [
