@@ -1,0 +1,7 @@
+# Print a message to console
+string message
+---
+bool success
+string error_message
+---
+string current_message

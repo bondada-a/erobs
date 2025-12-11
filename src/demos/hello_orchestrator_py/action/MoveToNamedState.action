@@ -1,0 +1,7 @@
+# Move to a named pose
+string target_pose
+---
+bool success
+string error_message
+---
+string status

@@ -10,7 +10,7 @@ find_package(rosidl_default_generators REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/PrintMessage.action"
-  "action/MoveToNamed.action"
+  "action/MoveToNamedState.action"
   "action/OrchestratorTask.action"
 )
 

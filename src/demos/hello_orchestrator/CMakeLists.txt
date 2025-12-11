@@ -16,7 +16,7 @@ find_package(nlohmann_json REQUIRED)
 # Generate action interfaces
 rosidl_generate_interfaces(${PROJECT_NAME}
   "action/PrintMessage.action"
-  "action/MoveToNamed.action"
+  "action/MoveToNamedState.action"
   "action/OrchestratorTask.action"
   ADD_LINTER_TESTS
 )

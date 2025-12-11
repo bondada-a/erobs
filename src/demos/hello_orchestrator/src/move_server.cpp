@@ -3,10 +3,10 @@
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <moveit/move_group_interface/move_group_interface.h>
-#include <hello_orchestrator/action/move_to_named.hpp>
+#include <hello_orchestrator/action/move_to_named_state.hpp>
 
-using MoveToNamed = hello_orchestrator::action::MoveToNamed;
-using GoalHandleMove = rclcpp_action::ServerGoalHandle<MoveToNamed>;
+using MoveToNamedState = hello_orchestrator::action::MoveToNamedState;
+using GoalHandleMove = rclcpp_action::ServerGoalHandle<MoveToNamedState>;
 
 class MoveServer : public rclcpp::Node
 {
@@ -22,7 +22,7 @@ public:
         move_group_ = std::make_shared<moveit::planning_interface::MoveGroupInterface>(
             shared_from_this(), "ur_arm");
 
-        action_server_ = rclcpp_action::create_server<MoveToNamed>(
+        action_server_ = rclcpp_action::create_server<MoveToNamedState>(
             this,
             "move_to_named",
             std::bind(&MoveServer::handle_goal, this, std::placeholders::_1, std::placeholders::_2),
@@ -34,12 +34,12 @@ public:
     }
 
 private:
-    rclcpp_action::Server<MoveToNamed>::SharedPtr action_server_;
+    rclcpp_action::Server<MoveToNamedState>::SharedPtr action_server_;
     std::shared_ptr<moveit::planning_interface::MoveGroupInterface> move_group_;
 
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& /*uuid*/,
-        std::shared_ptr<const MoveToNamed::Goal> /*goal*/)
+        std::shared_ptr<const MoveToNamedState::Goal> /*goal*/)
     {
         RCLCPP_INFO(this->get_logger(), "Received move goal");
         return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
@@ -64,8 +64,8 @@ private:
         RCLCPP_INFO(this->get_logger(), "Executing move goal");
 
         const auto goal = goal_handle->get_goal();
-        auto feedback = std::make_shared<MoveToNamed::Feedback>();
-        auto result = std::make_shared<MoveToNamed::Result>();
+        auto feedback = std::make_shared<MoveToNamedState::Feedback>();
+        auto result = std::make_shared<MoveToNamedState::Result>();
 
         // Update feedback
         feedback->status = "Planning to " + goal->target_pose;

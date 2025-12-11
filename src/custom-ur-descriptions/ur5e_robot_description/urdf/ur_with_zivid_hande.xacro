@@ -145,7 +145,7 @@
     data_bits="$(arg data_bits)"
     stop_bit="$(arg stop_bit)"
     slave_id="$(arg slave_id)"
-    use_fake_hardware="false"
+    use_fake_hardware="$(arg use_fake_hardware)"
     xyz="0 -0.02 0"
     rpy="-1.5708 0 3.1416"
     create_socat_tty="$(arg create_socat_tty)"

@@ -5,11 +5,11 @@
 #include <nlohmann/json.hpp>
 #include <hello_orchestrator/action/orchestrator_task.hpp>
 #include <hello_orchestrator/action/print_message.hpp>
-#include <hello_orchestrator/action/move_to_named.hpp>
+#include <hello_orchestrator/action/move_to_named_state.hpp>
 
 using OrchestratorTask = hello_orchestrator::action::OrchestratorTask;
 using PrintMessage = hello_orchestrator::action::PrintMessage;
-using MoveToNamed = hello_orchestrator::action::MoveToNamed;
+using MoveToNamedState = hello_orchestrator::action::MoveToNamedState;
 using GoalHandleOrchestrator = rclcpp_action::ServerGoalHandle<OrchestratorTask>;
 
 class OrchestratorServer : public rclcpp::Node
@@ -19,7 +19,7 @@ public:
     {
         // Create action clients to specialized servers
         print_client_ = rclcpp_action::create_client<PrintMessage>(this, "print_message");
-        move_client_ = rclcpp_action::create_client<MoveToNamed>(this, "move_to_named");
+        move_client_ = rclcpp_action::create_client<MoveToNamedState>(this, "move_to_named");
 
         // Create orchestrator action server
         action_server_ = rclcpp_action::create_server<OrchestratorTask>(
@@ -37,7 +37,7 @@ public:
 private:
     rclcpp_action::Server<OrchestratorTask>::SharedPtr action_server_;
     rclcpp_action::Client<PrintMessage>::SharedPtr print_client_;
-    rclcpp_action::Client<MoveToNamed>::SharedPtr move_client_;
+    rclcpp_action::Client<MoveToNamedState>::SharedPtr move_client_;
 
     rclcpp_action::GoalResponse handle_goal(
         const rclcpp_action::GoalUUID& /*uuid*/,
@@ -191,7 +191,7 @@ private:
             return false;
         }
 
-        auto goal = MoveToNamed::Goal();
+        auto goal = MoveToNamedState::Goal();
         goal.target_pose = task["target"];
 
         auto goal_handle = move_client_->async_send_goal(goal).get();
