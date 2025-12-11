@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Print action server - prints messages to console."""
+"""Print action server"""
 
 from hello_orchestrator_py.base_action_server import BaseActionServer, run_server
 from hello_orchestrator_py.stages.print_stages import PrintStages

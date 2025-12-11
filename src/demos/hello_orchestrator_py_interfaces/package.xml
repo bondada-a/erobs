@@ -4,7 +4,7 @@
   <name>hello_orchestrator_py_interfaces</name>
   <version>0.0.1</version>
   <description>Action interfaces for hello_orchestrator_py</description>
-  <maintainer email="abondada@bnl.gov">abondada</maintainer>
+  <maintainer email="abondada@nml.gov">abondada</maintainer>
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>

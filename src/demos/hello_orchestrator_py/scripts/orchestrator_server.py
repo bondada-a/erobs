@@ -43,6 +43,7 @@ class OrchestratorServer(Node):
         return GoalResponse.ACCEPT
 
     def _cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
+        # Orchestrator accepts cancel - stops between tasks (not mid-task).
         return CancelResponse.ACCEPT
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):
@@ -60,17 +61,12 @@ class OrchestratorServer(Node):
 
         try:
             task_json = json.loads(goal_handle.request.task_json)
-        except json.JSONDecodeError as e:
-            result.error_message = f"JSON parse error: {e}"
+            tasks = task_json["tasks"]
+        except (json.JSONDecodeError, KeyError) as e:
+            result.error_message = f"Invalid task JSON: {e}"
             goal_handle.abort()
             return result
-
-        if "tasks" not in task_json or not isinstance(task_json["tasks"], list):
-            result.error_message = "JSON must contain 'tasks' array"
-            goal_handle.abort()
-            return result
-
-        tasks = task_json["tasks"]
+        
         feedback.total_steps = len(tasks)
         self.get_logger().info(f"Executing {len(tasks)} tasks")
 
@@ -153,11 +149,11 @@ class OrchestratorServer(Node):
         return self._call_action(self._print_client, goal, timeout_sec=10.0)
 
     def _dispatch_move(self, task: dict) -> bool:
-        if "target" not in task:
-            self.get_logger().error("Move task missing 'target' field")
+        if "target_pose" not in task:
+            self.get_logger().error("Move task missing 'target_pose' field")
             return False
         goal = MoveToNamedState.Goal()
-        goal.target_pose = task["target"]
+        goal.target_pose = task["target_pose"]
         return self._call_action(self._move_client, goal, timeout_sec=60.0)
 
 

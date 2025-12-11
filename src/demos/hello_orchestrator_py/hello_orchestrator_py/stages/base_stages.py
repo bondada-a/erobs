@@ -4,20 +4,12 @@ import rclcpp
 from moveit.task_constructor import core, stages
 from moveit_msgs.msg import MoveItErrorCodes
 
-
-_mtc_node = None
-
-
-def _get_mtc_node():
-    """Get or create singleton rclcpp.Node for MTC (requires C++ backed node)."""
-    global _mtc_node
-    if _mtc_node is None:
-        rclcpp.init()
-        options = rclcpp.NodeOptions()
-        options.automatically_declare_parameters_from_overrides = True
-        options.allow_undeclared_parameters = True
-        _mtc_node = rclcpp.Node("hello_mtc_node", options)
-    return _mtc_node
+# rclcpp MTC node initialization 
+rclcpp.init()
+_options = rclcpp.NodeOptions()
+_options.automatically_declare_parameters_from_overrides = True
+_options.allow_undeclared_parameters = True
+_mtc_node = rclcpp.Node("mtc_task_node", _options)
 
 
 class BaseStages:
@@ -27,11 +19,11 @@ class BaseStages:
         """Initialize with ROS 2 node for logging."""
         self.node = node
         self.logger = node.get_logger()
-        self._mtc_node = _get_mtc_node()
-        self.arm_group = "ur_arm"
+        self._mtc_node = _mtc_node
+        self.arm_group = "ur_arm"  # from moveit SRDF 
 
     def create_task_template(self, task_name: str) -> core.Task:
-        """Create MTC task with CurrentState stage."""
+        """Create MTC task with CurrentState stage (Every MTC task needs CurrentState as first stage)."""
         task = core.Task()
         task.name = task_name
         task.loadRobotModel(self._mtc_node)
@@ -42,11 +34,10 @@ class BaseStages:
         return task
 
     def make_pipeline_planner(self):
-        """Create OMPL pipeline planner with conservative settings."""
+        """Create OMPL pipeline planner."""
         planner = core.PipelinePlanner(self._mtc_node, "ompl")
-        planner.goal_joint_tolerance = 1e-4
-        planner.max_velocity_scaling_factor = 0.3
-        planner.max_acceleration_scaling_factor = 0.3
+        planner.max_velocity_scaling_factor = 0.2
+        planner.max_acceleration_scaling_factor = 0.2
         return planner
 
     def load_plan_execute(self, task: core.Task) -> bool:
