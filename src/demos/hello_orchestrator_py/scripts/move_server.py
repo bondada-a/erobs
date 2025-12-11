@@ -3,7 +3,7 @@
 
 from hello_orchestrator_py.base_action_server import BaseActionServer, run_server
 from hello_orchestrator_py.stages.move_stages import MoveStages
-from hello_orchestrator_py.action import MoveToNamedState
+from hello_orchestrator_py_interfaces.action import MoveToNamedState
 
 
 class MoveActionServer(BaseActionServer):

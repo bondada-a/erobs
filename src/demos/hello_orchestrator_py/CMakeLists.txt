@@ -8,19 +8,10 @@ endif()
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
 find_package(Python3 REQUIRED COMPONENTS Interpreter)
 
-# Generate action interfaces
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "action/PrintMessage.action"
-  "action/MoveToNamedState.action"
-  "action/OrchestratorTask.action"
-  ADD_LINTER_TESTS
-)
-
 # Install Python package
-ament_python_install_package(hello_orchestrator_py)
+ament_python_install_package(${PROJECT_NAME})
 
 # Install Python executables
 install(PROGRAMS
