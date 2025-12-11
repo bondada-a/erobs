@@ -10,7 +10,7 @@ from rclpy.node import Node
 from rclpy.action import ActionClient
 from ament_index_python.packages import get_package_share_directory
 
-from hello_orchestrator_py.action import OrchestratorTask
+from hello_orchestrator_py_interfaces.action import OrchestratorTask
 
 
 class TaskClient(Node):

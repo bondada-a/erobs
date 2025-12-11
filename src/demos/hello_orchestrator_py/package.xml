@@ -4,20 +4,17 @@
   <name>hello_orchestrator_py</name>
   <version>0.0.0</version>
   <description>Python demo of orchestrator pattern dispatching to specialized MTC action servers</description>
-  <maintainer email="demo@example.com">demo</maintainer>
+  <maintainer email="abondada@bnl.gov">abondada</maintainer>
   <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
-  <buildtool_depend>rosidl_default_generators</buildtool_depend>
+
+  <depend>hello_orchestrator_py_interfaces</depend>
 
   <exec_depend>rclpy</exec_depend>
   <exec_depend>moveit_task_constructor_core</exec_depend>
   <exec_depend>moveit_ros_planning_interface</exec_depend>
-  <exec_depend>ament_index_python</exec_depend>
-  <exec_depend>rosidl_default_runtime</exec_depend>
-
-  <member_of_group>rosidl_interface_packages</member_of_group>
 
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>

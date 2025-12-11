@@ -8,7 +8,7 @@ from rclpy.node import Node
 from rclpy.action import ActionServer, ActionClient, GoalResponse, CancelResponse
 from rclpy.action.server import ServerGoalHandle
 
-from hello_orchestrator_py.action import (
+from hello_orchestrator_py_interfaces.action import (
     OrchestratorTask,
     PrintMessage,
     MoveToNamedState,

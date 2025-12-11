@@ -3,7 +3,7 @@
 
 from hello_orchestrator_py.base_action_server import BaseActionServer, run_server
 from hello_orchestrator_py.stages.print_stages import PrintStages
-from hello_orchestrator_py.action import PrintMessage
+from hello_orchestrator_py_interfaces.action import PrintMessage
 
 
 class PrintActionServer(BaseActionServer):
