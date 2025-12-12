@@ -45,8 +45,19 @@ ACCELERATION_SCALING = 0.2
 DEFAULT_ARM_GROUP = "ur_arm"
 DEFAULT_IK_FRAME = "flange"
 
-# Module-level singleton for rclcpp node (MTC requires C++ backed node)
-_mtc_node = None
+# Module-level rclcpp node initialization for MTC operations.
+# MTC requires rclcpp.Node (C++ backed via pybind11), not rclpy.Node, because
+# MTC's C++ code expects rclcpp::Node::SharedPtr. This is independent of rclpy.
+#
+# Module-level init is safe because:
+# 1. Python caches imported modules (no double-init risk)
+# 2. Action servers always use MTC immediately (no benefit to lazy init)
+# 3. Each server runs in separate process (no shared state concerns)
+rclcpp.init()
+_options = rclcpp.NodeOptions()
+_options.automatically_declare_parameters_from_overrides = True
+_options.allow_undeclared_parameters = True
+_mtc_node = rclcpp.Node("mtc_py", _options)
 
 
 def joints_from_degrees(degrees: List[float]) -> Dict[str, float]:
@@ -92,23 +103,6 @@ def create_wrist3_level_constraint() -> Constraints:
     return constraint
 
 
-def _get_mtc_node():
-    """Get or create the singleton rclcpp.Node for MTC operations.
-
-    MTC requires rclcpp.Node (C++ backed), not rclpy.Node, because MTC's
-    C++ code expects rclcpp::Node::SharedPtr. The rclcpp Python module
-    creates actual C++ Node objects via pybind11.
-    """
-    global _mtc_node
-    if _mtc_node is None:
-        rclcpp.init()
-        options = rclcpp.NodeOptions()
-        options.automatically_declare_parameters_from_overrides = True
-        options.allow_undeclared_parameters = True
-        _mtc_node = rclcpp.Node("mtc_py", options)
-    return _mtc_node
-
-
 class BaseStages:
     """Base class providing MTC utilities for all stage implementations.
 
@@ -134,7 +128,7 @@ class BaseStages:
             ik_frame: Frame for IK calculations (default: flange)
         """
         self.rclpy_node = rclpy_node
-        self._mtc_node = _get_mtc_node()  # For MTC operations (C++ backed)
+        self._mtc_node = _mtc_node  # For MTC operations (C++ backed)
         self.arm_group = arm_group if arm_group else DEFAULT_ARM_GROUP
         self.ik_frame = ik_frame if ik_frame else DEFAULT_IK_FRAME
         self.logger = rclpy_node.get_logger()

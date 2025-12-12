@@ -8,7 +8,7 @@ import threading
 
 import rclpy
 from rclpy.node import Node
-from rclpy.action import ActionServer, GoalResponse, CancelResponse
+from rclpy.action import ActionServer, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 
 
@@ -29,13 +29,15 @@ class BaseActionServer(Node):
         self._stages = None
         self.initialize_stages()
 
+        # Note: cancel_callback is omitted - defaults to REJECT. Individual action
+        # servers cannot safely cancel mid-execution (MTC/MoveIt is controlling the
+        # robot). Cancellation is handled at the orchestrator level (between tasks).
         self._action_server = ActionServer(
             self,
             action_type,
             action_name,
             execute_callback=self._execute_callback,
             goal_callback=self._goal_callback,
-            cancel_callback=self._cancel_callback,
         )
 
         self.get_logger().info(f"{node_name} started on '{action_name}'")
@@ -52,11 +54,6 @@ class BaseActionServer(Node):
                 return GoalResponse.REJECT
         self.get_logger().info("Received goal request")
         return GoalResponse.ACCEPT
-
-    def _cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
-        """Reject all cancel requests - MTC cannot safely abort mid-motion."""
-        self.get_logger().warn("Cancel rejected - cannot abort mid-motion")
-        return CancelResponse.REJECT
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute goal with error handling and state management."""
