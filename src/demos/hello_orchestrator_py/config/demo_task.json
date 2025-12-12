@@ -6,7 +6,7 @@
     },
     {
       "type": "move",
-      "target": "moveit_home"
+      "target_pose": "moveit_home"
     },
     {
       "type": "print",

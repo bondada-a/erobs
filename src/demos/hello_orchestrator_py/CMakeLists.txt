@@ -18,7 +18,7 @@ install(PROGRAMS
   scripts/print_server.py
   scripts/move_server.py
   scripts/orchestrator_server.py
-  scripts/task_client.py
+  scripts/orchestrator_client.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

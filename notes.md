@@ -33,5 +33,7 @@ Increased `keep_alive_count` parameter in URDF xacro files:
 - `ur5e_robot_description/urdf/ur_with_zivid_epick.xacro`
 - `ur5e_robot_description/urdf/ur_with_zivid_pipettor.xacro`
 
-### Reference
+### References
 - https://github.com/UniversalRobots/Universal_Robots_ROS_Driver/issues/418
+- https://github.com/UniversalRobots/Universal_Robots_ROS_Driver/issues/507
+- https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/941

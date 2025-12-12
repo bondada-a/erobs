@@ -1,23 +1,21 @@
 #!/usr/bin/env python3
-"""Client that sends multi-step tasks to the orchestrator."""
+"""Client that sends JSON tasks to the orchestrator."""
 
 import json
-import os
 import sys
 
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
-from ament_index_python.packages import get_package_share_directory
 
 from hello_orchestrator_py_interfaces.action import OrchestratorTask
 
 
-class TaskClient(Node):
+class OrchestratorClient(Node):
     """Client for sending tasks to the orchestrator."""
 
     def __init__(self):
-        super().__init__('task_client')
+        super().__init__('orchestrator_client')
         self._action_client = ActionClient(self, OrchestratorTask, 'orchestrator_task_py')
 
     def send_task(self, task_dict):
@@ -60,13 +58,14 @@ class TaskClient(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    client = TaskClient()
+    client = OrchestratorClient()
 
-    if len(sys.argv) > 1:
-        task_file = sys.argv[1]
-    else:
-        package_share_dir = get_package_share_directory('hello_orchestrator_py')
-        task_file = os.path.join(package_share_dir, 'config', 'demo_task.json')
+    if len(sys.argv) < 2:
+        client.get_logger().error('Usage: orchestrator_client <task_file.json>')
+        client.destroy_node()
+        rclpy.shutdown()
+        return 1
+    task_file = sys.argv[1]
 
     try:
         with open(task_file, 'r') as f:

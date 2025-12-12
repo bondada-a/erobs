@@ -53,7 +53,7 @@ Chain: UR5e → Zivid Camera → Tool Block → Pipettor
 This package requires the following external packages:
 
 - **[Universal_Robots_ROS2_Description](https://github.com/UniversalRobots/Universal_Robots_ROS2_Description)**: Official UR robot descriptions
-- **[zivid-ros](https://github.com/zivid/zivid-ros)**: Official Zivid ROS2 package for camera descriptions
+- **zivid_description**: Zivid camera URDF and meshes (included in `src/vision/`)
 - **robotiq_hande_description**: Robotiq Hand-E gripper descriptions (included in `src/end_effectors/`)
 - **epick_config**: ePick gripper descriptions (included in `src/end_effectors/`)
 - **pipette_description**: Pipettor descriptions (included in `src/end_effectors/`)
@@ -71,26 +71,35 @@ This package requires the following external packages:
 - **Tool exchanger**: Custom STL files for the tool exchanger system
 - **Hand-E gripper**: Provided by external `robotiq_hande_description` package
 
-### Frame Conventions and Calibration
+### Camera and UR Calibration
 
-**Important:** All Zivid camera configurations mount to the `tool0` frame (not `flange`):
-- The Zivid hand-eye calibration is performed relative to `tool0`
+**Camera Calibration:**
 
-**Calibration File:**
-- `config/ur5e_calibration.yaml` contains robot-specific calibration obtained from the robot using - [ur_calibration](https://docs.universal-robots.com/Universal_Robots_ROS2_Documentation/doc/ur_robot_driver/ur_calibration/doc/usage.html)
-- loaded using 'kinematics_params_file' argument for the launch files.
+- Zivid Hand-eye calibration based on - [Zivid Hand-eye calibration](https://support.zivid.com/en/latest/academy/applications/hand-eye.html)
+
+
+**UR Calibration:**
+
+Each UR robot has unique kinematics due to manufacturing tolerances. The included `config/ur5e_calibration.yaml` is specific to the CMS beamline robot and **must be replaced** with your own robot's calibration.
+
+To generate your calibration file:
+1. Follow the [ur_calibration guide](https://docs.universal-robots.com/Universal_Robots_ROS2_Documentation/doc/ur_robot_driver/ur_calibration/doc/usage.html)
+2. Replace `config/ur5e_calibration.yaml` with your robot's output
+
+**Loading mechanism:** The calibration is loaded via the `kinematics_params_file` argument passed from each MoveIt config's `robot_bringup.launch.py` to `ur_control.launch.py`. 
 
 ### Hardware Configuration Notes
 
-**End Effector Hardware Settings:**
+**Simulation vs Real Hardware:**
 
-- `ur_with_zivid_hande.xacro` and `ur_with_zivid_epick.xacro` both have `use_fake_hardware="true"` hardcoded for the end effectors
-- This means the grippers operate in simulation mode (not interacting with actual gripper hardware)
-- **For actual hardware:** Change `use_fake_hardware="true"` to `use_fake_hardware="false"` in the respective gripper macro calls
+All xacro files support the `use_fake_hardware` argument (default: `false`):
+- `use_fake_hardware:=false` - connects to real robot and end effector hardware
+- `use_fake_hardware:=true` - runs in simulation mode without hardware
+- **URSim:** When using URSim, this must be manually changed in the xacro files - set `use_fake_hardware:=false` for UR robot and `use_fake_hardware:=true` for the grippers in `ur_with_zivid_hande.xacro` and `ur_with_zivid_epick.xacro`
+
+This parameter is passed through to both the UR robot and end effectors (Hand-E, ePick).
 
 ### TODO
-
-- Make `use_fake_hardware` parameter dynamic for end effectors instead of hardcoded values
 - Add custom suction cup to the ePick gripper (pen_vacuum)
 
 ## Usage

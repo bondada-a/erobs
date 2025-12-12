@@ -1,7 +1,8 @@
-# Move to a named pose
+# Goal
 string target_pose
 ---
+# Result
 bool success
 string error_message
 ---
-string status
+# Feedback (empty - internal action, not user-facing)

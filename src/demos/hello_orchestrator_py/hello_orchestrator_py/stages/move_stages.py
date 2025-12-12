@@ -8,13 +8,17 @@ class MoveStages(BaseStages):
     """Handles MoveTo action using MTC."""
 
     def run(self, goal) -> bool:
-        """Execute MoveTo action. Returns True on success."""
+        """Execute MoveTo action.
+
+        MoveTo.setGoal() accepts: str (SRDF named pose), joint map,
+        PoseStamped, PointStamped, or RobotState. Demo only uses SRDF named poses.
+        """
         task = self.create_task_template("MoveTo Task")
         planner = self.make_pipeline_planner()
 
         move_stage = stages.MoveTo(f"move_to_{goal.target_pose}", planner)
         move_stage.group = self.arm_group
-        move_stage.setGoal(goal.target_pose)
+        move_stage.setGoal(goal.target_pose)  # SRDF named pose
 
         self.logger.info(f"Moving to named state: {goal.target_pose}")
 

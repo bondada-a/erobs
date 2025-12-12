@@ -2,7 +2,7 @@
 
 import rclpy
 from rclpy.node import Node
-from rclpy.action import ActionServer, GoalResponse, CancelResponse
+from rclpy.action import ActionServer, GoalResponse
 from rclpy.action.server import ServerGoalHandle
 
 
@@ -28,7 +28,6 @@ class BaseActionServer(Node):
             action_name,
             execute_callback=self._execute_callback,
             goal_callback=self._goal_callback,
-            cancel_callback=self._cancel_callback,
         )
 
         self.get_logger().info(f"{node_name} started on '{action_name}'")
@@ -43,11 +42,10 @@ class BaseActionServer(Node):
             self.get_logger().warning("Rejecting goal: server busy")
             return GoalResponse.REJECT
         return GoalResponse.ACCEPT
-
-    def _cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
-        """Reject cancel requests - cannot safely abort mid-execution."""
-        self.get_logger().warning("Cancel rejected - cannot abort mid-execution")
-        return CancelResponse.REJECT
+    
+    """    Note: cancel_callback is omitted - defaults to REJECT. Individual action servers
+    cannot yet cancel mid-execution (while performing tasks). Cancellation is handled at the
+    orchestrator level (between tasks).  """
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute goal with error handling."""
