@@ -3,7 +3,7 @@
 
 from mtc_py_lib.action_servers.base_action_server import BaseActionServer, run_server
 from mtc_py_lib.stages.end_effector_stages import EndEffectorStages
-from mtc_py.action import EndEffectorAction
+from mtc_interfaces.action import EndEffectorAction
 
 
 class EndEffectorActionServer(BaseActionServer):

@@ -15,7 +15,7 @@ from rclpy.node import Node
 from rclpy.action import ActionClient
 from action_msgs.msg import GoalStatus
 
-from mtc_py.action import MTCExecution
+from mtc_interfaces.action import MTCExecution
 
 
 class TaskGoalSender(Node):

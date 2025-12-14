@@ -3,7 +3,7 @@
 
 from mtc_py_lib.action_servers.base_action_server import BaseActionServer, run_server
 from mtc_py_lib.stages.pick_place_stages import PickPlaceStages
-from mtc_py.action import PickPlaceAction
+from mtc_interfaces.action import PickPlaceAction
 
 
 class PickPlaceActionServer(BaseActionServer):

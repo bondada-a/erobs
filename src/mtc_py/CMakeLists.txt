@@ -8,24 +8,9 @@ endif()
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
-find_package(rosidl_default_generators REQUIRED)
-find_package(geometry_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
 
-# Generate action interfaces
-rosidl_generate_interfaces(${PROJECT_NAME}
-  "action/MTCExecution.action"
-  "action/MoveToAction.action"
-  "action/EndEffectorAction.action"
-  "action/PickPlaceAction.action"
-  "action/ToolExchangeAction.action"
-  "action/VisionMoveToAction.action"
-  "action/VisionPickPlaceAction.action"
-  "action/PipettorAction.action"
-  DEPENDENCIES geometry_msgs std_msgs
-)
-
-# Install Python package (named mtc_py_lib to avoid conflict with rosidl target)
+# Install Python package
+# Note: Named mtc_py_lib for now; will be renamed in future cleanup (#9)
 ament_python_install_package(mtc_py_lib)
 
 # Install launch files

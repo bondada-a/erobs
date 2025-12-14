@@ -3,7 +3,7 @@
 
 from mtc_py_lib.action_servers.base_action_server import BaseActionServer, run_server
 from mtc_py_lib.stages.vision_pick_place_stages import VisionPickPlaceStages
-from mtc_py.action import VisionPickPlaceAction
+from mtc_interfaces.action import VisionPickPlaceAction
 
 
 class VisionPickPlaceActionServer(BaseActionServer):

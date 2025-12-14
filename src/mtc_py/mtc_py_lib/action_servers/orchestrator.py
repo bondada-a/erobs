@@ -21,7 +21,7 @@ from rclpy.action.server import ServerGoalHandle, GoalResponse, CancelResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
 
-from mtc_py.action import (
+from mtc_interfaces.action import (
     MTCExecution,
     MoveToAction,
     EndEffectorAction,
