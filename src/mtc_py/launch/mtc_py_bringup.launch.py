@@ -14,6 +14,7 @@ Usage:
     ros2 launch mtc_py mtc_py_bringup.launch.py
     ros2 launch mtc_py mtc_py_bringup.launch.py enable_vision:=false
     ros2 launch mtc_py mtc_py_bringup.launch.py beamline_config:=config/ur3e_beamline.yaml
+    ros2 launch mtc_py mtc_py_bringup.launch.py use_fake_hardware:=true
 """
 
 from launch import LaunchDescription
@@ -55,8 +56,15 @@ def generate_launch_description():
         description='Enable pipettor server'
     )
 
+    declare_use_fake_hardware = DeclareLaunchArgument(
+        'use_fake_hardware',
+        default_value='false',
+        description='Use fake hardware (simulation mode, no real robot)'
+    )
+
     enable_vision = LaunchConfiguration('enable_vision')
     enable_pipettor = LaunchConfiguration('enable_pipettor')
+    use_fake_hardware = LaunchConfiguration('use_fake_hardware')
 
     # Resolve beamline config path (relative to mtc_py package)
     beamline_config_path = PathJoinSubstitution([
@@ -161,6 +169,7 @@ def generate_launch_description():
         output='screen',
         parameters=[
             {'beamline_config': beamline_config_path},
+            {'use_fake_hardware': use_fake_hardware},
         ],
     )
 
@@ -169,6 +178,7 @@ def generate_launch_description():
         declare_beamline_config,
         declare_enable_vision,
         declare_enable_pipettor,
+        declare_use_fake_hardware,
         # Core servers (always launched)
         move_to_server,
         end_effector_server,

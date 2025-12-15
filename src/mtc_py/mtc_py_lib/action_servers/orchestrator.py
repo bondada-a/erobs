@@ -66,14 +66,19 @@ class MTCOrchestratorServer(Node):
 
         # Load beamline configuration (single source of truth)
         self.declare_parameter("beamline_config", "config/default_beamline.yaml")
+        self.declare_parameter("use_fake_hardware", False)
 
         config_file = self.get_parameter("beamline_config").value
+        self._use_fake_hardware = self.get_parameter("use_fake_hardware").value
+
         with open(config_file, 'r') as f:
             config = yaml.safe_load(f)
 
         self._grippers = config["grippers"]  # Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group, states}
         self._robot_ip = config["robot"]["ip"]  # Single source: config file
         self.get_logger().info(f"Loaded beamline: {config['beamline']} (robot: {self._robot_ip})")
+        if self._use_fake_hardware:
+            self.get_logger().info("Using FAKE HARDWARE (simulation mode)")
 
         # Declare timeout parameters (configurable at launch)
         self._timeouts = {}
@@ -89,7 +94,8 @@ class MTCOrchestratorServer(Node):
 
         # MoveIt lifecycle manager - launches MoveIt based on gripper config
         self._moveit_manager = MoveItLifecycleManager(
-            self, self._grippers, self._robot_ip, self._callback_group
+            self, self._grippers, self._robot_ip, self._callback_group,
+            use_fake_hardware=self._use_fake_hardware
         )
 
         # Create action server

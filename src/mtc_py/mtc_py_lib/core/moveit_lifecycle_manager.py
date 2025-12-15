@@ -39,7 +39,8 @@ class MoveItLifecycleManager:
     UR_SECONDARY_PORT = 30002  # URScript command port
     SOCKET_TIMEOUT = 2.0
 
-    def __init__(self, node: Node, grippers: dict, robot_ip: str, callback_group=None):
+    def __init__(self, node: Node, grippers: dict, robot_ip: str, callback_group=None,
+                 use_fake_hardware: bool = False):
         """Initialize the lifecycle manager.
 
         Args:
@@ -47,12 +48,14 @@ class MoveItLifecycleManager:
             grippers: Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group}
             robot_ip: Robot IP address (constant for beamline)
             callback_group: Optional callback group for service clients
+            use_fake_hardware: If True, launch MoveIt in simulation mode (no real robot)
         """
         self._node = node
         self._logger = node.get_logger()
         self._grippers = grippers
         self._robot_ip = robot_ip
         self._callback_group = callback_group
+        self._use_fake_hardware = use_fake_hardware
 
         self._moveit_process: Optional[subprocess.Popen] = None
         self._current_gripper: str = ""
@@ -81,20 +84,23 @@ class MoveItLifecycleManager:
         self._logger.info(f"Launching MoveIt for {gripper} ({config['moveit_package']})")
 
         # Set tool voltage (must happen BEFORE MoveIt launches)
-        if not self._set_tool_voltage(config["tool_voltage"]):
-            self._logger.error("Failed to set tool voltage")
-            return False
+        # Skip for fake hardware - no real robot to configure
+        if not self._use_fake_hardware:
+            if not self._set_tool_voltage(config["tool_voltage"]):
+                self._logger.error("Failed to set tool voltage")
+                return False
 
-        # Wait for gripper to power up after voltage change.
-        # Without this delay, Hand-E activation fails with Modbus errors
-        # because the gripper hardware isn't ready when ros2_control tries to initialize it.
-        time.sleep(2.0)
+            # Wait for gripper to power up after voltage change.
+            # Without this delay, Hand-E activation fails with Modbus errors
+            # because the gripper hardware isn't ready when ros2_control tries to initialize it.
+            time.sleep(2.0)
 
         # Launch MoveIt subprocess
         try:
             cmd = [
                 "ros2", "launch", config["moveit_package"], "robot_bringup.launch.py",
                 f"robot_ip:={self._robot_ip}",
+                f"use_fake_hardware:={'true' if self._use_fake_hardware else 'false'}",
             ]
             self._logger.info(f"Executing: {' '.join(cmd)}")
             self._moveit_process = subprocess.Popen(cmd, start_new_session=True)
@@ -115,10 +121,12 @@ class MoveItLifecycleManager:
             return False
 
         # Restart external_control program (voltage command stops it)
-        if not self._restart_external_control():
-            self._logger.error("Failed to restart external_control")
-            self.kill_current_process()
-            return False
+        # Skip for fake hardware - no real robot to control
+        if not self._use_fake_hardware:
+            if not self._restart_external_control():
+                self._logger.error("Failed to restart external_control")
+                self.kill_current_process()
+                return False
 
         self._current_gripper = gripper
         self._logger.info(f"Robot ready with {gripper} configuration")
