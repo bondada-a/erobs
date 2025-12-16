@@ -11,9 +11,10 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <!-- MOUNT MESH - Updated with custom mount from Zivid -->
-          <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_custom_mount.dae"
-                scale="1.0 1.0 1.0"/>
+          <!-- Official Zivid On-Arm Mount (from zivid.com/downloads) -->
+          <!-- Scale 0.001 if STL is in mm (from STEP), 1.0 if already in meters -->
+          <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_onarm_mount.stl"
+                scale="0.001 0.001 0.001"/>
         </geometry>
         <material name="mount_dark">
           <color rgba="0.2 0.2 0.2 1.0"/>
@@ -22,8 +23,8 @@
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_custom_mount.dae"
-                scale="1.0 1.0 1.0"/>
+          <mesh filename="package://ur5e_robot_description/meshes/zivid/zivid_onarm_mount.stl"
+                scale="0.001 0.001 0.001"/>
         </geometry>
       </collision>
       <inertial>
@@ -53,7 +54,7 @@
     <joint name="mount_to_camera_joint" type="fixed">
       <parent link="zivid_arm_mount"/>
       <child link="zivid_base_link"/>
-      <origin xyz="0.02803 0.07664 -0.04577"
+      <origin xyz="0.02803 0.07664 0.0"
               rpy="0.53964 -1.53712 -2.13794"/>
     </joint>
 
