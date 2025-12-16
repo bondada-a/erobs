@@ -113,7 +113,7 @@ ${BOLD}Environment:${RESET}
     - PYTHONPATH: ${PYTHONPATH}
 
 ${BOLD}Backend:${RESET}
-    - mtc_py (Python MTC implementation)
+    - beambot (Python MTC implementation)
     - Action server: mtc_execution_py
 
 ${BOLD}Available Example Scripts:${RESET}

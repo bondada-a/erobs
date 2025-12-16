@@ -9,7 +9,7 @@ Key differences from mtc_ophyd_device.py:
 - Proper cancellation support via cancel_goal()
 - Compatible with Bluesky's pause/resume mechanisms
 
-Backend: mtc_py (Python MTC implementation)
+Backend: beambot (Python MTC implementation)
 Action server: mtc_execution_py
 
 Usage:
@@ -60,9 +60,9 @@ class MTCExecutionDeviceAsync(Node, Movable):
         # Set name attribute for Ophyd
         self.name = name
 
-        # Dynamically load the action type from mtc_py
+        # Dynamically load the action type from beambot
         from rosidl_runtime_py.utilities import get_action
-        self.action_type = get_action('mtc_py/MTCExecution')
+        self.action_type = get_action('beambot/MTCExecution')
 
         self.robot_ip = robot_ip  # Kept for reference, not sent to action server
         self._action_client = ActionClient(self, self.action_type, 'mtc_execution_py')
@@ -95,7 +95,7 @@ class MTCExecutionDeviceAsync(Node, Movable):
             # Assume it's already a JSON string
             goal.full_json = json_path_or_string
 
-        # Note: mtc_py gets robot_ip from beamline config, not from action goal
+        # Note: beambot gets robot_ip from beamline config, not from action goal
         return goal
 
     def _spin_in_background(self):

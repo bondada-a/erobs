@@ -23,7 +23,7 @@ try:
     from std_srvs.srv import Trigger
     from zivid_interfaces.srv import CaptureAndDetectMarkers
     from cv_bridge import CvBridge
-    from mtc_py.action import MTCExecution
+    from beambot_interfaces.action import MTCExecution
     ROS2_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: ROS2 or required packages not available: {e}")
@@ -83,7 +83,7 @@ class MTCGUIClient:
     def setup_gui(self):
         """Setup the main GUI window"""
         self.root = tk.Tk()
-        self.root.title("MTC GUI Client (mtc_py)")
+        self.root.title("MTC GUI Client (beambot)")
         self.root.geometry("1920x1080")
 
         # Configure grid weights - 2 columns now
@@ -981,10 +981,10 @@ class MTCGUIClient:
                 return
 
             # Wait for action server
-            self.log_message("Waiting for mtc_execution_py action server...")
+            self.log_message("Waiting for beambot_execution action server...")
             if not self.mtc_action_client.wait_for_server(timeout_sec=10.0):
-                self.log_message("ERROR: Action server 'mtc_execution_py' not available!")
-                self.log_message("Make sure mtc_py is running: ros2 launch mtc_py mtc_py_bringup.launch.py")
+                self.log_message("ERROR: Action server 'beambot_execution' not available!")
+                self.log_message("Make sure beambot is running: ros2 launch beambot beambot_bringup.launch.py")
                 return
 
             self.log_message("Action server available, sending goal...")
@@ -1094,15 +1094,15 @@ class MTCGUIClient:
                 # Check if action client exists
                 if self.mtc_action_client is None:
                     self.log_message("✗ Action client not initialized")
-                    self.log_message("This usually means ROS2 or mtc_py package is not available")
+                    self.log_message("This usually means ROS2 or beambot package is not available")
                     return
 
                 self.log_message("✓ ROS2 available and action client initialized")
 
-                # Check if mtc_py package is available
+                # Check if beambot package is available
                 try:
                     result = subprocess.run(
-                        ['ros2', 'pkg', 'prefix', 'mtc_py'],
+                        ['ros2', 'pkg', 'prefix', 'beambot'],
                         capture_output=True,
                         text=True,
                         timeout=5
@@ -1110,20 +1110,20 @@ class MTCGUIClient:
 
                     if result.returncode == 0:
                         pkg_prefix = result.stdout.strip()
-                        self.log_message(f"✓ mtc_py package found at: {pkg_prefix}")
+                        self.log_message(f"✓ beambot package found at: {pkg_prefix}")
                     else:
-                        self.log_message("⚠ mtc_py package not found")
-                        self.log_message("Make sure the package is built: colcon build --packages-select mtc_py")
+                        self.log_message("⚠ beambot package not found")
+                        self.log_message("Make sure the package is built: colcon build --packages-select beambot")
                 except Exception as e:
-                    self.log_message(f"⚠ Could not check for mtc_py package: {e}")
+                    self.log_message(f"⚠ Could not check for beambot package: {e}")
 
                 # Check if action server is available
-                self.log_message("Checking if 'mtc_execution_py' action server is available...")
+                self.log_message("Checking if 'beambot_execution' action server is available...")
                 if self.mtc_action_client.wait_for_server(timeout_sec=3.0):
-                    self.log_message("✓ MTC action server (mtc_execution_py) is running!")
+                    self.log_message("✓ MTC action server (beambot_execution) is running!")
                 else:
                     self.log_message("⚠ MTC action server is not available")
-                    self.log_message("Start it with: ros2 launch mtc_py mtc_py_bringup.launch.py")
+                    self.log_message("Start it with: ros2 launch beambot beambot_bringup.launch.py")
 
                 # List available action servers for debugging
                 try:
@@ -1210,14 +1210,14 @@ class MTCGUIClient:
         messagebox.showinfo("About",
                           "MTC Action Client GUI\n\n"
                           "A graphical interface for the MoveIt Task Constructor (MTC) pipeline.\n"
-                          "Communicates directly with mtc_py orchestrator via ROS2 ActionClient.\n\n"
+                          "Communicates directly with beambot orchestrator via ROS2 ActionClient.\n\n"
                           "Features:\n"
                           "- Visual task sequence editor\n"
                           "- Pose management\n"
                           "- Live camera view with ArUco detection\n"
                           "- Real-time execution feedback\n\n"
-                          "Backend: mtc_py (Python MTC implementation)\n"
-                          "Action server: mtc_execution_py\n\n"
+                          "Backend: beambot (Python MTC implementation)\n"
+                          "Action server: beambot_execution\n\n"
                           "Version: 2.0")
 
     def create_camera_panel(self):
@@ -1283,11 +1283,11 @@ class MTCGUIClient:
                 '/capture_and_detect_markers'
             )
 
-            # Create MTC action client for mtc_py orchestrator
+            # Create MTC action client for beambot orchestrator
             self.mtc_action_client = ActionClient(
                 self.ros_node,
                 MTCExecution,
-                'mtc_execution_py'
+                'beambot_execution'
             )
 
             # Detection is now manual via button (no periodic timer)

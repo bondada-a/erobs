@@ -1,11 +1,11 @@
-# TaskBuilder Command Reference (mtc_py)
+# TaskBuilder Command Reference (beambot)
 
 Complete list of commands based on your actual workflows.
 
-**Backend:** mtc_py (Python MTC implementation)
+**Backend:** beambot (Python MTC implementation)
 **Action server:** mtc_execution_py
 
-> **Note:** Robot IP is now configured in mtc_py beamline config, not passed as argument.
+> **Note:** Robot IP is now configured in beambot beamline config, not passed as argument.
 
 ---
 

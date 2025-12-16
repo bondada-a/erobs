@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Simple MTC-Bluesky Integration
 
-This script demonstrates how to use mtc_py with Bluesky
-by using the mtc_py_client.py action client.
+This script demonstrates how to use beambot with Bluesky
+by using the beambot_client.py action client.
 
-Backend: mtc_py (Python MTC implementation)
+Backend: beambot (Python MTC implementation)
 """
 
 import argparse
@@ -19,14 +19,14 @@ from ophyd.status import Status
 
 
 class MTCDevice:
-    """Simple MTC device that uses mtc_py_client.py action client"""
+    """Simple MTC device that uses beambot_client.py action client"""
 
     def __init__(self, name="mtc_device"):
         self.name = name
         self.get_logger = lambda: print
 
     def set(self, task_params):
-        """Execute MTC task using mtc_py_client.py
+        """Execute MTC task using beambot_client.py
 
         Args:
             task_params: Dict with 'json_file' key (robot_ip no longer needed)
@@ -37,8 +37,8 @@ class MTCDevice:
         status = Status()
 
         try:
-            # Use mtc_py_client.py (only takes json file path)
-            cmd = ['ros2', 'run', 'mtc_py', 'mtc_py_client.py', json_file_path]
+            # Use beambot_client.py (only takes json file path)
+            cmd = ['ros2', 'run', 'beambot', 'beambot_client.py', json_file_path]
 
             print(f"Executing MTC task from: {json_file_path}")
 
@@ -79,11 +79,11 @@ def simple_mtc_plan(mtc_device, json_files):
 
 def main():
     """Main function"""
-    print("=== Simple MTC-Bluesky Integration (mtc_py) ===")
+    print("=== Simple MTC-Bluesky Integration (beambot) ===")
 
     # Parse command-line arguments
     parser = argparse.ArgumentParser(
-        description='Execute MTC tasks using Bluesky with mtc_py backend',
+        description='Execute MTC tasks using Bluesky with beambot backend',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
@@ -96,7 +96,7 @@ Examples:
   # Multiple files
   python3 simple_mtc_bluesky.py test1.json test2.json
 
-Note: Robot IP is now configured in mtc_py beamline config, not passed as argument.
+Note: Robot IP is now configured in beambot beamline config, not passed as argument.
         """
     )
     parser.add_argument(

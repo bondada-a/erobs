@@ -1,6 +1,6 @@
 """MTC Python Ophyd Device for Bluesky Integration
 
-This module provides an Ophyd device wrapper for mtc_py orchestrator,
+This module provides an Ophyd device wrapper for beambot orchestrator,
 enabling Bluesky experiment orchestration with MTC robot tasks.
 """
 
@@ -31,9 +31,9 @@ class MTCExecutionDevice(Node, Movable):
         # Set name attribute for Ophyd
         self.name = name
 
-        # Dynamically load the action type from mtc_py
+        # Dynamically load the action type from beambot
         from rosidl_runtime_py.utilities import get_action
-        self.action_type = get_action('mtc_py/MTCExecution')
+        self.action_type = get_action('beambot/MTCExecution')
 
         self.robot_ip = robot_ip  # Kept for reference, not sent to action server
         self._action_client = ActionClient(self, self.action_type, 'mtc_execution_py')
@@ -61,7 +61,7 @@ class MTCExecutionDevice(Node, Movable):
             # Assume it's already a JSON string
             goal.full_json = json_path_or_string
 
-        # Note: mtc_py gets robot_ip from beamline config, not from action goal
+        # Note: beambot gets robot_ip from beamline config, not from action goal
         return goal
 
     def set(self, json_path_or_string):
