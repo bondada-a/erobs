@@ -1368,9 +1368,9 @@ class MTCGUIClient:
                 foreground="blue"
             )
 
-            # Request detection for common marker IDs (0-20) using default dictionary
+            # Request detection for all marker IDs in aruco4x4_50 dictionary (0-49)
             request = CaptureAndDetectMarkers.Request()
-            request.marker_ids = list(range(21))  # Detect IDs 0-20
+            request.marker_ids = list(range(50))  # Detect IDs 0-49 (full dictionary)
             request.marker_dictionary = "aruco4x4_50"  # Default dictionary
 
             # Send async request

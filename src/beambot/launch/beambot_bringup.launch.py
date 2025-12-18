@@ -150,6 +150,28 @@ def generate_launch_description():
         condition=IfCondition(enable_vision),
     )
 
+    # Zivid camera node - provides /capture_and_detect_markers service (conditional)
+    zivid_camera = Node(
+        package='zivid_camera',
+        executable='zivid_camera',
+        name='zivid_camera',
+        output='screen',
+        parameters=[{
+            'settings_2d_file_path': PathJoinSubstitution([
+                FindPackageShare('beambot'),
+                'config',
+                'zivid_settings.yml'
+            ]),
+            'settings_file_path': PathJoinSubstitution([
+                FindPackageShare('beambot'),
+                'config',
+                'zivid_3d_settings.yml'
+            ]),
+            'frame_id': 'zivid_optical_frame'
+        }],
+        condition=IfCondition(enable_vision),
+    )
+
     # Pipettor action server (conditional)
     pipettor_server = Node(
         package='beambot',
@@ -187,6 +209,8 @@ def generate_launch_description():
         # Vision servers (conditional)
         vision_server,
         vision_pick_place_server,
+        # Zivid camera (conditional - provides /capture_and_detect_markers service)
+        zivid_camera,
         # Pipettor server (conditional)
         pipettor_server,
         # Orchestrator (always launched)

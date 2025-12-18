@@ -1,6 +1,6 @@
 {
   "vision_objects": {
-    "2": {
+    "200": {
       "name": "sample_bar",
       "shape": "box",
       "dimensions": [0.026, 0.013, 0.11],

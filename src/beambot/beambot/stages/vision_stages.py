@@ -21,7 +21,7 @@ from moveit_msgs.msg import CollisionObject, PlanningScene
 from moveit_msgs.srv import GetPlanningScene
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from shape_msgs.msg import SolidPrimitive
-from tf2_geometry_msgs import do_transform_pose
+from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
 from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix
 
@@ -233,11 +233,11 @@ class VisionStages(BaseStages):
             PoseStamped in base_link frame, or None on failure
         """
         try:
-            # Check if transform is available
+            # Check if transform is available (use Time() for latest available, not now())
             if not self._tf_buffer.can_transform(
                 "base_link",
                 self.DEFAULT_CAMERA_FRAME,
-                self.rclpy_node.get_clock().now(),
+                rclpy.time.Time(),  # Latest available transform
                 timeout=rclpy.duration.Duration(seconds=1.0)
             ):
                 self.logger.error(
@@ -257,7 +257,7 @@ class VisionStages(BaseStages):
                 self.DEFAULT_CAMERA_FRAME,
                 rclpy.time.Time()
             )
-            pose_out = do_transform_pose(pose_in, transform)
+            pose_out = do_transform_pose_stamped(pose_in, transform)
             pose_out.header.frame_id = "base_link"
 
             return pose_out

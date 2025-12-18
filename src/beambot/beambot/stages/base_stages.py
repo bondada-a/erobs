@@ -16,15 +16,18 @@ from std_msgs.msg import Header
 from moveit_msgs.msg import Constraints, JointConstraint, MoveItErrorCodes
 
 
-# Direction vectors matching C++ implementation in base_stages.cpp
-# Z is inverted (flange Z points into tool)
+# Direction vectors for relative moves in ik_frame
+# Updated 2024: Compensates for 180° wrist rotation (camera mount XACRO change)
+# - forward/backward (X): unchanged
+# - left/right (Y): swapped
+# - up/down (Z): swapped
 DIRECTION_VECTORS: Dict[str, Tuple[float, float, float]] = {
     "forward":  ( 1.0,  0.0,  0.0), "x":  ( 1.0,  0.0,  0.0),
     "backward": (-1.0,  0.0,  0.0), "-x": (-1.0,  0.0,  0.0),
-    "right":    ( 0.0,  1.0,  0.0), "y":  ( 0.0,  1.0,  0.0),
-    "left":     ( 0.0, -1.0,  0.0), "-y": ( 0.0, -1.0,  0.0),
-    "up":       ( 0.0,  0.0, -1.0), "z":  ( 0.0,  0.0, -1.0),
-    "down":     ( 0.0,  0.0,  1.0), "-z": ( 0.0,  0.0,  1.0),
+    "right":    ( 0.0, -1.0,  0.0), "y":  ( 0.0, -1.0,  0.0),
+    "left":     ( 0.0,  1.0,  0.0), "-y": ( 0.0,  1.0,  0.0),
+    "up":       ( 0.0,  0.0,  1.0), "z":  ( 0.0,  0.0,  1.0),
+    "down":     ( 0.0,  0.0, -1.0), "-z": ( 0.0,  0.0, -1.0),
 }
 
 # UR5e default joint names (matches base_stages.cpp)

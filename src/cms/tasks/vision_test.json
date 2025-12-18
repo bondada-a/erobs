@@ -1,9 +1,31 @@
 {
   "start_gripper": "hande",
   "poses": {
-    "load_approach": [-67.51,-49.60,123.72,-164.22,-89.98,-67.08],
-    "dock_approach": [-53.59, -43.65, 105.82, -152.27, -90.01, -53.15],
-    "vision_approach":[142.02, -188.94, -33.48, 43.20, -50.44, 1.18]},
+    "load_approach": [
+      -67.51,
+      -49.6,
+      123.72,
+      -164.22,
+      -89.98,
+      -247.07999999999998
+    ],
+    "dock_approach": [
+      -53.59,
+      -43.65,
+      105.82,
+      -152.27,
+      -90.01,
+      -233.15
+    ],
+    "vision_approach": [
+      142.02,
+      -188.94,
+      -33.48,
+      43.2,
+      -50.44,
+      -178.82
+    ]
+  },
   "tasks": [
     {
       "task_type": "moveto",
@@ -12,9 +34,9 @@
       "planning_type": "cartesian"
     },
     {
-        "task_type": "vision_moveto",
-        "tag_id": 1,
-        "timeout": 15.0
-      }
+      "task_type": "vision_moveto",
+      "tag_id": 1,
+      "timeout": 15.0
+    }
   ]
 }
