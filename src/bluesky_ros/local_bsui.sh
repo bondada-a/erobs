@@ -114,7 +114,7 @@ ${BOLD}Environment:${RESET}
 
 ${BOLD}Backend:${RESET}
     - beambot (Python MTC implementation)
-    - Action server: mtc_execution_py
+    - Action server: beambot_execution
 
 ${BOLD}Available Example Scripts:${RESET}
     - simple_mtc_bluesky.py    : Simple MTC task execution with Bluesky

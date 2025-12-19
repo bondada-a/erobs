@@ -10,7 +10,7 @@ Key differences from mtc_ophyd_device.py:
 - Compatible with Bluesky's pause/resume mechanisms
 
 Backend: beambot (Python MTC implementation)
-Action server: mtc_execution_py
+Action server: beambot_execution
 
 Usage:
     from bluesky_ros.mtc_ophyd_device_async import MTCExecutionDeviceAsync
@@ -65,7 +65,7 @@ class MTCExecutionDeviceAsync(Node, Movable):
         self.action_type = get_action('beambot/MTCExecution')
 
         self.robot_ip = robot_ip  # Kept for reference, not sent to action server
-        self._action_client = ActionClient(self, self.action_type, 'mtc_execution_py')
+        self._action_client = ActionClient(self, self.action_type, 'beambot_execution')
         self._goal_handle = None
         self._bluesky_status = None
         self._send_goal_future = None

@@ -36,7 +36,7 @@ class MTCExecutionDevice(Node, Movable):
         self.action_type = get_action('beambot/MTCExecution')
 
         self.robot_ip = robot_ip  # Kept for reference, not sent to action server
-        self._action_client = ActionClient(self, self.action_type, 'mtc_execution_py')
+        self._action_client = ActionClient(self, self.action_type, 'beambot_execution')
         self._goal_handle = None
         self._bluesky_status = None
         self._send_goal_future = None

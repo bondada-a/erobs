@@ -3,7 +3,7 @@
 Complete list of commands based on your actual workflows.
 
 **Backend:** beambot (Python MTC implementation)
-**Action server:** mtc_execution_py
+**Action server:** beambot_execution
 
 > **Note:** Robot IP is now configured in beambot beamline config, not passed as argument.
 
