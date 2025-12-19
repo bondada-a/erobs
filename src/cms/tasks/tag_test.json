@@ -149,6 +149,237 @@
       "tag_id": 8,
       "timeout": 10.0,
       "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 9,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 10,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 11,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 12,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 13,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 14,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 15,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 16,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 17,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 18,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 19,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 20,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 21,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 22,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 23,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 24,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 25,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 26,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 27,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 28,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
+    },
+    {
+      "task_type": "moveto",
+      "target": "tagger",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 29,
+      "timeout": 10.0,
+      "marker_dictionary": "aruco4x4_50"
     }
   ]
 }

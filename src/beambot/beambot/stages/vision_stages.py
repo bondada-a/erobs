@@ -9,6 +9,7 @@ Handles vision-guided robot movement:
 
 import json
 import math
+import time
 from dataclasses import dataclass
 from typing import Dict, Optional
 
@@ -53,15 +54,32 @@ class VisionStages(BaseStages):
     DEFAULT_MARKER_DICTIONARY = "aruco4x4_50"
     DEFAULT_CAMERA_FRAME = "zivid_optical_frame"
 
-    def __init__(self, rclpy_node, arm_group: str = "", ik_frame: str = ""):
+    # Retry configuration
+    DEFAULT_RETRY_COUNT = 3  # Number of retries after first attempt
+    DEFAULT_RETRY_DELAY = 0.5  # Seconds between retries
+
+    def __init__(
+        self,
+        rclpy_node,
+        arm_group: str = "",
+        ik_frame: str = "",
+        retry_count: int = None,
+        retry_delay: float = None
+    ):
         """Initialize VisionStages.
 
         Args:
             rclpy_node: ROS node for service calls and TF
             arm_group: MoveIt planning group for arm
             ik_frame: IK frame (empty = auto-detect)
+            retry_count: Number of detection retries (default: 3)
+            retry_delay: Delay between retries in seconds (default: 0.5)
         """
         super().__init__(rclpy_node, arm_group, ik_frame=ik_frame)
+
+        # Retry configuration
+        self._retry_count = retry_count if retry_count is not None else self.DEFAULT_RETRY_COUNT
+        self._retry_delay = retry_delay if retry_delay is not None else self.DEFAULT_RETRY_DELAY
 
         # TF2
         self._tf_buffer = Buffer()
@@ -156,12 +174,60 @@ class VisionStages(BaseStages):
     ) -> Optional[PoseStamped]:
         """Detect an ArUco marker and transform to base_link frame.
 
+        Includes retry logic for transient detection failures.
+
+        Args:
+            tag_id: ArUco marker ID to detect
+            timeout: Detection timeout in seconds (per attempt)
+
+        Returns:
+            PoseStamped in base_link frame, or None if all retries exhausted
+        """
+        total_attempts = 1 + self._retry_count  # Initial attempt + retries
+        last_error = "Unknown error"
+
+        for attempt in range(total_attempts):
+            if attempt > 0:
+                self.logger.info(
+                    f"Retry {attempt}/{self._retry_count} for tag {tag_id} "
+                    f"(waiting {self._retry_delay}s...)"
+                )
+                time.sleep(self._retry_delay)
+
+            result = self._single_detection_attempt(tag_id, timeout)
+
+            if result is not None:
+                # Success - process the detection
+                pose_base = self._process_detection_result(tag_id, result)
+                if pose_base is not None:
+                    if attempt > 0:
+                        self.logger.info(
+                            f"Tag {tag_id} detected on retry {attempt}"
+                        )
+                    return pose_base
+                else:
+                    last_error = f"Tag {tag_id} not found in detection results"
+            else:
+                last_error = f"Detection attempt failed"
+
+        self.logger.error(
+            f"Failed to detect tag {tag_id} after {total_attempts} attempts: {last_error}"
+        )
+        return None
+
+    def _single_detection_attempt(
+        self,
+        tag_id: int,
+        timeout: float
+    ) -> Optional[object]:
+        """Execute a single detection attempt.
+
         Args:
             tag_id: ArUco marker ID to detect
             timeout: Detection timeout in seconds
 
         Returns:
-            PoseStamped in base_link frame, or None if detection failed
+            Service result if successful, None otherwise
         """
         self.logger.info(f"Detecting tag {tag_id}...")
 
@@ -181,14 +247,30 @@ class VisionStages(BaseStages):
         rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=timeout)
 
         if not future.done():
-            self.logger.error("Zivid service timeout")
+            self.logger.warn("Zivid service timeout")
             return None
 
         result = future.result()
         if not result.success:
-            self.logger.error(f"Detection failed: {result.message}")
+            self.logger.warn(f"Detection failed: {result.message}")
             return None
 
+        return result
+
+    def _process_detection_result(
+        self,
+        tag_id: int,
+        result: object
+    ) -> Optional[PoseStamped]:
+        """Process detection result and transform to base_link.
+
+        Args:
+            tag_id: ArUco marker ID to find
+            result: Service result containing detected markers
+
+        Returns:
+            PoseStamped in base_link frame, or None if tag not found
+        """
         # Find the requested marker in results
         for marker in result.detection_result.detected_markers:
             if marker.id == tag_id:

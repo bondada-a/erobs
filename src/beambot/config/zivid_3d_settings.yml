@@ -4,20 +4,20 @@ Settings:
     - Acquisition:
         Aperture: 4
         Brightness: 2.5
-        ExposureTime: 2000
+        ExposureTime: 5000
         Gain: 1
     - Acquisition:
-        Aperture: 4
+        Aperture: 3.36
         Brightness: 2.5
-        ExposureTime: 20000
+        ExposureTime: 60000
         Gain: 1
   Color:
-    __version__: 7
+    __version__: 8
     Settings2D:
       Acquisitions:
         - Acquisition:
             Aperture: 4.36
-            Brightness: 0.0
+            Brightness: 0
             ExposureTime: 15000
             Gain: 4
       Processing:
@@ -31,6 +31,9 @@ Settings:
           Gamma: 1
       Sampling:
         Color: grayscale
+        Interval:
+          Duration: __not_set__
+          Enabled: __not_set__
         Pixel: all
   Diagnostics:
     Enabled: no
