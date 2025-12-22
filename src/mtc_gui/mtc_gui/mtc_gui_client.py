@@ -177,6 +177,9 @@ class MTCGUIClient:
         ttk.Button(toolbar_row2, text="Add Vision MoveTo", command=lambda: self.add_task_step("vision_moveto")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar_row2, text="Add Pipettor", command=lambda: self.add_task_step("pipettor")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar_row2, text="Remove Step", command=self.remove_task_step).pack(side="left", padx=(20, 0))
+        ttk.Button(toolbar_row2, text="Clear All", command=self.clear_all_tasks).pack(side="left", padx=(5, 0))
+        ttk.Button(toolbar_row2, text="↑ Move Up", command=self.move_task_up).pack(side="left", padx=(20, 0))
+        ttk.Button(toolbar_row2, text="↓ Move Down", command=self.move_task_down).pack(side="left", padx=(5, 0))
         
         # Task sequence tree
         self.task_tree = ttk.Treeview(editor_frame, columns=("Action", "Details"), show="tree headings")
@@ -377,19 +380,105 @@ class MTCGUIClient:
         self.log_message(f"Added {action_type} step")
 
     def remove_task_step(self):
-        """Remove selected task step"""
+        """Remove all selected task steps (supports multi-select with Ctrl+Click or Shift+Click)"""
         selection = self.task_tree.selection()
         if not selection:
-            messagebox.showwarning("Warning", "Please select a step to remove")
+            messagebox.showwarning("Warning", "Please select step(s) to remove")
             return
 
-        item = selection[0]
-        step_index = int(item) - 1
+        # Convert 1-based item IDs to 0-based indices, sorted descending
+        # (must delete from highest index first to avoid shifting issues)
+        indices = sorted([int(item) - 1 for item in selection], reverse=True)
 
-        if 0 <= step_index < len(self.current_config["tasks"]):
-            removed_step = self.current_config["tasks"].pop(step_index)
+        # Remove each selected task
+        removed_tasks = []
+        for step_index in indices:
+            if 0 <= step_index < len(self.current_config["tasks"]):
+                removed_step = self.current_config["tasks"].pop(step_index)
+                removed_tasks.append(removed_step['task_type'])
+
+        if removed_tasks:
             self.update_task_tree()
-            self.log_message(f"Removed step: {removed_step['task_type']}")
+            # Log message (reverse list to show in original order)
+            removed_tasks.reverse()
+            if len(removed_tasks) == 1:
+                self.log_message(f"Removed step: {removed_tasks[0]}")
+            else:
+                self.log_message(f"Removed {len(removed_tasks)} steps: {', '.join(removed_tasks)}")
+
+    def clear_all_tasks(self):
+        """Clear all tasks from the sequence with confirmation"""
+        if not self.current_config["tasks"]:
+            messagebox.showinfo("Info", "Task list is already empty")
+            return
+
+        # Ask for confirmation
+        task_count = len(self.current_config["tasks"])
+        if messagebox.askyesno("Confirm Clear All",
+                               f"Are you sure you want to remove all {task_count} task(s)?"):
+            self.current_config["tasks"] = []
+            self.update_task_tree()
+            self.log_message(f"Cleared all {task_count} tasks")
+
+    def move_task_up(self):
+        """Move selected task up in the sequence"""
+        selection = self.task_tree.selection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select a step to move")
+            return
+
+        if len(selection) > 1:
+            messagebox.showwarning("Warning", "Please select only one step to move")
+            return
+
+        # Convert 1-based item ID to 0-based index
+        step_index = int(selection[0]) - 1
+        tasks = self.current_config["tasks"]
+
+        # Check bounds
+        if step_index <= 0:
+            messagebox.showinfo("Info", "Cannot move the first step up")
+            return
+
+        # Swap with previous item
+        tasks[step_index], tasks[step_index - 1] = tasks[step_index - 1], tasks[step_index]
+        self.update_task_tree()
+
+        # Re-select the moved item (now at new position)
+        new_item_id = str(step_index)  # Was step_index+1, now step_index (1-based)
+        self.task_tree.selection_set(new_item_id)
+        self.task_tree.focus(new_item_id)
+        self.log_message(f"Moved step {step_index + 1} up to position {step_index}")
+
+    def move_task_down(self):
+        """Move selected task down in the sequence"""
+        selection = self.task_tree.selection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select a step to move")
+            return
+
+        if len(selection) > 1:
+            messagebox.showwarning("Warning", "Please select only one step to move")
+            return
+
+        # Convert 1-based item ID to 0-based index
+        step_index = int(selection[0]) - 1
+        tasks = self.current_config["tasks"]
+
+        # Check bounds
+        if step_index >= len(tasks) - 1:
+            messagebox.showinfo("Info", "Cannot move the last step down")
+            return
+
+        # Swap with next item
+        tasks[step_index], tasks[step_index + 1] = tasks[step_index + 1], tasks[step_index]
+        self.update_task_tree()
+
+        # Re-select the moved item (now at new position)
+        new_item_id = str(step_index + 2)  # Was step_index+1, now step_index+2 (1-based)
+        self.task_tree.selection_set(new_item_id)
+        self.task_tree.focus(new_item_id)
+        self.log_message(f"Moved step {step_index + 1} down to position {step_index + 2}")
 
     def edit_task_step(self, event):
         """Edit selected task step"""
