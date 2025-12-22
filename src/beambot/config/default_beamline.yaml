@@ -6,7 +6,7 @@ beamline: "default"
 
 robot:
   model: "ur5e"
-  ip: "192.168.56.101"          # Default IP from current launch files
+  ip: "192.168.1.101"          # Default IP from current launch files
   arm_group: "ur_arm"
   ik_frame: "tool0"
 
@@ -38,3 +38,9 @@ grippers:
     tool_voltage: 24
     gripper_group: ""              # Pipettor has no gripper group
     states: {}                     # No states
+
+# Vision camera configuration
+camera:
+  type: "zivid"                    # Camera type: "zivid" (supports: zivid)
+  frame: "zivid_optical_frame"     # TF frame for camera
+  marker_dictionary: "aruco4x4_50" # ArUco dictionary for detection

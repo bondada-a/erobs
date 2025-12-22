@@ -134,7 +134,9 @@ def generate_launch_description():
         executable='vision_server.py',
         name='beambot_vision_server',
         output='screen',
-        parameters=action_server_parameters,
+        parameters=action_server_parameters + [
+            {'beamline_config': beamline_config_path}
+        ],
         arguments=ompl_args,
         condition=IfCondition(enable_vision),
     )
@@ -145,7 +147,9 @@ def generate_launch_description():
         executable='vision_pick_place_server.py',
         name='beambot_vision_pickplace_server',
         output='screen',
-        parameters=action_server_parameters,
+        parameters=action_server_parameters + [
+            {'beamline_config': beamline_config_path}
+        ],
         arguments=ompl_args,
         condition=IfCondition(enable_vision),
     )

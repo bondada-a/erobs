@@ -24,18 +24,36 @@ from beambot.stages.vision_stages import VisionStages
 class VisionPickPlaceStages(BaseStages):
     """Handles vision-guided pick and place operations."""
 
-    def __init__(self, rclpy_node, arm_group: str = "", ik_frame: str = ""):
+    def __init__(
+        self,
+        rclpy_node,
+        arm_group: str = "",
+        ik_frame: str = "",
+        camera_type: str = None,
+        camera_frame: str = None,
+        marker_dictionary: str = None,
+    ):
         """Initialize VisionPickPlaceStages.
 
         Args:
             rclpy_node: ROS node for service calls and TF
             arm_group: MoveIt planning group for arm
             ik_frame: IK frame for motion planning
+            camera_type: Camera type from beamline config (default: "zivid")
+            camera_frame: Camera TF frame (default: "zivid_optical_frame")
+            marker_dictionary: ArUco dictionary (default: "aruco4x4_50")
         """
         super().__init__(rclpy_node, arm_group, ik_frame=ik_frame)
 
-        # Create VisionStages instance for marker detection
-        self._vision = VisionStages(rclpy_node, arm_group, ik_frame)
+        # Create VisionStages instance for marker detection (with camera config)
+        self._vision = VisionStages(
+            rclpy_node,
+            arm_group,
+            ik_frame,
+            camera_type=camera_type,
+            camera_frame=camera_frame,
+            marker_dictionary=marker_dictionary,
+        )
 
         self.logger.info("VisionPickPlaceStages initialized")
 

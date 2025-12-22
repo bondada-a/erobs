@@ -11,7 +11,7 @@ import json
 import math
 import time
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import rclpy
@@ -26,8 +26,7 @@ from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
 from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix
 
-from zivid_interfaces.srv import CaptureAndDetectMarkers
-
+from beambot.camera import get_camera
 from beambot.stages.base_stages import BaseStages
 
 
@@ -50,19 +49,23 @@ class GripperDetection:
 class VisionStages(BaseStages):
     """Handles vision-guided movement to ArUco markers."""
 
-    # Default parameters
-    DEFAULT_MARKER_DICTIONARY = "aruco4x4_50"
-    DEFAULT_CAMERA_FRAME = "zivid_optical_frame"
-
-    # Retry configuration
+    # Retry configuration defaults
     DEFAULT_RETRY_COUNT = 3  # Number of retries after first attempt
     DEFAULT_RETRY_DELAY = 0.5  # Seconds between retries
+
+    # Default camera settings (used if not specified)
+    DEFAULT_CAMERA_TYPE = "zivid"
+    DEFAULT_CAMERA_FRAME = "zivid_optical_frame"
+    DEFAULT_MARKER_DICTIONARY = "aruco4x4_50"
 
     def __init__(
         self,
         rclpy_node,
         arm_group: str = "",
         ik_frame: str = "",
+        camera_type: str = None,
+        camera_frame: str = None,
+        marker_dictionary: str = None,
         retry_count: int = None,
         retry_delay: float = None
     ):
@@ -72,10 +75,18 @@ class VisionStages(BaseStages):
             rclpy_node: ROS node for service calls and TF
             arm_group: MoveIt planning group for arm
             ik_frame: IK frame (empty = auto-detect)
+            camera_type: Camera type from beamline config (default: "zivid")
+            camera_frame: Camera TF frame (default: "zivid_optical_frame")
+            marker_dictionary: ArUco dictionary (default: "aruco4x4_50")
             retry_count: Number of detection retries (default: 3)
             retry_delay: Delay between retries in seconds (default: 0.5)
         """
         super().__init__(rclpy_node, arm_group, ik_frame=ik_frame)
+
+        # Camera configuration
+        self._camera_type = camera_type if camera_type else self.DEFAULT_CAMERA_TYPE
+        self._camera_frame = camera_frame if camera_frame else self.DEFAULT_CAMERA_FRAME
+        self._marker_dictionary = marker_dictionary if marker_dictionary else self.DEFAULT_MARKER_DICTIONARY
 
         # Retry configuration
         self._retry_count = retry_count if retry_count is not None else self.DEFAULT_RETRY_COUNT
@@ -86,11 +97,9 @@ class VisionStages(BaseStages):
         self._tf_listener = TransformListener(self._tf_buffer, rclpy_node)
         self._tf_broadcaster = TransformBroadcaster(rclpy_node)
 
-        # Zivid service client
-        self._capture_client = rclpy_node.create_client(
-            CaptureAndDetectMarkers,
-            "/capture_and_detect_markers"
-        )
+        # Camera module and service client
+        self._camera = get_camera(self._camera_type)
+        self._capture_client = self._camera.create_client(rclpy_node)
 
         # Planning scene publisher (same pattern as moveit_lifecycle_manager)
         scene_qos = QoSProfile(
@@ -108,7 +117,6 @@ class VisionStages(BaseStages):
         )
 
         # Parameters
-        self._marker_dictionary = self.DEFAULT_MARKER_DICTIONARY
         self._publish_marker_frames = True
 
         # Object database (loaded from config)
@@ -118,7 +126,8 @@ class VisionStages(BaseStages):
         self._load_vision_objects_config()
 
         self.logger.info(
-            f"VisionStages initialized (ik_frame: "
+            f"VisionStages initialized (camera: {self._camera_type}, "
+            f"frame: {self._camera_frame}, ik_frame: "
             f"{'auto-detect' if not ik_frame else ik_frame})"
         )
 
@@ -219,69 +228,58 @@ class VisionStages(BaseStages):
         self,
         tag_id: int,
         timeout: float
-    ) -> Optional[object]:
-        """Execute a single detection attempt.
+    ) -> Optional[List[Tuple[int, Pose]]]:
+        """Execute a single detection attempt using camera module.
 
         Args:
             tag_id: ArUco marker ID to detect
             timeout: Detection timeout in seconds
 
         Returns:
-            Service result if successful, None otherwise
+            List of (marker_id, pose) tuples if successful, None on error
         """
         self.logger.info(f"Detecting tag {tag_id}...")
 
-        # Wait for service
-        if not self._capture_client.wait_for_service(timeout_sec=2.0):
-            self.logger.error("Zivid service not available")
+        # Use camera module for detection
+        detected = self._camera.detect_markers(
+            self._capture_client,
+            self.rclpy_node,
+            marker_ids=[tag_id],
+            dictionary=self._marker_dictionary,
+            timeout=timeout
+        )
+
+        if not detected:
+            self.logger.warn("No markers detected")
             return None
 
-        # Send detection request
-        request = CaptureAndDetectMarkers.Request()
-        request.marker_ids = [tag_id]
-        request.marker_dictionary = self._marker_dictionary
-
-        future = self._capture_client.call_async(request)
-
-        # Wait for result
-        rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=timeout)
-
-        if not future.done():
-            self.logger.warn("Zivid service timeout")
-            return None
-
-        result = future.result()
-        if not result.success:
-            self.logger.warn(f"Detection failed: {result.message}")
-            return None
-
-        return result
+        return detected
 
     def _process_detection_result(
         self,
         tag_id: int,
-        result: object
+        detected_markers: List[Tuple[int, Pose]]
     ) -> Optional[PoseStamped]:
         """Process detection result and transform to base_link.
 
         Args:
             tag_id: ArUco marker ID to find
-            result: Service result containing detected markers
+            detected_markers: List of (marker_id, pose) tuples from camera
 
         Returns:
             PoseStamped in base_link frame, or None if tag not found
         """
         # Find the requested marker in results
-        for marker in result.detection_result.detected_markers:
-            if marker.id == tag_id:
+        for marker_id, marker_pose in detected_markers:
+            if marker_id == tag_id:
                 self.logger.info(
-                    f"Tag {marker.id} at [{marker.pose.position.x:.3f}, "
-                    f"{marker.pose.position.y:.3f}, {marker.pose.position.z:.3f}] "
+                    f"Tag {marker_id} at [{marker_pose.position.x:.3f}, "
+                    f"{marker_pose.position.y:.3f}, {marker_pose.position.z:.3f}] "
                     f"in camera frame"
                 )
 
                 # Transform to base_link
-                pose_base = self._transform_to_base_link(marker.pose)
+                pose_base = self._transform_to_base_link(marker_pose)
                 if pose_base is None:
                     return None
 
@@ -301,7 +299,7 @@ class VisionStages(BaseStages):
 
         self.logger.warn(
             f"Tag {tag_id} not in results "
-            f"({len(result.detection_result.detected_markers)} markers detected)"
+            f"({len(detected_markers)} markers detected)"
         )
         return None
 
@@ -318,25 +316,25 @@ class VisionStages(BaseStages):
             # Check if transform is available (use Time() for latest available, not now())
             if not self._tf_buffer.can_transform(
                 "base_link",
-                self.DEFAULT_CAMERA_FRAME,
+                self._camera_frame,
                 rclpy.time.Time(),  # Latest available transform
                 timeout=rclpy.duration.Duration(seconds=1.0)
             ):
                 self.logger.error(
-                    f"TF {self.DEFAULT_CAMERA_FRAME} -> base_link not available"
+                    f"TF {self._camera_frame} -> base_link not available"
                 )
                 return None
 
             # Create stamped pose in camera frame
             pose_in = PoseStamped()
-            pose_in.header.frame_id = self.DEFAULT_CAMERA_FRAME
+            pose_in.header.frame_id = self._camera_frame
             pose_in.header.stamp = self.rclpy_node.get_clock().now().to_msg()
             pose_in.pose = pose_camera
 
             # Transform
             transform = self._tf_buffer.lookup_transform(
                 "base_link",
-                self.DEFAULT_CAMERA_FRAME,
+                self._camera_frame,
                 rclpy.time.Time()
             )
             pose_out = do_transform_pose_stamped(pose_in, transform)
