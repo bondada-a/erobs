@@ -32,6 +32,8 @@ from beambot_interfaces.action import (
     PipettorAction,
 )
 from controller_manager_msgs.srv import ListControllers, SwitchController
+from std_srvs.srv import Trigger
+from std_msgs.msg import String
 
 from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
 
@@ -63,6 +65,12 @@ class MTCOrchestratorServer(Node):
         self._executing = False
         self._lock = threading.Lock()
         self._current_gripper = "none"
+
+        # Pause/Resume state
+        self._pause_requested = False
+        self._is_paused = False
+        self._pause_event = threading.Event()
+        self._pause_event.set()  # Start in "go" state (not blocked)
 
         # Load beamline configuration (single source of truth)
         self.declare_parameter("beamline_config", "config/default_beamline.yaml")
@@ -157,7 +165,23 @@ class MTCOrchestratorServer(Node):
             "gripper_action_controller",
         ]
 
+        # Pause/Resume services
+        self._pause_service = self.create_service(
+            Trigger, 'beambot/pause', self._pause_callback,
+            callback_group=self._callback_group
+        )
+        self._resume_service = self.create_service(
+            Trigger, 'beambot/resume', self._resume_callback,
+            callback_group=self._callback_group
+        )
+
+        # Execution state publisher
+        self._state_publisher = self.create_publisher(
+            String, 'beambot/execution_state', 10
+        )
+
         self.get_logger().info("MTC Orchestrator (Python) started on 'beambot_execution'")
+        self.get_logger().info("Pause/Resume services available: beambot/pause, beambot/resume")
 
     def _goal_callback(self, goal_request) -> GoalResponse:
         """Handle incoming goal requests."""
@@ -171,6 +195,104 @@ class MTCOrchestratorServer(Node):
         """Handle cancel requests."""
         self.get_logger().info("Cancel request received - will stop after current task")
         return CancelResponse.ACCEPT
+
+    def _pause_callback(self, request, response):
+        """Handle pause service request.
+
+        Sets a flag to pause execution after the current task completes.
+        """
+        with self._lock:
+            if not self._executing:
+                response.success = False
+                response.message = "No task is currently executing"
+                return response
+
+            if self._is_paused:
+                response.success = False
+                response.message = "Already paused"
+                return response
+
+            if self._pause_requested:
+                response.success = False
+                response.message = "Pause already requested, waiting for current task to complete"
+                return response
+
+            self._pause_requested = True
+            self._publish_state("COMPLETING_TASK")
+            response.success = True
+            response.message = "Pause requested - will pause after current task completes"
+
+        self.get_logger().info("Pause requested - will pause after current task")
+        return response
+
+    def _resume_callback(self, request, response):
+        """Handle resume service request.
+
+        Signals the paused execution to continue.
+        """
+        with self._lock:
+            if not self._is_paused:
+                response.success = False
+                response.message = "Not currently paused"
+                return response
+
+            self._is_paused = False
+            self._pause_event.set()  # Unblock the waiting thread
+            response.success = True
+            response.message = "Resuming execution"
+
+        self.get_logger().info("Resume requested - continuing execution")
+        return response
+
+    def _publish_state(self, state: str):
+        """Publish current execution state to the state topic.
+
+        States: IDLE, RUNNING, PAUSED, COMPLETING_TASK
+        """
+        msg = String()
+        msg.data = state
+        self._state_publisher.publish(msg)
+
+    def _handle_pause(
+        self,
+        feedback: MTCExecution.Feedback,
+        goal_handle: ServerGoalHandle,
+        current_step: int,
+        total_steps: int
+    ):
+        """Block execution until resumed or cancelled.
+
+        Called when _pause_requested is True. Updates state, publishes feedback,
+        and waits for resume signal or cancel request.
+        """
+        with self._lock:
+            self._pause_requested = False
+            self._is_paused = True
+            self._pause_event.clear()  # Block the event
+
+        self._publish_state("PAUSED")
+        self.get_logger().info(f"Paused after step {current_step}/{total_steps}")
+
+        # Update feedback to show paused state
+        feedback.status_message = f"PAUSED - completed {current_step}/{total_steps}, waiting for resume"
+        goal_handle.publish_feedback(feedback)
+
+        # Wait loop - check for cancel periodically, keep publishing feedback
+        while not self._pause_event.wait(timeout=0.5):
+            # Check for cancel during pause
+            if goal_handle.is_cancel_requested:
+                self.get_logger().info("Cancel received while paused")
+                with self._lock:
+                    self._is_paused = False
+                    self._pause_event.set()
+                return
+
+            # Keep publishing feedback so client knows we're alive
+            goal_handle.publish_feedback(feedback)
+
+        # Resumed
+        self.get_logger().info("Execution resumed")
+        self._publish_state("RUNNING")
 
     def _ensure_controllers_active(self) -> bool:
         """Check if required controllers are active and restart them if needed.
@@ -268,6 +390,7 @@ class MTCOrchestratorServer(Node):
         parsed = self._parse_goal(goal_handle.request, result)
         if parsed is None:
             goal_handle.abort()
+            self._publish_state("IDLE")
             return result
 
         start_gripper, tasks, poses_json = parsed
@@ -284,7 +407,11 @@ class MTCOrchestratorServer(Node):
         if not self._moveit_manager.launch_moveit_with_gripper(start_gripper):
             result.error_message = "Failed to initialize MoveIt stack"
             goal_handle.abort()
+            self._publish_state("IDLE")
             return result
+
+        # Publish running state before starting task execution
+        self._publish_state("RUNNING")
 
         # Execute each task
         for i, task in enumerate(tasks):
@@ -293,13 +420,27 @@ class MTCOrchestratorServer(Node):
                 result.error_message = "Task was canceled"
                 result.completed_steps = i
                 goal_handle.canceled()
+                self._publish_state("IDLE")
                 return result
+
+            # Check for pause request
+            if self._pause_requested:
+                self._handle_pause(feedback, goal_handle, i, task_count)
+
+                # Check if cancelled DURING pause
+                if goal_handle.is_cancel_requested:
+                    result.error_message = "Task was cancelled while paused"
+                    result.completed_steps = i
+                    goal_handle.canceled()
+                    self._publish_state("IDLE")
+                    return result
 
             task_type = task.get("task_type", "")
             if not task_type:
                 result.error_message = f"Step {i} missing 'task_type' field"
                 result.completed_steps = i
                 goal_handle.abort()
+                self._publish_state("IDLE")
                 return result
 
             # Update feedback
@@ -312,6 +453,7 @@ class MTCOrchestratorServer(Node):
                 result.error_message = f"{task_type} step failed"
                 result.completed_steps = i
                 goal_handle.abort()
+                self._publish_state("IDLE")
                 return result
 
             result.completed_steps = i + 1
@@ -323,6 +465,7 @@ class MTCOrchestratorServer(Node):
             feedback, goal_handle, task_count, task_count, ""
         )
         goal_handle.succeed()
+        self._publish_state("IDLE")
 
         self.get_logger().info("Orchestration goal completed successfully")
         return result

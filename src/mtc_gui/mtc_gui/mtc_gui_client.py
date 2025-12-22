@@ -203,20 +203,28 @@ class MTCGUIClient:
         """Create execution control frame"""
         exec_frame = ttk.LabelFrame(self.root, text="Execution Control", padding="10")
         exec_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=5)
-        exec_frame.grid_columnconfigure(1, weight=1)
-        
+        exec_frame.grid_columnconfigure(4, weight=1)  # Progress bar column expands
+
         # Execute button
         self.execute_btn = ttk.Button(exec_frame, text="Execute Task", command=self.execute_task)
         self.execute_btn.grid(row=0, column=0, padx=(0, 10))
-        
+
         # Stop button
         self.stop_btn = ttk.Button(exec_frame, text="Stop Execution", command=self.stop_task, state="disabled")
         self.stop_btn.grid(row=0, column=1, padx=(0, 10))
-        
+
+        # Pause button
+        self.pause_btn = ttk.Button(exec_frame, text="⏸ Pause", command=self.pause_task, state="disabled")
+        self.pause_btn.grid(row=0, column=2, padx=(0, 5))
+
+        # Resume button
+        self.resume_btn = ttk.Button(exec_frame, text="▶ Resume", command=self.resume_task, state="disabled")
+        self.resume_btn.grid(row=0, column=3, padx=(0, 10))
+
         # Progress bar
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(exec_frame, variable=self.progress_var, maximum=100)
-        self.progress_bar.grid(row=0, column=2, sticky="ew", padx=(10, 0))
+        self.progress_bar.grid(row=0, column=4, sticky="ew", padx=(10, 0))
 
     def create_status_frame(self):
         """Create status display frame"""
@@ -1006,6 +1014,8 @@ class MTCGUIClient:
         # Update GUI state
         self.execute_btn.config(state="disabled")
         self.stop_btn.config(state="normal")
+        self.pause_btn.config(state="normal")
+        self.resume_btn.config(state="disabled")
         self.progress_var.set(0)
 
     def validate_configuration(self):
@@ -1161,6 +1171,8 @@ class MTCGUIClient:
         """Reset execution GUI state"""
         self.execute_btn.config(state="normal")
         self.stop_btn.config(state="disabled")
+        self.pause_btn.config(state="disabled")
+        self.resume_btn.config(state="disabled")
         self.progress_var.set(0)
         self.stop_execution = False
 
@@ -1168,6 +1180,80 @@ class MTCGUIClient:
         """Stop current task execution"""
         self.stop_execution = True
         self.log_message("Stopping task execution...")
+
+    def pause_task(self):
+        """Pause current task execution"""
+        if not ROS2_AVAILABLE or self.pause_client is None:
+            self.log_message("✗ Pause service not available")
+            return
+
+        def call_pause():
+            try:
+                if not self.pause_client.wait_for_service(timeout_sec=2.0):
+                    self.log_message("✗ Pause service not available (timeout)")
+                    return
+
+                request = Trigger.Request()
+                future = self.pause_client.call_async(request)
+
+                # Wait for result
+                start_time = time.time()
+                while not future.done():
+                    if time.time() - start_time > 5.0:
+                        self.log_message("✗ Pause request timed out")
+                        return
+                    time.sleep(0.01)
+
+                result = future.result()
+                if result.success:
+                    self.log_message(f"⏸ {result.message}")
+                    # Update button states
+                    self.root.after(0, lambda: self.pause_btn.configure(state="disabled"))
+                    self.root.after(0, lambda: self.resume_btn.configure(state="normal"))
+                else:
+                    self.log_message(f"✗ Pause failed: {result.message}")
+
+            except Exception as e:
+                self.log_message(f"✗ Pause error: {e}")
+
+        threading.Thread(target=call_pause, daemon=True).start()
+
+    def resume_task(self):
+        """Resume paused task execution"""
+        if not ROS2_AVAILABLE or self.resume_client is None:
+            self.log_message("✗ Resume service not available")
+            return
+
+        def call_resume():
+            try:
+                if not self.resume_client.wait_for_service(timeout_sec=2.0):
+                    self.log_message("✗ Resume service not available (timeout)")
+                    return
+
+                request = Trigger.Request()
+                future = self.resume_client.call_async(request)
+
+                # Wait for result
+                start_time = time.time()
+                while not future.done():
+                    if time.time() - start_time > 5.0:
+                        self.log_message("✗ Resume request timed out")
+                        return
+                    time.sleep(0.01)
+
+                result = future.result()
+                if result.success:
+                    self.log_message(f"▶ {result.message}")
+                    # Update button states
+                    self.root.after(0, lambda: self.pause_btn.configure(state="normal"))
+                    self.root.after(0, lambda: self.resume_btn.configure(state="disabled"))
+                else:
+                    self.log_message(f"✗ Resume failed: {result.message}")
+
+            except Exception as e:
+                self.log_message(f"✗ Resume error: {e}")
+
+        threading.Thread(target=call_resume, daemon=True).start()
 
     def test_mtc_server(self):
         """Test if the MTC action server is available"""
@@ -1378,6 +1464,10 @@ class MTCGUIClient:
                 MTCExecution,
                 'beambot_execution'
             )
+
+            # Create pause/resume service clients
+            self.pause_client = self.ros_node.create_client(Trigger, 'beambot/pause')
+            self.resume_client = self.ros_node.create_client(Trigger, 'beambot/resume')
 
             # Detection is now manual via button (no periodic timer)
 
