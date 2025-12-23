@@ -2,9 +2,10 @@
 
 Handles vision-guided robot movement:
 - ArUco marker detection via Zivid camera
+- Circle/object detection via Hough Transform
 - TF transforms from camera to base frame
 - Collision object management
-- Motion to detected marker poses
+- Motion to detected poses
 """
 
 import json
@@ -47,7 +48,11 @@ class GripperDetection:
 
 
 class VisionStages(BaseStages):
-    """Handles vision-guided movement to ArUco markers."""
+    """Handles vision-guided movement to ArUco markers and detected objects."""
+
+    # Detection types
+    DETECTION_MARKER = "marker"
+    DETECTION_CIRCLE = "circle"
 
     # Retry configuration defaults
     DEFAULT_RETRY_COUNT = 3  # Number of retries after first attempt
@@ -164,17 +169,36 @@ class VisionStages(BaseStages):
         """Execute VisionMoveTo action.
 
         Args:
-            goal: VisionMoveToAction.Goal with tag_id and timeout
+            goal: VisionMoveToAction.Goal with:
+                - tag_id: Marker ID (for marker detection)
+                - timeout: Detection timeout
+                - detection_type: "marker" (default) or "circle"
+                - z_offset: Override z_offset (0 = use gripper default)
 
         Returns:
             True if successful, False otherwise
         """
-        tag_pose = self.detect_and_transform_tag(goal.tag_id, goal.timeout)
-        if tag_pose is None:
-            self.logger.error(f"Failed to detect tag {goal.tag_id}")
-            return False
+        # Determine detection type (default to marker for backwards compatibility)
+        detection_type = getattr(goal, 'detection_type', '') or self.DETECTION_MARKER
 
-        return self._move_to_pose(tag_pose)
+        # Get z_offset override (0 or missing means use gripper default)
+        z_offset_override = getattr(goal, 'z_offset', 0.0)
+
+        # Route to appropriate detection method
+        if detection_type == self.DETECTION_CIRCLE:
+            self.logger.info("Using circle detection")
+            target_pose = self.detect_and_transform_circle(goal.timeout)
+            if target_pose is None:
+                self.logger.error("Failed to detect circle/wafer")
+                return False
+        else:
+            # Default: marker detection
+            target_pose = self.detect_and_transform_tag(goal.tag_id, goal.timeout)
+            if target_pose is None:
+                self.logger.error(f"Failed to detect tag {goal.tag_id}")
+                return False
+
+        return self._move_to_pose(target_pose, z_offset_override=z_offset_override)
 
     def detect_and_transform_tag(
         self,
@@ -303,6 +327,74 @@ class VisionStages(BaseStages):
         )
         return None
 
+    def detect_and_transform_circle(
+        self,
+        timeout: float = 10.0
+    ) -> Optional[PoseStamped]:
+        """Detect circular objects and transform to base_link frame.
+
+        Uses Hough circle detection to find circular objects (wafers, etc.)
+        and returns the 3D pose transformed to base_link.
+
+        Args:
+            timeout: Detection timeout in seconds
+
+        Returns:
+            PoseStamped in base_link frame, or None if detection failed
+        """
+        self.logger.info("Detecting circles...")
+
+        # Use camera module for circle detection
+        detected_poses = self._camera.detect_circles(
+            self.rclpy_node,
+            timeout=timeout
+        )
+
+        if not detected_poses:
+            self.logger.warn("No circles detected")
+            return None
+
+        # Take the first (strongest) detection
+        circle_pose = detected_poses[0]
+
+        self.logger.info(
+            f"Circle detected at [{circle_pose.position.x:.3f}, "
+            f"{circle_pose.position.y:.3f}, {circle_pose.position.z:.3f}] "
+            f"in camera frame"
+        )
+
+        # Transform to base_link
+        pose_base = self._transform_to_base_link(circle_pose)
+        if pose_base is None:
+            return None
+
+        self.logger.info(
+            f"Transformed to base_link: [{pose_base.pose.position.x:.3f}, "
+            f"{pose_base.pose.position.y:.3f}, {pose_base.pose.position.z:.3f}]"
+        )
+
+        # Broadcast TF frame for RViz visualization
+        if self._publish_marker_frames:
+            self._broadcast_circle_tf(pose_base)
+
+        return pose_base
+
+    def _broadcast_circle_tf(self, pose: PoseStamped):
+        """Broadcast detected circle pose as TF frame for RViz.
+
+        Args:
+            pose: Pose in base_link frame
+        """
+        tf = TransformStamped()
+        tf.header.stamp = self.rclpy_node.get_clock().now().to_msg()
+        tf.header.frame_id = "base_link"
+        tf.child_frame_id = "detected_circle"
+        tf.transform.translation.x = pose.pose.position.x
+        tf.transform.translation.y = pose.pose.position.y
+        tf.transform.translation.z = pose.pose.position.z
+        tf.transform.rotation = pose.pose.orientation
+        self._tf_broadcaster.sendTransform(tf)
+
     def _transform_to_base_link(self, pose_camera: Pose) -> Optional[PoseStamped]:
         """Transform a pose from camera frame to base_link.
 
@@ -363,13 +455,18 @@ class VisionStages(BaseStages):
         tf.transform.rotation = pose.pose.orientation
         self._tf_broadcaster.sendTransform(tf)
 
-    def _move_to_pose(self, target: PoseStamped) -> bool:
+    def _move_to_pose(
+        self,
+        target: PoseStamped,
+        z_offset_override: float = 0.0
+    ) -> bool:
         """Move robot to the target pose with orientation adjustment.
 
         Applies 180° Z rotation and z_offset for proper approach.
 
         Args:
             target: Target pose in base_link
+            z_offset_override: Override z_offset (0 = use gripper default)
 
         Returns:
             True if successful, False otherwise
@@ -389,6 +486,11 @@ class VisionStages(BaseStages):
                 active_z_offset = 0.1
             else:
                 active_z_offset = -0.02
+
+        # Use override if provided (non-zero)
+        if z_offset_override != 0.0:
+            self.logger.info(f"Using z_offset override: {z_offset_override:.3f}")
+            active_z_offset = z_offset_override
 
         # Compute approach pose: 180° Z rotation + z_offset
         approach = PoseStamped()

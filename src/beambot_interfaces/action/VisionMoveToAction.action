@@ -1,7 +1,9 @@
 # Goal
-int32 tag_id                # ArUco marker ID to detect
+int32 tag_id                # ArUco marker ID to detect (used when detection_type="marker")
 float64 timeout             # Detection timeout in seconds (default: 5.0)
 string poses_json           # Pose definitions from task (unused for vision)
+string detection_type       # Detection method: "marker" (default), "circle"
+float64 z_offset            # Z offset for approach (0 = use gripper default)
 ---
 # Result
 bool success

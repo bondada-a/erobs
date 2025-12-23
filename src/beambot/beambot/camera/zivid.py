@@ -1,21 +1,46 @@
-"""Zivid camera wrapper for ArUco marker detection.
+"""Zivid camera wrapper for ArUco marker and circle detection.
 
-This module provides a thin wrapper around the Zivid camera's
-CaptureAndDetectMarkers service, exposing a simple interface
-that matches the beambot camera abstraction.
+This module provides wrappers around the Zivid camera's services,
+exposing a simple interface that matches the beambot camera abstraction.
 
 Interface contract:
     - create_client(node) -> ServiceClient
     - detect_markers(client, node, marker_ids, dictionary, timeout) -> List[Tuple[int, Pose]]
+    - detect_circles(node, timeout, params) -> List[Pose]
 """
 
-from typing import List, Tuple
+import struct
+from dataclasses import dataclass
+from typing import List, Optional, Tuple
 
+import cv2
+import numpy as np
 import rclpy
+from cv_bridge import CvBridge
 from geometry_msgs.msg import Pose
 from rclpy.node import Node
+from sensor_msgs.msg import Image, PointCloud2
 
 from zivid_interfaces.srv import CaptureAndDetectMarkers
+
+
+@dataclass
+class CircleDetectionParams:
+    """Parameters for Hough circle detection.
+
+    All radius values are in PIXELS, not mm.
+    Typical values for a 10mm wafer:
+      - At ~300mm distance: ~50-70 pixels
+      - At ~500mm distance: ~30-50 pixels
+      - At ~800mm distance: ~20-30 pixels
+    """
+    min_radius: int = 15       # Min circle radius in pixels
+    max_radius: int = 100      # Max circle radius in pixels
+    blur_kernel: int = 5       # Gaussian blur kernel size
+    param1: int = 50           # Canny edge detection threshold
+    param2: int = 25           # Accumulator threshold (lower = more sensitive)
+    min_dist: int = 50         # Min distance between detected circles
+    search_radius: int = 10    # Pixels to search for valid depth around center
 
 # Zivid service endpoint
 SERVICE_NAME = "/capture_and_detect_markers"
@@ -83,3 +108,288 @@ def detect_markers(
         detected.append((marker.id, marker.pose))
 
     return detected
+
+
+# ============================================================================
+# Circle Detection
+# ============================================================================
+
+# Topic names for image and point cloud
+IMAGE_TOPIC = "/color/image_color"
+CLOUD_TOPIC = "/points/xyzrgba"
+
+
+def detect_circles(
+    node: Node,
+    timeout: float = 10.0,
+    params: CircleDetectionParams = None
+) -> List[Pose]:
+    """Detect circular objects using the Zivid camera.
+
+    Captures an image and point cloud, runs Hough circle detection,
+    and returns 3D poses for detected circles.
+
+    Uses the same pattern as ArUco detection: spin_until_future_complete()
+    processes both the service call AND subscription callbacks.
+
+    Args:
+        node: ROS2 node for subscriptions and service calls
+        timeout: Detection timeout in seconds
+        params: Circle detection parameters (uses defaults if None)
+
+    Returns:
+        List of Pose objects for detected circles (in camera optical frame).
+        The pose orientation is identity (flat surface facing camera).
+        Empty list if detection failed or no circles found.
+    """
+    if params is None:
+        params = CircleDetectionParams()
+
+    logger = node.get_logger()
+    bridge = CvBridge()
+
+    # Storage for received data (using list for mutability in closure)
+    received_image: List[Optional[Image]] = [None]
+    received_cloud: List[Optional[PointCloud2]] = [None]
+
+    def on_image(msg: Image):
+        received_image[0] = msg
+        logger.debug("Image callback triggered")
+
+    def on_cloud(msg: PointCloud2):
+        received_cloud[0] = msg
+        logger.debug("Point cloud callback triggered")
+
+    # Zivid driver uses rmw_qos_profile_default (RELIABLE reliability)
+    # We must match this QoS profile for the subscription to work
+    # Note: Point cloud is ~40MB and takes 3-4s longer to transmit than image
+    from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
+
+    # Match Zivid's default QoS: RELIABLE, VOLATILE, KEEP_LAST
+    zivid_qos = QoSProfile(
+        reliability=ReliabilityPolicy.RELIABLE,
+        durability=DurabilityPolicy.VOLATILE,
+        history=HistoryPolicy.KEEP_LAST,
+        depth=1
+    )
+
+    image_sub = node.create_subscription(Image, IMAGE_TOPIC, on_image, zivid_qos)
+    cloud_sub = node.create_subscription(PointCloud2, CLOUD_TOPIC, on_cloud, zivid_qos)
+
+    # Use the marker detection service - it does capture AND publishes to topics
+    marker_client = node.create_client(CaptureAndDetectMarkers, SERVICE_NAME)
+
+    try:
+        # Wait for service
+        if not marker_client.wait_for_service(timeout_sec=2.0):
+            logger.error(f"Zivid service '{SERVICE_NAME}' not available")
+            return []
+
+        # CRITICAL: Wait for subscriptions to discover the publisher
+        # The test script has persistent subs that are always connected
+        # We need to give temporary subs time to connect
+        logger.info("Waiting for subscriptions to connect...")
+        for i in range(20):  # Up to 2 seconds
+            rclpy.spin_once(node, timeout_sec=0.1)
+            # Check if we got any data (even stale) - means we're connected
+            if received_image[0] is not None or received_cloud[0] is not None:
+                logger.info(f"Subscriptions connected after {(i+1)*0.1:.1f}s")
+                break
+
+        # Clear any stale data before triggering fresh capture
+        received_image[0] = None
+        received_cloud[0] = None
+
+        # Trigger capture via marker detection service (we ignore the marker results)
+        # This publishes image + point cloud to topics as a side effect
+        logger.info("Triggering Zivid capture for circle detection...")
+        request = CaptureAndDetectMarkers.Request()
+        # Must provide at least one marker ID (Zivid service requires non-empty list)
+        # Use ID 999 which likely doesn't exist - we don't care about marker results
+        request.marker_ids = [999]
+        request.marker_dictionary = "aruco4x4_50"
+
+        future = marker_client.call_async(request)
+
+        # spin_until_future_complete processes BOTH the service call
+        # AND our subscription callbacks - same pattern as ArUco detection!
+        rclpy.spin_until_future_complete(node, future, timeout_sec=timeout)
+
+        if not future.done():
+            logger.error("Zivid capture timed out")
+            return []
+
+        # Wait for FRESH data to arrive via subscriptions
+        # CRITICAL: Point cloud (~40MB for 2448x2048x16 bytes) takes 3-4s longer
+        # to transmit than the image (~10MB). We must wait long enough!
+        logger.info("Waiting for image and point cloud data...")
+        max_wait_iterations = 80  # Up to 8 seconds (point cloud is slow!)
+        for i in range(max_wait_iterations):
+            rclpy.spin_once(node, timeout_sec=0.1)
+
+            # Log progress every second
+            if (i + 1) % 10 == 0:
+                img_status = "✓" if received_image[0] else "waiting"
+                cloud_status = "✓" if received_cloud[0] else "waiting"
+                logger.info(f"  {(i+1)*0.1:.1f}s - image: {img_status}, cloud: {cloud_status}")
+
+            if received_image[0] is not None and received_cloud[0] is not None:
+                logger.info(f"Both image and point cloud received after {(i+1)*0.1:.1f}s")
+                break
+
+        if received_image[0] is None or received_cloud[0] is None:
+            img_status = "received" if received_image[0] else "MISSING"
+            cloud_status = "received" if received_cloud[0] else "MISSING"
+            logger.error(f"Timeout waiting for data (image: {img_status}, cloud: {cloud_status})")
+            logger.error("Point cloud transmission may be slow - try increasing timeout")
+            return []
+
+        logger.info("Image and point cloud received")
+
+        # Convert image
+        rgb_image = bridge.imgmsg_to_cv2(received_image[0], desired_encoding='rgb8')
+        cloud = received_cloud[0]
+
+        # Detect circles
+        circles = _detect_hough_circles(rgb_image, params)
+        if circles is None or len(circles) == 0:
+            logger.warn("No circles detected")
+            return []
+
+        logger.info(f"Detected {len(circles)} circle(s)")
+
+        # Convert to 3D poses
+        poses = []
+        for cx, cy, radius in circles:
+            xyz = _get_3d_position(cloud, cx, cy, params.search_radius)
+            if xyz is None:
+                logger.warn(f"No valid depth at circle ({cx}, {cy})")
+                continue
+
+            x, y, z = xyz
+            logger.info(f"Circle at ({cx}, {cy}) r={radius}px -> "
+                        f"({x:.3f}, {y:.3f}, {z:.3f}) m")
+
+            # Create pose (identity orientation = flat surface facing camera)
+            pose = Pose()
+            pose.position.x = x
+            pose.position.y = y
+            pose.position.z = z
+            pose.orientation.x = 0.0
+            pose.orientation.y = 0.0
+            pose.orientation.z = 0.0
+            pose.orientation.w = 1.0
+            poses.append(pose)
+
+        return poses
+
+    finally:
+        # Clean up subscriptions and client
+        node.destroy_subscription(image_sub)
+        node.destroy_subscription(cloud_sub)
+        node.destroy_client(marker_client)
+
+
+def _detect_hough_circles(
+    rgb_image: np.ndarray,
+    params: CircleDetectionParams
+) -> Optional[List[Tuple[int, int, int]]]:
+    """Detect circles in image using Hough Transform.
+
+    Args:
+        rgb_image: RGB image array
+        params: Detection parameters
+
+    Returns:
+        List of (center_x, center_y, radius) tuples, or None if no circles found
+    """
+    # Convert to grayscale
+    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
+
+    # Blur to reduce noise
+    blurred = cv2.GaussianBlur(
+        gray, (params.blur_kernel, params.blur_kernel), 2
+    )
+
+    # Detect circles using Hough Transform
+    circles = cv2.HoughCircles(
+        blurred,
+        cv2.HOUGH_GRADIENT,
+        dp=1,
+        minDist=params.min_dist,
+        param1=params.param1,
+        param2=params.param2,
+        minRadius=params.min_radius,
+        maxRadius=params.max_radius
+    )
+
+    if circles is None:
+        return None
+
+    # Convert to list of tuples
+    circles = np.uint16(np.around(circles))
+    result = []
+    for c in circles[0]:
+        result.append((int(c[0]), int(c[1]), int(c[2])))
+
+    return result
+
+
+def _get_3d_position(
+    cloud: PointCloud2,
+    cx: int,
+    cy: int,
+    search_radius: int = 10
+) -> Optional[Tuple[float, float, float]]:
+    """Get 3D position from organized point cloud at pixel (cx, cy).
+
+    The point cloud is organized (same dimensions as image), so we can
+    directly index into it using pixel coordinates.
+
+    Args:
+        cloud: Organized point cloud
+        cx, cy: Pixel coordinates
+        search_radius: Pixels to search for valid depth if center is invalid
+
+    Returns:
+        (x, y, z) tuple in meters, or None if no valid depth found
+    """
+    width = cloud.width
+    height = cloud.height
+    point_step = cloud.point_step
+
+    def get_xyz_at(u: int, v: int) -> Optional[Tuple[float, float, float]]:
+        """Extract XYZ at pixel (u, v)."""
+        if u < 0 or u >= width or v < 0 or v >= height:
+            return None
+
+        offset = v * cloud.row_step + u * point_step
+
+        try:
+            x, y, z = struct.unpack_from('<fff', cloud.data, offset)
+        except struct.error:
+            return None
+
+        if np.isnan(x) or np.isnan(y) or np.isnan(z):
+            return None
+
+        if x == 0.0 and y == 0.0 and z == 0.0:
+            return None
+
+        return (x, y, z)
+
+    # Try center first
+    xyz = get_xyz_at(cx, cy)
+    if xyz is not None:
+        return xyz
+
+    # Search in expanding squares around center
+    for r in range(1, search_radius + 1):
+        for du in range(-r, r + 1):
+            for dv in range(-r, r + 1):
+                if abs(du) == r or abs(dv) == r:
+                    xyz = get_xyz_at(cx + du, cy + dv)
+                    if xyz is not None:
+                        return xyz
+
+    return None

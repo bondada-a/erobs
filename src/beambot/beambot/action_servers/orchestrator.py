@@ -873,11 +873,20 @@ class MTCOrchestratorServer(Node):
         return True
 
     def _call_vision_moveto(self, step: Dict[str, Any], poses_json: str) -> bool:
-        """Call the VisionMoveTo action server."""
+        """Call the VisionMoveTo action server.
+
+        Supports:
+        - tag_id: ArUco marker ID (for marker detection)
+        - detection_type: "marker" (default) or "circle"
+        - z_offset: Override approach height
+        - timeout: Detection timeout
+        """
         goal = VisionMoveToAction.Goal()
         goal.tag_id = int(step.get("tag_id", 0))
         goal.timeout = float(step.get("timeout", 10.0))
         goal.poses_json = poses_json
+        goal.detection_type = step.get("detection_type", "marker")
+        goal.z_offset = float(step.get("z_offset", 0.0))
 
         return self._send_and_wait(
             self._vision_client, goal, "vision_moveto", self._timeouts["vision_moveto"]

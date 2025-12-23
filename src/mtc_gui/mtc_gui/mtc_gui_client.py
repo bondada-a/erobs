@@ -372,8 +372,10 @@ class MTCGUIClient:
         elif action_type == "vision_moveto":
             step = {
                 "task_type": "vision_moveto",
+                "detection_type": "marker",  # "marker" or "circle"
                 "tag_id": 0,
                 "timeout": 10.0,
+                "z_offset": 0.0,  # 0 = use gripper default
                 "marker_dictionary": "aruco4x4_50"  # Default ArUco dictionary
             }
         elif action_type == "pipettor":
@@ -510,6 +512,8 @@ class MTCGUIClient:
         # Larger dialog for pipettor due to LED controls
         if step["task_type"] == "pipettor":
             dialog.geometry("550x900")
+        elif step["task_type"] == "vision_moveto":
+            dialog.geometry("500x700")  # Taller for detection type options
         else:
             dialog.geometry("500x600")
 
@@ -719,42 +723,74 @@ class MTCGUIClient:
 
         # Add description
         description = ttk.Label(dialog,
-                               text="Detect ArUco Marker using Zivid and move gripper to marker location",
+                               text="Detect object using Zivid camera and move gripper to detected location",
                                font=("Arial", 9),
                                foreground="gray")
         description.pack(padx=20, pady=(0, 20))
 
-        # Marker ID
-        ttk.Label(dialog, text="ArUco Marker ID:").pack(anchor="w", padx=20)
-        tag_id_var = tk.StringVar(value=str(step.get("tag_id", 0)))
-        tag_id_entry = ttk.Entry(dialog, textvariable=tag_id_var, width=30)
-        tag_id_entry.pack(padx=20, pady=(0, 10))
+        # Detection Type (NEW)
+        ttk.Label(dialog, text="Detection Type:").pack(anchor="w", padx=20)
+        detection_type_var = tk.StringVar(value=step.get("detection_type", "marker"))
+        detection_type_combo = ttk.Combobox(dialog, textvariable=detection_type_var,
+                                           values=["marker", "circle"],
+                                           width=27, state="readonly")
+        detection_type_combo.pack(padx=20, pady=(0, 5))
 
-        ttk.Label(dialog, text="The ID number of the ArUco marker to detect",
-                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
+        ttk.Label(dialog, text="marker = ArUco tag detection, circle = Hough circle detection (wafer)",
+                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 15))
+
+        # Frame for marker-specific options
+        marker_frame = ttk.LabelFrame(dialog, text="ArUco Marker Options", padding="10")
+        marker_frame.pack(padx=20, pady=(0, 10), fill="x")
+
+        # Marker ID
+        ttk.Label(marker_frame, text="Marker ID:").pack(anchor="w")
+        tag_id_var = tk.StringVar(value=str(step.get("tag_id", 0)))
+        tag_id_entry = ttk.Entry(marker_frame, textvariable=tag_id_var, width=25)
+        tag_id_entry.pack(pady=(0, 5))
 
         # Marker Dictionary
-        ttk.Label(dialog, text="Marker Dictionary:").pack(anchor="w", padx=20)
+        ttk.Label(marker_frame, text="Dictionary:").pack(anchor="w")
         marker_dict_var = tk.StringVar(value=step.get("marker_dictionary", "aruco4x4_50"))
-        marker_dict_combo = ttk.Combobox(dialog, textvariable=marker_dict_var,
+        marker_dict_combo = ttk.Combobox(marker_frame, textvariable=marker_dict_var,
                                         values=["aruco4x4_50", "aruco4x4_100", "aruco4x4_250",
                                                "aruco5x5_50", "aruco5x5_100", "aruco5x5_250",
                                                "aruco6x6_50", "aruco6x6_100", "aruco6x6_250",
                                                "aruco7x7_50", "aruco7x7_100", "aruco7x7_250"],
-                                        width=27, state="readonly")
-        marker_dict_combo.pack(padx=20, pady=(0, 10))
+                                        width=23, state="readonly")
+        marker_dict_combo.pack(pady=(0, 5))
 
-        ttk.Label(dialog, text="ArUco dictionary (must match your physical markers)",
-                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
+        # Function to enable/disable marker options based on detection type
+        def update_marker_options(*args):
+            if detection_type_var.get() == "circle":
+                for child in marker_frame.winfo_children():
+                    if isinstance(child, (ttk.Entry, ttk.Combobox)):
+                        child.config(state="disabled")
+            else:
+                tag_id_entry.config(state="normal")
+                marker_dict_combo.config(state="readonly")
+
+        detection_type_var.trace('w', update_marker_options)
+        update_marker_options()  # Initial state
+
+        # Common options frame
+        common_frame = ttk.LabelFrame(dialog, text="Common Options", padding="10")
+        common_frame.pack(padx=20, pady=(0, 10), fill="x")
+
+        # Z Offset (NEW)
+        ttk.Label(common_frame, text="Z Offset (meters):").pack(anchor="w")
+        z_offset_var = tk.StringVar(value=str(step.get("z_offset", 0.0)))
+        z_offset_entry = ttk.Entry(common_frame, textvariable=z_offset_var, width=25)
+        z_offset_entry.pack(pady=(0, 5))
+
+        ttk.Label(common_frame, text="0 = use gripper default, positive = higher above object",
+                 font=("Arial", 8), foreground="gray").pack(pady=(0, 10))
 
         # Timeout
-        ttk.Label(dialog, text="Timeout (seconds):").pack(anchor="w", padx=20)
+        ttk.Label(common_frame, text="Timeout (seconds):").pack(anchor="w")
         timeout_var = tk.StringVar(value=str(step.get("timeout", 10.0)))
-        timeout_entry = ttk.Entry(dialog, textvariable=timeout_var, width=30)
-        timeout_entry.pack(padx=20, pady=(0, 10))
-
-        ttk.Label(dialog, text="Maximum time to wait for marker detection",
-                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 20))
+        timeout_entry = ttk.Entry(common_frame, textvariable=timeout_var, width=25)
+        timeout_entry.pack(pady=(0, 5))
 
         # Information box
         info_frame = ttk.LabelFrame(dialog, text="Info", padding="10")
@@ -762,24 +798,26 @@ class MTCGUIClient:
 
         info_text = ("Vision MoveTo will:\n"
                     "1. Capture 3D point cloud using Zivid camera\n"
-                    "2. Detect ArUco marker using built-in detection\n"
-                    "3. Transform marker pose to robot base frame\n"
-                    "4. Move gripper to detected marker position\n"
-                    "5. Cache detection for efficiency (30s)")
+                    "2. Detect object (marker or circle based on type)\n"
+                    "3. Transform pose to robot base frame\n"
+                    "4. Move gripper to detected position\n\n"
+                    "Circle detection uses Hough Transform for wafers/discs")
         ttk.Label(info_frame, text=info_text, justify="left",
                  font=("Arial", 8)).pack()
 
         def save_changes():
             try:
+                step["detection_type"] = detection_type_var.get()
                 step["tag_id"] = int(tag_id_var.get())
                 step["timeout"] = float(timeout_var.get())
+                step["z_offset"] = float(z_offset_var.get())
                 step["marker_dictionary"] = marker_dict_var.get()
                 self.update_task_tree()
                 dialog.destroy()
                 self.log_message(f"Updated step {step_index + 1}")
             except ValueError:
                 messagebox.showerror("Invalid Input",
-                                   "Marker ID must be an integer and timeout must be a number")
+                                   "Marker ID must be an integer, timeout and z_offset must be numbers")
 
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
@@ -971,10 +1009,18 @@ class MTCGUIClient:
                 ee_action = step.get('end_effector_action', 'unknown')
                 details = f"{ee_type} {ee_action}"
             elif action == "vision_moveto":
+                detection_type = step.get('detection_type', 'marker')
                 tag_id = step.get('tag_id', 0)
                 timeout = step.get('timeout', 10.0)
-                marker_dict = step.get('marker_dictionary', 'aruco4x4_50')
-                details = f"Detect ArUco {tag_id} ({marker_dict}, timeout: {timeout}s)"
+                z_offset = step.get('z_offset', 0.0)
+                if detection_type == "circle":
+                    details = f"Detect circle/wafer"
+                    if z_offset != 0.0:
+                        details += f" (z_offset: {z_offset}m)"
+                else:
+                    marker_dict = step.get('marker_dictionary', 'aruco4x4_50')
+                    details = f"Detect ArUco {tag_id} ({marker_dict})"
+                details += f" timeout: {timeout}s"
             elif action == "pipettor":
                 operation = step.get('operation', 'SUCK')
                 volume_pct = step.get('volume_pct', 0.0)
