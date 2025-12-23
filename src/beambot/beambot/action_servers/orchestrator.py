@@ -6,12 +6,16 @@ Receives task scripts (JSON) and dispatches steps to specialized action servers.
 Manages MoveIt lifecycle based on gripper configuration.
 
 Supports beamline-agnostic deployment via beamline configuration files.
+
+Batching optimization: Consecutive simple tasks (moveto, end_effector) are
+grouped into a single MTC Task with multiple stages, reducing planning
+overhead (~1.5s per task saved).
 """
 
 import json
 import threading
 import time
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
 
 import yaml
 import rclpy
@@ -36,6 +40,8 @@ from std_srvs.srv import Trigger
 from std_msgs.msg import String
 
 from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
+from beambot.stages.move_to_stages import MoveToStages
+from beambot.stages.end_effector_stages import EndEffectorStages
 
 
 class MTCOrchestratorServer(Node):
@@ -59,6 +65,17 @@ class MTCOrchestratorServer(Node):
         "pipettor": 60.0,
     }
 
+    # Task types that can be batched into a single MTC Task
+    # These use the add_to_task() pattern for stage composition
+    # Note: pick_and_place excluded - it already batches 10 stages internally
+    BATCHABLE_TYPES = {"moveto", "end_effector"}
+
+    # Task types that break batching (require runtime decisions or special handling)
+    # - tool_exchange: Changes robot kinematics (requires MoveIt restart)
+    # - vision_moveto/vision_pick_place: Require runtime marker detection
+    # - pipettor: Uses separate action server (not MTC-based)
+    BATCH_BREAKERS = {"tool_exchange", "vision_moveto", "vision_pick_place", "pipettor"}
+
     def __init__(self):
         super().__init__("beambot_orchestrator")
 
@@ -75,18 +92,23 @@ class MTCOrchestratorServer(Node):
         # Load beamline configuration (single source of truth)
         self.declare_parameter("beamline_config", "config/default_beamline.yaml")
         self.declare_parameter("use_fake_hardware", False)
+        self.declare_parameter("enable_batching", True)
 
         config_file = self.get_parameter("beamline_config").value
         self._use_fake_hardware = self.get_parameter("use_fake_hardware").value
+        self._enable_batching = self.get_parameter("enable_batching").value
 
         with open(config_file, 'r') as f:
             config = yaml.safe_load(f)
 
         self._grippers = config["grippers"]  # Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group, states}
         self._robot_ip = config["robot"]["ip"]  # Single source: config file
+        self._arm_group = config.get("robot", {}).get("arm_group", "ur_manipulator")  # For batched execution
         self.get_logger().info(f"Loaded beamline: {config['beamline']} (robot: {self._robot_ip})")
         if self._use_fake_hardware:
             self.get_logger().info("Using FAKE HARDWARE (simulation mode)")
+        if not self._enable_batching:
+            self.get_logger().info("Batching DISABLED - each task executes via action server")
 
         # Declare timeout parameters (configurable at launch)
         self._timeouts = {}
@@ -364,6 +386,162 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Controllers reactivated successfully")
         return True
 
+    def _group_into_batches(
+        self, tasks: List[Dict[str, Any]]
+    ) -> List[Tuple[str, List[Dict[str, Any]]]]:
+        """Group consecutive batchable tasks into batches.
+
+        Simple tasks (moveto, end_effector) are grouped together.
+        All other tasks become single-task batches and execute via
+        their respective action servers.
+
+        When batching is disabled (enable_batching=false), all tasks become
+        single-task batches and execute via their respective action servers.
+
+        Args:
+            tasks: List of task dictionaries from the JSON script
+
+        Returns:
+            List of (batch_type, tasks) tuples where:
+            - batch_type: "batched" for batchable tasks, "single" otherwise
+            - tasks: List of task dicts in this batch
+        """
+        # When batching disabled, every task is a single-task batch
+        if not self._enable_batching:
+            return [("single", [task]) for task in tasks]
+
+        batches = []
+        current_batch = []
+        current_type = None
+
+        for task in tasks:
+            task_type = task.get("task_type", "")
+
+            if task_type in self.BATCHABLE_TYPES:
+                # Accumulate batchable tasks
+                if current_type == "batched":
+                    current_batch.append(task)
+                else:
+                    # Flush previous batch if exists
+                    if current_batch:
+                        batches.append((current_type, current_batch))
+                    current_batch = [task]
+                    current_type = "batched"
+            else:
+                # Non-batchable task (breaker or unknown)
+                # Flush current batch first
+                if current_batch:
+                    batches.append((current_type, current_batch))
+
+                # Add as single-task batch
+                batches.append(("single", [task]))
+                current_batch = []
+                current_type = None
+
+        # Flush final batch
+        if current_batch:
+            batches.append((current_type, current_batch))
+
+        return batches
+
+    def _execute_batch(
+        self,
+        batch_tasks: List[Dict[str, Any]],
+        poses_json: str
+    ) -> bool:
+        """Execute a batch of tasks as a single MTC Task.
+
+        Creates one MTC Task, adds stages from each task, then plans and
+        executes once. This reduces planning overhead (~1.5s per task saved).
+
+        Args:
+            batch_tasks: List of batchable task dictionaries
+            poses_json: JSON string with pose definitions
+
+        Returns:
+            True if all tasks succeeded, False on any failure
+        """
+        if not batch_tasks:
+            return True
+
+        # Log batch info
+        task_types = [t.get("task_type", "?") for t in batch_tasks]
+        self.get_logger().info(
+            f"Executing batch of {len(batch_tasks)} tasks: {task_types}"
+        )
+
+        # Create stage instances (they share MTC node via module-level singleton)
+        moveto_stage = MoveToStages(self, self._arm_group)
+        endeffector_stage = EndEffectorStages(self, self._arm_group)
+
+        # Create single MTC Task for the batch
+        task = moveto_stage.create_task_template(f"Batch ({len(batch_tasks)} tasks)")
+
+        # Add stages from each task
+        for i, batch_task in enumerate(batch_tasks):
+            task_type = batch_task.get("task_type", "")
+            success = False
+
+            if task_type == "moveto":
+                goal = self._create_moveto_goal(batch_task, poses_json)
+                success = moveto_stage.add_to_task(task, goal)
+
+            elif task_type == "end_effector":
+                goal = self._create_endeffector_goal(batch_task)
+                success = endeffector_stage.add_to_task(task, goal)
+
+            else:
+                self.get_logger().error(f"Unknown batchable type: {task_type}")
+                return False
+
+            if not success:
+                self.get_logger().error(
+                    f"Failed to add stages for task {i}: {task_type}"
+                )
+                return False
+
+        # Plan and execute the entire batch at once
+        return moveto_stage.load_plan_execute(task)
+
+    def _create_moveto_goal(
+        self, step: Dict[str, Any], poses_json: str
+    ) -> MoveToAction.Goal:
+        """Create a MoveToAction.Goal from task dict."""
+        goal = MoveToAction.Goal()
+        goal.target = step.get("target", "")
+        goal.planning_type = step.get("planning_type", "joint")
+        goal.direction = step.get("direction", "")
+        goal.distance = float(step.get("distance", 0.0))
+        goal.poses_json = poses_json
+        return goal
+
+    def _create_endeffector_goal(self, step: Dict[str, Any]) -> EndEffectorAction.Goal:
+        """Create an EndEffectorAction.Goal from task dict."""
+        gripper_type = step.get("end_effector_type", "")
+        gripper_config = self._grippers.get(gripper_type, {})
+
+        goal = EndEffectorAction.Goal()
+        goal.gripper_group = gripper_config.get("gripper_group", "")
+        goal.end_effector_action = step.get("end_effector_action", "")
+        return goal
+
+    def _create_pickplace_goal(
+        self, step: Dict[str, Any], poses_json: str
+    ) -> PickPlaceAction.Goal:
+        """Create a PickPlaceAction.Goal from task dict."""
+        gripper_type = step.get("gripper", "")
+        gripper_config = self._grippers.get(gripper_type, {})
+
+        goal = PickPlaceAction.Goal()
+        goal.gripper_group = gripper_config.get("gripper_group", "")
+        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
+        goal.pick_approach = step.get("pick_approach", "")
+        goal.pick_target = step.get("pick_target", "")
+        goal.place_approach = step.get("place_approach", "")
+        goal.place_target = step.get("place_target", "")
+        goal.poses_json = poses_json
+        return goal
+
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute the orchestration goal."""
         with self._lock:
@@ -413,50 +591,91 @@ class MTCOrchestratorServer(Node):
         # Publish running state before starting task execution
         self._publish_state("RUNNING")
 
-        # Execute each task
-        for i, task in enumerate(tasks):
-            # Check for cancellation
+        # Group tasks into batches for optimized execution
+        batches = self._group_into_batches(tasks)
+        self.get_logger().info(
+            f"Grouped {task_count} tasks into {len(batches)} batches"
+        )
+
+        # Track overall task index for feedback
+        completed_tasks = 0
+
+        # Execute each batch
+        for batch_type, batch_tasks in batches:
+            batch_size = len(batch_tasks)
+
+            # Check for cancellation at batch boundary
             if goal_handle.is_cancel_requested:
                 result.error_message = "Task was canceled"
-                result.completed_steps = i
+                result.completed_steps = completed_tasks
                 goal_handle.canceled()
                 self._publish_state("IDLE")
                 return result
 
-            # Check for pause request
+            # Check for pause request at batch boundary
             if self._pause_requested:
-                self._handle_pause(feedback, goal_handle, i, task_count)
+                self._handle_pause(feedback, goal_handle, completed_tasks, task_count)
 
                 # Check if cancelled DURING pause
                 if goal_handle.is_cancel_requested:
                     result.error_message = "Task was cancelled while paused"
-                    result.completed_steps = i
+                    result.completed_steps = completed_tasks
                     goal_handle.canceled()
                     self._publish_state("IDLE")
                     return result
 
-            task_type = task.get("task_type", "")
-            if not task_type:
-                result.error_message = f"Step {i} missing 'task_type' field"
-                result.completed_steps = i
-                goal_handle.abort()
-                self._publish_state("IDLE")
-                return result
+            if batch_type == "batched":
+                # Execute batch of batchable tasks as single MTC Task
+                batch_desc = ", ".join(t.get("task_type", "?") for t in batch_tasks)
+                self._update_feedback(
+                    feedback, goal_handle, completed_tasks + 1, task_count,
+                    f"batch[{batch_size}]: {batch_desc}"
+                )
 
-            # Update feedback
-            self._update_feedback(
-                feedback, goal_handle, i + 1, task_count, task_type
-            )
+                # Ensure controllers are active before batch execution
+                if not self._ensure_controllers_active():
+                    self.get_logger().error("Failed to ensure controllers are active")
+                    result.error_message = "Controller activation failed"
+                    result.completed_steps = completed_tasks
+                    goal_handle.abort()
+                    self._publish_state("IDLE")
+                    return result
 
-            # Execute step
-            if not self._execute_step(task_type, task, poses_json):
-                result.error_message = f"{task_type} step failed"
-                result.completed_steps = i
-                goal_handle.abort()
-                self._publish_state("IDLE")
-                return result
+                if not self._execute_batch(batch_tasks, poses_json):
+                    result.error_message = f"Batch execution failed at step {completed_tasks + 1}"
+                    result.completed_steps = completed_tasks
+                    goal_handle.abort()
+                    self._publish_state("IDLE")
+                    return result
 
-            result.completed_steps = i + 1
+                completed_tasks += batch_size
+
+            else:
+                # Execute single task via action server (non-batchable)
+                task = batch_tasks[0]
+                task_type = task.get("task_type", "")
+
+                if not task_type:
+                    result.error_message = f"Step {completed_tasks} missing 'task_type' field"
+                    result.completed_steps = completed_tasks
+                    goal_handle.abort()
+                    self._publish_state("IDLE")
+                    return result
+
+                self._update_feedback(
+                    feedback, goal_handle, completed_tasks + 1, task_count, task_type
+                )
+
+                if not self._execute_step(task_type, task, poses_json):
+                    result.error_message = f"{task_type} step failed"
+                    result.completed_steps = completed_tasks
+                    goal_handle.abort()
+                    self._publish_state("IDLE")
+                    return result
+
+                completed_tasks += 1
+
+            result.completed_steps = completed_tasks
 
         # Success
         result.success = True
@@ -584,44 +803,21 @@ class MTCOrchestratorServer(Node):
 
     def _call_moveto(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the MoveTo action server."""
-        goal = MoveToAction.Goal()
-        goal.target = step.get("target", "")
-        goal.planning_type = step.get("planning_type", "joint")
-        goal.direction = step.get("direction", "")
-        goal.distance = float(step.get("distance", 0.0))
-        goal.poses_json = poses_json
-
+        goal = self._create_moveto_goal(step, poses_json)
         return self._send_and_wait(
             self._moveto_client, goal, "moveto", self._timeouts["moveto"]
         )
 
     def _call_endeffector(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the EndEffector action server."""
-        gripper_type = step.get("end_effector_type", "")
-        gripper_config = self._grippers.get(gripper_type, {})
-
-        goal = EndEffectorAction.Goal()
-        goal.gripper_group = gripper_config.get("gripper_group", "")
-        goal.end_effector_action = step.get("end_effector_action", "")
-
+        goal = self._create_endeffector_goal(step)
         return self._send_and_wait(
             self._endeffector_client, goal, "end_effector", self._timeouts["end_effector"]
         )
 
     def _call_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the PickPlace action server."""
-        gripper_type = step.get("gripper", "")
-        gripper_config = self._grippers.get(gripper_type, {})
-
-        goal = PickPlaceAction.Goal()
-        goal.gripper_group = gripper_config.get("gripper_group", "")
-        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
-        goal.pick_approach = step.get("pick_approach", "")
-        goal.pick_target = step.get("pick_target", "")
-        goal.place_approach = step.get("place_approach", "")
-        goal.place_target = step.get("place_target", "")
-        goal.poses_json = poses_json
-
+        goal = self._create_pickplace_goal(step, poses_json)
         return self._send_and_wait(
             self._pickplace_client, goal, "pick_place", self._timeouts["pick_and_place"]
         )

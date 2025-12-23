@@ -62,6 +62,16 @@ _options.automatically_declare_parameters_from_overrides = True
 _options.allow_undeclared_parameters = True
 _mtc_node = rclcpp.Node("beambot", _options)
 
+# Set OMPL planning pipeline parameters explicitly
+# This ensures OMPL is used regardless of node context (action server vs orchestrator)
+# Without this, nodes created outside MoveIt launch context may default to CHOMP
+try:
+    _mtc_node.declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner")
+    _mtc_node.declare_parameter("ompl.request_adapters", "")
+    _mtc_node.declare_parameter("ompl.start_state_max_bounds_error", 0.1)
+except Exception:
+    pass  # Parameters may already be declared in some contexts
+
 
 def joints_from_degrees(degrees: List[float]) -> Dict[str, float]:
     """Convert joint angles from degrees to radians dict.

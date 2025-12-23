@@ -5,37 +5,42 @@ Handles MoveTo operations:
 - Target-based moves (joint poses from JSON or named SRDF states)
 """
 
-from moveit.task_constructor import stages
+from moveit.task_constructor import core, stages
 from beambot.stages.base_stages import BaseStages, joints_from_degrees
 
 
 class MoveToStages(BaseStages):
     """Handles MoveTo action: relative moves, joint poses, named states."""
 
-    def run(self, goal) -> bool:
-        """Execute MoveTo action.
+    def add_to_task(self, task: core.Task, goal, planner=None) -> bool:
+        """Add MoveTo stages to an existing MTC task.
+
+        This method adds stages without creating or executing the task,
+        enabling batch execution of multiple tasks.
 
         Args:
+            task: Existing MTC Task to add stages to
             goal: MoveToAction.Goal with fields:
                 - target: Pose name, SRDF state, or empty for relative moves
                 - planning_type: "joint" or "cartesian"
                 - direction: Direction for relative moves
                 - distance: Distance in meters for relative moves
                 - poses_json: JSON string with pose definitions
+            planner: Optional planner instance (creates default based on
+                     planning_type if None)
 
         Returns:
-            True if successful, False otherwise
+            True if stages were added successfully, False on error
         """
-        task = self.create_task_template("MoveTo Task")
-
-        # Select planner based on planning_type
-        planning_type = goal.planning_type if goal.planning_type else "joint"
-        if planning_type == "cartesian":
-            planner = self.make_cartesian_planner()
-            self.logger.info("Using Cartesian planner")
-        else:
-            planner = self.make_pipeline_planner()
-            self.logger.info("Using pipeline planner")
+        # Select planner if not provided
+        if planner is None:
+            planning_type = goal.planning_type if goal.planning_type else "joint"
+            if planning_type == "cartesian":
+                planner = self.make_cartesian_planner()
+                self.logger.info("Using Cartesian planner")
+            else:
+                planner = self.make_pipeline_planner()
+                self.logger.info("Using pipeline planner")
 
         # Case 1: Relative move (direction + distance)
         if goal.direction and goal.distance != 0.0:
@@ -49,6 +54,7 @@ class MoveToStages(BaseStages):
             self.logger.info(
                 f"Planning relative move: {goal.direction} {goal.distance}m"
             )
+            return True
 
         # Case 2: Target-based move
         elif goal.target:
@@ -79,12 +85,32 @@ class MoveToStages(BaseStages):
                 self.logger.info(f"Planning move to named state: {goal.target}")
 
             task.add(move_stage)
+            return True
 
         else:
             self.logger.error(
                 "No valid move target specified. "
                 "Provide either (direction + distance) or target."
             )
+            return False
+
+    def run(self, goal) -> bool:
+        """Execute MoveTo action.
+
+        Args:
+            goal: MoveToAction.Goal with fields:
+                - target: Pose name, SRDF state, or empty for relative moves
+                - planning_type: "joint" or "cartesian"
+                - direction: Direction for relative moves
+                - distance: Distance in meters for relative moves
+                - poses_json: JSON string with pose definitions
+
+        Returns:
+            True if successful, False otherwise
+        """
+        task = self.create_task_template("MoveTo Task")
+
+        if not self.add_to_task(task, goal):
             return False
 
         return self.load_plan_execute(task)

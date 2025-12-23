@@ -62,9 +62,16 @@ def generate_launch_description():
         description='Use fake hardware (simulation mode, no real robot)'
     )
 
+    declare_enable_batching = DeclareLaunchArgument(
+        'enable_batching',
+        default_value='true',
+        description='Enable MTC stage batching (false = each task via action server)'
+    )
+
     enable_vision = LaunchConfiguration('enable_vision')
     enable_pipettor = LaunchConfiguration('enable_pipettor')
     use_fake_hardware = LaunchConfiguration('use_fake_hardware')
+    enable_batching = LaunchConfiguration('enable_batching')
 
     # Resolve beamline config path (relative to beambot package)
     beamline_config_path = PathJoinSubstitution([
@@ -188,15 +195,19 @@ def generate_launch_description():
     )
 
     # Orchestrator - manages MoveIt lifecycle and task coordination
+    # Now includes action_server_parameters and ompl_args because batching
+    # executes MTC stages directly in this process (not via action servers)
     orchestrator = Node(
         package='beambot',
         executable='orchestrator.py',
         name='beambot_orchestrator',
         output='screen',
-        parameters=[
+        parameters=action_server_parameters + [
             {'beamline_config': beamline_config_path},
             {'use_fake_hardware': use_fake_hardware},
+            {'enable_batching': enable_batching},
         ],
+        arguments=ompl_args,
     )
 
     return LaunchDescription([
@@ -205,6 +216,7 @@ def generate_launch_description():
         declare_enable_vision,
         declare_enable_pipettor,
         declare_use_fake_hardware,
+        declare_enable_batching,
         # Core servers (always launched)
         move_to_server,
         end_effector_server,

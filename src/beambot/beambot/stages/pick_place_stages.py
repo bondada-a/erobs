@@ -6,7 +6,7 @@ Uses constrained motion during pick to maintain tool orientation.
 
 import json
 from typing import Any, Dict, Optional
-from moveit.task_constructor import stages
+from moveit.task_constructor import core, stages
 from beambot.stages.base_stages import (
     BaseStages,
     create_wrist3_level_constraint,
@@ -20,7 +20,7 @@ class PickPlaceStages(BaseStages):
     def run(self, goal) -> bool:
         """Execute PickPlace action.
 
-        Sequence:
+        Sequence (10 stages):
         1. Open gripper
         2. Move to pick approach (constrained)
         3. Move to pick target (constrained)
@@ -46,7 +46,7 @@ class PickPlaceStages(BaseStages):
             True if successful, False otherwise
         """
         self.logger.info(
-            f"Executing pick/place: gripper_group={goal.gripper_group}, "
+            f"Pick/place: gripper_group={goal.gripper_group}, "
             f"pick={goal.pick_target}, place={goal.place_target}"
         )
 
@@ -62,8 +62,9 @@ class PickPlaceStages(BaseStages):
             self.logger.error(f"Invalid gripper_states_json: {e}")
             return False
 
+        # Create task and planners
         task = self.create_task_template("Pick and Place")
-        pipeline = self.make_pipeline_planner()
+        pipeline_planner = self.make_pipeline_planner()
         gripper_planner = self.make_joint_interpolation_planner()
 
         # === PICK SEQUENCE ===
@@ -76,7 +77,7 @@ class PickPlaceStages(BaseStages):
 
         # 2. Move to pick approach (constrained)
         stage = self._make_constrained_move_stage(
-            "pickup approach", goal.pick_approach, poses, pipeline
+            "pickup approach", goal.pick_approach, poses, pipeline_planner
         )
         if not stage:
             return False
@@ -84,7 +85,7 @@ class PickPlaceStages(BaseStages):
 
         # 3. Move to pick target (constrained)
         stage = self._make_constrained_move_stage(
-            "pickup", goal.pick_target, poses, pipeline
+            "pickup", goal.pick_target, poses, pipeline_planner
         )
         if not stage:
             return False
@@ -99,7 +100,7 @@ class PickPlaceStages(BaseStages):
 
         # 5. Retreat from pick (constrained)
         stage = self._make_constrained_move_stage(
-            "pickup retreat", goal.pick_approach, poses, pipeline
+            "pickup retreat", goal.pick_approach, poses, pipeline_planner
         )
         if not stage:
             return False
@@ -108,7 +109,7 @@ class PickPlaceStages(BaseStages):
         # === PLACE SEQUENCE (no wrist constraint - more flexibility needed) ===
         # 6. Move to place approach
         stage = self._make_move_to_named_stage(
-            "place approach", goal.place_approach, poses, pipeline
+            "place approach", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
             return False
@@ -116,7 +117,7 @@ class PickPlaceStages(BaseStages):
 
         # 7. Move to place target
         stage = self._make_move_to_named_stage(
-            "place", goal.place_target, poses, pipeline
+            "place", goal.place_target, poses, pipeline_planner
         )
         if not stage:
             return False
@@ -131,14 +132,14 @@ class PickPlaceStages(BaseStages):
 
         # 9. Retreat from place
         stage = self._make_move_to_named_stage(
-            "place retreat", goal.place_approach, poses, pipeline
+            "place retreat", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
             return False
         task.add(stage)
 
         # 10. Return home
-        home = stages.MoveTo("return home", pipeline)
+        home = stages.MoveTo("return home", pipeline_planner)
         home.group = self.arm_group
         self._set_ik_frame(home)
         home.setGoal("moveit_home")
@@ -153,17 +154,7 @@ class PickPlaceStages(BaseStages):
         poses: Dict[str, Any],
         planner
     ) -> Optional[stages.MoveTo]:
-        """Create a MoveTo stage for a named joint pose.
-
-        Args:
-            label: Stage name
-            pose_key: Key in poses dict
-            poses: Dictionary of pose definitions
-            planner: Planner to use
-
-        Returns:
-            Configured MoveTo stage, or None on error
-        """
+        """Create a MoveTo stage for a named joint pose."""
         joint_pose = self.get_joint_pose(poses, pose_key)
         if joint_pose is None:
             return None
@@ -181,17 +172,7 @@ class PickPlaceStages(BaseStages):
         poses: Dict[str, Any],
         planner
     ) -> Optional[stages.MoveTo]:
-        """Create a MoveTo stage with wrist3 constraint.
-
-        Args:
-            label: Stage name
-            pose_key: Key in poses dict
-            poses: Dictionary of pose definitions
-            planner: Planner to use
-
-        Returns:
-            Configured MoveTo stage with path constraints, or None on error
-        """
+        """Create a MoveTo stage with wrist3 constraint."""
         stage = self._make_move_to_named_stage(label, pose_key, poses, planner)
         if stage:
             stage.setPathConstraints(create_wrist3_level_constraint())
