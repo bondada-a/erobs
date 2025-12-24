@@ -189,8 +189,8 @@ class BaseStages:
         planner = core.CartesianPath()
         planner.max_velocity_scaling_factor = VELOCITY_SCALING
         planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
-        planner.step_size = 0.001  # Matches C++ base_stages.cpp
-        planner.min_fraction = 0.6  # Matches C++ base_stages.cpp
+        planner.step_size = 0.001  # 1mm steps - good for collision detection
+        planner.min_fraction = 0.95  # Require near-complete path (was 0.6)
         return planner
 
     def make_joint_interpolation_planner(self) -> core.JointInterpolationPlanner:

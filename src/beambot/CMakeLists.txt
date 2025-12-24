@@ -34,6 +34,8 @@ install(PROGRAMS
   beambot/action_servers/vision_pick_place_server.py
   beambot/action_servers/pipettor_server.py
   beambot/action_servers/orchestrator.py
+  # Utility nodes
+  beambot/pointcloud_relay.py
   # Client utilities
   scripts/beambot_client.py
   DESTINATION lib/${PROJECT_NAME}
