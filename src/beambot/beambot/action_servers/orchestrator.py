@@ -517,7 +517,8 @@ class MTCOrchestratorServer(Node):
 
     def _create_endeffector_goal(self, step: Dict[str, Any]) -> EndEffectorAction.Goal:
         """Create an EndEffectorAction.Goal from task dict."""
-        gripper_type = step.get("end_effector_type", "")
+        # Use current gripper if not specified in task
+        gripper_type = step.get("end_effector_type", self._current_gripper)
         gripper_config = self._grippers.get(gripper_type, {})
 
         goal = EndEffectorAction.Goal()
@@ -529,7 +530,8 @@ class MTCOrchestratorServer(Node):
         self, step: Dict[str, Any], poses_json: str
     ) -> PickPlaceAction.Goal:
         """Create a PickPlaceAction.Goal from task dict."""
-        gripper_type = step.get("gripper", "")
+        # Use current gripper if not specified in task
+        gripper_type = step.get("gripper", self._current_gripper)
         gripper_config = self._grippers.get(gripper_type, {})
 
         goal = PickPlaceAction.Goal()
@@ -894,7 +896,8 @@ class MTCOrchestratorServer(Node):
 
     def _call_vision_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the VisionPickPlace action server."""
-        gripper_type = step.get("gripper", "")
+        # Use current gripper if not specified in task
+        gripper_type = step.get("gripper", self._current_gripper)
         gripper_config = self._grippers.get(gripper_type, {})
 
         goal = VisionPickPlaceAction.Goal()
