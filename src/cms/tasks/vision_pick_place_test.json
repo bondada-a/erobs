@@ -1,0 +1,39 @@
+{
+  "start_gripper": "epick",
+  "poses": {
+    "sample_approach": [
+      17.77,
+      -113.23,
+      -63.9,
+      -92.31,
+      -267.99,
+      -160.22
+    ],
+    "place_approach": [
+      107.83,
+      -126.41,
+      -89.25,
+      -149.01,
+      -342.02,
+      -174.99
+    ],
+    "place": [
+      107.97,
+      -127.79,
+      -89.81,
+      -147.09,
+      -341.88,
+      -175.0
+    ]
+  },
+  "tasks": [
+    {
+      "task_type": "vision_pick_place",
+      "detection_type": "marker",
+      "tag_id": 5,
+      "sample_approach": "sample_approach",
+      "place_approach": "place_approach",
+      "place_target": "place"
+    }
+  ]
+}

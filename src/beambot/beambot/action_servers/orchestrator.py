@@ -895,20 +895,34 @@ class MTCOrchestratorServer(Node):
         )
 
     def _call_vision_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
-        """Call the VisionPickPlace action server."""
+        """Call the VisionPickPlace action server.
+
+        Vision-guided pick with hardcoded place:
+        - Pick: Detects marker/circle, grasps at detected location
+        - Place: Uses predefined joint poses from poses_json
+        """
         # Use current gripper if not specified in task
         gripper_type = step.get("gripper", self._current_gripper)
         gripper_config = self._grippers.get(gripper_type, {})
 
         goal = VisionPickPlaceAction.Goal()
-        goal.pick_tag_id = int(step.get("pick_tag_id", 0))
-        goal.place_tag_id = int(step.get("place_tag_id", -1))
+
+        # Vision detection config
+        goal.detection_type = step.get("detection_type", "marker")
+        goal.tag_id = int(step.get("tag_id", 0))
+        goal.z_offset = float(step.get("z_offset", 0.02))
+
+        # Pose keys (references into poses_json)
+        goal.sample_approach = step.get("sample_approach", "")
+        goal.place_approach = step.get("place_approach", "")
+        goal.place_target = step.get("place_target", "")
+
+        # Gripper config
         goal.gripper_group = gripper_config.get("gripper_group", "")
         goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
-        goal.grasp_offset_json = step.get("grasp_offset_json", "")
-        goal.place_poses_json = step.get("place_poses_json", "")
-        goal.approach_offset = float(step.get("approach_offset", 0.1))
-        goal.retreat_offset = float(step.get("retreat_offset", 0.15))
+
+        # Pose definitions
+        goal.poses_json = poses_json
 
         return self._send_and_wait(
             self._vision_pickplace_client, goal, "vision_pick_place",

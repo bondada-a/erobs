@@ -1,0 +1,90 @@
+# NVIDIA Isaac Sim UR5e Joint Drive Parameters
+# Source: Pre-built UR5e from omniverse://localhost/NVIDIA/Assets/Isaac/
+#
+# Use these values when importing custom URDFs into Isaac Sim
+# to get proper physics behavior without oscillation.
+
+ur5e_joints:
+  shoulder_pan_joint:
+    stiffness: 9400.5
+    damping: 0.378
+
+  shoulder_lift_joint:
+    stiffness: 10020.9
+    damping: 0.412
+
+  elbow_joint:
+    stiffness: 10230.2
+    damping: 4.093
+
+  wrist_1_joint:
+    stiffness: 3940.6
+    damping: 1.579
+
+  wrist_2_joint:
+    stiffness: 3940.6
+    damping: 0.061
+
+  wrist_3_joint:
+    stiffness: 1000.1
+    damping: 0.004
+
+# Gripper values (Robotiq Hand-E)
+# Source: https://forums.developer.nvidia.com/t/controlling-a-robotiq-hand-e-gripper/337309
+robotiq_hande:
+  robotiq_hande_left_finger_joint:
+    stiffness: 1000.0
+    damping: 1000.0
+    max_force: 70.0
+    # Joint range: -0.025 (closed) to 0.025 (open) meters
+
+  # Right finger is a mimic joint - follows left finger
+  # No need to set drive parameters, just ensure mimic is configured
+
+# ---------------------------------------------------------
+# Python script to apply these values after URDF import:
+# ---------------------------------------------------------
+#
+# from pxr import Usd, UsdPhysics
+#
+# stage = omni.usd.get_context().get_stage()
+#
+# JOINT_PARAMS = {
+#     # UR5e arm joints
+#     "shoulder_pan_joint":   {"stiffness": 9400.5,  "damping": 0.378},
+#     "shoulder_lift_joint":  {"stiffness": 10020.9, "damping": 0.412},
+#     "elbow_joint":          {"stiffness": 10230.2, "damping": 4.093},
+#     "wrist_1_joint":        {"stiffness": 3940.6,  "damping": 1.579},
+#     "wrist_2_joint":        {"stiffness": 3940.6,  "damping": 0.061},
+#     "wrist_3_joint":        {"stiffness": 1000.1,  "damping": 0.004},
+#     # Robotiq Hand-E gripper
+#     "robotiq_hande_left_finger_joint": {"stiffness": 1000.0, "damping": 1000.0},
+# }
+#
+# robot_path = "/World/ur5e"
+#
+# for prim in stage.Traverse():
+#     prim_path = str(prim.GetPath())
+#     if robot_path not in prim_path:
+#         continue
+#     joint_name = prim.GetName()
+#     if joint_name not in JOINT_PARAMS:
+#         continue
+#
+#     # Handle revolute joints (arm)
+#     if prim.IsA(UsdPhysics.RevoluteJoint):
+#         drive = UsdPhysics.DriveAPI.Get(prim, "angular")
+#         if not drive:
+#             drive = UsdPhysics.DriveAPI.Apply(prim, "angular")
+#         drive.GetStiffnessAttr().Set(JOINT_PARAMS[joint_name]["stiffness"])
+#         drive.GetDampingAttr().Set(JOINT_PARAMS[joint_name]["damping"])
+#         print(f"Applied (revolute): {joint_name}")
+#
+#     # Handle prismatic joints (gripper)
+#     elif prim.IsA(UsdPhysics.PrismaticJoint):
+#         drive = UsdPhysics.DriveAPI.Get(prim, "linear")
+#         if not drive:
+#             drive = UsdPhysics.DriveAPI.Apply(prim, "linear")
+#         drive.GetStiffnessAttr().Set(JOINT_PARAMS[joint_name]["stiffness"])
+#         drive.GetDampingAttr().Set(JOINT_PARAMS[joint_name]["damping"])
+#         print(f"Applied (prismatic): {joint_name}")

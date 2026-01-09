@@ -1,28 +1,45 @@
-"""VisionPickPlaceStages - Python equivalent of vision_pick_place_stages.cpp.
+"""VisionPickPlaceStages - Vision-guided pick with hardcoded place.
 
-Vision-guided pick and place sequence:
-- Detects pick/place targets via ArUco markers
-- Computes grasp poses with configurable offsets
-- Executes pick sequence with gripper operations
+Hybrid pick-and-place operation:
+- PICK: Vision-guided (detects marker/circle, computes grasp pose dynamically)
+- PLACE: Hardcoded joint poses (reliable, repeatable placement)
+
+Execution sequence (10 stages across 2 MTC tasks):
+
+  Task 1 - Position for Detection:
+    1. Open gripper
+    2. Move to sample_approach (joint pose - camera sees samples)
+
+  [Runtime: Vision detection - marker or circle]
+
+  Task 2 - Pick and Place:
+    3. Move to grasp pose (Cartesian, vision-guided)
+    4. Close gripper
+    5. Retreat to sample_approach (joint pose)
+    6. Move to place_approach (joint pose)
+    7. Move to place_target (joint pose)
+    8. Open gripper (release)
+    9. Retreat to place_approach (joint pose)
+
+Split into 2 tasks because detection requires robot to be in position first.
 """
 
 import json
+from typing import Any, Dict, Optional
+
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import stages
-from tf_transformations import (
-    quaternion_from_euler,
-    quaternion_multiply,
-    quaternion_matrix,
-    quaternion_from_matrix
-)
-import numpy as np
 
-from beambot.stages.base_stages import BaseStages, create_wrist3_level_constraint
+from beambot.stages.base_stages import BaseStages, joints_from_degrees
 from beambot.stages.vision_stages import VisionStages
 
 
 class VisionPickPlaceStages(BaseStages):
-    """Handles vision-guided pick and place operations."""
+    """Handles vision-guided pick and hardcoded place operations."""
+
+    # Detection type constants
+    DETECTION_MARKER = "marker"
+    DETECTION_CIRCLE = "circle"
 
     def __init__(
         self,
@@ -45,7 +62,7 @@ class VisionPickPlaceStages(BaseStages):
         """
         super().__init__(rclpy_node, arm_group, ik_frame=ik_frame)
 
-        # Create VisionStages instance for marker detection (with camera config)
+        # Create VisionStages instance for marker/circle detection
         self._vision = VisionStages(
             rclpy_node,
             arm_group,
@@ -58,25 +75,32 @@ class VisionPickPlaceStages(BaseStages):
         self.logger.info("VisionPickPlaceStages initialized")
 
     def run(self, goal) -> bool:
-        """Execute VisionPickPlace action.
+        """Execute vision-guided pick and hardcoded place.
 
         Args:
             goal: VisionPickPlaceAction.Goal with fields:
-                - pick_tag_id: ArUco marker ID for pick
-                - place_tag_id: ArUco marker ID for place (-1 = use default)
-                - gripper_group: MoveIt group name (from config)
-                - gripper_states_json: JSON dict of semantic states
-                - grasp_offset_json: JSON offset configuration
-                - approach_offset: Vertical approach distance
-                - retreat_offset: Vertical retreat distance
+                - detection_type: "marker" or "circle"
+                - tag_id: ArUco marker ID (for marker detection)
+                - z_offset: Height above detected point (default: 0.02m)
+                - sample_approach: Joint pose key for scan/approach position
+                - place_approach: Joint pose key for place approach
+                - place_target: Joint pose key for place
+                - gripper_group: MoveIt group name
+                - gripper_states_json: JSON dict of gripper states
+                - poses_json: JSON with joint pose definitions
 
         Returns:
             True if successful, False otherwise
         """
         self.logger.info(
-            f"Executing vision pick/place: pick_tag={goal.pick_tag_id}, "
-            f"place_tag={goal.place_tag_id}, gripper_group={goal.gripper_group}"
+            f"Vision pick/place: detection={goal.detection_type}, "
+            f"tag_id={goal.tag_id}, gripper_group={goal.gripper_group}"
         )
+
+        # Parse poses
+        poses = self.parse_poses(goal.poses_json)
+        if poses is None:
+            return False
 
         # Parse gripper states
         try:
@@ -85,196 +109,224 @@ class VisionPickPlaceStages(BaseStages):
             self.logger.error(f"Invalid gripper_states_json: {e}")
             return False
 
-        # Parse grasp offset (default: 5cm above, 180° rotation)
-        if goal.grasp_offset_json:
-            try:
-                grasp_offset = json.loads(goal.grasp_offset_json)
-            except json.JSONDecodeError as e:
-                self.logger.error(f"Invalid grasp_offset_json: {e}")
-                return False
-        else:
-            grasp_offset = {"x": 0, "y": 0, "z": 0.05, "rpy": [0, 3.14159, 0]}
+        # Get z_offset (default 0.02m = 2cm above detected point)
+        z_offset = goal.z_offset if goal.z_offset != 0.0 else 0.02
 
-        # Detect pick target
-        pick_tag_pose = self._vision.detect_and_transform_tag(goal.pick_tag_id, 10.0)
-        if pick_tag_pose is None:
-            self.logger.error(f"Failed to detect pick tag {goal.pick_tag_id}")
+        # === TASK 1: Position for Detection ===
+        self.logger.info("Task 1/2: Moving to sample_approach for detection...")
+        if not self._execute_position_for_detection(goal, poses, gripper_states):
+            self.logger.error("Failed to position for detection")
             return False
 
-        # Compute pick poses (minimal offset approach)
-        grasp_pose = PoseStamped()
-        grasp_pose.header = pick_tag_pose.header
-        grasp_pose.pose.position.x = pick_tag_pose.pose.position.x
-        grasp_pose.pose.position.y = pick_tag_pose.pose.position.y
-        grasp_pose.pose.position.z = pick_tag_pose.pose.position.z + 0.02  # 2cm above
+        # === RUNTIME: Vision Detection ===
+        self.logger.info(f"Detecting {goal.detection_type}...")
+        grasp_pose = self._detect_and_compute_grasp(goal, z_offset)
+        if grasp_pose is None:
+            self.logger.error("Vision detection failed")
+            return False
 
-        # Point down orientation (y=1 means 180° around Y)
-        grasp_pose.pose.orientation.x = 0.0
-        grasp_pose.pose.orientation.y = 1.0
-        grasp_pose.pose.orientation.z = 0.0
-        grasp_pose.pose.orientation.w = 0.0
+        # === TASK 2: Pick and Place ===
+        self.logger.info("Task 2/2: Executing pick and place...")
+        if not self._execute_pick_and_place(goal, poses, gripper_states, grasp_pose):
+            self.logger.error("Pick and place execution failed")
+            return False
 
-        pick_approach = self._compute_offset_pose(grasp_pose, goal.approach_offset)
-        pick_retreat = self._compute_offset_pose(grasp_pose, goal.retreat_offset)
+        self.logger.info("Vision pick and place completed successfully")
+        return True
 
-        self.logger.info(
-            f"Pick: grasp=[{grasp_pose.pose.position.x:.3f}, "
-            f"{grasp_pose.pose.position.y:.3f}, {grasp_pose.pose.position.z:.3f}], "
-            f"approach=+{goal.approach_offset:.2f}m, retreat=+{goal.retreat_offset:.2f}m"
-        )
+    def _execute_position_for_detection(
+        self,
+        goal,
+        poses: Dict[str, Any],
+        gripper_states: Dict[str, str]
+    ) -> bool:
+        """Execute Task 1: Open gripper and move to sample_approach.
 
-        # Compute place poses
-        if goal.place_tag_id >= 0:
-            place_tag_pose = self._vision.detect_and_transform_tag(goal.place_tag_id, 10.0)
-            if place_tag_pose is None:
-                self.logger.error(f"Failed to detect place tag {goal.place_tag_id}")
-                return False
-            place_pose = self._compute_grasp_pose(place_tag_pose, grasp_offset)
-            place_approach = self._compute_offset_pose(place_pose, goal.approach_offset)
-            place_retreat = self._compute_offset_pose(place_pose, goal.retreat_offset)
-        else:
-            # Default place position
-            place_pose = PoseStamped()
-            place_pose.header.frame_id = "base_link"
-            place_pose.pose.position.x = 0.4
-            place_pose.pose.position.y = 0.3
-            place_pose.pose.position.z = 0.15
-            place_pose.pose.orientation.x = 0.0
-            place_pose.pose.orientation.y = 1.0
-            place_pose.pose.orientation.z = 0.0
-            place_pose.pose.orientation.w = 0.0
-            place_approach = self._compute_offset_pose(place_pose, goal.approach_offset)
-            place_retreat = self._compute_offset_pose(place_pose, goal.retreat_offset)
-
-        # Build MTC task
-        task = self.create_task_template("Vision Pick and Place")
+        Returns:
+            True if successful, False otherwise
+        """
+        task = self.create_task_template("Position for Detection")
+        pipeline_planner = self.make_pipeline_planner()
         gripper_planner = self.make_joint_interpolation_planner()
-        pipeline = self.make_pipeline_planner()
 
-        cartesian = self.make_cartesian_planner()
-        cartesian.step_size = 0.005
-        cartesian.min_fraction = 0.5
-
-        # Pick sequence
+        # 1. Open gripper
         open_stage = self.make_gripper_stage(
             "open gripper", gripper_planner, goal.gripper_group, gripper_states.get("release", "")
         )
         if open_stage:
             task.add(open_stage)
 
-        task.add(self._make_cartesian_move_stage("pick approach", pick_approach, pipeline, False))
-        task.add(self._make_cartesian_move_stage("grasp", grasp_pose, cartesian, True))
+        # 2. Move to sample_approach (where camera can see samples)
+        stage = self._make_move_to_named_stage(
+            "sample approach", goal.sample_approach, poses, pipeline_planner
+        )
+        if not stage:
+            return False
+        task.add(stage)
 
+        return self.load_plan_execute(task)
+
+    def _detect_and_compute_grasp(
+        self,
+        goal,
+        z_offset: float
+    ) -> Optional[PoseStamped]:
+        """Perform vision detection and compute grasp pose.
+
+        Args:
+            goal: Action goal with detection parameters
+            z_offset: Height above detected point
+
+        Returns:
+            Grasp pose in base_link frame, or None if detection failed
+        """
+        detection_type = goal.detection_type or self.DETECTION_MARKER
+
+        # Detect based on type
+        if detection_type == self.DETECTION_CIRCLE:
+            detected_pose = self._vision.detect_and_transform_circle(timeout=10.0)
+        else:
+            detected_pose = self._vision.detect_and_transform_tag(goal.tag_id, timeout=10.0)
+
+        if detected_pose is None:
+            return None
+
+        self.logger.info(
+            f"Detected at [{detected_pose.pose.position.x:.3f}, "
+            f"{detected_pose.pose.position.y:.3f}, {detected_pose.pose.position.z:.3f}]"
+        )
+
+        # Compute grasp pose: detected position + z_offset, pointing straight down
+        grasp_pose = PoseStamped()
+        grasp_pose.header.frame_id = "base_link"
+        grasp_pose.pose.position.x = detected_pose.pose.position.x
+        grasp_pose.pose.position.y = detected_pose.pose.position.y
+        grasp_pose.pose.position.z = detected_pose.pose.position.z + z_offset
+
+        # Orientation: gripper pointing straight down (180° around Y axis)
+        # Quaternion for 180° Y rotation: (0, 1, 0, 0)
+        grasp_pose.pose.orientation.x = 0.0
+        grasp_pose.pose.orientation.y = 1.0
+        grasp_pose.pose.orientation.z = 0.0
+        grasp_pose.pose.orientation.w = 0.0
+
+        self.logger.info(
+            f"Grasp pose: [{grasp_pose.pose.position.x:.3f}, "
+            f"{grasp_pose.pose.position.y:.3f}, {grasp_pose.pose.position.z:.3f}] "
+            f"(z_offset: {z_offset:.3f}m)"
+        )
+
+        return grasp_pose
+
+    def _execute_pick_and_place(
+        self,
+        goal,
+        poses: Dict[str, Any],
+        gripper_states: Dict[str, str],
+        grasp_pose: PoseStamped
+    ) -> bool:
+        """Execute Task 2: Pick sequence + Place sequence.
+
+        Stages:
+            3. Move to grasp pose (Cartesian)
+            4. Close gripper
+            5. Retreat to sample_approach
+            6. Move to place_approach
+            7. Move to place_target
+            8. Open gripper
+            9. Retreat to place_approach
+
+        Returns:
+            True if successful, False otherwise
+        """
+        task = self.create_task_template("Pick and Place")
+        pipeline_planner = self.make_pipeline_planner()
+        gripper_planner = self.make_joint_interpolation_planner()
+        cartesian_planner = self.make_cartesian_planner()
+
+        # === PICK SEQUENCE ===
+
+        # 3. Move to grasp pose (Cartesian for precision)
+        grasp_stage = stages.MoveTo("grasp", cartesian_planner)
+        grasp_stage.group = self.arm_group
+        self._set_ik_frame(grasp_stage)
+        grasp_stage.setGoal(grasp_pose)
+        task.add(grasp_stage)
+
+        # 4. Close gripper
         close_stage = self.make_gripper_stage(
             "close gripper", gripper_planner, goal.gripper_group, gripper_states.get("grasp", "")
         )
         if close_stage:
             task.add(close_stage)
 
-        task.add(self._make_cartesian_move_stage("pick retreat", pick_retreat, cartesian, True))
+        # 5. Retreat to sample_approach (safe joint pose)
+        stage = self._make_move_to_named_stage(
+            "pick retreat", goal.sample_approach, poses, pipeline_planner
+        )
+        if not stage:
+            return False
+        task.add(stage)
 
-        # Place sequence (currently disabled for testing as in C++)
-        self.logger.warn("Place sequence disabled - pick only")
+        # === PLACE SEQUENCE ===
+
+        # 6. Move to place_approach
+        stage = self._make_move_to_named_stage(
+            "place approach", goal.place_approach, poses, pipeline_planner
+        )
+        if not stage:
+            return False
+        task.add(stage)
+
+        # 7. Move to place_target
+        stage = self._make_move_to_named_stage(
+            "place", goal.place_target, poses, pipeline_planner
+        )
+        if not stage:
+            return False
+        task.add(stage)
+
+        # 8. Open gripper (release)
+        release_stage = self.make_gripper_stage(
+            "release", gripper_planner, goal.gripper_group, gripper_states.get("release", "")
+        )
+        if release_stage:
+            task.add(release_stage)
+
+        # 9. Retreat to place_approach
+        stage = self._make_move_to_named_stage(
+            "place retreat", goal.place_approach, poses, pipeline_planner
+        )
+        if not stage:
+            return False
+        task.add(stage)
 
         return self.load_plan_execute(task)
 
-    def _compute_grasp_pose(
-        self,
-        tag_pose: PoseStamped,
-        offset: dict
-    ) -> PoseStamped:
-        """Compute grasp pose from tag pose with offset.
-
-        Args:
-            tag_pose: Detected marker pose
-            offset: Dict with x, y, z and optional rpy
-
-        Returns:
-            Grasp pose
-        """
-        result = PoseStamped()
-        result.header = tag_pose.header
-        result.header.frame_id = "base_link"
-
-        # Get tag transform
-        q = [
-            tag_pose.pose.orientation.x,
-            tag_pose.pose.orientation.y,
-            tag_pose.pose.orientation.z,
-            tag_pose.pose.orientation.w
-        ]
-
-        # Apply position offset in local frame
-        rot_matrix = quaternion_matrix(q)[:3, :3]
-        offset_local = np.array([
-            offset.get("x", 0.0),
-            offset.get("y", 0.0),
-            offset.get("z", 0.0)
-        ])
-        offset_world = rot_matrix @ offset_local
-
-        result.pose.position.x = tag_pose.pose.position.x + offset_world[0]
-        result.pose.position.y = tag_pose.pose.position.y + offset_world[1]
-        result.pose.position.z = tag_pose.pose.position.z + offset_world[2]
-
-        # Apply rotation offset if specified
-        if "rpy" in offset and len(offset["rpy"]) == 3:
-            rpy = offset["rpy"]
-            q_offset = quaternion_from_euler(rpy[0], rpy[1], rpy[2])
-            q_result = quaternion_multiply(q, q_offset)
-            result.pose.orientation.x = q_result[0]
-            result.pose.orientation.y = q_result[1]
-            result.pose.orientation.z = q_result[2]
-            result.pose.orientation.w = q_result[3]
-        else:
-            result.pose.orientation = tag_pose.pose.orientation
-
-        return result
-
-    def _compute_offset_pose(
-        self,
-        base_pose: PoseStamped,
-        z_offset: float
-    ) -> PoseStamped:
-        """Compute pose with vertical offset.
-
-        Args:
-            base_pose: Base pose
-            z_offset: Vertical offset in meters
-
-        Returns:
-            Offset pose
-        """
-        result = PoseStamped()
-        result.header = base_pose.header
-        result.pose = base_pose.pose
-        result.pose.position.z = base_pose.pose.position.z + z_offset
-        return result
-
-    def _make_cartesian_move_stage(
+    def _make_move_to_named_stage(
         self,
         label: str,
-        target: PoseStamped,
-        planner,
-        apply_wrist_constraint: bool
-    ) -> stages.MoveTo:
-        """Create a Cartesian move stage.
+        pose_key: str,
+        poses: Dict[str, Any],
+        planner
+    ) -> Optional[stages.MoveTo]:
+        """Create a MoveTo stage for a named joint pose.
 
         Args:
             label: Stage name
-            target: Target pose
+            pose_key: Key in poses dict
+            poses: Dictionary of pose definitions
             planner: Planner to use
-            apply_wrist_constraint: Whether to keep wrist level
 
         Returns:
-            Configured MoveTo stage
+            Configured MoveTo stage, or None if pose not found
         """
+        joint_pose = self.get_joint_pose(poses, pose_key)
+        if joint_pose is None:
+            return None
+
         stage = stages.MoveTo(label, planner)
         stage.group = self.arm_group
         self._set_ik_frame(stage)
-        stage.setGoal(target)
-
-        if apply_wrist_constraint:
-            stage.setPathConstraints(create_wrist3_level_constraint())
-
+        stage.setGoal(joints_from_degrees(joint_pose))
         return stage
