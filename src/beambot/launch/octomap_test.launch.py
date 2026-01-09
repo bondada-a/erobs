@@ -1,7 +1,9 @@
-"""Launch file for Octomap with Zivid camera.
+"""Launch file for Octomap with Zivid camera + MoveIt Planning Scene integration.
 
-Includes a downsampling relay to reduce Zivid's ~5M points to ~10k points
-for efficient octomap processing.
+Includes:
+1. Downsampling relay to reduce Zivid's ~5M points to ~10k points
+2. Octomap server to build 3D occupancy grid
+3. Bridge node to push octomap into MoveIt's planning scene
 
 Usage:
     Terminal 1: ros2 launch beambot beambot_bringup.launch.py
@@ -11,12 +13,16 @@ Usage:
 View in RViz:
     - Add MarkerArray display → topic: /occupied_cells_vis_array
     - Add PointCloud2 display → topic: /octomap_point_cloud_centers
+    - Planning Scene display should show octomap as collision geometry
 
 Data flow:
     Zivid (/points/xyz, ~5M points)
         → pointcloud_relay (voxel downsample)
             → /points/xyz_relayed (~10k points)
                 → octomap_server
+                    → /octomap_binary
+                        → octomap_to_planning_scene
+                            → /planning_scene (MoveIt)
 """
 
 from launch import LaunchDescription
@@ -68,7 +74,23 @@ def generate_launch_description():
         output='screen',
     )
 
+    # Bridge node: octomap → MoveIt planning scene
+    # Subscribes to /octomap_binary and publishes to /planning_scene
+    octomap_to_planning_scene = Node(
+        package='beambot',
+        executable='octomap_to_planning_scene.py',
+        name='octomap_to_planning_scene',
+        parameters=[{
+            'octomap_topic': '/octomap_binary',
+            'planning_scene_topic': '/planning_scene',
+            'min_update_interval': 0.5,  # Throttle to avoid overwhelming MoveIt
+            'log_updates': True,
+        }],
+        output='screen',
+    )
+
     return LaunchDescription([
         pointcloud_relay,
         octomap_server,
+        octomap_to_planning_scene,
     ])

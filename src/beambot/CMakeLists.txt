@@ -36,6 +36,7 @@ install(PROGRAMS
   beambot/action_servers/orchestrator.py
   # Utility nodes
   beambot/pointcloud_relay.py
+  beambot/octomap_to_planning_scene.py
   # Client utilities
   scripts/beambot_client.py
   DESTINATION lib/${PROJECT_NAME}
