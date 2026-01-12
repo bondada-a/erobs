@@ -732,11 +732,11 @@ class MTCGUIClient:
         ttk.Label(dialog, text="Detection Type:").pack(anchor="w", padx=20)
         detection_type_var = tk.StringVar(value=step.get("detection_type", "marker"))
         detection_type_combo = ttk.Combobox(dialog, textvariable=detection_type_var,
-                                           values=["marker", "circle"],
+                                           values=["marker", "circle", "contour"],
                                            width=27, state="readonly")
         detection_type_combo.pack(padx=20, pady=(0, 5))
 
-        ttk.Label(dialog, text="marker = ArUco tag detection, circle = Hough circle detection (wafer)",
+        ttk.Label(dialog, text="marker = ArUco tag, circle = Hough circles, contour = any shape by edges",
                  font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 15))
 
         # Frame for marker-specific options
@@ -760,18 +760,38 @@ class MTCGUIClient:
                                         width=23, state="readonly")
         marker_dict_combo.pack(pady=(0, 5))
 
-        # Function to enable/disable marker options based on detection type
-        def update_marker_options(*args):
-            if detection_type_var.get() == "circle":
+        # Frame for contour-specific options
+        contour_frame = ttk.LabelFrame(dialog, text="Contour Detection Options", padding="10")
+        contour_frame.pack(padx=20, pady=(0, 10), fill="x")
+
+        # Sample Index
+        ttk.Label(contour_frame, text="Sample Number (1-indexed):").pack(anchor="w")
+        sample_index_var = tk.StringVar(value=str(step.get("sample_index", 1)))
+        sample_index_entry = ttk.Entry(contour_frame, textvariable=sample_index_var, width=25)
+        sample_index_entry.pack(pady=(0, 5))
+
+        ttk.Label(contour_frame, text="Objects sorted left-to-right, top-to-bottom (reading order)",
+                 font=("Arial", 8), foreground="gray").pack(pady=(0, 5))
+
+        # Function to enable/disable options based on detection type
+        def update_detection_options(*args):
+            detection_type = detection_type_var.get()
+            # Marker options
+            if detection_type == "marker":
+                tag_id_entry.config(state="normal")
+                marker_dict_combo.config(state="readonly")
+            else:
                 for child in marker_frame.winfo_children():
                     if isinstance(child, (ttk.Entry, ttk.Combobox)):
                         child.config(state="disabled")
+            # Contour options
+            if detection_type == "contour":
+                sample_index_entry.config(state="normal")
             else:
-                tag_id_entry.config(state="normal")
-                marker_dict_combo.config(state="readonly")
+                sample_index_entry.config(state="disabled")
 
-        detection_type_var.trace('w', update_marker_options)
-        update_marker_options()  # Initial state
+        detection_type_var.trace('w', update_detection_options)
+        update_detection_options()  # Initial state
 
         # Common options frame
         common_frame = ttk.LabelFrame(dialog, text="Common Options", padding="10")
@@ -798,10 +818,11 @@ class MTCGUIClient:
 
         info_text = ("Vision MoveTo will:\n"
                     "1. Capture 3D point cloud using Zivid camera\n"
-                    "2. Detect object (marker or circle based on type)\n"
+                    "2. Detect object (marker, circle, or contour)\n"
                     "3. Transform pose to robot base frame\n"
                     "4. Move gripper to detected position\n\n"
-                    "Circle detection uses Hough Transform for wafers/discs")
+                    "• Circle: Hough Transform for wafers/discs\n"
+                    "• Contour: Edge detection for any shape")
         ttk.Label(info_frame, text=info_text, justify="left",
                  font=("Arial", 8)).pack()
 
@@ -809,6 +830,7 @@ class MTCGUIClient:
             try:
                 step["detection_type"] = detection_type_var.get()
                 step["tag_id"] = int(tag_id_var.get())
+                step["sample_index"] = int(sample_index_var.get())
                 step["timeout"] = float(timeout_var.get())
                 step["z_offset"] = float(z_offset_var.get())
                 step["marker_dictionary"] = marker_dict_var.get()
@@ -817,7 +839,7 @@ class MTCGUIClient:
                 self.log_message(f"Updated step {step_index + 1}")
             except ValueError:
                 messagebox.showerror("Invalid Input",
-                                   "Marker ID must be an integer, timeout and z_offset must be numbers")
+                                   "Marker ID and Sample Index must be integers, timeout and z_offset must be numbers")
 
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
@@ -1013,8 +1035,13 @@ class MTCGUIClient:
                 tag_id = step.get('tag_id', 0)
                 timeout = step.get('timeout', 10.0)
                 z_offset = step.get('z_offset', 0.0)
+                sample_index = step.get('sample_index', 1)
                 if detection_type == "circle":
                     details = f"Detect circle/wafer"
+                    if z_offset != 0.0:
+                        details += f" (z_offset: {z_offset}m)"
+                elif detection_type == "contour":
+                    details = f"Detect contour → Sample #{sample_index}"
                     if z_offset != 0.0:
                         details += f" (z_offset: {z_offset}m)"
                 else:
@@ -1458,6 +1485,9 @@ class MTCGUIClient:
         ttk.Button(button_frame, text="Detect Markers",
                   command=self.trigger_marker_detection).pack(side="left", padx=(0, 5))
 
+        ttk.Button(button_frame, text="Detect Contours",
+                  command=self.trigger_contour_detection).pack(side="left", padx=(0, 5))
+
         self.camera_status_label = ttk.Label(button_frame, text="Waiting for camera...",
                                              foreground="gray")
         self.camera_status_label.pack(side="left", padx=(10, 0))
@@ -1635,6 +1665,123 @@ class MTCGUIClient:
                 text=f"Detection error",
                 foreground="red"
             ))
+
+    def trigger_contour_detection(self):
+        """Capture image and run contour detection with labeled visualization.
+
+        This performs local contour detection on the current camera image,
+        detecting objects by edge analysis and labeling them in reading order
+        (left-to-right, top-to-bottom).
+        """
+        if self.current_image is None:
+            self.camera_status_label.config(
+                text="No image - capture first",
+                foreground="orange"
+            )
+            messagebox.showwarning("No Image", "Please capture an image first using 'Capture Image' button")
+            return
+
+        try:
+            self.camera_status_label.config(
+                text="Detecting contours...",
+                foreground="blue"
+            )
+            self.root.update()
+
+            # Import contour detection from camera module
+            from beambot.camera.zivid import ContourDetectionParams, _detect_contours_in_image
+
+            # Run contour detection on current image
+            params = ContourDetectionParams(
+                min_area=500,
+                max_area=50000,
+                blur_kernel=5,
+                canny_low=50,
+                canny_high=150,
+                row_tolerance=50
+            )
+
+            # Convert BGR to RGB for processing
+            rgb_image = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2RGB)
+            detected_contours = _detect_contours_in_image(rgb_image, params)
+
+            if not detected_contours:
+                self.camera_status_label.config(
+                    text="No contours detected",
+                    foreground="orange"
+                )
+                self.detection_info.delete('1.0', tk.END)
+                self.detection_info.insert(tk.END, "No contours detected.\n\n")
+                self.detection_info.insert(tk.END, "Try adjusting:\n")
+                self.detection_info.insert(tk.END, "• Lighting conditions\n")
+                self.detection_info.insert(tk.END, "• Object contrast with background\n")
+                return
+
+            # Draw contour visualizations with sample numbers
+            display_image = self.current_image.copy()
+
+            for i, (cx, cy, area, _) in enumerate(detected_contours):
+                sample_num = i + 1
+
+                # Draw a circle at the centroid
+                cv2.circle(display_image, (cx, cy), 15, (0, 255, 0), 3)
+                cv2.circle(display_image, (cx, cy), 5, (0, 255, 0), -1)
+
+                # Draw sample number label with background
+                label = f"#{sample_num}"
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                font_scale = 1.2
+                thickness = 3
+                (text_width, text_height), baseline = cv2.getTextSize(label, font, font_scale, thickness)
+
+                # Position label above the point
+                label_x = cx - text_width // 2
+                label_y = cy - 25
+
+                # Background rectangle
+                cv2.rectangle(display_image,
+                            (label_x - 5, label_y - text_height - 5),
+                            (label_x + text_width + 5, label_y + baseline + 5),
+                            (0, 200, 0), -1)
+
+                # Text
+                cv2.putText(display_image, label, (label_x, label_y),
+                           font, font_scale, (0, 0, 0), thickness)
+
+            # Update display with contour visualization
+            self.current_image = display_image
+            self.update_camera_display()
+
+            # Update status
+            self.camera_status_label.config(
+                text=f"Detected {len(detected_contours)} contour(s)",
+                foreground="green"
+            )
+
+            # Update detection info panel
+            self.detection_info.delete('1.0', tk.END)
+            self.detection_info.insert(tk.END, f"Contour Detection Results:\n")
+            self.detection_info.insert(tk.END, f"Found {len(detected_contours)} objects (reading order)\n\n")
+
+            for i, (cx, cy, area, _) in enumerate(detected_contours):
+                sample_num = i + 1
+                self.detection_info.insert(tk.END, f"Sample #{sample_num}: pixel({cx}, {cy}), area={area}px²\n")
+
+        except ImportError as e:
+            self.camera_status_label.config(
+                text="Camera module not available",
+                foreground="red"
+            )
+            messagebox.showerror("Import Error", f"Could not import contour detection: {e}")
+        except Exception as e:
+            self.camera_status_label.config(
+                text=f"Detection error",
+                foreground="red"
+            )
+            print(f"Contour detection error: {e}")
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Detection Error", f"Contour detection failed: {e}")
 
     def update_camera_display(self):
         """Update camera image display with ArUco marker overlays"""

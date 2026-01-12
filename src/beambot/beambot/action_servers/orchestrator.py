@@ -879,12 +879,14 @@ class MTCOrchestratorServer(Node):
 
         Supports:
         - tag_id: ArUco marker ID (for marker detection)
-        - detection_type: "marker" (default) or "circle"
+        - detection_type: "marker" (default), "circle", or "contour"
+        - sample_index: Sample number for contour detection (1-indexed)
         - z_offset: Override approach height
         - timeout: Detection timeout
         """
         goal = VisionMoveToAction.Goal()
         goal.tag_id = int(step.get("tag_id", 0))
+        goal.sample_index = int(step.get("sample_index", 1))
         goal.timeout = float(step.get("timeout", 10.0))
         goal.poses_json = poses_json
         goal.detection_type = step.get("detection_type", "marker")

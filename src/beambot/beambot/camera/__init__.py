@@ -1,7 +1,12 @@
 """Camera abstraction module for beambot vision.
 
-This module provides a camera-agnostic interface for ArUco marker detection.
+This module provides a camera-agnostic interface for object detection.
 Camera implementations are selected based on beamline configuration.
+
+Supported detection methods:
+    - ArUco markers: detect_markers()
+    - Circles (Hough): detect_circles()
+    - Any shape (contour): detect_contours()
 
 Usage:
     from beambot.camera import get_camera
@@ -9,7 +14,15 @@ Usage:
     # Get camera wrapper based on config
     camera = get_camera("zivid")
     client = camera.create_client(node)
+
+    # Detect ArUco markers
     markers = camera.detect_markers(client, node, marker_ids=[5, 10])
+
+    # Detect circles
+    circles = camera.detect_circles(node)
+
+    # Detect any shape by area
+    objects = camera.detect_contours(node)
 """
 
 from importlib import import_module

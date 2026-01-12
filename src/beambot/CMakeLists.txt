@@ -39,6 +39,9 @@ install(PROGRAMS
   beambot/octomap_to_planning_scene.py
   # Client utilities
   scripts/beambot_client.py
+  # Test/debug scripts
+  scripts/test_wafer_detection.py
+  scripts/test_contour_detection.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

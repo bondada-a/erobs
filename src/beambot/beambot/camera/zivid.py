@@ -1,4 +1,4 @@
-"""Zivid camera wrapper for ArUco marker and circle detection.
+"""Zivid camera wrapper for ArUco marker, circle, and contour detection.
 
 This module provides wrappers around the Zivid camera's services,
 exposing a simple interface that matches the beambot camera abstraction.
@@ -7,6 +7,7 @@ Interface contract:
     - create_client(node) -> ServiceClient
     - detect_markers(client, node, marker_ids, dictionary, timeout) -> List[Tuple[int, Pose]]
     - detect_circles(node, timeout, params) -> List[Pose]
+    - detect_contours(node, timeout, params) -> List[Pose]
 """
 
 import struct
@@ -41,6 +42,30 @@ class CircleDetectionParams:
     param2: int = 25           # Accumulator threshold (lower = more sensitive)
     min_dist: int = 50         # Min distance between detected circles
     search_radius: int = 10    # Pixels to search for valid depth around center
+
+
+@dataclass
+class ContourDetectionParams:
+    """Parameters for contour-based object detection.
+
+    Detects ANY shaped object (circles, squares, irregular shapes) by finding
+    closed contours and filtering by area. More flexible than Hough circles.
+
+    Area values are in PIXELS², not mm².
+    Typical values (depends on camera distance and object size):
+      - Small sample (~10mm) at 300mm: ~2000-8000 px²
+      - Small sample (~10mm) at 500mm: ~700-3000 px²
+      - Adjust based on your setup
+    """
+    min_area: int = 500          # Min contour area in pixels²
+    max_area: int = 50000        # Max contour area in pixels²
+    blur_kernel: int = 5         # Gaussian blur kernel size (must be odd)
+    canny_low: int = 50          # Canny edge detection lower threshold
+    canny_high: int = 150        # Canny edge detection upper threshold
+    search_radius: int = 10      # Pixels to search for valid depth around centroid
+    approx_epsilon: float = 0.02 # Contour approximation epsilon (fraction of perimeter)
+    row_tolerance: int = 50      # Y-pixel tolerance for grouping into rows (for sorting)
+
 
 # Zivid service endpoint
 SERVICE_NAME = "/capture_and_detect_markers"
@@ -210,13 +235,22 @@ def detect_circles(
         request.marker_dictionary = "aruco4x4_50"
 
         future = marker_client.call_async(request)
+        logger.info(f"Service call sent, waiting up to {timeout}s for response...")
 
         # spin_until_future_complete processes BOTH the service call
         # AND our subscription callbacks - same pattern as ArUco detection!
         rclpy.spin_until_future_complete(node, future, timeout_sec=timeout)
 
         if not future.done():
-            logger.error("Zivid capture timed out")
+            logger.error(f"Zivid capture timed out after {timeout}s - service future not completed")
+            return []
+
+        # Check service response
+        try:
+            response = future.result()
+            logger.info(f"Service responded: success={response.success}")
+        except Exception as e:
+            logger.error(f"Service call exception: {e}")
             return []
 
         # Wait for FRESH data to arrive via subscriptions
@@ -393,3 +427,299 @@ def _get_3d_position(
                         return xyz
 
     return None
+
+
+# ============================================================================
+# Contour Detection (Any Shape)
+# ============================================================================
+
+def detect_contours(
+    node: Node,
+    timeout: float = 10.0,
+    params: ContourDetectionParams = None
+) -> List[Pose]:
+    """Detect objects of ANY shape using contour detection.
+
+    Captures an image and point cloud, runs edge detection + contour finding,
+    filters by area, and returns 3D poses for detected objects.
+
+    Unlike Hough circles, this works for squares, triangles, irregular shapes,
+    or any closed boundary that meets the area criteria.
+
+    Args:
+        node: ROS2 node for subscriptions and service calls
+        timeout: Detection timeout in seconds
+        params: Contour detection parameters (uses defaults if None)
+
+    Returns:
+        List of Pose objects for detected objects (in camera optical frame).
+        The pose orientation is identity (flat surface facing camera).
+        Empty list if detection failed or no objects found.
+    """
+    if params is None:
+        params = ContourDetectionParams()
+
+    logger = node.get_logger()
+    bridge = CvBridge()
+
+    # Storage for received data (using list for mutability in closure)
+    received_image: List[Optional[Image]] = [None]
+    received_cloud: List[Optional[PointCloud2]] = [None]
+
+    def on_image(msg: Image):
+        received_image[0] = msg
+        logger.debug("Image callback triggered")
+
+    def on_cloud(msg: PointCloud2):
+        received_cloud[0] = msg
+        logger.debug("Point cloud callback triggered")
+
+    # Zivid driver uses rmw_qos_profile_default (RELIABLE reliability)
+    from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
+
+    zivid_qos = QoSProfile(
+        reliability=ReliabilityPolicy.RELIABLE,
+        durability=DurabilityPolicy.VOLATILE,
+        history=HistoryPolicy.KEEP_LAST,
+        depth=1
+    )
+
+    image_sub = node.create_subscription(Image, IMAGE_TOPIC, on_image, zivid_qos)
+    cloud_sub = node.create_subscription(PointCloud2, CLOUD_TOPIC, on_cloud, zivid_qos)
+
+    # Use the marker detection service - it does capture AND publishes to topics
+    marker_client = node.create_client(CaptureAndDetectMarkers, SERVICE_NAME)
+
+    try:
+        # Wait for service
+        if not marker_client.wait_for_service(timeout_sec=2.0):
+            logger.error(f"Zivid service '{SERVICE_NAME}' not available")
+            return []
+
+        # Wait for subscriptions to discover the publisher
+        logger.info("Waiting for subscriptions to connect...")
+        for i in range(20):  # Up to 2 seconds
+            rclpy.spin_once(node, timeout_sec=0.1)
+            if received_image[0] is not None or received_cloud[0] is not None:
+                logger.info(f"Subscriptions connected after {(i+1)*0.1:.1f}s")
+                break
+
+        # Clear any stale data before triggering fresh capture
+        received_image[0] = None
+        received_cloud[0] = None
+
+        # Trigger capture via marker detection service
+        logger.info("Triggering Zivid capture for contour detection...")
+        request = CaptureAndDetectMarkers.Request()
+        request.marker_ids = [999]  # Dummy ID - we don't care about markers
+        request.marker_dictionary = "aruco4x4_50"
+
+        future = marker_client.call_async(request)
+        logger.info(f"Service call sent, waiting up to {timeout}s for response...")
+        rclpy.spin_until_future_complete(node, future, timeout_sec=timeout)
+
+        if not future.done():
+            logger.error(f"Zivid capture timed out after {timeout}s - service future not completed")
+            return []
+
+        # Check service response
+        try:
+            response = future.result()
+            logger.info(f"Service responded: success={response.success}")
+        except Exception as e:
+            logger.error(f"Service call exception: {e}")
+            return []
+
+        # Wait for data to arrive
+        logger.info("Waiting for image and point cloud data...")
+        max_wait_iterations = 80  # Up to 8 seconds
+        for i in range(max_wait_iterations):
+            rclpy.spin_once(node, timeout_sec=0.1)
+
+            if (i + 1) % 10 == 0:
+                img_status = "✓" if received_image[0] else "waiting"
+                cloud_status = "✓" if received_cloud[0] else "waiting"
+                logger.info(f"  {(i+1)*0.1:.1f}s - image: {img_status}, cloud: {cloud_status}")
+
+            if received_image[0] is not None and received_cloud[0] is not None:
+                logger.info(f"Both image and point cloud received after {(i+1)*0.1:.1f}s")
+                break
+
+        if received_image[0] is None or received_cloud[0] is None:
+            img_status = "received" if received_image[0] else "MISSING"
+            cloud_status = "received" if received_cloud[0] else "MISSING"
+            logger.error(f"Timeout waiting for data (image: {img_status}, cloud: {cloud_status})")
+            return []
+
+        logger.info("Image and point cloud received")
+
+        # Convert image
+        rgb_image = bridge.imgmsg_to_cv2(received_image[0], desired_encoding='rgb8')
+        cloud = received_cloud[0]
+
+        # Detect contours
+        contours_info = _detect_contours_in_image(rgb_image, params, logger)
+        if contours_info is None or len(contours_info) == 0:
+            logger.warn("No contours detected matching area criteria")
+            return []
+
+        logger.info(f"Detected {len(contours_info)} object(s), sorted in reading order")
+
+        # Convert to 3D poses
+        poses = []
+        for i, (cx, cy, area, vertices) in enumerate(contours_info):
+            sample_num = i + 1  # 1-indexed for user-facing sample selection
+            xyz = _get_3d_position(cloud, cx, cy, params.search_radius)
+            if xyz is None:
+                logger.warn(f"Sample #{sample_num}: No valid depth at ({cx}, {cy})")
+                continue
+
+            x, y, z = xyz
+            logger.info(f"Sample #{sample_num}: ({cx}, {cy}) area={area}px² -> "
+                        f"({x:.3f}, {y:.3f}, {z:.3f}) m")
+
+            # Create pose (identity orientation = flat surface facing camera)
+            pose = Pose()
+            pose.position.x = x
+            pose.position.y = y
+            pose.position.z = z
+            pose.orientation.x = 0.0
+            pose.orientation.y = 0.0
+            pose.orientation.z = 0.0
+            pose.orientation.w = 1.0
+            poses.append(pose)
+
+        return poses
+
+    finally:
+        # Clean up subscriptions and client
+        node.destroy_subscription(image_sub)
+        node.destroy_subscription(cloud_sub)
+        node.destroy_client(marker_client)
+
+
+def _sort_contours_reading_order(
+    contours_info: List[Tuple[int, int, int, int]],
+    row_tolerance: int = 50
+) -> List[Tuple[int, int, int, int]]:
+    """Sort contours in reading order: left-to-right, top-to-bottom.
+
+    Groups objects into rows based on Y-coordinate proximity,
+    then sorts each row by X-coordinate.
+
+    Args:
+        contours_info: List of (cx, cy, area, vertices) tuples
+        row_tolerance: Max Y-pixel difference for objects to be in same row
+
+    Returns:
+        Sorted list of contour info tuples
+    """
+    if not contours_info:
+        return contours_info
+
+    # Sort by Y first to process top-to-bottom
+    sorted_by_y = sorted(contours_info, key=lambda d: d[1])  # d[1] = cy
+
+    # Group into rows
+    rows = []
+    current_row = [sorted_by_y[0]]
+    current_row_y = sorted_by_y[0][1]
+
+    for detection in sorted_by_y[1:]:
+        cy = detection[1]
+        # If Y is close enough to current row, add to same row
+        if abs(cy - current_row_y) <= row_tolerance:
+            current_row.append(detection)
+        else:
+            # Start new row
+            rows.append(current_row)
+            current_row = [detection]
+            current_row_y = cy
+
+    # Don't forget the last row
+    rows.append(current_row)
+
+    # Sort each row by X (left to right) and flatten
+    result = []
+    for row in rows:
+        row_sorted = sorted(row, key=lambda d: d[0])  # d[0] = cx
+        result.extend(row_sorted)
+
+    return result
+
+
+def _detect_contours_in_image(
+    rgb_image: np.ndarray,
+    params: ContourDetectionParams,
+    logger=None
+) -> Optional[List[Tuple[int, int, int, int]]]:
+    """Detect contours in image, filter by area, and sort in reading order.
+
+    Objects are sorted left-to-right, top-to-bottom (reading order) so that
+    sample_index=1 is the top-left object, index=2 is the next one to the right, etc.
+
+    Args:
+        rgb_image: RGB image array
+        params: Detection parameters
+        logger: Optional logger for debug output
+
+    Returns:
+        Sorted list of (centroid_x, centroid_y, area, num_vertices) tuples,
+        or None if no valid contours found.
+    """
+    # Convert to grayscale
+    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
+
+    # Blur to reduce noise
+    blurred = cv2.GaussianBlur(
+        gray, (params.blur_kernel, params.blur_kernel), 0
+    )
+
+    # Edge detection
+    edges = cv2.Canny(blurred, params.canny_low, params.canny_high)
+
+    # Find contours
+    contours, _ = cv2.findContours(
+        edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
+    )
+
+    if logger:
+        logger.debug(f"Found {len(contours)} raw contours")
+
+    # Filter by area and extract info
+    result = []
+    for contour in contours:
+        area = cv2.contourArea(contour)
+
+        # Filter by area
+        if area < params.min_area or area > params.max_area:
+            continue
+
+        # Get centroid using moments
+        M = cv2.moments(contour)
+        if M['m00'] == 0:
+            continue  # Skip degenerate contours
+
+        cx = int(M['m10'] / M['m00'])
+        cy = int(M['m01'] / M['m00'])
+
+        # Approximate contour to count vertices (for shape classification if needed)
+        perimeter = cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, params.approx_epsilon * perimeter, True)
+        num_vertices = len(approx)
+
+        result.append((cx, cy, int(area), num_vertices))
+
+    if logger:
+        logger.debug(f"Filtered to {len(result)} contours by area [{params.min_area}, {params.max_area}]")
+
+    if not result:
+        return None
+
+    # Sort in reading order (left-to-right, top-to-bottom)
+    result = _sort_contours_reading_order(result, params.row_tolerance)
+
+    if logger:
+        logger.debug(f"Sorted {len(result)} contours in reading order (row_tolerance={params.row_tolerance}px)")
+
+    return result
