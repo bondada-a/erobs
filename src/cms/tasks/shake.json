@@ -1,0 +1,133 @@
+{
+  "start_gripper": "epick",
+  "poses": {
+    "pre_spincoat": [
+      109.01,
+      -107.21,
+      -114.48,
+      -48.75,
+      -269.85,
+      -162.69
+    ],
+    "spincoat": [
+      109.01,
+      -121.0,
+      -118.41,
+      -31.03,
+      -269.91,
+      -162.64
+    ],
+    "post_spincoat": [
+      109.09,
+      -94.72,
+      -73.65,
+      -102.07,
+      -269.84,
+      -162.87
+    ],
+    "pre_hotplate": [
+      65.42,
+      -106.96,
+      -69.63,
+      -93.71,
+      -270.12,
+      -206.51
+    ],
+    "hotplate": [
+      65.42,
+      -106.85,
+      -72.88,
+      -90.56,
+      -270.11,
+      -206.49
+    ],
+    "5mm_spincoat": [
+      109.0,
+      -120.69,
+      -118.38,
+      -31.37,
+      -269.91,
+      -162.65
+    ],
+    "3mm_spincoat": [
+      109.0,
+      -120.97,
+      -118.41,
+      -31.06,
+      -269.91,
+      -162.65
+    ]
+  },
+  "tasks": [
+    {
+      "task_type": "moveto",
+      "target": "pre_hotplate",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "hotplate",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "epick",
+      "end_effector_action": "vacuum_on"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pre_hotplate",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "post_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pre_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "epick",
+      "end_effector_action": "vacuum_off"
+    },
+    {
+      "task_type": "moveto",
+      "target": "3mm_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "5mm_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "3mm_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "5mm_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "3mm_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pre_spincoat",
+      "planning_type": "joint"
+    }
+  ]
+}
