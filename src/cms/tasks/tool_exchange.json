@@ -1,0 +1,37 @@
+{
+  "start_gripper": "hande",
+  "poses": {
+    "load_approach": [
+      143.56,
+      -130.16,
+      -124.15,
+      -15.53,
+      -270.41,
+      -216.47
+    ],
+    "dock_approach": [
+      152.15,
+      -136.08,
+      -106.39,
+      -27.44,
+      -270.43,
+      -207.89
+    ]
+  },
+  "tasks": [
+    {
+      "task_type": "tool_exchange",
+      "operation": "dock",
+      "gripper": "hande",
+      "dock_number": 2,
+      "approach_pose": "dock_approach"
+    },
+    {
+      "task_type": "tool_exchange",
+      "operation": "load",
+      "gripper": "epick",
+      "dock_number": 3,
+      "approach_pose": "load_approach"
+    }
+  ]
+}
