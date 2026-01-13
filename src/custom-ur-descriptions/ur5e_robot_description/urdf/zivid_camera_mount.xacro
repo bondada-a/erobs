@@ -29,7 +29,10 @@
       <!-- Rotation: Euler XYZ extrinsic, radians | Translation: meters -->
       <origin xyz="0.05659 0.10548 0.05660"
               rpy="-0.01432 0.04829 3.13430"/>
-      <!-- Old calibration (2025-10-09, for reference):
+      <!-- Calibration (2026-01-13) - had offset issues:
+      <origin xyz="0.05646 0.10182 0.05680"
+              rpy="-0.03542 0.04745 3.13222"/> -->
+      <!-- Old calibration (2025-10-09):
       <origin xyz="0.02803 0.07664 0.0"
               rpy="0.53964 -1.53712 -2.13794"/> -->
     </joint>

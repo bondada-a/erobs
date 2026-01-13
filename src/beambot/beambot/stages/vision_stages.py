@@ -553,6 +553,11 @@ class VisionStages(BaseStages):
         tf.transform.rotation = pose.pose.orientation
         self._tf_broadcaster.sendTransform(tf)
 
+    # Sample offset from tag center in tag's local frame (meters)
+    # Set to (0, 0) if sample is directly on the tag
+    SAMPLE_OFFSET_X = 0.02   # X offset in tag frame (20mm to the right)
+    SAMPLE_OFFSET_Y = 0.0    # Y offset in tag frame
+
     def _move_to_pose(
         self,
         target: PoseStamped,
@@ -560,7 +565,7 @@ class VisionStages(BaseStages):
     ) -> bool:
         """Move robot to the target pose with orientation adjustment.
 
-        Applies 180° Z rotation and z_offset for proper approach.
+        Applies sample XY offset, 180° Z rotation, and z_offset for proper approach.
 
         Args:
             target: Target pose in base_link
@@ -590,11 +595,29 @@ class VisionStages(BaseStages):
             self.logger.info(f"Using z_offset override: {z_offset_override:.3f}")
             active_z_offset = z_offset_override
 
-        # Compute approach pose: 180° Z rotation + z_offset
+        # Apply sample XY offset in tag's local frame
+        if self.SAMPLE_OFFSET_X != 0.0 or self.SAMPLE_OFFSET_Y != 0.0:
+            q = [
+                target.pose.orientation.x,
+                target.pose.orientation.y,
+                target.pose.orientation.z,
+                target.pose.orientation.w
+            ]
+            rot_matrix = quaternion_matrix(q)[:3, :3]
+            local_offset = np.array([self.SAMPLE_OFFSET_X, self.SAMPLE_OFFSET_Y, 0.0])
+            world_offset = rot_matrix @ local_offset
+            self.logger.info(
+                f"Sample offset: [{self.SAMPLE_OFFSET_X:.3f}, {self.SAMPLE_OFFSET_Y:.3f}] → "
+                f"world [{world_offset[0]:.3f}, {world_offset[1]:.3f}]"
+            )
+        else:
+            world_offset = np.array([0.0, 0.0, 0.0])
+
+        # Compute approach pose: XY offset + 180° Z rotation + z_offset
         approach = PoseStamped()
         approach.header = target.header
-        approach.pose.position.x = target.pose.position.x
-        approach.pose.position.y = target.pose.position.y
+        approach.pose.position.x = target.pose.position.x + world_offset[0]
+        approach.pose.position.y = target.pose.position.y + world_offset[1]
         approach.pose.position.z = target.pose.position.z + active_z_offset
 
         # Apply 180° rotation around Z axis

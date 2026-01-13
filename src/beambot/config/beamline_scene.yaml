@@ -49,7 +49,8 @@ obstacles:
     frame: "base"
     pose:
       x: 0.0       # 0 inches (relative to base)
-      y: 1.0    # 38 inches in meters (relative to base)
+      # y: 1.0    # 38 inches in meters (relative to base)
+      y: 0.95 
       z: 0.1    # -10 inches in meters (relative to base)
       roll: 0.0
       pitch: 0.0
@@ -61,13 +62,38 @@ obstacles:
     type: "box"
     frame: "map"
     pose:
-      x: -0.40
+      x: -0.35
       y: -0.50
-      z: -0.10
+      z: 0.0
       roll: 0.0
       pitch: 0.0
       yaw: 0.0
     size: [0.3, 0.3, 0.5]
+
+  - name: "rightside_obstacles"
+    type: "box"
+    frame: "map"
+    pose:
+      x: 0.0       
+      y: 0.60    
+      z: 0.1    
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    size: [0.7112,0.4064, 1.27] 
+
+  - name: "top_railing"
+    type: "box"
+    frame: "map"
+    pose:
+      x: -0.3810   # 9" from edge along 48" dimension = -15" from center
+      y: -0.3556   # 4" from edge along 36" dimension = -14" from center
+      # z: -0.283  # Table top below robot base
+      z: 1.02
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+    size: [1.2192, 0.9144, 0.05791]  # [48in, 36in, 2.28in] in meters
 
 # Note: Add more obstacles here as needed
 # Supported types: box, cylinder, sphere
