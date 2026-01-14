@@ -1,0 +1,233 @@
+\documentclass[tikz,border=10pt]{standalone}
+\usepackage{tikz}
+\usetikzlibrary{positioning,shapes.geometric,arrows.meta,fit,calc,backgrounds,shadows}
+
+% Define semantic colors
+\definecolor{orchestration}{RGB}{70,130,180}   % Steel blue - framework/orchestration
+\definecolor{actionserver}{RGB}{60,179,113}    % Medium sea green - action servers
+\definecolor{planning}{RGB}{186,85,211}        % Medium orchid - planning/MoveIt
+\definecolor{hardware}{RGB}{255,140,0}         % Dark orange - hardware
+\definecolor{config}{RGB}{120,120,120}         % Gray - config files
+\definecolor{highlight}{RGB}{220,20,60}        % Crimson - emphasis
+
+\begin{document}
+\begin{tikzpicture}[
+    node distance=1.8cm,
+    font=\sffamily,
+    arrow/.style={-{Stealth[length=2.5mm]}, line width=1pt},
+    configbox/.style={
+        rectangle,
+        rounded corners=3pt,
+        minimum width=2.6cm,
+        minimum height=2.2cm,
+        text centered,
+        text width=2.4cm,
+        draw=config!80,
+        fill=white,
+        thick,
+        drop shadow={shadow xshift=1pt, shadow yshift=-1pt, opacity=0.3}
+    },
+    componentbox/.style={
+        rectangle,
+        rounded corners=3pt,
+        minimum width=3.2cm,
+        minimum height=1.1cm,
+        text centered,
+        text width=3.0cm,
+        thick,
+        drop shadow={shadow xshift=1pt, shadow yshift=-1pt, opacity=0.3}
+    },
+    hardwarebox/.style={
+        rectangle,
+        rounded corners=3pt,
+        minimum width=2.6cm,
+        minimum height=1.4cm,
+        text centered,
+        text width=2.4cm,
+        draw=hardware!80,
+        fill=hardware!15,
+        thick
+    },
+    sectionlabel/.style={
+        font=\normalsize\bfseries,
+        text centered
+    }
+]
+
+% ============ TITLE ============
+% \node (title) [font=\Large\bfseries, text centered]
+%     {Beambot Framework: Beamline-Agnostic Architecture};
+% \node (subtitle) [below=0.2cm of title, font=\normalsize, text=gray]
+%     {One Codebase, Multiple Beamlines via Configuration};
+
+% ============ TOP: Beamline Configs ============
+\node (configs_label) [sectionlabel, below=1.0cm of subtitle] {Beamline Configuration Files};
+
+% Config boxes in a row
+\node (config_default) [configbox, below=0.6cm of configs_label, xshift=-4.5cm] {
+    \textbf{\footnotesize default\_beamline.yaml}\\[0.15cm]
+    {\scriptsize Robot: UR5e}\\
+    {\scriptsize IP: 192.168.1.101}\\
+    {\scriptsize Grippers: Hand-E, ePick}\\
+    {\scriptsize Camera: Zivid}
+};
+
+\node (config_cms) [configbox, right=0.6cm of config_default] {
+    \textbf{\footnotesize cms\_beamline.yaml}\\[0.15cm]
+    {\scriptsize Robot: UR5e}\\
+    {\scriptsize IP: 192.168.56.101}\\
+    {\scriptsize Gripper: ePick only}\\
+    {\scriptsize Camera: Zivid}
+};
+
+\node (config_ur3e) [configbox, right=0.6cm of config_cms] {
+    \textbf{\footnotesize ur3e\_beamline.yaml}\\[0.15cm]
+    {\scriptsize Robot: UR3e}\\
+    {\scriptsize IP: 192.168.56.102}\\
+    {\scriptsize Gripper: Hand-E}\\
+    {\scriptsize Camera: RealSense}
+};
+
+% "New beamline" with dashed border
+\node (config_new) [configbox, right=0.6cm of config_ur3e,
+    dashed, draw=highlight!70, fill=highlight!5] {
+    \textbf{\footnotesize new\_beamline.yaml}\\[0.15cm]
+    {\scriptsize Robot: ???}\\
+    {\scriptsize IP: ???}\\
+    {\scriptsize Gripper: ???}\\
+    {\scriptsize Camera: ???}
+};
+\node [above=0.1cm of config_new, font=\scriptsize\bfseries, text=highlight]
+    {Add New Config Here};
+
+% ============ LAUNCH ARGUMENT ============
+\node (launch_label) [sectionlabel, below=1.8cm of config_cms] {Launch System};
+
+\node (launch_arg) [
+    rectangle,
+    rounded corners=3pt,
+    minimum width=7cm,
+    minimum height=0.7cm,
+    text centered,
+    draw=orchestration!80,
+    fill=orchestration!10,
+    thick,
+    below=0.4cm of launch_label,
+    font=\ttfamily\footnotesize
+] {ros2 launch beambot beambot\_bringup.launch.py beamline\_config:=config/X.yaml};
+
+% Arrows from configs to launch (selection)
+\draw [arrow, config!70] (config_default.south) -- ++(0,-0.4) -| ([xshift=-2cm]launch_arg.north);
+\draw [arrow, orchestration, thick] (config_cms.south) -- (config_cms.south |- launch_arg.north);
+\draw [arrow, config!70] (config_ur3e.south) -- ++(0,-0.4) -| ([xshift=2cm]launch_arg.north);
+
+% ============ FRAMEWORK BOX ============
+\node (framework_label) [sectionlabel, below=1.5cm of launch_arg]
+    {Beambot Framework (Single Codebase)};
+
+% Framework components - positioned carefully
+\node (orchestrator) [
+    componentbox,
+    draw=orchestration!80,
+    fill=orchestration!15,
+    below=0.8cm of framework_label,
+    xshift=-3.8cm
+] {
+    \textbf{Orchestrator}\\
+    {\scriptsize Loads robot IP, grippers}
+};
+
+\node (vision_server) [
+    componentbox,
+    draw=actionserver!80,
+    fill=actionserver!15,
+    right=0.5cm of orchestrator
+] {
+    \textbf{Vision Servers}\\
+    {\scriptsize Camera factory pattern}
+};
+
+\node (moveit_mgr) [
+    componentbox,
+    draw=planning!80,
+    fill=planning!15,
+    right=0.5cm of vision_server
+] {
+    \textbf{MoveIt Manager}\\
+    {\scriptsize Gripper MoveIt configs}
+};
+
+% Draw framework box BEHIND components using background layer
+\begin{scope}[on background layer]
+    \node (framework_box) [
+        draw=orchestration!50,
+        line width=1.5pt,
+        rounded corners=5pt,
+        fit=(orchestrator)(vision_server)(moveit_mgr),
+        fill=orchestration!5,
+        inner sep=0.4cm
+    ] {};
+\end{scope}
+
+% Arrow from launch to framework
+\draw [arrow, orchestration] (launch_arg.south) --
+    node[pos=0.5, right, font=\scriptsize, text=orchestration] {Passes config path}
+    (framework_box.north);
+
+% ============ HARDWARE LAYER ============
+\node (hardware_label) [sectionlabel, below=2.2cm of framework_box]
+    {Hardware Layer (Config-Driven)};
+
+\node (hw_robot) [hardwarebox, below=0.5cm of hardware_label, xshift=-3.8cm] {
+    \textbf{UR Robot}\\
+    {\scriptsize Model \& IP}\\
+    {\scriptsize from \texttt{robot:}}
+};
+
+\node (hw_camera) [hardwarebox, right=0.5cm of hw_robot] {
+    \textbf{Camera}\\
+    {\scriptsize Type \& frame}\\
+    {\scriptsize from \texttt{camera:}}
+};
+
+\node (hw_gripper) [hardwarebox, right=0.5cm of hw_camera] {
+    \textbf{Grippers}\\
+    {\scriptsize MoveIt package}\\
+    {\scriptsize from \texttt{grippers:}}
+};
+
+% Arrows from framework components to hardware (now aligned vertically)
+\draw [arrow, hardware] (orchestrator.south) -- (hw_robot.north);
+\draw [arrow, hardware] (vision_server.south) -- (hw_camera.north);
+\draw [arrow, hardware] (moveit_mgr.south) -- (hw_gripper.north);
+
+% ============ ANNOTATION BOX ============
+\node (annotation) [
+    right=1.5cm of framework_box,
+    text width=3.8cm,
+    font=\scriptsize,
+    draw=config!50,
+    rounded corners=3pt,
+    fill=white,
+    thick,
+    align=left,
+    inner sep=0.3cm
+] {
+    \textbf{YAML Config Structure:}\\[0.15cm]
+    \texttt{beamline: "name"}\\[0.1cm]
+    \texttt{robot:}\\
+    \quad\texttt{model: ur5e}\\
+    \quad\texttt{ip: 192.168.x.x}\\[0.1cm]
+    \texttt{grippers:}\\
+    \quad\texttt{hande:}\\
+    \quad\quad\texttt{moveit\_package: ...}\\
+    \quad\quad\texttt{states: \{grasp, release\}}\\[0.1cm]
+    \texttt{camera:}\\
+    \quad\texttt{type: zivid}\\
+    \quad\texttt{frame: zivid\_optical\_frame}
+};
+
+\draw [arrow, config!50, dashed] (annotation.west) -- ([xshift=0.2cm]framework_box.east);
+
+\end{tikzpicture}
+\end{document}

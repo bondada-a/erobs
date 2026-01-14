@@ -704,4 +704,141 @@ Camera Integration      & physical server & \no  & \tbd & \yes & \yes \\
 \label{fig:workstation-architecture}
 \end{figure}
 
+\subsection{Laptop Implementation}
+\begin{enumerate}
+    \item Native installation - no Docker containers, all components run directly on the laptop
+    % \item Full MTC orchestrator with multiple action servers (move\_to, pick\_place, vision, etc.)
+    \item Direct camera integration via Camera Node (Zivid 10GbE, ZED USB)
+    \item GPU available for camera point cloud processing
+\end{enumerate}
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+    scale=0.55,
+    transform shape,
+    node distance=1.2cm,
+    font=\sffamily,
+    arrow/.style={-{Stealth[length=3mm]}, line width=1.5pt, color=arrowcolor},
+    componentbox/.style={
+        rectangle,
+        rounded corners=4pt,
+        minimum width=4cm,
+        minimum height=1.2cm,
+        text centered,
+        text width=3.6cm,
+        draw=gray!70,
+        thick,
+        fill=componentbg
+    }
+]
+
+%% LEFT SIDE - GUI / Action Client %%
+\node (gui_client) [componentbox, minimum height=1.8cm] {
+    \textbf{GUI / Action Client}\\[0.1cm]
+    {\small (ROS2 Action Client)}
+};
+
+%% RIGHT SIDE - ROS2 components %%
+\node (orchestrator) [componentbox, right=3cm of gui_client] {
+    \textbf{MTCOrchestrator}\\[0.05cm]
+    \textbf{Server}
+};
+
+\node (action_servers) [componentbox, below=0.8cm of orchestrator, minimum height=2.2cm] {
+    \textbf{Action Servers}\\[0.1cm]
+    {\small $\bullet$ move\_to}\\
+    {\small $\bullet$ pick\_place}\\
+    {\small $\bullet$ vision}\\
+    {\small $\bullet$ etc.}
+};
+
+\node (moveit) [componentbox, below=0.8cm of action_servers] {
+    \textbf{MoveIt2 + MTC}
+};
+
+%% CAMERA NODE %%
+\node (camera_node) [
+    componentbox,
+    right=2.5cm of action_servers,
+    fill=cameracolor!70,
+    minimum height=1.8cm
+] {
+    \textbf{Camera Node}\\[0.1cm]
+    {\small (Zivid / ZED)}
+};
+
+%% CAMERA HARDWARE (right of laptop) %%
+\node (camera) [
+    right=2cm of camera_node,
+    rectangle,
+    rounded corners=6pt,
+    minimum width=4cm,
+    minimum height=1.5cm,
+    text centered,
+    draw=gray!70,
+    very thick,
+    fill=cameracolor!70,
+    font=\bfseries
+] {Zivid 2+ / ZED 2i};
+
+%% ROBOT (outside laptop) %%
+\node (robot) [
+    below=3.5cm of moveit,
+    rectangle,
+    rounded corners=6pt,
+    minimum width=5cm,
+    minimum height=1.5cm,
+    text centered,
+    draw=gray!70,
+    very thick,
+    fill=robotcolor!70,
+    font=\large\bfseries
+] {UR5e Robot};
+
+%% LAPTOP LAYER - Draw laptop box %%
+\begin{pgfonlayer}{vmlayer}
+    \node (laptop_box) [
+        rectangle,
+        rounded corners=12pt,
+        fill=vmcolor!50,
+        draw=black,
+        line width=2pt,
+        fit=(gui_client)(orchestrator)(action_servers)(moveit)(camera_node),
+        inner sep=1cm
+    ] {};
+\end{pgfonlayer}
+
+%% Laptop Label %%
+\node [anchor=north west, font=\Large\bfseries, xshift=0.3cm, yshift=-0.3cm] at (laptop_box.north west) {Laptop};
+
+%% ARROWS %%
+\draw [arrow] (gui_client.east) --
+    node[pos=0.5, above, font=\small\bfseries] {JSON task}
+    (orchestrator.west);
+
+\draw [arrow] (orchestrator) -- (action_servers);
+\draw [arrow] (action_servers) --
+    node[pos=0.5, right, font=\small\bfseries] {MoveIt}
+    (moveit);
+
+\draw [arrow] (moveit.south) --
+    node[pos=0.5, right, font=\small\bfseries] {UR Driver}
+    (robot.north);
+
+%% Camera communication arrows - fan out pattern %%
+\draw [arrow] (camera_node.north) |- (orchestrator.east);
+\draw [arrow] (camera_node.west) -- (action_servers.east);
+\draw [arrow] (camera_node.south) |- (moveit.east);
+
+%% Camera hardware connection %%
+\draw [arrow] (camera.west) --
+    node[pos=0.5, above, font=\small\bfseries] {10GbE / USB}
+    (camera_node.east);
+
+\end{tikzpicture}
+\caption{EROBS deployment architecture on Laptop.}
+\label{fig:laptop-architecture}
+\end{figure}
+
 \end{document}
