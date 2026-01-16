@@ -88,7 +88,7 @@ def detect_markers(
     node: Node,
     marker_ids: List[int],
     dictionary: str = "aruco4x4_50",
-    timeout: float = 10.0
+    timeout: float = 45.0
 ) -> List[Tuple[int, Pose]]:
     """Detect ArUco markers using the Zivid camera.
 
@@ -146,7 +146,7 @@ CLOUD_TOPIC = "/points/xyzrgba"
 
 def detect_circles(
     node: Node,
-    timeout: float = 10.0,
+    timeout: float = 45.0,
     params: CircleDetectionParams = None
 ) -> List[Pose]:
     """Detect circular objects using the Zivid camera.
@@ -435,7 +435,7 @@ def _get_3d_position(
 
 def detect_contours(
     node: Node,
-    timeout: float = 10.0,
+    timeout: float = 45.0,
     params: ContourDetectionParams = None
 ) -> List[Pose]:
     """Detect objects of ANY shape using contour detection.

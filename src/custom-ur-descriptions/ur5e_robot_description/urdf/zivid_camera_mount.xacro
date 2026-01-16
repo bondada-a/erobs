@@ -25,10 +25,14 @@
     <joint name="tool0_to_zivid_optical" type="fixed">
       <parent link="${parent_link}"/>
       <child link="zivid_optical_frame"/>
-      <!-- Hand-eye calibration (2025-12-17): tool0 -> optical_frame -->
+      <!-- Hand-eye calibration: tool0 -> optical_frame -->
       <!-- Rotation: Euler XYZ extrinsic, radians | Translation: meters -->
+      <!-- Calibration (2026-01-15): Residuals: rot < 0.22°, trans < 0.47mm -->
+      <origin xyz="0.05675 0.10322 0.05489"
+              rpy="-0.00615 0.04362 3.13541"/>
+      <!-- Calibration (2025-12-17):
       <origin xyz="0.05659 0.10548 0.05660"
-              rpy="-0.01432 0.04829 3.13430"/>
+              rpy="-0.01432 0.04829 3.13430"/> -->
       <!-- Calibration (2026-01-13) - had offset issues:
       <origin xyz="0.05646 0.10182 0.05680"
               rpy="-0.03542 0.04745 3.13222"/> -->

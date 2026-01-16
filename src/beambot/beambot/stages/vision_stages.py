@@ -217,7 +217,7 @@ class VisionStages(BaseStages):
     def detect_and_transform_tag(
         self,
         tag_id: int,
-        timeout: float = 10.0
+        timeout: float = 45.0
     ) -> Optional[PoseStamped]:
         """Detect an ArUco marker and transform to base_link frame.
 
@@ -343,7 +343,7 @@ class VisionStages(BaseStages):
 
     def detect_and_transform_circle(
         self,
-        timeout: float = 10.0
+        timeout: float = 45.0
     ) -> Optional[PoseStamped]:
         """Detect circular objects and transform to base_link frame.
 
@@ -412,7 +412,7 @@ class VisionStages(BaseStages):
     def detect_and_transform_contour(
         self,
         sample_index: int = 1,
-        timeout: float = 10.0
+        timeout: float = 45.0
     ) -> Optional[PoseStamped]:
         """Detect objects using contour detection and transform to base_link frame.
 
@@ -555,7 +555,7 @@ class VisionStages(BaseStages):
 
     # Sample offset from tag center in tag's local frame (meters)
     # Set to (0, 0) if sample is directly on the tag
-    SAMPLE_OFFSET_X = 0.02   # X offset in tag frame (20mm to the right)
+    SAMPLE_OFFSET_X = 0.0   # X offset in tag frame (20mm to the right)
     SAMPLE_OFFSET_Y = 0.0    # Y offset in tag frame
 
     def _move_to_pose(
