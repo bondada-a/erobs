@@ -2,14 +2,14 @@ __version__: 27
 Settings:
   Acquisitions:
     - Acquisition:
-        Aperture: 4
-        Brightness: 2.5
-        ExposureTime: 5000
+        Aperture: 5.66
+        Brightness: 1.1
+        ExposureTime: 16667
         Gain: 1
     - Acquisition:
         Aperture: 3.36
         Brightness: 2.5
-        ExposureTime: 60000
+        ExposureTime: 66667
         Gain: 1
   Color:
     __version__: 8
@@ -42,7 +42,7 @@ Settings:
         Pixel: all
   Diagnostics:
     Enabled: no
-  Engine: sage
+  Engine: omni
   Processing:
     Color:
       Balance:
@@ -74,7 +74,7 @@ Settings:
       Noise:
         Removal:
           Enabled: yes
-          Threshold: 7
+          Threshold: 5
         Repair:
           Enabled: yes
         Suppression:
@@ -90,7 +90,7 @@ Settings:
       Smoothing:
         Gaussian:
           Enabled: yes
-          Sigma: 1
+          Sigma: 1.5
     Resampling:
       Mode: disabled
   RegionOfInterest:

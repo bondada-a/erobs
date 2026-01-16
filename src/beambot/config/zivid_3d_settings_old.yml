@@ -16,14 +16,9 @@ Settings:
     Settings2D:
       Acquisitions:
         - Acquisition:
-            Aperture: 4
+            Aperture: 4.36
             Brightness: 0
-            ExposureTime: 10000
-            Gain: 4
-        - Acquisition:
-            Aperture: 4
-            Brightness: 0
-            ExposureTime: 6000
+            ExposureTime: 15000
             Gain: 4
       Processing:
         Color:
@@ -42,7 +37,7 @@ Settings:
         Pixel: all
   Diagnostics:
     Enabled: no
-  Engine: sage
+  Engine: omni
   Processing:
     Color:
       Balance:

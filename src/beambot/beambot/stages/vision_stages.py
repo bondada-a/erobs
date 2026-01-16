@@ -26,6 +26,12 @@ from shape_msgs.msg import SolidPrimitive
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
 from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix
+from moveit_msgs.srv import GetPositionIK
+from control_msgs.action import FollowJointTrajectory
+from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
+from sensor_msgs.msg import JointState
+from rclpy.action import ActionClient
+from rclpy.duration import Duration
 
 from beambot.camera import get_camera
 from beambot.stages.base_stages import BaseStages
@@ -121,6 +127,27 @@ class VisionStages(BaseStages):
         self._get_scene_client = rclpy_node.create_client(
             GetPlanningScene, "/get_planning_scene"
         )
+
+        # IK service client (for IK + trajectory approach)
+        self._ik_client = rclpy_node.create_client(GetPositionIK, '/compute_ik')
+
+        # Trajectory action client (for IK + trajectory approach)
+        self._traj_client = ActionClient(
+            rclpy_node, FollowJointTrajectory,
+            '/scaled_joint_trajectory_controller/follow_joint_trajectory'
+        )
+
+        # Joint state tracking
+        self._current_joints = None
+        self._joint_sub = rclpy_node.create_subscription(
+            JointState, '/joint_states', self._joint_state_cb, 10
+        )
+
+        # Joint names for trajectory
+        self._arm_joints = [
+            'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
+            'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
+        ]
 
         # Parameters
         self._publish_marker_frames = True
@@ -555,8 +582,85 @@ class VisionStages(BaseStages):
 
     # Sample offset from tag center in tag's local frame (meters)
     # Set to (0, 0) if sample is directly on the tag
-    SAMPLE_OFFSET_X = 0.0   # X offset in tag frame (20mm to the right)
+    SAMPLE_OFFSET_X = 0.02   # X offset in tag frame (20mm to the right)
     SAMPLE_OFFSET_Y = 0.0    # Y offset in tag frame
+
+    # Use IK + trajectory instead of MTC Cartesian planner
+    USE_IK_TRAJECTORY = True
+    IK_TRAJECTORY_DURATION = 2.0  # seconds
+
+    def _joint_state_cb(self, msg):
+        """Callback to track current joint state."""
+        self._current_joints = msg
+
+    def _compute_ik(self, pose: PoseStamped, ik_frame: str):
+        """Compute IK for pose, returns joint positions or None."""
+        if self._current_joints is None:
+            self.logger.error("No joint states available for IK")
+            return None
+
+        request = GetPositionIK.Request()
+        request.ik_request.group_name = "ur_arm"
+        request.ik_request.robot_state.joint_state = self._current_joints
+        request.ik_request.pose_stamped = pose
+        request.ik_request.pose_stamped.header.stamp = self.rclpy_node.get_clock().now().to_msg()
+        request.ik_request.timeout = Duration(seconds=5.0).to_msg()
+        request.ik_request.avoid_collisions = True
+        request.ik_request.ik_link_name = ik_frame
+
+        future = self._ik_client.call_async(request)
+        rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=10.0)
+
+        if not future.done():
+            self.logger.error("IK service call timed out")
+            return None
+
+        result = future.result()
+        if result.error_code.val != 1:
+            self.logger.error(f"IK failed with error code: {result.error_code.val}")
+            return None
+
+        joint_positions = []
+        for name in self._arm_joints:
+            if name in result.solution.joint_state.name:
+                idx = result.solution.joint_state.name.index(name)
+                joint_positions.append(result.solution.joint_state.position[idx])
+            else:
+                self.logger.error(f"Joint {name} not found in IK solution")
+                return None
+
+        return joint_positions
+
+    def _execute_trajectory(self, joint_positions, duration=None):
+        """Send joint trajectory to controller."""
+        if duration is None:
+            duration = self.IK_TRAJECTORY_DURATION
+
+        trajectory = JointTrajectory()
+        trajectory.joint_names = self._arm_joints
+
+        point = JointTrajectoryPoint()
+        point.positions = joint_positions
+        point.velocities = [0.0] * 6
+        point.time_from_start = Duration(seconds=duration).to_msg()
+        trajectory.points.append(point)
+
+        goal = FollowJointTrajectory.Goal()
+        goal.trajectory = trajectory
+
+        future = self._traj_client.send_goal_async(goal)
+        rclpy.spin_until_future_complete(self.rclpy_node, future)
+
+        goal_handle = future.result()
+        if not goal_handle.accepted:
+            self.logger.error("Trajectory goal rejected")
+            return False
+
+        result_future = goal_handle.get_result_async()
+        rclpy.spin_until_future_complete(self.rclpy_node, result_future)
+
+        result = result_future.result()
+        return result.result.error_code == 0
 
     def _move_to_pose(
         self,
@@ -641,13 +745,43 @@ class VisionStages(BaseStages):
             f"with 180° Z-rot, z_offset={active_z_offset:.3f}"
         )
 
-        # Build MTC task
+        # Use IK + trajectory approach (like send_pose_goal.py)
+        if self.USE_IK_TRAJECTORY:
+            self.logger.info("Using IK + trajectory approach")
+
+            # Compute IK
+            joint_solution = self._compute_ik(approach, active_ik_frame)
+            if joint_solution is None:
+                self.logger.error("IK failed for vision move")
+                return False
+
+            # Execute trajectory
+            success = self._execute_trajectory(joint_solution)
+            if not success:
+                self.logger.error("Trajectory execution failed")
+            return success
+
+        # OLD: Build MTC task with Cartesian planner
+        # task = self.create_task_template("Vision Move")
+        # cartesian = self.make_cartesian_planner()
+        #
+        # stage = stages.MoveTo("move to tag", cartesian)
+        # stage.group = self.arm_group
+        # # Set ik_frame for this specific movement
+        # ik_frame_pose = PoseStamped()
+        # ik_frame_pose.header.frame_id = active_ik_frame
+        # stage.ik_frame = ik_frame_pose
+        # stage.setGoal(approach)
+        # task.add(stage)
+        #
+        # return self.load_plan_execute(task)
+
+        # Fallback to MTC Cartesian planner if USE_IK_TRAJECTORY is False
         task = self.create_task_template("Vision Move")
         cartesian = self.make_cartesian_planner()
 
         stage = stages.MoveTo("move to tag", cartesian)
         stage.group = self.arm_group
-        # Set ik_frame for this specific movement
         ik_frame_pose = PoseStamped()
         ik_frame_pose.header.frame_id = active_ik_frame
         stage.ik_frame = ik_frame_pose
@@ -668,7 +802,7 @@ class VisionStages(BaseStages):
             rclpy.time.Time(),
             timeout=rclpy.duration.Duration(seconds=1.0)
         ):
-            return GripperDetection("epick_tip", 0.027) #pen suction cup
+            return GripperDetection("epick_tip", 0.0264) #pen suction cup
             # return GripperDetection("epick_tip", 0.022)
 
         # Check for Hand-E gripper

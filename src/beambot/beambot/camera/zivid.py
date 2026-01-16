@@ -257,7 +257,7 @@ def detect_circles(
         # CRITICAL: Point cloud (~40MB for 2448x2048x16 bytes) takes 3-4s longer
         # to transmit than the image (~10MB). We must wait long enough!
         logger.info("Waiting for image and point cloud data...")
-        max_wait_iterations = 80  # Up to 8 seconds (point cloud is slow!)
+        max_wait_iterations = 200  # Up to 20 seconds (slower depth engines need more time)
         for i in range(max_wait_iterations):
             rclpy.spin_once(node, timeout_sec=0.1)
 
@@ -532,7 +532,7 @@ def detect_contours(
 
         # Wait for data to arrive
         logger.info("Waiting for image and point cloud data...")
-        max_wait_iterations = 80  # Up to 8 seconds
+        max_wait_iterations = 200  # Up to 20 seconds (slower depth engines need more time)
         for i in range(max_wait_iterations):
             rclpy.spin_once(node, timeout_sec=0.1)
 

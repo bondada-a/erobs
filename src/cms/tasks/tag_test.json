@@ -1,385 +1,69 @@
 {
   "start_gripper": "epick",
   "poses": {
-    "home": [
-      0.0,
-      -90.0,
-      -90.0,
-      -90.0,
-      90.0,
-      0.0
-    ],
-    "pickup_approach": [
-      45.0,
-      -90.0,
-      -90.0,
-      -90.0,
-      90.0,
-      -90.0
-    ],
-    "pickup": [
-      45.0,
-      -90.0,
-      -90.0,
-      -90.0,
-      90.0,
-      0.0
-    ],
-    "place_approach": [
-      -45.0,
-      -90.0,
-      -90.0,
-      -90.0,
-      90.0,
-      0.0
-    ],
-    "place": [
-      -45.0,
-      -90.0,
-      -90.0,
-      -90.0,
-      90.0,
-      0.0
-    ],
-    "tagger": [
-      17.77,
-      -113.23,
-      -63.9,
-      -92.31,
-      -267.99,
-      -160.22
-    ]
+    "home": [0.0, -90.0, -90.0, -90.0, 90.0, 0.0],
+    "tagger": [13.38, -112.45, -65.22, -90.98, -267.33, -166.94]
   },
   "tasks": [
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 0,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 1,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 2,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 3,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 4,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 5,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 6,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 7,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 8,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 9,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 10,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 11,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 12,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 13,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 14,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 15,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 16,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 17,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 18,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 19,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 20,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 21,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 22,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 23,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 24,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 25,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 26,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 27,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 28,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    },
-    {
-      "task_type": "moveto",
-      "target": "tagger",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "tag_id": 29,
-      "timeout": 10.0,
-      "marker_dictionary": "aruco4x4_50"
-    }
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 0, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 1, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 2, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 3, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 4, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 5, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 6, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 7, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 8, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 9, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 10, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 11, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 12, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 13, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 14, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 15, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 16, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 17, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 18, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 19, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 20, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 21, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 22, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 23, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 24, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 25, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 26, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 27, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 28, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "moveto", "target": "tagger", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "tag_id": 29, "timeout": 10.0, "marker_dictionary": "aruco4x4_50"}
   ]
 }

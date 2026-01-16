@@ -176,7 +176,7 @@ def generate_launch_description():
             'settings_file_path': PathJoinSubstitution([
                 FindPackageShare('beambot'),
                 'config',
-                'zivid_3d_settings.yml'
+                'zivid_man_specular.yml'
             ]),
             'frame_id': 'zivid_optical_frame'
         }],

@@ -2,28 +2,23 @@ __version__: 27
 Settings:
   Acquisitions:
     - Acquisition:
-        Aperture: 4
+        Aperture: 2.83
+        Brightness: 1.25
+        ExposureTime: 900
+        Gain: 2
+    - Acquisition:
+        Aperture: 2.83
         Brightness: 2.5
         ExposureTime: 5000
-        Gain: 1
-    - Acquisition:
-        Aperture: 3.36
-        Brightness: 2.5
-        ExposureTime: 60000
-        Gain: 1
+        Gain: 2
   Color:
     __version__: 8
     Settings2D:
       Acquisitions:
         - Acquisition:
-            Aperture: 4
+            Aperture: 4.36
             Brightness: 0
-            ExposureTime: 10000
-            Gain: 4
-        - Acquisition:
-            Aperture: 4
-            Brightness: 0
-            ExposureTime: 6000
+            ExposureTime: 15000
             Gain: 4
       Processing:
         Color:
@@ -39,10 +34,10 @@ Settings:
         Interval:
           Duration: __not_set__
           Enabled: __not_set__
-        Pixel: all
+        Pixel: by2x2
   Diagnostics:
     Enabled: no
-  Engine: sage
+  Engine: omni
   Processing:
     Color:
       Balance:
@@ -57,11 +52,11 @@ Settings:
         Removal:
           Enabled: yes
           MaxNeighborDistance: 3.5
-          MinArea: 25
+          MinArea: 50
       Experimental:
         ContrastDistortion:
           Correction:
-            Enabled: no
+            Enabled: yes
             Strength: 0.2
           Removal:
             Enabled: yes
@@ -69,16 +64,16 @@ Settings:
       Hole:
         Repair:
           Enabled: yes
-          HoleSize: 0.1
+          HoleSize: 0.3
           Strictness: 4
       Noise:
         Removal:
           Enabled: yes
-          Threshold: 7
+          Threshold: 6
         Repair:
           Enabled: yes
         Suppression:
-          Enabled: no
+          Enabled: yes
       Outlier:
         Removal:
           Enabled: yes
@@ -90,7 +85,7 @@ Settings:
       Smoothing:
         Gaussian:
           Enabled: yes
-          Sigma: 1
+          Sigma: 5
     Resampling:
       Mode: disabled
   RegionOfInterest:
@@ -105,4 +100,4 @@ Settings:
       Range: [300, 1100]
   Sampling:
     Color: __not_set__
-    Pixel: all
+    Pixel: by4x4
