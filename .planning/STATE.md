@@ -10,25 +10,25 @@
 ### Milestone 1: Debugging & Observability
 | Phase | Description | Status |
 |-------|-------------|--------|
-| 1 | Add Diagnostic Logging | ⏳ Not started |
+| 1 | Rosbag Analysis & Baseline Validation | 📋 Context gathered |
 | 2 | Vision Pipeline Investigation | ⏳ Not started |
 | 3 | Unit Tests for Orchestrator | ⏳ Not started |
 | 4 | Integration Test Framework | ⏳ Not started |
 | 5 | Document Findings | ⏳ Not started |
 
 ## Context
-User is currently debugging the system to understand where reliability issues stem from (vision detection, motion planning, or other components). This milestone focuses on adding observability and creating reproducible test cases.
+User wants to analyze existing rosbags first before adding new logging. Already built `vision_accuracy_analyzer.py` - needs validation of frame transforms, offsets, and timing logic before trusting the baselines.
 
 ## Key Decisions
-- Starting with diagnostic logging to understand failure patterns
-- Vision investigation uses captured test images for reproducibility
-- Unit tests will use mocking for ROS2 dependencies
+- Analyze existing rosbags FIRST before adding new logging
+- Validate analyzer calculations before trusting baselines
+- Quantified baselines define "good" - objective measurement over gut feel
 
 ## Blockers
 None currently.
 
 ## Next Action
-Run `/gsd:discuss-phase 1` to discuss Phase 1 approach, or `/gsd:plan-phase 1` to create execution plan.
+Run `/gsd:plan-phase 1` to create execution plan for validating the analyzer.
 
 ---
 

@@ -59,10 +59,10 @@ The current system works but has reliability issues that make autonomous 24/7 op
 
 ### Phases
 
-**Phase 1: Add Diagnostic Logging**
-- Add structured logging at key decision points in orchestrator
-- Log vision detection confidence scores, timing, and failure modes
-- Create log analysis script to identify patterns
+**Phase 1: Rosbag Analysis & Baseline Validation**
+- Validate existing vision_accuracy_analyzer.py (frame transforms, offsets, timing)
+- Establish quantified baselines for "good" performance
+- Analyze existing rosbags before adding new logging
 
 **Phase 2: Vision Pipeline Investigation**
 - Create reproducible test images/point clouds from Zivid
