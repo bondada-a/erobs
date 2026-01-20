@@ -1,0 +1,133 @@
+{
+  "start_gripper": "epick",
+  "poses": {
+    "pre_spincoat": [
+      109.01,
+      -107.21,
+      -114.48,
+      -48.75,
+      -269.85,
+      -162.69
+    ],
+    "spincoat": [
+      109.01,
+      -121.08,
+      -118.41,
+      -30.95,
+      -269.91,
+      -162.64
+    ],
+    "post_spincoat": [
+      109.09,
+      -94.72,
+      -73.65,
+      -102.07,
+      -269.84,
+      -162.87
+    ],
+    "pre_hotplate": [
+      65.42,
+      -106.96,
+      -69.63,
+      -93.71,
+      -270.12,
+      -206.51
+    ],
+    "hotplate": [
+      65.42,
+      -106.85,
+      -72.88,
+      -90.56,
+      -270.11,
+      -206.49
+    ],
+    "5mm_spincoat": [
+      109.0,
+      -120.69,
+      -118.38,
+      -31.37,
+      -269.91,
+      -162.65
+    ],
+    "3mm_spincoat": [
+      109.0,
+      -120.97,
+      -118.41,
+      -31.06,
+      -269.91,
+      -162.65
+    ],
+    "sample_scan": [13.38, -112.45, -65.22, -90.98, -267.33, -166.94],
+     "tagger": [
+      18.04,
+      -113.29,
+      -63.65,
+      -93.07,
+      -269.79,
+      -162.06
+    ],
+    "safe_sample_transport": [
+      79.72,
+      -69.5,
+      -81.91,
+      -117.92,
+      -268.05,
+      -157.15
+    ]
+  },
+  "tasks": [
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "detection_type": "marker", "tag_id": 24, "timeout": 10.0, "z_offset": 0.0, "marker_dictionary": "aruco4x4_50", "sample_index": 1},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_on"},
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "safe_sample_transport", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "pre_spincoat", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "spincoat", "planning_type": "joint"},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_off"},
+    {"task_type": "moveto", "target": "pre_spincoat", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "spincoat", "planning_type": "joint"},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_on"},
+    {"task_type": "moveto", "target": "pre_spincoat", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "safe_sample_transport", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "detection_type": "marker", "tag_id": 24, "timeout": 10.0, "z_offset": 0.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_off"},
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "detection_type": "marker", "tag_id": 24, "timeout": 10.0, "z_offset": 0.0, "marker_dictionary": "aruco4x4_50", "sample_index": 1},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_on"},
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "safe_sample_transport", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "pre_spincoat", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "spincoat", "planning_type": "joint"},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_off"},
+    {"task_type": "moveto", "target": "pre_spincoat", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "spincoat", "planning_type": "joint"},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_on"},
+    {"task_type": "moveto", "target": "pre_spincoat", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "safe_sample_transport", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "detection_type": "marker", "tag_id": 24, "timeout": 10.0, "z_offset": 0.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_off"},
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "detection_type": "marker", "tag_id": 24, "timeout": 10.0, "z_offset": 0.0, "marker_dictionary": "aruco4x4_50", "sample_index": 1},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_on"},
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "safe_sample_transport", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "pre_spincoat", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "spincoat", "planning_type": "joint"},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_off"},
+    {"task_type": "moveto", "target": "pre_spincoat", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "spincoat", "planning_type": "joint"},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_on"},
+    {"task_type": "moveto", "target": "pre_spincoat", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "safe_sample_transport", "planning_type": "joint"},
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"},
+    {"task_type": "vision_moveto", "detection_type": "marker", "tag_id": 24, "timeout": 10.0, "z_offset": 0.0, "marker_dictionary": "aruco4x4_50"},
+    {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "vacuum_off"},
+    {"task_type": "moveto", "target": "sample_scan", "planning_type": "joint"}
+  ]
+}
