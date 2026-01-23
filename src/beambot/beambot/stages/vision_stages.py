@@ -34,6 +34,7 @@ from rclpy.action import ActionClient
 from rclpy.duration import Duration
 
 from beambot.camera import get_camera
+from beambot.camera.zivid import DetectionResult
 from beambot.stages.base_stages import BaseStages
 
 
@@ -62,13 +63,17 @@ class VisionStages(BaseStages):
     DETECTION_CONTOUR = "contour"
 
     # Retry configuration defaults
-    DEFAULT_RETRY_COUNT = 3  # Number of retries after first attempt
+    DEFAULT_RETRY_COUNT = 10  # Number of retries after first attempt
     DEFAULT_RETRY_DELAY = 0.5  # Seconds between retries
 
     # Default camera settings (used if not specified)
     DEFAULT_CAMERA_TYPE = "zivid"
     DEFAULT_CAMERA_FRAME = "zivid_optical_frame"
     DEFAULT_MARKER_DICTIONARY = "aruco4x4_50"
+
+    # Settle time: wait before capture for robot vibration to dampen
+    # Set to 0.3-0.5s for high-accuracy applications if needed
+    DEFAULT_SETTLE_TIME = 0.0  # Disabled for now - testing TF timestamp fix
 
     def __init__(
         self,
@@ -79,7 +84,8 @@ class VisionStages(BaseStages):
         camera_frame: str = None,
         marker_dictionary: str = None,
         retry_count: int = None,
-        retry_delay: float = None
+        retry_delay: float = None,
+        settle_time: float = None
     ):
         """Initialize VisionStages.
 
@@ -92,6 +98,7 @@ class VisionStages(BaseStages):
             marker_dictionary: ArUco dictionary (default: "aruco4x4_50")
             retry_count: Number of detection retries (default: 3)
             retry_delay: Delay between retries in seconds (default: 0.5)
+            settle_time: Seconds to wait before capture for robot to settle (default: 0.3)
         """
         super().__init__(rclpy_node, arm_group, ik_frame=ik_frame)
 
@@ -103,6 +110,9 @@ class VisionStages(BaseStages):
         # Retry configuration
         self._retry_count = retry_count if retry_count is not None else self.DEFAULT_RETRY_COUNT
         self._retry_delay = retry_delay if retry_delay is not None else self.DEFAULT_RETRY_DELAY
+
+        # Settle time before capture (for robot vibration damping)
+        self._settle_time = settle_time if settle_time is not None else self.DEFAULT_SETTLE_TIME
 
         # TF2
         self._tf_buffer = Buffer()
@@ -161,7 +171,8 @@ class VisionStages(BaseStages):
         self.logger.info(
             f"VisionStages initialized (camera: {self._camera_type}, "
             f"frame: {self._camera_frame}, ik_frame: "
-            f"{'auto-detect' if not ik_frame else ik_frame})"
+            f"{'auto-detect' if not ik_frame else ik_frame}, "
+            f"settle_time: {self._settle_time:.2f}s)"
         )
 
     def _load_vision_objects_config(self):
@@ -202,10 +213,37 @@ class VisionStages(BaseStages):
                 - timeout: Detection timeout
                 - detection_type: "marker" (default) or "circle"
                 - z_offset: Override z_offset (0 = use gripper default)
+                - scan_positions_flat: Flattened joint poses for multi-position mode
+                - num_scan_positions: Number of scan positions (0 = single-position)
 
         Returns:
             True if successful, False otherwise
         """
+        # Optional: Wait for robot to settle BEFORE any detection
+        # This ensures vibrations from the previous motion have damped out
+        if self._settle_time > 0:
+            self.logger.info(f"Waiting {self._settle_time:.2f}s for robot to settle...")
+            settle_iterations = int(self._settle_time / 0.05)  # 50ms intervals
+            for _ in range(settle_iterations):
+                rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
+            self.logger.info("Settle complete, starting detection")
+
+        # Parse scan positions if provided (multi-position averaging mode)
+        scan_positions = None
+        num_positions = getattr(goal, 'num_scan_positions', 0)
+        if num_positions > 0:
+            flat = list(getattr(goal, 'scan_positions_flat', []))
+            if len(flat) == num_positions * 6:
+                scan_positions = [flat[i*6:(i+1)*6] for i in range(num_positions)]
+                self.logger.info(
+                    f"Multi-position mode enabled: {num_positions} scan positions"
+                )
+            else:
+                self.logger.warn(
+                    f"Invalid scan_positions_flat length: {len(flat)}, "
+                    f"expected {num_positions * 6}. Falling back to single-position."
+                )
+
         # Determine detection type (default to marker for backwards compatibility)
         detection_type = getattr(goal, 'detection_type', '') or self.DETECTION_MARKER
 
@@ -233,11 +271,26 @@ class VisionStages(BaseStages):
                 self.logger.error(f"Failed to detect sample #{sample_index} via contour")
                 return False
         else:
-            # Default: marker detection
-            target_pose = self.detect_and_transform_tag(goal.tag_id, goal.timeout)
-            if target_pose is None:
-                self.logger.error(f"Failed to detect tag {goal.tag_id}")
-                return False
+            # Marker detection - check for multi-position mode
+            if scan_positions is not None:
+                # Multi-position averaging mode
+                target_pose = self.detect_tag_multiposition(
+                    tag_id=goal.tag_id,
+                    scan_positions=scan_positions,
+                    timeout=goal.timeout,
+                    settle_time=self._settle_time
+                )
+                if target_pose is None:
+                    self.logger.error(
+                        f"Multi-position detection failed for tag {goal.tag_id}"
+                    )
+                    return False
+            else:
+                # Single-position mode (existing behavior)
+                target_pose = self.detect_and_transform_tag(goal.tag_id, goal.timeout)
+                if target_pose is None:
+                    self.logger.error(f"Failed to detect tag {goal.tag_id}")
+                    return False
 
         return self._move_to_pose(target_pose, z_offset_override=z_offset_override)
 
@@ -293,7 +346,7 @@ class VisionStages(BaseStages):
         self,
         tag_id: int,
         timeout: float
-    ) -> Optional[List[Tuple[int, Pose]]]:
+    ) -> Optional[DetectionResult]:
         """Execute a single detection attempt using camera module.
 
         Args:
@@ -301,41 +354,45 @@ class VisionStages(BaseStages):
             timeout: Detection timeout in seconds
 
         Returns:
-            List of (marker_id, pose) tuples if successful, None on error
+            DetectionResult with markers and capture timestamp if successful, None on error
         """
         self.logger.info(f"Detecting tag {tag_id}...")
 
         # Use camera module for detection
-        detected = self._camera.detect_markers(
+        result = self._camera.detect_markers(
             self._capture_client,
             self.rclpy_node,
             marker_ids=[tag_id],
             dictionary=self._marker_dictionary,
-            timeout=timeout
+            timeout=timeout,
+            settle_time=self._settle_time
         )
 
-        if not detected:
+        if not result.markers:
             self.logger.warn("No markers detected")
             return None
 
-        return detected
+        return result
 
     def _process_detection_result(
         self,
         tag_id: int,
-        detected_markers: List[Tuple[int, Pose]]
+        detection_result: DetectionResult
     ) -> Optional[PoseStamped]:
         """Process detection result and transform to base_link.
 
+        Uses the capture timestamp from the detection result for TF lookup
+        to ensure the transform matches the robot pose at capture time.
+
         Args:
             tag_id: ArUco marker ID to find
-            detected_markers: List of (marker_id, pose) tuples from camera
+            detection_result: DetectionResult with markers and capture timestamp
 
         Returns:
             PoseStamped in base_link frame, or None if tag not found
         """
         # Find the requested marker in results
-        for marker_id, marker_pose in detected_markers:
+        for marker_id, marker_pose in detection_result.markers:
             if marker_id == tag_id:
                 self.logger.info(
                     f"Tag {marker_id} at [{marker_pose.position.x:.3f}, "
@@ -343,8 +400,12 @@ class VisionStages(BaseStages):
                     f"in camera frame"
                 )
 
-                # Transform to base_link
-                pose_base = self._transform_to_base_link(marker_pose)
+                # Transform to base_link using capture timestamp
+                # This ensures we use the TF at the exact moment the image was captured
+                pose_base = self._transform_to_base_link(
+                    marker_pose,
+                    capture_stamp=detection_result.capture_stamp
+                )
                 if pose_base is None:
                     return None
 
@@ -352,6 +413,8 @@ class VisionStages(BaseStages):
                     f"Transformed to base_link: [{pose_base.pose.position.x:.3f}, "
                     f"{pose_base.pose.position.y:.3f}, {pose_base.pose.position.z:.3f}]"
                 )
+                # DEBUG: Print in mm for easier comparison with TF analysis
+                print(f"  BASE_LINK pose: ({pose_base.pose.position.x*1000:.2f}, {pose_base.pose.position.y*1000:.2f}, {pose_base.pose.position.z*1000:.2f}) mm")
 
                 # Optional: broadcast TF frame for RViz
                 if self._publish_marker_frames:
@@ -364,7 +427,7 @@ class VisionStages(BaseStages):
 
         self.logger.warn(
             f"Tag {tag_id} not in results "
-            f"({len(detected_markers)} markers detected)"
+            f"({len(detection_result.markers)} markers detected)"
         )
         return None
 
@@ -503,6 +566,187 @@ class VisionStages(BaseStages):
 
         return pose_base
 
+    def _move_to_joint_pose(
+        self,
+        joint_positions: List[float],
+        duration: float = 2.0
+    ) -> bool:
+        """Move to joint configuration using direct trajectory (no MTC overhead).
+
+        Used for multi-position scanning where we need fast, lightweight moves
+        between scan positions.
+
+        Args:
+            joint_positions: 6-element list of joint angles in radians
+            duration: Trajectory duration in seconds
+
+        Returns:
+            True if trajectory executed successfully, False otherwise
+        """
+        if len(joint_positions) != 6:
+            self.logger.error(
+                f"Invalid joint positions: expected 6, got {len(joint_positions)}"
+            )
+            return False
+
+        self.logger.debug(
+            f"Moving to joint pose: [{', '.join(f'{j:.3f}' for j in joint_positions)}]"
+        )
+
+        return self._execute_trajectory(joint_positions, duration)
+
+    def _average_poses(self, poses: List[PoseStamped]) -> Optional[PoseStamped]:
+        """Average multiple poses (position + quaternion orientation).
+
+        For positions: simple arithmetic mean.
+        For quaternions: align to same hemisphere, average, normalize.
+
+        Args:
+            poses: List of PoseStamped to average (must have ≥2 poses)
+
+        Returns:
+            Averaged PoseStamped, or None if insufficient poses
+        """
+        if len(poses) < 2:
+            self.logger.error(f"Need ≥2 poses to average, got {len(poses)}")
+            return None
+
+        # Average positions
+        avg_x = sum(p.pose.position.x for p in poses) / len(poses)
+        avg_y = sum(p.pose.position.y for p in poses) / len(poses)
+        avg_z = sum(p.pose.position.z for p in poses) / len(poses)
+
+        # Average quaternions (with hemisphere alignment)
+        # Quaternions q and -q represent the same rotation, so we align all
+        # quaternions to the same hemisphere as the first one before averaging
+        quats = []
+        ref_q = np.array([
+            poses[0].pose.orientation.x,
+            poses[0].pose.orientation.y,
+            poses[0].pose.orientation.z,
+            poses[0].pose.orientation.w
+        ])
+
+        for p in poses:
+            q = np.array([
+                p.pose.orientation.x,
+                p.pose.orientation.y,
+                p.pose.orientation.z,
+                p.pose.orientation.w
+            ])
+            # Flip if in opposite hemisphere (dot product < 0)
+            if np.dot(ref_q, q) < 0:
+                q = -q
+            quats.append(q)
+
+        # Average and normalize
+        avg_q = np.mean(quats, axis=0)
+        avg_q = avg_q / np.linalg.norm(avg_q)
+
+        # Build result
+        result = PoseStamped()
+        result.header = poses[0].header
+        result.pose.position.x = avg_x
+        result.pose.position.y = avg_y
+        result.pose.position.z = avg_z
+        result.pose.orientation.x = avg_q[0]
+        result.pose.orientation.y = avg_q[1]
+        result.pose.orientation.z = avg_q[2]
+        result.pose.orientation.w = avg_q[3]
+
+        return result
+
+    def detect_tag_multiposition(
+        self,
+        tag_id: int,
+        scan_positions: List[List[float]],
+        timeout: float = 45.0,
+        settle_time: float = 0.3
+    ) -> Optional[PoseStamped]:
+        """Detect tag from multiple positions and average results.
+
+        Moves robot to each scan position, captures and detects the marker,
+        then averages all successful detections. This reduces systematic
+        bias from any single viewing angle.
+
+        Args:
+            tag_id: ArUco marker ID to detect
+            scan_positions: List of joint configurations (6 joints each, radians)
+            timeout: Detection timeout per position in seconds
+            settle_time: Seconds to wait after each move for robot vibration damping
+
+        Returns:
+            Averaged PoseStamped in base_link frame, or None if <2 detections
+        """
+        detected_poses = []
+        position_results = []  # Track success/fail per position for logging
+
+        self.logger.info(
+            f"Multi-position detection: tag {tag_id} from {len(scan_positions)} positions"
+        )
+
+        for i, joint_pose in enumerate(scan_positions):
+            position_name = f"position {i+1}/{len(scan_positions)}"
+
+            # Move to scan position
+            self.logger.info(f"Moving to {position_name}...")
+            if not self._move_to_joint_pose(joint_pose):
+                self.logger.warn(f"Failed to reach {position_name}, skipping")
+                position_results.append((i+1, False, "move_failed"))
+                continue
+
+            # Wait for robot to settle (vibration damping)
+            if settle_time > 0:
+                self.logger.debug(f"Settling for {settle_time:.2f}s...")
+                time.sleep(settle_time)
+
+            # Detect tag at this position
+            pose = self.detect_and_transform_tag(tag_id, timeout)
+
+            if pose is not None:
+                detected_poses.append(pose)
+                pos = pose.pose.position
+                self.logger.info(
+                    f"  {position_name}: detected at "
+                    f"[{pos.x*1000:.2f}, {pos.y*1000:.2f}, {pos.z*1000:.2f}] mm"
+                )
+                position_results.append((i+1, True, None))
+            else:
+                self.logger.warn(f"  {position_name}: detection failed")
+                position_results.append((i+1, False, "detection_failed"))
+
+        # Log summary
+        success_count = len(detected_poses)
+        self.logger.info(
+            f"Multi-position results: {success_count}/{len(scan_positions)} successful"
+        )
+
+        if success_count < 2:
+            self.logger.error(
+                f"Need ≥2 successful detections for averaging, got {success_count}"
+            )
+            return None
+
+        # Average all successful detections
+        averaged_pose = self._average_poses(detected_poses)
+
+        if averaged_pose is not None:
+            pos = averaged_pose.pose.position
+            self.logger.info(
+                f"Averaged pose: [{pos.x*1000:.2f}, {pos.y*1000:.2f}, {pos.z*1000:.2f}] mm"
+            )
+
+            # Calculate and log standard deviation for variance analysis
+            x_vals = [p.pose.position.x for p in detected_poses]
+            y_vals = [p.pose.position.y for p in detected_poses]
+            z_vals = [p.pose.position.z for p in detected_poses]
+            self.logger.info(
+                f"Spread (σ): X={np.std(x_vals)*1000:.3f}mm, "
+                f"Y={np.std(y_vals)*1000:.3f}mm, Z={np.std(z_vals)*1000:.3f}mm"
+            )
+
+        return averaged_pose
+
     def _broadcast_detected_object_tf(self, pose: PoseStamped, frame_name: str):
         """Broadcast detected object pose as TF frame for RViz.
 
@@ -520,39 +764,67 @@ class VisionStages(BaseStages):
         tf.transform.rotation = pose.pose.orientation
         self._tf_broadcaster.sendTransform(tf)
 
-    def _transform_to_base_link(self, pose_camera: Pose) -> Optional[PoseStamped]:
+    def _transform_to_base_link(
+        self,
+        pose_camera: Pose,
+        capture_stamp=None
+    ) -> Optional[PoseStamped]:
         """Transform a pose from camera frame to base_link.
+
+        IMPORTANT: Uses capture_stamp for TF lookup to ensure the transform
+        matches the robot pose when the image was captured, not when this
+        function is called. This fixes the ~3mm bimodal variation issue.
 
         Args:
             pose_camera: Pose in camera optical frame
+            capture_stamp: Timestamp when image was captured (for TF lookup).
+                          If None, falls back to latest transform (legacy behavior).
 
         Returns:
             PoseStamped in base_link frame, or None on failure
         """
         try:
-            # Check if transform is available (use Time() for latest available, not now())
+            # Determine which timestamp to use for TF lookup
+            if capture_stamp is not None:
+                # Convert builtin_interfaces.msg.Time to rclpy.time.Time
+                lookup_time = rclpy.time.Time.from_msg(capture_stamp)
+                self.logger.debug(
+                    f"Using capture timestamp for TF lookup: "
+                    f"{capture_stamp.sec}.{capture_stamp.nanosec:09d}"
+                )
+            else:
+                # Fallback to latest available transform (legacy behavior)
+                lookup_time = rclpy.time.Time()
+                self.logger.debug("Using latest TF (no capture timestamp provided)")
+
+            # Check if transform is available at the requested time
             if not self._tf_buffer.can_transform(
                 "base_link",
                 self._camera_frame,
-                rclpy.time.Time(),  # Latest available transform
-                timeout=rclpy.duration.Duration(seconds=1.0)
+                lookup_time,
+                timeout=rclpy.duration.Duration(seconds=2.0)
             ):
                 self.logger.error(
-                    f"TF {self._camera_frame} -> base_link not available"
+                    f"TF {self._camera_frame} -> base_link not available "
+                    f"at requested time"
                 )
                 return None
 
             # Create stamped pose in camera frame
             pose_in = PoseStamped()
             pose_in.header.frame_id = self._camera_frame
-            pose_in.header.stamp = self.rclpy_node.get_clock().now().to_msg()
+            if capture_stamp is not None:
+                pose_in.header.stamp = capture_stamp
+            else:
+                pose_in.header.stamp = self.rclpy_node.get_clock().now().to_msg()
             pose_in.pose = pose_camera
 
-            # Transform
+            # Transform using the capture timestamp
             transform = self._tf_buffer.lookup_transform(
                 "base_link",
                 self._camera_frame,
-                rclpy.time.Time()
+                lookup_time,
+                timeout=rclpy.duration.Duration(seconds=2.0)
             )
             pose_out = do_transform_pose_stamped(pose_in, transform)
             pose_out.header.frame_id = "base_link"

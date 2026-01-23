@@ -17,12 +17,27 @@ from typing import List, Optional, Tuple
 import cv2
 import numpy as np
 import rclpy
+from builtin_interfaces.msg import Time as TimeMsg
 from cv_bridge import CvBridge
 from geometry_msgs.msg import Pose
 from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from sensor_msgs.msg import Image, PointCloud2
 
 from zivid_interfaces.srv import CaptureAndDetectMarkers
+
+
+@dataclass
+class DetectionResult:
+    """Result of marker detection with capture timestamp.
+
+    The capture_stamp is the timestamp from the point cloud message header,
+    representing when the Zivid camera actually captured the image.
+    This should be used for TF lookups to ensure the transform matches
+    the robot pose at capture time, not at processing time.
+    """
+    markers: List[Tuple[int, Pose]]  # List of (marker_id, pose) tuples
+    capture_stamp: Optional[TimeMsg]  # Timestamp when image was captured
 
 
 @dataclass
@@ -70,6 +85,10 @@ class ContourDetectionParams:
 # Zivid service endpoint
 SERVICE_NAME = "/capture_and_detect_markers"
 
+# Topic names for image and point cloud
+IMAGE_TOPIC = "/color/image_color"
+CLOUD_TOPIC = "/points/xyzrgba"
+
 
 def create_client(node: Node):
     """Create a Zivid capture service client.
@@ -88,9 +107,17 @@ def detect_markers(
     node: Node,
     marker_ids: List[int],
     dictionary: str = "aruco4x4_50",
-    timeout: float = 45.0
-) -> List[Tuple[int, Pose]]:
-    """Detect ArUco markers using the Zivid camera.
+    timeout: float = 45.0,
+    settle_time: float = 0.0
+) -> DetectionResult:
+    """Detect ArUco markers using Zivid's native detection.
+
+    Uses Zivid SDK's built-in ArUco detection which provides 3D poses
+    directly from the point cloud.
+
+    TIMESTAMP FIX: The Zivid ROS driver assigns timestamps AFTER capture/processing
+    completes (~200-400ms late). We capture the timestamp BEFORE calling the service,
+    ensuring TF lookups use the robot pose at actual capture time.
 
     Args:
         client: Service client from create_client()
@@ -98,50 +125,59 @@ def detect_markers(
         marker_ids: List of marker IDs to detect
         dictionary: ArUco dictionary name (default: "aruco4x4_50")
         timeout: Detection timeout in seconds
+        settle_time: Seconds to wait before capture for robot to settle (default: 0.0)
 
     Returns:
-        List of (marker_id, pose) tuples for detected markers.
-        Empty list if detection failed or no markers found.
+        DetectionResult containing:
+        - markers: List of (marker_id, pose) tuples for detected markers
+        - capture_stamp: Timestamp captured BEFORE service call (for accurate TF lookup)
+        Returns empty markers list if detection failed.
     """
-    # Wait for service availability
-    if not client.wait_for_service(timeout_sec=2.0):
-        node.get_logger().error(f"Zivid service '{SERVICE_NAME}' not available")
-        return []
+    logger = node.get_logger()
 
-    # Build request
+    if not client.wait_for_service(timeout_sec=2.0):
+        logger.error(f"Zivid service '{SERVICE_NAME}' not available")
+        return DetectionResult(markers=[], capture_stamp=None)
+
+    # TIMESTAMP FIX: Capture timestamp BEFORE calling Zivid service
+    pre_capture_stamp = node.get_clock().now().to_msg()
+    logger.debug(f"Pre-capture timestamp: {pre_capture_stamp.sec}.{pre_capture_stamp.nanosec}")
+
+    # Build and send request (triggers capture + detection)
     request = CaptureAndDetectMarkers.Request()
     request.marker_ids = marker_ids
     request.marker_dictionary = dictionary
 
-    # Call service asynchronously
     future = client.call_async(request)
     rclpy.spin_until_future_complete(node, future, timeout_sec=timeout)
 
-    # Check result
     if not future.done():
-        node.get_logger().warn("Zivid detection service timeout")
-        return []
+        logger.warn("Zivid detection service timeout")
+        return DetectionResult(markers=[], capture_stamp=None)
 
     result = future.result()
     if not result.success:
-        node.get_logger().warn(f"Zivid detection failed: {result.message}")
-        return []
+        logger.warn(f"Zivid detection failed: {result.message}")
+        return DetectionResult(markers=[], capture_stamp=None)
 
-    # Extract detected markers
+    # Extract detected markers directly from Zivid's result
     detected = []
     for marker in result.detection_result.detected_markers:
-        detected.append((marker.id, marker.pose))
+        if marker.id in marker_ids:
+            detected.append((marker.id, marker.pose))
+            pos = marker.pose.position
+            logger.info(f"Marker {marker.id}: Zivid native → "
+                       f"({pos.x*1000:.2f}, {pos.y*1000:.2f}, {pos.z*1000:.2f}) mm")
 
-    return detected
+    if not detected:
+        logger.warn(f"No markers found for requested IDs: {marker_ids}")
+
+    return DetectionResult(markers=detected, capture_stamp=pre_capture_stamp)
 
 
 # ============================================================================
 # Circle Detection
 # ============================================================================
-
-# Topic names for image and point cloud
-IMAGE_TOPIC = "/color/image_color"
-CLOUD_TOPIC = "/points/xyzrgba"
 
 
 def detect_circles(

@@ -13,6 +13,7 @@ overhead (~1.5s per task saved).
 """
 
 import json
+import math
 import threading
 import time
 from typing import Dict, Any, List, Tuple
@@ -883,7 +884,17 @@ class MTCOrchestratorServer(Node):
         - sample_index: Sample number for contour detection (1-indexed)
         - z_offset: Override approach height
         - timeout: Detection timeout
+        - settle_time: Seconds to wait before capture for robot to settle (default: 1.0)
+        - scan_positions: List of pose keys for multi-position averaging (optional)
         """
+        # Wait for robot vibrations to settle BEFORE calling vision action
+        # This happens in orchestrator, completely outside MTC and action server
+        settle_time = float(step.get("settle_time", 1.0))  # Default 1s
+        if settle_time > 0:
+            self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle before vision capture...")
+            time.sleep(settle_time)
+            self.get_logger().info("Settle complete, starting vision action")
+
         goal = VisionMoveToAction.Goal()
         goal.tag_id = int(step.get("tag_id", 0))
         goal.sample_index = int(step.get("sample_index", 1))
@@ -891,6 +902,33 @@ class MTCOrchestratorServer(Node):
         goal.poses_json = poses_json
         goal.detection_type = step.get("detection_type", "marker")
         goal.z_offset = float(step.get("z_offset", 0.0))
+
+        # Handle multi-position scan mode
+        # Task JSON: "scan_positions": ["sample_scan_1", "sample_scan_2", "sample_scan_3"]
+        scan_position_keys = step.get("scan_positions", [])
+        if scan_position_keys:
+            poses = json.loads(poses_json)
+            scan_positions_flat = []
+            valid_positions = 0
+
+            for key in scan_position_keys:
+                if key in poses:
+                    # Convert degrees to radians (poses in JSON are in degrees)
+                    joints_deg = poses[key]
+                    joints_rad = [math.radians(j) for j in joints_deg]
+                    scan_positions_flat.extend(joints_rad)
+                    valid_positions += 1
+                else:
+                    self.get_logger().warn(
+                        f"Scan position '{key}' not found in poses, skipping"
+                    )
+
+            if valid_positions > 0:
+                goal.scan_positions_flat = scan_positions_flat
+                goal.num_scan_positions = valid_positions
+                self.get_logger().info(
+                    f"Multi-position mode: {valid_positions} scan positions configured"
+                )
 
         return self._send_and_wait(
             self._vision_client, goal, "vision_moveto", self._timeouts["vision_moveto"]
@@ -902,7 +940,16 @@ class MTCOrchestratorServer(Node):
         Vision-guided pick with hardcoded place:
         - Pick: Detects marker/circle, grasps at detected location
         - Place: Uses predefined joint poses from poses_json
+        - settle_time: Seconds to wait before capture for robot to settle (default: 10.0)
         """
+        # Wait for robot vibrations to settle BEFORE calling vision action
+        # This happens in orchestrator, completely outside MTC and action server
+        settle_time = float(step.get("settle_time", 5.0))  # Default 5s
+        if settle_time > 0:
+            self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle before vision capture...")
+            time.sleep(settle_time)
+            self.get_logger().info("Settle complete, starting vision action")
+
         # Use current gripper if not specified in task
         gripper_type = step.get("gripper", self._current_gripper)
         gripper_config = self._grippers.get(gripper_type, {})
