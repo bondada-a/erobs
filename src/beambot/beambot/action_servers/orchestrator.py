@@ -33,6 +33,7 @@ from beambot_interfaces.action import (
     PickPlaceAction,
     ToolExchangeAction,
     VisionMoveToAction,
+    VisionScanAction,
     VisionPickPlaceAction,
     PipettorAction,
 )
@@ -62,6 +63,7 @@ class MTCOrchestratorServer(Node):
         "pick_and_place": 180.0,
         "tool_exchange": 180.0,
         "vision_moveto": 60.0,
+        "vision_scan": 180.0,  # Batch scan: 3 positions × 3 scans
         "vision_pick_place": 180.0,
         "pipettor": 60.0,
     }
@@ -74,8 +76,9 @@ class MTCOrchestratorServer(Node):
     # Task types that break batching (require runtime decisions or special handling)
     # - tool_exchange: Changes robot kinematics (requires MoveIt restart)
     # - vision_moveto/vision_pick_place: Require runtime marker detection
+    # - vision_scan: Batch scans all markers (robot moves during execution)
     # - pipettor: Uses separate action server (not MTC-based)
-    BATCH_BREAKERS = {"tool_exchange", "vision_moveto", "vision_pick_place", "pipettor"}
+    BATCH_BREAKERS = {"tool_exchange", "vision_moveto", "vision_scan", "vision_pick_place", "pipettor"}
 
     def __init__(self):
         super().__init__("beambot_orchestrator")
@@ -159,6 +162,10 @@ class MTCOrchestratorServer(Node):
         )
         self._vision_client = ActionClient(
             self, VisionMoveToAction, "beambot_vision_moveto",
+            callback_group=self._callback_group
+        )
+        self._vision_scan_client = ActionClient(
+            self, VisionScanAction, "beambot_vision_scan",
             callback_group=self._callback_group
         )
         self._vision_pickplace_client = ActionClient(
@@ -750,6 +757,8 @@ class MTCOrchestratorServer(Node):
             return self._handle_tool_exchange(step, poses_json)
         elif task_type == "vision_moveto":
             return self._call_vision_moveto(step, poses_json)
+        elif task_type == "vision_scan":
+            return self._call_vision_scan(step, poses_json)
         elif task_type == "vision_pick_place":
             return self._call_vision_pickplace(step, poses_json)
         elif task_type == "pipettor":
@@ -932,6 +941,65 @@ class MTCOrchestratorServer(Node):
 
         return self._send_and_wait(
             self._vision_client, goal, "vision_moveto", self._timeouts["vision_moveto"]
+        )
+
+    def _call_vision_scan(self, step: Dict[str, Any], poses_json: str) -> bool:
+        """Call the VisionScan action server to batch-scan all markers.
+
+        Scans from multiple positions, detects ALL visible markers at each
+        position (with multiple captures per position), averages the poses,
+        and caches them. Subsequent vision_moveto calls will use cached poses.
+
+        Task JSON format:
+        {
+            "task_type": "vision_scan",
+            "scan_positions": ["pose_key_1", "pose_key_2", "pose_key_3"],
+            "scans_per_position": 3,  // optional, default: 3
+            "timeout": 10.0           // optional, per-capture timeout
+        }
+        """
+        goal = VisionScanAction.Goal()
+        goal.scans_per_position = int(step.get("scans_per_position", 3))
+        goal.timeout = float(step.get("timeout", 10.0))
+        goal.poses_json = poses_json
+
+        # Parse scan positions from pose keys
+        scan_position_keys = step.get("scan_positions", [])
+        if not scan_position_keys:
+            self.get_logger().error("vision_scan requires 'scan_positions' list")
+            return False
+
+        poses = json.loads(poses_json)
+        scan_positions_flat = []
+        valid_positions = 0
+
+        for key in scan_position_keys:
+            if key in poses:
+                # Convert degrees to radians (poses in JSON are in degrees)
+                joints_deg = poses[key]
+                joints_rad = [math.radians(j) for j in joints_deg]
+                scan_positions_flat.extend(joints_rad)
+                valid_positions += 1
+            else:
+                self.get_logger().warn(
+                    f"Scan position '{key}' not found in poses, skipping"
+                )
+
+        if valid_positions == 0:
+            self.get_logger().error("No valid scan positions found")
+            return False
+
+        goal.scan_positions_flat = scan_positions_flat
+        goal.num_scan_positions = valid_positions
+
+        self.get_logger().info(
+            f"VisionScan: {valid_positions} positions × "
+            f"{goal.scans_per_position} scans per position"
+        )
+
+        return self._send_and_wait(
+            self._vision_scan_client, goal, "vision_scan",
+            self._timeouts["vision_scan"]
         )
 
     def _call_vision_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:

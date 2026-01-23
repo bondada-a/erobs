@@ -18,6 +18,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/ToolExchangeAction.action"
   "action/VisionMoveToAction.action"
   "action/VisionPickPlaceAction.action"
+  "action/VisionScanAction.action"
   "action/PipettorAction.action"
   DEPENDENCIES geometry_msgs std_msgs
 )

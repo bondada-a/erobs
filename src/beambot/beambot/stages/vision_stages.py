@@ -168,6 +168,11 @@ class VisionStages(BaseStages):
         # Load vision objects config
         self._load_vision_objects_config()
 
+        # Cache for multi-position scan results
+        # Populated by scan_all_tags(), used by run() for fast lookup
+        # {tag_id: PoseStamped} - averaged poses from vision_scan
+        self._tag_pose_cache: Dict[int, PoseStamped] = {}
+
         self.logger.info(
             f"VisionStages initialized (camera: {self._camera_type}, "
             f"frame: {self._camera_frame}, ik_frame: "
@@ -203,6 +208,117 @@ class VisionStages(BaseStages):
             self.logger.warn("vision_objects.json not found, collision objects disabled")
         except Exception as e:
             self.logger.error(f"Failed to load vision objects config: {e}")
+
+    # =========================================================================
+    # Tag Pose Cache Methods
+    # =========================================================================
+
+    def clear_cache(self):
+        """Clear the tag pose cache."""
+        count = len(self._tag_pose_cache)
+        self._tag_pose_cache.clear()
+        self.logger.info(f"Tag pose cache cleared ({count} entries)")
+
+    def get_cached_pose(self, tag_id: int) -> Optional[PoseStamped]:
+        """Get cached pose for tag, or None if not cached."""
+        return self._tag_pose_cache.get(tag_id)
+
+    def scan_all_tags(
+        self,
+        scan_positions: List[List[float]],
+        scans_per_position: int = 3,
+        timeout: float = 10.0,
+        settle_time: float = 0.3
+    ) -> int:
+        """Scan from multiple positions, detect ALL tags, cache averaged poses.
+
+        This method moves the robot to each scan position, performs multiple
+        captures at each position to improve detection reliability, detects
+        ALL visible ArUco markers, and caches the averaged pose for each tag.
+
+        Args:
+            scan_positions: List of joint configurations (6 joints each, radians)
+            scans_per_position: Number of captures at each position (default: 3)
+            timeout: Detection timeout per capture in seconds
+            settle_time: Wait time after move for vibration damping
+
+        Returns:
+            Number of unique tags detected and cached
+        """
+        # Clear previous cache
+        self._tag_pose_cache.clear()
+
+        # Collect all detections: {tag_id: [PoseStamped, ...]}
+        all_detections: Dict[int, List[PoseStamped]] = {}
+
+        total_scans = len(scan_positions) * scans_per_position
+        self.logger.info(
+            f"Starting batch scan: {len(scan_positions)} positions × "
+            f"{scans_per_position} scans = {total_scans} total captures"
+        )
+
+        for pos_idx, joint_pose in enumerate(scan_positions):
+            self.logger.info(f"Position {pos_idx+1}/{len(scan_positions)}")
+
+            # Move to scan position
+            if not self._move_to_joint_pose(joint_pose):
+                self.logger.warn(f"Failed to reach position {pos_idx+1}, skipping")
+                continue
+
+            # Wait for robot to settle (vibration damping)
+            if settle_time > 0:
+                time.sleep(settle_time)
+
+            # Multiple scans at this position
+            for scan_idx in range(scans_per_position):
+                self.logger.info(f"  Scan {scan_idx+1}/{scans_per_position}")
+
+                # Detect ALL markers (no specific tag_id filter)
+                result = self._camera.detect_markers(
+                    self._capture_client,
+                    self.rclpy_node,
+                    marker_ids=None,  # Detect all markers
+                    dictionary=self._marker_dictionary,
+                    timeout=timeout,
+                    settle_time=0  # Already settled after move
+                )
+
+                if not result.markers:
+                    self.logger.debug("    No markers in this scan")
+                    continue
+
+                # Process each detected marker
+                for marker_id, marker_pose in result.markers:
+                    pose_base = self._transform_to_base_link(
+                        marker_pose,
+                        capture_stamp=result.capture_stamp
+                    )
+                    if pose_base:
+                        all_detections.setdefault(marker_id, []).append(pose_base)
+
+                self.logger.info(f"    Detected {len(result.markers)} markers")
+
+        # Average all detections per tag and cache
+        self.logger.info(f"Processing {len(all_detections)} unique tags...")
+        for tag_id, poses in sorted(all_detections.items()):
+            if len(poses) >= 2:
+                averaged = self._average_poses(poses)
+                if averaged:
+                    self._tag_pose_cache[tag_id] = averaged
+                    pos = averaged.pose.position
+                    self.logger.info(
+                        f"  Tag {tag_id}: [{pos.x*1000:.2f}, {pos.y*1000:.2f}, "
+                        f"{pos.z*1000:.2f}] mm (from {len(poses)} detections)"
+                    )
+            else:
+                self.logger.warn(
+                    f"  Tag {tag_id}: only {len(poses)} detection(s), need ≥2 for averaging"
+                )
+
+        self.logger.info(
+            f"Batch scan complete: {len(self._tag_pose_cache)} tags cached"
+        )
+        return len(self._tag_pose_cache)
 
     def run(self, goal) -> bool:
         """Execute VisionMoveTo action.
@@ -271,7 +387,17 @@ class VisionStages(BaseStages):
                 self.logger.error(f"Failed to detect sample #{sample_index} via contour")
                 return False
         else:
-            # Marker detection - check for multi-position mode
+            # Marker detection - check cache first (populated by vision_scan task)
+            cached_pose = self.get_cached_pose(goal.tag_id)
+            if cached_pose is not None:
+                pos = cached_pose.pose.position
+                self.logger.info(
+                    f"Using cached pose for tag {goal.tag_id}: "
+                    f"[{pos.x*1000:.2f}, {pos.y*1000:.2f}, {pos.z*1000:.2f}] mm"
+                )
+                return self._move_to_pose(cached_pose, z_offset_override=z_offset_override)
+
+            # Not cached - check for multi-position mode
             if scan_positions is not None:
                 # Multi-position averaging mode
                 target_pose = self.detect_tag_multiposition(
@@ -1074,7 +1200,7 @@ class VisionStages(BaseStages):
             rclpy.time.Time(),
             timeout=rclpy.duration.Duration(seconds=1.0)
         ):
-            return GripperDetection("epick_tip", 0.0264) #pen suction cup
+            return GripperDetection("epick_tip", 0.025) #pen suction cup 0.0264
             # return GripperDetection("epick_tip", 0.022)
 
         # Check for Hand-E gripper

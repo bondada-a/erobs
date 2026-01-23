@@ -1,21 +1,30 @@
 #!/usr/bin/env python3
-"""VisionMoveToAction server - handles vision-guided movement via ArUco markers."""
+"""VisionMoveToAction and VisionScanAction server.
+
+Handles vision-guided movement via ArUco markers and batch scanning.
+Both actions share the same VisionStages instance so the tag pose cache
+populated by vision_scan is available to vision_moveto.
+"""
 
 import yaml
+from rclpy.action import ActionServer
+
 from ament_index_python.packages import get_package_share_directory
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
 from beambot.stages.vision_stages import VisionStages
-from beambot_interfaces.action import VisionMoveToAction
+from beambot_interfaces.action import VisionMoveToAction, VisionScanAction
 
 
 class VisionActionServer(BaseActionServer):
-    """Action server for vision-guided MoveTo operations.
+    """Action server for vision-guided operations.
 
     Handles:
-    - ArUco marker detection via camera (configurable type)
-    - TF transform to robot base frame
-    - Motion to detected marker pose
+    - VisionMoveToAction: ArUco marker detection and motion to detected pose
+    - VisionScanAction: Batch scan all markers from multiple positions, cache results
+
+    Both actions share the same VisionStages instance so the cache populated
+    by vision_scan is available to vision_moveto.
     """
 
     def __init__(self):
@@ -25,6 +34,15 @@ class VisionActionServer(BaseActionServer):
             action_name="beambot_vision_moveto",
             action_type=VisionMoveToAction,
         )
+
+        # Add second action server for batch scanning (shares same stages)
+        self._scan_action_server = ActionServer(
+            self,
+            VisionScanAction,
+            "beambot_vision_scan",
+            execute_callback=self._execute_scan,
+        )
+        self.get_logger().info("VisionScan action server started: beambot_vision_scan")
 
     def initialize_stages(self):
         """Create VisionStages instance with camera config from beamline config."""
@@ -53,6 +71,68 @@ class VisionActionServer(BaseActionServer):
             camera_frame=camera_config.get("frame"),
             marker_dictionary=camera_config.get("marker_dictionary"),
         )
+
+    def _execute_scan(self, goal_handle):
+        """Execute VisionScanAction - batch scan all markers from multiple positions.
+
+        This method scans from multiple robot positions, detects ALL visible
+        ArUco markers at each position (with multiple captures per position),
+        averages the poses, and caches them for subsequent vision_moveto calls.
+
+        Args:
+            goal_handle: Action goal handle containing VisionScanAction.Goal
+
+        Returns:
+            VisionScanAction.Result
+        """
+        goal = goal_handle.request
+
+        # Parse scan positions from flattened array
+        num_positions = goal.num_scan_positions
+        flat = list(goal.scan_positions_flat)
+
+        if len(flat) != num_positions * 6:
+            self.get_logger().error(
+                f"Invalid scan_positions_flat length: {len(flat)}, "
+                f"expected {num_positions * 6}"
+            )
+            result = VisionScanAction.Result()
+            result.success = False
+            result.error_message = "Invalid scan positions"
+            result.tags_detected = 0
+            goal_handle.abort()
+            return result
+
+        scan_positions = [flat[i*6:(i+1)*6] for i in range(num_positions)]
+
+        # Get parameters with defaults
+        scans_per_position = goal.scans_per_position if goal.scans_per_position > 0 else 3
+        timeout = goal.timeout if goal.timeout > 0 else 10.0
+
+        self.get_logger().info(
+            f"VisionScan: {num_positions} positions × {scans_per_position} scans"
+        )
+
+        # Run the batch scan (populates _stages._tag_pose_cache)
+        tags_detected = self._stages.scan_all_tags(
+            scan_positions=scan_positions,
+            scans_per_position=scans_per_position,
+            timeout=timeout,
+            settle_time=0.3  # Default settle time after each move
+        )
+
+        # Build result
+        result = VisionScanAction.Result()
+        result.success = tags_detected > 0
+        result.tags_detected = tags_detected
+        result.error_message = "" if result.success else "No tags detected"
+
+        if result.success:
+            goal_handle.succeed()
+        else:
+            goal_handle.abort()
+
+        return result
 
 
 def main(args=None):

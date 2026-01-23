@@ -105,7 +105,7 @@ def create_client(node: Node):
 def detect_markers(
     client,
     node: Node,
-    marker_ids: List[int],
+    marker_ids: Optional[List[int]] = None,
     dictionary: str = "aruco4x4_50",
     timeout: float = 45.0,
     settle_time: float = 0.0
@@ -122,7 +122,7 @@ def detect_markers(
     Args:
         client: Service client from create_client()
         node: ROS2 node for spinning
-        marker_ids: List of marker IDs to detect
+        marker_ids: List of marker IDs to detect, or None to detect all markers
         dictionary: ArUco dictionary name (default: "aruco4x4_50")
         timeout: Detection timeout in seconds
         settle_time: Seconds to wait before capture for robot to settle (default: 0.0)
@@ -144,8 +144,26 @@ def detect_markers(
     logger.debug(f"Pre-capture timestamp: {pre_capture_stamp.sec}.{pre_capture_stamp.nanosec}")
 
     # Build and send request (triggers capture + detection)
+    # Zivid service requires explicit marker IDs - it doesn't accept empty list
+    # If marker_ids is None (detect all), send all possible IDs for the dictionary
     request = CaptureAndDetectMarkers.Request()
-    request.marker_ids = marker_ids
+    if marker_ids is not None:
+        request.marker_ids = marker_ids
+    else:
+        # ArUco 4x4_50 has markers 0-49, 5x5_100 has 0-99, etc.
+        # Default to 0-49 which covers most use cases
+        if "4x4_50" in dictionary:
+            request.marker_ids = list(range(50))
+        elif "5x5_100" in dictionary:
+            request.marker_ids = list(range(100))
+        elif "5x5_250" in dictionary:
+            request.marker_ids = list(range(250))
+        elif "6x6_250" in dictionary:
+            request.marker_ids = list(range(250))
+        else:
+            # Fallback: request common range 0-49
+            request.marker_ids = list(range(50))
+        logger.debug(f"Detecting all markers (IDs 0-{len(request.marker_ids)-1})")
     request.marker_dictionary = dictionary
 
     future = client.call_async(request)
@@ -161,16 +179,20 @@ def detect_markers(
         return DetectionResult(markers=[], capture_stamp=None)
 
     # Extract detected markers directly from Zivid's result
+    # If marker_ids is None, include all detected markers
     detected = []
     for marker in result.detection_result.detected_markers:
-        if marker.id in marker_ids:
+        if marker_ids is None or marker.id in marker_ids:
             detected.append((marker.id, marker.pose))
             pos = marker.pose.position
             logger.info(f"Marker {marker.id}: Zivid native → "
                        f"({pos.x*1000:.2f}, {pos.y*1000:.2f}, {pos.z*1000:.2f}) mm")
 
     if not detected:
-        logger.warn(f"No markers found for requested IDs: {marker_ids}")
+        if marker_ids is None:
+            logger.warn("No markers detected")
+        else:
+            logger.warn(f"No markers found for requested IDs: {marker_ids}")
 
     return DetectionResult(markers=detected, capture_stamp=pre_capture_stamp)
 
