@@ -50,7 +50,8 @@ obstacles:
     pose:
       x: 0.0       # 0 inches (relative to base)
       # y: 1.0    # 38 inches in meters (relative to base)
-      y: 0.95 
+      # y: 0.95
+      y: 0.85    # detector closer
       z: 0.1    # -10 inches in meters (relative to base)
       roll: 0.0
       pitch: 0.0
