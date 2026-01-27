@@ -1200,7 +1200,7 @@ class VisionStages(BaseStages):
             rclpy.time.Time(),
             timeout=rclpy.duration.Duration(seconds=1.0)
         ):
-            return GripperDetection("epick_tip", 0.025) #pen suction cup 0.0264
+            return GripperDetection("epick_tip", 0.023) #pen suction cup 0.0264
             # return GripperDetection("epick_tip", 0.022)
 
         # Check for Hand-E gripper

@@ -1,10 +1,10 @@
-__version__: 7
+__version__: 8
 Settings2D:
   Acquisitions:
     - Acquisition:
         Aperture: 2.83
         Brightness: 2.5
-        ExposureTime: 2000
+        ExposureTime: 1000
         Gain: 1
   Processing:
     Color:
@@ -17,4 +17,7 @@ Settings2D:
       Gamma: 1
   Sampling:
     Color: rgb
+    Interval:
+      Duration: __not_set__
+      Enabled: __not_set__
     Pixel: all

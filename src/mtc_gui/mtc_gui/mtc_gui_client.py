@@ -673,11 +673,28 @@ class MTCGUIClient:
         dock_entry = ttk.Entry(dialog, textvariable=dock_var, width=30)
         dock_entry.pack(padx=20, pady=(0, 10))
 
-        # Approach pose
+        # Approach pose (read-only, auto-set based on operation)
         ttk.Label(dialog, text="Approach Pose:").pack(anchor="w", padx=20)
-        approach_var = tk.StringVar(value=step.get("approach_pose", ""))
-        approach_entry = ttk.Entry(dialog, textvariable=approach_var, width=30)
-        approach_entry.pack(padx=20, pady=(0, 20))
+        # Determine initial approach pose based on operation
+        initial_approach = "load_approach" if operation_var.get() == "load" else "dock_approach"
+        approach_var = tk.StringVar(value=initial_approach)
+        approach_entry = ttk.Entry(dialog, textvariable=approach_var, width=30, state="readonly")
+        approach_entry.pack(padx=20, pady=(0, 5))
+
+        # Help text explaining the auto-set behavior
+        help_text = ttk.Label(dialog, text="Auto-set: load → load_approach, dock → dock_approach",
+                             font=("Arial", 8), foreground="gray")
+        help_text.pack(padx=20, pady=(0, 15))
+
+        # Callback to update approach_pose when operation changes
+        def on_operation_change(event=None):
+            op = operation_var.get()
+            if op == "load":
+                approach_var.set("load_approach")
+            elif op == "dock":
+                approach_var.set("dock_approach")
+
+        operation_combo.bind("<<ComboboxSelected>>", on_operation_change)
 
         def save_changes():
             step["operation"] = operation_var.get()

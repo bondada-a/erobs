@@ -72,32 +72,36 @@
       -27.44,
       -270.43,
       -207.89
+    ],
+    "spincoater_2": [
+      111.13,
+      -117.18,
+      -127.53,
+      -25.24,
+      -269.85,
+      -158.82
+    ],
+    "safe_tool_exchange": [
+      168.62,
+      -69.5,
+      -81.91,
+      -117.92,
+      -268.05,
+      -157.15
+    ],
+    "sample_checker": [
+      116.42,
+      -94.64,
+      -139.75,
+      -35.56,
+      -269.8,
+      -153.54
     ]
   },
   "tasks": [
     {
       "task_type": "moveto",
-      "target": "pre_spincoat",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "moveto",
-      "target": "spincoat",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "end_effector",
-      "end_effector_type": "epick",
-      "end_effector_action": "vacuum_on"
-    },
-    {
-      "task_type": "moveto",
-      "target": "pre_spincoat",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "moveto",
-      "target": "post_spincoat",
+      "target": "safe_sample_transport",
       "planning_type": "joint"
     },
     {
@@ -113,11 +117,46 @@
     {
       "task_type": "end_effector",
       "end_effector_type": "epick",
-      "end_effector_action": "vacuum_off"
+      "end_effector_action": "vacuum_on"
     },
     {
       "task_type": "moveto",
       "target": "pre_hotplate",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "safe_sample_transport",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pre_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "epick",
+      "end_effector_action": "vacuum_off"
+    },
+    {
+      "task_type": "moveto",
+      "target": "pre_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "post_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "sample_checker",
       "planning_type": "joint"
     }
   ]

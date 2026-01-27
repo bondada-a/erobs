@@ -2,20 +2,20 @@
   "start_gripper": "epick",
   "poses": {
     "pre_spincoat": [
-      115.04,
-      -98.33,
-      -143.17,
-      -28.45,
-      -269.83,
-      -154.88
+      111.13,
+      -105.64,
+      -125.29,
+      -39.02,
+      -269.79,
+      -158.85
     ],
     "spincoat": [
-      115.03,
-      -109.26,
-      -144.68,
-      -16.0,
-      -269.89,
-      -154.86
+      111.12,
+      -117.48,
+      -127.55,
+      -24.92,
+      -269.85,
+      -158.82
     ],
     "post_spincoat": [
       115.15,
@@ -26,20 +26,20 @@
       -155.09
     ],
     "pre_hotplate": [
-      65.42,
-      -106.96,
-      -69.63,
-      -93.71,
+      65.63,
+      -106.91,
+      -69.8,
+      -93.6,
       -270.12,
-      -206.51
+      -206.3
     ],
     "hotplate": [
-      65.42,
-      -106.85,
-      -72.88,
-      -90.56,
-      -270.11,
-      -206.49
+      65.63,
+      -106.82,
+      -73.45,
+      -90.04,
+      -270.12,
+      -206.28
     ],
     "safe_sample_transport": [
       79.72,
@@ -49,9 +49,38 @@
       -268.05,
       -157.15
     ],
-    "sample_scan_1": [13.38, -112.45, -65.22, -90.98, -267.33, -166.94],
-    "sample_scan_2": [18.64, -115.78, -60.48, -92.18, -267.47, -161.69],
-    "sample_scan_3": [5.87, -109.29, -69.51, -90.18, -267.17, -174.45]
+    "sample_scan_1": [
+      13.38,
+      -112.45,
+      -65.22,
+      -90.98,
+      -267.33,
+      -166.94
+    ],
+    "sample_scan_2": [
+      18.64,
+      -115.78,
+      -60.48,
+      -92.18,
+      -267.47,
+      -161.69
+    ],
+    "sample_scan_3": [
+      5.87,
+      -109.29,
+      -69.51,
+      -90.18,
+      -267.17,
+      -174.45
+    ],
+    "sample_checker": [
+      116.42,
+      -94.64,
+      -139.75,
+      -35.56,
+      -269.8,
+      -153.54
+    ]
   },
   "tasks": [
     {
@@ -65,17 +94,13 @@
       "planning_type": "joint"
     },
     {
-      "task_type": "vision_scan",
-      "scan_positions": ["sample_scan_1", "sample_scan_2", "sample_scan_3"],
-      "scans_per_position": 3,
-      "timeout": 10.0
-    },
-    {
       "task_type": "vision_moveto",
       "detection_type": "marker",
-      "tag_id": 16,
+      "tag_id": 10,
       "timeout": 10.0,
-      "z_offset": 0.0
+      "z_offset": 0.0,
+      "sample_index": 1,
+      "marker_dictionary": "aruco4x4_50"
     },
     {
       "task_type": "end_effector",
@@ -84,7 +109,7 @@
     },
     {
       "task_type": "moveto",
-      "target": "sample_scan",
+      "target": "sample_scan_1",
       "planning_type": "joint"
     },
     {
@@ -110,6 +135,11 @@
     {
       "task_type": "moveto",
       "target": "pre_spincoat",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "sample_checker",
       "planning_type": "joint"
     }
   ]

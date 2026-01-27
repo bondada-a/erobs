@@ -1,5 +1,5 @@
 {
-  "start_gripper": "epick",
+  "start_gripper": "pipettor",
   "poses": {
     "pre_spincoat": [
       111.13,
@@ -41,6 +41,14 @@
       -270.12,
       -206.28
     ],
+    "safe_sample_transport": [
+      79.72,
+      -69.5,
+      -81.91,
+      -117.92,
+      -268.05,
+      -157.15
+    ],
     "sample_scan_1": [
       13.38,
       -112.45,
@@ -65,38 +73,33 @@
       -267.17,
       -174.45
     ],
-    "safe_sample_transport": [
-      79.72,
-      -69.5,
-      -81.91,
-      -117.92,
-      -268.05,
-      -157.15
+    "sample_checker": [
+      116.42,
+      -94.64,
+      -139.75,
+      -35.56,
+      -269.8,
+      -153.54
     ],
-    "load_approach": [
-      143.56,
-      -130.16,
-      -124.15,
-      -15.53,
-      -270.41,
-      -216.47
-    ],
-    "dock_approach": [
-      152.15,
-      -136.08,
-      -106.39,
-      -27.44,
-      -270.43,
-      -207.89
-    ],
-    "safe_tool_exchange": [
-      168.62,
-      -69.5,
-      -81.91,
-      -117.92,
-      -268.05,
-      -157.15
+        "pipettor_safety": [
+      167.29,
+      -104.51,
+      -117.41,
+      -48.11,
+      -270.31,
+      -192.81
     ]
   },
-  "tasks": []
+  "tasks": [
+    {
+      "task_type": "moveto",
+      "target": "pipettor_safety",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "sample_checker",
+      "planning_type": "joint"
+    }
+  ]
 }

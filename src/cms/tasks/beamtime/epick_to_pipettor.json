@@ -96,7 +96,88 @@
       -117.92,
       -268.05,
       -157.15
+    ],
+    "pipettor_safety": [
+      167.29,
+      -104.51,
+      -117.41,
+      -48.11,
+      -270.31,
+      -192.81
+    ],
+    "pre_pipettor_suck": [
+      99.06,
+      -68.67,
+      -121.47,
+      -80.05,
+      -270.2,
+      -173.88
+    ],
+    "pipettor_suck": [
+      98.99,
+      -95.56,
+      -145.49,
+      -29.15,
+      -270.33,
+      -173.72
+    ],
+    "pipettor_vial_align": [
+      99.0,
+      -86.71,
+      -142.63,
+      -40.86,
+      -270.28,
+      -173.76
+    ],
+    "pipettor_dispense": [
+      110.37,
+      -97.59,
+      -119.92,
+      -52.75,
+      -270.21,
+      -162.46
+    ],
+    "pre_pipettor_dispense": [
+      110.4,
+      -88.86,
+      -107.69,
+      -73.71,
+      -270.18,
+      -162.53
+    ],
+    "spincoater_2": [
+      111.13,
+      -117.18,
+      -127.53,
+      -25.24,
+      -269.85,
+      -158.82
     ]
   },
-  "tasks": []
+  "tasks": [
+    {
+      "task_type": "moveto",
+      "target": "safe_sample_transport",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "safe_tool_exchange",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "tool_exchange",
+      "operation": "dock",
+      "gripper": "epick",
+      "dock_number": 3,
+      "approach_pose": "dock_approach"
+    },
+    {
+      "task_type": "tool_exchange",
+      "operation": "load",
+      "gripper": "pipettor",
+      "dock_number": 4,
+      "approach_pose": "load_approach"
+    }
+  ]
 }

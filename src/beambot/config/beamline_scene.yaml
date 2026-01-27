@@ -63,7 +63,7 @@ obstacles:
     type: "box"
     frame: "map"
     pose:
-      x: -0.35
+      x: -0.38
       y: -0.50
       z: 0.0
       roll: 0.0
