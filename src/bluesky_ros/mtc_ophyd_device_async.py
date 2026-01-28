@@ -1,38 +1,14 @@
 """Async MTC Python Ophyd Device for Bluesky Integration
-
-This is an async-capable version of MTCExecutionDevice that properly supports
-Bluesky's wait=True/False parameter and task cancellation.
-
-Key differences from mtc_ophyd_device.py:
-- Returns immediately from set() instead of blocking
-- Uses background thread for ROS spinning
-- Proper cancellation support via cancel_goal()
-- Compatible with Bluesky's pause/resume mechanisms
-
-Backend: beambot (Python MTC implementation)
-Action server: beambot_execution
-
-Usage:
-    from bluesky_ros.mtc_ophyd_device_async import MTCExecutionDeviceAsync
-    robot = MTCExecutionDeviceAsync(name="ur5e_robot")
-
-    # Non-blocking execution
-    RE(bps.abs_set(robot, "task.json", wait=False))
-
-    # Blocking execution
-    RE(bps.abs_set(robot, "task.json", wait=True))
-
-    # Cancellation
-    robot.cancel_goal()
 """
 
-import json
 from threading import Thread, Lock, current_thread
-from ophyd.status import DeviceStatus
+import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionClient
+from rosidl_runtime_py.utilities import get_action
+from ophyd.status import DeviceStatus
 from bluesky.protocols import Movable
-import rclpy
+
 
 
 class ActionStatus(DeviceStatus):
@@ -49,22 +25,16 @@ class ActionStatus(DeviceStatus):
 
 class MTCExecutionDeviceAsync(Node, Movable):
     """Async Ophyd device for MTC task execution via Bluesky
-
-    This device properly supports async execution, allowing Bluesky's
-    wait=True/False parameter to work as expected.
     """
 
-    def __init__(self, name="mtc_executor", robot_ip="192.168.56.101", **kwargs):
+    def __init__(self, name="mtc_executor", **kwargs):
         super().__init__(name, **kwargs)
 
         # Set name attribute for Ophyd
         self.name = name
 
-        # Dynamically load the action type from beambot
-        from rosidl_runtime_py.utilities import get_action
-        self.action_type = get_action('beambot/MTCExecution')
+        self.action_type = get_action('beambot_interfaces/MTCExecution')
 
-        self.robot_ip = robot_ip  # Kept for reference, not sent to action server
         self._action_client = ActionClient(self, self.action_type, 'beambot_execution')
         self._goal_handle = None
         self._bluesky_status = None
@@ -95,7 +65,6 @@ class MTCExecutionDeviceAsync(Node, Movable):
             # Assume it's already a JSON string
             goal.full_json = json_path_or_string
 
-        # Note: beambot gets robot_ip from beamline config, not from action goal
         return goal
 
     def _spin_in_background(self):
@@ -159,7 +128,7 @@ class MTCExecutionDeviceAsync(Node, Movable):
             self._spin_thread = Thread(target=self._spin_in_background, daemon=True)
             self._spin_thread.start()
 
-        # Return immediately - Bluesky will manage the wait!
+        # Return immediately 
         return self._bluesky_status
 
     def _stop_spinning(self):
@@ -268,9 +237,9 @@ class MTCExecutionDeviceAsync(Node, Movable):
             try:
                 cancel_response = future.result()
                 if len(cancel_response.goals_canceling) > 0:
-                    self.get_logger().info("✓ Goal cancellation accepted")
+                    self.get_logger().info("Goal cancellation accepted")
                 else:
-                    self.get_logger().warning("⚠ Goal cancellation rejected or already complete")
+                    self.get_logger().warning("Goal cancellation rejected or already complete")
             except Exception as e:
                 self.get_logger().error(f"Error during cancellation: {e}")
 
