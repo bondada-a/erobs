@@ -160,10 +160,15 @@ docker tag ghcr.io/bondada-a/beambot_bsui_minimal:latest beambot_bsui_minimal
 #### Simulation Mode (No Hardware)
 
 ```bash
+# Allow X server connections (run once per session)
+xhost +local:docker
+
 docker run -it --rm \
     --network host \
     --ipc=host \
     --pid=host \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
     --name beambot_ros \
     beambot_img \
     /bin/bash -c "source /root/ws/erobs/install/setup.bash && \
@@ -473,6 +478,8 @@ ros2 action send_goal /beambot_execution beambot_interfaces/action/MTCExecution 
 | "No nodes discovered" | Missing `--ipc=host` | Add `--ipc=host --pid=host` to docker run (required for DDS shared memory) |
 | "No nodes discovered" | Different ROS_DOMAIN_ID | Ensure same domain ID on both containers |
 | "Network unreachable" | Not using host networking | Add `--network host` to docker run |
+| RViz doesn't show | No display access | Add `-e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix` and run `xhost +local:docker` |
+| "Timeout connecting to robot" | Old Docker image | Rebuild `beambot_img` with latest code that has `use_fake_hardware` checks |
 
 ---
 
@@ -481,7 +488,12 @@ ros2 action send_goal /beambot_execution beambot_interfaces/action/MTCExecution 
 ### Terminal 1: Start ROS Stack (Simulation)
 
 ```bash
-docker run -it --rm --network host --ipc=host --pid=host --name beambot_ros beambot_img \
+# Allow X server connections (for RViz)
+xhost +local:docker
+
+docker run -it --rm --network host --ipc=host --pid=host \
+    -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
+    --name beambot_ros beambot_img \
     /bin/bash -c "source /root/ws/erobs/install/setup.bash && \
                   ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true"
 ```

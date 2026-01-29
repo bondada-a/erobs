@@ -61,7 +61,7 @@
   <xacro:arg name="mock_hardware" default="true" />
 
   <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
-  <xacro:arg name="initial_positions_file" default="$(find ur_description)/config/initial_positions.yaml"/>
+  <xacro:arg name="initial_positions_file" default="$(find ur_zivid_pipettor_moveit_config)/config/initial_positions.yaml"/>
   <xacro:property name="initial_positions_file" default="$(arg initial_positions_file)"/>
 
   <!-- create link fixed to the "map" -->
