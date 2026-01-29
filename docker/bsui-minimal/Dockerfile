@@ -94,7 +94,4 @@ RUN apt-get autoremove -y && \
 CMD ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash && bsui"]
 
 
-LABEL maintainer="abondada@bnl.gov"
-LABEL description="Minimal Bluesky-ROS2 client container with EPICS and Conda"
-LABEL version="1.0"
-LABEL ros.distro="humble"
+
