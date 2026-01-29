@@ -1,6 +1,6 @@
 #!/bin/bash
 # Build and push beambot Docker images to GHCR
-# Usage: ./img_build.sh [beambot_img|beambot_bsui|both]
+# Usage: ./img_build.sh [beambot_img|beambot_bsui|beambot_bsui_minimal|all]
 
 set -e
 
@@ -24,7 +24,7 @@ build_beambot_img() {
 
 build_beambot_bsui() {
     echo "=========================================="
-    echo "Building beambot_bsui (Bluesky)..."
+    echo "Building beambot_bsui (Bluesky - full)..."
     echo "=========================================="
     docker build --no-cache -f docker/bsui/Dockerfile -t beambot_bsui .
     docker tag beambot_bsui "$REGISTRY/beambot_bsui:latest"
@@ -34,23 +34,40 @@ build_beambot_bsui() {
     echo "✓ beambot_bsui pushed to $REGISTRY/beambot_bsui:latest"
 }
 
-case "${1:-both}" in
+build_beambot_bsui_minimal() {
+    echo "=========================================="
+    echo "Building beambot_bsui_minimal (Bluesky - lightweight)..."
+    echo "=========================================="
+    docker build --no-cache -f docker/bsui-minimal/Dockerfile -t beambot_bsui_minimal .
+    docker tag beambot_bsui_minimal "$REGISTRY/beambot_bsui_minimal:latest"
+    echo ""
+    echo "Pushing beambot_bsui_minimal to GHCR..."
+    docker push "$REGISTRY/beambot_bsui_minimal:latest"
+    echo "✓ beambot_bsui_minimal pushed to $REGISTRY/beambot_bsui_minimal:latest"
+}
+
+case "${1:-all}" in
     beambot_img)
         build_beambot_img
         ;;
     beambot_bsui)
         build_beambot_bsui
         ;;
-    both)
+    beambot_bsui_minimal)
+        build_beambot_bsui_minimal
+        ;;
+    all)
         build_beambot_img
         build_beambot_bsui
+        build_beambot_bsui_minimal
         ;;
     *)
-        echo "Usage: $0 [beambot_img|beambot_bsui|both]"
+        echo "Usage: $0 [beambot_img|beambot_bsui|beambot_bsui_minimal|all]"
         echo ""
-        echo "  beambot_img   - Build ROS/robotics image (erobs-common-img)"
-        echo "  beambot_bsui  - Build Bluesky image"
-        echo "  both          - Build both images (default)"
+        echo "  beambot_img          - Build ROS/robotics image (erobs-common-img)"
+        echo "  beambot_bsui         - Build Bluesky image (full, ~5GB)"
+        echo "  beambot_bsui_minimal - Build Bluesky image (lightweight, ~1.5GB)"
+        echo "  all                  - Build all images (default)"
         exit 1
         ;;
 esac
