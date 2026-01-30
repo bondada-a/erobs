@@ -279,13 +279,19 @@ docker run -it --rm --network host --ipc=host --pid=host \
 ### Terminal 2: Start Bluesky Client
 
 ```bash
-docker run -it --rm --network host --ipc=host --pid=host --name beambot_bsui beambot_bsui_minimal \
+docker run -it --rm \
+    --network host \
+    --ipc=host \
+    --pid=host \
+    -v /nsls2/conda/envs:/nsls2/conda/envs:ro \
+    --name beambot_bsui \
+    beambot_bsui_minimal \
     /bin/bash -c "source /opt/ros/humble/setup.bash && \
                   source /ros2_ws/install/setup.bash && \
-                  ipython"
+                  bsui"
 ```
 
-### In IPython
+### In BSUI
 
 ```python
 import rclpy
@@ -294,7 +300,7 @@ from bluesky import RunEngine
 import bluesky.plan_stubs as bps
 
 rclpy.init()
-mtc = MTCExecutionDevice()
+robot = MTCExecutionDevice()
 RE = RunEngine({})
 
 # Test with pre-saved task
