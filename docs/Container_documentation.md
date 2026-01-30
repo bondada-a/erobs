@@ -111,7 +111,7 @@ docker pull ghcr.io/bondada-a/beambot_bsui_minimal:latest
 
 ---
 
-> **NSLS2 Users**: On NSLS2 devices (workstations and VMs), replace `docker` with `podman` in all commands below. Podman is the container runtime installed on NSLS2 infrastructure and uses the same command syntax as Docker.
+> **NOTE**: On NSLS2 devices (workstations and VMs), replace `docker` with `podman` in all commands below. Podman is the container runtime installed on NSLS2 infrastructure and uses the same command syntax as Docker.
 
 ---
 
