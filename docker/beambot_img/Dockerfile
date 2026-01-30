@@ -42,7 +42,7 @@ RUN /bin/bash -c "set -e && \
     vcs import < src/end_effectors/end_effectors.repos src/end_effectors && \
     apt-get update && \
     rosdep update && \
-    rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface pipette_driver'"
+    rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface pipette_driver zivid_description zivid_interfaces ament_python pytest'"
 
 WORKDIR /root/ws/
 # Build interface packages first so other packages can find them
