@@ -35,6 +35,29 @@ This document logs all changes made during the codebase cleanup, and lists items
 
 **Actions:**
 - Added patterns for common debug outputs (*.gv, frame dumps, etc.)
+- Added vision packages (vcs-imported)
+- Added pipettor (vcs-imported)
+- Ignore ROS bag recordings
+
+### 3. License Declarations
+
+**Problem:** Many package.xml and setup.py files had "TODO: License declaration" placeholder.
+
+**Actions:**
+- Updated 8 package.xml files with `BSD-3-Clause` license
+- Updated `mtc_gui/setup.py` with proper license and maintainer
+- Consistent with repo LICENSE file
+
+**Files fixed:**
+- `src/aruco_pose/package.xml`
+- `src/beambot/package.xml`
+- `src/beambot_interfaces/package.xml`
+- `src/demos/hello_moveit/package.xml`
+- `src/demos/hello_moveit_interfaces/package.xml`
+- `src/mtc_gui/package.xml`
+- `src/mtc_gui/setup.py`
+- `src/pdf/pdf_beamtime/package.xml`
+- `src/pdf/pdf_beamtime_interfaces/package.xml`
 
 ---
 
