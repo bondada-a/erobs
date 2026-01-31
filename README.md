@@ -1,57 +1,10 @@
-# Extensible Robotic Beamline Scientist
+# EROBS - Extensible Robotic Beamline Scientist
 
-Autonomous robotic sample handling system for synchrotron beamlines at NSLS-II. Integrates ROS2 robotics with Bluesky experiment orchestration to enable self-driving beamlines.
+Autonomous robotic sample handling for synchrotron beamlines.
 
-## Architecture Overview
+## Overview
 
-```
-Bluesky RunEngine (experiment orchestration)
-            ↓
-Ophyd Device (ROS2 Action Client wrapper)
-            ↓
-MTCOrchestratorActionServer (JSON task dispatcher)
-            ↓
-Specialized Action Servers (7 types)
-├── move_to, pick_place, end_effector
-├── tool_exchange, vision, pipettor
-└── vision_pick_place
-            ↓
-MoveIt Task Constructor (motion planning)
-            ↓
-UR5e Robot + Grippers
-```
-
-**Deployment**: Two Docker containers communicating via ROS2 DDS:
-- **bsui**: Bluesky/experiment orchestration, sends JSON task goals
-- **erobs-common-img**: MTC pipeline servers, MoveIt, Zivid SDK
-
-## Getting External Dependencies
-
-Some packages are imported from external repositories via `vcs`. After cloning, run:
-
-```bash
-# End effector drivers (HandE, EPick, Pipettor)
-vcs import src/end_effectors < src/end_effectors/end_effectors.repos
-
-# Vision drivers (Zivid, ZED)
-vcs import src/vision < src/vision/vision.repos
-```
-
-See [end_effectors/README.md](./src/end_effectors/README.md) and [vision/README.md](./src/vision/README.md) for SDK requirements.
-
-## Quick Start
-
-```bash
-colcon build && source install/setup.bash
-ros2 launch beambot beambot_bringup.launch.py                        # Real hardware
-ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true # Simulation
-ros2 run mtc_gui mtc_gui_client                                       # GUI client
-```
-
-## Contents
-
-The majority of the contents in this repository are ROS2 packages with associated container image manifests.
-Each manifest in the [docker](./docker) directory is a container image that can be used to run a specific application in the system.
+EROBS integrates ROS2 robotics with Bluesky experiment orchestration to enable self-driving beamlines at NSLS-II. Scientists can run 24/7 sample handling without manual intervention.
 
 ### Source Contents
 
@@ -75,65 +28,53 @@ Each manifest in the [docker](./docker) directory is a container image that can 
   - [hello_moveit](./src/demos/hello_moveit): ROS2 package demonstrating simple MoveIt actions.
   - [hello_moveit_interfaces](./src/demos/hello_moveit_interfaces): Interfaces for hello_moveit.
 
-### Docker Contents
-
-We use Podman throughout this work, but have named the container images with Docker in mind.
-
-- [erobs-common-img](./docker/erobs-common-img): Main container image running UR driver, MoveIt, gripper services, and beambot action servers.
-- [bsui](./docker/bsui): Container image for running the Bluesky User Interface with mounts at NSLS-II.
-- [azure-kinect](./docker/azure-kinect): Container image for running the Azure Kinect ROS2 driver.
-- Other auxiliary container images for development and testing:
-  - [ursim](./docker/ursim): Container image for running a simulated UR5e robot arm with a teach pendant.
-  - [ur-driver](./docker/ur-driver): Container image for running the UR5e robot arm ROS2 driver.
-  - [ur-moveit](./docker/ur-moveit): Container image for running MoveIt with the UR5e robot arm.
-
 ## Hardware
 
 - **Robot**: UR5e 6-DOF arm
 - **Camera**: Zivid 2+ 3D with ArUco marker detection
 - **Grippers** (swappable): Robotiq Hand-E, Robotiq ePick, Pipettor
 
-## Task JSON Format
+## Setup
 
-```json
-{
-  "start_gripper": "hande",
-  "tasks": [
-    {"task_type": "moveto", "target": "home"},
-    {"task_type": "pick_and_place", "pick_approach": "approach", "pick_target": "pick", "place_approach": "approach", "place_target": "place"},
-    {"task_type": "vision_moveto", "tag_id": 5}
-  ],
-  "poses": {"home": [0, -90, 90, -90, -90, 0]}
-}
-```
+### Prerequisites
 
-Note: Joint poses are in **degrees**, converted to radians internally.
+- ROS2 Humble
+- MoveIt 2
+- Zivid SDK (for vision)
 
-## Using Containers
-
-The complete application uses a 1-node-per-container model. The containers are currently orchestrated by bash scripts detailed in the READMEs of each container image. Specifically, the full application is detailed in [erobs-common-img](./docker/erobs-common-img/README.md).
-
-## Debugging
+### Clone & Build
 
 ```bash
-ros2 action list                                    # Check action servers
-ros2 run tf2_tools view_frames                      # TF tree (vision issues)
-ros2 topic echo /joint_states                       # Joint states
-ros2 service call /beambot/pause std_srvs/srv/Trigger  # Pause execution
-ros2 topic echo /beambot/execution_state            # Monitor state
+git clone https://github.com/NSLS2/erobs.git
+cd erobs
+
+# Import external dependencies
+vcs import src < src/ros2.repos
+vcs import src/end_effectors < src/end_effectors/end_effectors.repos
+vcs import src/vision < src/vision/vision.repos
+
+# Build
+colcon build && source install/setup.bash
 ```
 
-## References
+See [end_effectors/README.md](./src/end_effectors/README.md) and [vision/README.md](./src/vision/README.md) for SDK requirements.
 
-- [Digital Discovery Paper (2025)](https://doi.org/10.1039/d5dd00036j) - Full architecture
-- [ICRA 2024 Paper](https://doi.org/10.1109/ICRA57147.2024.10611706) - Bluesky-ROS integration
-- [MoveIt Task Constructor](https://moveit.picknik.ai/main/doc/concepts/moveit_task_constructor.html)
+## Usage
 
-## Notes on VSCode Workspace
+### Launch
 
-VSCode ROS2 Workspace Template Borrowed from @althack.
-See [how she develops with vscode and ros2](https://www.allisonthackston.com/articles/vscode_docker_ros2.html) for more details.
+```bash
+ros2 launch beambot beambot_bringup.launch.py                         # Real hardware
+ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true # Simulation
+```
 
-ROS2-approved formatters are included in the IDE:
-- **c++** uncrustify; config from `ament_uncrustify`
-- **python** autopep8; vscode settings consistent with the [style guide](https://index.ros.org/doc/ros2/Contributing/Code-Style-Language-Versions/)
+### GUI
+
+```bash
+ros2 run mtc_gui mtc_gui_client
+```
+
+## Documentation
+
+- [CLAUDE.md](./CLAUDE.md): Full architecture, task format, and development details
+- [Digital Discovery Paper (2025)](https://doi.org/10.1039/d5dd00036j): System architecture and design
