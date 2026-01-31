@@ -14,10 +14,10 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    maintainer='user',
-    maintainer_email='youremail@domain.com',
+    maintainer='NSLS-II',
+    maintainer_email='nsls2-software@bnl.gov',
     description='Graphical User Interface for MoveIt Task Constructor (MTC) Pipeline',
-    license='TODO: License declaration',
+    license='BSD-3-Clause',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
