@@ -45,7 +45,7 @@ EROBS integrates ROS2 robotics with Bluesky experiment orchestration to enable s
 ### Clone & Build
 
 ```bash
-git clone https://github.com/NSLS2/erobs.git
+git clone https://github.com/bondada-a/erobs.git
 cd erobs
 
 # Import external dependencies
