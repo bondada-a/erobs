@@ -332,3 +332,140 @@ erobs/
 ---
 
 *Generated during overnight cleanup session. Review and merge what makes sense!*
+
+---
+
+## 🔎 COMPREHENSIVE REVIEW (534 Files)
+
+**Date:** 2026-01-31  
+**Method:** 5 parallel sub-agents reviewed all file categories
+
+Detailed reports in:
+- `REVIEW_CONFIGS.md` (JSON/YAML)
+- `REVIEW_ROBOT_DESCRIPTIONS.md` (XACRO/URDF/SRDF)
+- `REVIEW_DOCUMENTATION.md` (Markdown/LaTeX)
+- `REVIEW_BUILD_DEPLOY.md` (Docker/Scripts/CI)
+- `REVIEW_INTERFACES.md` (ROS Actions/Services/USD)
+
+---
+
+### 🔴 CRITICAL ISSUES (Must Fix)
+
+| Issue | Location | Impact |
+|-------|----------|--------|
+| **HandE mass off by 100,000x** | `ur3e_hande_robot_description/.../hande.yaml` | `86387` should be `0.86387` kg - physics simulation broken |
+| **Kinematics timeout too low** | UR3e MoveIt config | `0.005s` vs `1.0s` for UR5e - IK failures |
+| **Obstacle z-values typo** | `beamline_scene.yaml` | `z: 10.475` should be `z: 0.475` |
+| **Tests disabled in CI** | `.github/actions/test/run.sh` | `./test.sh` is **commented out** - builds pass without testing |
+| **Invalid SRDF virtual joint** | UR3e SRDF | Connects world to `right_finger` instead of `base_link` |
+| **Broken README link** | Root `README.md` | Links to wrong path for pdf_beamtime |
+| **Dead code reference** | `bluesky_ros/archive/pdf/pdf_beamtime.py` | Imports non-existent `custom_msgs.action.PickPlace` |
+| **Old repo URLs** | 2 Dockerfiles | Still reference `nsls2/erobs` instead of `bondada-a/erobs` |
+
+---
+
+### 🟡 MAJOR ISSUES (Should Fix)
+
+**Configuration:**
+- Inconsistent naming: `"epick"` vs `"epick_gripper"` across task files
+- Massive duplication: 17-step sequences copy-pasted 6x in some task files
+- Empty task arrays: 4 files with `"tasks": []`
+- File with space in name: `beamline_test copy.json`
+- Hardcoded IPs and dock numbers throughout
+
+**Robot Descriptions:**
+- Different root frames: UR3e uses `world`, UR5e uses `map`
+- Duplicate SRDF files in UR3e config
+- Hardcoded IP `192.168.1.101` in generated URDFs
+- UR3e finger joints are `fixed` instead of `prismatic`
+
+**Build/Deploy:**
+- No multi-stage Docker builds (large images)
+- Missing `set -euo pipefail` in most shell scripts
+- Hardcoded user paths (`/home/aditya/...`) in scripts
+- CMake version inconsistency (3.8 vs 3.22)
+- Ruff CI uses `--fix` which modifies code
+
+**Documentation:**
+- Missing READMEs for beambot and beambot_interfaces (the main packages!)
+- Outdated container registry references
+- Legacy UR3e/mtc_pipeline references (renamed to UR5e/beambot)
+- Action server count inconsistency (7 vs 8 in docs)
+
+**Interfaces:**
+- Duplicate action definitions in `hello_orchestrator/action/`
+- Unused package `hello_orchestrator_interfaces`
+- No documentation on legacy pdf_beamtime interfaces
+
+---
+
+### 🟢 MINOR ISSUES (Nice to Fix)
+
+- 24 formatting/documentation gaps in configs
+- Missing metadata in some JSON files
+- Isaac Sim USD files have no README explaining their purpose
+- Some deprecated scripts in `pdf-launch-scripts/`
+- No dependency version constraints in package.xml files
+
+---
+
+### ✅ WHAT'S GOOD
+
+**Code Quality:**
+- Well-structured XACRO macros with good parameterization
+- Clean camera abstraction module
+- Comprehensive beambot_interfaces (9 well-documented actions)
+- Smart batching optimization in orchestrator
+- Proper pause/resume and error recovery
+
+**Robot Descriptions:**
+- All 16 local mesh files present and valid
+- Clean separation between visual and collision meshes
+- Proper MoveIt collision matrices
+
+**Documentation:**
+- Excellent CLAUDE.md with architecture overview
+- .planning/ has good architecture analysis
+- LaTeX docs have pre-generated PDFs
+
+---
+
+### 📊 REVIEW STATISTICS
+
+| Category | Files Reviewed | Issues Found |
+|----------|---------------|--------------|
+| JSON/YAML configs | 134 | 47 |
+| Robot descriptions | 36 | 8 |
+| Documentation | 40+ | 15 |
+| Build/Deploy | 50+ | 20+ |
+| ROS Interfaces | 54 | 7 |
+| **TOTAL** | **534** | **~97** |
+
+---
+
+### 🎯 RECOMMENDED PRIORITY ORDER
+
+**Immediate (potential bugs):**
+1. Fix HandE mass value (100,000x error)
+2. Fix UR3e kinematics timeout
+3. Fix obstacle z-value typos
+4. Enable tests in CI
+5. Fix SRDF virtual joint
+
+**Soon (cleanup):**
+6. Update old repo URLs in Dockerfiles
+7. Consolidate duplicate task sequences
+8. Add READMEs for beambot packages
+9. Fix broken README link
+10. Standardize naming (epick vs epick_gripper)
+
+**Later (improvements):**
+11. Multi-stage Docker builds
+12. Add shell script error handling
+13. Remove hardcoded paths/IPs
+14. Consolidate demo interface packages
+15. Add dependency version constraints
+
+---
+
+*Full review completed using 5 parallel agents covering all 534 files.*
