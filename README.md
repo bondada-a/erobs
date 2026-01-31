@@ -73,8 +73,3 @@ ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true # Simulati
 ```bash
 ros2 run mtc_gui mtc_gui_client
 ```
-
-## Documentation
-
-- [CLAUDE.md](./CLAUDE.md): Full architecture, task format, and development details
-- [Digital Discovery Paper (2025)](https://doi.org/10.1039/d5dd00036j): System architecture and design
