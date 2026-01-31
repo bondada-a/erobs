@@ -1,6 +1,29 @@
 # Extensible Robotic Beamline Scientist
 
-Project repository for building extensible robotic beamline scientists at NSLS-II.
+Autonomous robotic sample handling system for synchrotron beamlines at NSLS-II. Integrates ROS2 robotics with Bluesky experiment orchestration to enable self-driving beamlines.
+
+## Architecture Overview
+
+```
+Bluesky RunEngine (experiment orchestration)
+            ↓
+Ophyd Device (ROS2 Action Client wrapper)
+            ↓
+MTCOrchestratorActionServer (JSON task dispatcher)
+            ↓
+Specialized Action Servers (7 types)
+├── move_to, pick_place, end_effector
+├── tool_exchange, vision, pipettor
+└── vision_pick_place
+            ↓
+MoveIt Task Constructor (motion planning)
+            ↓
+UR5e Robot + Grippers
+```
+
+**Deployment**: Two Docker containers communicating via ROS2 DDS:
+- **bsui**: Bluesky/experiment orchestration, sends JSON task goals
+- **erobs-common-img**: MTC pipeline servers, MoveIt, Zivid SDK
 
 ## Getting External Dependencies
 
@@ -16,119 +39,101 @@ vcs import src/vision < src/vision/vision.repos
 
 See [end_effectors/README.md](./src/end_effectors/README.md) and [vision/README.md](./src/vision/README.md) for SDK requirements.
 
+## Quick Start
+
+```bash
+colcon build && source install/setup.bash
+ros2 launch beambot beambot_bringup.launch.py                        # Real hardware
+ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true # Simulation
+ros2 run mtc_gui mtc_gui_client                                       # GUI client
+```
+
 ## Contents
 
-The majority of the contents in this repository are ROS2 packages with associated continer image manifests.
+The majority of the contents in this repository are ROS2 packages with associated container image manifests.
 Each manifest in the [docker](./docker) directory is a container image that can be used to run a specific application in the system.
 
 ### Source Contents
 
 - [ros2.repos](./src/ros2.repos): ROS2 workspace file for downloading the required external ROS2 dependencies.
+- [beambot](./src/beambot): Main ROS2 package providing action servers, MTC stages, and the orchestrator for robot control.
+- [beambot_interfaces](./src/beambot_interfaces): ROS2 package defining action interfaces (8 actions: Orchestrator, MoveTo, PickPlace, EndEffector, ToolExchange, Vision, Pipettor, VisionPickPlace).
+- [mtc_gui](./src/mtc_gui): GUI client for composing and executing robot tasks.
 - [end_effectors](./src/end_effectors): End effector drivers and configuration for grippers and vacuum systems.
   - [end_effectors.repos](./src/end_effectors/end_effectors.repos): VCS file for downloading robotiq_hande_driver, robotiq_hande_description, ros2_epick_gripper, and serial packages.
   - [epick_config](./src/end_effectors/epick_config): Site-specific configuration overlay for EPick vacuum gripper.
-- [custom-ur-descriptions](./src/custom-ur-descriptions): Source directory for custom UR robot arm descriptions (e.g., attaching grippers or other end effectors).
-  - [ur3e_hande_robot_description](./src/custom-ur-descriptions/ur3e_hande_robot_description): ROS2 package for defining the UR3e robot arm with the HandE gripper.
-  - [ur3e_hande_moveit_config](./src/custom-ur-descriptions/ur3e_hande_moveit_config): ROS2 package for configuring MoveIt for the UR3e robot arm with the HandE gripper.
-  - The UR robot arm description is pulled in through rosdep.
-- [bluesky_ros](./src/bluesky_ros): Python module for integrating Bluesky and ROS2.
+- [custom-ur-descriptions](./src/custom-ur-descriptions): Custom UR5e robot arm descriptions with attached grippers.
+  - [ur5e_robot_description](./src/custom-ur-descriptions/ur5e_robot_description): UR5e robot arm with Zivid camera mount and gripper attachments.
+  - [ur5e_moveit_configs](./src/custom-ur-descriptions/ur5e_moveit_configs): MoveIt configurations for UR5e with each gripper type (HandE, EPick, Pipettor).
+- [vision](./src/vision): Vision system packages for Zivid 3D camera and ArUco marker detection.
+- [bluesky_ros](./src/bluesky_ros): Python module for integrating Bluesky and ROS2 via Ophyd devices.
 - [aruco_pose](./src/aruco_pose): ROS2 package for detecting ArUco markers and calculating their pose.
-- [pdf](./src/pdf): Source directory for PDF beamline specific applications.
-  - [pdf_beamtime](./src/pdf/pdf_beamtime): ROS2 package for controlling the UR3e robot arm and HandE gripper at the PDF beamline.
-  - [pdf_beamtime_interfaces](./src/pdf/pdf_beamtime_interfaces): ROS2 package for defining the interfaces used in the pdf_beamtime package.
-- [cms](./src/cms): Source directory for CMS beamline specific applications. (Currently placeholder)
-- [lix](./src/lix): Source directory for LIX beamline specific applications. (Currently placeholder)
-- [demos](./src/demos): Source directory for demonstration applications.
-  - [hello_moveit](./src/demos/hello_moveit): ROS2 package for demonstrating simple actions using the MoveIt library with the UR3e robot arm.
-  - [hello_moveit_interfaces](./src/demos/hello_moveit_interfaces): ROS2 package for defining the interfaces used in the hello_moveit package.
-
+- [pdf](./src/pdf): PDF beamline specific applications (legacy).
+- [cms](./src/cms): CMS beamline specific applications (placeholder).
+- [lix](./src/lix): LIX beamline specific applications (placeholder).
+- [demos](./src/demos): Demonstration applications.
+  - [hello_moveit](./src/demos/hello_moveit): ROS2 package demonstrating simple MoveIt actions.
+  - [hello_moveit_interfaces](./src/demos/hello_moveit_interfaces): Interfaces for hello_moveit.
 
 ### Docker Contents
 
 We use Podman throughout this work, but have named the container images with Docker in mind.
 
-- [erobs-common-img](./docker/erobs-common-img): Common container image for running the majority of applications herein, including: UR robot driver, gripper service, MoveIt service, and the pdf_beamtime_server (primary `Action` server).
+- [erobs-common-img](./docker/erobs-common-img): Main container image running UR driver, MoveIt, gripper services, and beambot action servers.
 - [bsui](./docker/bsui): Container image for running the Bluesky User Interface with mounts at NSLS-II.
 - [azure-kinect](./docker/azure-kinect): Container image for running the Azure Kinect ROS2 driver.
-- Other auxiliary container images that are not used in the main application, but are useful for development and testing:
-  - [ursim](./docker/ursim): Container image for running a simulated UR3e robot arm with a teach pendant.
-  - [ur-driver](./docker/ur-driver): Container image for running the UR3e robot arm ROS2 driver.
-  - [ur-moveit](./docker/ur-moveit): Container image for running MoveIt with the UR3e robot arm.
-  - [ur-example](./docker/ur-example): Container image for running a simple action with the UR3e robot arm.
-  - [erobs-hello-moveit](./docker/erobs-hello-moveit): Container image for running a simple action with the UR3e robot arm.
+- Other auxiliary container images for development and testing:
+  - [ursim](./docker/ursim): Container image for running a simulated UR5e robot arm with a teach pendant.
+  - [ur-driver](./docker/ur-driver): Container image for running the UR5e robot arm ROS2 driver.
+  - [ur-moveit](./docker/ur-moveit): Container image for running MoveIt with the UR5e robot arm.
 
+## Hardware
 
-### Hello Moveit
+- **Robot**: UR5e 6-DOF arm
+- **Camera**: Zivid 2+ 3D with ArUco marker detection
+- **Grippers** (swappable): Robotiq Hand-E, Robotiq ePick, Pipettor
 
-Demonstrations using a combination of the MoveIt tutorials and some UR specific tools, to show how to make simple actions
-that can deploy MoveIt using the MoveGroupInterface.
+## Task JSON Format
 
-### Bluesky ROS
+```json
+{
+  "start_gripper": "hande",
+  "tasks": [
+    {"task_type": "moveto", "target": "home"},
+    {"task_type": "pick_and_place", "pick_approach": "approach", "pick_target": "pick", "place_approach": "approach", "place_target": "place"},
+    {"task_type": "vision_moveto", "tag_id": 5}
+  ],
+  "poses": {"home": [0, -90, 90, -90, -90, 0]}
+}
+```
 
-Ongoing developments of integrating ROS2 and Bluesky. Currently targeted towards integrating Ophyd Objects as ROS2 Action Clients.
+Note: Joint poses are in **degrees**, converted to radians internally.
 
-## Using Containers to Run the Full Applicaiton Suite
+## Using Containers
 
 The complete application uses a 1-node-per-container model. The containers are currently orchestrated by bash scripts detailed in the READMEs of each container image. Specifically, the full application is detailed in [erobs-common-img](./docker/erobs-common-img/README.md).
 
-## Running some example applications
+## Debugging
 
-In order to run the `ur-example` with Docker, follow this procedure:
+```bash
+ros2 action list                                    # Check action servers
+ros2 run tf2_tools view_frames                      # TF tree (vision issues)
+ros2 topic echo /joint_states                       # Joint states
+ros2 service call /beambot/pause std_srvs/srv/Trigger  # Pause execution
+ros2 topic echo /beambot/execution_state            # Monitor state
+```
 
-1. Create the required images.
+## References
 
-  ```bash
-  cd docker
-  docker build -t ursim:latest ./ursim
-  docker build -t ur-driver:latest ./ur-driver
-  docker build -t ur-example:latest ./ur-example
-  ```
-
-2. Start the UR Simulator. In a new terminal, run
-
-  ```bash
-  docker compose up ursim
-  ```
-
-3. Open VNC client at `localhost:5900`.
-4. Turn on and start the robot.
-5. Go to the `Move` tab and click the `Home` button.
-6. Press and hold the `Move robot to: New position` button to move the robot into position. Press `Continue`.
-7. Verify the joint position is `[0, -90, 0, -90, 0, 0]` degrees.
-8. Note: setting initial position is requried for the `ur-example` to start, as specified in the `test_goal_publisher_config.yaml` file in the official Unviersal_Robots_ROS2_Driver repo.
-
-9. Start the ur-driver. In a new terminal, run
-
-  ```bash
-  docker compose up urdriver
-  ```
-
-Now, go back to the VNC client. In the `Program` tab, start the program.
-
-10. Run the ur-example. In a new terminal, run
-
-  ```bash
-  docker compose up urexample
-  ```
-
-The in `Program/Graphics` tab, the robot should be moving between four poses every 6 seconds.
+- [Digital Discovery Paper (2025)](https://doi.org/10.1039/d5dd00036j) - Full architecture
+- [ICRA 2024 Paper](https://doi.org/10.1109/ICRA57147.2024.10611706) - Bluesky-ROS integration
+- [MoveIt Task Constructor](https://moveit.picknik.ai/main/doc/concepts/moveit_task_constructor.html)
 
 ## Notes on VSCode Workspace
 
 VSCode ROS2 Workspace Template Borrowed from @althack.
+See [how she develops with vscode and ros2](https://www.allisonthackston.com/articles/vscode_docker_ros2.html) for more details.
 
-This template will get you set up using ROS2 with VSCode as your IDE. And help ensure consistent development across the project.
-
-See [how she develops with vscode and ros2](https://www.allisonthackston.com/articles/vscode_docker_ros2.html) for a more in-depth look on how to use this workspace.
-
-ROS2-approved formatters are included in the IDE.
-
+ROS2-approved formatters are included in the IDE:
 - **c++** uncrustify; config from `ament_uncrustify`
 - **python** autopep8; vscode settings consistent with the [style guide](https://index.ros.org/doc/ros2/Contributing/Code-Style-Language-Versions/)
-
-## Notes on pdf_beamtime and its tests
-
-pdf_beamtime is a work-in-progress package aiming to deploy the UR3e robot arm + HandE gripper at the PDF beamline.
-This package depends on pdf_beamtime_interfaces. Follow the link below for information on the package and for the commands to call the servers implemented in the package.
-
-[Link to pdf_beamtime README](./src/pdf/pdf_beamtime/README.md)
