@@ -2,57 +2,47 @@
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-01-28)
+See: .planning/PROJECT.md
 
 **Core value:** Reliable, autonomous sample manipulation — scientists write simple commands, system works consistently
-**Current focus:** Phase 1 — Communication Research
+**Current focus:** Phase 1 — DSSI Handoff Prep
 
 ## Current Position
 
-Phase: 1 of 4 (Communication Research)
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-01-28 — Roadmap created
+Phase: 1 of 4 (DSSI Handoff Prep)
+Status: In progress — codebase cleanup on `refactor/codebase-cleanup` branch
+Last activity: 2026-01-31 — Comprehensive codebase review, cleanup commits
 
-Progress: ░░░░░░░░░░ 0%
+Progress: ██░░░░░░░░ 20%
 
-## Performance Metrics
+## What's Done
 
-**Velocity:**
-- Total plans completed: 0
-- Average duration: —
-- Total execution time: 0 hours
+- ✅ Phase 0: Communication Research (see phases/01-communication-research/01-RESEARCH.md)
+- ✅ Root-level file organization
+- ✅ Gitignore updates
+- ✅ License declarations
+- ✅ Debug print fix, typo fix
+- ✅ Comprehensive 534-file review (~97 issues documented)
+- 🔄 README rewrite (Claude Code session in progress)
 
-**By Phase:**
+## What's Next
 
-| Phase | Plans | Total | Avg/Plan |
-|-------|-------|-------|----------|
-| — | — | — | — |
+Immediate (Phase 1 blockers):
+1. Fix critical bugs (HandE mass, UR3e timeout, obstacle z-values)
+2. Enable tests in CI
+3. Update old repo URLs in Dockerfiles
+4. Test containers on ws2
+5. Document container usage for DSSI
 
-**Recent Trend:**
-- Last 5 plans: —
-- Trend: —
+## Blockers/Concerns
 
-## Accumulated Context
-
-### Decisions
-
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
-
-- Understand before redesign: Can't design new architecture without understanding current code and message flow
-
-### Deferred Issues
-
-None yet.
-
-### Blockers/Concerns
-
+- Phase 4 blocked on DSSI delivering the communication bridge
 - Phase 4 blocked on beamline IT input for security constraints
-- Phase 4 blocked on supervisor approval for architecture decisions
+- Need to schedule DSSI handoff meeting after Phase 1 complete
 
 ## Session Continuity
 
-Last session: 2026-01-28
-Stopped at: Roadmap creation complete
-Resume file: None
+Last session: 2026-01-31
+Stopped at: Reviewing CLEANUP.md with Rocky, updating roadmap
+Active branch: refactor/codebase-cleanup
+Claude Code session: erobs-readme (README rewrite)
