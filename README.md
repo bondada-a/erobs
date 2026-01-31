@@ -2,6 +2,20 @@
 
 Project repository for building extensible robotic beamline scientists at NSLS-II.
 
+## Getting External Dependencies
+
+Some packages are imported from external repositories via `vcs`. After cloning, run:
+
+```bash
+# End effector drivers (HandE, EPick, Pipettor)
+vcs import src/end_effectors < src/end_effectors/end_effectors.repos
+
+# Vision drivers (Zivid, ZED)
+vcs import src/vision < src/vision/vision.repos
+```
+
+See [end_effectors/README.md](./src/end_effectors/README.md) and [vision/README.md](./src/vision/README.md) for SDK requirements.
+
 ## Contents
 
 The majority of the contents in this repository are ROS2 packages with associated continer image manifests.
@@ -117,4 +131,4 @@ ROS2-approved formatters are included in the IDE.
 pdf_beamtime is a work-in-progress package aiming to deploy the UR3e robot arm + HandE gripper at the PDF beamline.
 This package depends on pdf_beamtime_interfaces. Follow the link below for information on the package and for the commands to call the servers implemented in the package.
 
-[Link to pdf_beamtime README](./src/pdf_beamtime/README.md)
+[Link to pdf_beamtime README](./src/pdf/pdf_beamtime/README.md)
