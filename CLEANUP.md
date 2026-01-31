@@ -164,6 +164,126 @@ This file is 42KB - quite large for a test script. May contain embedded test dat
 
 ---
 
+## 🔍 Deep Dive Findings (Iteration 1)
+
+After reviewing each file in detail, here are specific code-level observations:
+
+### Code Quality: Generally Excellent ✅
+
+The codebase is well-structured with:
+- Consistent docstrings and type hints in Python
+- Good separation of concerns (stages, action servers, orchestrator)
+- Smart abstractions (camera module, base classes)
+- Comprehensive error handling
+- Good use of dataclasses for structured data
+
+### Specific Issues Found
+
+#### 1. Debug Print Statement in Production Code
+
+**File:** `src/beambot/beambot/stages/vision_stages.py` (Line ~545)
+```python
+print(f"  BASE_LINK pose: ({pose_base.pose.position.x*1000:.2f}, ...")
+```
+**Status:** ⚠️ Should be removed or converted to logger.debug()
+
+#### 2. Commented Out Code Block
+
+**File:** `src/beambot/beambot/stages/vision_stages.py` (in `_move_to_pose`)
+```python
+# OLD: Build MTC task with Cartesian planner
+# task = self.create_task_template("Vision Move")
+# cartesian = self.make_cartesian_planner()
+# ...
+```
+**Status:** ⚠️ ~10 lines of commented code. Consider removing if IK trajectory approach is final.
+
+#### 3. Hardcoded Magic Values
+
+**File:** `src/beambot/beambot/stages/vision_stages.py`
+```python
+SAMPLE_OFFSET_X = 0.02   # 20mm offset
+USE_IK_TRAJECTORY = True
+IK_TRAJECTORY_DURATION = 2.0
+```
+**Question:** Should these be configurable via beamline config?
+
+**File:** `src/beambot/beambot/stages/base_stages.py`
+```python
+VELOCITY_SCALING = 0.2
+ACCELERATION_SCALING = 0.2
+```
+**Question:** Same question - should these be configurable?
+
+#### 4. Typo in C++ Code
+
+**File:** `src/pdf/pdf_beamtime/src/pdf_beamtime_server.cpp` (Line ~107)
+```cpp
+RCLCPP_ERROR(node_->get_logger(), "Incorrect interrput type");
+                                            // ^ typo: "interrput"
+```
+**Status:** Minor typo, should be "interrupt"
+
+### Architectural Observations
+
+#### Strengths
+1. **Orchestrator batching** - Smart optimization reducing planning overhead
+2. **Pause/Resume** - Well-implemented with proper state management
+3. **Controller recovery** - Handles UR driver socket drops gracefully
+4. **Camera abstraction** - Clean interface for different camera types
+5. **Multi-position scanning** - Sophisticated pose averaging for accuracy
+
+#### Potential Improvements
+1. **Test coverage** - Test scripts exist but no formal test framework (pytest)
+2. **Configuration** - Some values hardcoded that could be in beamline config
+3. **Demo/Production split** - Similar base classes in demos and beambot
+
+---
+
+## 🔍 Deep Dive Findings (Iteration 2)
+
+Second pass focused on patterns and potential bugs:
+
+### Pattern: Module-Level Initialization
+
+**File:** `src/beambot/beambot/stages/base_stages.py`
+```python
+rclcpp.init()  # Module-level
+_mtc_node = rclcpp.Node("beambot", _options)
+```
+**Observation:** Comment explains why this is safe, but worth being aware of. Each action server process has its own Python interpreter, so no conflict.
+
+### Pattern: Retry Logic
+
+**File:** `src/beambot/beambot/stages/vision_stages.py`
+```python
+DEFAULT_RETRY_COUNT = 10  # Number of retries after first attempt
+DEFAULT_RETRY_DELAY = 0.5  # Seconds between retries
+```
+**Observation:** Good robust detection with configurable retries.
+
+### Pattern: Tag Pose Cache
+
+**File:** `src/beambot/beambot/stages/vision_stages.py`
+```python
+self._tag_pose_cache: Dict[int, PoseStamped] = {}
+```
+**Observation:** Smart caching for batch scans. Cache cleared explicitly via `clear_cache()`.
+
+### Potential Improvement Areas
+
+1. **Unified configuration** - Consider a single beamline config that includes:
+   - Velocity/acceleration scaling
+   - Sample offsets
+   - IK trajectory duration
+   - Retry counts
+
+2. **Logging consistency** - Mix of `self.logger.info()` and `print()` in some files
+
+3. **Type hints** - Most files have good type hints, but some C++ interfaces could use more Python typing
+
+---
+
 ## 📊 Codebase Statistics
 
 ```

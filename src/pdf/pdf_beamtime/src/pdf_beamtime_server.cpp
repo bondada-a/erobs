@@ -106,7 +106,7 @@ void PdfBeamtimeServer::bluesky_interrupt_cb(
       break;
 
     default:
-      RCLCPP_ERROR(node_->get_logger(), "Incorrect interrput type");
+      RCLCPP_ERROR(node_->get_logger(), "Incorrect interrupt type");
       response->results = false;
       break;
   }

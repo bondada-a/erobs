@@ -539,8 +539,11 @@ class VisionStages(BaseStages):
                     f"Transformed to base_link: [{pose_base.pose.position.x:.3f}, "
                     f"{pose_base.pose.position.y:.3f}, {pose_base.pose.position.z:.3f}]"
                 )
-                # DEBUG: Print in mm for easier comparison with TF analysis
-                print(f"  BASE_LINK pose: ({pose_base.pose.position.x*1000:.2f}, {pose_base.pose.position.y*1000:.2f}, {pose_base.pose.position.z*1000:.2f}) mm")
+                # Debug: pose in mm for easier comparison with TF analysis
+                self.logger.debug(
+                    f"  BASE_LINK pose (mm): ({pose_base.pose.position.x*1000:.2f}, "
+                    f"{pose_base.pose.position.y*1000:.2f}, {pose_base.pose.position.z*1000:.2f})"
+                )
 
                 # Optional: broadcast TF frame for RViz
                 if self._publish_marker_frames:
