@@ -72,6 +72,10 @@ colcon build --packages-select beambot_interfaces \
     -DPython3_INCLUDE_DIR=$CONDA_PREFIX/include/python3.10
 ```
 
+```bash
+source install/setup.bash
+```
+
 
 ## Sending Action Goals
 
