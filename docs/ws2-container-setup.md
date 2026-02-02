@@ -9,11 +9,25 @@ Guide for controlling the robot from WS2 using either a Podman container or cond
 - WS2 IP: `10.68.80.222` or `10.68.83.222`
 - VM IP: `10.68.82.42`
 
-> **Note:** WS2 currently cannot ping the robot IP — likely a subnet mismatch (WS2 on 10.68.80.x/83.x, robot on 10.68.82.x). Verify port/network config before proceeding.
+> **Note:** WS2 currently cannot ping the robot IP — likely a subnet mismatch (WS2 on 10.68.80.x/83.x, robot on 10.68.82.x). 
 
 ---
+## ROS2 Action Server on Podman Container in ws2 
+```bash
+docker run -it --rm \
+    --network host \
+    --ipc=host \
+    --pid=host \
+    -e DISPLAY=$DISPLAY \
+    -v /tmp/.X11-unix:/tmp/.X11-unix \
+    --name beambot_ros \
+    beambot_img \
+    /bin/bash -c "source /root/ws/erobs/install/setup.bash && \
+                  ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true enable_vision:=false"
 
-## Option 1: Conda Environment (robostack)
+```
+
+## ROS2 Client using Conda Environment on ws2 (redhat)
 
 ### Create Environment
 
@@ -58,15 +72,6 @@ colcon build --packages-select beambot_interfaces \
     -DPython3_INCLUDE_DIR=$CONDA_PREFIX/include/python3.10
 ```
 
----
-
-## Option 2: Podman Container
-
-Spin up a Podman container with ROS2 Humble, editing the robot IP to the correct address.
-
-*(Container setup details TBD)*
-
----
 
 ## Sending Action Goals
 
@@ -79,13 +84,3 @@ ros2 action send_goal --feedback /beambot_execution beambot_interfaces/action/MT
 
 ---
 
-## Troubleshooting
-
-### Network Connectivity
-- Verify WS2 can reach the robot subnet (10.68.82.x)
-- Check if connected to correct network port
-- Test ping from VM (10.68.82.42) to robot (10.68.82.41) to isolate issue
-
-### Build Issues
-- Ensure all Python environment variables are set before building
-- Use the full cmake-args as shown above for colcon build
