@@ -6,7 +6,7 @@ ENV DISPLAY=:1
 # Step 1: Fix APT sandboxing issues for container environments
 RUN echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandboxdisable
 
-# Step 2: Install basic dependencies and OpenCL tools
+# Step 2: Install basic dependencies
 RUN apt-get update && apt-get install -y \
     wget \
     curl \
@@ -16,9 +16,6 @@ RUN apt-get update && apt-get install -y \
     iputils-ping \
     netcat-openbsd \
     iproute2 \
-    ocl-icd-libopencl1 \
-    opencl-headers \
-    clinfo \
     python3-pip \
     ros-${ROS_DISTRO}-rclpy \
     ros-${ROS_DISTRO}-ur \
@@ -28,6 +25,13 @@ RUN apt-get update && apt-get install -y \
     gnupg2 \
     ca-certificates \
     socat
+
+# Step 2b: Install OpenCL dependencies
+RUN apt-get install -y \
+    ocl-icd-libopencl1 \
+    opencl-headers \
+    ocl-icd-opencl-dev \
+    clinfo
 
 # Step 3: Install Zivid SDK 2.17.2 for Ubuntu 22.04 (all packages)
 RUN mkdir -p /tmp/zivid && cd /tmp/zivid && \
@@ -41,17 +45,6 @@ RUN mkdir -p /tmp/zivid && cd /tmp/zivid && \
 # Step 4: Setup NVIDIA OpenCL ICD for GPU mode
 RUN mkdir -p /etc/OpenCL/vendors && \
     echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd
-
-# Step 5: Configure Camera Network Discovery (default IP, can be overridden at runtime)
-RUN mkdir -p /root/.config/Zivid/API && \
-    echo '__version__: 1' > /root/.config/Zivid/API/Cameras.yml && \
-    echo 'Cameras:' >> /root/.config/Zivid/API/Cameras.yml && \
-    echo '  NetworkCameras:' >> /root/.config/Zivid/API/Cameras.yml && \
-    echo '    - NetworkCamera:' >> /root/.config/Zivid/API/Cameras.yml && \
-    echo '        Host: 10.68.81.52' >> /root/.config/Zivid/API/Cameras.yml
-
-# Step 8: Copy Zivid settings files from repository
-RUN mkdir -p /root/zivid_config
 
 # Clean up
 RUN apt-get autoremove -y \
@@ -80,11 +73,7 @@ RUN /bin/bash -c "set -e && \
     vcs import < src/vision/vision.repos src/vision && \
     apt-get update && \
     rosdep update && \
-    rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface zivid_description pytest ament_python pipette_driver zivid_interfaces'"
-
-# Copy Zivid settings from repository to config directory
-RUN cp /root/ws/erobs/src/beambot/config/zivid_settings.yml /root/zivid_config/default_2d_settings.yml && \
-    cp /root/ws/erobs/src/beambot/config/zivid_3d_settings.yml /root/zivid_config/default_3d_settings.yml
+    rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface pytest ament_python pipette_driver zivid_interfaces'"
 
 WORKDIR /root/ws/
 # Build interface packages first so other packages can find them
