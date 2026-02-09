@@ -42,8 +42,9 @@ RUN mkdir -p /tmp/zivid && cd /tmp/zivid && \
 RUN mkdir -p /etc/OpenCL/vendors && \
     echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd
 
-# Step 6: Configure Camera Network Discovery (default to IP from guide, can be overridden)
-RUN echo '__version__: 1' > /root/.config/Zivid/API/Cameras.yml && \
+# Step 5: Configure Camera Network Discovery (default IP, can be overridden at runtime)
+RUN mkdir -p /root/.config/Zivid/API && \
+    echo '__version__: 1' > /root/.config/Zivid/API/Cameras.yml && \
     echo 'Cameras:' >> /root/.config/Zivid/API/Cameras.yml && \
     echo '  NetworkCameras:' >> /root/.config/Zivid/API/Cameras.yml && \
     echo '    - NetworkCamera:' >> /root/.config/Zivid/API/Cameras.yml && \
