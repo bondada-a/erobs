@@ -2,7 +2,7 @@ from moveit_configs_utils import MoveItConfigsBuilder
 from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
 from launch_ros.substitutions import FindPackageShare
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, ExecuteProcess, TimerAction
 from launch import LaunchDescription
 from ament_index_python.packages import get_package_share_directory
 import os
@@ -15,6 +15,7 @@ def generate_launch_description():
 
     ur_type = DeclareLaunchArgument('ur_type', default_value='ur5e')
     robot_ip = DeclareLaunchArgument('robot_ip', default_value='192.168.1.10')
+    use_fake_hardware = DeclareLaunchArgument('use_fake_hardware', default_value='false')
     description_package = DeclareLaunchArgument('description_package', default_value='ur_description')
     description_file = DeclareLaunchArgument('description_file', default_value=os.path.join(get_package_share_directory("ur5e_robot_description"), "urdf", "ur_standalone.xacro"))
     controllers_file = DeclareLaunchArgument('controllers_file', default_value=os.path.join(get_package_share_directory("ur_standalone_moveit_config"), "config", "ur_controllers.yaml"))
@@ -22,7 +23,7 @@ def generate_launch_description():
 
     xacro_args = {"name": LaunchConfiguration("ur_type"), "ur_type": LaunchConfiguration("ur_type"), "tf_prefix": "" }
 
-    ## ur_driver 
+    ## ur_driver
     ur_control_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource([
             PathJoinSubstitution([FindPackageShare("ur_robot_driver"), "launch", "ur_control.launch.py"])
@@ -30,11 +31,14 @@ def generate_launch_description():
         launch_arguments={
             "ur_type": LaunchConfiguration("ur_type"),
             "robot_ip": LaunchConfiguration("robot_ip"),
+            "use_fake_hardware": LaunchConfiguration("use_fake_hardware"),
             "launch_rviz": "false",
             "description_package": LaunchConfiguration("description_package"),
             "description_file": LaunchConfiguration("description_file"),
             "controllers_file": LaunchConfiguration("controllers_file"),
-            "tool_voltage": "24",
+            "kinematics_params_file": os.path.join(get_package_share_directory("ur5e_robot_description"), "config", "ur5e_calibration.yaml"),
+            "use_tool_communication": "true",  # Enable to make tool_voltage parameter work
+            "tool_voltage": "0",
         }.items()
     )
 
@@ -111,11 +115,29 @@ def generate_launch_description():
         parameters=[moveit_config.robot_description],
     )
 
+    # Payload configuration for UR controller
+    # Total: 1.430 kg = 0.170 kg (mount) + 1.260 kg (camera + housing) + 0.000 kg (no gripper)
+    # CoG: Center of Gravity relative to flange frame [x, y, z] in meters
+    set_payload = TimerAction(
+        period=5.0,  # Wait 5 seconds for robot driver to start
+        actions=[
+            ExecuteProcess(
+                cmd=['ros2', 'service', 'call',
+                     '/io_and_status_controller/set_payload',
+                     'ur_msgs/srv/SetPayload',
+                     '{mass: 1.430, center_of_gravity: {x: -0.038, y: -0.022, z: -0.055}}'],
+                output='screen'
+            )
+        ]
+    )
+
+    # Tool voltage is now handled by ur_robot_driver with use_tool_communication=true
 
     return LaunchDescription([
-        ## arguments 
+        ## arguments
         robot_ip,
         ur_type,
+        use_fake_hardware,
         description_package,
         description_file,
         controllers_file,
@@ -128,6 +150,7 @@ def generate_launch_description():
         run_move_group_node,
         rviz_node,
         robot_state_publisher,
+        set_payload,  # Set UR payload
     ])
 
     

@@ -7,7 +7,7 @@
    <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
    <xacro:include filename="$(find ur5e_robot_description)/urdf/zivid_camera_mount.xacro"/>
    <xacro:include filename="$(find ur5e_robot_description)/urdf/te_robotside.xacro"/>
-  
+
 
    <!-- possible 'ur_type' values: ur3, ur5e, ur5, ur5e, ur10, ur10e, ur16e, ur20 -->
    <!-- the default value should raise an error in case this was called without defining the type -->
@@ -34,6 +34,8 @@
    <xacro:arg name="reverse_port" default="50001"/>
    <xacro:arg name="script_sender_port" default="50002"/>
    <xacro:arg name="trajectory_port" default="50003"/>
+   <!-- Keep-alive: number of 20ms cycles without response before disconnect (10 = 200ms timeout) -->
+   <xacro:arg name="keep_alive_count" default="10"/>
    <!--   tool communication related parameters-->
    <xacro:arg name="use_tool_communication" default="false" />
    <xacro:arg name="tool_voltage" default="0" />
@@ -100,15 +102,21 @@
      reverse_port="$(arg reverse_port)"
      script_sender_port="$(arg script_sender_port)"
      trajectory_port="$(arg trajectory_port)"
+     keep_alive_count="$(arg keep_alive_count)"
      >
      <origin xyz="0 0 0" rpy="0 0 0" />          <!-- position robot in the map -->
    </xacro:ur_robot>
 
-  <!-- Zivid camera mount attached to flange -->
-  <xacro:zivid_camera_mount parent_link="$(arg tf_prefix)flange" xyz="0.025 0 -0.105" rpy="-1.5708 0 -1.5708"/>
+  <!-- Modular Zivid: Arm Mount + Camera (with calibrated camera position) -->
+  <!-- Using tool0 instead of flange - Zivid calibration uses tool0 frame -->
+  <xacro:zivid_camera_mount
+    parent_link="$(arg tf_prefix)tool0"
+    xyz="0 0 0.005"
+    rpy="0 0 3.14159"
+    zivid_model="ZIVID_2_PLUS_MR60"/>
 
-  <!-- Tool exchanger robotside attached to camera -->
-  <xacro:te_robotside parent_link="zivid_camera" xyz="0 -0.105 0" rpy="-1.5708 0 0"/>
+  <!-- Tool exchanger robotside attached to arm mount (not camera) -->
+  <xacro:te_robotside parent_link="zivid_arm_mount" xyz="0 0 0.055" rpy="-1.5708 0 3.14159"/>
 
 
 </robot>
