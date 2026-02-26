@@ -44,6 +44,7 @@ from std_msgs.msg import String
 from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
 from beambot.stages.move_to_stages import MoveToStages
 from beambot.stages.end_effector_stages import EndEffectorStages
+from beambot.batch_planner import group_into_batches, BATCHABLE_TYPES, BATCH_BREAKERS
 
 
 class MTCOrchestratorServer(Node):
@@ -68,17 +69,8 @@ class MTCOrchestratorServer(Node):
         "pipettor": 60.0,
     }
 
-    # Task types that can be batched into a single MTC Task
-    # These use the add_to_task() pattern for stage composition
-    # Note: pick_and_place excluded - it already batches 10 stages internally
-    BATCHABLE_TYPES = {"moveto", "end_effector"}
-
-    # Task types that break batching (require runtime decisions or special handling)
-    # - tool_exchange: Changes robot kinematics (requires MoveIt restart)
-    # - vision_moveto/vision_pick_place: Require runtime marker detection
-    # - vision_scan: Batch scans all markers (robot moves during execution)
-    # - pipettor: Uses separate action server (not MTC-based)
-    BATCH_BREAKERS = {"tool_exchange", "vision_moveto", "vision_scan", "vision_pick_place", "pipettor"}
+    # Batchable/breaker task types -- defined in beambot.batch_planner
+    # Imported at module level: BATCHABLE_TYPES, BATCH_BREAKERS
 
     def __init__(self):
         super().__init__("beambot_orchestrator")
@@ -394,63 +386,7 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Controllers reactivated successfully")
         return True
 
-    def _group_into_batches(
-        self, tasks: List[Dict[str, Any]]
-    ) -> List[Tuple[str, List[Dict[str, Any]]]]:
-        """Group consecutive batchable tasks into batches.
-
-        Simple tasks (moveto, end_effector) are grouped together.
-        All other tasks become single-task batches and execute via
-        their respective action servers.
-
-        When batching is disabled (enable_batching=false), all tasks become
-        single-task batches and execute via their respective action servers.
-
-        Args:
-            tasks: List of task dictionaries from the JSON script
-
-        Returns:
-            List of (batch_type, tasks) tuples where:
-            - batch_type: "batched" for batchable tasks, "single" otherwise
-            - tasks: List of task dicts in this batch
-        """
-        # When batching disabled, every task is a single-task batch
-        if not self._enable_batching:
-            return [("single", [task]) for task in tasks]
-
-        batches = []
-        current_batch = []
-        current_type = None
-
-        for task in tasks:
-            task_type = task.get("task_type", "")
-
-            if task_type in self.BATCHABLE_TYPES:
-                # Accumulate batchable tasks
-                if current_type == "batched":
-                    current_batch.append(task)
-                else:
-                    # Flush previous batch if exists
-                    if current_batch:
-                        batches.append((current_type, current_batch))
-                    current_batch = [task]
-                    current_type = "batched"
-            else:
-                # Non-batchable task (breaker or unknown)
-                # Flush current batch first
-                if current_batch:
-                    batches.append((current_type, current_batch))
-
-                # Add as single-task batch
-                batches.append(("single", [task]))
-                current_batch = []
-                current_type = None
-
-        # Flush final batch
-        if current_batch:
-            batches.append((current_type, current_batch))
-
-        return batches
+    # _group_into_batches extracted to beambot.batch_planner.group_into_batches
 
     def _execute_batch(
         self,
@@ -602,7 +538,7 @@ class MTCOrchestratorServer(Node):
         self._publish_state("RUNNING")
 
         # Group tasks into batches for optimized execution
-        batches = self._group_into_batches(tasks)
+        batches = group_into_batches(tasks, enabled=self._enable_batching)
         self.get_logger().info(
             f"Grouped {task_count} tasks into {len(batches)} batches"
         )
