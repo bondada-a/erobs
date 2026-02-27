@@ -26,11 +26,7 @@ jobs:
         linter: [cppcheck, uncrustify, lint_cmake, cpplint, xmllint]
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-      - name: Setup ROS
-        uses: ros-tooling/setup-ros@v0.7
-        with:
-          required-ros-distributions: humble   
+        uses: actions/checkout@v4   
       - name: Run linter
         uses: ./.github/actions/lint/
         env:
