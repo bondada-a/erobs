@@ -814,17 +814,22 @@ async def _transform_point_to_base(
 
 @mcp.tool()
 async def get_tf_transform(
-    source_frame: str = "tool0",
+    source_frame: str = "flange",
     target_frame: str = "base_link",
     timeout: float = 2.0,
 ) -> str:
     """Look up TF transform between two frames.
 
     Uses the persistent TF buffer that fills continuously in the background.
-    Common frames: base_link, tool0, flange, zivid_optical_frame, world.
+    Common frames: base_link, flange, tool0, zivid_optical_frame, world.
+
+    IMPORTANT: Default is "flange" (MoveIt/ROS convention), NOT "tool0" (UR convention).
+    flange and tool0 are at the same position but rotated by (-90°, -90°, 0°).
+    Use "flange" when reading orientation for cartesian_target goals (MoveIt uses flange).
+    Use "tool0" when comparing with UR teach pendant values.
 
     Args:
-        source_frame: The frame to transform FROM (e.g., "tool0").
+        source_frame: The frame to transform FROM. Default "flange" (MoveIt convention).
         target_frame: The frame to transform TO (e.g., "base_link").
         timeout: Max seconds to wait for transform availability.
 

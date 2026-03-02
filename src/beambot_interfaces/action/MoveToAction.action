@@ -3,6 +3,8 @@ string target               # Pose name, SRDF state, or empty for relative moves
 string planning_type        # "joint" or "cartesian" (default: "joint")
 string direction            # "forward", "backward", "left", "right", "up", "down"
 float64 distance            # Distance in meters
+float64[] cartesian_target  # [x,y,z] or [x,y,z,roll,pitch,yaw] — meters + degrees
+string frame_id             # Reference frame for cartesian_target (default: "base_link")
 string poses_json           # Pose definitions from task
 ---
 # Result

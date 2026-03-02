@@ -456,6 +456,8 @@ class MTCOrchestratorServer(Node):
         goal.planning_type = step.get("planning_type", "joint")
         goal.direction = step.get("direction", "")
         goal.distance = float(step.get("distance", 0.0))
+        goal.cartesian_target = [float(v) for v in step.get("cartesian_target", [])]
+        goal.frame_id = step.get("frame_id", "base_link")
         goal.poses_json = poses_json
         return goal
 
