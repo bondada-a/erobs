@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "ros-mcp-server": {
+      "command": "bash",
+      "args": ["-lc", "uvx ros-mcp --transport=stdio"]
+    },
+    "erobs": {
+      "command": "bash",
+      "args": ["-lc", "export PATH=$(echo $PATH | tr ':' '\\n' | grep -v miniforge | tr '\\n' ':' | sed 's/:$//') && source /opt/ros/humble/setup.bash && source /home/aditya/work/github_ws/experimental/install/setup.bash && python3 /home/aditya/work/github_ws/experimental/src/beambot/mcp/erobs_mcp_server.py"]
+    }
+  }
+}

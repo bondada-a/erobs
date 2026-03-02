@@ -1,0 +1,905 @@
+#!/usr/bin/env python3
+"""EROBS MCP Server — Custom tools for Zivid camera, detection, and TF.
+
+Runs alongside ros-mcp-server to provide EROBS-specific tools that handle
+Zivid's single-shot capture quirks (QoS timing, large point cloud transfer)
+and wrap multi-step vision workflows into single tool calls.
+
+Architecture:
+    FastMCP (async, stdio) → ROS2Bridge (background thread) → ROS2 topics/services/TF
+
+The ROS2Bridge runs a persistent node with:
+    - RELIABLE+VOLATILE subscriptions to Zivid image/cloud topics
+    - A TF buffer that fills continuously
+    - Service client for /capture trigger
+This avoids the QoS timing race that makes subscribe_once fail with Zivid.
+"""
+
+import asyncio
+import json
+import logging
+import math
+import os
+import struct
+import sys
+import threading
+import time
+from dataclasses import dataclass
+from typing import Any, Dict, List, Optional, Tuple
+
+import cv2
+import numpy as np
+from mcp.server.fastmcp import FastMCP
+
+# ROS2 imports — these require a sourced ROS2 environment
+import rclpy
+from rclpy.node import Node
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.qos import (
+    QoSProfile,
+    ReliabilityPolicy,
+    HistoryPolicy,
+    DurabilityPolicy,
+)
+from rclpy.callback_groups import ReentrantCallbackGroup
+from sensor_msgs.msg import Image, PointCloud2
+from std_srvs.srv import Trigger
+from tf2_ros import Buffer, TransformListener, TransformException
+from cv_bridge import CvBridge
+
+logger = logging.getLogger("erobs-mcp")
+
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+IMAGE_TOPIC = "/color/image_color"
+CLOUD_TOPIC = "/points/xyzrgba"
+CAPTURE_SERVICE = "/capture"
+CAMERA_FRAME = "zivid_optical_frame"
+
+ZIVID_QOS = QoSProfile(
+    reliability=ReliabilityPolicy.RELIABLE,
+    durability=DurabilityPolicy.VOLATILE,
+    history=HistoryPolicy.KEEP_LAST,
+    depth=1,
+)
+
+# Default save locations
+DEFAULT_IMAGE_PATH = "/tmp/erobs_capture.jpg"
+DEFAULT_ANNOTATED_PATH = "/tmp/erobs_detection.jpg"
+
+
+# ---------------------------------------------------------------------------
+# Detection parameter dataclasses (copied from zivid.py for independence)
+# ---------------------------------------------------------------------------
+@dataclass
+class CircleDetectionParams:
+    min_radius: int = 15
+    max_radius: int = 100
+    blur_kernel: int = 5
+    param1: int = 50
+    param2: int = 25
+    min_dist: int = 50
+    search_radius: int = 10
+
+
+@dataclass
+class ContourDetectionParams:
+    min_area: int = 500
+    max_area: int = 50000
+    blur_kernel: int = 5
+    canny_low: int = 50
+    canny_high: int = 150
+    search_radius: int = 10
+    approx_epsilon: float = 0.02
+    row_tolerance: int = 50
+
+
+# ---------------------------------------------------------------------------
+# Pure detection functions (stateless OpenCV, extracted from zivid.py)
+# ---------------------------------------------------------------------------
+
+def _detect_hough_circles(
+    rgb_image: np.ndarray,
+    params: CircleDetectionParams,
+) -> Optional[List[Tuple[int, int, int]]]:
+    """Detect circles using Hough Transform. Returns list of (cx, cy, radius)."""
+    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
+    blurred = cv2.GaussianBlur(gray, (params.blur_kernel, params.blur_kernel), 2)
+    circles = cv2.HoughCircles(
+        blurred,
+        cv2.HOUGH_GRADIENT,
+        dp=1,
+        minDist=params.min_dist,
+        param1=params.param1,
+        param2=params.param2,
+        minRadius=params.min_radius,
+        maxRadius=params.max_radius,
+    )
+    if circles is None:
+        return None
+    circles = np.uint16(np.around(circles))
+    return [(int(c[0]), int(c[1]), int(c[2])) for c in circles[0]]
+
+
+def _detect_contours_in_image(
+    rgb_image: np.ndarray,
+    params: ContourDetectionParams,
+) -> Optional[List[Tuple[int, int, int, int]]]:
+    """Detect contours, filter by area, sort reading-order. Returns (cx, cy, area, vertices)."""
+    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
+    blurred = cv2.GaussianBlur(gray, (params.blur_kernel, params.blur_kernel), 0)
+    edges = cv2.Canny(blurred, params.canny_low, params.canny_high)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    result = []
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area < params.min_area or area > params.max_area:
+            continue
+        M = cv2.moments(contour)
+        if M["m00"] == 0:
+            continue
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        perimeter = cv2.arcLength(contour, True)
+        approx = cv2.approxPolyDP(contour, params.approx_epsilon * perimeter, True)
+        result.append((cx, cy, int(area), len(approx)))
+
+    if not result:
+        return None
+    return _sort_contours_reading_order(result, params.row_tolerance)
+
+
+def _sort_contours_reading_order(
+    contours_info: List[Tuple[int, int, int, int]],
+    row_tolerance: int = 50,
+) -> List[Tuple[int, int, int, int]]:
+    """Sort contours left-to-right, top-to-bottom."""
+    if not contours_info:
+        return contours_info
+    sorted_by_y = sorted(contours_info, key=lambda d: d[1])
+    rows: List[List] = []
+    current_row = [sorted_by_y[0]]
+    current_row_y = sorted_by_y[0][1]
+    for detection in sorted_by_y[1:]:
+        cy = detection[1]
+        if abs(cy - current_row_y) <= row_tolerance:
+            current_row.append(detection)
+        else:
+            rows.append(current_row)
+            current_row = [detection]
+            current_row_y = cy
+    rows.append(current_row)
+    result = []
+    for row in rows:
+        result.extend(sorted(row, key=lambda d: d[0]))
+    return result
+
+
+def _detect_hsv_color(
+    rgb_image: np.ndarray,
+    hue_low: int = 100,
+    hue_high: int = 130,
+    sat_min: int = 80,
+    val_min: int = 80,
+    min_area: int = 200,
+) -> Optional[List[Tuple[int, int, int]]]:
+    """Detect objects by HSV color range. Returns list of (cx, cy, area)."""
+    hsv = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
+    lower = np.array([hue_low, sat_min, val_min])
+    upper = np.array([hue_high, 255, 255])
+    mask = cv2.inRange(hsv, lower, upper)
+    # Morphological open to remove noise
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
+    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    result = []
+    for contour in contours:
+        area = cv2.contourArea(contour)
+        if area < min_area:
+            continue
+        M = cv2.moments(contour)
+        if M["m00"] == 0:
+            continue
+        cx = int(M["m10"] / M["m00"])
+        cy = int(M["m01"] / M["m00"])
+        result.append((cx, cy, int(area)))
+    if not result:
+        return None
+    # Sort by area descending (largest first)
+    result.sort(key=lambda x: x[2], reverse=True)
+    return result
+
+
+def _detect_aruco_markers(
+    rgb_image: np.ndarray,
+    marker_ids: Optional[List[int]] = None,
+    dictionary_name: str = "DICT_4X4_50",
+) -> Optional[List[Tuple[int, int, int, List]]]:
+    """Detect ArUco markers in image. Returns list of (cx, cy, marker_id, corners)."""
+    # Map string name to OpenCV constant
+    aruco_dicts = {
+        "DICT_4X4_50": cv2.aruco.DICT_4X4_50,
+        "DICT_4X4_100": cv2.aruco.DICT_4X4_100,
+        "DICT_5X5_50": cv2.aruco.DICT_5X5_50,
+        "DICT_5X5_100": cv2.aruco.DICT_5X5_100,
+        "DICT_6X6_50": cv2.aruco.DICT_6X6_50,
+        "DICT_6X6_250": cv2.aruco.DICT_6X6_250,
+    }
+    dict_id = aruco_dicts.get(dictionary_name, cv2.aruco.DICT_4X4_50)
+    aruco_dict = cv2.aruco.Dictionary_get(dict_id)
+    aruco_params = cv2.aruco.DetectorParameters_create()
+    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
+    corners_list, ids, _ = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=aruco_params)
+
+    if ids is None or len(ids) == 0:
+        return None
+
+    result = []
+    for i, mid in enumerate(ids.flatten()):
+        if marker_ids is not None and int(mid) not in marker_ids:
+            continue
+        corners = corners_list[i][0]
+        cx = int(np.mean(corners[:, 0]))
+        cy = int(np.mean(corners[:, 1]))
+        result.append((cx, cy, int(mid), corners.tolist()))
+
+    return result if result else None
+
+
+def _get_3d_position(
+    cloud: PointCloud2,
+    cx: int,
+    cy: int,
+    search_radius: int = 10,
+) -> Optional[Tuple[float, float, float]]:
+    """Get 3D XYZ from organized point cloud at pixel (cx, cy)."""
+    width = cloud.width
+    height = cloud.height
+    point_step = cloud.point_step
+
+    def get_xyz_at(u: int, v: int):
+        if u < 0 or u >= width or v < 0 or v >= height:
+            return None
+        offset = v * cloud.row_step + u * point_step
+        try:
+            x, y, z = struct.unpack_from("<fff", cloud.data, offset)
+        except struct.error:
+            return None
+        if math.isnan(x) or math.isnan(y) or math.isnan(z):
+            return None
+        if x == 0.0 and y == 0.0 and z == 0.0:
+            return None
+        return (x, y, z)
+
+    xyz = get_xyz_at(cx, cy)
+    if xyz is not None:
+        return xyz
+    for r in range(1, search_radius + 1):
+        for du in range(-r, r + 1):
+            for dv in range(-r, r + 1):
+                if abs(du) == r or abs(dv) == r:
+                    xyz = get_xyz_at(cx + du, cy + dv)
+                    if xyz is not None:
+                        return xyz
+    return None
+
+
+def _annotate_image(
+    rgb_image: np.ndarray,
+    detections: List[Dict[str, Any]],
+    method: str,
+) -> np.ndarray:
+    """Draw detection results on image. Returns annotated BGR image for saving."""
+    annotated = cv2.cvtColor(rgb_image.copy(), cv2.COLOR_RGB2BGR)
+    for i, det in enumerate(detections):
+        px, py = det["pixel_x"], det["pixel_y"]
+        label_parts = [f"#{i + 1}"]
+        if "marker_id" in det:
+            label_parts = [f"ID:{det['marker_id']}"]
+        if det.get("base_xyz"):
+            bx, by, bz = det["base_xyz"]
+            label_parts.append(f"({bx:.3f},{by:.3f},{bz:.3f})")
+        elif det.get("camera_xyz"):
+            cx, cy, cz = det["camera_xyz"]
+            label_parts.append(f"cam({cx:.3f},{cy:.3f},{cz:.3f})")
+        label = " ".join(label_parts)
+
+        # Draw marker
+        color = (0, 255, 0)
+        if method == "circle" and "radius" in det:
+            cv2.circle(annotated, (px, py), det["radius"], color, 2)
+        else:
+            cv2.circle(annotated, (px, py), 8, color, -1)
+        cv2.circle(annotated, (px, py), 3, (0, 0, 255), -1)  # Red center dot
+
+        # Label above
+        cv2.putText(
+            annotated, label, (px - 10, py - 15),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2,
+        )
+        cv2.putText(
+            annotated, label, (px - 10, py - 15),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 1,
+        )
+    return annotated
+
+
+# ---------------------------------------------------------------------------
+# ROS2 Bridge — persistent node running in background thread
+# ---------------------------------------------------------------------------
+
+class ROS2BridgeNode(Node):
+    """Persistent ROS2 node with Zivid subscriptions and TF buffer."""
+
+    def __init__(self):
+        super().__init__("erobs_mcp_bridge")
+        self._cb_group = ReentrantCallbackGroup()
+        self._bridge = CvBridge()
+
+        # Persistent subscriptions (always connected → no QoS timing race)
+        self._image_sub = self.create_subscription(
+            Image, IMAGE_TOPIC, self._on_image, ZIVID_QOS,
+            callback_group=self._cb_group,
+        )
+        self._cloud_sub = self.create_subscription(
+            PointCloud2, CLOUD_TOPIC, self._on_cloud, ZIVID_QOS,
+            callback_group=self._cb_group,
+        )
+
+        # Capture service client
+        self._capture_client = self.create_client(
+            Trigger, CAPTURE_SERVICE, callback_group=self._cb_group,
+        )
+
+        # TF buffer (fills continuously via background executor)
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self)
+
+        # State
+        self.last_rgb: Optional[np.ndarray] = None
+        self.last_cloud: Optional[PointCloud2] = None
+        self.last_image_msg: Optional[Image] = None
+        self.capture_stamp = None  # Pre-capture timestamp for TF accuracy
+
+        # Synchronization events (for blocking capture)
+        self._image_event = threading.Event()
+        self._cloud_event = threading.Event()
+        # Track which capture we're waiting for
+        self._waiting_for_capture = False
+
+        self.get_logger().info("ROS2BridgeNode initialized")
+
+    def _on_image(self, msg: Image):
+        self.last_image_msg = msg
+        try:
+            self.last_rgb = self._bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
+        except Exception as e:
+            self.get_logger().error(f"Image conversion failed: {e}")
+            return
+        if self._waiting_for_capture:
+            self._image_event.set()
+
+    def _on_cloud(self, msg: PointCloud2):
+        self.last_cloud = msg
+        if self._waiting_for_capture:
+            self._cloud_event.set()
+
+    def trigger_capture(self, timeout: float = 30.0, need_cloud: bool = True) -> bool:
+        """Trigger Zivid capture and wait for data. Called from executor thread.
+
+        Returns True if data received within timeout.
+        """
+        if not self._capture_client.wait_for_service(timeout_sec=3.0):
+            self.get_logger().error(f"Capture service '{CAPTURE_SERVICE}' not available")
+            return False
+
+        # Clear events and mark that we're waiting
+        self._image_event.clear()
+        self._cloud_event.clear()
+        self._waiting_for_capture = True
+
+        # Record pre-capture timestamp for TF accuracy
+        self.capture_stamp = self.get_clock().now().to_msg()
+
+        # Send capture request (async — executor processes the response)
+        request = Trigger.Request()
+        future = self._capture_client.call_async(request)
+
+        # Wait for service response
+        deadline = time.monotonic() + timeout
+        while not future.done() and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+        if not future.done():
+            self.get_logger().error("Capture service call timed out")
+            self._waiting_for_capture = False
+            return False
+
+        result = future.result()
+        if not result.success:
+            self.get_logger().error(f"Capture failed: {result.message}")
+            self._waiting_for_capture = False
+            return False
+
+        self.get_logger().info("Capture triggered, waiting for data...")
+
+        # Wait for image
+        remaining = max(0.1, deadline - time.monotonic())
+        if not self._image_event.wait(timeout=remaining):
+            self.get_logger().error("Timeout waiting for image after capture")
+            self._waiting_for_capture = False
+            return False
+
+        # Wait for point cloud (takes 3-4s longer due to ~40MB transfer)
+        if need_cloud:
+            remaining = max(0.1, deadline - time.monotonic())
+            if not self._cloud_event.wait(timeout=remaining):
+                self.get_logger().error("Timeout waiting for point cloud after capture")
+                self._waiting_for_capture = False
+                return False
+
+        self._waiting_for_capture = False
+        self.get_logger().info("Capture complete — image and cloud received")
+        return True
+
+    def lookup_transform(
+        self, target_frame: str, source_frame: str, stamp=None, timeout_sec: float = 2.0,
+    ):
+        """Look up TF transform. Returns TransformStamped or None."""
+        try:
+            if stamp is not None:
+                lookup_time = rclpy.time.Time.from_msg(stamp)
+                self.get_logger().debug(
+                    f"TF lookup {source_frame} → {target_frame} at "
+                    f"{stamp.sec}.{stamp.nanosec:09d}"
+                )
+            else:
+                lookup_time = rclpy.time.Time()
+                self.get_logger().debug(
+                    f"TF lookup {source_frame} → {target_frame} (latest)"
+                )
+
+            if not self._tf_buffer.can_transform(
+                target_frame, source_frame, lookup_time,
+                timeout=rclpy.duration.Duration(seconds=timeout_sec),
+            ):
+                self.get_logger().warning(
+                    f"can_transform returned False: {source_frame} → {target_frame}"
+                )
+                return None
+
+            return self._tf_buffer.lookup_transform(
+                target_frame, source_frame, lookup_time,
+                timeout=rclpy.duration.Duration(seconds=timeout_sec),
+            )
+        except TransformException as e:
+            self.get_logger().error(f"TF lookup failed: {e}")
+            return None
+
+
+class ROS2Bridge:
+    """Manages ROS2 node lifecycle in a background thread.
+
+    Lazy-initialized on first tool call so the MCP server starts fast
+    even if ROS2 isn't running yet.
+    """
+
+    def __init__(self):
+        self._node: Optional[ROS2BridgeNode] = None
+        self._executor: Optional[MultiThreadedExecutor] = None
+        self._thread: Optional[threading.Thread] = None
+        self._lock = threading.Lock()
+        self._initialized = False
+
+    def _ensure_initialized(self):
+        """Initialize ROS2 + node + executor on first use."""
+        if self._initialized:
+            return
+        with self._lock:
+            if self._initialized:
+                return
+            logger.info("Initializing ROS2 bridge...")
+            if not rclpy.ok():
+                rclpy.init()
+            self._node = ROS2BridgeNode()
+            self._executor = MultiThreadedExecutor(num_threads=4)
+            self._executor.add_node(self._node)
+            self._thread = threading.Thread(
+                target=self._spin, daemon=True, name="ros2-bridge",
+            )
+            self._thread.start()
+            self._initialized = True
+            logger.info("ROS2 bridge running in background thread")
+
+    def _spin(self):
+        """Run executor in background thread."""
+        try:
+            self._executor.spin()
+        except Exception as e:
+            logger.error(f"ROS2 executor error: {e}")
+
+    @property
+    def node(self) -> ROS2BridgeNode:
+        self._ensure_initialized()
+        return self._node
+
+    def shutdown(self):
+        if self._executor:
+            self._executor.shutdown()
+        if self._node:
+            self._node.destroy_node()
+        if rclpy.ok():
+            rclpy.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# MCP Server
+# ---------------------------------------------------------------------------
+
+mcp = FastMCP("erobs")
+
+# Global bridge instance (lazy-initialized)
+bridge = ROS2Bridge()
+
+
+@mcp.tool()
+async def ping() -> str:
+    """Test connectivity to the EROBS MCP server.
+
+    Returns 'pong' if the server is running. Use this to verify the server
+    is reachable before calling other tools.
+    """
+    return "pong"
+
+
+@mcp.tool()
+async def capture_image(
+    mode: str = "3d",
+    save_path: str = DEFAULT_IMAGE_PATH,
+    timeout: float = 30.0,
+) -> str:
+    """Capture an image (and optionally point cloud) from the Zivid camera.
+
+    Triggers a Zivid single-shot capture and waits for image data.
+    The image is saved to disk so Claude can view it with the Read tool.
+
+    Args:
+        mode: "2d" for image only, "3d" for image + point cloud (needed for
+              detect_objects 3D positions). Default "3d".
+        save_path: Where to save the captured image. Default /tmp/erobs_capture.jpg.
+        timeout: Max seconds to wait for capture. Default 30.
+
+    Returns:
+        JSON with image_path, width, height, has_pointcloud status.
+    """
+    need_cloud = mode == "3d"
+
+    loop = asyncio.get_event_loop()
+    success = await loop.run_in_executor(
+        None, lambda: bridge.node.trigger_capture(timeout=timeout, need_cloud=need_cloud),
+    )
+
+    if not success:
+        return json.dumps({
+            "error": "Capture failed. Is the Zivid camera connected and the driver running? "
+                     "Check: ros2 service list | grep capture",
+        })
+
+    node = bridge.node
+    if node.last_rgb is None:
+        return json.dumps({"error": "No image data received after capture"})
+
+    # Save image (convert RGB → BGR for OpenCV)
+    bgr = cv2.cvtColor(node.last_rgb, cv2.COLOR_RGB2BGR)
+    os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
+    cv2.imwrite(save_path, bgr)
+
+    h, w = node.last_rgb.shape[:2]
+    result = {
+        "image_path": save_path,
+        "width": w,
+        "height": h,
+        "has_pointcloud": node.last_cloud is not None,
+        "capture_timestamp": f"{node.capture_stamp.sec}.{node.capture_stamp.nanosec:09d}"
+        if node.capture_stamp else None,
+    }
+    return json.dumps(result)
+
+
+@mcp.tool()
+async def detect_objects(
+    method: str = "hsv_color",
+    hue_low: int = 100,
+    hue_high: int = 130,
+    sat_min: int = 80,
+    val_min: int = 80,
+    min_area: int = 200,
+    min_radius: int = 15,
+    max_radius: int = 100,
+    circle_param2: int = 25,
+    contour_min_area: int = 500,
+    contour_max_area: int = 50000,
+    marker_ids: str = "",
+    transform_to_base: bool = True,
+    save_path: str = DEFAULT_ANNOTATED_PATH,
+) -> str:
+    """Detect objects in the last captured image.
+
+    IMPORTANT: Call capture_image(mode="3d") first! This operates on the most
+    recent capture data.
+
+    Detection methods:
+        - "hsv_color": Find objects by color in HSV space. Good for colored balls,
+          samples with distinctive hues. Tune hue_low/hue_high for your target color.
+          Common ranges: blue=100-130, red=0-10 or 170-180, green=35-85, yellow=20-35.
+        - "circle": Hough circle detection. Good for round samples/wafers.
+        - "contour": Edge-based contour detection. Finds any shape.
+        - "marker": ArUco marker detection (2D image-based, not Zivid native).
+
+    Args:
+        method: Detection method — "hsv_color", "circle", "contour", or "marker".
+        hue_low: HSV hue lower bound (0-180). Only for hsv_color.
+        hue_high: HSV hue upper bound (0-180). Only for hsv_color.
+        sat_min: Min saturation (0-255). Only for hsv_color.
+        val_min: Min value/brightness (0-255). Only for hsv_color.
+        min_area: Min object area in pixels for hsv_color.
+        min_radius: Min circle radius in pixels. Only for circle.
+        max_radius: Max circle radius in pixels. Only for circle.
+        circle_param2: Hough accumulator threshold (lower=more sensitive). Only for circle.
+        contour_min_area: Min contour area in pixels². Only for contour.
+        contour_max_area: Max contour area in pixels². Only for contour.
+        marker_ids: Comma-separated ArUco marker IDs to find (empty=all). Only for marker.
+        transform_to_base: If True, transform 3D positions from camera frame to base_link.
+        save_path: Where to save annotated image. Default /tmp/erobs_detection.jpg.
+
+    Returns:
+        JSON with list of detections, each containing pixel coords, 3D position
+        (camera and/or base frame), and an annotated image path.
+    """
+    node = bridge.node
+
+    if node.last_rgb is None:
+        return json.dumps({
+            "error": "No image data. Call capture_image() first.",
+        })
+
+    rgb = node.last_rgb
+    cloud = node.last_cloud
+
+    # Run detection
+    raw_detections = None
+    if method == "hsv_color":
+        raw = _detect_hsv_color(
+            rgb, hue_low=hue_low, hue_high=hue_high,
+            sat_min=sat_min, val_min=val_min, min_area=min_area,
+        )
+        if raw:
+            raw_detections = [{"pixel_x": cx, "pixel_y": cy, "area": a} for cx, cy, a in raw]
+
+    elif method == "circle":
+        params = CircleDetectionParams(
+            min_radius=min_radius, max_radius=max_radius, param2=circle_param2,
+        )
+        raw = _detect_hough_circles(rgb, params)
+        if raw:
+            raw_detections = [
+                {"pixel_x": cx, "pixel_y": cy, "radius": r} for cx, cy, r in raw
+            ]
+
+    elif method == "contour":
+        params = ContourDetectionParams(
+            min_area=contour_min_area, max_area=contour_max_area,
+        )
+        raw = _detect_contours_in_image(rgb, params)
+        if raw:
+            raw_detections = [
+                {"pixel_x": cx, "pixel_y": cy, "area": a, "vertices": v}
+                for cx, cy, a, v in raw
+            ]
+
+    elif method == "marker":
+        ids_list = None
+        if marker_ids.strip():
+            ids_list = [int(x.strip()) for x in marker_ids.split(",")]
+        raw = _detect_aruco_markers(rgb, marker_ids=ids_list)
+        if raw:
+            raw_detections = [
+                {"pixel_x": cx, "pixel_y": cy, "marker_id": mid, "corners": corners}
+                for cx, cy, mid, corners in raw
+            ]
+    else:
+        return json.dumps({"error": f"Unknown method '{method}'. Use: hsv_color, circle, contour, marker"})
+
+    if not raw_detections:
+        return json.dumps({
+            "detections": [],
+            "count": 0,
+            "method": method,
+            "message": f"No objects detected with method '{method}'",
+        })
+
+    # Add 3D positions from point cloud
+    for det in raw_detections:
+        det["camera_xyz"] = None
+        det["base_xyz"] = None
+
+        if cloud is not None:
+            xyz = _get_3d_position(cloud, det["pixel_x"], det["pixel_y"])
+            if xyz is not None:
+                det["camera_xyz"] = list(xyz)
+
+                # Transform to base_link if requested
+                if transform_to_base:
+                    base_xyz = await _transform_point_to_base(
+                        node, xyz, node.capture_stamp,
+                    )
+                    if base_xyz is not None:
+                        det["base_xyz"] = list(base_xyz)
+
+    # Annotate and save image
+    annotated = _annotate_image(rgb, raw_detections, method)
+    os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
+    cv2.imwrite(save_path, annotated)
+
+    # Clean up non-serializable fields
+    for det in raw_detections:
+        if "corners" in det:
+            # corners are already lists from _detect_aruco_markers
+            pass
+
+    result = {
+        "detections": raw_detections,
+        "count": len(raw_detections),
+        "method": method,
+        "annotated_image_path": save_path,
+        "coordinate_frame": "base_link" if transform_to_base else CAMERA_FRAME,
+    }
+    return json.dumps(result)
+
+
+async def _transform_point_to_base(
+    node: ROS2BridgeNode,
+    camera_xyz: Tuple[float, float, float],
+    capture_stamp=None,
+) -> Optional[Tuple[float, float, float]]:
+    """Transform a 3D point from camera frame to base_link using TF.
+
+    Tries capture_stamp first for accuracy (matches robot pose at capture time),
+    then falls back to latest transform if the timestamped lookup fails (e.g.,
+    TF buffer hasn't accumulated enough data yet).
+    """
+    loop = asyncio.get_event_loop()
+
+    def _do_transform():
+        # Try timestamped lookup first
+        transform = None
+        if capture_stamp is not None:
+            transform = node.lookup_transform(
+                "base_link", CAMERA_FRAME, stamp=capture_stamp,
+            )
+            if transform is None:
+                logger.warning(
+                    "TF lookup at capture_stamp failed, falling back to latest transform"
+                )
+
+        # Fallback: latest available transform
+        if transform is None:
+            transform = node.lookup_transform(
+                "base_link", CAMERA_FRAME, stamp=None,
+            )
+            if transform is None:
+                logger.error(
+                    f"TF lookup failed: {CAMERA_FRAME} → base_link not available "
+                    "(even latest). Is the robot driver running?"
+                )
+                return None
+
+        from tf_transformations import quaternion_matrix
+
+        q = transform.transform.rotation
+        t = transform.transform.translation
+        mat = quaternion_matrix([q.x, q.y, q.z, q.w])
+        mat[0, 3] = t.x
+        mat[1, 3] = t.y
+        mat[2, 3] = t.z
+
+        point_cam = np.array([camera_xyz[0], camera_xyz[1], camera_xyz[2], 1.0])
+        point_base = mat @ point_cam
+        return (float(point_base[0]), float(point_base[1]), float(point_base[2]))
+
+    return await loop.run_in_executor(None, _do_transform)
+
+
+@mcp.tool()
+async def get_tf_transform(
+    source_frame: str = "tool0",
+    target_frame: str = "base_link",
+    timeout: float = 2.0,
+) -> str:
+    """Look up TF transform between two frames.
+
+    Uses the persistent TF buffer that fills continuously in the background.
+    Common frames: base_link, tool0, flange, zivid_optical_frame, world.
+
+    Args:
+        source_frame: The frame to transform FROM (e.g., "tool0").
+        target_frame: The frame to transform TO (e.g., "base_link").
+        timeout: Max seconds to wait for transform availability.
+
+    Returns:
+        JSON with translation (xyz), rotation (quaternion + RPY in degrees),
+        and the full 4x4 homogeneous transform matrix.
+    """
+    loop = asyncio.get_event_loop()
+
+    def _lookup():
+        node = bridge.node
+        transform = node.lookup_transform(target_frame, source_frame, timeout_sec=timeout)
+        if transform is None:
+            return None
+        return transform
+
+    transform = await loop.run_in_executor(None, _lookup)
+
+    if transform is None:
+        return json.dumps({
+            "error": f"Transform {source_frame} → {target_frame} not available. "
+                     "Is the robot driver running?",
+        })
+
+    t = transform.transform.translation
+    q = transform.transform.rotation
+
+    # Compute RPY from quaternion
+    from tf_transformations import euler_from_quaternion, quaternion_matrix
+
+    rpy = euler_from_quaternion([q.x, q.y, q.z, q.w])
+    rpy_deg = [math.degrees(a) for a in rpy]
+
+    # Full 4x4 matrix
+    mat = quaternion_matrix([q.x, q.y, q.z, q.w])
+    mat[0, 3] = t.x
+    mat[1, 3] = t.y
+    mat[2, 3] = t.z
+
+    result = {
+        "source_frame": source_frame,
+        "target_frame": target_frame,
+        "translation": {"x": round(t.x, 6), "y": round(t.y, 6), "z": round(t.z, 6)},
+        "rotation_quaternion": {
+            "x": round(q.x, 6), "y": round(q.y, 6),
+            "z": round(q.z, 6), "w": round(q.w, 6),
+        },
+        "rotation_rpy_degrees": {
+            "roll": round(rpy_deg[0], 4),
+            "pitch": round(rpy_deg[1], 4),
+            "yaw": round(rpy_deg[2], 4),
+        },
+        "matrix_4x4": [[round(float(mat[r, c]), 6) for c in range(4)] for r in range(4)],
+    }
+    return json.dumps(result)
+
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+
+def main():
+    # Configure logging to stderr (stdout is reserved for MCP stdio transport)
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
+        stream=sys.stderr,
+    )
+    logger.info("Starting EROBS MCP server...")
+
+    try:
+        mcp.run(transport="stdio")
+    finally:
+        bridge.shutdown()
+
+
+if __name__ == "__main__":
+    main()
