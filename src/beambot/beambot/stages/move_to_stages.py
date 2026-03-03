@@ -92,9 +92,12 @@ class MoveToStages(BaseStages):
             if planning_type == "cartesian":
                 planner = self.make_cartesian_planner()
                 self.logger.info("Using Cartesian planner")
+            elif planning_type == "pilz":
+                planner = self.make_pilz_planner("LIN")
+                self.logger.info("Using Pilz LIN planner")
             else:
                 planner = self.make_pipeline_planner()
-                self.logger.info("Using pipeline planner")
+                self.logger.info("Using pipeline planner (OMPL)")
 
         # Case 1: Relative move (direction + distance)
         if goal.direction and goal.distance != 0.0:

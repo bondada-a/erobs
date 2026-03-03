@@ -56,21 +56,31 @@ DEFAULT_IK_FRAME = "flange"
 # 1. Python caches imported modules (no double-init risk)
 # 2. Action servers always use MTC immediately (no benefit to lazy init)
 # 3. Each server runs in separate process (no shared state concerns)
+#
+# IMPORTANT: The rclcpp.Node pybind11 wrapper does NOT expose declare_parameter().
+# Parameters MUST be passed via NodeOptions.arguments using --ros-args -p key:=value.
+# With automatically_declare_parameters_from_overrides=True, these are auto-declared
+# on the C++ node and visible to MoveIt's PlanningPipeline.
 rclcpp.init()
 _options = rclcpp.NodeOptions()
 _options.automatically_declare_parameters_from_overrides = True
 _options.allow_undeclared_parameters = True
+_options.arguments = [
+    "--ros-args",
+    # OMPL planning pipeline
+    "-p", "ompl.planning_plugin:=ompl_interface/OMPLPlanner",
+    "-p", "ompl.start_state_max_bounds_error:=0.1",
+    # Pilz industrial motion planner pipeline
+    "-p", "pilz_industrial_motion_planner.planning_plugin:=pilz_industrial_motion_planner/CommandPlanner",
+    # Pilz cartesian limits (must match pilz_cartesian_limits.yaml in MoveIt configs)
+    "-p", "robot_description_planning.cartesian_limits.max_trans_vel:=1.0",
+    "-p", "robot_description_planning.cartesian_limits.max_trans_acc:=2.25",
+    "-p", "robot_description_planning.cartesian_limits.max_trans_dec:=-5.0",
+    "-p", "robot_description_planning.cartesian_limits.max_rot_vel:=1.57",
+    "-p", "robot_description_planning.cartesian_limits.max_rot_acc:=3.15",
+    "-p", "robot_description_planning.cartesian_limits.max_rot_dec:=-5.0",
+]
 _mtc_node = rclcpp.Node("beambot", _options)
-
-# Set OMPL planning pipeline parameters explicitly
-# This ensures OMPL is used regardless of node context (action server vs orchestrator)
-# Without this, nodes created outside MoveIt launch context may default to CHOMP
-try:
-    _mtc_node.declare_parameter("ompl.planning_plugin", "ompl_interface/OMPLPlanner")
-    _mtc_node.declare_parameter("ompl.request_adapters", "")
-    _mtc_node.declare_parameter("ompl.start_state_max_bounds_error", 0.1)
-except Exception:
-    pass  # Parameters may already be declared in some contexts
 
 
 def joints_from_degrees(degrees: List[float]) -> Dict[str, float]:
@@ -191,6 +201,18 @@ class BaseStages:
         planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
         planner.step_size = 0.0005 # 1mm steps - good for collision detection
         planner.min_fraction = 0.9  # Require near-complete path (was 0.6)
+        return planner
+
+    def make_pilz_planner(self, mode: str = "LIN") -> core.PipelinePlanner:
+        """Create Pilz industrial motion planner.
+
+        Args:
+            mode: "LIN" (straight-line Cartesian) or "PTP" (point-to-point joint)
+        """
+        planner = core.PipelinePlanner(self._mtc_node, "pilz_industrial_motion_planner")
+        planner.planner = mode
+        planner.max_velocity_scaling_factor = VELOCITY_SCALING
+        planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
         return planner
 
     def make_joint_interpolation_planner(self) -> core.JointInterpolationPlanner:
