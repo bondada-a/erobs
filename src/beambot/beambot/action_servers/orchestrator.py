@@ -25,6 +25,7 @@ from rclpy.action import ActionServer, ActionClient
 from rclpy.action.server import ServerGoalHandle, GoalResponse, CancelResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
+from rclpy.qos import QoSProfile, DurabilityPolicy
 
 from beambot_interfaces.action import (
     MTCExecution,
@@ -202,6 +203,13 @@ class MTCOrchestratorServer(Node):
             String, 'beambot/execution_state', 10
         )
 
+        # Current gripper publisher (latched so late subscribers get last value)
+        latched_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+        self._gripper_publisher = self.create_publisher(
+            String, 'beambot/current_gripper', latched_qos
+        )
+        self._publish_gripper(self._current_gripper)
+
         self.get_logger().info("MTC Orchestrator (Python) started on 'beambot_execution'")
         self.get_logger().info("Pause/Resume services available: beambot/pause, beambot/resume")
 
@@ -274,6 +282,12 @@ class MTCOrchestratorServer(Node):
         msg = String()
         msg.data = state
         self._state_publisher.publish(msg)
+
+    def _publish_gripper(self, gripper: str):
+        """Publish current gripper to latched topic."""
+        msg = String()
+        msg.data = gripper
+        self._gripper_publisher.publish(msg)
 
     def _handle_pause(
         self,
@@ -524,6 +538,7 @@ class MTCOrchestratorServer(Node):
 
         # Initialize gripper state
         self._current_gripper = start_gripper
+        self._publish_gripper(start_gripper)
 
         # Step 1: Launch MoveIt for the gripper configuration
         self._update_feedback(
@@ -815,6 +830,7 @@ class MTCOrchestratorServer(Node):
                 f"Gripper changed: {self._current_gripper} → {new_gripper}, restarting MoveIt"
             )
             self._current_gripper = new_gripper
+            self._publish_gripper(new_gripper)
 
             if not self._moveit_manager.launch_moveit_with_gripper(new_gripper):
                 self.get_logger().error("Failed to restart MoveIt with new gripper config")
