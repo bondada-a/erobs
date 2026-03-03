@@ -6,7 +6,7 @@
     },
     "erobs": {
       "command": "bash",
-      "args": ["-lc", "export PATH=$(echo $PATH | tr ':' '\\n' | grep -v miniforge | tr '\\n' ':' | sed 's/:$//') && source /opt/ros/humble/setup.bash && source /home/aditya/work/github_ws/experimental/install/setup.bash && python3 /home/aditya/work/github_ws/experimental/src/beambot/mcp/erobs_mcp_server.py"]
+      "args": ["-lc", "WS=$(git rev-parse --show-toplevel) && export PATH=$(echo $PATH | tr ':' '\\n' | grep -v miniforge | tr '\\n' ':' | sed 's/:$//') && source /opt/ros/humble/setup.bash && source \"$WS/install/setup.bash\" && python3 \"$WS/src/beambot/mcp/erobs_mcp_server.py\""]
     }
   }
 }
