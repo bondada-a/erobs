@@ -79,6 +79,20 @@ _options.arguments = [
     "-p", "robot_description_planning.cartesian_limits.max_rot_vel:=1.57",
     "-p", "robot_description_planning.cartesian_limits.max_rot_acc:=3.15",
     "-p", "robot_description_planning.cartesian_limits.max_rot_dec:=-5.0",
+    # Pilz PTP joint acceleration limits (UR5e: 5.0 rad/s² conservative, actual ~10-15)
+    # NOTE: Must match values in ur5e_moveit_configs/*/config/joint_limits.yaml
+    "-p", "robot_description_planning.joint_limits.shoulder_pan_joint.has_acceleration_limits:=true",
+    "-p", "robot_description_planning.joint_limits.shoulder_pan_joint.max_acceleration:=5.0",
+    "-p", "robot_description_planning.joint_limits.shoulder_lift_joint.has_acceleration_limits:=true",
+    "-p", "robot_description_planning.joint_limits.shoulder_lift_joint.max_acceleration:=5.0",
+    "-p", "robot_description_planning.joint_limits.elbow_joint.has_acceleration_limits:=true",
+    "-p", "robot_description_planning.joint_limits.elbow_joint.max_acceleration:=5.0",
+    "-p", "robot_description_planning.joint_limits.wrist_1_joint.has_acceleration_limits:=true",
+    "-p", "robot_description_planning.joint_limits.wrist_1_joint.max_acceleration:=5.0",
+    "-p", "robot_description_planning.joint_limits.wrist_2_joint.has_acceleration_limits:=true",
+    "-p", "robot_description_planning.joint_limits.wrist_2_joint.max_acceleration:=5.0",
+    "-p", "robot_description_planning.joint_limits.wrist_3_joint.has_acceleration_limits:=true",
+    "-p", "robot_description_planning.joint_limits.wrist_3_joint.max_acceleration:=5.0",
 ]
 _mtc_node = rclcpp.Node("beambot", _options)
 

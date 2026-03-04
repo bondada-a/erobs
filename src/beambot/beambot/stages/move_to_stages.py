@@ -95,6 +95,9 @@ class MoveToStages(BaseStages):
             elif planning_type == "pilz":
                 planner = self.make_pilz_planner("LIN")
                 self.logger.info("Using Pilz LIN planner")
+            elif planning_type == "pilz_ptp":
+                planner = self.make_pilz_planner("PTP")
+                self.logger.info("Using Pilz PTP planner")
             else:
                 planner = self.make_pipeline_planner()
                 self.logger.info("Using pipeline planner (OMPL)")
