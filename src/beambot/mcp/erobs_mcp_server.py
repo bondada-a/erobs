@@ -69,6 +69,44 @@ DEFAULT_IMAGE_PATH = "/tmp/erobs_capture.jpg"
 DEFAULT_ANNOTATED_PATH = "/tmp/erobs_detection.jpg"
 
 
+def _detect_display() -> Tuple[str, str]:
+    """Detect DISPLAY and XAUTHORITY for GUI subprocess.
+
+    Claude Code strips DISPLAY from MCP server environments. We detect
+    the active X11 display by checking the environment first, then
+    falling back to querying the system.
+    """
+    display = os.environ.get("DISPLAY", "")
+    xauth = os.environ.get("XAUTHORITY", "")
+
+    if not display:
+        # Try to find DISPLAY from any running user process
+        import subprocess as _sp
+        try:
+            result = _sp.run(
+                ["bash", "-c", "cat /proc/$(pgrep -u $USER -x gnome-shell || pgrep -u $USER -x Xwayland || echo 1)/environ 2>/dev/null | tr '\\0' '\\n' | grep ^DISPLAY= | head -1 | cut -d= -f2"],
+                capture_output=True, text=True, timeout=3,
+            )
+            display = result.stdout.strip() or ":1"
+        except Exception:
+            display = ":1"
+
+    if not xauth:
+        # Common locations
+        for candidate in [
+            f"/run/user/{os.getuid()}/gdm/Xauthority",
+            os.path.expanduser("~/.Xauthority"),
+        ]:
+            if os.path.exists(candidate):
+                xauth = candidate
+                break
+
+    return display, xauth
+
+
+_DETECTED_DISPLAY, _DETECTED_XAUTHORITY = _detect_display()
+
+
 # ---------------------------------------------------------------------------
 # Detection parameter dataclasses (copied from zivid.py for independence)
 # ---------------------------------------------------------------------------
@@ -812,12 +850,82 @@ async def _transform_point_to_base(
     return await loop.run_in_executor(None, _do_transform)
 
 
+async def _confirm_point_via_gui(
+    image_path: str,
+    pixel_x: int,
+    pixel_y: int,
+    timeout: float = 120.0,
+) -> Optional[Dict[str, Any]]:
+    """Launch the point selector GUI as a subprocess and wait for the result.
+
+    Returns:
+        Dict with confirmed point, None if cancelled, or dict with error key.
+    """
+    gui_script = os.path.join(os.path.dirname(__file__), "point_selector_gui.py")
+    if not os.path.exists(gui_script):
+        return {"error": f"GUI script not found: {gui_script}"}
+
+    cmd = [
+        sys.executable, gui_script, image_path,
+        "--x", str(pixel_x), "--y", str(pixel_y),
+        "--title", "Confirm Point — Click to adjust, Enter to confirm",
+    ]
+
+    # Ensure X11 env vars are available for the GUI subprocess.
+    # Claude Code strips DISPLAY when spawning MCP servers, so we detect
+    # the active display at launch and inject it here.
+    env = os.environ.copy()
+    env.setdefault("DISPLAY", _DETECTED_DISPLAY)
+    env.setdefault("XAUTHORITY", _DETECTED_XAUTHORITY)
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+        )
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(), timeout=timeout,
+        )
+    except asyncio.TimeoutError:
+        proc.kill()
+        return {"error": f"GUI timed out after {timeout}s"}
+    except Exception as e:
+        return {"error": f"Failed to launch GUI: {e}"}
+
+    stderr_text = stderr.decode().strip() if stderr else ""
+    if stderr_text:
+        logger.info(f"GUI stderr: {stderr_text}")
+
+    if proc.returncode != 0:
+        # Still try to parse stdout — the script outputs error JSON before exit(1)
+        try:
+            result = json.loads(stdout.decode().strip())
+            if stderr_text:
+                result["stderr"] = stderr_text
+            return result
+        except (json.JSONDecodeError, ValueError):
+            return {"error": f"GUI exited with code {proc.returncode}: {stderr_text}"}
+
+    try:
+        result = json.loads(stdout.decode().strip())
+    except (json.JSONDecodeError, ValueError) as e:
+        return {"error": f"Failed to parse GUI output: {e}. stderr: {stderr_text}"}
+
+    if not result.get("confirmed", False):
+        return None  # User cancelled
+
+    return result
+
+
 @mcp.tool()
 async def get_point_3d(
     pixel_x: int,
     pixel_y: int,
     transform_to_base: bool = True,
     search_radius: int = 10,
+    confirm: bool = True,
     save_path: str = "/tmp/erobs_point3d.jpg",
 ) -> str:
     """Get the 3D position of a pixel from the last captured point cloud.
@@ -837,6 +945,9 @@ async def get_point_3d(
             If False, return in camera (zivid_optical_frame) frame.
         search_radius: If the exact pixel has no depth, search nearby pixels
             within this radius. Default 10.
+        confirm: If True, open a GUI window showing the image with the
+            suggested point. The user can click to adjust the position,
+            then press Enter to confirm or Esc to cancel. Default False.
         save_path: Where to save annotated image showing the queried point.
 
     Returns:
@@ -862,6 +973,36 @@ async def get_point_3d(
             "error": f"Pixel ({pixel_x}, {pixel_y}) out of bounds. "
                      f"Image size: {w}x{h}.",
         })
+
+    # GUI confirmation step
+    if confirm:
+        # Use the saved capture image, or save current frame as fallback
+        image_path = DEFAULT_IMAGE_PATH
+        if not os.path.exists(image_path):
+            bgr = cv2.cvtColor(node.last_rgb, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(image_path, bgr)
+
+        gui_result = await _confirm_point_via_gui(image_path, pixel_x, pixel_y)
+
+        if gui_result is None:
+            return json.dumps({
+                "cancelled": True,
+                "message": "User cancelled point selection.",
+            })
+
+        if "error" in gui_result:
+            return json.dumps(gui_result)
+
+        # Override with user's confirmed coordinates
+        pixel_x = gui_result["pixel_x"]
+        pixel_y = gui_result["pixel_y"]
+
+        # Re-check bounds after user adjustment
+        if pixel_x < 0 or pixel_x >= w or pixel_y < 0 or pixel_y >= h:
+            return json.dumps({
+                "error": f"User-selected pixel ({pixel_x}, {pixel_y}) out of bounds. "
+                         f"Image size: {w}x{h}.",
+            })
 
     # Look up 3D position from point cloud
     xyz = _get_3d_position(node.last_cloud, pixel_x, pixel_y, search_radius)
