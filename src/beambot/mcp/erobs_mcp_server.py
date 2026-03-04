@@ -813,6 +813,113 @@ async def _transform_point_to_base(
 
 
 @mcp.tool()
+async def get_point_3d(
+    pixel_x: int,
+    pixel_y: int,
+    transform_to_base: bool = True,
+    search_radius: int = 10,
+    save_path: str = "/tmp/erobs_point3d.jpg",
+) -> str:
+    """Get the 3D position of a pixel from the last captured point cloud.
+
+    IMPORTANT: Call capture_image(mode="3d") first! This uses the most recent
+    point cloud data.
+
+    Use this when you can see something in the camera image and want to know
+    its real-world 3D position — e.g., "what are the 3D coordinates of the
+    object at pixel (500, 300)?" This is useful for planning robot moves to
+    arbitrary points visible in the image without needing a specific detector.
+
+    Args:
+        pixel_x: X coordinate (column) in the image.
+        pixel_y: Y coordinate (row) in the image.
+        transform_to_base: If True, return position in base_link frame.
+            If False, return in camera (zivid_optical_frame) frame.
+        search_radius: If the exact pixel has no depth, search nearby pixels
+            within this radius. Default 10.
+        save_path: Where to save annotated image showing the queried point.
+
+    Returns:
+        JSON with camera_xyz, base_xyz (if transform_to_base), and an
+        annotated image showing the queried point.
+    """
+    node = bridge.node
+
+    if node.last_cloud is None:
+        return json.dumps({
+            "error": "No point cloud data. Call capture_image(mode='3d') first.",
+        })
+
+    if node.last_rgb is None:
+        return json.dumps({
+            "error": "No image data. Call capture_image(mode='3d') first.",
+        })
+
+    # Bounds check
+    h, w = node.last_rgb.shape[:2]
+    if pixel_x < 0 or pixel_x >= w or pixel_y < 0 or pixel_y >= h:
+        return json.dumps({
+            "error": f"Pixel ({pixel_x}, {pixel_y}) out of bounds. "
+                     f"Image size: {w}x{h}.",
+        })
+
+    # Look up 3D position from point cloud
+    xyz = _get_3d_position(node.last_cloud, pixel_x, pixel_y, search_radius)
+
+    if xyz is None:
+        return json.dumps({
+            "error": f"No valid depth at pixel ({pixel_x}, {pixel_y}) "
+                     f"within search_radius={search_radius}. "
+                     "The point may be on a reflective surface or out of range.",
+        })
+
+    result = {
+        "pixel_x": pixel_x,
+        "pixel_y": pixel_y,
+        "camera_xyz": [round(v, 6) for v in xyz],
+        "camera_frame": CAMERA_FRAME,
+        "base_xyz": None,
+        "base_frame": "base_link",
+    }
+
+    # Transform to base_link
+    if transform_to_base:
+        base_xyz = await _transform_point_to_base(
+            node, xyz, node.capture_stamp,
+        )
+        if base_xyz is not None:
+            result["base_xyz"] = [round(v, 6) for v in base_xyz]
+
+    # Annotate image with the queried point
+    annotated = cv2.cvtColor(node.last_rgb.copy(), cv2.COLOR_RGB2BGR)
+    cv2.drawMarker(
+        annotated, (pixel_x, pixel_y), (0, 0, 255),
+        cv2.MARKER_CROSS, 20, 2,
+    )
+    label_parts = [f"({pixel_x}, {pixel_y})"]
+    if result["base_xyz"]:
+        bx, by, bz = result["base_xyz"]
+        label_parts.append(f"base: ({bx:.3f}, {by:.3f}, {bz:.3f})")
+    else:
+        cx, cy, cz = result["camera_xyz"]
+        label_parts.append(f"cam: ({cx:.3f}, {cy:.3f}, {cz:.3f})")
+    label = " ".join(label_parts)
+    cv2.putText(
+        annotated, label, (pixel_x + 15, pixel_y - 10),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2,
+    )
+    cv2.putText(
+        annotated, label, (pixel_x + 15, pixel_y - 10),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1,
+    )
+    os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
+    cv2.imwrite(save_path, annotated)
+    result["annotated_image_path"] = save_path
+
+    return json.dumps(result)
+
+
+@mcp.tool()
 async def get_tf_transform(
     source_frame: str = "flange",
     target_frame: str = "base_link",
