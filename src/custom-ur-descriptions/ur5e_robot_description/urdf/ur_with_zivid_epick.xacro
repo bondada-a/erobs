@@ -51,7 +51,7 @@
   <xacro:arg name="tool_tcp_port" default="54321" />
 
   <!-- Simulation parameters -->
-  <xacro:arg name="use_fake_hardware" default="false" />
+  <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="fake_sensor_commands" default="false" />
   <xacro:arg name="sim_gazebo" default="false" />
   <xacro:arg name="sim_ignition" default="false" />
@@ -78,7 +78,7 @@
     safety_limits="$(arg safety_limits)"
     safety_pos_margin="$(arg safety_pos_margin)"
     safety_k_position="$(arg safety_k_position)"
-    use_fake_hardware="$(arg use_fake_hardware)"
+    use_mock_hardware="$(arg use_mock_hardware)"
     fake_sensor_commands="$(arg fake_sensor_commands)"
     sim_gazebo="$(arg sim_gazebo)"
     sim_ignition="$(arg sim_ignition)"
@@ -119,7 +119,7 @@
   <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.055" rpy="-1.5708 0 3.14159"/>
 
   <!-- Epick Gripper -->
-  <xacro:epick_overlay use_fake_hardware="false" parent="tool_block"
+  <xacro:epick_overlay use_mock_hardware="false" parent="tool_block"
                   origin_xyz="0 -0.02 0"
                   origin_rpy="-1.5708 0 3.1416"/>
 </robot>
