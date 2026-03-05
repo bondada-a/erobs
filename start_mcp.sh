@@ -11,7 +11,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Source ROS2 + workspace
-source /opt/ros/humble/setup.bash
+source /opt/ros/jazzy/setup.bash
 source "$SCRIPT_DIR/install/setup.bash" 2>/dev/null || {
     echo "Workspace not built. Run: colcon build && source install/setup.bash"
     exit 1

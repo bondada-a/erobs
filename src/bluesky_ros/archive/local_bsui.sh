@@ -10,10 +10,10 @@ BLUE=$(tput setaf 4)
 RED=$(tput setaf 1)
 
 # Set up ROS 2 environment
-if [ -f /opt/ros/humble/setup.bash ]; then
-    source /opt/ros/humble/setup.bash
+if [ -f /opt/ros/jazzy/setup.bash ]; then
+    source /opt/ros/jazzy/setup.bash
 else
-    echo "Error: ROS 2 Humble not found at /opt/ros/humble"
+    echo "Error: ROS 2 Jazzy not found at /opt/ros/jazzy"
     exit 1
 fi
 
@@ -90,7 +90,7 @@ except ImportError:
     databroker_version = msg
 try:
     import rclpy
-    rclpy_version = "ROS 2 Humble"
+    rclpy_version = "ROS 2 Jazzy"
 except ImportError:
     rclpy_version = msg
 

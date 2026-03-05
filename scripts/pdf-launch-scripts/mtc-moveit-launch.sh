@@ -1,6 +1,6 @@
 #!/bin/bash
 # Launch Docker container for ur-driver. TO BE DEPRECATED. 
-ROS_DISTRO=humble
+ROS_DISTRO=jazzy
 UR_TYPE="ur3e"
 ROBOT_IP=10.66.218.141
 REVERSE_IP=10.66.219.39
