@@ -15,6 +15,6 @@ repositories:
   moveit_task_constructor:
     type: git
     url: https://github.com/ros-planning/moveit_task_constructor.git
-    version: humble
+    version: jazzy
   
   
