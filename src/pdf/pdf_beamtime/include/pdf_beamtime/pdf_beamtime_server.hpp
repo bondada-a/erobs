@@ -3,8 +3,8 @@ BSD 3 Clause License. See LICENSE.txt for details.*/
 #ifndef PDF_BEAMTIME__PDF_BEAMTIME_SERVER_HPP_
 #define PDF_BEAMTIME__PDF_BEAMTIME_SERVER_HPP_
 
-#include <moveit/move_group_interface/move_group_interface.h>
-#include <moveit/planning_scene_interface/planning_scene_interface.h>
+#include <moveit/move_group_interface/move_group_interface.hpp>
+#include <moveit/planning_scene_interface/planning_scene_interface.hpp>
 
 #include <chrono>
 #include <fstream>

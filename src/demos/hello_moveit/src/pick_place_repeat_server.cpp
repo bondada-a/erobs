@@ -1,6 +1,6 @@
 /*Copyright 2023 Brookhaven National Laboratory
 BSD 3 Clause License. See LICENSE.txt for details.*/
-#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/move_group_interface/move_group_interface.hpp>
 #include <yaml-cpp/yaml.h>
 
 #include <chrono>

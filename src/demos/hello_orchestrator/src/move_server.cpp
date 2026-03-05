@@ -2,7 +2,7 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
-#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/move_group_interface/move_group_interface.hpp>
 #include <hello_orchestrator/action/move_to_named_state.hpp>
 
 using MoveToNamedState = hello_orchestrator::action::MoveToNamedState;

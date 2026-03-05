@@ -2,7 +2,7 @@
 BSD 3 Clause License. See LICENSE.txt for details.*/
 #pragma once
 
-#include <moveit/move_group_interface/move_group_interface.h>
+#include <moveit/move_group_interface/move_group_interface.hpp>
 
 #include <chrono>
 #include <future>
