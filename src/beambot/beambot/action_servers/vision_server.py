@@ -63,7 +63,7 @@ class VisionActionServer(BaseActionServer):
                 f"frame={camera_config.get('frame', 'zivid_optical_frame')}"
             )
         except Exception as e:
-            self.get_logger().warn(f"Failed to load camera config: {e}, using defaults")
+            self.get_logger().warning(f"Failed to load camera config: {e}, using defaults")
 
         self._stages = VisionStages(
             self,

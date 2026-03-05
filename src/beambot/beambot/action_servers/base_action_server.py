@@ -50,7 +50,7 @@ class BaseActionServer(Node):
         """Accept goal if not already executing, otherwise reject."""
         with self._lock:
             if self._executing:
-                self.get_logger().warn("Rejecting goal: server busy")
+                self.get_logger().warning("Rejecting goal: server busy")
                 return GoalResponse.REJECT
         self.get_logger().info("Received goal request")
         return GoalResponse.ACCEPT

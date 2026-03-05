@@ -161,13 +161,13 @@ class PointCloudStabilityTest(Node):
 
             img, cloud = self.capture_once()
             if img is None or cloud is None:
-                self.get_logger().warn(f"Capture {i+1} failed")
+                self.get_logger().warning(f"Capture {i+1} failed")
                 continue
 
             # Detect marker
             corners = self.detect_marker_corners(img, marker_id)
             if corners is None:
-                self.get_logger().warn(f"Marker {marker_id} not detected in capture {i+1}")
+                self.get_logger().warning(f"Marker {marker_id} not detected in capture {i+1}")
                 continue
 
             # Get 3D at each corner
@@ -178,7 +178,7 @@ class PointCloudStabilityTest(Node):
                     corner_xyz.append(xyz)
 
             if len(corner_xyz) != 4:
-                self.get_logger().warn(f"Only {len(corner_xyz)}/4 corners have depth")
+                self.get_logger().warning(f"Only {len(corner_xyz)}/4 corners have depth")
                 continue
 
             # Average corners

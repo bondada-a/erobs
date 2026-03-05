@@ -55,7 +55,7 @@ class PointCloudRelay(Node):
 
         # Check Open3D availability if downsampling is requested
         if self.enable_downsampling and not OPEN3D_AVAILABLE:
-            self.get_logger().warn(
+            self.get_logger().warning(
                 'Downsampling requested but Open3D not available. '
                 'Install with: pip install open3d. Disabling downsampling.'
             )
@@ -108,7 +108,7 @@ class PointCloudRelay(Node):
             else:
                 # Fallback to original if downsampling fails
                 self.publisher.publish(msg)
-                self.get_logger().warn(
+                self.get_logger().warning(
                     f'Downsampling failed, relayed original {original_count:,} points'
                 )
         else:
@@ -155,7 +155,7 @@ class PointCloudRelay(Node):
             z = z[valid_mask]
 
             if len(x) == 0:
-                self.get_logger().warn('No valid points in cloud after NaN filtering')
+                self.get_logger().warning('No valid points in cloud after NaN filtering')
                 return None
 
             # Stack into Nx3 array for Open3D (needs float64)

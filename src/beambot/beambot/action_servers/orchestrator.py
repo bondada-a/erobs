@@ -217,7 +217,7 @@ class MTCOrchestratorServer(Node):
         """Handle incoming goal requests."""
         with self._lock:
             if self._executing:
-                self.get_logger().warn("Goal rejected: another task is executing")
+                self.get_logger().warning("Goal rejected: another task is executing")
                 return GoalResponse.REJECT
         return GoalResponse.ACCEPT
 
@@ -341,7 +341,7 @@ class MTCOrchestratorServer(Node):
         """
         # Check if service is available
         if not self._list_controllers_client.wait_for_service(timeout_sec=2.0):
-            self.get_logger().warn("Controller manager service not available")
+            self.get_logger().warning("Controller manager service not available")
             return True  # Proceed anyway, let MoveIt handle the error
 
         # List controllers
@@ -352,13 +352,13 @@ class MTCOrchestratorServer(Node):
         start_time = time.time()
         while not future.done():
             if time.time() - start_time > 5.0:
-                self.get_logger().warn("Timeout listing controllers")
+                self.get_logger().warning("Timeout listing controllers")
                 return True  # Proceed anyway
             time.sleep(0.01)
 
         list_response = future.result()
         if list_response is None:
-            self.get_logger().warn("Failed to list controllers")
+            self.get_logger().warning("Failed to list controllers")
             return True  # Proceed anyway
 
         # Check which required controllers are inactive
@@ -367,7 +367,7 @@ class MTCOrchestratorServer(Node):
             if controller.name in self._required_controllers:
                 if controller.state != "active":
                     inactive_controllers.append(controller.name)
-                    self.get_logger().warn(
+                    self.get_logger().warning(
                         f"Controller '{controller.name}' is {controller.state}, needs restart"
                     )
 
@@ -882,7 +882,7 @@ class MTCOrchestratorServer(Node):
                     scan_positions_flat.extend(joints_rad)
                     valid_positions += 1
                 else:
-                    self.get_logger().warn(
+                    self.get_logger().warning(
                         f"Scan position '{key}' not found in poses, skipping"
                     )
 
@@ -935,7 +935,7 @@ class MTCOrchestratorServer(Node):
                 scan_positions_flat.extend(joints_rad)
                 valid_positions += 1
             else:
-                self.get_logger().warn(
+                self.get_logger().warning(
                     f"Scan position '{key}' not found in poses, skipping"
                 )
 

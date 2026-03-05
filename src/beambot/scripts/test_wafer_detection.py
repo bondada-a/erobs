@@ -976,11 +976,11 @@ class WaferDetectionTest(Node):
                     self.get_logger().info('')
                     self.get_logger().info('Press M to move robot to wafer!')
                 else:
-                    self.get_logger().warn('Could not transform to base_link (TF not available)')
+                    self.get_logger().warning('Could not transform to base_link (TF not available)')
             else:
-                self.get_logger().warn('Could not get valid depth at detection center!')
+                self.get_logger().warning('Could not get valid depth at detection center!')
         else:
-            self.get_logger().warn('No circle detected!')
+            self.get_logger().warning('No circle detected!')
             self.get_logger().info('Tips for small wafers (~10mm radius):')
             self.get_logger().info('  - Lower param2 for more sensitivity (try 15-20)')
             self.get_logger().info('  - For 10mm wafer at 500mm: expect ~30-50 pixel radius')

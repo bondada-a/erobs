@@ -356,7 +356,7 @@ class ContourDetectionTest(Node):
                 rclpy.time.Time(),
                 timeout=rclpy.duration.Duration(seconds=2.0)
             ):
-                self.get_logger().warn(
+                self.get_logger().warning(
                     f"TF {self.camera_frame} -> base_link not available"
                 )
                 return None
@@ -533,13 +533,13 @@ class ContourDetectionTest(Node):
                         'pose_base': pose_base,
                     })
                 else:
-                    self.get_logger().warn(f'  No valid depth at centroid!')
+                    self.get_logger().warning(f'  No valid depth at centroid!')
 
                 self.get_logger().info('')
 
             self.get_logger().info('=' * 60)
         else:
-            self.get_logger().warn('No contours detected matching area criteria!')
+            self.get_logger().warning('No contours detected matching area criteria!')
             self.get_logger().info(f'Try adjusting parameters:')
             self.get_logger().info(f'  - Lower min_area (current: {self.params.min_area})')
             self.get_logger().info(f'  - Raise max_area (current: {self.params.max_area})')

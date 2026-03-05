@@ -304,7 +304,7 @@ class MoveItLifecycleManager:
                     primitive.type = SolidPrimitive.SPHERE
                     primitive.dimensions = [float(obs["radius"])]
                 else:
-                    self._logger.warn(f"Unknown obstacle type: {obs_type}")
+                    self._logger.warning(f"Unknown obstacle type: {obs_type}")
                     continue
 
                 collision_object.primitives.append(primitive)
@@ -325,7 +325,7 @@ class MoveItLifecycleManager:
                     time.sleep(0.1)
 
                 if scene_pub.get_subscription_count() == 0:
-                    self._logger.warn("No subscribers on /planning_scene, publishing anyway")
+                    self._logger.warning("No subscribers on /planning_scene, publishing anyway")
 
                 # Publish the planning scene
                 scene_pub.publish(planning_scene)

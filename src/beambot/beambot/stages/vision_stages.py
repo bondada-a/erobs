@@ -205,7 +205,7 @@ class VisionStages(BaseStages):
             self.logger.info(f"Loaded {len(self._object_database)} vision objects")
 
         except FileNotFoundError:
-            self.logger.warn("vision_objects.json not found, collision objects disabled")
+            self.logger.warning("vision_objects.json not found, collision objects disabled")
         except Exception as e:
             self.logger.error(f"Failed to load vision objects config: {e}")
 
@@ -262,7 +262,7 @@ class VisionStages(BaseStages):
 
             # Move to scan position
             if not self._move_to_joint_pose(joint_pose):
-                self.logger.warn(f"Failed to reach position {pos_idx+1}, skipping")
+                self.logger.warning(f"Failed to reach position {pos_idx+1}, skipping")
                 continue
 
             # Wait for robot to settle (vibration damping)
@@ -311,7 +311,7 @@ class VisionStages(BaseStages):
                         f"{pos.z*1000:.2f}] mm (from {len(poses)} detections)"
                     )
             else:
-                self.logger.warn(
+                self.logger.warning(
                     f"  Tag {tag_id}: only {len(poses)} detection(s), need ≥2 for averaging"
                 )
 
@@ -355,7 +355,7 @@ class VisionStages(BaseStages):
                     f"Multi-position mode enabled: {num_positions} scan positions"
                 )
             else:
-                self.logger.warn(
+                self.logger.warning(
                     f"Invalid scan_positions_flat length: {len(flat)}, "
                     f"expected {num_positions * 6}. Falling back to single-position."
                 )
@@ -495,7 +495,7 @@ class VisionStages(BaseStages):
         )
 
         if not result.markers:
-            self.logger.warn("No markers detected")
+            self.logger.warning("No markers detected")
             return None
 
         return result
@@ -554,7 +554,7 @@ class VisionStages(BaseStages):
 
                 return pose_base
 
-        self.logger.warn(
+        self.logger.warning(
             f"Tag {tag_id} not in results "
             f"({len(detection_result.markers)} markers detected)"
         )
@@ -584,7 +584,7 @@ class VisionStages(BaseStages):
         )
 
         if not detected_poses:
-            self.logger.warn("No circles detected")
+            self.logger.warning("No circles detected")
             return None
 
         # Take the first (strongest) detection
@@ -657,7 +657,7 @@ class VisionStages(BaseStages):
         )
 
         if not detected_poses:
-            self.logger.warn("No contours detected matching area criteria")
+            self.logger.warning("No contours detected matching area criteria")
             return None
 
         self.logger.info(f"Found {len(detected_poses)} sample(s)")
@@ -820,7 +820,7 @@ class VisionStages(BaseStages):
             # Move to scan position
             self.logger.info(f"Moving to {position_name}...")
             if not self._move_to_joint_pose(joint_pose):
-                self.logger.warn(f"Failed to reach {position_name}, skipping")
+                self.logger.warning(f"Failed to reach {position_name}, skipping")
                 position_results.append((i+1, False, "move_failed"))
                 continue
 
@@ -841,7 +841,7 @@ class VisionStages(BaseStages):
                 )
                 position_results.append((i+1, True, None))
             else:
-                self.logger.warn(f"  {position_name}: detection failed")
+                self.logger.warning(f"  {position_name}: detection failed")
                 position_results.append((i+1, False, "detection_failed"))
 
         # Log summary
@@ -1308,7 +1308,7 @@ class VisionStages(BaseStages):
         """
         # Query current planning scene to check if object exists
         if not self._get_scene_client.wait_for_service(timeout_sec=1.0):
-            self.logger.warn("GetPlanningScene service not available, skipping removal check")
+            self.logger.warning("GetPlanningScene service not available, skipping removal check")
             # Publish removal anyway - it's safe if object doesn't exist
         else:
             request = GetPlanningScene.Request()

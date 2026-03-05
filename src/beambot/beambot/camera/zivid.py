@@ -170,12 +170,12 @@ def detect_markers(
     rclpy.spin_until_future_complete(node, future, timeout_sec=timeout)
 
     if not future.done():
-        logger.warn("Zivid detection service timeout")
+        logger.warning("Zivid detection service timeout")
         return DetectionResult(markers=[], capture_stamp=None)
 
     result = future.result()
     if not result.success:
-        logger.warn(f"Zivid detection failed: {result.message}")
+        logger.warning(f"Zivid detection failed: {result.message}")
         return DetectionResult(markers=[], capture_stamp=None)
 
     # Extract detected markers directly from Zivid's result
@@ -190,9 +190,9 @@ def detect_markers(
 
     if not detected:
         if marker_ids is None:
-            logger.warn("No markers detected")
+            logger.warning("No markers detected")
         else:
-            logger.warn(f"No markers found for requested IDs: {marker_ids}")
+            logger.warning(f"No markers found for requested IDs: {marker_ids}")
 
     return DetectionResult(markers=detected, capture_stamp=pre_capture_stamp)
 
@@ -345,7 +345,7 @@ def detect_circles(
         # Detect circles
         circles = _detect_hough_circles(rgb_image, params)
         if circles is None or len(circles) == 0:
-            logger.warn("No circles detected")
+            logger.warning("No circles detected")
             return []
 
         logger.info(f"Detected {len(circles)} circle(s)")
@@ -355,7 +355,7 @@ def detect_circles(
         for cx, cy, radius in circles:
             xyz = _get_3d_position(cloud, cx, cy, params.search_radius)
             if xyz is None:
-                logger.warn(f"No valid depth at circle ({cx}, {cy})")
+                logger.warning(f"No valid depth at circle ({cx}, {cy})")
                 continue
 
             x, y, z = xyz
@@ -618,7 +618,7 @@ def detect_contours(
         # Detect contours
         contours_info = _detect_contours_in_image(rgb_image, params, logger)
         if contours_info is None or len(contours_info) == 0:
-            logger.warn("No contours detected matching area criteria")
+            logger.warning("No contours detected matching area criteria")
             return []
 
         logger.info(f"Detected {len(contours_info)} object(s), sorted in reading order")
@@ -629,7 +629,7 @@ def detect_contours(
             sample_num = i + 1  # 1-indexed for user-facing sample selection
             xyz = _get_3d_position(cloud, cx, cy, params.search_radius)
             if xyz is None:
-                logger.warn(f"Sample #{sample_num}: No valid depth at ({cx}, {cy})")
+                logger.warning(f"Sample #{sample_num}: No valid depth at ({cx}, {cy})")
                 continue
 
             x, y, z = xyz

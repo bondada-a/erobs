@@ -56,7 +56,7 @@ class SimpleClient(Node):
         """Send a cancellation after 15 seconds."""
         self._goal_handle = future.result()
         time.sleep(15.0)
-        self.get_logger().warn("********** Goal Canceling Now *********")
+        self.get_logger().warning("********** Goal Canceling Now *********")
         self._goal_handle.cancel_goal_async()
 
 

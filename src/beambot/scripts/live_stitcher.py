@@ -100,7 +100,7 @@ class LiveStitcher(Node):
         # 2. Convert PointCloud2 → Open3D
         pcd = self.pointcloud2_to_open3d(msg)
         if pcd is None or len(pcd.points) == 0:
-            self.get_logger().warn('Empty point cloud received, skipping')
+            self.get_logger().warning('Empty point cloud received, skipping')
             return
 
         incoming_points = len(pcd.points)
@@ -148,7 +148,7 @@ class LiveStitcher(Node):
     def save_cloud(self):
         """Save accumulated cloud to PLY file."""
         if len(self.accumulated_pcd.points) == 0:
-            self.get_logger().warn('No points to save')
+            self.get_logger().warning('No points to save')
             return
 
         filepath = self.output_dir / 'stitched_environment.ply'
