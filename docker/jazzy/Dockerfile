@@ -73,7 +73,7 @@ RUN /bin/bash -c "set -e && \
 RUN /bin/bash -c "apt-get update && \
     rosdep update && \
     rosdep install --from-paths src --ignore-src -y \
-      --skip-keys 'moveit_studio_behavior_interface pytest ament_python pipette_driver zivid_interfaces' && \
+      --skip-keys 'moveit_studio_behavior_interface pytest ament_python pipette_driver zivid_interfaces zivid_description' && \
     apt-get clean -y && rm -rf /var/lib/apt/lists/*"
 
 # Build interface packages first (other packages depend on these)
