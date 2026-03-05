@@ -167,13 +167,20 @@ No Humble-specific cmake flags found. All packages use standard CMake 3.8+ patte
 5. ✅ Shell scripts: update ROS_DISTRO and setup.bash paths
 6. ✅ Config files: `.mcp.json`, `pixi.toml`, `.devcontainer`
 7. ✅ Create Jazzy Dockerfile
-8. ⬜ Test Docker build
+8. ⬜ Test Docker build (requires ROS/colcon environment)
 9. ⬜ Research end effector driver Jazzy branches
-10. ⬜ CI/CD workflow updates
+   - `robotiq_hande_driver`: ✅ `jazzy-devel` branch exists
+   - `robotiq_hande_description`: ❌ no jazzy branch (stays on `humble-devel`)
+   - `ros2_epick_gripper`: stays on `main`
+   - `serial`: stays on `ros2`
+   - `pipettor`: stays on `main`
+10. ✅ CI/CD workflow updates
 
 ---
 
 ## Build Notes
 
-*(Updated as build issues are discovered)*
+- **2026-03-04:** All code migration phases (1-7, 10) completed. No ROS/colcon environment available for build testing — needs to be tested in Docker or on a machine with ROS2 Jazzy installed.
+- **Zivid SDK:** The Jazzy Dockerfile uses `u24` URLs which need verification against actual Zivid download availability.
+- **numpy pin:** Removed from Jazzy Dockerfile (Jazzy packages should be numpy 2.x compatible).
 
