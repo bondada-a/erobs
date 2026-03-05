@@ -132,7 +132,7 @@ Updated `/opt/ros/humble/share/ur_description/meshes/...` to `/opt/ros/jazzy/sha
 ### `src/end_effectors/end_effectors.repos`
 - `robotiq_hande_driver`: `humble-devel` -> `jazzy-devel`
 - `robotiq_hande_description`: stays on `humble-devel` (pure description pkg, works on Jazzy)
-- `ros2_epick_gripper`: stays on `main` (incompatible, see [Section 9](#9-end-effector-compatibility))
+- `ros2_epick_gripper`: `main` (PickNikRobotics) -> `jazzy` (bondada-a fork, patched)
 - `serial`: stays on `ros2` branch
 - `pipettor`: stays on `main`
 
@@ -218,9 +218,9 @@ Added `jazzy_dev` to branch triggers in:
   `v0.2.0-jazzy` tag, but the current remote works fine
 
 ### Robotiq EPick (ros2_epick_gripper)
-- **Repo:** `PickNikRobotics/ros2_epick_gripper`
-- **Branch:** `main`
-- **Status:** INCOMPATIBLE with Jazzy — build fails
+- **Repo:** `bondada-a/ros2_epick_gripper` (forked from PickNikRobotics)
+- **Branch:** `jazzy`
+- **Status:** PATCHED for Jazzy — build fix applied
 - **Root Cause:** `ros2_control` API breaking change (PR ros-controls/ros2_control#1683, merged 2024-08-26)
 
   In Jazzy's `ros2_control` (v4.17.0+), the method `set_state(rclcpp_lifecycle::State)` for
@@ -247,15 +247,18 @@ Added `jazzy_dev` to branch triggers in:
 - **Upstream status:** No Jazzy issues or PRs filed. Last commit was Feb 2024.
   Repo is dormant — 3 open issues with no responses, no activity in over a year.
 
-- **Fix if needed (fork/patch):**
-  1. **Mandatory:** Replace 4x `set_state(rclcpp_lifecycle::State(...))` with
+- **Fix applied (bondada-a/ros2_epick_gripper, jazzy branch):**
+  1. **Done:** Replaced 4x `set_state(rclcpp_lifecycle::State(...))` with
      `set_lifecycle_state(rclcpp_lifecycle::State(...))`
-  2. **Recommended:** Update `on_init` signature to `HardwareComponentInterfaceParams&`
-  3. **Optional:** Migrate `export_state_interfaces()` -> `on_export_state_interfaces()`
-     with `SharedPtr` return types
+  2. **Done:** Changed `on_init` to use `info_` (base-class-populated) for factory creation,
+     forward-compatible with `HardwareComponentInterfaceParams` signature
+  3. **Deferred:** `export_state_interfaces()` -> `on_export_state_interfaces()` (deprecated but
+     still compiles; even robotiq_hande_driver jazzy-devel keeps the old signature)
 
-- **Skipped packages in Docker build:** `epick_moveit_studio`, `epick_driver`, `epick_description`,
-  `epick_controllers`, `epick_hardware_tests`, `epick_moveit_plugin`
+- **Previously skipped packages in Docker build (now buildable):**
+  `epick_driver`, `epick_description`, `epick_controllers`, `epick_hardware_tests`,
+  `epick_moveit_plugin`
+- **Still skipped:** `epick_moveit_studio` (depends on paywalled MoveIt Studio)
 
 ### Serial
 - **Branch:** `ros2`
