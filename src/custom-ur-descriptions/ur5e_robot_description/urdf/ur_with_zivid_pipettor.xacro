@@ -51,7 +51,6 @@
   <xacro:arg name="tool_tcp_port" default="54321" />
 
   <!-- Simulation parameters -->
-  <xacro:arg name="use_mock_hardware" default="false" />
   <xacro:arg name="fake_sensor_commands" default="false" />
   <xacro:arg name="sim_gazebo" default="false" />
   <xacro:arg name="sim_ignition" default="false" />
@@ -78,7 +77,6 @@
     safety_limits="$(arg safety_limits)"
     safety_pos_margin="$(arg safety_pos_margin)"
     safety_k_position="$(arg safety_k_position)"
-    use_mock_hardware="$(arg use_mock_hardware)"
     fake_sensor_commands="$(arg fake_sensor_commands)"
     sim_gazebo="$(arg sim_gazebo)"
     sim_ignition="$(arg sim_ignition)"
