@@ -189,13 +189,19 @@ No Humble-specific cmake flags found. All packages use standard CMake 3.8+ patte
 
 ## Build Notes
 
-- **2026-03-04/05:** All migration phases completed. Docker colcon build: 20/20 packages pass.
+- **2026-03-04/05:** All migration phases completed.
+- **Ad-hoc colcon build test:** 20/20 EROBS packages pass in Docker container.
+- **Full production Docker build:** 37/37 packages pass (`erobs-jazzy:latest`, 11.4GB).
 - **Zivid SDK:** u24 packages confirmed at `downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u24/amd64/`.
-- **Packages skipped in build** (external deps, not part of EROBS):
+- **Packages skipped in Docker build** (external, incompatible with Jazzy ros2_control):
   - ZED: `zed_components`, `zed_ros2`, `zed_wrapper`, `zed_debug`
-  - Zivid: `zivid_camera`, `zivid_interfaces` (need source from zivid-ros)
-  - End effectors: `robotiq_hande_*`, `epick_*`, `serial`, `pipette_driver`
-  - MTC: `moveit_task_constructor_*` (installed from apt as `ros-jazzy-moveit-task-constructor-core`)
+  - EPick: `epick_moveit_studio`, `epick_driver`, `epick_description`, `epick_controllers`, `epick_hardware_tests`, `epick_moveit_plugin`
+- **Packages that build successfully from source:**
+  - `zivid_camera`, `zivid_interfaces`, `zivid_description`, `zivid_rviz_plugin`, `zivid_samples`
+  - `robotiq_hande_driver` (jazzy-devel), `robotiq_hande_description` (humble-devel)
+  - `serial`, `pipette_driver`
+  - All `moveit_task_constructor_*` packages (from jazzy branch)
 - **Remaining warnings** (non-blocking, pre-existing):
   - `pdf_beamtime`: unused parameter warning, overloaded-virtual warning
+  - `rviz_marker_tools`, `moveit_task_constructor_*`: cmake build type info messages
 
