@@ -18,11 +18,11 @@ Sending data through socket failed.
 Likely caused by network latency/jitter in Docker/VM environments. The UR driver's keepalive mechanism times out before packets arrive, causing it to think the connection is lost. When the delayed packet arrives, it's treated as a "new" connection attempt on an already-connected port.
 
 ### Attempted Fix
-Increased `keep_alive_count` parameter in URDF xacro files:
+Increased the receive timeout parameter in URDF xacro files:
 
 ```xml
-<!-- Keep-alive: number of 20ms cycles without response before disconnect -->
-<xacro:arg name="keep_alive_count" default="10"/>  <!-- 10 × 20ms = 200ms timeout -->
+<!-- Jazzy: robot_receive_timeout in seconds (was keep_alive_count in Humble) -->
+<xacro:arg name="robot_receive_timeout" default="0.2"/>  <!-- 200ms timeout -->
 ```
 
 **Status**: Preliminary testing suggests this helps, but not fully validated.
