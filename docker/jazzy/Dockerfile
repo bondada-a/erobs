@@ -89,7 +89,7 @@ RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
     colcon build --packages-skip \
       zed_components zed_ros2 zed_wrapper zed_debug \
       epick_moveit_studio \
-      epick_driver epick_description epick_controllers epick_hardware_tests"
+      epick_driver epick_description epick_controllers epick_hardware_tests epick_moveit_plugin"
 
 ENV ROBOT_IP=10.69.26.90
 ENV REVERSE_IP=10.69.26.42
