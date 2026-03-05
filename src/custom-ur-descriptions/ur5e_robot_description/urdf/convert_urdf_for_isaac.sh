@@ -24,7 +24,7 @@ if [ ! -f "$INPUT" ]; then
 fi
 
 # Package mappings - add more as needed
-sed -e 's|package://ur_description|/opt/ros/humble/share/ur_description|g' \
+sed -e 's|package://ur_description|/opt/ros/jazzy/share/ur_description|g' \
     -e 's|package://zivid_description|/home/aditya/work/github_ws/experimental/src/vision/zivid-ros/zivid_description|g' \
     -e 's|package://ur5e_robot_description|/home/aditya/work/github_ws/experimental/src/custom-ur-descriptions/ur5e_robot_description|g' \
     -e 's|package://robotiq_hande_description|/home/aditya/work/github_ws/experimental/src/end_effectors/robotiq_hande_description|g' \
