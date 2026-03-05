@@ -153,24 +153,24 @@ No Humble-specific cmake flags found. All packages use standard CMake 3.8+ patte
 - **MTC segfault in Jazzy:** Fixed with lazy initialization of rclcpp node (commit 499af1d)
 - **zivid-ros:** Not in ROS index — needs source build. Skip for now.
 - **mtc_gui README:** References `mtc_pipeline` — actually renamed to `beambot`. Note only, don't fix.
-- **numpy<2 pin:** May no longer be needed in Jazzy (check compatibility)
-- **Zivid SDK:** Version 2.17.2 installed for Ubuntu 22.04 — need Ubuntu 24.04 version
+- **numpy<2 pin:** Not needed in Jazzy — removed from Jazzy Dockerfile.
+- **Zivid SDK:** Version 2.17.2 u24 packages confirmed available for Ubuntu 24.04.
 
 ---
 
 ## 10. Migration Priority Order
 
-1. ✅ Python API: `warn()` → `warning()`
-2. ✅ UR Driver XACRO: `keep_alive_count` → `robot_receive_timeout`
-3. ✅ Isaac URDFs: update hardcoded humble paths
+1. ✅ Python API: `warn()` → `warning()` — 15 files, 47+ instances
+2. ✅ UR Driver XACRO: `keep_alive_count` → `robot_receive_timeout` — 12 files
+3. ✅ Isaac URDFs: update hardcoded humble paths — 5 files
 4. ✅ `.repos` files: update branch versions
-5. ✅ Shell scripts: update ROS_DISTRO and setup.bash paths
+5. ✅ Shell scripts: update ROS_DISTRO and setup.bash paths — 8 files
 6. ✅ Config files: `.mcp.json`, `pixi.toml`, `.devcontainer`
-7. ✅ Create Jazzy Dockerfile
-8. ⬜ Test Docker build (requires ROS/colcon environment)
-9. ⬜ Research end effector driver Jazzy branches
-   - `robotiq_hande_driver`: ✅ `jazzy-devel` branch exists
-   - `robotiq_hande_description`: ❌ no jazzy branch (stays on `humble-devel`)
+7. ✅ Create Jazzy Dockerfile (`docker/jazzy/Dockerfile`)
+8. ✅ Docker build test — **20/20 packages build successfully**
+9. ✅ Research end effector driver Jazzy branches
+   - `robotiq_hande_driver`: ✅ `jazzy-devel` branch exists, updated
+   - `robotiq_hande_description`: stays on `humble-devel` (no jazzy branch, but pure description pkg — works fine on Jazzy)
    - `ros2_epick_gripper`: stays on `main`
    - `serial`: stays on `ros2`
    - `pipettor`: stays on `main`
@@ -178,9 +178,24 @@ No Humble-specific cmake flags found. All packages use standard CMake 3.8+ patte
 
 ---
 
+## 11. Additional Build Fixes (discovered during colcon build)
+
+- **`cv_bridge` include:** `cv_bridge/cv_bridge.h` → `cv_bridge/cv_bridge.hpp` (Jazzy)
+- **MoveIt includes:** All `.h` headers → `.hpp` (deprecated in Jazzy MoveIt 2.12.x)
+- **`MoveGroupInterface::Plan`:** `trajectory_` member → `trajectory` (renamed in Jazzy)
+- **`computeCartesianPath`:** `jump_threshold` parameter deprecated — removed
+
+---
+
 ## Build Notes
 
-- **2026-03-04:** All code migration phases (1-7, 10) completed. No ROS/colcon environment available for build testing — needs to be tested in Docker or on a machine with ROS2 Jazzy installed.
-- **Zivid SDK:** The Jazzy Dockerfile uses `u24` URLs which need verification against actual Zivid download availability.
-- **numpy pin:** Removed from Jazzy Dockerfile (Jazzy packages should be numpy 2.x compatible).
+- **2026-03-04/05:** All migration phases completed. Docker colcon build: 20/20 packages pass.
+- **Zivid SDK:** u24 packages confirmed at `downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u24/amd64/`.
+- **Packages skipped in build** (external deps, not part of EROBS):
+  - ZED: `zed_components`, `zed_ros2`, `zed_wrapper`, `zed_debug`
+  - Zivid: `zivid_camera`, `zivid_interfaces` (need source from zivid-ros)
+  - End effectors: `robotiq_hande_*`, `epick_*`, `serial`, `pipette_driver`
+  - MTC: `moveit_task_constructor_*` (installed from apt as `ros-jazzy-moveit-task-constructor-core`)
+- **Remaining warnings** (non-blocking, pre-existing):
+  - `pdf_beamtime`: unused parameter warning, overloaded-virtual warning
 
