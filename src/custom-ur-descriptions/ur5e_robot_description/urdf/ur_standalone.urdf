@@ -93,7 +93,7 @@
       <param name="tool_tx_idle_chars">3.5</param>
       <param name="tool_device_name">/tmp/ttyUR</param>
       <param name="tool_tcp_port">54321</param>
-      <param name="keep_alive_count">2</param>
+      <param name="robot_receive_timeout">0.04</param>
     </hardware>
     <joint name="shoulder_pan_joint">
       <command_interface name="position"/>
