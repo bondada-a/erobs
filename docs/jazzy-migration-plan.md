@@ -187,38 +187,72 @@ Added `jazzy_dev` to branch triggers in:
 ## 9. End Effector Compatibility
 
 ### Robotiq HandE (robotiq_hande_driver)
-- **Branch:** `jazzy-devel` (PickNikRobotics/robotiq_hande_ros2_driver)
-- **Status:** Builds and works on Jazzy
+- **Repo:** `AGH-CEAI/robotiq_hande_driver` (formerly referenced as PickNikRobotics)
+- **Branch:** `jazzy-devel` (v0.2.0-jazzy, released 2025-08-25)
+- **Status:** Builds and works on Jazzy. Tested on real hardware by upstream.
 - **Notes:** Updated in `end_effectors.repos`
 
+- **Jazzy-specific changes in the driver:**
+  - Controller type changed: `position_controllers/GripperActionController` ->
+    `parallel_gripper_action_controller/GripperActionController`
+  - `on_init` signature: `HardwareInfo&` -> `HardwareComponentInterfaceParams&`
+  - New controller params: `max_effort_interface`, `max_velocity_interface`, `max_velocity`
+  - Deprecation warnings suppressed via `#pragma GCC diagnostic` for `loaned_state_interface.hpp`
+
+- **Warning: Missing bug fixes.** The `jazzy-devel` branch (v0.2.0) is 16 commits behind
+  `humble-devel` (v0.2.2). Important fixes NOT yet in `jazzy-devel`:
+  - **PR #34:** Double write of desired position — `write_output_bytes()` called with locked
+    mutex in time-critical block, causing ros2_control frequency hiccups with UR robots
+  - **PR #37:** Wait for ready state before starting communication — early comms hit
+    uninitialized device after activation
+  - If these cause issues, cherry-pick from `humble-devel` or request upstream port
+
+- **Known issue #36:** Effort control may not work correctly — `cmd_force_` constantly
+  overwritten to 1.0 regardless of commanded effort (reported against Jazzy config)
+
 ### Robotiq HandE Description (robotiq_hande_description)
-- **Branch:** `humble-devel` (no `jazzy-devel` branch exists)
+- **Repo:** `macmacal/robotiq_hande_description` (in `end_effectors.repos`)
+- **Branch:** `humble-devel` (no `jazzy-devel` branch at this remote)
 - **Status:** Works on Jazzy — pure URDF/mesh description package with no ROS-version-specific APIs
-- **Notes:** No changes needed
+- **Note:** Upstream `AGH-CEAI/robotiq_hande_description` does have `jazzy-devel` and a
+  `v0.2.0-jazzy` tag, but the current remote works fine
 
 ### Robotiq EPick (ros2_epick_gripper)
-- **Branch:** `main` (PickNikRobotics/ros2_epick_gripper)
+- **Repo:** `PickNikRobotics/ros2_epick_gripper`
+- **Branch:** `main`
 - **Status:** INCOMPATIBLE with Jazzy — build fails
-- **Root Cause:** `ros2_control` API breaking change in Jazzy
+- **Root Cause:** `ros2_control` API breaking change (PR ros-controls/ros2_control#1683, merged 2024-08-26)
 
-  In Jazzy's `ros2_control` (v4.x), the method `set_state(rclcpp_lifecycle::State)` for setting
-  lifecycle state was renamed to `set_lifecycle_state()`. The name `set_state()` was repurposed
-  as a template method for setting hardware state interface values.
+  In Jazzy's `ros2_control` (v4.17.0+), the method `set_state(rclcpp_lifecycle::State)` for
+  setting lifecycle state was renamed to `set_lifecycle_state()`. The name `set_state()` was
+  repurposed as a template method for setting hardware state interface values.
 
   The `epick_driver` calls `set_state(rclcpp_lifecycle::State(...))` in 4 locations
   (`epick_gripper_hardware_interface.cpp` lines 173, 198, 262, 282), which no longer
-  matches any overload.
+  matches any overload. Exact compiler error:
 
-  Additionally, `export_state_interfaces()` / `export_command_interfaces()` are deprecated
-  in favor of `on_export_state_interfaces()` / `on_export_command_interfaces()` with shared
-  pointer return types. This is a deprecation warning only (not a build break yet).
+  ```
+  error: no matching function for call to
+    'EpickGripperHardwareInterface::set_state(rclcpp_lifecycle::State)'
+  note: candidate: 'template<class T> bool
+    HardwareComponentInterface::set_state(const SharedPtr&, const T&, bool)'
+  note: candidate expects 3 arguments, 1 provided
+  ```
+
+  Additionally deprecated (still compiles with warnings):
+  - `on_init(const HardwareInfo&)` -> `on_init(const HardwareComponentInterfaceParams&)`
+  - `export_state_interfaces()` -> `on_export_state_interfaces()` (shared pointer return)
+  - `export_command_interfaces()` -> `on_export_command_interfaces()` (shared pointer return)
 
 - **Upstream status:** No Jazzy issues or PRs filed. Last commit was Feb 2024.
-  Repo appears low-maintenance (3 open issues, no activity in over a year).
+  Repo is dormant — 3 open issues with no responses, no activity in over a year.
 
 - **Fix if needed (fork/patch):**
-  1. Replace 4x `set_state(rclcpp_lifecycle::State(...))` with `set_lifecycle_state(rclcpp_lifecycle::State(...))`
-  2. Optionally update `export_state_interfaces()` -> `on_export_state_interfaces()` (not strictly required yet)
+  1. **Mandatory:** Replace 4x `set_state(rclcpp_lifecycle::State(...))` with
+     `set_lifecycle_state(rclcpp_lifecycle::State(...))`
+  2. **Recommended:** Update `on_init` signature to `HardwareComponentInterfaceParams&`
+  3. **Optional:** Migrate `export_state_interfaces()` -> `on_export_state_interfaces()`
+     with `SharedPtr` return types
 
 - **Skipped packages in Docker build:** `epick_moveit_studio`, `epick_driver`, `epick_description`,
   `epick_controllers`, `epick_hardware_tests`, `epick_moveit_plugin`
@@ -301,6 +335,9 @@ Manual testing for when hardware is available:
 
 ### End Effectors
 - [ ] **HandE gripper:** Launch `robotiq_hande_driver`, verify open/close commands work
+- [ ] **HandE gripper:** Watch for ros2_control frequency hiccups (PR #34 fix missing from jazzy-devel)
+- [ ] **HandE gripper:** Verify activation sequence doesn't fail on startup (PR #37 fix missing)
+- [ ] **HandE gripper:** Test effort/force control — known issue #36 may cause max force regardless of command
 - [ ] **Pipettor:** Launch pipettor node, verify serial communication
 - [ ] **EPick gripper:** Not available until upstream fix or fork (see [Section 9](#9-end-effector-compatibility))
 
