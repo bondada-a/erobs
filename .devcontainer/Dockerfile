@@ -1,11 +1,11 @@
-FROM --platform=linux/amd64 althack/ros2:humble-full
+FROM --platform=linux/amd64 althack/ros2:jazzy-full
 
 # ** [Optional] Uncomment this section to install additional packages. **
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
         && apt-get -y install --no-install-recommends \
         python3-pip \
-        python3.10-venv \
+        python3-venv \
         ros-${ROS_DISTRO}-rclpy \
         ros-${ROS_DISTRO}-ur \
         ros-${ROS_DISTRO}-moveit\
