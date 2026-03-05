@@ -3,17 +3,59 @@
 **From:** ROS2 Humble Hawksbill (Ubuntu 22.04)
 **To:** ROS2 Jazzy Jalisco (Ubuntu 24.04 Noble Numbat)
 **Branch:** `jazzy_dev`
-**Date:** 2026-03-03
+**Started:** 2026-03-03
+**Completed:** 2026-03-05
 
 ---
 
-## 1. Python API Changes
+## Status: COMPLETE
 
-### 1.1 `warn()` → `warning()` (56+ instances across 15 files)
+All source code migrated. Production Docker image builds 37/37 packages.
+Smoke test passes 31/31 checks. Branch pushed to GitHub.
 
-The `get_logger().warn()` method is deprecated in Jazzy. Must change to `.warning()`.
+---
 
-**Files to update:**
+## Table of Contents
+
+1. [Migration Summary](#1-migration-summary)
+2. [Python API Changes](#2-python-api-changes)
+3. [UR Driver XACRO Changes](#3-ur-driver-xacro-changes)
+4. [C++ Build Fixes](#4-c-build-fixes-discovered-during-colcon-build)
+5. [External Repository References](#5-external-repository-references)
+6. [Dockerfiles](#6-dockerfiles)
+7. [Shell Scripts & Configuration](#7-shell-scripts--configuration)
+8. [CI/CD Workflows](#8-cicd-workflows)
+9. [End Effector Compatibility](#9-end-effector-compatibility)
+10. [Known Issues & Notes](#10-known-issues--notes)
+11. [Build Results](#11-build-results)
+12. [Testing Checklist](#12-testing-checklist)
+
+---
+
+## 1. Migration Summary
+
+| Phase | Description | Files | Status |
+|-------|-------------|-------|--------|
+| 1 | Python `warn()` -> `warning()` | 15 | Done |
+| 2 | UR XACRO `keep_alive_count` -> `robot_receive_timeout` | 12 | Done |
+| 3 | Isaac URDF paths `/opt/ros/humble` -> `/opt/ros/jazzy` | 5 | Done |
+| 4 | `.repos` file branch updates | 2 | Done |
+| 5 | Shell scripts `ROS_DISTRO` and paths | 8 | Done |
+| 6 | Config files (`.mcp.json`, `pixi.toml`, `.devcontainer`) | 3 | Done |
+| 7 | Jazzy Dockerfile + `.dockerignore` | 2 new | Done |
+| 8 | C++ build fixes (MoveIt `.hpp`, cv_bridge, trajectory) | 9 | Done |
+| 9 | CI/CD workflow updates | 3 | Done |
+| 10 | End effector driver research | — | Done |
+| 11 | Docker build test (37/37 packages) | — | Done |
+| 12 | Smoke test script | 1 new | Done |
+
+---
+
+## 2. Python API Changes
+
+### `warn()` -> `warning()` (47+ instances across 15 files)
+
+The `get_logger().warn()` method is deprecated in Jazzy. Changed to `.warning()`.
 
 | File | Instances |
 |------|-----------|
@@ -35,173 +77,250 @@ The `get_logger().warn()` method is deprecated in Jazzy. Must change to `.warnin
 
 ---
 
-## 2. UR Driver XACRO Changes
+## 3. UR Driver XACRO Changes
 
-### 2.1 `keep_alive_count` → `robot_receive_timeout`
+### 3.1 `keep_alive_count` -> `robot_receive_timeout`
 
-The UR driver parameter was renamed in the Jazzy-compatible ur_robot_driver.
+The UR driver renamed this parameter in the Jazzy-compatible `ur_robot_driver`. The old parameter was an integer count (multiplied by 20ms internally); the new parameter is a float in seconds.
 
-**Auto-generated URDF files** (will be regenerated from XACRO):
-- `src/custom-ur-descriptions/ur5e_robot_description/urdf/ur_with_zivid_pipettor.urdf`
-- `src/custom-ur-descriptions/ur5e_robot_description/urdf/ur_with_zivid_hande.urdf`
-- `src/custom-ur-descriptions/ur5e_robot_description/urdf/ur_with_zivid_epick.urdf`
-- `src/custom-ur-descriptions/ur5e_robot_description/urdf/ur_standalone.urdf`
-- `src/custom-ur-descriptions/ur5e_robot_description/urdf/*_isaac.urdf` (4 files)
+```xml
+<!-- Humble: keep_alive_count (integer, count * 20ms) -->
+<xacro:arg name="keep_alive_count" default="2"/>  <!-- 40ms -->
 
-**Source XACRO files** (need to check if `keep_alive_count` is parameterized via `ur.ros2_control.xacro` include):
-- `src/custom-ur-descriptions/ur3e_hande_moveit_config/config/ur.ros2_control.xacro`
-- `src/custom-ur-descriptions/ur5e_moveit_configs/*/config/ur.ros2_control.xacro` (4 files)
+<!-- Jazzy: robot_receive_timeout (float, seconds) -->
+<xacro:arg name="robot_receive_timeout" default="0.2"/>  <!-- 200ms -->
+```
 
-### 2.2 Isaac URDF Hardcoded Paths
+**Files updated (12):**
+- 4 XACRO source files in `src/custom-ur-descriptions/ur5e_robot_description/urdf/`
+- 4 URDF generated files (matching)
+- 4 Isaac URDF files (matching)
 
-4 Isaac URDF files contain hardcoded `/opt/ros/humble/share/ur_description/meshes/...` paths.
-- Need to update to `/opt/ros/jazzy/share/ur_description/meshes/...`
-- Also update `convert_urdf_for_isaac.sh` which generates these
+### 3.2 Isaac URDF Hardcoded Paths
+
+Updated `/opt/ros/humble/share/ur_description/meshes/...` to `/opt/ros/jazzy/share/...` in:
+- 4 `*_isaac.urdf` files
+- `convert_urdf_for_isaac.sh`
 
 ---
 
-## 3. External Repository References
+## 4. C++ Build Fixes (discovered during colcon build)
 
-### 3.1 `src/ros2.repos`
-- `moveit_task_constructor`: version `humble` → `jazzy`
+| Change | Files | Details |
+|--------|-------|---------|
+| `cv_bridge/cv_bridge.h` -> `.hpp` | 1 | `aruco_pose/aruco_pose.hpp` |
+| MoveIt `.h` includes -> `.hpp` | 7 | All MoveIt headers renamed in Jazzy 2.12.x |
+| `plan.trajectory_` -> `plan.trajectory` | 1 | Member renamed in `MoveGroupInterface::Plan` |
+| `computeCartesianPath` jump_threshold removed | 1 | `jump_threshold` parameter deprecated |
 
-### 3.2 `src/end_effectors/end_effectors.repos`
-- `robotiq_hande_driver`: version `humble-devel` → check for `jazzy-devel` branch
-- `robotiq_hande_description`: version `humble-devel` → check for `jazzy-devel` branch
-- `ros2_epick_gripper`: stays on `main` (check compatibility)
+**MoveIt header files updated:**
+- `src/pdf/pdf_beamtime/include/pdf_beamtime/pdf_beamtime_server.hpp`
+- `src/pdf/pdf_beamtime/include/pdf_beamtime/tf_utilities.hpp`
+- `src/pdf/pdf_beamtime/include/pdf_beamtime/inner_state_machine.hpp`
+- `src/demos/hello_moveit/src/hello_moveit.cpp`
+- `src/demos/hello_moveit/src/pick_place_repeat_server.cpp`
+- `src/demos/hello_moveit/src/pose_subscriber.cpp`
+- `src/demos/hello_orchestrator/src/move_server.cpp`
+
+---
+
+## 5. External Repository References
+
+### `src/ros2.repos`
+- `moveit_task_constructor`: `humble` -> `jazzy`
+
+### `src/end_effectors/end_effectors.repos`
+- `robotiq_hande_driver`: `humble-devel` -> `jazzy-devel`
+- `robotiq_hande_description`: stays on `humble-devel` (pure description pkg, works on Jazzy)
+- `ros2_epick_gripper`: stays on `main` (incompatible, see [Section 9](#9-end-effector-compatibility))
 - `serial`: stays on `ros2` branch
 - `pipettor`: stays on `main`
 
-### 3.3 Vision Repos
-- Check `src/vision/vision.repos` for humble-pinned branches
-- `zivid-ros`: Not in ROS index, needs source build (skip for now, document)
+### `src/vision/vision.repos`
+- `zivid-ros`: no changes needed (no branch pin)
+- `zed-ros2-wrapper`: no changes needed (skipped in build, no hardware)
 
 ---
 
-## 4. Dockerfiles
+## 6. Dockerfiles
 
-All existing Dockerfiles use `osrf/ros:humble-desktop-full`. The new Jazzy Dockerfile will use `osrf/ros:jazzy-desktop-full` with Ubuntu 24.04 (Noble Numbat).
+**New:** `docker/jazzy/Dockerfile` — production Jazzy image based on `osrf/ros:jazzy-desktop-full`
 
-**Existing Dockerfiles (NOT modified — Humble-specific):**
+**Also new:** `.dockerignore` — reduces build context from 735MB to ~1KB (Dockerfile clones from git)
+
+**Existing Humble Dockerfiles (NOT modified):**
 - `docker/erobs-common-img/Dockerfile`
 - `docker/beambot_img/Dockerfile`
-- `docker/ur-driver/Dockerfile`
-- `docker/ur-moveit/Dockerfile`
-- `docker/bsui/Dockerfile`
-- `docker/bsui-minimal/Dockerfile`
-- `docker/erobs_hello_moveit/Dockerfile`
-- `docker/ur-example/Dockerfile`
-- `docker/azure-kinect/Dockerfile.txt`
-
-**New:** `docker/jazzy/Dockerfile` — built for Jazzy + Ubuntu 24.04
+- `docker/ur-driver/Dockerfile`, `docker/ur-moveit/Dockerfile`
+- `docker/bsui/Dockerfile`, `docker/bsui-minimal/Dockerfile`
+- `docker/erobs_hello_moveit/Dockerfile`, `docker/ur-example/Dockerfile`
 
 ---
 
-## 5. Shell Scripts & Configuration
+## 7. Shell Scripts & Configuration
 
-### 5.1 Launch Scripts (`scripts/pdf-launch-scripts/`)
-6 scripts with `ROS_DISTRO=humble`:
-- `ur-driver-launch.sh`
-- `mtc-moveit-launch.sh`
-- `sample-movement-server-launch.sh`
-- `hello-talker.sh`
-- `ur-hande-driver-launch.sh`
-- `robotiq-driver-launch.sh`
+### Launch Scripts (`scripts/pdf-launch-scripts/`)
+Updated `ROS_DISTRO=humble` -> `jazzy` in 6 scripts:
+`ur-driver-launch.sh`, `mtc-moveit-launch.sh`, `sample-movement-server-launch.sh`,
+`hello-talker.sh`, `ur-hande-driver-launch.sh`, `robotiq-driver-launch.sh`
 
-### 5.2 Other Config Files
-- `start_mcp.sh`: sources `/opt/ros/humble/setup.bash`
-- `.mcp.json`: sources `/opt/ros/humble/setup.bash`
-- `pixi.toml`: uses `robostack-humble` channel
-- `.devcontainer/Dockerfile`: uses `althack/ros2:humble-full`
-- `src/bluesky_ros/archive/local_bsui.sh`: references Humble
+### Other Config Files
+| File | Change |
+|------|--------|
+| `start_mcp.sh` | `/opt/ros/humble/setup.bash` -> `/opt/ros/jazzy/setup.bash` |
+| `.mcp.json` | Same path update |
+| `pixi.toml` | `robostack-humble` -> `robostack-jazzy` |
+| `.devcontainer/Dockerfile` | `althack/ros2:humble-full` -> `althack/ros2:jazzy-full` |
+| `src/bluesky_ros/archive/local_bsui.sh` | Setup.bash path |
 
 ---
 
-## 6. CI/CD Workflows
+## 8. CI/CD Workflows
 
-- `.github/workflows/ros.yaml`: branches `[main, humble]`
-- `.github/workflows/ruff.yml`: branches `[main, humble]`
-- `.github/workflows/super-linter.yml`: branches `[main, humble]`, DEFAULT_BRANCH: `humble`
-
-These should be updated to include `jazzy_dev` / `jazzy` branch references.
-
----
-
-## 7. Package Dependencies (package.xml)
-
-No Humble-specific references in any package.xml files. All 19 packages use standard ROS2 APIs:
-- 18 use `ament_cmake`
-- 1 uses `ament_python` (mtc_gui)
-
-Key dependencies to verify for Jazzy availability:
-- `moveit_ros_planning_interface`
-- `moveit_task_constructor_core`
-- `ur_robot_driver`
-- `cv_bridge`
-- `zivid_interfaces` (custom — will build from source)
+Added `jazzy_dev` to branch triggers in:
+- `.github/workflows/ros.yaml`
+- `.github/workflows/ruff.yml`
+- `.github/workflows/super-linter.yml`
 
 ---
 
-## 8. CMakeLists.txt
+## 9. End Effector Compatibility
 
-No Humble-specific cmake flags found. All packages use standard CMake 3.8+ patterns.
+### Robotiq HandE (robotiq_hande_driver)
+- **Branch:** `jazzy-devel` (PickNikRobotics/robotiq_hande_ros2_driver)
+- **Status:** Builds and works on Jazzy
+- **Notes:** Updated in `end_effectors.repos`
+
+### Robotiq HandE Description (robotiq_hande_description)
+- **Branch:** `humble-devel` (no `jazzy-devel` branch exists)
+- **Status:** Works on Jazzy — pure URDF/mesh description package with no ROS-version-specific APIs
+- **Notes:** No changes needed
+
+### Robotiq EPick (ros2_epick_gripper)
+- **Branch:** `main` (PickNikRobotics/ros2_epick_gripper)
+- **Status:** INCOMPATIBLE with Jazzy — build fails
+- **Root Cause:** `ros2_control` API breaking change in Jazzy
+
+  In Jazzy's `ros2_control` (v4.x), the method `set_state(rclcpp_lifecycle::State)` for setting
+  lifecycle state was renamed to `set_lifecycle_state()`. The name `set_state()` was repurposed
+  as a template method for setting hardware state interface values.
+
+  The `epick_driver` calls `set_state(rclcpp_lifecycle::State(...))` in 4 locations
+  (`epick_gripper_hardware_interface.cpp` lines 173, 198, 262, 282), which no longer
+  matches any overload.
+
+  Additionally, `export_state_interfaces()` / `export_command_interfaces()` are deprecated
+  in favor of `on_export_state_interfaces()` / `on_export_command_interfaces()` with shared
+  pointer return types. This is a deprecation warning only (not a build break yet).
+
+- **Upstream status:** No Jazzy issues or PRs filed. Last commit was Feb 2024.
+  Repo appears low-maintenance (3 open issues, no activity in over a year).
+
+- **Fix if needed (fork/patch):**
+  1. Replace 4x `set_state(rclcpp_lifecycle::State(...))` with `set_lifecycle_state(rclcpp_lifecycle::State(...))`
+  2. Optionally update `export_state_interfaces()` -> `on_export_state_interfaces()` (not strictly required yet)
+
+- **Skipped packages in Docker build:** `epick_moveit_studio`, `epick_driver`, `epick_description`,
+  `epick_controllers`, `epick_hardware_tests`, `epick_moveit_plugin`
+
+### Serial
+- **Branch:** `ros2`
+- **Status:** Builds fine on Jazzy
+
+### Pipettor
+- **Branch:** `main`
+- **Status:** Builds fine on Jazzy (pure Python, no ROS-version-specific APIs)
 
 ---
 
-## 9. Known Issues & Notes
+## 10. Known Issues & Notes
 
 - **MTC segfault in Jazzy:** Fixed with lazy initialization of rclcpp node (commit 499af1d)
-- **zivid-ros:** Not in ROS index — needs source build. Skip for now.
-- **mtc_gui README:** References `mtc_pipeline` — actually renamed to `beambot`. Note only, don't fix.
-- **numpy<2 pin:** Not needed in Jazzy — removed from Jazzy Dockerfile.
-- **Zivid SDK:** Version 2.17.2 u24 packages confirmed available for Ubuntu 24.04.
+- **zivid-ros:** Not in ROS index — builds from source successfully in Docker
+- **Zivid SDK:** Version 2.17.2 u24 packages confirmed for Ubuntu 24.04
+- **numpy<2 pin:** Not needed in Jazzy
+- **`robot_receive_timeout`:** Set to 0.2s (200ms) to handle Docker/VM network latency. Needs hardware validation. See `docs/development_notes.md`.
+
+### Intentionally Kept Humble References
+- Existing Humble Dockerfiles in `docker/` (still used for Humble deployments)
+- Documentation/README files mentioning Humble
+- CI branch lists (still trigger on Humble branches)
+- `super-linter.yml` DEFAULT_BRANCH: `humble`
+- `robotiq_hande_description`: `humble-devel` (no jazzy branch, works fine)
 
 ---
 
-## 10. Migration Priority Order
+## 11. Build Results
 
-1. ✅ Python API: `warn()` → `warning()` — 15 files, 47+ instances
-2. ✅ UR Driver XACRO: `keep_alive_count` → `robot_receive_timeout` — 12 files
-3. ✅ Isaac URDFs: update hardcoded humble paths — 5 files
-4. ✅ `.repos` files: update branch versions
-5. ✅ Shell scripts: update ROS_DISTRO and setup.bash paths — 8 files
-6. ✅ Config files: `.mcp.json`, `pixi.toml`, `.devcontainer`
-7. ✅ Create Jazzy Dockerfile (`docker/jazzy/Dockerfile`)
-8. ✅ Docker build test — **20/20 packages build successfully**
-9. ✅ Research end effector driver Jazzy branches
-   - `robotiq_hande_driver`: ✅ `jazzy-devel` branch exists, updated
-   - `robotiq_hande_description`: stays on `humble-devel` (no jazzy branch, but pure description pkg — works fine on Jazzy)
-   - `ros2_epick_gripper`: stays on `main`
-   - `serial`: stays on `ros2`
-   - `pipettor`: stays on `main`
-10. ✅ CI/CD workflow updates
+### Production Docker Image
+- **Image:** `erobs-jazzy:latest` (11.4GB)
+- **Base:** `osrf/ros:jazzy-desktop-full`
+- **Result:** 37/37 packages built, 0 failures
 
----
+### Packages Built Successfully (37)
+Includes all EROBS source packages plus:
+- `zivid_camera`, `zivid_interfaces`, `zivid_description`, `zivid_rviz_plugin`, `zivid_samples`
+- `robotiq_hande_driver` (jazzy-devel), `robotiq_hande_description` (humble-devel)
+- `serial`, `pipette_driver`, `pipette_description`
+- All `moveit_task_constructor_*` packages (from jazzy branch)
 
-## 11. Additional Build Fixes (discovered during colcon build)
+### Packages Skipped (10) — Intentional
+- **ZED** (no hardware/SDK): `zed_components`, `zed_ros2`, `zed_wrapper`, `zed_debug`
+- **EPick** (ros2_control API incompatible): `epick_moveit_studio`, `epick_driver`, `epick_description`, `epick_controllers`, `epick_hardware_tests`, `epick_moveit_plugin`
 
-- **`cv_bridge` include:** `cv_bridge/cv_bridge.h` → `cv_bridge/cv_bridge.hpp` (Jazzy)
-- **MoveIt includes:** All `.h` headers → `.hpp` (deprecated in Jazzy MoveIt 2.12.x)
-- **`MoveGroupInterface::Plan`:** `trajectory_` member → `trajectory` (renamed in Jazzy)
-- **`computeCartesianPath`:** `jump_threshold` parameter deprecated — removed
+### Build Warnings (non-blocking)
+- `pdf_beamtime`: unused parameter, overloaded-virtual (pre-existing)
+- `rviz_marker_tools`, `moveit_task_constructor_*`: cmake build type info messages
+
+### Smoke Test
+Run `./scripts/jazzy-smoke-test.sh` — tests 31 checks including package presence, Python imports, Zivid SDK, MoveIt, and UR driver availability. All pass.
 
 ---
 
-## Build Notes
+## 12. Testing Checklist
 
-- **2026-03-04/05:** All migration phases completed.
-- **Ad-hoc colcon build test:** 20/20 EROBS packages pass in Docker container.
-- **Full production Docker build:** 37/37 packages pass (`erobs-jazzy:latest`, 11.4GB).
-- **Zivid SDK:** u24 packages confirmed at `downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u24/amd64/`.
-- **Packages skipped in Docker build** (external, incompatible with Jazzy ros2_control):
-  - ZED: `zed_components`, `zed_ros2`, `zed_wrapper`, `zed_debug`
-  - EPick: `epick_moveit_studio`, `epick_driver`, `epick_description`, `epick_controllers`, `epick_hardware_tests`, `epick_moveit_plugin`
-- **Packages that build successfully from source:**
-  - `zivid_camera`, `zivid_interfaces`, `zivid_description`, `zivid_rviz_plugin`, `zivid_samples`
-  - `robotiq_hande_driver` (jazzy-devel), `robotiq_hande_description` (humble-devel)
-  - `serial`, `pipette_driver`
-  - All `moveit_task_constructor_*` packages (from jazzy branch)
-- **Remaining warnings** (non-blocking, pre-existing):
-  - `pdf_beamtime`: unused parameter warning, overloaded-virtual warning
-  - `rviz_marker_tools`, `moveit_task_constructor_*`: cmake build type info messages
+Manual testing for when hardware is available:
 
+### Docker Image Basics
+- [ ] `docker run --rm erobs-jazzy:latest bash` — container starts
+- [ ] `./scripts/jazzy-smoke-test.sh` — all 31 checks pass
+- [ ] VNC accessible on port 5901 (for RViz)
+
+### UR Robot (requires UR5e on network)
+- [ ] Launch UR driver: `ros2 launch ur_robot_driver ur_control.launch.py ur_type:=ur5e robot_ip:=<IP>`
+- [ ] Verify `robot_receive_timeout=0.2` works (no "Connection to reverse interface dropped" errors)
+- [ ] If connection drops persist, try increasing `robot_receive_timeout` to 0.5 or 1.0 in XACRO
+- [ ] MoveIt planning works: `ros2 launch ur5e_moveit_configs ur5e_moveit.launch.py`
+- [ ] Execute a simple joint move via MoveIt
+- [ ] Execute a Cartesian path via MoveIt
+
+### MTC Pipeline
+- [ ] Launch MTC demo: verify `moveit_task_constructor_demo` node starts without segfault
+- [ ] Run a pick-and-place pipeline through beambot action server
+- [ ] Verify MTC planning scene publishes correctly
+
+### End Effectors
+- [ ] **HandE gripper:** Launch `robotiq_hande_driver`, verify open/close commands work
+- [ ] **Pipettor:** Launch pipettor node, verify serial communication
+- [ ] **EPick gripper:** Not available until upstream fix or fork (see [Section 9](#9-end-effector-compatibility))
+
+### Zivid Camera (requires Zivid hardware)
+- [ ] `ros2 launch zivid_camera zivid_camera.launch.py` — camera node starts
+- [ ] Verify point cloud topic publishes (`ros2 topic echo /zivid/points`)
+- [ ] Verify 2D image topic publishes
+
+### Beambot Integration
+- [ ] Launch full beambot stack
+- [ ] Run vision pipeline (aruco detection, wafer detection)
+- [ ] Run orchestrator action server
+- [ ] End-to-end pick-and-place with vision
+
+### PDF Beamtime
+- [ ] Launch `pdf_beamtime` server
+- [ ] Verify Redis client connection
+- [ ] Run a sample movement sequence
+
+### Network / Multi-container
+- [ ] Verify ROS2 DDS discovery works between containers
+- [ ] Test with `ROBOT_IP` and `REVERSE_IP` environment variables set correctly
+- [ ] Confirm `socat` port forwarding if needed for VM setups
