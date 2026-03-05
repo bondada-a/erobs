@@ -62,7 +62,7 @@ def launch_setup(context, *args, **kwargs):
     kinematics_params_file = LaunchConfiguration("kinematics_params_file")
     tf_prefix = LaunchConfiguration("tf_prefix")
     use_fake_hardware = LaunchConfiguration("use_fake_hardware")
-    fake_sensor_commands = LaunchConfiguration("fake_sensor_commands")
+    mock_sensor_commands = LaunchConfiguration("mock_sensor_commands")
     controller_spawner_timeout = LaunchConfiguration("controller_spawner_timeout")
     initial_joint_controller = LaunchConfiguration("initial_joint_controller")
     activate_joint_controller = LaunchConfiguration("activate_joint_controller")
@@ -151,8 +151,8 @@ def launch_setup(context, *args, **kwargs):
             "use_fake_hardware:=",
             use_fake_hardware,
             " ",
-            "fake_sensor_commands:=",
-            fake_sensor_commands,
+            "mock_sensor_commands:=",
+            mock_sensor_commands,
             " ",
             "headless_mode:=",
             headless_mode,
@@ -504,7 +504,7 @@ def generate_launch_description():
     )
     declared_arguments.append(
         DeclareLaunchArgument(
-            "fake_sensor_commands",
+            "mock_sensor_commands",
             default_value="false",
             description="Enable fake command interfaces for sensors used for simple simulations. "
             "Used only if 'use_fake_hardware' parameter is true.",
