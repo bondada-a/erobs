@@ -320,7 +320,7 @@ class VisionStages(BaseStages):
         )
         return len(self._tag_pose_cache)
 
-    def run(self, goal) -> bool:
+    def run(self, goal) -> 'Optional[str]':
         """Execute VisionMoveTo action.
 
         Args:
@@ -333,7 +333,7 @@ class VisionStages(BaseStages):
                 - num_scan_positions: Number of scan positions (0 = single-position)
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string describing failure otherwise
         """
         # Optional: Wait for robot to settle BEFORE any detection
         # This ensures vibrations from the previous motion have damped out
@@ -371,8 +371,7 @@ class VisionStages(BaseStages):
             self.logger.info("Using circle detection")
             target_pose = self.detect_and_transform_circle(goal.timeout)
             if target_pose is None:
-                self.logger.error("Failed to detect circle/wafer")
-                return False
+                return "DETECTION_FAILED: Circle/wafer detection failed (no circles found in image)"
         elif detection_type == self.DETECTION_CONTOUR:
             # Get sample_index (default to 1 if not specified or 0)
             sample_index = getattr(goal, 'sample_index', 1)
@@ -384,8 +383,7 @@ class VisionStages(BaseStages):
                 timeout=goal.timeout
             )
             if target_pose is None:
-                self.logger.error(f"Failed to detect sample #{sample_index} via contour")
-                return False
+                return f"DETECTION_FAILED: Contour detection failed for sample #{sample_index}"
         else:
             # Marker detection - check cache first (populated by vision_scan task)
             cached_pose = self.get_cached_pose(goal.tag_id)
@@ -407,16 +405,18 @@ class VisionStages(BaseStages):
                     settle_time=self._settle_time
                 )
                 if target_pose is None:
-                    self.logger.error(
-                        f"Multi-position detection failed for tag {goal.tag_id}"
+                    return (
+                        f"DETECTION_FAILED: Multi-position detection failed for "
+                        f"ArUco tag {goal.tag_id} ({num_positions} positions attempted)"
                     )
-                    return False
             else:
                 # Single-position mode (existing behavior)
                 target_pose = self.detect_and_transform_tag(goal.tag_id, goal.timeout)
                 if target_pose is None:
-                    self.logger.error(f"Failed to detect tag {goal.tag_id}")
-                    return False
+                    return (
+                        f"DETECTION_FAILED: ArUco tag {goal.tag_id} not detected "
+                        f"(timeout: {goal.timeout}s, retries: {self._retry_count})"
+                    )
 
         return self._move_to_pose(target_pose, z_offset_override=z_offset_override)
 
@@ -1067,7 +1067,7 @@ class VisionStages(BaseStages):
         self,
         target: PoseStamped,
         z_offset_override: float = 0.0
-    ) -> bool:
+    ) -> 'Optional[str]':
         """Move robot to the target pose with orientation adjustment.
 
         Applies sample XY offset, 180° Z rotation, and z_offset for proper approach.
@@ -1077,7 +1077,7 @@ class VisionStages(BaseStages):
             z_offset_override: Override z_offset (0 = use gripper default)
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string describing failure otherwise
         """
         # Auto-detect gripper if ik_frame not set
         if not self.ik_frame or self.ik_frame == "flange":
@@ -1153,14 +1153,17 @@ class VisionStages(BaseStages):
             # Compute IK
             joint_solution = self._compute_ik(approach, active_ik_frame)
             if joint_solution is None:
-                self.logger.error("IK failed for vision move")
-                return False
+                return (
+                    f"NO_IK_SOLUTION: IK failed for vision move to "
+                    f"[{approach.pose.position.x:.3f}, {approach.pose.position.y:.3f}, "
+                    f"{approach.pose.position.z:.3f}] (ik_frame: {active_ik_frame})"
+                )
 
             # Execute trajectory
             success = self._execute_trajectory(joint_solution)
             if not success:
-                self.logger.error("Trajectory execution failed")
-            return success
+                return "EXECUTION_FAILED: Trajectory execution failed for vision move"
+            return None
 
         # OLD: Build MTC task with Cartesian planner
         # task = self.create_task_template("Vision Move")

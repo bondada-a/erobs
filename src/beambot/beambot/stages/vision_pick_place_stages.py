@@ -74,7 +74,7 @@ class VisionPickPlaceStages(BaseStages):
 
         self.logger.info("VisionPickPlaceStages initialized")
 
-    def run(self, goal) -> bool:
+    def run(self, goal) -> 'Optional[str]':
         """Execute vision-guided pick and hardcoded place.
 
         Args:
@@ -90,7 +90,7 @@ class VisionPickPlaceStages(BaseStages):
                 - poses_json: JSON with joint pose definitions
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string describing failure otherwise
         """
         self.logger.info(
             f"Vision pick/place: detection={goal.detection_type}, "
@@ -100,50 +100,52 @@ class VisionPickPlaceStages(BaseStages):
         # Parse poses
         poses = self.parse_poses(goal.poses_json)
         if poses is None:
-            return False
+            return "Failed to parse poses_json for vision_pick_place"
 
         # Parse gripper states
         try:
             gripper_states = json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
         except json.JSONDecodeError as e:
-            self.logger.error(f"Invalid gripper_states_json: {e}")
-            return False
+            return f"Invalid gripper_states_json: {e}"
 
         # Get z_offset (default 0.02m = 2cm above detected point)
         z_offset = goal.z_offset if goal.z_offset != 0.0 else 0.02
 
         # === TASK 1: Position for Detection ===
         self.logger.info("Task 1/2: Moving to sample_approach for detection...")
-        if not self._execute_position_for_detection(goal, poses, gripper_states):
-            self.logger.error("Failed to position for detection")
-            return False
+        error = self._execute_position_for_detection(goal, poses, gripper_states)
+        if error is not None:
+            return f"Failed to position for detection: {error}"
 
         # === RUNTIME: Vision Detection ===
         self.logger.info(f"Detecting {goal.detection_type}...")
         grasp_pose = self._detect_and_compute_grasp(goal, z_offset)
         if grasp_pose is None:
-            self.logger.error("Vision detection failed")
-            return False
+            detection_type = goal.detection_type or "marker"
+            return (
+                f"DETECTION_FAILED: Vision detection failed "
+                f"(type: {detection_type}, tag_id: {goal.tag_id})"
+            )
 
         # === TASK 2: Pick and Place ===
         self.logger.info("Task 2/2: Executing pick and place...")
-        if not self._execute_pick_and_place(goal, poses, gripper_states, grasp_pose):
-            self.logger.error("Pick and place execution failed")
-            return False
+        error = self._execute_pick_and_place(goal, poses, gripper_states, grasp_pose)
+        if error is not None:
+            return f"Vision pick/place execution failed: {error}"
 
         self.logger.info("Vision pick and place completed successfully")
-        return True
+        return None
 
     def _execute_position_for_detection(
         self,
         goal,
         poses: Dict[str, Any],
         gripper_states: Dict[str, str]
-    ) -> bool:
+    ) -> 'Optional[str]':
         """Execute Task 1: Open gripper and move to sample_approach.
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string on failure
         """
         task = self.create_task_template("Position for Detection")
         pipeline_planner = self.make_pipeline_planner()
@@ -161,7 +163,7 @@ class VisionPickPlaceStages(BaseStages):
             "sample approach", goal.sample_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.sample_approach}' not found or invalid (sample approach)"
         task.add(stage)
 
         return self.load_plan_execute(task)
@@ -224,7 +226,7 @@ class VisionPickPlaceStages(BaseStages):
         poses: Dict[str, Any],
         gripper_states: Dict[str, str],
         grasp_pose: PoseStamped
-    ) -> bool:
+    ) -> 'Optional[str]':
         """Execute Task 2: Pick sequence + Place sequence.
 
         Stages:
@@ -237,7 +239,7 @@ class VisionPickPlaceStages(BaseStages):
             9. Retreat to place_approach
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string on failure
         """
         task = self.create_task_template("Pick and Place")
         pipeline_planner = self.make_pipeline_planner()
@@ -265,7 +267,7 @@ class VisionPickPlaceStages(BaseStages):
             "pick retreat", goal.sample_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.sample_approach}' not found or invalid (pick retreat)"
         task.add(stage)
 
         # === PLACE SEQUENCE ===
@@ -275,7 +277,7 @@ class VisionPickPlaceStages(BaseStages):
             "place approach", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.place_approach}' not found or invalid (place approach)"
         task.add(stage)
 
         # 7. Move to place_target
@@ -283,7 +285,7 @@ class VisionPickPlaceStages(BaseStages):
             "place", goal.place_target, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.place_target}' not found or invalid (place target)"
         task.add(stage)
 
         # 8. Open gripper (release)
@@ -298,7 +300,7 @@ class VisionPickPlaceStages(BaseStages):
             "place retreat", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.place_approach}' not found or invalid (place retreat)"
         task.add(stage)
 
         return self.load_plan_execute(task)

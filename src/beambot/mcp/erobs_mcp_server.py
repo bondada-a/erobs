@@ -49,6 +49,7 @@ from rclpy.qos import (
 )
 from rclpy.callback_groups import ReentrantCallbackGroup
 from sensor_msgs.msg import Image, PointCloud2
+from rcl_interfaces.msg import Log
 from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformListener, TransformException
 from cv_bridge import CvBridge
@@ -256,6 +257,16 @@ class ROS2BridgeNode(Node):
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
 
+        # /rosout log buffer
+        self._log_buffer = []
+        self._log_buffer_max = 200
+        self._log_buffer_lock = threading.Lock()
+
+        self._rosout_sub = self.create_subscription(
+            Log, '/rosout', self._on_rosout, 10,
+            callback_group=self._cb_group,
+        )
+
         # State
         self.last_rgb: Optional[np.ndarray] = None
         self.last_cloud: Optional[PointCloud2] = None
@@ -284,6 +295,34 @@ class ROS2BridgeNode(Node):
         self.last_cloud = msg
         if self._waiting_for_capture:
             self._cloud_event.set()
+
+    def _on_rosout(self, msg: Log):
+        with self._log_buffer_lock:
+            self._log_buffer.append(msg)
+            if len(self._log_buffer) > self._log_buffer_max:
+                self._log_buffer = self._log_buffer[-self._log_buffer_max:]
+
+    def get_filtered_logs(self, min_severity: int = 40, logger_prefix: str = "", count: int = 20):
+        """Get recent logs filtered by severity and logger name.
+
+        Severity levels: DEBUG=10, INFO=20, WARN=30, ERROR=40, FATAL=50
+        """
+        with self._log_buffer_lock:
+            filtered = []
+            for msg in reversed(self._log_buffer):
+                if msg.level < min_severity:
+                    continue
+                if logger_prefix and not msg.name.startswith(logger_prefix):
+                    continue
+                filtered.append({
+                    "timestamp": f"{msg.stamp.sec}.{msg.stamp.nanosec:09d}",
+                    "logger": msg.name,
+                    "severity": {10: "DEBUG", 20: "INFO", 30: "WARN", 40: "ERROR", 50: "FATAL"}.get(msg.level, f"UNKNOWN({msg.level})"),
+                    "message": msg.msg,
+                })
+                if len(filtered) >= count:
+                    break
+            return filtered
 
     def trigger_capture(self, timeout: float = 30.0, need_cloud: bool = True) -> bool:
         """Trigger Zivid capture and wait for data. Called from executor thread.
@@ -992,6 +1031,51 @@ async def get_tf_transform(
             "yaw": round(rpy_deg[2], 4),
         },
         "matrix_4x4": [[round(float(mat[r, c]), 6) for c in range(4)] for r in range(4)],
+    }
+    return json.dumps(result)
+
+
+@mcp.tool()
+async def get_recent_logs(
+    severity: str = "ERROR",
+    logger: str = "",
+    count: int = 20,
+) -> str:
+    """Get recent ROS2 log messages from /rosout.
+
+    Use this after a failure to understand what went wrong. Filters by
+    minimum severity level and optional logger name prefix.
+
+    Args:
+        severity: Minimum severity level — "DEBUG", "INFO", "WARN", "ERROR", "FATAL".
+            Default "ERROR" (shows ERROR and FATAL only).
+        logger: Filter by logger name prefix (e.g., "beambot", "move_group",
+            "moveit"). Empty string = all loggers.
+        count: Maximum number of messages to return (most recent first).
+            Default 20.
+
+    Returns:
+        JSON with list of log entries, each containing timestamp, logger,
+        severity, and message.
+    """
+    severity_map = {"DEBUG": 10, "INFO": 20, "WARN": 30, "ERROR": 40, "FATAL": 50}
+    min_level = severity_map.get(severity.upper(), 40)
+
+    node = bridge.node
+    logs = node.get_filtered_logs(
+        min_severity=min_level,
+        logger_prefix=logger,
+        count=count,
+    )
+
+    result = {
+        "logs": logs,
+        "count": len(logs),
+        "filter": {
+            "min_severity": severity,
+            "logger_prefix": logger or "(all)",
+            "max_count": count,
+        },
     }
     return json.dumps(result)
 

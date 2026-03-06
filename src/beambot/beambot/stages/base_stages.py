@@ -16,6 +16,37 @@ from std_msgs.msg import Header
 from moveit_msgs.msg import Constraints, JointConstraint, MoveItErrorCodes
 
 
+# MoveIt error code → human-readable name mapping
+# See: http://docs.ros.org/en/noetic/api/moveit_msgs/html/msg/MoveItErrorCodes.html
+MOVEIT_ERROR_NAMES: Dict[int, str] = {
+    MoveItErrorCodes.SUCCESS: "SUCCESS",
+    MoveItErrorCodes.FAILURE: "FAILURE",
+    MoveItErrorCodes.PLANNING_FAILED: "PLANNING_FAILED",
+    MoveItErrorCodes.INVALID_MOTION_PLAN: "INVALID_MOTION_PLAN",
+    MoveItErrorCodes.MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE: "MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE",
+    MoveItErrorCodes.CONTROL_FAILED: "CONTROL_FAILED",
+    MoveItErrorCodes.UNABLE_TO_AQUIRE_SENSOR_DATA: "UNABLE_TO_AQUIRE_SENSOR_DATA",
+    MoveItErrorCodes.TIMED_OUT: "TIMED_OUT",
+    MoveItErrorCodes.PREEMPTED: "PREEMPTED",
+    MoveItErrorCodes.START_STATE_IN_COLLISION: "START_STATE_IN_COLLISION",
+    MoveItErrorCodes.START_STATE_VIOLATES_PATH_CONSTRAINTS: "START_STATE_VIOLATES_PATH_CONSTRAINTS",
+    MoveItErrorCodes.GOAL_IN_COLLISION: "GOAL_IN_COLLISION",
+    MoveItErrorCodes.GOAL_VIOLATES_PATH_CONSTRAINTS: "GOAL_VIOLATES_PATH_CONSTRAINTS",
+    MoveItErrorCodes.GOAL_CONSTRAINTS_VIOLATED: "GOAL_CONSTRAINTS_VIOLATED",
+    MoveItErrorCodes.INVALID_GROUP_NAME: "INVALID_GROUP_NAME",
+    MoveItErrorCodes.INVALID_GOAL_CONSTRAINTS: "INVALID_GOAL_CONSTRAINTS",
+    MoveItErrorCodes.INVALID_ROBOT_STATE: "INVALID_ROBOT_STATE",
+    MoveItErrorCodes.INVALID_LINK_NAME: "INVALID_LINK_NAME",
+    MoveItErrorCodes.INVALID_OBJECT_NAME: "INVALID_OBJECT_NAME",
+    MoveItErrorCodes.FRAME_TRANSFORM_FAILURE: "FRAME_TRANSFORM_FAILURE",
+    MoveItErrorCodes.COLLISION_CHECKING_UNAVAILABLE: "COLLISION_CHECKING_UNAVAILABLE",
+    MoveItErrorCodes.ROBOT_STATE_STALE: "ROBOT_STATE_STALE",
+    MoveItErrorCodes.SENSOR_INFO_STALE: "SENSOR_INFO_STALE",
+    MoveItErrorCodes.COMMUNICATION_FAILURE: "COMMUNICATION_FAILURE",
+    MoveItErrorCodes.NO_IK_SOLUTION: "NO_IK_SOLUTION",
+}
+
+
 # Direction vectors for relative moves in ik_frame
 # Updated 2024: Compensates for 180° wrist rotation (camera mount XACRO change)
 # - forward/backward (X): unchanged
@@ -301,7 +332,7 @@ class BaseStages:
 
         return stage
 
-    def load_plan_execute(self, task: core.Task) -> bool:
+    def load_plan_execute(self, task: core.Task) -> Optional[str]:
         """Initialize, plan, and execute the task.
 
         Matches C++ behavior:
@@ -313,7 +344,7 @@ class BaseStages:
             task: Configured MTC task
 
         Returns:
-            True if planning and execution succeeded, False otherwise
+            None if successful, error string describing failure otherwise
         """
         try:
             # Step 1: Initialize task
@@ -321,19 +352,22 @@ class BaseStages:
             try:
                 task.init()
             except Exception as e:
-                self.logger.error(f"Task init failed: {task.name} - {e}")
-                return False
+                error = f"Task init failed for '{task.name}': {e}"
+                self.logger.error(error)
+                return error
 
             # Step 2: Plan
             self.logger.info(f"Planning task: {task.name}")
             if not task.plan(max_solutions=1):
-                self.logger.error(f"Planning failed for task: {task.name}")
-                return False
+                error = f"PLANNING_FAILED: No motion plan found for task '{task.name}'"
+                self.logger.error(error)
+                return error
 
             # Step 3: Execute and check result
             if not task.solutions:
-                self.logger.error(f"No solutions found for task: {task.name}")
-                return False
+                error = f"PLANNING_FAILED: No solutions found for task '{task.name}'"
+                self.logger.error(error)
+                return error
 
             self.logger.info(
                 f"Found {len(task.solutions)} solution(s), executing: {task.name}"
@@ -344,19 +378,21 @@ class BaseStages:
 
             # Check execution result (matching C++ behavior)
             if result.val != MoveItErrorCodes.SUCCESS:
-                self.logger.error(
-                    f"Execution failed for task: {task.name} "
-                    f"(error code: {result.val})"
+                error_name = MOVEIT_ERROR_NAMES.get(result.val, "UNKNOWN")
+                error = (
+                    f"EXECUTION_FAILED: Task '{task.name}' execution failed: "
+                    f"{error_name} (error code: {result.val})"
                 )
-                return False
+                self.logger.error(error)
+                return error
 
             self.logger.info(f"Task completed successfully: {task.name}")
-            return True
+            return None
 
         except Exception as e:
             self.logger.error(f"Task execution failed: {task.name} - {e}")
             self.logger.error(traceback.format_exc())
-            return False
+            return f"Task exception for '{task.name}': {e}"
 
     def parse_poses(self, poses_json: str) -> Optional[Dict[str, Any]]:
         """Parse poses JSON string.

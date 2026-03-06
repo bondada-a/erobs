@@ -14,7 +14,7 @@ DOCK_SPACING_METERS = 0.1524
 class ToolExchangeStages(BaseStages):
     """Handles tool loading and docking operations at magnetic holders."""
 
-    def run(self, goal) -> bool:
+    def run(self, goal) -> 'Optional[str]':
         """Execute ToolExchange action.
 
         Load sequence (attaching a tool):
@@ -41,7 +41,7 @@ class ToolExchangeStages(BaseStages):
                 - poses_json: Pose definitions from task
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string describing failure otherwise
         """
         self.logger.info(
             f"Executing tool exchange: operation={goal.operation}, "
@@ -50,23 +50,25 @@ class ToolExchangeStages(BaseStages):
 
         # Validate state transitions
         if goal.operation == "load" and goal.current_attached_gripper != "none":
-            self.logger.error(
+            error = (
                 f"Cannot load {goal.gripper}: "
                 f"{goal.current_attached_gripper} already attached"
             )
-            return False
+            self.logger.error(error)
+            return error
 
         if goal.operation == "dock" and goal.current_attached_gripper != goal.gripper:
-            self.logger.error(
+            error = (
                 f"Cannot dock {goal.gripper}: "
                 f"{goal.current_attached_gripper} is attached"
             )
-            return False
+            self.logger.error(error)
+            return error
 
         # Parse poses
         poses = self.parse_poses(goal.poses_json)
         if poses is None:
-            return False
+            return "Failed to parse poses_json for tool_exchange"
 
         task_name = "Load Tool" if goal.operation == "load" else "Dock Tool"
         task = self.create_task_template(task_name)
@@ -76,7 +78,7 @@ class ToolExchangeStages(BaseStages):
         # 1. Move to approach pose
         joint_pose = self.get_joint_pose(poses, goal.approach_pose)
         if joint_pose is None:
-            return False
+            return f"Pose '{goal.approach_pose}' not found or invalid (tool exchange approach)"
 
         approach = stages.MoveTo("approach", sampling)
         approach.group = self.arm_group
@@ -133,7 +135,6 @@ class ToolExchangeStages(BaseStages):
             task.add(retreat)
 
         else:
-            self.logger.error(f"Unknown operation: {goal.operation}")
-            return False
+            return f"Unknown tool exchange operation: '{goal.operation}' (expected 'load' or 'dock')"
 
         return self.load_plan_execute(task)

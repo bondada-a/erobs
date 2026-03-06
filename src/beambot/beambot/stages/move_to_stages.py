@@ -64,7 +64,7 @@ class MoveToStages(BaseStages):
         self.logger.info("No gripper tip frame detected, using flange")
         return "flange"
 
-    def add_to_task(self, task: core.Task, goal, planner=None) -> bool:
+    def add_to_task(self, task: core.Task, goal, planner=None) -> 'Optional[str]':
         """Add MoveTo stages to an existing MTC task.
 
         This method adds stages without creating or executing the task,
@@ -84,7 +84,7 @@ class MoveToStages(BaseStages):
                      planning_type if None)
 
         Returns:
-            True if stages were added successfully, False on error
+            None if stages were added successfully, error string on failure
         """
         # Select planner if not provided
         if planner is None:
@@ -114,7 +114,7 @@ class MoveToStages(BaseStages):
             self.logger.info(
                 f"Planning relative move: {goal.direction} {goal.distance}m"
             )
-            return True
+            return None
 
         # Case 2: Cartesian pose target ([x,y,z] or [x,y,z,r,p,y])
         elif len(goal.cartesian_target) >= 3:
@@ -159,14 +159,16 @@ class MoveToStages(BaseStages):
                 f"{pose.pose.position.z:.3f}] in {pose.header.frame_id} "
                 f"(ik_frame: {active_ik_frame})"
             )
-            return True
+            return None
 
         # Case 3: Target-based move (joint pose or SRDF state)
         elif goal.target:
             # Poses are optional for MoveTo (might use SRDF named state)
             poses = self.parse_poses(goal.poses_json)
             if poses is None:
-                return False
+                error = f"Failed to parse poses_json for target '{goal.target}'"
+                self.logger.error(error)
+                return error
 
             move_stage = stages.MoveTo(f"move_to_{goal.target}", planner)
             move_stage.group = self.arm_group
@@ -179,27 +181,29 @@ class MoveToStages(BaseStages):
                     move_stage.setGoal(joints_from_degrees(joint_values))
                     self.logger.info(f"Planning move to joint pose: {goal.target}")
                 else:
-                    self.logger.error(
+                    error = (
                         f"Invalid pose format for '{goal.target}': "
-                        f"expected list, got {type(joint_values)}"
+                        f"expected list, got {type(joint_values).__name__}"
                     )
-                    return False
+                    self.logger.error(error)
+                    return error
             else:
                 # Assume it's a named SRDF state
                 move_stage.setGoal(goal.target)
                 self.logger.info(f"Planning move to named state: {goal.target}")
 
             task.add(move_stage)
-            return True
+            return None
 
         else:
-            self.logger.error(
+            error = (
                 "No valid move target specified. "
                 "Provide (direction + distance), cartesian_target, or target."
             )
-            return False
+            self.logger.error(error)
+            return error
 
-    def run(self, goal) -> bool:
+    def run(self, goal) -> 'Optional[str]':
         """Execute MoveTo action.
 
         Args:
@@ -213,11 +217,12 @@ class MoveToStages(BaseStages):
                 - poses_json: JSON string with pose definitions
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string describing failure otherwise
         """
         task = self.create_task_template("MoveTo Task")
 
-        if not self.add_to_task(task, goal):
-            return False
+        error = self.add_to_task(task, goal)
+        if error is not None:
+            return error
 
         return self.load_plan_execute(task)

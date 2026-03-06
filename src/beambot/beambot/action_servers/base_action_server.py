@@ -83,10 +83,14 @@ class BaseActionServer(Node):
                 self._executing = False
 
     def _execute(self, goal_handle: ServerGoalHandle):
-        """Execute goal. Override for custom behavior (e.g., logging)."""
-        return self._action_type.Result(
-            success=self._stages.run(goal_handle.request)
-        )
+        """Execute goal. Override for custom behavior (e.g., logging).
+
+        Stages.run() returns Optional[str]: None on success, error string on failure.
+        """
+        error = self._stages.run(goal_handle.request)
+        if error is not None:
+            return self._action_type.Result(success=False, error_message=error)
+        return self._action_type.Result(success=True)
 
 
 def run_server(server_class, args=None):

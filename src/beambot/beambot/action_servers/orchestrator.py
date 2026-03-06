@@ -79,6 +79,7 @@ class MTCOrchestratorServer(Node):
         self._executing = False
         self._lock = threading.Lock()
         self._current_gripper = "none"
+        self._last_error = ""  # Error from last failed action/batch
 
         # Pause/Resume state
         self._pause_requested = False
@@ -438,28 +439,32 @@ class MTCOrchestratorServer(Node):
         # Add stages from each task
         for i, batch_task in enumerate(batch_tasks):
             task_type = batch_task.get("task_type", "")
-            success = False
+            error = None
 
             if task_type == "moveto":
                 goal = self._create_moveto_goal(batch_task, poses_json)
-                success = moveto_stage.add_to_task(task, goal)
+                error = moveto_stage.add_to_task(task, goal)
 
             elif task_type == "end_effector":
                 goal = self._create_endeffector_goal(batch_task)
-                success = endeffector_stage.add_to_task(task, goal)
+                error = endeffector_stage.add_to_task(task, goal)
 
             else:
-                self.get_logger().error(f"Unknown batchable type: {task_type}")
+                self._last_error = f"Unknown batchable type: {task_type}"
+                self.get_logger().error(self._last_error)
                 return False
 
-            if not success:
-                self.get_logger().error(
-                    f"Failed to add stages for task {i}: {task_type}"
-                )
+            if error is not None:
+                self._last_error = f"Batch task {i} ({task_type}): {error}"
+                self.get_logger().error(self._last_error)
                 return False
 
         # Plan and execute the entire batch at once
-        return moveto_stage.load_plan_execute(task)
+        error = moveto_stage.load_plan_execute(task)
+        if error is not None:
+            self._last_error = error
+            return False
+        return True
 
     def _create_moveto_goal(
         self, step: Dict[str, Any], poses_json: str
@@ -605,7 +610,7 @@ class MTCOrchestratorServer(Node):
                     return result
 
                 if not self._execute_batch(batch_tasks, poses_json):
-                    result.error_message = f"Batch execution failed at step {completed_tasks + 1}"
+                    result.error_message = f"Batch failed at step {completed_tasks + 1}: {self._last_error}"
                     result.completed_steps = completed_tasks
                     goal_handle.abort()
                     self._publish_state("IDLE")
@@ -630,7 +635,7 @@ class MTCOrchestratorServer(Node):
                 )
 
                 if not self._execute_step(task_type, task, poses_json):
-                    result.error_message = f"{task_type} step failed"
+                    result.error_message = f"{task_type} failed: {self._last_error}"
                     result.completed_steps = completed_tasks
                     goal_handle.abort()
                     self._publish_state("IDLE")
@@ -695,7 +700,8 @@ class MTCOrchestratorServer(Node):
         """Execute a single step by dispatching to the appropriate action server."""
         # Ensure controllers are active before executing (handles socket drop recovery)
         if not self._ensure_controllers_active():
-            self.get_logger().error("Failed to ensure controllers are active")
+            self._last_error = "Controller activation failed before step execution"
+            self.get_logger().error(self._last_error)
             return False
 
         self.get_logger().info(f"Executing step: {task_type}")
@@ -717,7 +723,8 @@ class MTCOrchestratorServer(Node):
         elif task_type == "pipettor":
             return self._call_pipettor(step, poses_json)
         else:
-            self.get_logger().error(f"Unknown task type: {task_type}")
+            self._last_error = f"Unknown task type: '{task_type}'"
+            self.get_logger().error(self._last_error)
             return False
 
     def _send_and_wait(
@@ -728,11 +735,16 @@ class MTCOrchestratorServer(Node):
         Uses polling instead of spin_until_future_complete to avoid
         executor conflicts (this callback is already being spun by
         the MultiThreadedExecutor).
+
+        On failure, stores error_message in self._last_error for propagation
+        to the orchestrator result.
         """
+        self._last_error = ""
 
         # Wait for server
         if not client.wait_for_server(timeout_sec=5.0):
-            self.get_logger().error(f"{name} action server unavailable")
+            self._last_error = f"TIMEOUT: {name} action server unavailable (waited 5s)"
+            self.get_logger().error(self._last_error)
             return False
 
         # Send goal and wait for acceptance
@@ -742,14 +754,16 @@ class MTCOrchestratorServer(Node):
         start_time = time.time()
         while not send_future.done():
             if time.time() - start_time > 10.0:
-                self.get_logger().error(f"{name} goal acceptance timed out")
+                self._last_error = f"TIMEOUT: {name} goal acceptance timed out (10s)"
+                self.get_logger().error(self._last_error)
                 return False
             time.sleep(0.01)
 
         goal_handle = send_future.result()
 
         if not goal_handle.accepted:
-            self.get_logger().error(f"{name} goal was rejected")
+            self._last_error = f"{name} goal was rejected by action server"
+            self.get_logger().error(self._last_error)
             return False
 
         # Wait for result with timeout - poll instead of spin
@@ -758,12 +772,17 @@ class MTCOrchestratorServer(Node):
         start_time = time.time()
         while not result_future.done():
             if time.time() - start_time > timeout:
-                self.get_logger().error(f"{name} timed out after {timeout}s")
+                self._last_error = f"TIMEOUT: {name} timed out after {timeout}s"
+                self.get_logger().error(self._last_error)
                 goal_handle.cancel_goal_async()
                 return False
             time.sleep(0.01)
 
         result = result_future.result()
+        if not result.result.success:
+            # Capture the real error_message from the action server
+            self._last_error = getattr(result.result, 'error_message', '') or f"{name} failed (no details)"
+            self.get_logger().error(f"{name} failed: {self._last_error}")
         return result.result.success
 
     def _call_moveto(self, step: Dict[str, Any], poses_json: str) -> bool:
@@ -809,6 +828,7 @@ class MTCOrchestratorServer(Node):
         """
         # Execute the physical exchange motion
         if not self._call_toolexchange(step, poses_json):
+            # _last_error already set by _send_and_wait
             return False
 
         # Update gripper state based on operation
@@ -821,7 +841,11 @@ class MTCOrchestratorServer(Node):
             new_gripper = step.get("gripper", self._current_gripper)
             # Validate gripper exists
             if new_gripper not in self._grippers:
-                self.get_logger().error(f"Unknown gripper in tool_exchange: {new_gripper}")
+                self._last_error = (
+                    f"Unknown gripper '{new_gripper}' in tool_exchange "
+                    f"(available: {', '.join(self._grippers.keys())})"
+                )
+                self.get_logger().error(self._last_error)
                 return False
 
         # If gripper changed, restart MoveIt with new configuration
@@ -833,7 +857,11 @@ class MTCOrchestratorServer(Node):
             self._publish_gripper(new_gripper)
 
             if not self._moveit_manager.launch_moveit_with_gripper(new_gripper):
-                self.get_logger().error("Failed to restart MoveIt with new gripper config")
+                self._last_error = (
+                    f"Failed to restart MoveIt after tool exchange "
+                    f"({self._current_gripper} → {new_gripper})"
+                )
+                self.get_logger().error(self._last_error)
                 return False
 
         return True
