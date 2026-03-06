@@ -20,16 +20,22 @@ import json
 import logging
 import math
 import os
-import struct
 import sys
 import threading
 import time
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
 from mcp.server.fastmcp import FastMCP
+
+from beambot.detection import (
+    CircleDetectionParams,
+    ContourDetectionParams,
+    detect_hough_circles,
+    detect_contours_in_image,
+    get_3d_position,
+)
 
 # ROS2 imports — these require a sourced ROS2 environment
 import rclpy
@@ -107,113 +113,6 @@ def _detect_display() -> Tuple[str, str]:
 _DETECTED_DISPLAY, _DETECTED_XAUTHORITY = _detect_display()
 
 
-# ---------------------------------------------------------------------------
-# Detection parameter dataclasses (copied from zivid.py for independence)
-# ---------------------------------------------------------------------------
-@dataclass
-class CircleDetectionParams:
-    min_radius: int = 15
-    max_radius: int = 100
-    blur_kernel: int = 5
-    param1: int = 50
-    param2: int = 25
-    min_dist: int = 50
-    search_radius: int = 10
-
-
-@dataclass
-class ContourDetectionParams:
-    min_area: int = 500
-    max_area: int = 50000
-    blur_kernel: int = 5
-    canny_low: int = 50
-    canny_high: int = 150
-    search_radius: int = 10
-    approx_epsilon: float = 0.02
-    row_tolerance: int = 50
-
-
-# ---------------------------------------------------------------------------
-# Pure detection functions (stateless OpenCV, extracted from zivid.py)
-# ---------------------------------------------------------------------------
-
-def _detect_hough_circles(
-    rgb_image: np.ndarray,
-    params: CircleDetectionParams,
-) -> Optional[List[Tuple[int, int, int]]]:
-    """Detect circles using Hough Transform. Returns list of (cx, cy, radius)."""
-    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
-    blurred = cv2.GaussianBlur(gray, (params.blur_kernel, params.blur_kernel), 2)
-    circles = cv2.HoughCircles(
-        blurred,
-        cv2.HOUGH_GRADIENT,
-        dp=1,
-        minDist=params.min_dist,
-        param1=params.param1,
-        param2=params.param2,
-        minRadius=params.min_radius,
-        maxRadius=params.max_radius,
-    )
-    if circles is None:
-        return None
-    circles = np.uint16(np.around(circles))
-    return [(int(c[0]), int(c[1]), int(c[2])) for c in circles[0]]
-
-
-def _detect_contours_in_image(
-    rgb_image: np.ndarray,
-    params: ContourDetectionParams,
-) -> Optional[List[Tuple[int, int, int, int]]]:
-    """Detect contours, filter by area, sort reading-order. Returns (cx, cy, area, vertices)."""
-    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
-    blurred = cv2.GaussianBlur(gray, (params.blur_kernel, params.blur_kernel), 0)
-    edges = cv2.Canny(blurred, params.canny_low, params.canny_high)
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    result = []
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area < params.min_area or area > params.max_area:
-            continue
-        M = cv2.moments(contour)
-        if M["m00"] == 0:
-            continue
-        cx = int(M["m10"] / M["m00"])
-        cy = int(M["m01"] / M["m00"])
-        perimeter = cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(contour, params.approx_epsilon * perimeter, True)
-        result.append((cx, cy, int(area), len(approx)))
-
-    if not result:
-        return None
-    return _sort_contours_reading_order(result, params.row_tolerance)
-
-
-def _sort_contours_reading_order(
-    contours_info: List[Tuple[int, int, int, int]],
-    row_tolerance: int = 50,
-) -> List[Tuple[int, int, int, int]]:
-    """Sort contours left-to-right, top-to-bottom."""
-    if not contours_info:
-        return contours_info
-    sorted_by_y = sorted(contours_info, key=lambda d: d[1])
-    rows: List[List] = []
-    current_row = [sorted_by_y[0]]
-    current_row_y = sorted_by_y[0][1]
-    for detection in sorted_by_y[1:]:
-        cy = detection[1]
-        if abs(cy - current_row_y) <= row_tolerance:
-            current_row.append(detection)
-        else:
-            rows.append(current_row)
-            current_row = [detection]
-            current_row_y = cy
-    rows.append(current_row)
-    result = []
-    for row in rows:
-        result.extend(sorted(row, key=lambda d: d[0]))
-    return result
-
 
 def _detect_hsv_color(
     rgb_image: np.ndarray,
@@ -284,44 +183,6 @@ def _detect_aruco_markers(
         result.append((cx, cy, int(mid), corners.tolist()))
 
     return result if result else None
-
-
-def _get_3d_position(
-    cloud: PointCloud2,
-    cx: int,
-    cy: int,
-    search_radius: int = 10,
-) -> Optional[Tuple[float, float, float]]:
-    """Get 3D XYZ from organized point cloud at pixel (cx, cy)."""
-    width = cloud.width
-    height = cloud.height
-    point_step = cloud.point_step
-
-    def get_xyz_at(u: int, v: int):
-        if u < 0 or u >= width or v < 0 or v >= height:
-            return None
-        offset = v * cloud.row_step + u * point_step
-        try:
-            x, y, z = struct.unpack_from("<fff", cloud.data, offset)
-        except struct.error:
-            return None
-        if math.isnan(x) or math.isnan(y) or math.isnan(z):
-            return None
-        if x == 0.0 and y == 0.0 and z == 0.0:
-            return None
-        return (x, y, z)
-
-    xyz = get_xyz_at(cx, cy)
-    if xyz is not None:
-        return xyz
-    for r in range(1, search_radius + 1):
-        for du in range(-r, r + 1):
-            for dv in range(-r, r + 1):
-                if abs(du) == r or abs(dv) == r:
-                    xyz = get_xyz_at(cx + du, cy + dv)
-                    if xyz is not None:
-                        return xyz
-    return None
 
 
 def _annotate_image(
@@ -720,7 +581,7 @@ async def detect_objects(
         params = CircleDetectionParams(
             min_radius=min_radius, max_radius=max_radius, param2=circle_param2,
         )
-        raw = _detect_hough_circles(rgb, params)
+        raw = detect_hough_circles(rgb, params)
         if raw:
             raw_detections = [
                 {"pixel_x": cx, "pixel_y": cy, "radius": r} for cx, cy, r in raw
@@ -730,7 +591,7 @@ async def detect_objects(
         params = ContourDetectionParams(
             min_area=contour_min_area, max_area=contour_max_area,
         )
-        raw = _detect_contours_in_image(rgb, params)
+        raw = detect_contours_in_image(rgb, params)
         if raw:
             raw_detections = [
                 {"pixel_x": cx, "pixel_y": cy, "area": a, "vertices": v}
@@ -764,7 +625,7 @@ async def detect_objects(
         det["base_xyz"] = None
 
         if cloud is not None:
-            xyz = _get_3d_position(cloud, det["pixel_x"], det["pixel_y"])
+            xyz = get_3d_position(cloud, det["pixel_x"], det["pixel_y"])
             if xyz is not None:
                 det["camera_xyz"] = list(xyz)
 

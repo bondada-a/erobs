@@ -10,12 +10,9 @@ Interface contract:
     - detect_contours(node, timeout, params) -> List[Pose]
 """
 
-import struct
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
-import cv2
-import numpy as np
 import rclpy
 from builtin_interfaces.msg import Time as TimeMsg
 from cv_bridge import CvBridge
@@ -25,6 +22,14 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPo
 from sensor_msgs.msg import Image, PointCloud2
 
 from zivid_interfaces.srv import CaptureAndDetectMarkers
+
+from beambot.detection import (
+    CircleDetectionParams,
+    ContourDetectionParams,
+    detect_hough_circles,
+    detect_contours_in_image,
+    get_3d_position,
+)
 
 
 @dataclass
@@ -38,48 +43,6 @@ class DetectionResult:
     """
     markers: List[Tuple[int, Pose]]  # List of (marker_id, pose) tuples
     capture_stamp: Optional[TimeMsg]  # Timestamp when image was captured
-
-
-@dataclass
-class CircleDetectionParams:
-    """Parameters for Hough circle detection.
-
-    All radius values are in PIXELS, not mm.
-    Typical values for a 10mm wafer:
-      - At ~300mm distance: ~50-70 pixels
-      - At ~500mm distance: ~30-50 pixels
-      - At ~800mm distance: ~20-30 pixels
-    """
-    min_radius: int = 15       # Min circle radius in pixels
-    max_radius: int = 100      # Max circle radius in pixels
-    blur_kernel: int = 5       # Gaussian blur kernel size
-    param1: int = 50           # Canny edge detection threshold
-    param2: int = 25           # Accumulator threshold (lower = more sensitive)
-    min_dist: int = 50         # Min distance between detected circles
-    search_radius: int = 10    # Pixels to search for valid depth around center
-
-
-@dataclass
-class ContourDetectionParams:
-    """Parameters for contour-based object detection.
-
-    Detects ANY shaped object (circles, squares, irregular shapes) by finding
-    closed contours and filtering by area. More flexible than Hough circles.
-
-    Area values are in PIXELS², not mm².
-    Typical values (depends on camera distance and object size):
-      - Small sample (~10mm) at 300mm: ~2000-8000 px²
-      - Small sample (~10mm) at 500mm: ~700-3000 px²
-      - Adjust based on your setup
-    """
-    min_area: int = 500          # Min contour area in pixels²
-    max_area: int = 50000        # Max contour area in pixels²
-    blur_kernel: int = 5         # Gaussian blur kernel size (must be odd)
-    canny_low: int = 50          # Canny edge detection lower threshold
-    canny_high: int = 150        # Canny edge detection upper threshold
-    search_radius: int = 10      # Pixels to search for valid depth around centroid
-    approx_epsilon: float = 0.02 # Contour approximation epsilon (fraction of perimeter)
-    row_tolerance: int = 50      # Y-pixel tolerance for grouping into rows (for sorting)
 
 
 # Zivid service endpoint
@@ -343,7 +306,7 @@ def detect_circles(
         cloud = received_cloud[0]
 
         # Detect circles
-        circles = _detect_hough_circles(rgb_image, params)
+        circles = detect_hough_circles(rgb_image, params)
         if circles is None or len(circles) == 0:
             logger.warn("No circles detected")
             return []
@@ -353,7 +316,7 @@ def detect_circles(
         # Convert to 3D poses
         poses = []
         for cx, cy, radius in circles:
-            xyz = _get_3d_position(cloud, cx, cy, params.search_radius)
+            xyz = get_3d_position(cloud, cx, cy, params.search_radius)
             if xyz is None:
                 logger.warn(f"No valid depth at circle ({cx}, {cy})")
                 continue
@@ -380,111 +343,6 @@ def detect_circles(
         node.destroy_subscription(image_sub)
         node.destroy_subscription(cloud_sub)
         node.destroy_client(marker_client)
-
-
-def _detect_hough_circles(
-    rgb_image: np.ndarray,
-    params: CircleDetectionParams
-) -> Optional[List[Tuple[int, int, int]]]:
-    """Detect circles in image using Hough Transform.
-
-    Args:
-        rgb_image: RGB image array
-        params: Detection parameters
-
-    Returns:
-        List of (center_x, center_y, radius) tuples, or None if no circles found
-    """
-    # Convert to grayscale
-    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
-
-    # Blur to reduce noise
-    blurred = cv2.GaussianBlur(
-        gray, (params.blur_kernel, params.blur_kernel), 2
-    )
-
-    # Detect circles using Hough Transform
-    circles = cv2.HoughCircles(
-        blurred,
-        cv2.HOUGH_GRADIENT,
-        dp=1,
-        minDist=params.min_dist,
-        param1=params.param1,
-        param2=params.param2,
-        minRadius=params.min_radius,
-        maxRadius=params.max_radius
-    )
-
-    if circles is None:
-        return None
-
-    # Convert to list of tuples
-    circles = np.uint16(np.around(circles))
-    result = []
-    for c in circles[0]:
-        result.append((int(c[0]), int(c[1]), int(c[2])))
-
-    return result
-
-
-def _get_3d_position(
-    cloud: PointCloud2,
-    cx: int,
-    cy: int,
-    search_radius: int = 10
-) -> Optional[Tuple[float, float, float]]:
-    """Get 3D position from organized point cloud at pixel (cx, cy).
-
-    The point cloud is organized (same dimensions as image), so we can
-    directly index into it using pixel coordinates.
-
-    Args:
-        cloud: Organized point cloud
-        cx, cy: Pixel coordinates
-        search_radius: Pixels to search for valid depth if center is invalid
-
-    Returns:
-        (x, y, z) tuple in meters, or None if no valid depth found
-    """
-    width = cloud.width
-    height = cloud.height
-    point_step = cloud.point_step
-
-    def get_xyz_at(u: int, v: int) -> Optional[Tuple[float, float, float]]:
-        """Extract XYZ at pixel (u, v)."""
-        if u < 0 or u >= width or v < 0 or v >= height:
-            return None
-
-        offset = v * cloud.row_step + u * point_step
-
-        try:
-            x, y, z = struct.unpack_from('<fff', cloud.data, offset)
-        except struct.error:
-            return None
-
-        if np.isnan(x) or np.isnan(y) or np.isnan(z):
-            return None
-
-        if x == 0.0 and y == 0.0 and z == 0.0:
-            return None
-
-        return (x, y, z)
-
-    # Try center first
-    xyz = get_xyz_at(cx, cy)
-    if xyz is not None:
-        return xyz
-
-    # Search in expanding squares around center
-    for r in range(1, search_radius + 1):
-        for du in range(-r, r + 1):
-            for dv in range(-r, r + 1):
-                if abs(du) == r or abs(dv) == r:
-                    xyz = get_xyz_at(cx + du, cy + dv)
-                    if xyz is not None:
-                        return xyz
-
-    return None
 
 
 # ============================================================================
@@ -616,7 +474,7 @@ def detect_contours(
         cloud = received_cloud[0]
 
         # Detect contours
-        contours_info = _detect_contours_in_image(rgb_image, params, logger)
+        contours_info = detect_contours_in_image(rgb_image, params, logger)
         if contours_info is None or len(contours_info) == 0:
             logger.warn("No contours detected matching area criteria")
             return []
@@ -627,7 +485,7 @@ def detect_contours(
         poses = []
         for i, (cx, cy, area, vertices) in enumerate(contours_info):
             sample_num = i + 1  # 1-indexed for user-facing sample selection
-            xyz = _get_3d_position(cloud, cx, cy, params.search_radius)
+            xyz = get_3d_position(cloud, cx, cy, params.search_radius)
             if xyz is None:
                 logger.warn(f"Sample #{sample_num}: No valid depth at ({cx}, {cy})")
                 continue
@@ -656,128 +514,3 @@ def detect_contours(
         node.destroy_client(marker_client)
 
 
-def _sort_contours_reading_order(
-    contours_info: List[Tuple[int, int, int, int]],
-    row_tolerance: int = 50
-) -> List[Tuple[int, int, int, int]]:
-    """Sort contours in reading order: left-to-right, top-to-bottom.
-
-    Groups objects into rows based on Y-coordinate proximity,
-    then sorts each row by X-coordinate.
-
-    Args:
-        contours_info: List of (cx, cy, area, vertices) tuples
-        row_tolerance: Max Y-pixel difference for objects to be in same row
-
-    Returns:
-        Sorted list of contour info tuples
-    """
-    if not contours_info:
-        return contours_info
-
-    # Sort by Y first to process top-to-bottom
-    sorted_by_y = sorted(contours_info, key=lambda d: d[1])  # d[1] = cy
-
-    # Group into rows
-    rows = []
-    current_row = [sorted_by_y[0]]
-    current_row_y = sorted_by_y[0][1]
-
-    for detection in sorted_by_y[1:]:
-        cy = detection[1]
-        # If Y is close enough to current row, add to same row
-        if abs(cy - current_row_y) <= row_tolerance:
-            current_row.append(detection)
-        else:
-            # Start new row
-            rows.append(current_row)
-            current_row = [detection]
-            current_row_y = cy
-
-    # Don't forget the last row
-    rows.append(current_row)
-
-    # Sort each row by X (left to right) and flatten
-    result = []
-    for row in rows:
-        row_sorted = sorted(row, key=lambda d: d[0])  # d[0] = cx
-        result.extend(row_sorted)
-
-    return result
-
-
-def _detect_contours_in_image(
-    rgb_image: np.ndarray,
-    params: ContourDetectionParams,
-    logger=None
-) -> Optional[List[Tuple[int, int, int, int]]]:
-    """Detect contours in image, filter by area, and sort in reading order.
-
-    Objects are sorted left-to-right, top-to-bottom (reading order) so that
-    sample_index=1 is the top-left object, index=2 is the next one to the right, etc.
-
-    Args:
-        rgb_image: RGB image array
-        params: Detection parameters
-        logger: Optional logger for debug output
-
-    Returns:
-        Sorted list of (centroid_x, centroid_y, area, num_vertices) tuples,
-        or None if no valid contours found.
-    """
-    # Convert to grayscale
-    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
-
-    # Blur to reduce noise
-    blurred = cv2.GaussianBlur(
-        gray, (params.blur_kernel, params.blur_kernel), 0
-    )
-
-    # Edge detection
-    edges = cv2.Canny(blurred, params.canny_low, params.canny_high)
-
-    # Find contours
-    contours, _ = cv2.findContours(
-        edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
-    )
-
-    if logger:
-        logger.debug(f"Found {len(contours)} raw contours")
-
-    # Filter by area and extract info
-    result = []
-    for contour in contours:
-        area = cv2.contourArea(contour)
-
-        # Filter by area
-        if area < params.min_area or area > params.max_area:
-            continue
-
-        # Get centroid using moments
-        M = cv2.moments(contour)
-        if M['m00'] == 0:
-            continue  # Skip degenerate contours
-
-        cx = int(M['m10'] / M['m00'])
-        cy = int(M['m01'] / M['m00'])
-
-        # Approximate contour to count vertices (for shape classification if needed)
-        perimeter = cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(contour, params.approx_epsilon * perimeter, True)
-        num_vertices = len(approx)
-
-        result.append((cx, cy, int(area), num_vertices))
-
-    if logger:
-        logger.debug(f"Filtered to {len(result)} contours by area [{params.min_area}, {params.max_area}]")
-
-    if not result:
-        return None
-
-    # Sort in reading order (left-to-right, top-to-bottom)
-    result = _sort_contours_reading_order(result, params.row_tolerance)
-
-    if logger:
-        logger.debug(f"Sorted {len(result)} contours in reading order (row_tolerance={params.row_tolerance}px)")
-
-    return result
