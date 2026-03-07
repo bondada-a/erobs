@@ -592,6 +592,9 @@ ros2 launch beambot beambot_bringup.launch.py timeout.moveto:=60.0
 
 ## 12. Common Gotchas
 
+### Nothing Is Running Before the First Goal
+The beambot orchestrator launches MoveIt **lazily on the first goal**. Before that, there is no TF tree, no topics, and no services. Do NOT query TF transforms, subscribe to topics, or call services before sending the first `/beambot_execution` goal — they will all fail. Just construct the task JSON and send it. After the first goal succeeds, the full ROS2 system is available.
+
 ### start_gripper Must Match Reality
 There is no gripper auto-detection. If `start_gripper` doesn't match the physically attached gripper, the wrong MoveIt config loads and planning fails silently or produces dangerous motions.
 

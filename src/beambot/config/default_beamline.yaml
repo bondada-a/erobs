@@ -1,5 +1,5 @@
 # Default Beamline Configuration
-# This cnfig maintains the current system behavior
+# This config maintains the current system behavior
 # Use this as a template for creating beamline-specific configs
 
 beamline: "default"

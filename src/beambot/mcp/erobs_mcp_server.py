@@ -20,16 +20,22 @@ import json
 import logging
 import math
 import os
-import struct
 import sys
 import threading
 import time
-from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
 from mcp.server.fastmcp import FastMCP
+
+from beambot.detection import (
+    CircleDetectionParams,
+    ContourDetectionParams,
+    detect_hough_circles,
+    detect_contours_in_image,
+    get_3d_position,
+)
 
 # ROS2 imports — these require a sourced ROS2 environment
 import rclpy
@@ -69,112 +75,43 @@ DEFAULT_IMAGE_PATH = "/tmp/erobs_capture.jpg"
 DEFAULT_ANNOTATED_PATH = "/tmp/erobs_detection.jpg"
 
 
-# ---------------------------------------------------------------------------
-# Detection parameter dataclasses (copied from zivid.py for independence)
-# ---------------------------------------------------------------------------
-@dataclass
-class CircleDetectionParams:
-    min_radius: int = 15
-    max_radius: int = 100
-    blur_kernel: int = 5
-    param1: int = 50
-    param2: int = 25
-    min_dist: int = 50
-    search_radius: int = 10
+def _detect_display() -> Tuple[str, str]:
+    """Detect DISPLAY and XAUTHORITY for GUI subprocess.
+
+    Claude Code strips DISPLAY from MCP server environments. We detect
+    the active X11 display by checking the environment first, then
+    falling back to querying the system.
+    """
+    display = os.environ.get("DISPLAY", "")
+    xauth = os.environ.get("XAUTHORITY", "")
+
+    if not display:
+        # Try to find DISPLAY from any running user process
+        import subprocess as _sp
+        try:
+            result = _sp.run(
+                ["bash", "-c", "cat /proc/$(pgrep -u $USER -x gnome-shell || pgrep -u $USER -x Xwayland || echo 1)/environ 2>/dev/null | tr '\\0' '\\n' | grep ^DISPLAY= | head -1 | cut -d= -f2"],
+                capture_output=True, text=True, timeout=3,
+            )
+            display = result.stdout.strip() or ":1"
+        except Exception:
+            display = ":1"
+
+    if not xauth:
+        # Common locations
+        for candidate in [
+            f"/run/user/{os.getuid()}/gdm/Xauthority",
+            os.path.expanduser("~/.Xauthority"),
+        ]:
+            if os.path.exists(candidate):
+                xauth = candidate
+                break
+
+    return display, xauth
 
 
-@dataclass
-class ContourDetectionParams:
-    min_area: int = 500
-    max_area: int = 50000
-    blur_kernel: int = 5
-    canny_low: int = 50
-    canny_high: int = 150
-    search_radius: int = 10
-    approx_epsilon: float = 0.02
-    row_tolerance: int = 50
+_DETECTED_DISPLAY, _DETECTED_XAUTHORITY = _detect_display()
 
-
-# ---------------------------------------------------------------------------
-# Pure detection functions (stateless OpenCV, extracted from zivid.py)
-# ---------------------------------------------------------------------------
-
-def _detect_hough_circles(
-    rgb_image: np.ndarray,
-    params: CircleDetectionParams,
-) -> Optional[List[Tuple[int, int, int]]]:
-    """Detect circles using Hough Transform. Returns list of (cx, cy, radius)."""
-    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
-    blurred = cv2.GaussianBlur(gray, (params.blur_kernel, params.blur_kernel), 2)
-    circles = cv2.HoughCircles(
-        blurred,
-        cv2.HOUGH_GRADIENT,
-        dp=1,
-        minDist=params.min_dist,
-        param1=params.param1,
-        param2=params.param2,
-        minRadius=params.min_radius,
-        maxRadius=params.max_radius,
-    )
-    if circles is None:
-        return None
-    circles = np.uint16(np.around(circles))
-    return [(int(c[0]), int(c[1]), int(c[2])) for c in circles[0]]
-
-
-def _detect_contours_in_image(
-    rgb_image: np.ndarray,
-    params: ContourDetectionParams,
-) -> Optional[List[Tuple[int, int, int, int]]]:
-    """Detect contours, filter by area, sort reading-order. Returns (cx, cy, area, vertices)."""
-    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
-    blurred = cv2.GaussianBlur(gray, (params.blur_kernel, params.blur_kernel), 0)
-    edges = cv2.Canny(blurred, params.canny_low, params.canny_high)
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    result = []
-    for contour in contours:
-        area = cv2.contourArea(contour)
-        if area < params.min_area or area > params.max_area:
-            continue
-        M = cv2.moments(contour)
-        if M["m00"] == 0:
-            continue
-        cx = int(M["m10"] / M["m00"])
-        cy = int(M["m01"] / M["m00"])
-        perimeter = cv2.arcLength(contour, True)
-        approx = cv2.approxPolyDP(contour, params.approx_epsilon * perimeter, True)
-        result.append((cx, cy, int(area), len(approx)))
-
-    if not result:
-        return None
-    return _sort_contours_reading_order(result, params.row_tolerance)
-
-
-def _sort_contours_reading_order(
-    contours_info: List[Tuple[int, int, int, int]],
-    row_tolerance: int = 50,
-) -> List[Tuple[int, int, int, int]]:
-    """Sort contours left-to-right, top-to-bottom."""
-    if not contours_info:
-        return contours_info
-    sorted_by_y = sorted(contours_info, key=lambda d: d[1])
-    rows: List[List] = []
-    current_row = [sorted_by_y[0]]
-    current_row_y = sorted_by_y[0][1]
-    for detection in sorted_by_y[1:]:
-        cy = detection[1]
-        if abs(cy - current_row_y) <= row_tolerance:
-            current_row.append(detection)
-        else:
-            rows.append(current_row)
-            current_row = [detection]
-            current_row_y = cy
-    rows.append(current_row)
-    result = []
-    for row in rows:
-        result.extend(sorted(row, key=lambda d: d[0]))
-    return result
 
 
 def _detect_hsv_color(
@@ -246,44 +183,6 @@ def _detect_aruco_markers(
         result.append((cx, cy, int(mid), corners.tolist()))
 
     return result if result else None
-
-
-def _get_3d_position(
-    cloud: PointCloud2,
-    cx: int,
-    cy: int,
-    search_radius: int = 10,
-) -> Optional[Tuple[float, float, float]]:
-    """Get 3D XYZ from organized point cloud at pixel (cx, cy)."""
-    width = cloud.width
-    height = cloud.height
-    point_step = cloud.point_step
-
-    def get_xyz_at(u: int, v: int):
-        if u < 0 or u >= width or v < 0 or v >= height:
-            return None
-        offset = v * cloud.row_step + u * point_step
-        try:
-            x, y, z = struct.unpack_from("<fff", cloud.data, offset)
-        except struct.error:
-            return None
-        if math.isnan(x) or math.isnan(y) or math.isnan(z):
-            return None
-        if x == 0.0 and y == 0.0 and z == 0.0:
-            return None
-        return (x, y, z)
-
-    xyz = get_xyz_at(cx, cy)
-    if xyz is not None:
-        return xyz
-    for r in range(1, search_radius + 1):
-        for du in range(-r, r + 1):
-            for dv in range(-r, r + 1):
-                if abs(du) == r or abs(dv) == r:
-                    xyz = get_xyz_at(cx + du, cy + dv)
-                    if xyz is not None:
-                        return xyz
-    return None
 
 
 def _annotate_image(
@@ -682,7 +581,7 @@ async def detect_objects(
         params = CircleDetectionParams(
             min_radius=min_radius, max_radius=max_radius, param2=circle_param2,
         )
-        raw = _detect_hough_circles(rgb, params)
+        raw = detect_hough_circles(rgb, params)
         if raw:
             raw_detections = [
                 {"pixel_x": cx, "pixel_y": cy, "radius": r} for cx, cy, r in raw
@@ -692,7 +591,7 @@ async def detect_objects(
         params = ContourDetectionParams(
             min_area=contour_min_area, max_area=contour_max_area,
         )
-        raw = _detect_contours_in_image(rgb, params)
+        raw = detect_contours_in_image(rgb, params)
         if raw:
             raw_detections = [
                 {"pixel_x": cx, "pixel_y": cy, "area": a, "vertices": v}
@@ -726,7 +625,7 @@ async def detect_objects(
         det["base_xyz"] = None
 
         if cloud is not None:
-            xyz = _get_3d_position(cloud, det["pixel_x"], det["pixel_y"])
+            xyz = get_3d_position(cloud, det["pixel_x"], det["pixel_y"])
             if xyz is not None:
                 det["camera_xyz"] = list(xyz)
 
@@ -810,6 +709,216 @@ async def _transform_point_to_base(
         return (float(point_base[0]), float(point_base[1]), float(point_base[2]))
 
     return await loop.run_in_executor(None, _do_transform)
+
+
+async def _confirm_point_via_gui(
+    image_path: str,
+    pixel_x: int,
+    pixel_y: int,
+    timeout: float = 120.0,
+) -> Optional[Dict[str, Any]]:
+    """Launch the point selector GUI as a subprocess and wait for the result.
+
+    Returns:
+        Dict with confirmed point, None if cancelled, or dict with error key.
+    """
+    gui_script = os.path.join(os.path.dirname(__file__), "point_selector_gui.py")
+    if not os.path.exists(gui_script):
+        return {"error": f"GUI script not found: {gui_script}"}
+
+    cmd = [
+        sys.executable, gui_script, image_path,
+        "--x", str(pixel_x), "--y", str(pixel_y),
+        "--title", "Confirm Point — Click to adjust, Enter to confirm",
+    ]
+
+    # Ensure X11 env vars are available for the GUI subprocess.
+    # Claude Code strips DISPLAY when spawning MCP servers, so we detect
+    # the active display at launch and inject it here.
+    env = os.environ.copy()
+    env.setdefault("DISPLAY", _DETECTED_DISPLAY)
+    env.setdefault("XAUTHORITY", _DETECTED_XAUTHORITY)
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+        )
+        stdout, stderr = await asyncio.wait_for(
+            proc.communicate(), timeout=timeout,
+        )
+    except asyncio.TimeoutError:
+        proc.kill()
+        return {"error": f"GUI timed out after {timeout}s"}
+    except Exception as e:
+        return {"error": f"Failed to launch GUI: {e}"}
+
+    stderr_text = stderr.decode().strip() if stderr else ""
+    if stderr_text:
+        logger.info(f"GUI stderr: {stderr_text}")
+
+    if proc.returncode != 0:
+        # Still try to parse stdout — the script outputs error JSON before exit(1)
+        try:
+            result = json.loads(stdout.decode().strip())
+            if stderr_text:
+                result["stderr"] = stderr_text
+            return result
+        except (json.JSONDecodeError, ValueError):
+            return {"error": f"GUI exited with code {proc.returncode}: {stderr_text}"}
+
+    try:
+        result = json.loads(stdout.decode().strip())
+    except (json.JSONDecodeError, ValueError) as e:
+        return {"error": f"Failed to parse GUI output: {e}. stderr: {stderr_text}"}
+
+    if not result.get("confirmed", False):
+        return None  # User cancelled
+
+    return result
+
+
+@mcp.tool()
+async def get_point_3d(
+    pixel_x: int,
+    pixel_y: int,
+    transform_to_base: bool = True,
+    search_radius: int = 10,
+    confirm: bool = True,
+    save_path: str = "/tmp/erobs_point3d.jpg",
+) -> str:
+    """Get the 3D position of a pixel from the last captured point cloud.
+
+    IMPORTANT: Call capture_image(mode="3d") first! This uses the most recent
+    point cloud data.
+
+    Use this when you can see something in the camera image and want to know
+    its real-world 3D position — e.g., "what are the 3D coordinates of the
+    object at pixel (500, 300)?" This is useful for planning robot moves to
+    arbitrary points visible in the image without needing a specific detector.
+
+    Args:
+        pixel_x: X coordinate (column) in the image.
+        pixel_y: Y coordinate (row) in the image.
+        transform_to_base: If True, return position in base_link frame.
+            If False, return in camera (zivid_optical_frame) frame.
+        search_radius: If the exact pixel has no depth, search nearby pixels
+            within this radius. Default 10.
+        confirm: If True, open a GUI window showing the image with the
+            suggested point. The user can click to adjust the position,
+            then press Enter to confirm or Esc to cancel. Default False.
+        save_path: Where to save annotated image showing the queried point.
+
+    Returns:
+        JSON with camera_xyz, base_xyz (if transform_to_base), and an
+        annotated image showing the queried point.
+    """
+    node = bridge.node
+
+    if node.last_cloud is None:
+        return json.dumps({
+            "error": "No point cloud data. Call capture_image(mode='3d') first.",
+        })
+
+    if node.last_rgb is None:
+        return json.dumps({
+            "error": "No image data. Call capture_image(mode='3d') first.",
+        })
+
+    # Bounds check
+    h, w = node.last_rgb.shape[:2]
+    if pixel_x < 0 or pixel_x >= w or pixel_y < 0 or pixel_y >= h:
+        return json.dumps({
+            "error": f"Pixel ({pixel_x}, {pixel_y}) out of bounds. "
+                     f"Image size: {w}x{h}.",
+        })
+
+    # GUI confirmation step
+    if confirm:
+        # Use the saved capture image, or save current frame as fallback
+        image_path = DEFAULT_IMAGE_PATH
+        if not os.path.exists(image_path):
+            bgr = cv2.cvtColor(node.last_rgb, cv2.COLOR_RGB2BGR)
+            cv2.imwrite(image_path, bgr)
+
+        gui_result = await _confirm_point_via_gui(image_path, pixel_x, pixel_y)
+
+        if gui_result is None:
+            return json.dumps({
+                "cancelled": True,
+                "message": "User cancelled point selection.",
+            })
+
+        if "error" in gui_result:
+            return json.dumps(gui_result)
+
+        # Override with user's confirmed coordinates
+        pixel_x = gui_result["pixel_x"]
+        pixel_y = gui_result["pixel_y"]
+
+        # Re-check bounds after user adjustment
+        if pixel_x < 0 or pixel_x >= w or pixel_y < 0 or pixel_y >= h:
+            return json.dumps({
+                "error": f"User-selected pixel ({pixel_x}, {pixel_y}) out of bounds. "
+                         f"Image size: {w}x{h}.",
+            })
+
+    # Look up 3D position from point cloud
+    xyz = _get_3d_position(node.last_cloud, pixel_x, pixel_y, search_radius)
+
+    if xyz is None:
+        return json.dumps({
+            "error": f"No valid depth at pixel ({pixel_x}, {pixel_y}) "
+                     f"within search_radius={search_radius}. "
+                     "The point may be on a reflective surface or out of range.",
+        })
+
+    result = {
+        "pixel_x": pixel_x,
+        "pixel_y": pixel_y,
+        "camera_xyz": [round(v, 6) for v in xyz],
+        "camera_frame": CAMERA_FRAME,
+        "base_xyz": None,
+        "base_frame": "base_link",
+    }
+
+    # Transform to base_link
+    if transform_to_base:
+        base_xyz = await _transform_point_to_base(
+            node, xyz, node.capture_stamp,
+        )
+        if base_xyz is not None:
+            result["base_xyz"] = [round(v, 6) for v in base_xyz]
+
+    # Annotate image with the queried point
+    annotated = cv2.cvtColor(node.last_rgb.copy(), cv2.COLOR_RGB2BGR)
+    cv2.drawMarker(
+        annotated, (pixel_x, pixel_y), (0, 0, 255),
+        cv2.MARKER_CROSS, 20, 2,
+    )
+    label_parts = [f"({pixel_x}, {pixel_y})"]
+    if result["base_xyz"]:
+        bx, by, bz = result["base_xyz"]
+        label_parts.append(f"base: ({bx:.3f}, {by:.3f}, {bz:.3f})")
+    else:
+        cx, cy, cz = result["camera_xyz"]
+        label_parts.append(f"cam: ({cx:.3f}, {cy:.3f}, {cz:.3f})")
+    label = " ".join(label_parts)
+    cv2.putText(
+        annotated, label, (pixel_x + 15, pixel_y - 10),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2,
+    )
+    cv2.putText(
+        annotated, label, (pixel_x + 15, pixel_y - 10),
+        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1,
+    )
+    os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
+    cv2.imwrite(save_path, annotated)
+    result["annotated_image_path"] = save_path
+
+    return json.dumps(result)
 
 
 @mcp.tool()
