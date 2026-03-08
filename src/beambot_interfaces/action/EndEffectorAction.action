@@ -1,0 +1,9 @@
+# Goal
+string gripper_group        # MoveIt group name (from config): "hande_gripper", "epick_gripper", ""
+string end_effector_action  # SRDF group_state name: "hande_open", "hande_closed", "vacuum_on", "vacuum_off"
+---
+# Result
+bool success
+string error_message
+---
+# Feedback

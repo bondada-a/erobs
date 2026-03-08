@@ -17,13 +17,17 @@ import cv2
 try:
     import rclpy
     from rclpy.node import Node
+    from rclpy.action import ActionClient
+    from action_msgs.msg import GoalStatus
     from sensor_msgs.msg import Image as RosImage
     from std_srvs.srv import Trigger
     from zivid_interfaces.srv import CaptureAndDetectMarkers
     from cv_bridge import CvBridge
+    from beambot_interfaces.action import MTCExecution
     ROS2_AVAILABLE = True
-except ImportError:
-    print("Warning: ROS2 or cv_bridge not available. Camera view will be disabled.")
+except ImportError as e:
+    print(f"Warning: ROS2 or required packages not available: {e}")
+    print("Camera view and task execution will be disabled.")
     ROS2_AVAILABLE = False
 
 # Import local modules
@@ -52,6 +56,9 @@ class MTCGUIClient:
         self.temp_json_file = None
         self.current_json_file = None  # Track currently loaded JSON file
 
+        # Action client state
+        self.mtc_action_client = None
+
         # Camera state
         self.current_image = None
         self.current_detections = []  # List of Zivid MarkerShape objects
@@ -76,7 +83,7 @@ class MTCGUIClient:
     def setup_gui(self):
         """Setup the main GUI window"""
         self.root = tk.Tk()
-        self.root.title("MTC Action Client GUI with Camera View")
+        self.root.title("MTC GUI Client (beambot)")
         self.root.geometry("1920x1080")
 
         # Configure grid weights - 2 columns now
@@ -170,6 +177,9 @@ class MTCGUIClient:
         ttk.Button(toolbar_row2, text="Add Vision MoveTo", command=lambda: self.add_task_step("vision_moveto")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar_row2, text="Add Pipettor", command=lambda: self.add_task_step("pipettor")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar_row2, text="Remove Step", command=self.remove_task_step).pack(side="left", padx=(20, 0))
+        ttk.Button(toolbar_row2, text="Clear All", command=self.clear_all_tasks).pack(side="left", padx=(5, 0))
+        ttk.Button(toolbar_row2, text="↑ Move Up", command=self.move_task_up).pack(side="left", padx=(20, 0))
+        ttk.Button(toolbar_row2, text="↓ Move Down", command=self.move_task_down).pack(side="left", padx=(5, 0))
         
         # Task sequence tree
         self.task_tree = ttk.Treeview(editor_frame, columns=("Action", "Details"), show="tree headings")
@@ -193,20 +203,28 @@ class MTCGUIClient:
         """Create execution control frame"""
         exec_frame = ttk.LabelFrame(self.root, text="Execution Control", padding="10")
         exec_frame.grid(row=2, column=0, sticky="ew", padx=10, pady=5)
-        exec_frame.grid_columnconfigure(1, weight=1)
-        
+        exec_frame.grid_columnconfigure(4, weight=1)  # Progress bar column expands
+
         # Execute button
         self.execute_btn = ttk.Button(exec_frame, text="Execute Task", command=self.execute_task)
         self.execute_btn.grid(row=0, column=0, padx=(0, 10))
-        
+
         # Stop button
         self.stop_btn = ttk.Button(exec_frame, text="Stop Execution", command=self.stop_task, state="disabled")
         self.stop_btn.grid(row=0, column=1, padx=(0, 10))
-        
+
+        # Pause button
+        self.pause_btn = ttk.Button(exec_frame, text="⏸ Pause", command=self.pause_task, state="disabled")
+        self.pause_btn.grid(row=0, column=2, padx=(0, 5))
+
+        # Resume button
+        self.resume_btn = ttk.Button(exec_frame, text="▶ Resume", command=self.resume_task, state="disabled")
+        self.resume_btn.grid(row=0, column=3, padx=(0, 10))
+
         # Progress bar
         self.progress_var = tk.DoubleVar()
         self.progress_bar = ttk.Progressbar(exec_frame, variable=self.progress_var, maximum=100)
-        self.progress_bar.grid(row=0, column=2, sticky="ew", padx=(10, 0))
+        self.progress_bar.grid(row=0, column=4, sticky="ew", padx=(10, 0))
 
     def create_status_frame(self):
         """Create status display frame"""
@@ -354,8 +372,10 @@ class MTCGUIClient:
         elif action_type == "vision_moveto":
             step = {
                 "task_type": "vision_moveto",
+                "detection_type": "marker",  # "marker" or "circle"
                 "tag_id": 0,
                 "timeout": 10.0,
+                "z_offset": 0.0,  # 0 = use gripper default
                 "marker_dictionary": "aruco4x4_50"  # Default ArUco dictionary
             }
         elif action_type == "pipettor":
@@ -370,19 +390,105 @@ class MTCGUIClient:
         self.log_message(f"Added {action_type} step")
 
     def remove_task_step(self):
-        """Remove selected task step"""
+        """Remove all selected task steps (supports multi-select with Ctrl+Click or Shift+Click)"""
         selection = self.task_tree.selection()
         if not selection:
-            messagebox.showwarning("Warning", "Please select a step to remove")
+            messagebox.showwarning("Warning", "Please select step(s) to remove")
             return
 
-        item = selection[0]
-        step_index = int(item) - 1
+        # Convert 1-based item IDs to 0-based indices, sorted descending
+        # (must delete from highest index first to avoid shifting issues)
+        indices = sorted([int(item) - 1 for item in selection], reverse=True)
 
-        if 0 <= step_index < len(self.current_config["tasks"]):
-            removed_step = self.current_config["tasks"].pop(step_index)
+        # Remove each selected task
+        removed_tasks = []
+        for step_index in indices:
+            if 0 <= step_index < len(self.current_config["tasks"]):
+                removed_step = self.current_config["tasks"].pop(step_index)
+                removed_tasks.append(removed_step['task_type'])
+
+        if removed_tasks:
             self.update_task_tree()
-            self.log_message(f"Removed step: {removed_step['task_type']}")
+            # Log message (reverse list to show in original order)
+            removed_tasks.reverse()
+            if len(removed_tasks) == 1:
+                self.log_message(f"Removed step: {removed_tasks[0]}")
+            else:
+                self.log_message(f"Removed {len(removed_tasks)} steps: {', '.join(removed_tasks)}")
+
+    def clear_all_tasks(self):
+        """Clear all tasks from the sequence with confirmation"""
+        if not self.current_config["tasks"]:
+            messagebox.showinfo("Info", "Task list is already empty")
+            return
+
+        # Ask for confirmation
+        task_count = len(self.current_config["tasks"])
+        if messagebox.askyesno("Confirm Clear All",
+                               f"Are you sure you want to remove all {task_count} task(s)?"):
+            self.current_config["tasks"] = []
+            self.update_task_tree()
+            self.log_message(f"Cleared all {task_count} tasks")
+
+    def move_task_up(self):
+        """Move selected task up in the sequence"""
+        selection = self.task_tree.selection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select a step to move")
+            return
+
+        if len(selection) > 1:
+            messagebox.showwarning("Warning", "Please select only one step to move")
+            return
+
+        # Convert 1-based item ID to 0-based index
+        step_index = int(selection[0]) - 1
+        tasks = self.current_config["tasks"]
+
+        # Check bounds
+        if step_index <= 0:
+            messagebox.showinfo("Info", "Cannot move the first step up")
+            return
+
+        # Swap with previous item
+        tasks[step_index], tasks[step_index - 1] = tasks[step_index - 1], tasks[step_index]
+        self.update_task_tree()
+
+        # Re-select the moved item (now at new position)
+        new_item_id = str(step_index)  # Was step_index+1, now step_index (1-based)
+        self.task_tree.selection_set(new_item_id)
+        self.task_tree.focus(new_item_id)
+        self.log_message(f"Moved step {step_index + 1} up to position {step_index}")
+
+    def move_task_down(self):
+        """Move selected task down in the sequence"""
+        selection = self.task_tree.selection()
+        if not selection:
+            messagebox.showwarning("Warning", "Please select a step to move")
+            return
+
+        if len(selection) > 1:
+            messagebox.showwarning("Warning", "Please select only one step to move")
+            return
+
+        # Convert 1-based item ID to 0-based index
+        step_index = int(selection[0]) - 1
+        tasks = self.current_config["tasks"]
+
+        # Check bounds
+        if step_index >= len(tasks) - 1:
+            messagebox.showinfo("Info", "Cannot move the last step down")
+            return
+
+        # Swap with next item
+        tasks[step_index], tasks[step_index + 1] = tasks[step_index + 1], tasks[step_index]
+        self.update_task_tree()
+
+        # Re-select the moved item (now at new position)
+        new_item_id = str(step_index + 2)  # Was step_index+1, now step_index+2 (1-based)
+        self.task_tree.selection_set(new_item_id)
+        self.task_tree.focus(new_item_id)
+        self.log_message(f"Moved step {step_index + 1} down to position {step_index + 2}")
 
     def edit_task_step(self, event):
         """Edit selected task step"""
@@ -406,6 +512,8 @@ class MTCGUIClient:
         # Larger dialog for pipettor due to LED controls
         if step["task_type"] == "pipettor":
             dialog.geometry("550x900")
+        elif step["task_type"] == "vision_moveto":
+            dialog.geometry("500x700")  # Taller for detection type options
         else:
             dialog.geometry("500x600")
 
@@ -565,11 +673,28 @@ class MTCGUIClient:
         dock_entry = ttk.Entry(dialog, textvariable=dock_var, width=30)
         dock_entry.pack(padx=20, pady=(0, 10))
 
-        # Approach pose
+        # Approach pose (read-only, auto-set based on operation)
         ttk.Label(dialog, text="Approach Pose:").pack(anchor="w", padx=20)
-        approach_var = tk.StringVar(value=step.get("approach_pose", ""))
-        approach_entry = ttk.Entry(dialog, textvariable=approach_var, width=30)
-        approach_entry.pack(padx=20, pady=(0, 20))
+        # Determine initial approach pose based on operation
+        initial_approach = "load_approach" if operation_var.get() == "load" else "dock_approach"
+        approach_var = tk.StringVar(value=initial_approach)
+        approach_entry = ttk.Entry(dialog, textvariable=approach_var, width=30, state="readonly")
+        approach_entry.pack(padx=20, pady=(0, 5))
+
+        # Help text explaining the auto-set behavior
+        help_text = ttk.Label(dialog, text="Auto-set: load → load_approach, dock → dock_approach",
+                             font=("Arial", 8), foreground="gray")
+        help_text.pack(padx=20, pady=(0, 15))
+
+        # Callback to update approach_pose when operation changes
+        def on_operation_change(event=None):
+            op = operation_var.get()
+            if op == "load":
+                approach_var.set("load_approach")
+            elif op == "dock":
+                approach_var.set("dock_approach")
+
+        operation_combo.bind("<<ComboboxSelected>>", on_operation_change)
 
         def save_changes():
             step["operation"] = operation_var.get()
@@ -615,42 +740,94 @@ class MTCGUIClient:
 
         # Add description
         description = ttk.Label(dialog,
-                               text="Detect ArUco Marker using Zivid and move gripper to marker location",
+                               text="Detect object using Zivid camera and move gripper to detected location",
                                font=("Arial", 9),
                                foreground="gray")
         description.pack(padx=20, pady=(0, 20))
 
-        # Marker ID
-        ttk.Label(dialog, text="ArUco Marker ID:").pack(anchor="w", padx=20)
-        tag_id_var = tk.StringVar(value=str(step.get("tag_id", 0)))
-        tag_id_entry = ttk.Entry(dialog, textvariable=tag_id_var, width=30)
-        tag_id_entry.pack(padx=20, pady=(0, 10))
+        # Detection Type (NEW)
+        ttk.Label(dialog, text="Detection Type:").pack(anchor="w", padx=20)
+        detection_type_var = tk.StringVar(value=step.get("detection_type", "marker"))
+        detection_type_combo = ttk.Combobox(dialog, textvariable=detection_type_var,
+                                           values=["marker", "circle", "contour"],
+                                           width=27, state="readonly")
+        detection_type_combo.pack(padx=20, pady=(0, 5))
 
-        ttk.Label(dialog, text="The ID number of the ArUco marker to detect",
-                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
+        ttk.Label(dialog, text="marker = ArUco tag, circle = Hough circles, contour = any shape by edges",
+                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 15))
+
+        # Frame for marker-specific options
+        marker_frame = ttk.LabelFrame(dialog, text="ArUco Marker Options", padding="10")
+        marker_frame.pack(padx=20, pady=(0, 10), fill="x")
+
+        # Marker ID
+        ttk.Label(marker_frame, text="Marker ID:").pack(anchor="w")
+        tag_id_var = tk.StringVar(value=str(step.get("tag_id", 0)))
+        tag_id_entry = ttk.Entry(marker_frame, textvariable=tag_id_var, width=25)
+        tag_id_entry.pack(pady=(0, 5))
 
         # Marker Dictionary
-        ttk.Label(dialog, text="Marker Dictionary:").pack(anchor="w", padx=20)
+        ttk.Label(marker_frame, text="Dictionary:").pack(anchor="w")
         marker_dict_var = tk.StringVar(value=step.get("marker_dictionary", "aruco4x4_50"))
-        marker_dict_combo = ttk.Combobox(dialog, textvariable=marker_dict_var,
+        marker_dict_combo = ttk.Combobox(marker_frame, textvariable=marker_dict_var,
                                         values=["aruco4x4_50", "aruco4x4_100", "aruco4x4_250",
                                                "aruco5x5_50", "aruco5x5_100", "aruco5x5_250",
                                                "aruco6x6_50", "aruco6x6_100", "aruco6x6_250",
                                                "aruco7x7_50", "aruco7x7_100", "aruco7x7_250"],
-                                        width=27, state="readonly")
-        marker_dict_combo.pack(padx=20, pady=(0, 10))
+                                        width=23, state="readonly")
+        marker_dict_combo.pack(pady=(0, 5))
 
-        ttk.Label(dialog, text="ArUco dictionary (must match your physical markers)",
-                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
+        # Frame for contour-specific options
+        contour_frame = ttk.LabelFrame(dialog, text="Contour Detection Options", padding="10")
+        contour_frame.pack(padx=20, pady=(0, 10), fill="x")
+
+        # Sample Index
+        ttk.Label(contour_frame, text="Sample Number (1-indexed):").pack(anchor="w")
+        sample_index_var = tk.StringVar(value=str(step.get("sample_index", 1)))
+        sample_index_entry = ttk.Entry(contour_frame, textvariable=sample_index_var, width=25)
+        sample_index_entry.pack(pady=(0, 5))
+
+        ttk.Label(contour_frame, text="Objects sorted left-to-right, top-to-bottom (reading order)",
+                 font=("Arial", 8), foreground="gray").pack(pady=(0, 5))
+
+        # Function to enable/disable options based on detection type
+        def update_detection_options(*args):
+            detection_type = detection_type_var.get()
+            # Marker options
+            if detection_type == "marker":
+                tag_id_entry.config(state="normal")
+                marker_dict_combo.config(state="readonly")
+            else:
+                for child in marker_frame.winfo_children():
+                    if isinstance(child, (ttk.Entry, ttk.Combobox)):
+                        child.config(state="disabled")
+            # Contour options
+            if detection_type == "contour":
+                sample_index_entry.config(state="normal")
+            else:
+                sample_index_entry.config(state="disabled")
+
+        detection_type_var.trace('w', update_detection_options)
+        update_detection_options()  # Initial state
+
+        # Common options frame
+        common_frame = ttk.LabelFrame(dialog, text="Common Options", padding="10")
+        common_frame.pack(padx=20, pady=(0, 10), fill="x")
+
+        # Z Offset (NEW)
+        ttk.Label(common_frame, text="Z Offset (meters):").pack(anchor="w")
+        z_offset_var = tk.StringVar(value=str(step.get("z_offset", 0.0)))
+        z_offset_entry = ttk.Entry(common_frame, textvariable=z_offset_var, width=25)
+        z_offset_entry.pack(pady=(0, 5))
+
+        ttk.Label(common_frame, text="0 = use gripper default, positive = higher above object",
+                 font=("Arial", 8), foreground="gray").pack(pady=(0, 10))
 
         # Timeout
-        ttk.Label(dialog, text="Timeout (seconds):").pack(anchor="w", padx=20)
+        ttk.Label(common_frame, text="Timeout (seconds):").pack(anchor="w")
         timeout_var = tk.StringVar(value=str(step.get("timeout", 10.0)))
-        timeout_entry = ttk.Entry(dialog, textvariable=timeout_var, width=30)
-        timeout_entry.pack(padx=20, pady=(0, 10))
-
-        ttk.Label(dialog, text="Maximum time to wait for marker detection",
-                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 20))
+        timeout_entry = ttk.Entry(common_frame, textvariable=timeout_var, width=25)
+        timeout_entry.pack(pady=(0, 5))
 
         # Information box
         info_frame = ttk.LabelFrame(dialog, text="Info", padding="10")
@@ -658,24 +835,28 @@ class MTCGUIClient:
 
         info_text = ("Vision MoveTo will:\n"
                     "1. Capture 3D point cloud using Zivid camera\n"
-                    "2. Detect ArUco marker using built-in detection\n"
-                    "3. Transform marker pose to robot base frame\n"
-                    "4. Move gripper to detected marker position\n"
-                    "5. Cache detection for efficiency (30s)")
+                    "2. Detect object (marker, circle, or contour)\n"
+                    "3. Transform pose to robot base frame\n"
+                    "4. Move gripper to detected position\n\n"
+                    "• Circle: Hough Transform for wafers/discs\n"
+                    "• Contour: Edge detection for any shape")
         ttk.Label(info_frame, text=info_text, justify="left",
                  font=("Arial", 8)).pack()
 
         def save_changes():
             try:
+                step["detection_type"] = detection_type_var.get()
                 step["tag_id"] = int(tag_id_var.get())
+                step["sample_index"] = int(sample_index_var.get())
                 step["timeout"] = float(timeout_var.get())
+                step["z_offset"] = float(z_offset_var.get())
                 step["marker_dictionary"] = marker_dict_var.get()
                 self.update_task_tree()
                 dialog.destroy()
                 self.log_message(f"Updated step {step_index + 1}")
             except ValueError:
                 messagebox.showerror("Invalid Input",
-                                   "Marker ID must be an integer and timeout must be a number")
+                                   "Marker ID and Sample Index must be integers, timeout and z_offset must be numbers")
 
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
@@ -867,10 +1048,23 @@ class MTCGUIClient:
                 ee_action = step.get('end_effector_action', 'unknown')
                 details = f"{ee_type} {ee_action}"
             elif action == "vision_moveto":
+                detection_type = step.get('detection_type', 'marker')
                 tag_id = step.get('tag_id', 0)
                 timeout = step.get('timeout', 10.0)
-                marker_dict = step.get('marker_dictionary', 'aruco4x4_50')
-                details = f"Detect ArUco {tag_id} ({marker_dict}, timeout: {timeout}s)"
+                z_offset = step.get('z_offset', 0.0)
+                sample_index = step.get('sample_index', 1)
+                if detection_type == "circle":
+                    details = f"Detect circle/wafer"
+                    if z_offset != 0.0:
+                        details += f" (z_offset: {z_offset}m)"
+                elif detection_type == "contour":
+                    details = f"Detect contour → Sample #{sample_index}"
+                    if z_offset != 0.0:
+                        details += f" (z_offset: {z_offset}m)"
+                else:
+                    marker_dict = step.get('marker_dictionary', 'aruco4x4_50')
+                    details = f"Detect ArUco {tag_id} ({marker_dict})"
+                details += f" timeout: {timeout}s"
             elif action == "pipettor":
                 operation = step.get('operation', 'SUCK')
                 volume_pct = step.get('volume_pct', 0.0)
@@ -910,6 +1104,8 @@ class MTCGUIClient:
         # Update GUI state
         self.execute_btn.config(state="disabled")
         self.stop_btn.config(state="normal")
+        self.pause_btn.config(state="normal")
+        self.resume_btn.config(state="disabled")
         self.progress_var.set(0)
 
     def validate_configuration(self):
@@ -964,126 +1160,109 @@ class MTCGUIClient:
         return {"valid": True, "message": "Configuration is valid"}
 
     def _execute_task_thread(self):
-        """Execute task using the MTC action client executable"""
+        """Execute task using the MTC action client (direct ROS2 ActionClient)"""
         try:
             self.log_message("Starting MTC task execution...")
-            
-            # Create temporary JSON file
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
-                json.dump(self.current_config, f, indent=2)
-                self.temp_json_file = f.name
-            
-            self.log_message(f"Created temporary configuration file: {self.temp_json_file}")
-            
-            # Find the MTC action client executable using ROS2 package resolution
-            mtc_client_path = None
-            try:
-                # Use ros2 pkg prefix to find the package installation path
-                result = subprocess.run(
-                    ['ros2', 'pkg', 'prefix', 'mtc_pipeline'],
-                    capture_output=True,
-                    text=True,
-                    timeout=5
+
+            # Check if action client is available
+            if not ROS2_AVAILABLE or self.mtc_action_client is None:
+                self.log_message("ERROR: ROS2 or MTC action client not available")
+                return
+
+            # Wait for action server
+            self.log_message("Waiting for beambot_execution action server...")
+            if not self.mtc_action_client.wait_for_server(timeout_sec=10.0):
+                self.log_message("ERROR: Action server 'beambot_execution' not available!")
+                self.log_message("Make sure beambot is running: ros2 launch beambot beambot_bringup.launch.py")
+                return
+
+            self.log_message("Action server available, sending goal...")
+
+            # Create goal with JSON configuration
+            goal = MTCExecution.Goal()
+            goal.full_json = json.dumps(self.current_config)
+
+            # Send goal asynchronously
+            send_future = self.mtc_action_client.send_goal_async(
+                goal,
+                feedback_callback=self._action_feedback_callback
+            )
+
+            # Wait for goal to be accepted (with stop check)
+            while not send_future.done():
+                if self.stop_execution:
+                    self.log_message("Execution stopped before goal was accepted")
+                    return
+                time.sleep(0.1)
+
+            self.current_goal_handle = send_future.result()
+
+            if not self.current_goal_handle.accepted:
+                self.log_message("ERROR: Goal was rejected by the action server")
+                return
+
+            self.log_message("Goal accepted, executing task sequence...")
+
+            # Wait for result (with stop check)
+            result_future = self.current_goal_handle.get_result_async()
+
+            while not result_future.done():
+                if self.stop_execution:
+                    self.log_message("Cancelling task execution...")
+                    cancel_future = self.current_goal_handle.cancel_goal_async()
+                    # Wait for cancel to complete
+                    timeout = 5.0
+                    start = time.time()
+                    while not cancel_future.done() and (time.time() - start) < timeout:
+                        time.sleep(0.1)
+                    self.log_message("Task cancelled")
+                    return
+                time.sleep(0.1)
+
+            # Process result
+            result = result_future.result()
+            status = result.status
+
+            if status == GoalStatus.STATUS_SUCCEEDED:
+                self.log_message(
+                    f"✓ Task completed successfully! "
+                    f"Steps: {result.result.completed_steps}/{result.result.total_steps}"
+                )
+                self.root.after(0, lambda: self.progress_var.set(100))
+            elif status == GoalStatus.STATUS_CANCELED:
+                self.log_message(f"⊗ Task was cancelled: {result.result.error_message}")
+            else:
+                self.log_message(
+                    f"✗ Task failed: {result.result.error_message} "
+                    f"(completed {result.result.completed_steps}/{result.result.total_steps} steps)"
                 )
 
-                if result.returncode == 0:
-                    pkg_prefix = result.stdout.strip()
-                    mtc_client_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_client')
-                    self.log_message(f"Package prefix found: {pkg_prefix}")
-                    self.log_message(f"Looking for executable at: {mtc_client_path}")
-
-                    if not os.path.exists(mtc_client_path):
-                        self.log_message(f"ERROR: Executable not found at: {mtc_client_path}")
-                        mtc_client_path = None
-                else:
-                    self.log_message(f"ERROR: ros2 pkg prefix failed with code {result.returncode}")
-                    self.log_message(f"ERROR: stderr: {result.stderr.strip()}")
-                    self.log_message(f"ERROR: stdout: {result.stdout.strip()}")
-
-            except subprocess.TimeoutExpired:
-                self.log_message("ERROR: Timeout while looking for mtc_pipeline package")
-            except Exception as e:
-                self.log_message(f"ERROR: Exception while finding package: {e}")
-
-            if not mtc_client_path:
-                self.log_message("ERROR: Could not find MTC action client executable")
-                return
-            
-            self.log_message(f"Using MTC client: {mtc_client_path}")
-            
-            # Execute the MTC action client
-            # Use stdbuf to force unbuffered output (most reliable method)
-            cmd = ['stdbuf', '-oL', '-eL', mtc_client_path, self.temp_json_file, self.robot_ip_var.get()]
-            self.log_message(f"Executing: {' '.join(cmd[3:])}")  # Don't show stdbuf in log
-
-            # Run the command and capture output
-            # PYTHONUNBUFFERED forces line-buffered output for Python scripts
-            # RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED forces ROS 2 to flush after each log
-            env = os.environ.copy()
-            env['PYTHONUNBUFFERED'] = '1'
-            env['RCUTILS_CONSOLE_STDOUT_LINE_BUFFERED'] = '1'
-
-            process = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.STDOUT,  # Merge stderr into stdout
-                text=True,
-                bufsize=0,  # Unbuffered
-                universal_newlines=True,
-                env=env
-            )
-            
-            # Monitor the process
-            while process.poll() is None:
-                if self.stop_execution:
-                    self.log_message("Stopping execution...")
-                    process.terminate()
-
-                    # Wait for graceful shutdown (client will cancel the action)
-                    try:
-                        process.wait(timeout=5.0)
-                        self.log_message("Task cancelled successfully")
-                    except subprocess.TimeoutExpired:
-                        self.log_message("Force killing process...")
-                        process.kill()
-                        process.wait()
-                    break
-
-                # Read output
-                output = process.stdout.readline()
-                if output:
-                    self.log_message(f"MTC: {output.strip()}")
-
-                time.sleep(0.1)
-            
-            # Get final result
-            # Return codes: 0=Success, 1=Failure, 2=Cancelled
-            return_code = process.poll()
-            if return_code == 0:
-                self.log_message("✓ Task completed successfully!")
-            elif return_code == 2:
-                self.log_message("⊗ Task was cancelled")
-            else:
-                self.log_message(f"✗ Task failed with return code {return_code}")
-                
         except Exception as e:
             self.log_message(f"ERROR: {str(e)}")
+            import traceback
+            self.log_message(f"Traceback: {traceback.format_exc()}")
         finally:
-            # Clean up temporary file
-            if self.temp_json_file and os.path.exists(self.temp_json_file):
-                try:
-                    os.unlink(self.temp_json_file)
-                    self.log_message("Cleaned up temporary file")
-                except:
-                    pass
-            
+            self.current_goal_handle = None
             # Reset GUI state
             self.root.after(0, self._reset_execution_state)
+
+    def _action_feedback_callback(self, feedback_msg):
+        """Handle action feedback from the MTC orchestrator"""
+        fb = feedback_msg.feedback
+        # Update progress bar
+        self.root.after(0, lambda: self.progress_var.set(fb.progress_percentage))
+        # Log feedback
+        self.log_message(
+            f"[{fb.progress_percentage:.0f}%] Step {fb.current_step}: "
+            f"{fb.current_action} | Gripper: {fb.current_gripper} | {fb.status_message}"
+        )
 
     def _reset_execution_state(self):
         """Reset execution GUI state"""
         self.execute_btn.config(state="normal")
         self.stop_btn.config(state="disabled")
+        self.pause_btn.config(state="disabled")
+        self.resume_btn.config(state="disabled")
         self.progress_var.set(0)
         self.stop_execution = False
 
@@ -1092,6 +1271,80 @@ class MTCGUIClient:
         self.stop_execution = True
         self.log_message("Stopping task execution...")
 
+    def pause_task(self):
+        """Pause current task execution"""
+        if not ROS2_AVAILABLE or self.pause_client is None:
+            self.log_message("✗ Pause service not available")
+            return
+
+        def call_pause():
+            try:
+                if not self.pause_client.wait_for_service(timeout_sec=2.0):
+                    self.log_message("✗ Pause service not available (timeout)")
+                    return
+
+                request = Trigger.Request()
+                future = self.pause_client.call_async(request)
+
+                # Wait for result
+                start_time = time.time()
+                while not future.done():
+                    if time.time() - start_time > 5.0:
+                        self.log_message("✗ Pause request timed out")
+                        return
+                    time.sleep(0.01)
+
+                result = future.result()
+                if result.success:
+                    self.log_message(f"⏸ {result.message}")
+                    # Update button states
+                    self.root.after(0, lambda: self.pause_btn.configure(state="disabled"))
+                    self.root.after(0, lambda: self.resume_btn.configure(state="normal"))
+                else:
+                    self.log_message(f"✗ Pause failed: {result.message}")
+
+            except Exception as e:
+                self.log_message(f"✗ Pause error: {e}")
+
+        threading.Thread(target=call_pause, daemon=True).start()
+
+    def resume_task(self):
+        """Resume paused task execution"""
+        if not ROS2_AVAILABLE or self.resume_client is None:
+            self.log_message("✗ Resume service not available")
+            return
+
+        def call_resume():
+            try:
+                if not self.resume_client.wait_for_service(timeout_sec=2.0):
+                    self.log_message("✗ Resume service not available (timeout)")
+                    return
+
+                request = Trigger.Request()
+                future = self.resume_client.call_async(request)
+
+                # Wait for result
+                start_time = time.time()
+                while not future.done():
+                    if time.time() - start_time > 5.0:
+                        self.log_message("✗ Resume request timed out")
+                        return
+                    time.sleep(0.01)
+
+                result = future.result()
+                if result.success:
+                    self.log_message(f"▶ {result.message}")
+                    # Update button states
+                    self.root.after(0, lambda: self.pause_btn.configure(state="normal"))
+                    self.root.after(0, lambda: self.resume_btn.configure(state="disabled"))
+                else:
+                    self.log_message(f"✗ Resume failed: {result.message}")
+
+            except Exception as e:
+                self.log_message(f"✗ Resume error: {e}")
+
+        threading.Thread(target=call_resume, daemon=True).start()
+
     def test_mtc_server(self):
         """Test if the MTC action server is available"""
         def test_thread():
@@ -1099,20 +1352,22 @@ class MTCGUIClient:
                 self.log_message("Testing MTC action server availability...")
 
                 # Check if ROS2 is available
-                try:
-                    ros2_check = subprocess.run(['which', 'ros2'], capture_output=True, text=True, timeout=2)
-                    if ros2_check.returncode == 0:
-                        self.log_message(f"ros2 command found at: {ros2_check.stdout.strip()}")
-                    else:
-                        self.log_message("⚠ ros2 command not found - is ROS2 sourced?")
-                except Exception as e:
-                    self.log_message(f"⚠ Could not check for ros2 command: {e}")
+                if not ROS2_AVAILABLE:
+                    self.log_message("✗ ROS2 not available - please source your ROS2 workspace")
+                    return
 
-                # Check if the MTC action server executable exists using ROS2 package resolution
-                mtc_server_path = None
+                # Check if action client exists
+                if self.mtc_action_client is None:
+                    self.log_message("✗ Action client not initialized")
+                    self.log_message("This usually means ROS2 or beambot package is not available")
+                    return
+
+                self.log_message("✓ ROS2 available and action client initialized")
+
+                # Check if beambot package is available
                 try:
                     result = subprocess.run(
-                        ['ros2', 'pkg', 'prefix', 'mtc_pipeline'],
+                        ['ros2', 'pkg', 'prefix', 'beambot'],
                         capture_output=True,
                         text=True,
                         timeout=5
@@ -1120,37 +1375,41 @@ class MTCGUIClient:
 
                     if result.returncode == 0:
                         pkg_prefix = result.stdout.strip()
-                        mtc_server_path = os.path.join(pkg_prefix, 'lib', 'mtc_pipeline', 'mtc_orchestrator_action_server')
-                        self.log_message(f"Package prefix found: {pkg_prefix}")
-                        self.log_message(f"Looking for executable at: {mtc_server_path}")
+                        self.log_message(f"✓ beambot package found at: {pkg_prefix}")
                     else:
-                        self.log_message(f"⚠ ros2 pkg prefix failed with code {result.returncode}")
-                        self.log_message(f"⚠ stderr: {result.stderr.strip()}")
-                        self.log_message(f"⚠ stdout: {result.stdout.strip()}")
+                        self.log_message("⚠ beambot package not found")
+                        self.log_message("Make sure the package is built: colcon build --packages-select beambot")
                 except Exception as e:
-                    self.log_message(f"⚠ Could not locate package: {e}")
+                    self.log_message(f"⚠ Could not check for beambot package: {e}")
 
-                if mtc_server_path and os.path.exists(mtc_server_path):
-                    self.log_message("✓ MTC action server executable found")
-                    
-                    # Try to check if it's running
-                    try:
-                        result = subprocess.run(['pgrep', '-f', 'mtc_orchestrator_action_server'], 
-                                             capture_output=True, text=True)
-                        if result.returncode == 0:
-                            self.log_message("✓ MTC action server is running")
-                        else:
-                            self.log_message("⚠ MTC action server is not running")
-                            self.log_message("You may need to start it with: ros2 run mtc_pipeline mtc_orchestrator_action_server")
-                    except Exception as e:
-                        self.log_message(f"⚠ Could not check if server is running: {e}")
+                # Check if action server is available
+                self.log_message("Checking if 'beambot_execution' action server is available...")
+                if self.mtc_action_client.wait_for_server(timeout_sec=3.0):
+                    self.log_message("✓ MTC action server (beambot_execution) is running!")
                 else:
-                    self.log_message("✗ MTC action server executable not found")
-                    self.log_message("Make sure the package is built: colcon build --packages-select mtc_pipeline")
-                    
+                    self.log_message("⚠ MTC action server is not available")
+                    self.log_message("Start it with: ros2 launch beambot beambot_bringup.launch.py")
+
+                # List available action servers for debugging
+                try:
+                    result = subprocess.run(
+                        ['ros2', 'action', 'list'],
+                        capture_output=True,
+                        text=True,
+                        timeout=5
+                    )
+                    if result.returncode == 0:
+                        actions = result.stdout.strip()
+                        if actions:
+                            self.log_message(f"Available action servers:\n{actions}")
+                        else:
+                            self.log_message("No action servers currently running")
+                except Exception as e:
+                    self.log_message(f"⚠ Could not list action servers: {e}")
+
             except Exception as e:
                 self.log_message(f"✗ Test failed: {str(e)}")
-        
+
         threading.Thread(target=test_thread, daemon=True).start()
 
     def load_json_file(self):
@@ -1214,11 +1473,17 @@ class MTCGUIClient:
     def show_about(self):
         """Show about dialog"""
         messagebox.showinfo("About",
-                          "MTC Action Client GUI - Working Version\n\n"
-                          "A graphical interface for the MoveIt Task Constructor (MTC) action client.\n"
-                          "This version communicates with the actual MTC action server.\n"
-                          "Allows you to create, edit, and execute robot task sequences.\n\n"
-                          "Version: 1.0 (Working)")
+                          "MTC Action Client GUI\n\n"
+                          "A graphical interface for the MoveIt Task Constructor (MTC) pipeline.\n"
+                          "Communicates directly with beambot orchestrator via ROS2 ActionClient.\n\n"
+                          "Features:\n"
+                          "- Visual task sequence editor\n"
+                          "- Pose management\n"
+                          "- Live camera view with ArUco detection\n"
+                          "- Real-time execution feedback\n\n"
+                          "Backend: beambot (Python MTC implementation)\n"
+                          "Action server: beambot_execution\n\n"
+                          "Version: 2.0")
 
     def create_camera_panel(self):
         """Create camera view panel on the right side"""
@@ -1236,6 +1501,9 @@ class MTCGUIClient:
 
         ttk.Button(button_frame, text="Detect Markers",
                   command=self.trigger_marker_detection).pack(side="left", padx=(0, 5))
+
+        ttk.Button(button_frame, text="Detect Contours",
+                  command=self.trigger_contour_detection).pack(side="left", padx=(0, 5))
 
         self.camera_status_label = ttk.Label(button_frame, text="Waiting for camera...",
                                              foreground="gray")
@@ -1282,6 +1550,17 @@ class MTCGUIClient:
                 CaptureAndDetectMarkers,
                 '/capture_and_detect_markers'
             )
+
+            # Create MTC action client for beambot orchestrator
+            self.mtc_action_client = ActionClient(
+                self.ros_node,
+                MTCExecution,
+                'beambot_execution'
+            )
+
+            # Create pause/resume service clients
+            self.pause_client = self.ros_node.create_client(Trigger, 'beambot/pause')
+            self.resume_client = self.ros_node.create_client(Trigger, 'beambot/resume')
 
             # Detection is now manual via button (no periodic timer)
 
@@ -1361,9 +1640,9 @@ class MTCGUIClient:
                 foreground="blue"
             )
 
-            # Request detection for common marker IDs (0-20) using default dictionary
+            # Request detection for all marker IDs in aruco4x4_50 dictionary (0-49)
             request = CaptureAndDetectMarkers.Request()
-            request.marker_ids = list(range(21))  # Detect IDs 0-20
+            request.marker_ids = list(range(50))  # Detect IDs 0-49 (full dictionary)
             request.marker_dictionary = "aruco4x4_50"  # Default dictionary
 
             # Send async request
@@ -1403,6 +1682,123 @@ class MTCGUIClient:
                 text=f"Detection error",
                 foreground="red"
             ))
+
+    def trigger_contour_detection(self):
+        """Capture image and run contour detection with labeled visualization.
+
+        This performs local contour detection on the current camera image,
+        detecting objects by edge analysis and labeling them in reading order
+        (left-to-right, top-to-bottom).
+        """
+        if self.current_image is None:
+            self.camera_status_label.config(
+                text="No image - capture first",
+                foreground="orange"
+            )
+            messagebox.showwarning("No Image", "Please capture an image first using 'Capture Image' button")
+            return
+
+        try:
+            self.camera_status_label.config(
+                text="Detecting contours...",
+                foreground="blue"
+            )
+            self.root.update()
+
+            # Import contour detection from camera module
+            from beambot.camera.zivid import ContourDetectionParams, _detect_contours_in_image
+
+            # Run contour detection on current image
+            params = ContourDetectionParams(
+                min_area=500,
+                max_area=50000,
+                blur_kernel=5,
+                canny_low=50,
+                canny_high=150,
+                row_tolerance=50
+            )
+
+            # Convert BGR to RGB for processing
+            rgb_image = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2RGB)
+            detected_contours = _detect_contours_in_image(rgb_image, params)
+
+            if not detected_contours:
+                self.camera_status_label.config(
+                    text="No contours detected",
+                    foreground="orange"
+                )
+                self.detection_info.delete('1.0', tk.END)
+                self.detection_info.insert(tk.END, "No contours detected.\n\n")
+                self.detection_info.insert(tk.END, "Try adjusting:\n")
+                self.detection_info.insert(tk.END, "• Lighting conditions\n")
+                self.detection_info.insert(tk.END, "• Object contrast with background\n")
+                return
+
+            # Draw contour visualizations with sample numbers
+            display_image = self.current_image.copy()
+
+            for i, (cx, cy, area, _) in enumerate(detected_contours):
+                sample_num = i + 1
+
+                # Draw a circle at the centroid
+                cv2.circle(display_image, (cx, cy), 15, (0, 255, 0), 3)
+                cv2.circle(display_image, (cx, cy), 5, (0, 255, 0), -1)
+
+                # Draw sample number label with background
+                label = f"#{sample_num}"
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                font_scale = 1.2
+                thickness = 3
+                (text_width, text_height), baseline = cv2.getTextSize(label, font, font_scale, thickness)
+
+                # Position label above the point
+                label_x = cx - text_width // 2
+                label_y = cy - 25
+
+                # Background rectangle
+                cv2.rectangle(display_image,
+                            (label_x - 5, label_y - text_height - 5),
+                            (label_x + text_width + 5, label_y + baseline + 5),
+                            (0, 200, 0), -1)
+
+                # Text
+                cv2.putText(display_image, label, (label_x, label_y),
+                           font, font_scale, (0, 0, 0), thickness)
+
+            # Update display with contour visualization
+            self.current_image = display_image
+            self.update_camera_display()
+
+            # Update status
+            self.camera_status_label.config(
+                text=f"Detected {len(detected_contours)} contour(s)",
+                foreground="green"
+            )
+
+            # Update detection info panel
+            self.detection_info.delete('1.0', tk.END)
+            self.detection_info.insert(tk.END, f"Contour Detection Results:\n")
+            self.detection_info.insert(tk.END, f"Found {len(detected_contours)} objects (reading order)\n\n")
+
+            for i, (cx, cy, area, _) in enumerate(detected_contours):
+                sample_num = i + 1
+                self.detection_info.insert(tk.END, f"Sample #{sample_num}: pixel({cx}, {cy}), area={area}px²\n")
+
+        except ImportError as e:
+            self.camera_status_label.config(
+                text="Camera module not available",
+                foreground="red"
+            )
+            messagebox.showerror("Import Error", f"Could not import contour detection: {e}")
+        except Exception as e:
+            self.camera_status_label.config(
+                text=f"Detection error",
+                foreground="red"
+            )
+            print(f"Contour detection error: {e}")
+            import traceback
+            traceback.print_exc()
+            messagebox.showerror("Detection Error", f"Contour detection failed: {e}")
 
     def update_camera_display(self):
         """Update camera image display with ArUco marker overlays"""

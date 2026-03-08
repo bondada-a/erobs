@@ -1,0 +1,140 @@
+"""ToolExchange stages - Python equivalent of tool_exchange_stages.hpp/cpp.
+
+Tool exchange: load/dock grippers at magnetic holder stations.
+Uses Cartesian moves for precise tool attachment/detachment.
+"""
+
+from moveit.task_constructor import stages
+from beambot.stages.base_stages import BaseStages, joints_from_degrees
+
+# Tool exchange dock spacing (6 inches between dock stations)
+DOCK_SPACING_METERS = 0.1524
+
+
+class ToolExchangeStages(BaseStages):
+    """Handles tool loading and docking operations at magnetic holders."""
+
+    def run(self, goal) -> 'Optional[str]':
+        """Execute ToolExchange action.
+
+        Load sequence (attaching a tool):
+        1. Move to approach pose
+        2. Shift laterally to align with dock
+        3. Move forward to attach tool
+        4. Move up to detach from holder
+        5. Retreat backward
+
+        Dock sequence (storing a tool):
+        1. Move to approach pose
+        2. Shift laterally to align with dock
+        3. Move forward to align with holder
+        4. Move down to detach tool
+        5. Retreat backward
+
+        Args:
+            goal: ToolExchangeAction.Goal with fields:
+                - operation: "load" or "dock"
+                - gripper: "hande", "epick", or "none" - gripper being loaded/docked
+                - current_attached_gripper: What's currently attached
+                - dock_number: Dock position (1-5)
+                - approach_pose: Approach pose name
+                - poses_json: Pose definitions from task
+
+        Returns:
+            None if successful, error string describing failure otherwise
+        """
+        self.logger.info(
+            f"Executing tool exchange: operation={goal.operation}, "
+            f"gripper={goal.gripper}, dock={goal.dock_number}"
+        )
+
+        # Validate state transitions
+        if goal.operation == "load" and goal.current_attached_gripper != "none":
+            error = (
+                f"Cannot load {goal.gripper}: "
+                f"{goal.current_attached_gripper} already attached"
+            )
+            self.logger.error(error)
+            return error
+
+        if goal.operation == "dock" and goal.current_attached_gripper != goal.gripper:
+            error = (
+                f"Cannot dock {goal.gripper}: "
+                f"{goal.current_attached_gripper} is attached"
+            )
+            self.logger.error(error)
+            return error
+
+        # Parse poses
+        poses = self.parse_poses(goal.poses_json)
+        if poses is None:
+            return "Failed to parse poses_json for tool_exchange"
+
+        task_name = "Load Tool" if goal.operation == "load" else "Dock Tool"
+        task = self.create_task_template(task_name)
+        sampling = self.make_pipeline_planner()
+        cartesian = self.make_cartesian_planner()
+
+        # 1. Move to approach pose
+        joint_pose = self.get_joint_pose(poses, goal.approach_pose)
+        if joint_pose is None:
+            return f"Pose '{goal.approach_pose}' not found or invalid (tool exchange approach)"
+
+        approach = stages.MoveTo("approach", sampling)
+        approach.group = self.arm_group
+        self._set_ik_frame(approach)
+        approach.setGoal(joints_from_degrees(joint_pose))
+        task.add(approach)
+
+        # 2. Lateral shift to align with dock (reference is dock 3)
+        offset_y = DOCK_SPACING_METERS * (3 - goal.dock_number)
+        if abs(offset_y) >= 1e-4:
+            direction = "right" if offset_y >= 0 else "left"
+            shift = self.create_relative_move_stage(
+                "shift to dock", direction, abs(offset_y), cartesian
+            )
+            task.add(shift)
+
+        # 3-5. Perform load or dock sequence
+        if goal.operation == "load":
+            # Move forward to attach tool
+            attach = self.create_relative_move_stage(
+                "attach tool", "forward", 0.2, cartesian
+            )
+            task.add(attach)
+
+            # Move up to detach from holder
+            detach = self.create_relative_move_stage(
+                "detach holder", "up", 0.15, cartesian
+            )
+            task.add(detach)
+
+            # Retreat backward
+            retreat = self.create_relative_move_stage(
+                "retreat", "backward", 0.2, cartesian
+            )
+            task.add(retreat)
+
+        elif goal.operation == "dock":
+            # Move forward to align with holder
+            align = self.create_relative_move_stage(
+                "align holder", "forward", 0.2, cartesian
+            )
+            task.add(align)
+
+            # Move down to detach tool
+            detach = self.create_relative_move_stage(
+                "detach tool", "down", 0.15, cartesian
+            )
+            task.add(detach)
+
+            # Retreat backward
+            retreat = self.create_relative_move_stage(
+                "retreat", "backward", 0.2, cartesian
+            )
+            task.add(retreat)
+
+        else:
+            return f"Unknown tool exchange operation: '{goal.operation}' (expected 'load' or 'dock')"
+
+        return self.load_plan_execute(task)

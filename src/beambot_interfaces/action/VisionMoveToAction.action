@@ -1,0 +1,16 @@
+# Goal
+int32 tag_id                # ArUco marker ID to detect (used when detection_type="marker")
+int32 sample_index          # Sample number to select (for contour detection, 1-indexed, default: 1)
+                            # Objects are sorted left-to-right, top-to-bottom (reading order)
+float64 timeout             # Detection timeout in seconds (default: 5.0)
+string poses_json           # Pose definitions from task (unused for vision)
+string detection_type       # Detection method: "marker" (default), "circle", "contour"
+float64 z_offset            # Z offset for approach (0 = use gripper default)
+float64[] scan_positions_flat  # Multi-position mode: Flattened joint poses [j1..j6, j1..j6, ...]
+int32 num_scan_positions       # Number of scan positions (0 = single-position mode)
+---
+# Result
+bool success
+string error_message
+---
+# Feedback

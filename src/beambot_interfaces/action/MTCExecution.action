@@ -1,0 +1,15 @@
+# Goal
+string full_json           # Complete task script JSON (poses, tasks, start_gripper)
+---
+# Result
+bool success
+string error_message
+int32 completed_steps
+int32 total_steps
+---
+# Feedback
+int32 current_step
+string current_action
+float32 progress_percentage
+string status_message
+string current_gripper

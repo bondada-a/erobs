@@ -1,0 +1,234 @@
+"""Launch all beambot action servers.
+
+This launch file starts all the beambot action servers:
+- beambot_moveto: MoveTo operations
+- beambot_endeffector: Gripper operations
+- beambot_pickplace: Pick and place sequences
+- beambot_toolexchange: Tool exchange operations
+- beambot_vision_moveto: Vision-guided moves
+- beambot_vision_pickplace: Vision-guided pick/place
+- beambot_pipettor: Pipettor operations
+- beambot_orchestrator: Central coordinator
+
+Usage:
+    ros2 launch beambot beambot_bringup.launch.py
+    ros2 launch beambot beambot_bringup.launch.py enable_vision:=false
+    ros2 launch beambot beambot_bringup.launch.py beamline_config:=config/ur3e_beamline.yaml
+    ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true
+"""
+
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch_ros.actions import Node
+from launch_ros.substitutions import FindPackageShare
+
+
+def generate_launch_description():
+    """Generate launch description for beambot servers."""
+
+    # OMPL parameters for PipelinePlanner
+    # Required because Python's rclcpp.Node binding lacks declare_parameter().
+    # Without these, PipelinePlanner falls back to CHOMP instead of OMPL.
+    ompl_args = [
+        '--ros-args',
+        '-p', 'ompl.planning_plugin:=ompl_interface/OMPLPlanner',
+        '-p', 'ompl.request_adapters:=default_planner_request_adapters/AddTimeOptimalParameterization',
+    ]
+
+    # Declare launch arguments
+    declare_beamline_config = DeclareLaunchArgument(
+        'beamline_config',
+        default_value='config/default_beamline.yaml',
+        description='Path to beamline configuration YAML (relative to beambot package)'
+    )
+
+    declare_enable_vision = DeclareLaunchArgument(
+        'enable_vision',
+        default_value='true',
+        description='Enable vision servers (requires Zivid camera)'
+    )
+
+    declare_enable_pipettor = DeclareLaunchArgument(
+        'enable_pipettor',
+        default_value='true',
+        description='Enable pipettor server'
+    )
+
+    declare_use_fake_hardware = DeclareLaunchArgument(
+        'use_fake_hardware',
+        default_value='false',
+        description='Use fake hardware (simulation mode, no real robot)'
+    )
+
+    declare_enable_batching = DeclareLaunchArgument(
+        'enable_batching',
+        default_value='true',
+        description='Enable MTC stage batching (false = each task via action server)'
+    )
+
+    enable_vision = LaunchConfiguration('enable_vision')
+    enable_pipettor = LaunchConfiguration('enable_pipettor')
+    use_fake_hardware = LaunchConfiguration('use_fake_hardware')
+    enable_batching = LaunchConfiguration('enable_batching')
+
+    # Resolve beamline config path (relative to beambot package)
+    beamline_config_path = PathJoinSubstitution([
+        FindPackageShare('beambot'),
+        LaunchConfiguration('beamline_config')
+    ])
+
+    # Action servers need kinematics for Cartesian planning
+    # Robot URDF comes from /robot_description topic published by move_group
+    action_server_parameters = [
+        {'use_sim_time': False},
+        {
+            'robot_description_kinematics': {
+                'ur_arm': {
+                    'kinematics_solver': 'kdl_kinematics_plugin/KDLKinematicsPlugin',
+                    'kinematics_solver_search_resolution': 0.001,
+                    'kinematics_solver_timeout': 1.0,
+                    'kinematics_solver_attempts': 10
+                }
+            }
+        }
+    ]
+
+    # MoveTo action server
+    move_to_server = Node(
+        package='beambot',
+        executable='move_to_server.py',
+        name='beambot_moveto_server',
+        output='screen',
+        parameters=action_server_parameters,
+        arguments=ompl_args,
+    )
+
+    # EndEffector action server
+    end_effector_server = Node(
+        package='beambot',
+        executable='end_effector_server.py',
+        name='beambot_endeffector_server',
+        output='screen',
+        parameters=action_server_parameters,
+        arguments=ompl_args,
+    )
+
+    # PickPlace action server
+    pick_place_server = Node(
+        package='beambot',
+        executable='pick_place_server.py',
+        name='beambot_pickplace_server',
+        output='screen',
+        parameters=action_server_parameters,
+        arguments=ompl_args,
+    )
+
+    # ToolExchange action server
+    tool_exchange_server = Node(
+        package='beambot',
+        executable='tool_exchange_server.py',
+        name='beambot_toolexchange_server',
+        output='screen',
+        parameters=action_server_parameters,
+        arguments=ompl_args,
+    )
+
+    # Vision MoveTo action server (conditional)
+    vision_server = Node(
+        package='beambot',
+        executable='vision_server.py',
+        name='beambot_vision_server',
+        output='screen',
+        parameters=action_server_parameters + [
+            {'beamline_config': beamline_config_path}
+        ],
+        arguments=ompl_args,
+        condition=IfCondition(enable_vision),
+    )
+
+    # Vision PickPlace action server (conditional)
+    vision_pick_place_server = Node(
+        package='beambot',
+        executable='vision_pick_place_server.py',
+        name='beambot_vision_pickplace_server',
+        output='screen',
+        parameters=action_server_parameters + [
+            {'beamline_config': beamline_config_path}
+        ],
+        arguments=ompl_args,
+        condition=IfCondition(enable_vision),
+    )
+
+    # Zivid camera node - provides /capture_and_detect_markers service (conditional)
+    zivid_camera = Node(
+        package='zivid_camera',
+        executable='zivid_camera',
+        name='zivid_camera',
+        output='screen',
+        parameters=[{
+            'settings_2d_file_path': PathJoinSubstitution([
+                FindPackageShare('beambot'),
+                'config',
+                'zivid_settings.yml'
+            ]),
+            'settings_file_path': PathJoinSubstitution([
+                FindPackageShare('beambot'),
+                'config',
+                'scene_capture.yml'
+            ]),
+            'frame_id': 'zivid_optical_frame'
+        }],
+        condition=IfCondition(enable_vision),
+    )
+
+    # Pipettor action server (conditional)
+    pipettor_server = Node(
+        package='beambot',
+        executable='pipettor_server.py',
+        name='beambot_pipettor_server',
+        output='screen',
+        parameters=action_server_parameters,
+        arguments=ompl_args,
+        condition=IfCondition(enable_pipettor),
+    )
+
+    # Orchestrator - manages MoveIt lifecycle and task coordination
+    # Now includes action_server_parameters and ompl_args because batching
+    # executes MTC stages directly in this process (not via action servers)
+    orchestrator = Node(
+        package='beambot',
+        executable='orchestrator.py',
+        name='beambot_orchestrator',
+        output='screen',
+        parameters=action_server_parameters + [
+            {'beamline_config': beamline_config_path},
+            {'use_fake_hardware': use_fake_hardware},
+            {'enable_batching': enable_batching},
+        ],
+        arguments=ompl_args,
+    )
+
+    return LaunchDescription([
+        # Launch arguments
+        declare_beamline_config,
+        declare_enable_vision,
+        declare_enable_pipettor,
+        declare_use_fake_hardware,
+        declare_enable_batching,
+        # Core servers (always launched)
+        move_to_server,
+        end_effector_server,
+        pick_place_server,
+        tool_exchange_server,
+        # Vision servers (conditional)
+        vision_server,
+        vision_pick_place_server,
+        # Zivid camera (conditional - provides /capture_and_detect_markers service)
+        zivid_camera,
+        # Pipettor server (conditional)
+        pipettor_server,
+        # Orchestrator (always launched)
+        orchestrator,
+    ])

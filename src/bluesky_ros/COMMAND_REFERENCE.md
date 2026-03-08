@@ -1,6 +1,11 @@
-# TaskBuilder Command Reference
+# TaskBuilder Command Reference (beambot)
 
-Complete list of commands based on your actual workflows from `triple_test.json`
+Complete list of commands based on your actual workflows.
+
+**Backend:** beambot (Python MTC implementation)
+**Action server:** beambot_execution
+
+> **Note:** Robot IP is now configured in beambot beamline config, not passed as argument.
 
 ---
 
@@ -29,7 +34,7 @@ tasks = [
      "end_effector_action": "hande_open"}
 ]
 json_file = builder.build_task(tasks)
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **HandE Gripper Close**
@@ -40,7 +45,7 @@ tasks = [
      "end_effector_action": "hande_closed"}
 ]
 json_file = builder.build_task(tasks)
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **EPick Vacuum ON**
@@ -51,7 +56,7 @@ tasks = [
      "end_effector_action": "vacuum_on"}
 ]
 json_file = builder.build_task(tasks, gripper='epick')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **EPick Vacuum OFF**
@@ -62,7 +67,7 @@ tasks = [
      "end_effector_action": "vacuum_off"}
 ]
 json_file = builder.build_task(tasks, gripper='epick')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ---
@@ -73,7 +78,7 @@ RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
 ```python
 # Use the helper function (easiest)
 json_file = builder.move_to('pickup_approach', planning_type='joint')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 
 # Or build manually
 tasks = [
@@ -82,13 +87,13 @@ tasks = [
      "planning_type": "joint"}
 ]
 json_file = builder.build_task(tasks)
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **Move to Named Location (Cartesian Planning)**
 ```python
 json_file = builder.move_to('pickup', planning_type='cartesian')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 
 # Or manually
 tasks = [
@@ -97,7 +102,7 @@ tasks = [
      "planning_type": "cartesian"}
 ]
 json_file = builder.build_task(tasks)
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **Relative Movement (Direction)**
@@ -110,7 +115,7 @@ tasks = [
      "planning_type": "cartesian"}
 ]
 json_file = builder.build_task(tasks)
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 
 # Other directions: "up", "down", "forward", "backward", "left", "right"
 ```
@@ -129,7 +134,7 @@ tasks = [
      "approach_pose": "dock_approach"}
 ]
 json_file = builder.build_task(tasks, gripper='hande')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **Load New Gripper**
@@ -142,14 +147,14 @@ tasks = [
      "approach_pose": "load_approach"}
 ]
 json_file = builder.build_task(tasks, gripper='hande')  # starting gripper
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **Complete Tool Change (Dock + Load) - EASIEST**
 ```python
 # Use the helper function
 json_file = builder.tool_change('hande', 'epick')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 
 # Or manually
 tasks = [
@@ -159,7 +164,7 @@ tasks = [
      "gripper": "epick", "dock_number": 3, "approach_pose": "load_approach"}
 ]
 json_file = builder.build_task(tasks, gripper='hande')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 **Dock Numbers:**
@@ -179,7 +184,7 @@ tasks = [
      "volume_pct": 0.8}  # 80% volume
 ]
 json_file = builder.build_task(tasks, gripper='pipettor')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **Pipettor Eject Tip**
@@ -190,7 +195,7 @@ tasks = [
      "volume_pct": 0.0}
 ]
 json_file = builder.build_task(tasks, gripper='pipettor')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ---
@@ -206,7 +211,7 @@ json_file = builder.pick_sequence(
     retreat='post_pickup_camera_safety',
     gripper='hande'
 )
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 
 # Or build manually (from lines 175-206 of triple_test.json)
 tasks = [
@@ -222,7 +227,7 @@ tasks = [
     {"task_type": "moveto", "target": "post_pickup_camera_safety", "planning_type": "joint"}
 ]
 json_file = builder.build_task(tasks, gripper='hande')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **Complete Place Sequence (HandE)**
@@ -234,7 +239,7 @@ json_file = builder.place_sequence(
     retreat='post_pickup_camera_safety',
     gripper='hande'
 )
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 
 # Or manually (from lines 215-234 of triple_test.json)
 tasks = [
@@ -246,7 +251,7 @@ tasks = [
     {"task_type": "moveto", "target": "pre_pickup_orientation", "planning_type": "joint"}
 ]
 json_file = builder.build_task(tasks, gripper='hande')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **Vacuum Pick with EPick**
@@ -261,7 +266,7 @@ tasks = [
     {"task_type": "moveto", "target": "vacuum_post_pickup", "planning_type": "joint"}
 ]
 json_file = builder.build_task(tasks, gripper='epick')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **Vacuum Place with EPick**
@@ -275,7 +280,7 @@ tasks = [
     {"task_type": "moveto", "target": "vacuum_place_approach", "planning_type": "cartesian"}
 ]
 json_file = builder.build_task(tasks, gripper='epick')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ### **Complete Pipettor Workflow**
@@ -297,7 +302,7 @@ tasks = [
     {"task_type": "pipettor", "operation": "EJECT_TIP", "volume_pct": 0.0}
 ]
 json_file = builder.build_task(tasks, gripper='pipettor')
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ---
@@ -313,15 +318,15 @@ def triple_test_workflow():
     # Part 1: HandE pick and place
     print("1. HandE pick and place...")
     json_file = builder.pick_sequence('pickup_approach', 'pickup', 'post_pickup_camera_safety', gripper='hande')
-    yield from bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP})
+    yield from bps.abs_set(mtc, {'json_file': json_file})
 
     json_file = builder.place_sequence('pickup_approach', 'pickup', 'pre_pickup_orientation', gripper='hande')
-    yield from bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP})
+    yield from bps.abs_set(mtc, {'json_file': json_file})
 
     # Part 2: Tool change HandE → EPick
     print("2. Changing to EPick...")
     json_file = builder.tool_change('hande', 'epick')
-    yield from bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP})
+    yield from bps.abs_set(mtc, {'json_file': json_file})
 
     # Part 3: EPick vacuum pick and place
     print("3. EPick vacuum operations...")
@@ -337,12 +342,12 @@ def triple_test_workflow():
         {"task_type": "moveto", "target": "vacuum_place_approach", "planning_type": "cartesian"}
     ]
     json_file = builder.build_task(tasks, gripper='epick')
-    yield from bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP})
+    yield from bps.abs_set(mtc, {'json_file': json_file})
 
     # Part 4: Tool change EPick → Pipettor
     print("4. Changing to Pipettor...")
     json_file = builder.tool_change('epick', 'pipettor')
-    yield from bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP})
+    yield from bps.abs_set(mtc, {'json_file': json_file})
 
     # Part 5: Pipettor operations
     print("5. Pipettor operations...")
@@ -362,7 +367,7 @@ def triple_test_workflow():
         {"task_type": "pipettor", "operation": "EJECT_TIP", "volume_pct": 0.0}
     ]
     json_file = builder.build_task(tasks, gripper='pipettor')
-    yield from bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP})
+    yield from bps.abs_set(mtc, {'json_file': json_file})
 
     print("✅ Complete workflow finished!")
 
@@ -386,7 +391,7 @@ tasks = [...]  # List of task dictionaries
 json_file = builder.build_task(tasks, gripper='starting_gripper')
 
 # Execute
-RE(bps.abs_set(mtc, {'json_file': json_file, 'robot_ip': ROBOT_IP}))
+RE(bps.abs_set(mtc, {'json_file': json_file}))
 ```
 
 ---

@@ -1,6 +1,6 @@
 # Hello Orchestrator
 
-Minimal demonstration of the **orchestrator dispatch pattern** used in `mtc_pipeline`.
+Minimal demonstration of the **orchestrator dispatch pattern** used in `beambot`.
 
 ## What This Demonstrates
 
@@ -188,9 +188,9 @@ for (auto& task : tasks) {
 **execute_print_task()** calls `print_client_->async_send_goal()`
 **execute_move_task()** calls `move_client_->async_send_goal()`
 
-## Pattern Mapping to mtc_pipeline
+## Pattern Mapping to beambot
 
-| hello_orchestrator | mtc_pipeline |
+| hello_orchestrator | beambot |
 |-------------------|--------------|
 | PrintServer | EndEffectorServer |
 | MoveServer | MoveToServer |
@@ -237,7 +237,7 @@ task = {
 - ✅ Tasks are declarative (what, not how)
 - ✅ Servers can be developed independently
 
-**Scaling to mtc_pipeline:**
+**Scaling to beambot:**
 - More specialized servers (vision, gripper, tool exchange)
 - MTC for complex motion planning
 - Dynamic configuration switching

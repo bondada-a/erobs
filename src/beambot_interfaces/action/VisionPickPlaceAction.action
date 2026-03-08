@@ -1,0 +1,28 @@
+# Goal
+# Vision-guided pick with hardcoded place positions
+# Pick: Detects sample via marker/circle, grasps at detected location
+# Place: Uses predefined joint poses (like regular pick_and_place)
+
+# Vision detection config
+string detection_type          # "marker" or "circle" (default: "marker")
+int32 tag_id                   # ArUco marker ID (for marker detection)
+float64 z_offset               # Height above detected point for grasp (default: 0.02m)
+
+# Pose keys (references into poses_json)
+string sample_approach         # Joint pose for scan/approach/retreat position
+string place_approach          # Joint pose for place approach
+string place_target            # Joint pose for place
+
+# Gripper config (populated by orchestrator from beamline config)
+string gripper_group           # MoveIt group name: "hande_gripper", "epick_gripper", ""
+string gripper_states_json     # JSON dict: {"grasp": "hande_closed", "release": "hande_open"}
+
+# Pose definitions
+string poses_json              # JSON with joint poses: {"sample_approach": [...], ...}
+---
+# Result
+bool success
+string error_message
+---
+# Feedback
+string current_stage

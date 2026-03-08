@@ -1,0 +1,14 @@
+# Goal
+float64[] scan_positions_flat    # Flattened joint poses [j1..j6, j1..j6, ...]
+int32 num_scan_positions         # Number of scan positions
+int32 scans_per_position         # Captures per position (default: 3)
+float64 timeout                  # Per-scan timeout
+string poses_json                # Pose definitions (for reference)
+---
+# Result
+bool success
+string error_message
+int32 tags_detected              # Number of unique tags cached
+---
+# Feedback
+string status                    # Current operation status

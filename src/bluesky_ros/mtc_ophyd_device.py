@@ -1,9 +1,13 @@
-"""MTC Pipeline Ophyd Device for Bluesky Integration"""
+"""MTC Python Ophyd Device for Bluesky Integration
 
-import json
+This module provides an Ophyd device wrapper for beambot orchestrator,
+enabling Bluesky experiment orchestration with MTC robot tasks.
+"""
+
 from ophyd.status import DeviceStatus
 from rclpy.node import Node
 from rclpy.action import ActionClient
+from rosidl_runtime_py.utilities import get_action
 from bluesky.protocols import Movable
 import rclpy
 
@@ -21,25 +25,29 @@ class ActionStatus(DeviceStatus):
 class MTCExecutionDevice(Node, Movable):
     """Ophyd device for MTC task execution via Bluesky"""
 
-    def __init__(self, name="mtc_executor", robot_ip="192.168.56.101", **kwargs):
+    def __init__(self, name="mtc_executor", **kwargs):
         super().__init__(name, **kwargs)
 
         # Set name attribute for Ophyd
         self.name = name
 
-        # Dynamically load the action type
-        from rosidl_runtime_py.utilities import get_action
-        self.action_type = get_action('mtc_pipeline/MTCExecution')
+        self.action_type = get_action('beambot_interfaces/MTCExecution')
 
-        self.robot_ip = robot_ip
-        self._action_client = ActionClient(self, self.action_type, 'mtc_execution')
+        self._action_client = ActionClient(self, self.action_type, 'beambot_execution')
         self._goal_handle = None
         self._bluesky_status = None
         self._send_goal_future = None
         self._get_result_future = None
 
     def construct_goal_message(self, json_path_or_string):
-        """Construct goal from JSON file path or JSON string"""
+        """Construct goal from JSON file path or JSON string
+
+        Args:
+            json_path_or_string: Either a path to a .json file or a JSON string
+
+        Returns:
+            MTCExecution.Goal with full_json populated
+        """
         goal = self.action_type.Goal()
 
         # If it's a file path, read the file
@@ -50,7 +58,6 @@ class MTCExecutionDevice(Node, Movable):
             # Assume it's already a JSON string
             goal.full_json = json_path_or_string
 
-        goal.robot_ip = self.robot_ip
         return goal
 
     def set(self, json_path_or_string):

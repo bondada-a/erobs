@@ -4,8 +4,8 @@
   <name>mtc_gui</name>
   <version>0.0.1</version>
   <description>Graphical User Interface for MoveIt Task Constructor (MTC) Pipeline</description>
-  <maintainer email="youremail@domain.com">user</maintainer>
-  <license>TODO: License declaration</license>
+  <maintainer email="nsls2-software@bnl.gov">NSLS-II</maintainer>
+  <license>BSD-3-Clause</license>
 
   <buildtool_depend>ament_python</buildtool_depend>
 
@@ -22,8 +22,8 @@
   <exec_depend>python3-numpy</exec_depend>
   <exec_depend>python3-opencv</exec_depend>
 
-  <!-- Related packages -->
-  <exec_depend>mtc_pipeline</exec_depend>
+  <!-- Beambot package for action definitions and orchestrator -->
+  <depend>beambot_interfaces</depend>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

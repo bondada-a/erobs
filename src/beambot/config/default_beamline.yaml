@@ -1,0 +1,59 @@
+# Default Beamline Configuration
+# This config maintains the current system behavior
+# Use this as a template for creating beamline-specific configs
+
+beamline: "default"
+
+robot:
+  model: "ur5e"
+  ip: "192.168.1.101"          # Default IP from current launch files
+  arm_group: "ur_arm"
+  ik_frame: "tool0"
+
+grippers:
+  none:
+    moveit_package: "ur_standalone_moveit_config"
+    tool_voltage: 0
+    gripper_group: ""              # No gripper group
+    states: {}                     # No states
+
+  hande:
+    moveit_package: "ur_zivid_hande_moveit_config"
+    tool_voltage: 24
+    gripper_group: "hande_gripper"
+    states:
+      grasp: "hande_closed"
+      release: "hande_open"
+
+  epick:
+    moveit_package: "ur_zivid_epick_moveit_config"
+    tool_voltage: 24
+    gripper_group: "epick_gripper"
+    states:
+      grasp: "vacuum_on"
+      release: "vacuum_off"
+
+  pipettor:
+    moveit_package: "ur_zivid_pipettor_moveit_config"
+    tool_voltage: 24
+    gripper_group: ""              # Pipettor has no gripper group
+    states: {}                     # No states
+
+# Vision camera configuration
+cameras:
+  zivid:
+    type: "zivid"                          # Eye-in-hand, single-shot 3D
+    frame: "zivid_optical_frame"           # TF frame for camera
+    marker_dictionary: "aruco4x4_50"       # ArUco dictionary for detection
+    role: "precision"                      # Used for close-range accurate positioning
+
+  zed:
+    type: "zed"                            # Fixed external, continuous streaming
+    frame: "zed_left_camera_optical_frame" # TF frame for camera
+    role: "overview"                       # Wide FOV scene overview
+
+# Default camera for vision tasks (backward compatibility)
+camera:
+  type: "zivid"
+  frame: "zivid_optical_frame"
+  marker_dictionary: "aruco4x4_50"
