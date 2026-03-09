@@ -1,6 +1,8 @@
 build
 install
 log
+recorded_bags/
+CLAUDE.md
 site
 erobs.code-workspace
 
@@ -97,3 +99,18 @@ src/end_effectors/serial/
 src/end_effectors/robotiq_hande_driver/
 src/end_effectors/robotiq_hande_description/
 src/end_effectors/ros2_epick_gripper/
+src/end_effectors/pipettor/
+
+# Vision packages (imported via vcs)
+src/vision/zivid-ros/
+src/vision/zed-ros2-wrapper/
+src/vision/zivid-python-samples/
+
+# Debug outputs (keep root clean)
+*.gv
+frames_*.pdf
+frames_*.gv
+
+# ROS bag recordings (can be large)
+*.bag
+*.db3
