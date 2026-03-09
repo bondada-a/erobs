@@ -1,0 +1,20 @@
+# LaTeX build directory (all auxiliary files)
+build/
+
+# Stray LaTeX auxiliary files (in case someone builds without latexmk)
+*.aux
+*.log
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.blg
+*.bcf
+*.run.xml
+
+# Keep PDFs tracked (they're the output we want)
+!*.pdf
