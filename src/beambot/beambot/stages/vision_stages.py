@@ -26,7 +26,6 @@ from shape_msgs.msg import SolidPrimitive
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
 from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix
-from moveit_msgs.srv import GetPositionIK
 from control_msgs.action import FollowJointTrajectory
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from sensor_msgs.msg import JointState
@@ -138,10 +137,7 @@ class VisionStages(BaseStages):
             GetPlanningScene, "/get_planning_scene"
         )
 
-        # IK service client (for IK + trajectory approach)
-        self._ik_client = rclpy_node.create_client(GetPositionIK, '/compute_ik')
-
-        # Trajectory action client (for IK + trajectory approach)
+        # Trajectory action client (for scan position moves)
         self._traj_client = ActionClient(
             rclpy_node, FollowJointTrajectory,
             '/scaled_joint_trajectory_controller/follow_joint_trajectory'
@@ -986,51 +982,11 @@ class VisionStages(BaseStages):
     SAMPLE_OFFSET_X = 0.02   # X offset in tag frame (20mm to the right)
     SAMPLE_OFFSET_Y = 0.0    # Y offset in tag frame
 
-    # Use IK + trajectory instead of MTC Cartesian planner
-    USE_IK_TRAJECTORY = True
-    IK_TRAJECTORY_DURATION = 2.0  # seconds
+    IK_TRAJECTORY_DURATION = 2.0  # seconds (for scan position moves)
 
     def _joint_state_cb(self, msg):
         """Callback to track current joint state."""
         self._current_joints = msg
-
-    def _compute_ik(self, pose: PoseStamped, ik_frame: str):
-        """Compute IK for pose, returns joint positions or None."""
-        if self._current_joints is None:
-            self.logger.error("No joint states available for IK")
-            return None
-
-        request = GetPositionIK.Request()
-        request.ik_request.group_name = "ur_arm"
-        request.ik_request.robot_state.joint_state = self._current_joints
-        request.ik_request.pose_stamped = pose
-        request.ik_request.pose_stamped.header.stamp = self.rclpy_node.get_clock().now().to_msg()
-        request.ik_request.timeout = Duration(seconds=5.0).to_msg()
-        request.ik_request.avoid_collisions = True
-        request.ik_request.ik_link_name = ik_frame
-
-        future = self._ik_client.call_async(request)
-        rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=10.0)
-
-        if not future.done():
-            self.logger.error("IK service call timed out")
-            return None
-
-        result = future.result()
-        if result.error_code.val != 1:
-            self.logger.error(f"IK failed with error code: {result.error_code.val}")
-            return None
-
-        joint_positions = []
-        for name in self._arm_joints:
-            if name in result.solution.joint_state.name:
-                idx = result.solution.joint_state.name.index(name)
-                joint_positions.append(result.solution.joint_state.position[idx])
-            else:
-                self.logger.error(f"Joint {name} not found in IK solution")
-                return None
-
-        return joint_positions
 
     def _execute_trajectory(self, joint_positions, duration=None):
         """Send joint trajectory to controller."""
@@ -1146,30 +1102,11 @@ class VisionStages(BaseStages):
             f"with 180° Z-rot, z_offset={active_z_offset:.3f}"
         )
 
-        # Use IK + trajectory approach (like send_pose_goal.py)
-        if self.USE_IK_TRAJECTORY:
-            self.logger.info("Using IK + trajectory approach")
-
-            # Compute IK
-            joint_solution = self._compute_ik(approach, active_ik_frame)
-            if joint_solution is None:
-                return (
-                    f"NO_IK_SOLUTION: IK failed for vision move to "
-                    f"[{approach.pose.position.x:.3f}, {approach.pose.position.y:.3f}, "
-                    f"{approach.pose.position.z:.3f}] (ik_frame: {active_ik_frame})"
-                )
-
-            # Execute trajectory
-            success = self._execute_trajectory(joint_solution)
-            if not success:
-                return "EXECUTION_FAILED: Trajectory execution failed for vision move"
-            return None
-
-        # Fallback to MTC Cartesian planner if USE_IK_TRAJECTORY is False
+        # Use MTC with Pilz LIN for collision-free straight-line approach
         task = self.create_task_template("Vision Move")
-        cartesian = self.make_cartesian_planner()
+        planner = self.make_pilz_planner("LIN")
 
-        stage = stages.MoveTo("move to tag", cartesian)
+        stage = stages.MoveTo("move to tag", planner)
         stage.group = self.arm_group
         ik_frame_pose = PoseStamped()
         ik_frame_pose.header.frame_id = active_ik_frame
