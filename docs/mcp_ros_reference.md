@@ -87,7 +87,7 @@ Move the robot arm to a target pose.
 |-------|------|---------|-------------|
 | `task_type` | string | — | Must be `"moveto"` |
 | `target` | string | `""` | Pose name (key in `poses`), SRDF state name, or empty for relative moves |
-| `planning_type` | string | `"joint"` | `"joint"` or `"cartesian"` |
+| `planning_type` | string | `"joint"` | `"joint"`, `"cartesian"`, `"pilz"` (Pilz LIN — deterministic straight-line), or `"pilz_ptp"` (Pilz PTP — predictable joint motion) |
 | `direction` | string | `""` | For relative moves: `"forward"`, `"backward"`, `"left"`, `"right"`, `"up"`, `"down"` |
 | `distance` | float | `0.0` | Distance in meters (for relative moves) |
 | `cartesian_target` | float[] | `[]` | `[x,y,z]` or `[x,y,z,roll,pitch,yaw]` — meters + **degrees**. When 3 values: straight-down orientation. Auto-detects gripper tip frame |

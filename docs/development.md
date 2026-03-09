@@ -134,16 +134,15 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 
 ### Motion Planning Improvements
 - **Goal**: Improve planning reliability, speed, and trajectory quality
-- **Current**: OMPL/RRTConnect (`goal_bias=0.15`), MTC `CartesianPath` (`min_fraction=0.95`), 30% velocity/accel scaling
-- **Known issues**:
-  - CartesianPath fails for longer moves (incremental IK stepping hits singularities/joint limits)
-  - RRTConnect produces unintuitive joint-space paths (random sampling, not shortest path)
-- **Plan** (4 phases):
-  1. **Pilz LIN for Cartesian targets** — deterministic straight-line, more robust than CartesianPath for longer distances
-  2. **OMPL tuning** — increase `goal_bias` to 0.3+, verify path simplification adapters
-  3. **MTC Fallbacks container** — CartesianPath → Pilz LIN → OMPL cascade
-  4. **Pilz PTP for joint moves** (optional) — predictable industrial-standard joint motion
-- **Detailed notes**: `~/.claude/projects/.../memory/motion_planning_improvements.md`
+- **Current**: OMPL/RRTConnect (`goal_bias=0.15`), MTC `CartesianPath` (`min_fraction=0.95`), Pilz LIN/PTP available, 30% velocity/accel scaling
+- **Completed**:
+  - Pilz LIN for Cartesian targets (`planning_type: "pilz"`)
+  - Pilz PTP for joint moves (`planning_type: "pilz_ptp"`)
+  - Pilz configs in all 4 MoveIt config packages
+  - `goal_bias` increased from 0.05 to 0.15
+- **Remaining**:
+  - OMPL tuning — increase `goal_bias` to 0.3+, verify path simplification adapters
+  - MTC Fallbacks container — CartesianPath → Pilz LIN → OMPL cascade
 - **Files**: `base_stages.py`, `move_to_stages.py`, `ur5e_moveit_configs/*/config/ompl_planning.yaml`
 
 ### Minimal bsui Container
