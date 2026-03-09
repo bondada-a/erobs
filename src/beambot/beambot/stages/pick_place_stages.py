@@ -91,7 +91,7 @@ class PickPlaceStages(BaseStages):
             task.add(open_stage)
 
         # 2. Move to pick approach
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "pick approach", goal.pick_approach, poses, pipeline_planner
         )
         if not stage:
@@ -99,7 +99,7 @@ class PickPlaceStages(BaseStages):
         task.add(stage)
 
         # 3. Move to pick target (grasp position)
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "pick", goal.pick_target, poses, pipeline_planner
         )
         if not stage:
@@ -114,7 +114,7 @@ class PickPlaceStages(BaseStages):
             task.add(close_stage)
 
         # 5. Retreat from pick (back to approach)
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "pick retreat", goal.pick_approach, poses, pipeline_planner
         )
         if not stage:
@@ -123,7 +123,7 @@ class PickPlaceStages(BaseStages):
 
         # === PLACE SEQUENCE ===
         # 6. Move to place approach
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "place approach", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
@@ -131,7 +131,7 @@ class PickPlaceStages(BaseStages):
         task.add(stage)
 
         # 7. Move to place target
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "place", goal.place_target, poses, pipeline_planner
         )
         if not stage:
@@ -146,7 +146,7 @@ class PickPlaceStages(BaseStages):
             task.add(release_stage)
 
         # 9. Retreat from place
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "place retreat", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
@@ -238,7 +238,7 @@ class PickPlaceStages(BaseStages):
             task.add(open_stage)
 
         # 2. Move to pick approach
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "pick approach", goal.pick_approach, poses, pipeline_planner
         )
         if not stage:
@@ -246,7 +246,7 @@ class PickPlaceStages(BaseStages):
         task.add(stage)
 
         # 3. Move to pick target (grasp position)
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "pick", goal.pick_target, poses, pipeline_planner
         )
         if not stage:
@@ -273,7 +273,7 @@ class PickPlaceStages(BaseStages):
         gripper_planner = self.make_joint_interpolation_planner()
 
         # 5. Retreat from pick (back to approach)
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "pick retreat", goal.pick_approach, poses, pipeline_planner
         )
         if not stage:
@@ -281,7 +281,7 @@ class PickPlaceStages(BaseStages):
         task.add(stage)
 
         # 6. Move to place approach
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "place approach", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
@@ -289,7 +289,7 @@ class PickPlaceStages(BaseStages):
         task.add(stage)
 
         # 7. Move to place target
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "place", goal.place_target, poses, pipeline_planner
         )
         if not stage:
@@ -315,7 +315,7 @@ class PickPlaceStages(BaseStages):
         pipeline_planner = self.make_pipeline_planner()
 
         # 9. Retreat from place
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "place retreat", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
@@ -324,20 +324,3 @@ class PickPlaceStages(BaseStages):
 
         return self.load_plan_execute(task)
 
-    def _make_move_to_named_stage(
-        self,
-        label: str,
-        pose_key: str,
-        poses: Dict[str, Any],
-        planner
-    ) -> Optional[stages.MoveTo]:
-        """Create a MoveTo stage for a named joint pose."""
-        joint_pose = self.get_joint_pose(poses, pose_key)
-        if joint_pose is None:
-            return None
-
-        stage = stages.MoveTo(label, planner)
-        stage.group = self.arm_group
-        self._set_ik_frame(stage)
-        stage.setGoal(joints_from_degrees(joint_pose))
-        return stage

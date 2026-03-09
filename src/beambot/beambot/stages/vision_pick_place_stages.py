@@ -159,7 +159,7 @@ class VisionPickPlaceStages(BaseStages):
             task.add(open_stage)
 
         # 2. Move to sample_approach (where camera can see samples)
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "sample approach", goal.sample_approach, poses, pipeline_planner
         )
         if not stage:
@@ -263,7 +263,7 @@ class VisionPickPlaceStages(BaseStages):
             task.add(close_stage)
 
         # 5. Retreat to sample_approach (safe joint pose)
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "pick retreat", goal.sample_approach, poses, pipeline_planner
         )
         if not stage:
@@ -273,7 +273,7 @@ class VisionPickPlaceStages(BaseStages):
         # === PLACE SEQUENCE ===
 
         # 6. Move to place_approach
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "place approach", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
@@ -281,7 +281,7 @@ class VisionPickPlaceStages(BaseStages):
         task.add(stage)
 
         # 7. Move to place_target
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "place", goal.place_target, poses, pipeline_planner
         )
         if not stage:
@@ -296,7 +296,7 @@ class VisionPickPlaceStages(BaseStages):
             task.add(release_stage)
 
         # 9. Retreat to place_approach
-        stage = self._make_move_to_named_stage(
+        stage = self.make_move_to_named_stage(
             "place retreat", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
@@ -305,30 +305,3 @@ class VisionPickPlaceStages(BaseStages):
 
         return self.load_plan_execute(task)
 
-    def _make_move_to_named_stage(
-        self,
-        label: str,
-        pose_key: str,
-        poses: Dict[str, Any],
-        planner
-    ) -> Optional[stages.MoveTo]:
-        """Create a MoveTo stage for a named joint pose.
-
-        Args:
-            label: Stage name
-            pose_key: Key in poses dict
-            poses: Dictionary of pose definitions
-            planner: Planner to use
-
-        Returns:
-            Configured MoveTo stage, or None if pose not found
-        """
-        joint_pose = self.get_joint_pose(poses, pose_key)
-        if joint_pose is None:
-            return None
-
-        stage = stages.MoveTo(label, planner)
-        stage.group = self.arm_group
-        self._set_ik_frame(stage)
-        stage.setGoal(joints_from_degrees(joint_pose))
-        return stage

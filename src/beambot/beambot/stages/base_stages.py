@@ -437,6 +437,34 @@ class BaseStages:
 
         return joint_pose
 
+    def make_move_to_named_stage(
+        self,
+        label: str,
+        pose_key: str,
+        poses: Dict[str, Any],
+        planner
+    ) -> Optional[stages.MoveTo]:
+        """Create a MoveTo stage for a named joint pose.
+
+        Args:
+            label: Stage name
+            pose_key: Key in poses dict
+            poses: Dictionary of pose definitions
+            planner: Planner to use
+
+        Returns:
+            Configured MoveTo stage, or None if pose not found
+        """
+        joint_pose = self.get_joint_pose(poses, pose_key)
+        if joint_pose is None:
+            return None
+
+        stage = stages.MoveTo(label, planner)
+        stage.group = self.arm_group
+        self._set_ik_frame(stage)
+        stage.setGoal(joints_from_degrees(joint_pose))
+        return stage
+
     def make_gripper_stage(
         self,
         label: str,
