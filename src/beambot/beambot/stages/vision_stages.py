@@ -26,11 +26,6 @@ from shape_msgs.msg import SolidPrimitive
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
 from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix
-from control_msgs.action import FollowJointTrajectory
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from sensor_msgs.msg import JointState
-from rclpy.action import ActionClient
-from rclpy.duration import Duration
 
 from beambot.camera import get_camera
 from beambot.camera.zivid import DetectionResult
@@ -137,23 +132,6 @@ class VisionStages(BaseStages):
             GetPlanningScene, "/get_planning_scene"
         )
 
-        # Trajectory action client (for scan position moves)
-        self._traj_client = ActionClient(
-            rclpy_node, FollowJointTrajectory,
-            '/scaled_joint_trajectory_controller/follow_joint_trajectory'
-        )
-
-        # Joint state tracking
-        self._current_joints = None
-        self._joint_sub = rclpy_node.create_subscription(
-            JointState, '/joint_states', self._joint_state_cb, 10
-        )
-
-        # Joint names for trajectory
-        self._arm_joints = [
-            'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
-            'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
-        ]
 
         # Parameters
         self._publish_marker_frames = True
@@ -694,19 +672,17 @@ class VisionStages(BaseStages):
     def _move_to_joint_pose(
         self,
         joint_positions: List[float],
-        duration: float = 2.0
     ) -> bool:
-        """Move to joint configuration using direct trajectory (no MTC overhead).
+        """Move to joint configuration using MTC with Pilz PTP.
 
-        Used for multi-position scanning where we need fast, lightweight moves
-        between scan positions.
+        Used for multi-position scanning moves between scan positions.
+        Goes through full MoveIt planning pipeline for collision checking.
 
         Args:
             joint_positions: 6-element list of joint angles in radians
-            duration: Trajectory duration in seconds
 
         Returns:
-            True if trajectory executed successfully, False otherwise
+            True if move succeeded, False otherwise
         """
         if len(joint_positions) != 6:
             self.logger.error(
@@ -718,7 +694,20 @@ class VisionStages(BaseStages):
             f"Moving to joint pose: [{', '.join(f'{j:.3f}' for j in joint_positions)}]"
         )
 
-        return self._execute_trajectory(joint_positions, duration)
+        task = self.create_task_template("Scan Position Move")
+        planner = self.make_pilz_planner("PTP")
+
+        stage = stages.MoveTo("move to scan position", planner)
+        stage.group = self.arm_group
+        self._set_ik_frame(stage)
+        stage.setGoal(joint_positions)
+        task.add(stage)
+
+        error = self.load_plan_execute(task)
+        if error:
+            self.logger.error(f"Scan position move failed: {error}")
+            return False
+        return True
 
     def _average_poses(self, poses: List[PoseStamped]) -> Optional[PoseStamped]:
         """Average multiple poses (position + quaternion orientation).
@@ -981,43 +970,6 @@ class VisionStages(BaseStages):
     # Set to (0, 0) if sample is directly on the tag
     SAMPLE_OFFSET_X = 0.02   # X offset in tag frame (20mm to the right)
     SAMPLE_OFFSET_Y = 0.0    # Y offset in tag frame
-
-    IK_TRAJECTORY_DURATION = 2.0  # seconds (for scan position moves)
-
-    def _joint_state_cb(self, msg):
-        """Callback to track current joint state."""
-        self._current_joints = msg
-
-    def _execute_trajectory(self, joint_positions, duration=None):
-        """Send joint trajectory to controller."""
-        if duration is None:
-            duration = self.IK_TRAJECTORY_DURATION
-
-        trajectory = JointTrajectory()
-        trajectory.joint_names = self._arm_joints
-
-        point = JointTrajectoryPoint()
-        point.positions = joint_positions
-        point.velocities = [0.0] * 6
-        point.time_from_start = Duration(seconds=duration).to_msg()
-        trajectory.points.append(point)
-
-        goal = FollowJointTrajectory.Goal()
-        goal.trajectory = trajectory
-
-        future = self._traj_client.send_goal_async(goal)
-        rclpy.spin_until_future_complete(self.rclpy_node, future)
-
-        goal_handle = future.result()
-        if not goal_handle.accepted:
-            self.logger.error("Trajectory goal rejected")
-            return False
-
-        result_future = goal_handle.get_result_async()
-        rclpy.spin_until_future_complete(self.rclpy_node, result_future)
-
-        result = result_future.result()
-        return result.result.error_code == 0
 
     def _move_to_pose(
         self,
