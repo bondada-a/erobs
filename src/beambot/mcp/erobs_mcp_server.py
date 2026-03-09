@@ -59,12 +59,27 @@ logger = logging.getLogger("erobs-mcp")
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-IMAGE_TOPIC = "/color/image_color"
-CLOUD_TOPIC = "/points/xyzrgba"
-CAPTURE_SERVICE = "/capture"
-CAMERA_FRAME = "zivid_optical_frame"
+# Zivid topics (single-shot, triggered)
+ZIVID_IMAGE_TOPIC = "/color/image_color"
+ZIVID_CLOUD_TOPIC = "/points/xyzrgba"
+ZIVID_CAPTURE_SERVICE = "/capture"
+ZIVID_FRAME = "zivid_optical_frame"
+
+# ZED topics (continuous streaming)
+ZED_IMAGE_TOPIC = "/zed/zed_node/rgb/image_rect_color"
+ZED_CLOUD_TOPIC = "/zed/zed_node/point_cloud/cloud_registered"
+ZED_FRAME = "zed_left_camera_optical_frame"
+
+CAMERA_FRAME = ZIVID_FRAME  # Default camera frame (backward compat)
 
 ZIVID_QOS = QoSProfile(
+    reliability=ReliabilityPolicy.RELIABLE,
+    durability=DurabilityPolicy.VOLATILE,
+    history=HistoryPolicy.KEEP_LAST,
+    depth=1,
+)
+
+ZED_QOS = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
     durability=DurabilityPolicy.VOLATILE,
     history=HistoryPolicy.KEEP_LAST,
@@ -238,19 +253,29 @@ class ROS2BridgeNode(Node):
         self._cb_group = ReentrantCallbackGroup()
         self._bridge = CvBridge()
 
-        # Persistent subscriptions (always connected → no QoS timing race)
+        # Zivid subscriptions (persistent — avoids QoS timing race)
         self._image_sub = self.create_subscription(
-            Image, IMAGE_TOPIC, self._on_image, ZIVID_QOS,
+            Image, ZIVID_IMAGE_TOPIC, self._on_zivid_image, ZIVID_QOS,
             callback_group=self._cb_group,
         )
         self._cloud_sub = self.create_subscription(
-            PointCloud2, CLOUD_TOPIC, self._on_cloud, ZIVID_QOS,
+            PointCloud2, ZIVID_CLOUD_TOPIC, self._on_zivid_cloud, ZIVID_QOS,
             callback_group=self._cb_group,
         )
 
-        # Capture service client
+        # Zivid capture service client
         self._capture_client = self.create_client(
-            Trigger, CAPTURE_SERVICE, callback_group=self._cb_group,
+            Trigger, ZIVID_CAPTURE_SERVICE, callback_group=self._cb_group,
+        )
+
+        # ZED subscriptions (streaming — always has latest frame)
+        self._zed_image_sub = self.create_subscription(
+            Image, ZED_IMAGE_TOPIC, self._on_zed_image, ZED_QOS,
+            callback_group=self._cb_group,
+        )
+        self._zed_cloud_sub = self.create_subscription(
+            PointCloud2, ZED_CLOUD_TOPIC, self._on_zed_cloud, ZED_QOS,
+            callback_group=self._cb_group,
         )
 
         # TF buffer (fills continuously via background executor)
@@ -267,34 +292,50 @@ class ROS2BridgeNode(Node):
             callback_group=self._cb_group,
         )
 
-        # State
+        # Zivid state
         self.last_rgb: Optional[np.ndarray] = None
         self.last_cloud: Optional[PointCloud2] = None
         self.last_image_msg: Optional[Image] = None
         self.capture_stamp = None  # Pre-capture timestamp for TF accuracy
 
-        # Synchronization events (for blocking capture)
+        # ZED state (continuously updated by streaming callbacks)
+        self.zed_rgb: Optional[np.ndarray] = None
+        self.zed_cloud: Optional[PointCloud2] = None
+        self.zed_image_msg: Optional[Image] = None
+        self.zed_stamp = None
+
+        # Synchronization events (for blocking Zivid capture)
         self._image_event = threading.Event()
         self._cloud_event = threading.Event()
-        # Track which capture we're waiting for
         self._waiting_for_capture = False
 
         self.get_logger().info("ROS2BridgeNode initialized")
 
-    def _on_image(self, msg: Image):
+    def _on_zivid_image(self, msg: Image):
         self.last_image_msg = msg
         try:
             self.last_rgb = self._bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
         except Exception as e:
-            self.get_logger().error(f"Image conversion failed: {e}")
+            self.get_logger().error(f"Zivid image conversion failed: {e}")
             return
         if self._waiting_for_capture:
             self._image_event.set()
 
-    def _on_cloud(self, msg: PointCloud2):
+    def _on_zivid_cloud(self, msg: PointCloud2):
         self.last_cloud = msg
         if self._waiting_for_capture:
             self._cloud_event.set()
+
+    def _on_zed_image(self, msg: Image):
+        self.zed_image_msg = msg
+        self.zed_stamp = msg.header.stamp
+        try:
+            self.zed_rgb = self._bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
+        except Exception as e:
+            self.get_logger().error(f"ZED image conversion failed: {e}")
+
+    def _on_zed_cloud(self, msg: PointCloud2):
+        self.zed_cloud = msg
 
     def _on_rosout(self, msg: Log):
         with self._log_buffer_lock:
@@ -494,54 +535,95 @@ async def ping() -> str:
 
 @mcp.tool()
 async def capture_image(
+    camera: str = "zivid",
     mode: str = "3d",
     save_path: str = DEFAULT_IMAGE_PATH,
     timeout: float = 30.0,
 ) -> str:
-    """Capture an image (and optionally point cloud) from the Zivid camera.
+    """Capture an image (and optionally point cloud) from a camera.
 
-    Triggers a Zivid single-shot capture and waits for image data.
+    Supports two cameras:
+        - "zivid": Eye-in-hand 3D camera. Single-shot triggered capture.
+          High accuracy, narrow FOV. Use for precise positioning.
+        - "zed": Fixed external ZED 2i stereo camera. Continuous streaming.
+          Wide FOV, covers full workspace. Use for scene overview, finding
+          objects, and guiding the robot to the right area.
+
     The image is saved to disk so Claude can view it with the Read tool.
 
     Args:
+        camera: Which camera to use — "zivid" or "zed". Default "zivid".
         mode: "2d" for image only, "3d" for image + point cloud (needed for
               detect_objects 3D positions). Default "3d".
         save_path: Where to save the captured image. Default /tmp/erobs_capture.jpg.
         timeout: Max seconds to wait for capture. Default 30.
 
     Returns:
-        JSON with image_path, width, height, has_pointcloud status.
+        JSON with image_path, width, height, has_pointcloud, camera_frame.
     """
-    need_cloud = mode == "3d"
-
-    loop = asyncio.get_event_loop()
-    success = await loop.run_in_executor(
-        None, lambda: bridge.node.trigger_capture(timeout=timeout, need_cloud=need_cloud),
-    )
-
-    if not success:
-        return json.dumps({
-            "error": "Capture failed. Is the Zivid camera connected and the driver running? "
-                     "Check: ros2 service list | grep capture",
-        })
-
     node = bridge.node
-    if node.last_rgb is None:
-        return json.dumps({"error": "No image data received after capture"})
+
+    if camera == "zed":
+        # ZED streams continuously — just grab whatever's latest
+        rgb = node.zed_rgb
+        cloud = node.zed_cloud
+        stamp = node.zed_stamp
+        frame = ZED_FRAME
+
+        if rgb is None:
+            # Wait briefly for first frame if ZED just started
+            loop = asyncio.get_event_loop()
+            def _wait_for_zed():
+                deadline = time.monotonic() + min(timeout, 5.0)
+                while node.zed_rgb is None and time.monotonic() < deadline:
+                    time.sleep(0.1)
+                return node.zed_rgb is not None
+            got_frame = await loop.run_in_executor(None, _wait_for_zed)
+            if not got_frame:
+                return json.dumps({
+                    "error": "No ZED image available. Is the ZED camera running? "
+                             "Check: ros2 topic hz /zed/zed_node/rgb/image_rect_color",
+                })
+            rgb = node.zed_rgb
+            cloud = node.zed_cloud
+            stamp = node.zed_stamp
+
+    elif camera == "zivid":
+        # Zivid requires explicit trigger
+        need_cloud = mode == "3d"
+        loop = asyncio.get_event_loop()
+        success = await loop.run_in_executor(
+            None, lambda: node.trigger_capture(timeout=timeout, need_cloud=need_cloud),
+        )
+        if not success:
+            return json.dumps({
+                "error": "Zivid capture failed. Is the camera connected and driver running? "
+                         "Check: ros2 service list | grep capture",
+            })
+        rgb = node.last_rgb
+        cloud = node.last_cloud
+        stamp = node.capture_stamp
+        frame = ZIVID_FRAME
+    else:
+        return json.dumps({"error": f"Unknown camera '{camera}'. Use 'zivid' or 'zed'."})
+
+    if rgb is None:
+        return json.dumps({"error": f"No image data received from {camera}"})
 
     # Save image (convert RGB → BGR for OpenCV)
-    bgr = cv2.cvtColor(node.last_rgb, cv2.COLOR_RGB2BGR)
+    bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
     os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
     cv2.imwrite(save_path, bgr)
 
-    h, w = node.last_rgb.shape[:2]
+    h, w = rgb.shape[:2]
     result = {
         "image_path": save_path,
+        "camera": camera,
+        "camera_frame": frame,
         "width": w,
         "height": h,
-        "has_pointcloud": node.last_cloud is not None,
-        "capture_timestamp": f"{node.capture_stamp.sec}.{node.capture_stamp.nanosec:09d}"
-        if node.capture_stamp else None,
+        "has_pointcloud": cloud is not None,
+        "capture_timestamp": f"{stamp.sec}.{stamp.nanosec:09d}" if stamp else None,
     }
     return json.dumps(result)
 

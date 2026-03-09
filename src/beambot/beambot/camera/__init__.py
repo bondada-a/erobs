@@ -34,6 +34,7 @@ if TYPE_CHECKING:
 # Registry of supported camera types
 _CAMERA_MODULES = {
     "zivid": "beambot.camera.zivid",
+    "zed": "beambot.camera.zed",
 }
 
 
