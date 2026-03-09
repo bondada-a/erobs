@@ -26,6 +26,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
+import yaml
 import numpy as np
 from mcp.server.fastmcp import FastMCP
 
@@ -91,6 +92,12 @@ ZED_QOS = QoSProfile(
 JOINT_STATES_TOPIC = "/joint_states"
 CURRENT_GRIPPER_TOPIC = "/beambot/current_gripper"
 EXECUTION_STATE_TOPIC = "/beambot/execution_state"
+
+# Pose registry
+POSES_FILE = os.environ.get(
+    "EROBS_POSES_FILE",
+    os.path.join(os.path.dirname(__file__), "..", "..", "cms", "poses.yaml"),
+)
 
 # Default save locations
 DEFAULT_IMAGE_PATH = "/tmp/erobs_capture.jpg"
@@ -607,6 +614,119 @@ async def get_robot_state() -> str:
         "joints_deg": joints_deg,
     }
     return json.dumps(result, indent=2)
+
+
+def _read_poses_file() -> dict:
+    """Read the poses YAML file. Returns empty dict if file doesn't exist."""
+    path = os.path.realpath(POSES_FILE)
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r") as f:
+        data = yaml.safe_load(f) or {}
+    return data
+
+
+def _write_poses_file(poses: dict):
+    """Write poses dict to the YAML file."""
+    path = os.path.realpath(POSES_FILE)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        yaml.dump(poses, f, default_flow_style=None, width=200)
+
+
+@mcp.tool()
+async def get_saved_poses(filter: str = "") -> str:
+    """Get saved robot poses from the pose registry.
+
+    Returns a JSON object mapping pose names to joint angle arrays (degrees).
+    These values can be used directly in task JSON "poses" dicts.
+
+    Args:
+        filter: Optional substring to filter pose names (case-insensitive).
+            Example: filter="hotplate" returns all poses with "hotplate" in the name.
+    """
+    poses = _read_poses_file()
+
+    if not poses:
+        return json.dumps({
+            "poses": {},
+            "count": 0,
+            "message": f"No poses file found at {os.path.realpath(POSES_FILE)}. "
+                       "Use save_pose to create one.",
+        })
+
+    if filter:
+        filter_lower = filter.lower()
+        poses = {k: v for k, v in poses.items() if filter_lower in k.lower()}
+
+    return json.dumps({"poses": poses, "count": len(poses)}, indent=2)
+
+
+@mcp.tool()
+async def save_pose(
+    name: str,
+    joints_deg: list = None,
+    description: str = "",
+) -> str:
+    """Save a robot pose to the pose registry.
+
+    If joints_deg is omitted, saves the robot's current joint positions
+    (the robot system must be running).
+
+    Args:
+        name: Pose name (e.g., "hotplate", "sample_scan_1").
+        joints_deg: 6-element list of joint angles in degrees.
+            If omitted, reads current position from the robot.
+        description: Optional note — saved as a YAML comment above the entry.
+    """
+    if joints_deg is not None:
+        if len(joints_deg) != 6:
+            return json.dumps({"error": f"Expected 6 joint values, got {len(joints_deg)}"})
+        values = [round(float(v), 2) for v in joints_deg]
+    else:
+        node = bridge.node
+        if node.joint_positions is None:
+            return json.dumps({
+                "error": "No joint data available. Robot system not running. "
+                         "Provide joints_deg explicitly.",
+            })
+        values = [round(math.degrees(v), 2) for v in node.joint_positions]
+
+    poses = _read_poses_file()
+    overwritten = name in poses
+    poses[name] = values
+    _write_poses_file(poses)
+
+    return json.dumps({
+        "saved": name,
+        "joints_deg": values,
+        "overwritten": overwritten,
+        "total_poses": len(poses),
+    })
+
+
+@mcp.tool()
+async def delete_pose(name: str) -> str:
+    """Delete a pose from the pose registry.
+
+    Args:
+        name: Pose name to delete.
+    """
+    poses = _read_poses_file()
+
+    if name not in poses:
+        return json.dumps({
+            "error": f"Pose '{name}' not found.",
+            "available": list(poses.keys()),
+        })
+
+    del poses[name]
+    _write_poses_file(poses)
+
+    return json.dumps({
+        "deleted": name,
+        "remaining_poses": len(poses),
+    })
 
 
 @mcp.tool()
