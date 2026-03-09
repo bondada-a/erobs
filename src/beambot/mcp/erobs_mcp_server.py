@@ -300,8 +300,14 @@ class ROS2BridgeNode(Node):
         self._log_buffer_max = 200
         self._log_buffer_lock = threading.Lock()
 
+        # /rosout uses TRANSIENT_LOCAL durability — must match to receive messages
+        rosout_qos = QoSProfile(
+            depth=50,
+            reliability=ReliabilityPolicy.RELIABLE,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+        )
         self._rosout_sub = self.create_subscription(
-            Log, '/rosout', self._on_rosout, 10,
+            Log, '/rosout', self._on_rosout, rosout_qos,
             callback_group=self._cb_group,
         )
 
