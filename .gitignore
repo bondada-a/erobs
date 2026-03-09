@@ -3,6 +3,7 @@ install
 log
 recorded_bags/
 CLAUDE.md
+.planning/
 site
 erobs.code-workspace
 
