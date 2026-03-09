@@ -1,0 +1,8 @@
+# For local Docker builds - exclude build artifacts
+build/
+install/
+log/
+.git/
+__pycache__/
+*.pyc
+.planning/

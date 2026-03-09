@@ -593,10 +593,14 @@ ros2 launch beambot beambot_bringup.launch.py timeout.moveto:=60.0
 ## 12. Common Gotchas
 
 ### Nothing Is Running Before the First Goal
-The beambot orchestrator launches MoveIt **lazily on the first goal**. Before that, there is no TF tree, no topics, and no services. Do NOT query TF transforms, subscribe to topics, or call services before sending the first `/beambot_execution` goal — they will all fail. Just construct the task JSON and send it. After the first goal succeeds, the full ROS2 system is available.
+The beambot orchestrator launches MoveIt **lazily on the first goal**. Before that, there is no TF tree, no topics, and no services. Do NOT query TF transforms, subscribe to topics, or call services (via ros-mcp-server) before sending the first `/beambot_execution` goal — they will fail.
+
+**Exception**: `get_robot_state` (erobs-mcp-server) is safe to call anytime. It reads from persistent subscriptions and returns `system_running: false` with `gripper: "unknown"` when nothing is up.
+
+**Recommended workflow**: Call `get_robot_state` → if system is running, use the returned gripper → if not, ask the user → construct JSON → send goal.
 
 ### start_gripper Must Match Reality
-There is no gripper auto-detection. If `start_gripper` doesn't match the physically attached gripper, the wrong MoveIt config loads and planning fails silently or produces dangerous motions.
+Call `get_robot_state` first — if the system is already running, it returns the current gripper. If `gripper: "unknown"`, ask the user. Sending the wrong gripper loads the wrong MoveIt config and causes planning failures or dangerous motions.
 
 ### Joint Poses Are in Degrees
 All joint arrays in the `poses` object are in **degrees**. The orchestrator converts to radians before sending to action servers. This matches what you see on the UR teach pendant.

@@ -46,7 +46,7 @@ class PipettorStages:
 
         self.logger.info("PipettorStages initialized")
 
-    def run(self, goal) -> bool:
+    def run(self, goal) -> 'Optional[str]':
         """Execute Pipettor action.
 
         Args:
@@ -56,7 +56,7 @@ class PipettorStages:
                 - led_color: ColorRGBA for SET_LED
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string describing failure otherwise
         """
         # Format descriptive log message
         if goal.operation in ["SUCK", "EXPEL"]:
@@ -83,7 +83,7 @@ class PipettorStages:
         operation: str,
         volume_pct: float,
         led_color: ColorRGBA
-    ) -> bool:
+    ) -> 'Optional[str]':
         """Execute the pipettor action.
 
         Args:
@@ -92,12 +92,11 @@ class PipettorStages:
             led_color: LED color for SET_LED
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string on failure
         """
         # Wait for action server
         if not self._action_client.wait_for_server(timeout_sec=5.0):
-            self.logger.error("Pipettor action server not available")
-            return False
+            return f"Pipettor action server '{self.PIPETTOR_ACTION}' not available (timeout 5s)"
 
         # Create goal
         action_goal = PipettorOperation.Goal()
@@ -114,13 +113,11 @@ class PipettorStages:
         )
 
         if not send_goal_future.done():
-            self.logger.error("Pipettor goal send timeout")
-            return False
+            return f"Pipettor goal send timeout for operation '{operation}'"
 
         goal_handle = send_goal_future.result()
         if not goal_handle.accepted:
-            self.logger.error("Pipettor goal rejected")
-            return False
+            return f"Pipettor goal rejected for operation '{operation}'"
 
         # Wait for result
         result_future = goal_handle.get_result_async()
@@ -134,16 +131,14 @@ class PipettorStages:
             self.logger.error("Pipettor operation timeout")
             # Try to cancel
             goal_handle.cancel_goal_async()
-            return False
+            return f"TIMEOUT: Pipettor operation '{operation}' timed out after {self.DEFAULT_TIMEOUT}s"
 
         result = result_future.result()
         if result.status != GoalStatus.STATUS_SUCCEEDED:
-            self.logger.error(f"Pipettor action failed with status: {result.status}")
-            return False
+            return f"Pipettor action failed with status {result.status} for operation '{operation}'"
 
         if not result.result.success:
-            self.logger.error(f"Pipettor operation failed: {result.result.message}")
-            return False
+            return f"Pipettor operation '{operation}' failed: {result.result.message}"
 
         self.logger.info(f"Pipettor operation succeeded: {result.result.message}")
-        return True
+        return None

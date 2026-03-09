@@ -1,0 +1,6 @@
+# Ignore everything except what Docker builds need
+# The Jazzy Dockerfile clones from git, so it only needs the VNC script via COPY
+*
+
+# Allow the Docker directory (needed for COPY commands)
+!docker/

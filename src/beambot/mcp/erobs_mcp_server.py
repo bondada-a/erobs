@@ -26,6 +26,7 @@ import time
 from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
+import yaml
 import numpy as np
 from mcp.server.fastmcp import FastMCP
 
@@ -48,7 +49,9 @@ from rclpy.qos import (
     DurabilityPolicy,
 )
 from rclpy.callback_groups import ReentrantCallbackGroup
-from sensor_msgs.msg import Image, PointCloud2
+from sensor_msgs.msg import Image, JointState, PointCloud2
+from std_msgs.msg import String
+from rcl_interfaces.msg import Log
 from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformListener, TransformException
 from cv_bridge import CvBridge
@@ -58,16 +61,42 @@ logger = logging.getLogger("erobs-mcp")
 # ---------------------------------------------------------------------------
 # Constants
 # ---------------------------------------------------------------------------
-IMAGE_TOPIC = "/color/image_color"
-CLOUD_TOPIC = "/points/xyzrgba"
-CAPTURE_SERVICE = "/capture"
-CAMERA_FRAME = "zivid_optical_frame"
+# Zivid topics (single-shot, triggered)
+ZIVID_IMAGE_TOPIC = "/color/image_color"
+ZIVID_CLOUD_TOPIC = "/points/xyzrgba"
+ZIVID_CAPTURE_SERVICE = "/capture"
+ZIVID_FRAME = "zivid_optical_frame"
+
+# ZED topics (continuous streaming)
+ZED_IMAGE_TOPIC = "/zed/zed_node/rgb/image_rect_color"
+ZED_CLOUD_TOPIC = "/zed/zed_node/point_cloud/cloud_registered"
+ZED_FRAME = "zed_left_camera_optical_frame"
+
+CAMERA_FRAME = ZIVID_FRAME  # Default camera frame (backward compat)
 
 ZIVID_QOS = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
     durability=DurabilityPolicy.VOLATILE,
     history=HistoryPolicy.KEEP_LAST,
     depth=1,
+)
+
+ZED_QOS = QoSProfile(
+    reliability=ReliabilityPolicy.RELIABLE,
+    durability=DurabilityPolicy.VOLATILE,
+    history=HistoryPolicy.KEEP_LAST,
+    depth=1,
+)
+
+# Robot state topics
+JOINT_STATES_TOPIC = "/joint_states"
+CURRENT_GRIPPER_TOPIC = "/beambot/current_gripper"
+EXECUTION_STATE_TOPIC = "/beambot/execution_state"
+
+# Pose registry
+POSES_FILE = os.environ.get(
+    "EROBS_POSES_FILE",
+    os.path.join(os.path.dirname(__file__), "..", "..", "cms", "poses.yaml"),
 )
 
 # Default save locations
@@ -237,53 +266,149 @@ class ROS2BridgeNode(Node):
         self._cb_group = ReentrantCallbackGroup()
         self._bridge = CvBridge()
 
-        # Persistent subscriptions (always connected → no QoS timing race)
+        # Zivid subscriptions (persistent — avoids QoS timing race)
         self._image_sub = self.create_subscription(
-            Image, IMAGE_TOPIC, self._on_image, ZIVID_QOS,
+            Image, ZIVID_IMAGE_TOPIC, self._on_zivid_image, ZIVID_QOS,
             callback_group=self._cb_group,
         )
         self._cloud_sub = self.create_subscription(
-            PointCloud2, CLOUD_TOPIC, self._on_cloud, ZIVID_QOS,
+            PointCloud2, ZIVID_CLOUD_TOPIC, self._on_zivid_cloud, ZIVID_QOS,
             callback_group=self._cb_group,
         )
 
-        # Capture service client
+        # Zivid capture service client
         self._capture_client = self.create_client(
-            Trigger, CAPTURE_SERVICE, callback_group=self._cb_group,
+            Trigger, ZIVID_CAPTURE_SERVICE, callback_group=self._cb_group,
+        )
+
+        # ZED subscriptions (streaming — always has latest frame)
+        self._zed_image_sub = self.create_subscription(
+            Image, ZED_IMAGE_TOPIC, self._on_zed_image, ZED_QOS,
+            callback_group=self._cb_group,
+        )
+        self._zed_cloud_sub = self.create_subscription(
+            PointCloud2, ZED_CLOUD_TOPIC, self._on_zed_cloud, ZED_QOS,
+            callback_group=self._cb_group,
         )
 
         # TF buffer (fills continuously via background executor)
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
 
-        # State
+        # /rosout log buffer
+        self._log_buffer = []
+        self._log_buffer_max = 200
+        self._log_buffer_lock = threading.Lock()
+
+        self._rosout_sub = self.create_subscription(
+            Log, '/rosout', self._on_rosout, 10,
+            callback_group=self._cb_group,
+        )
+
+        # Robot state subscriptions
+        latched_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+
+        self._joint_states_sub = self.create_subscription(
+            JointState, JOINT_STATES_TOPIC, self._on_joint_states, 10,
+            callback_group=self._cb_group,
+        )
+        self._gripper_sub = self.create_subscription(
+            String, CURRENT_GRIPPER_TOPIC, self._on_current_gripper, latched_qos,
+            callback_group=self._cb_group,
+        )
+        self._exec_state_sub = self.create_subscription(
+            String, EXECUTION_STATE_TOPIC, self._on_execution_state, 10,
+            callback_group=self._cb_group,
+        )
+
+        # Robot state (updated by callbacks, None = no data received yet)
+        self.joint_names: Optional[List[str]] = None
+        self.joint_positions: Optional[List[float]] = None
+        self.current_gripper: Optional[str] = None
+        self.execution_state: Optional[str] = None
+
+        # Zivid state
         self.last_rgb: Optional[np.ndarray] = None
         self.last_cloud: Optional[PointCloud2] = None
         self.last_image_msg: Optional[Image] = None
         self.capture_stamp = None  # Pre-capture timestamp for TF accuracy
 
-        # Synchronization events (for blocking capture)
+        # ZED state (continuously updated by streaming callbacks)
+        self.zed_rgb: Optional[np.ndarray] = None
+        self.zed_cloud: Optional[PointCloud2] = None
+        self.zed_image_msg: Optional[Image] = None
+        self.zed_stamp = None
+
+        # Synchronization events (for blocking Zivid capture)
         self._image_event = threading.Event()
         self._cloud_event = threading.Event()
-        # Track which capture we're waiting for
         self._waiting_for_capture = False
 
         self.get_logger().info("ROS2BridgeNode initialized")
 
-    def _on_image(self, msg: Image):
+    def _on_zivid_image(self, msg: Image):
         self.last_image_msg = msg
         try:
             self.last_rgb = self._bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
         except Exception as e:
-            self.get_logger().error(f"Image conversion failed: {e}")
+            self.get_logger().error(f"Zivid image conversion failed: {e}")
             return
         if self._waiting_for_capture:
             self._image_event.set()
 
-    def _on_cloud(self, msg: PointCloud2):
+    def _on_zivid_cloud(self, msg: PointCloud2):
         self.last_cloud = msg
         if self._waiting_for_capture:
             self._cloud_event.set()
+
+    def _on_zed_image(self, msg: Image):
+        self.zed_image_msg = msg
+        self.zed_stamp = msg.header.stamp
+        try:
+            self.zed_rgb = self._bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
+        except Exception as e:
+            self.get_logger().error(f"ZED image conversion failed: {e}")
+
+    def _on_zed_cloud(self, msg: PointCloud2):
+        self.zed_cloud = msg
+
+    def _on_joint_states(self, msg: JointState):
+        self.joint_names = list(msg.name)
+        self.joint_positions = list(msg.position)
+
+    def _on_current_gripper(self, msg: String):
+        self.current_gripper = msg.data
+
+    def _on_execution_state(self, msg: String):
+        self.execution_state = msg.data
+
+    def _on_rosout(self, msg: Log):
+        with self._log_buffer_lock:
+            self._log_buffer.append(msg)
+            if len(self._log_buffer) > self._log_buffer_max:
+                self._log_buffer = self._log_buffer[-self._log_buffer_max:]
+
+    def get_filtered_logs(self, min_severity: int = 40, logger_prefix: str = "", count: int = 20):
+        """Get recent logs filtered by severity and logger name.
+
+        Severity levels: DEBUG=10, INFO=20, WARN=30, ERROR=40, FATAL=50
+        """
+        with self._log_buffer_lock:
+            filtered = []
+            for msg in reversed(self._log_buffer):
+                if msg.level < min_severity:
+                    continue
+                if logger_prefix and not msg.name.startswith(logger_prefix):
+                    continue
+                filtered.append({
+                    "timestamp": f"{msg.stamp.sec}.{msg.stamp.nanosec:09d}",
+                    "logger": msg.name,
+                    "severity": {10: "DEBUG", 20: "INFO", 30: "WARN", 40: "ERROR", 50: "FATAL"}.get(msg.level, f"UNKNOWN({msg.level})"),
+                    "message": msg.msg,
+                })
+                if len(filtered) >= count:
+                    break
+            return filtered
 
     def trigger_capture(self, timeout: float = 30.0, need_cloud: bool = True) -> bool:
         """Trigger Zivid capture and wait for data. Called from executor thread.
@@ -454,55 +579,247 @@ async def ping() -> str:
 
 
 @mcp.tool()
+async def get_robot_state() -> str:
+    """Get the current state of the robot system.
+
+    Returns a JSON object with:
+    - system_running: whether the robot system (MoveIt, action servers) is up
+    - gripper: currently attached gripper name, or "unknown" if system not running
+    - execution_state: IDLE, EXECUTING, or PAUSED (null if system not running)
+    - joints_deg: current joint positions in degrees (matches task JSON convention),
+      or null if system not running. Keys are joint names.
+
+    Call this BEFORE constructing task JSON to know:
+    1. Whether the system is running (if not, your first goal will launch it)
+    2. Which gripper is attached (so you can set start_gripper correctly)
+    3. Current robot pose (to judge if a move is feasible)
+    """
+    node = bridge.node
+
+    system_running = node.joint_positions is not None
+    gripper = node.current_gripper or "unknown"
+    exec_state = node.execution_state
+
+    joints_deg = None
+    if node.joint_positions is not None and node.joint_names is not None:
+        joints_deg = {
+            name: round(math.degrees(pos), 2)
+            for name, pos in zip(node.joint_names, node.joint_positions)
+        }
+
+    result = {
+        "system_running": system_running,
+        "gripper": gripper,
+        "execution_state": exec_state,
+        "joints_deg": joints_deg,
+    }
+    return json.dumps(result, indent=2)
+
+
+def _read_poses_file() -> dict:
+    """Read the poses YAML file. Returns empty dict if file doesn't exist."""
+    path = os.path.realpath(POSES_FILE)
+    if not os.path.exists(path):
+        return {}
+    with open(path, "r") as f:
+        data = yaml.safe_load(f) or {}
+    return data
+
+
+def _write_poses_file(poses: dict):
+    """Write poses dict to the YAML file."""
+    path = os.path.realpath(POSES_FILE)
+    os.makedirs(os.path.dirname(path), exist_ok=True)
+    with open(path, "w") as f:
+        yaml.dump(poses, f, default_flow_style=None, width=200)
+
+
+@mcp.tool()
+async def get_saved_poses(filter: str = "") -> str:
+    """Get saved robot poses from the pose registry.
+
+    Returns a JSON object mapping pose names to joint angle arrays (degrees).
+    These values can be used directly in task JSON "poses" dicts.
+
+    Args:
+        filter: Optional substring to filter pose names (case-insensitive).
+            Example: filter="hotplate" returns all poses with "hotplate" in the name.
+    """
+    poses = _read_poses_file()
+
+    if not poses:
+        return json.dumps({
+            "poses": {},
+            "count": 0,
+            "message": f"No poses file found at {os.path.realpath(POSES_FILE)}. "
+                       "Use save_pose to create one.",
+        })
+
+    if filter:
+        filter_lower = filter.lower()
+        poses = {k: v for k, v in poses.items() if filter_lower in k.lower()}
+
+    return json.dumps({"poses": poses, "count": len(poses)}, indent=2)
+
+
+@mcp.tool()
+async def save_pose(
+    name: str,
+    joints_deg: list = None,
+    description: str = "",
+) -> str:
+    """Save a robot pose to the pose registry.
+
+    If joints_deg is omitted, saves the robot's current joint positions
+    (the robot system must be running).
+
+    Args:
+        name: Pose name (e.g., "hotplate", "sample_scan_1").
+        joints_deg: 6-element list of joint angles in degrees.
+            If omitted, reads current position from the robot.
+        description: Optional note — saved as a YAML comment above the entry.
+    """
+    if joints_deg is not None:
+        if len(joints_deg) != 6:
+            return json.dumps({"error": f"Expected 6 joint values, got {len(joints_deg)}"})
+        values = [round(float(v), 2) for v in joints_deg]
+    else:
+        node = bridge.node
+        if node.joint_positions is None:
+            return json.dumps({
+                "error": "No joint data available. Robot system not running. "
+                         "Provide joints_deg explicitly.",
+            })
+        values = [round(math.degrees(v), 2) for v in node.joint_positions]
+
+    poses = _read_poses_file()
+    overwritten = name in poses
+    poses[name] = values
+    _write_poses_file(poses)
+
+    return json.dumps({
+        "saved": name,
+        "joints_deg": values,
+        "overwritten": overwritten,
+        "total_poses": len(poses),
+    })
+
+
+@mcp.tool()
+async def delete_pose(name: str) -> str:
+    """Delete a pose from the pose registry.
+
+    Args:
+        name: Pose name to delete.
+    """
+    poses = _read_poses_file()
+
+    if name not in poses:
+        return json.dumps({
+            "error": f"Pose '{name}' not found.",
+            "available": list(poses.keys()),
+        })
+
+    del poses[name]
+    _write_poses_file(poses)
+
+    return json.dumps({
+        "deleted": name,
+        "remaining_poses": len(poses),
+    })
+
+
+@mcp.tool()
 async def capture_image(
+    camera: str = "zivid",
     mode: str = "3d",
     save_path: str = DEFAULT_IMAGE_PATH,
     timeout: float = 30.0,
 ) -> str:
-    """Capture an image (and optionally point cloud) from the Zivid camera.
+    """Capture an image (and optionally point cloud) from a camera.
 
-    Triggers a Zivid single-shot capture and waits for image data.
+    Supports two cameras:
+        - "zivid": Eye-in-hand 3D camera. Single-shot triggered capture.
+          High accuracy, narrow FOV. Use for precise positioning.
+        - "zed": Fixed external ZED 2i stereo camera. Continuous streaming.
+          Wide FOV, covers full workspace. Use for scene overview, finding
+          objects, and guiding the robot to the right area.
+
     The image is saved to disk so Claude can view it with the Read tool.
 
     Args:
+        camera: Which camera to use — "zivid" or "zed". Default "zivid".
         mode: "2d" for image only, "3d" for image + point cloud (needed for
               detect_objects 3D positions). Default "3d".
         save_path: Where to save the captured image. Default /tmp/erobs_capture.jpg.
         timeout: Max seconds to wait for capture. Default 30.
 
     Returns:
-        JSON with image_path, width, height, has_pointcloud status.
+        JSON with image_path, width, height, has_pointcloud, camera_frame.
     """
-    need_cloud = mode == "3d"
-
-    loop = asyncio.get_event_loop()
-    success = await loop.run_in_executor(
-        None, lambda: bridge.node.trigger_capture(timeout=timeout, need_cloud=need_cloud),
-    )
-
-    if not success:
-        return json.dumps({
-            "error": "Capture failed. Is the Zivid camera connected and the driver running? "
-                     "Check: ros2 service list | grep capture",
-        })
-
     node = bridge.node
-    if node.last_rgb is None:
-        return json.dumps({"error": "No image data received after capture"})
+
+    if camera == "zed":
+        # ZED streams continuously — just grab whatever's latest
+        rgb = node.zed_rgb
+        cloud = node.zed_cloud
+        stamp = node.zed_stamp
+        frame = ZED_FRAME
+
+        if rgb is None:
+            # Wait briefly for first frame if ZED just started
+            loop = asyncio.get_event_loop()
+            def _wait_for_zed():
+                deadline = time.monotonic() + min(timeout, 5.0)
+                while node.zed_rgb is None and time.monotonic() < deadline:
+                    time.sleep(0.1)
+                return node.zed_rgb is not None
+            got_frame = await loop.run_in_executor(None, _wait_for_zed)
+            if not got_frame:
+                return json.dumps({
+                    "error": "No ZED image available. Is the ZED camera running? "
+                             "Check: ros2 topic hz /zed/zed_node/rgb/image_rect_color",
+                })
+            rgb = node.zed_rgb
+            cloud = node.zed_cloud
+            stamp = node.zed_stamp
+
+    elif camera == "zivid":
+        # Zivid requires explicit trigger
+        need_cloud = mode == "3d"
+        loop = asyncio.get_event_loop()
+        success = await loop.run_in_executor(
+            None, lambda: node.trigger_capture(timeout=timeout, need_cloud=need_cloud),
+        )
+        if not success:
+            return json.dumps({
+                "error": "Zivid capture failed. Is the camera connected and driver running? "
+                         "Check: ros2 service list | grep capture",
+            })
+        rgb = node.last_rgb
+        cloud = node.last_cloud
+        stamp = node.capture_stamp
+        frame = ZIVID_FRAME
+    else:
+        return json.dumps({"error": f"Unknown camera '{camera}'. Use 'zivid' or 'zed'."})
+
+    if rgb is None:
+        return json.dumps({"error": f"No image data received from {camera}"})
 
     # Save image (convert RGB → BGR for OpenCV)
-    bgr = cv2.cvtColor(node.last_rgb, cv2.COLOR_RGB2BGR)
+    bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
     os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
     cv2.imwrite(save_path, bgr)
 
-    h, w = node.last_rgb.shape[:2]
+    h, w = rgb.shape[:2]
     result = {
         "image_path": save_path,
+        "camera": camera,
+        "camera_frame": frame,
         "width": w,
         "height": h,
-        "has_pointcloud": node.last_cloud is not None,
-        "capture_timestamp": f"{node.capture_stamp.sec}.{node.capture_stamp.nanosec:09d}"
-        if node.capture_stamp else None,
+        "has_pointcloud": cloud is not None,
+        "capture_timestamp": f"{stamp.sec}.{stamp.nanosec:09d}" if stamp else None,
     }
     return json.dumps(result)
 
@@ -866,7 +1183,7 @@ async def get_point_3d(
             })
 
     # Look up 3D position from point cloud
-    xyz = _get_3d_position(node.last_cloud, pixel_x, pixel_y, search_radius)
+    xyz = get_3d_position(node.last_cloud, pixel_x, pixel_y, search_radius)
 
     if xyz is None:
         return json.dumps({
@@ -992,6 +1309,51 @@ async def get_tf_transform(
             "yaw": round(rpy_deg[2], 4),
         },
         "matrix_4x4": [[round(float(mat[r, c]), 6) for c in range(4)] for r in range(4)],
+    }
+    return json.dumps(result)
+
+
+@mcp.tool()
+async def get_recent_logs(
+    severity: str = "ERROR",
+    logger: str = "",
+    count: int = 20,
+) -> str:
+    """Get recent ROS2 log messages from /rosout.
+
+    Use this after a failure to understand what went wrong. Filters by
+    minimum severity level and optional logger name prefix.
+
+    Args:
+        severity: Minimum severity level — "DEBUG", "INFO", "WARN", "ERROR", "FATAL".
+            Default "ERROR" (shows ERROR and FATAL only).
+        logger: Filter by logger name prefix (e.g., "beambot", "move_group",
+            "moveit"). Empty string = all loggers.
+        count: Maximum number of messages to return (most recent first).
+            Default 20.
+
+    Returns:
+        JSON with list of log entries, each containing timestamp, logger,
+        severity, and message.
+    """
+    severity_map = {"DEBUG": 10, "INFO": 20, "WARN": 30, "ERROR": 40, "FATAL": 50}
+    min_level = severity_map.get(severity.upper(), 40)
+
+    node = bridge.node
+    logs = node.get_filtered_logs(
+        min_severity=min_level,
+        logger_prefix=logger,
+        count=count,
+    )
+
+    result = {
+        "logs": logs,
+        "count": len(logs),
+        "filter": {
+            "min_severity": severity,
+            "logger_prefix": logger or "(all)",
+            "max_count": count,
+        },
     }
     return json.dumps(result)
 

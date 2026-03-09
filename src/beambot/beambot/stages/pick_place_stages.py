@@ -31,7 +31,7 @@ from beambot.stages.base_stages import (
 class PickPlaceStages(BaseStages):
     """Handles pick and place sequences with gripper operations."""
 
-    def run(self, goal) -> bool:
+    def run(self, goal) -> 'Optional[str]':
         """Execute PickPlace as a single MTC task (all 9 stages).
 
         This is the default implementation where all stages are planned and
@@ -59,7 +59,7 @@ class PickPlaceStages(BaseStages):
                 - poses_json: JSON string with pose definitions (joint angles in degrees)
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string describing failure otherwise
         """
         self.logger.info(
             f"Pick/place: gripper_group={goal.gripper_group}, "
@@ -69,14 +69,13 @@ class PickPlaceStages(BaseStages):
         # Parse poses
         poses = self.parse_poses(goal.poses_json)
         if poses is None:
-            return False
+            return "Failed to parse poses_json for pick_and_place"
 
         # Parse gripper states
         try:
             gripper_states = json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
         except json.JSONDecodeError as e:
-            self.logger.error(f"Invalid gripper_states_json: {e}")
-            return False
+            return f"Invalid gripper_states_json: {e}"
 
         # Create single task with all stages
         task = self.create_task_template("Pick and Place")
@@ -96,7 +95,7 @@ class PickPlaceStages(BaseStages):
             "pick approach", goal.pick_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.pick_approach}' not found or invalid in poses_json (pick approach)"
         task.add(stage)
 
         # 3. Move to pick target (grasp position)
@@ -104,7 +103,7 @@ class PickPlaceStages(BaseStages):
             "pick", goal.pick_target, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.pick_target}' not found or invalid in poses_json (pick target)"
         task.add(stage)
 
         # 4. Close gripper
@@ -119,7 +118,7 @@ class PickPlaceStages(BaseStages):
             "pick retreat", goal.pick_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.pick_approach}' not found or invalid in poses_json (pick retreat)"
         task.add(stage)
 
         # === PLACE SEQUENCE ===
@@ -128,7 +127,7 @@ class PickPlaceStages(BaseStages):
             "place approach", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.place_approach}' not found or invalid in poses_json (place approach)"
         task.add(stage)
 
         # 7. Move to place target
@@ -136,7 +135,7 @@ class PickPlaceStages(BaseStages):
             "place", goal.place_target, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.place_target}' not found or invalid in poses_json (place target)"
         task.add(stage)
 
         # 8. Release (open gripper)
@@ -151,12 +150,12 @@ class PickPlaceStages(BaseStages):
             "place retreat", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.place_approach}' not found or invalid in poses_json (place retreat)"
         task.add(stage)
 
         return self.load_plan_execute(task)
 
-    def run_with_gripper_settle(self, goal) -> bool:
+    def run_with_gripper_settle(self, goal) -> 'Optional[str]':
         """Execute PickPlace split into 3 MTC tasks for gripper settling.
 
         Use this when the gripper needs more time to fully close/open before
@@ -182,7 +181,7 @@ class PickPlaceStages(BaseStages):
             goal: PickPlaceAction.Goal (same as run())
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string describing failure otherwise
         """
         self.logger.info(
             f"Pick/place (with settle): gripper_group={goal.gripper_group}, "
@@ -192,41 +191,40 @@ class PickPlaceStages(BaseStages):
         # Parse poses
         poses = self.parse_poses(goal.poses_json)
         if poses is None:
-            return False
+            return "Failed to parse poses_json for pick_and_place (settle mode)"
 
         # Parse gripper states
         try:
             gripper_states = json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
         except json.JSONDecodeError as e:
-            self.logger.error(f"Invalid gripper_states_json: {e}")
-            return False
+            return f"Invalid gripper_states_json: {e}"
 
         # === TASK 1: PICK ===
         self.logger.info("Task 1/3: Executing pick sequence...")
-        if not self._execute_pick(goal, poses, gripper_states):
-            self.logger.error("Pick sequence failed")
-            return False
+        error = self._execute_pick(goal, poses, gripper_states)
+        if error is not None:
+            return f"Pick sequence failed: {error}"
 
         # === TASK 2: TRANSPORT & PLACE ===
         self.logger.info("Task 2/3: Executing transport and place sequence...")
-        if not self._execute_transport_and_place(goal, poses, gripper_states):
-            self.logger.error("Transport and place sequence failed")
-            return False
+        error = self._execute_transport_and_place(goal, poses, gripper_states)
+        if error is not None:
+            return f"Transport and place failed: {error}"
 
         # === TASK 3: RETREAT ===
         self.logger.info("Task 3/3: Executing retreat sequence...")
-        if not self._execute_retreat(goal, poses):
-            self.logger.error("Retreat sequence failed")
-            return False
+        error = self._execute_retreat(goal, poses)
+        if error is not None:
+            return f"Retreat failed: {error}"
 
         self.logger.info("Pick and place completed successfully")
-        return True
+        return None
 
-    def _execute_pick(self, goal, poses: Dict[str, Any], gripper_states: Dict[str, str]) -> bool:
+    def _execute_pick(self, goal, poses: Dict[str, Any], gripper_states: Dict[str, str]) -> 'Optional[str]':
         """Execute the pick sequence (open → approach → grasp → close).
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string on failure
         """
         task = self.create_task_template("Pick")
         pipeline_planner = self.make_pipeline_planner()
@@ -244,7 +242,7 @@ class PickPlaceStages(BaseStages):
             "pick approach", goal.pick_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.pick_approach}' not found or invalid (pick approach)"
         task.add(stage)
 
         # 3. Move to pick target (grasp position)
@@ -252,7 +250,7 @@ class PickPlaceStages(BaseStages):
             "pick", goal.pick_target, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.pick_target}' not found or invalid (pick target)"
         task.add(stage)
 
         # 4. Close gripper
@@ -264,11 +262,11 @@ class PickPlaceStages(BaseStages):
 
         return self.load_plan_execute(task)
 
-    def _execute_transport_and_place(self, goal, poses: Dict[str, Any], gripper_states: Dict[str, str]) -> bool:
+    def _execute_transport_and_place(self, goal, poses: Dict[str, Any], gripper_states: Dict[str, str]) -> 'Optional[str]':
         """Execute transport and place (retreat → approach → place → release).
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string on failure
         """
         task = self.create_task_template("Transport and Place")
         pipeline_planner = self.make_pipeline_planner()
@@ -279,7 +277,7 @@ class PickPlaceStages(BaseStages):
             "pick retreat", goal.pick_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.pick_approach}' not found or invalid (pick retreat)"
         task.add(stage)
 
         # 6. Move to place approach
@@ -287,7 +285,7 @@ class PickPlaceStages(BaseStages):
             "place approach", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.place_approach}' not found or invalid (place approach)"
         task.add(stage)
 
         # 7. Move to place target
@@ -295,7 +293,7 @@ class PickPlaceStages(BaseStages):
             "place", goal.place_target, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.place_target}' not found or invalid (place target)"
         task.add(stage)
 
         # 8. Release (open gripper)
@@ -307,11 +305,11 @@ class PickPlaceStages(BaseStages):
 
         return self.load_plan_execute(task)
 
-    def _execute_retreat(self, goal, poses: Dict[str, Any]) -> bool:
+    def _execute_retreat(self, goal, poses: Dict[str, Any]) -> 'Optional[str]':
         """Execute retreat from place.
 
         Returns:
-            True if successful, False otherwise
+            None if successful, error string on failure
         """
         task = self.create_task_template("Retreat")
         pipeline_planner = self.make_pipeline_planner()
@@ -321,7 +319,7 @@ class PickPlaceStages(BaseStages):
             "place retreat", goal.place_approach, poses, pipeline_planner
         )
         if not stage:
-            return False
+            return f"Pose '{goal.place_approach}' not found or invalid (place retreat)"
         task.add(stage)
 
         return self.load_plan_execute(task)

@@ -20,8 +20,7 @@ EROBS integrates ROS2 robotics with Bluesky experiment orchestration to enable s
   - [ur5e_moveit_configs](./src/custom-ur-descriptions/ur5e_moveit_configs): MoveIt configurations for UR5e with each gripper type (HandE, EPick, Pipettor).
 - [vision](./src/vision): Vision system packages for Zivid 3D camera and ArUco marker detection.
 - [bluesky_ros](./src/bluesky_ros): Python module for integrating Bluesky and ROS2 via Ophyd devices.
-- [aruco_pose](./src/aruco_pose): ROS2 package for detecting ArUco markers and calculating their pose.
-- [pdf](./src/pdf): PDF beamline specific applications (legacy).
+- [pdf](./src/pdf): PDF beamline specific applications (placeholder).
 - [cms](./src/cms): CMS beamline specific applications (placeholder).
 - [lix](./src/lix): LIX beamline specific applications (placeholder).
 - [demos](./src/demos): Demonstration applications.
