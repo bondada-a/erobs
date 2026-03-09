@@ -48,7 +48,8 @@ from rclpy.qos import (
     DurabilityPolicy,
 )
 from rclpy.callback_groups import ReentrantCallbackGroup
-from sensor_msgs.msg import Image, PointCloud2
+from sensor_msgs.msg import Image, JointState, PointCloud2
+from std_msgs.msg import String
 from rcl_interfaces.msg import Log
 from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformListener, TransformException
@@ -85,6 +86,11 @@ ZED_QOS = QoSProfile(
     history=HistoryPolicy.KEEP_LAST,
     depth=1,
 )
+
+# Robot state topics
+JOINT_STATES_TOPIC = "/joint_states"
+CURRENT_GRIPPER_TOPIC = "/beambot/current_gripper"
+EXECUTION_STATE_TOPIC = "/beambot/execution_state"
 
 # Default save locations
 DEFAULT_IMAGE_PATH = "/tmp/erobs_capture.jpg"
@@ -292,6 +298,28 @@ class ROS2BridgeNode(Node):
             callback_group=self._cb_group,
         )
 
+        # Robot state subscriptions
+        latched_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
+
+        self._joint_states_sub = self.create_subscription(
+            JointState, JOINT_STATES_TOPIC, self._on_joint_states, 10,
+            callback_group=self._cb_group,
+        )
+        self._gripper_sub = self.create_subscription(
+            String, CURRENT_GRIPPER_TOPIC, self._on_current_gripper, latched_qos,
+            callback_group=self._cb_group,
+        )
+        self._exec_state_sub = self.create_subscription(
+            String, EXECUTION_STATE_TOPIC, self._on_execution_state, 10,
+            callback_group=self._cb_group,
+        )
+
+        # Robot state (updated by callbacks, None = no data received yet)
+        self.joint_names: Optional[List[str]] = None
+        self.joint_positions: Optional[List[float]] = None
+        self.current_gripper: Optional[str] = None
+        self.execution_state: Optional[str] = None
+
         # Zivid state
         self.last_rgb: Optional[np.ndarray] = None
         self.last_cloud: Optional[PointCloud2] = None
@@ -336,6 +364,16 @@ class ROS2BridgeNode(Node):
 
     def _on_zed_cloud(self, msg: PointCloud2):
         self.zed_cloud = msg
+
+    def _on_joint_states(self, msg: JointState):
+        self.joint_names = list(msg.name)
+        self.joint_positions = list(msg.position)
+
+    def _on_current_gripper(self, msg: String):
+        self.current_gripper = msg.data
+
+    def _on_execution_state(self, msg: String):
+        self.execution_state = msg.data
 
     def _on_rosout(self, msg: Log):
         with self._log_buffer_lock:
@@ -531,6 +569,44 @@ async def ping() -> str:
     is reachable before calling other tools.
     """
     return "pong"
+
+
+@mcp.tool()
+async def get_robot_state() -> str:
+    """Get the current state of the robot system.
+
+    Returns a JSON object with:
+    - system_running: whether the robot system (MoveIt, action servers) is up
+    - gripper: currently attached gripper name, or "unknown" if system not running
+    - execution_state: IDLE, EXECUTING, or PAUSED (null if system not running)
+    - joints_deg: current joint positions in degrees (matches task JSON convention),
+      or null if system not running. Keys are joint names.
+
+    Call this BEFORE constructing task JSON to know:
+    1. Whether the system is running (if not, your first goal will launch it)
+    2. Which gripper is attached (so you can set start_gripper correctly)
+    3. Current robot pose (to judge if a move is feasible)
+    """
+    node = bridge.node
+
+    system_running = node.joint_positions is not None
+    gripper = node.current_gripper or "unknown"
+    exec_state = node.execution_state
+
+    joints_deg = None
+    if node.joint_positions is not None and node.joint_names is not None:
+        joints_deg = {
+            name: round(math.degrees(pos), 2)
+            for name, pos in zip(node.joint_names, node.joint_positions)
+        }
+
+    result = {
+        "system_running": system_running,
+        "gripper": gripper,
+        "execution_state": exec_state,
+        "joints_deg": joints_deg,
+    }
+    return json.dumps(result, indent=2)
 
 
 @mcp.tool()
