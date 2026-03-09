@@ -29,7 +29,7 @@ from tf_transformations import quaternion_multiply, quaternion_from_euler, quate
 
 from beambot.camera import get_camera
 from beambot.camera.zivid import DetectionResult
-from beambot.stages.base_stages import BaseStages
+from beambot.stages.base_stages import BaseStages, DEFAULT_JOINT_NAMES
 
 
 @dataclass
@@ -700,7 +700,8 @@ class VisionStages(BaseStages):
         stage = stages.MoveTo("move to scan position", planner)
         stage.group = self.arm_group
         self._set_ik_frame(stage)
-        stage.setGoal(joint_positions)
+        joint_dict = dict(zip(DEFAULT_JOINT_NAMES, joint_positions))
+        stage.setGoal(joint_dict)
         task.add(stage)
 
         error = self.load_plan_execute(task)

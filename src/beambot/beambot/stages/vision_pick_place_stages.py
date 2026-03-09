@@ -244,12 +244,12 @@ class VisionPickPlaceStages(BaseStages):
         task = self.create_task_template("Pick and Place")
         pipeline_planner = self.make_pipeline_planner()
         gripper_planner = self.make_joint_interpolation_planner()
-        cartesian_planner = self.make_cartesian_planner()
+        pilz_lin_planner = self.make_pilz_planner("LIN")
 
         # === PICK SEQUENCE ===
 
-        # 3. Move to grasp pose (Cartesian for precision)
-        grasp_stage = stages.MoveTo("grasp", cartesian_planner)
+        # 3. Move to grasp pose (Pilz LIN for reliable straight-line approach)
+        grasp_stage = stages.MoveTo("grasp", pilz_lin_planner)
         grasp_stage.group = self.arm_group
         self._set_ik_frame(grasp_stage)
         grasp_stage.setGoal(grasp_pose)
