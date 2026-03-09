@@ -5,18 +5,14 @@ from tkinter import ttk, messagebox, filedialog, scrolledtext
 import json
 import threading
 import time
-import sys
-import os
 import subprocess
-import tempfile
 import numpy as np
-from PIL import Image, ImageTk, ImageDraw, ImageFont
+from PIL import Image, ImageTk
 import cv2
 
 # ROS2 imports
 try:
     import rclpy
-    from rclpy.node import Node
     from rclpy.action import ActionClient
     from action_msgs.msg import GoalStatus
     from sensor_msgs.msg import Image as RosImage

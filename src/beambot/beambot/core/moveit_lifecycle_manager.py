@@ -208,7 +208,7 @@ class MoveItLifecycleManager:
                 self._logger.debug(f"Poll attempt {attempt + 1} failed: {e}")
                 try:
                     self._node.destroy_client(client)
-                except:
+                except Exception:
                     pass
 
             time.sleep(poll_interval)

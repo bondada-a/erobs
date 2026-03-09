@@ -105,7 +105,6 @@ class PointSelector:
             label = f"({self.current_point[0]}, {self.current_point[1]})"
             draw.text((dx + 12, dy - 18), label, fill="white")
             draw.text((dx + 11, dy - 19), label, fill="black")
-            draw.text((dx + 12, dy - 18), label, fill="white")
 
         return ImageTk.PhotoImage(img)
 

@@ -1165,21 +1165,6 @@ class VisionStages(BaseStages):
                 return "EXECUTION_FAILED: Trajectory execution failed for vision move"
             return None
 
-        # OLD: Build MTC task with Cartesian planner
-        # task = self.create_task_template("Vision Move")
-        # cartesian = self.make_cartesian_planner()
-        #
-        # stage = stages.MoveTo("move to tag", cartesian)
-        # stage.group = self.arm_group
-        # # Set ik_frame for this specific movement
-        # ik_frame_pose = PoseStamped()
-        # ik_frame_pose.header.frame_id = active_ik_frame
-        # stage.ik_frame = ik_frame_pose
-        # stage.setGoal(approach)
-        # task.add(stage)
-        #
-        # return self.load_plan_execute(task)
-
         # Fallback to MTC Cartesian planner if USE_IK_TRAJECTORY is False
         task = self.create_task_template("Vision Move")
         cartesian = self.make_cartesian_planner()
@@ -1206,8 +1191,8 @@ class VisionStages(BaseStages):
             rclpy.time.Time(),
             timeout=rclpy.duration.Duration(seconds=1.0)
         ):
-            return GripperDetection("epick_tip", 0.023) #pen suction cup 0.0264
-            # return GripperDetection("epick_tip", 0.022)
+            # z_offset: ePick suction cup height above sample surface
+            return GripperDetection("epick_tip", 0.023)
 
         # Check for Hand-E gripper
         if self._tf_buffer.can_transform(
