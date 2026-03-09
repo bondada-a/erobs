@@ -27,7 +27,7 @@ This package contains all the GUI-related code for the MTC pipeline, providing a
 
 ## Dependencies
 
-- `mtc_pipeline` - Core MTC functionality
+- `beambot` - Core MTC functionality
 - `rclpy` - ROS2 Python client library
 - `python3-tkinter` - GUI framework
 
@@ -65,7 +65,7 @@ colcon build --packages-select mtc_gui
 
 ## Integration
 
-This package integrates with the `mtc_pipeline` package by:
+This package integrates with the `beambot` package by:
 - Using the MTC action server for task execution
 - Calling MTC executables for task processing
 - Sharing configuration formats (JSON)
