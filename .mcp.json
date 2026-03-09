@@ -2,7 +2,7 @@
   "mcpServers": {
     "ros-mcp-server": {
       "command": "bash",
-      "args": ["-lc", "uvx ros-mcp --transport=stdio"]
+      "args": ["-lc", "ROS_DEFAULT_TIMEOUT=60 uvx ros-mcp --transport=stdio"]
     },
     "erobs": {
       "command": "bash",

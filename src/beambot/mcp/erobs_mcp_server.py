@@ -16,10 +16,12 @@ This avoids the QoS timing race that makes subscribe_once fail with Zivid.
 """
 
 import asyncio
+import collections
 import json
 import logging
 import math
 import os
+import re
 import sys
 import threading
 import time
@@ -51,7 +53,6 @@ from rclpy.qos import (
 from rclpy.callback_groups import ReentrantCallbackGroup
 from sensor_msgs.msg import Image, JointState, PointCloud2
 from std_msgs.msg import String
-from rcl_interfaces.msg import Log
 from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformListener, TransformException
 from cv_bridge import CvBridge
@@ -295,21 +296,9 @@ class ROS2BridgeNode(Node):
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
 
-        # /rosout log buffer
-        self._log_buffer = []
-        self._log_buffer_max = 200
-        self._log_buffer_lock = threading.Lock()
-
-        # /rosout uses TRANSIENT_LOCAL durability — must match to receive messages
-        rosout_qos = QoSProfile(
-            depth=50,
-            reliability=ReliabilityPolicy.RELIABLE,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL,
-        )
-        self._rosout_sub = self.create_subscription(
-            Log, '/rosout', self._on_rosout, rosout_qos,
-            callback_group=self._cb_group,
-        )
+        # Note: /rosout subscription removed — unreliable due to DDS discovery
+        # timing with 50+ publishers. get_recent_logs now reads from the launch
+        # output file (/tmp/beambot_launch.log) written by start_mcp.sh.
 
         # Robot state subscriptions
         latched_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
@@ -387,34 +376,6 @@ class ROS2BridgeNode(Node):
 
     def _on_execution_state(self, msg: String):
         self.execution_state = msg.data
-
-    def _on_rosout(self, msg: Log):
-        with self._log_buffer_lock:
-            self._log_buffer.append(msg)
-            if len(self._log_buffer) > self._log_buffer_max:
-                self._log_buffer = self._log_buffer[-self._log_buffer_max:]
-
-    def get_filtered_logs(self, min_severity: int = 40, logger_prefix: str = "", count: int = 20):
-        """Get recent logs filtered by severity and logger name.
-
-        Severity levels: DEBUG=10, INFO=20, WARN=30, ERROR=40, FATAL=50
-        """
-        with self._log_buffer_lock:
-            filtered = []
-            for msg in reversed(self._log_buffer):
-                if msg.level < min_severity:
-                    continue
-                if logger_prefix and not msg.name.startswith(logger_prefix):
-                    continue
-                filtered.append({
-                    "timestamp": f"{msg.stamp.sec}.{msg.stamp.nanosec:09d}",
-                    "logger": msg.name,
-                    "severity": {10: "DEBUG", 20: "INFO", 30: "WARN", 40: "ERROR", 50: "FATAL"}.get(msg.level, f"UNKNOWN({msg.level})"),
-                    "message": msg.msg,
-                })
-                if len(filtered) >= count:
-                    break
-            return filtered
 
     def trigger_capture(self, timeout: float = 30.0, need_cloud: bool = True) -> bool:
         """Trigger Zivid capture and wait for data. Called from executor thread.
@@ -1319,16 +1280,31 @@ async def get_tf_transform(
     return json.dumps(result)
 
 
+BEAMBOT_LOG_FILE = "/tmp/beambot_launch.log"
+
+# Regex to parse ROS2 launch log lines:
+# [process_name-N] [LEVEL] [timestamp] [logger_name]: message
+_LOG_LINE_RE = re.compile(
+    r'^\[([^\]]+)\]\s+'          # [process_name-N]
+    r'\[(\w+)\]\s+'              # [LEVEL]
+    r'\[[\d.]+\]\s+'             # [timestamp]
+    r'\[([^\]]+)\]:\s+'          # [logger_name]
+    r'(.+)$'                     # message
+)
+
+_SEVERITY_ORDER = {"DEBUG": 10, "INFO": 20, "WARN": 30, "ERROR": 40, "FATAL": 50}
+
+
 @mcp.tool()
 async def get_recent_logs(
     severity: str = "ERROR",
     logger: str = "",
-    count: int = 20,
+    count: int = 30,
 ) -> str:
-    """Get recent ROS2 log messages from /rosout.
+    """Get recent ROS2 log messages from the beambot launch output.
 
-    Use this after a failure to understand what went wrong. Filters by
-    minimum severity level and optional logger name prefix.
+    Reads from /tmp/beambot_launch.log (written by start_mcp.sh).
+    Use this after a failure to understand what went wrong.
 
     Args:
         severity: Minimum severity level — "DEBUG", "INFO", "WARN", "ERROR", "FATAL".
@@ -1336,25 +1312,59 @@ async def get_recent_logs(
         logger: Filter by logger name prefix (e.g., "beambot", "move_group",
             "moveit"). Empty string = all loggers.
         count: Maximum number of messages to return (most recent first).
-            Default 20.
+            Default 30.
 
     Returns:
-        JSON with list of log entries, each containing timestamp, logger,
+        JSON with list of log entries, each containing process, logger,
         severity, and message.
     """
-    severity_map = {"DEBUG": 10, "INFO": 20, "WARN": 30, "ERROR": 40, "FATAL": 50}
-    min_level = severity_map.get(severity.upper(), 40)
+    min_level = _SEVERITY_ORDER.get(severity.upper(), 40)
 
-    node = bridge.node
-    logs = node.get_filtered_logs(
-        min_severity=min_level,
-        logger_prefix=logger,
-        count=count,
-    )
+    if not os.path.exists(BEAMBOT_LOG_FILE):
+        return json.dumps({
+            "error": f"Log file not found: {BEAMBOT_LOG_FILE}. "
+                     "Make sure beambot was started with start_mcp.sh.",
+            "logs": [],
+            "count": 0,
+        })
+
+    # Read last ~2000 lines (enough for recent activity without loading entire file)
+    loop = asyncio.get_event_loop()
+    def _read_tail():
+        try:
+            with open(BEAMBOT_LOG_FILE, 'r', errors='replace') as f:
+                return collections.deque(f, maxlen=2000)
+        except Exception as e:
+            return str(e)
+
+    lines = await loop.run_in_executor(None, _read_tail)
+    if isinstance(lines, str):
+        return json.dumps({"error": f"Failed to read log file: {lines}", "logs": [], "count": 0})
+
+    # Parse and filter (iterate in reverse for most recent first)
+    filtered = []
+    for line in reversed(lines):
+        m = _LOG_LINE_RE.match(line.strip())
+        if not m:
+            continue
+        process, level, logger_name, message = m.groups()
+        level_num = _SEVERITY_ORDER.get(level, 0)
+        if level_num < min_level:
+            continue
+        if logger and not logger_name.startswith(logger):
+            continue
+        filtered.append({
+            "process": process,
+            "logger": logger_name,
+            "severity": level,
+            "message": message,
+        })
+        if len(filtered) >= count:
+            break
 
     result = {
-        "logs": logs,
-        "count": len(logs),
+        "logs": filtered,
+        "count": len(filtered),
         "filter": {
             "min_severity": severity,
             "logger_prefix": logger or "(all)",

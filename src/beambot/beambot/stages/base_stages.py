@@ -92,12 +92,20 @@ DEFAULT_IK_FRAME = "flange"
 # Parameters MUST be passed via NodeOptions.arguments using --ros-args -p key:=value.
 # With automatically_declare_parameters_from_overrides=True, these are auto-declared
 # on the C++ node and visible to MoveIt's PlanningPipeline.
+#
+# The __node:=beambot_mtc remapping is critical: ros2 launch injects
+# --ros-args -r __node:=<server_name> which renames ALL nodes in the process.
+# Without this override, both the rclcpp MTC node and the rclpy action server
+# node end up with the same name, causing the shared /rosout publisher to be
+# unregistered when either node is destroyed — silently breaking all /rosout
+# logging for the process.
 rclcpp.init()
 _options = rclcpp.NodeOptions()
 _options.automatically_declare_parameters_from_overrides = True
 _options.allow_undeclared_parameters = True
 _options.arguments = [
     "--ros-args",
+    "-r", "__node:=beambot_mtc",
     # OMPL planning pipeline
     "-p", "ompl.planning_plugin:=ompl_interface/OMPLPlanner",
     "-p", "ompl.start_state_max_bounds_error:=0.1",
@@ -125,7 +133,7 @@ _options.arguments = [
     "-p", "robot_description_planning.joint_limits.wrist_3_joint.has_acceleration_limits:=true",
     "-p", "robot_description_planning.joint_limits.wrist_3_joint.max_acceleration:=5.0",
 ]
-_mtc_node = rclcpp.Node("beambot", _options)
+_mtc_node = rclcpp.Node("beambot_mtc", _options)
 
 
 def joints_from_degrees(degrees: List[float]) -> Dict[str, float]:

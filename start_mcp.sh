@@ -48,8 +48,11 @@ for i in $(seq 1 15); do
 done
 
 # Start beambot with any extra args passed to this script
+# Tee output to log file so erobs-mcp-server can read it for get_recent_logs
+BEAMBOT_LOG="/tmp/beambot_launch.log"
+> "$BEAMBOT_LOG"  # Truncate on start
 echo "Starting beambot..."
-ros2 launch beambot beambot_bringup.launch.py "$@" &
+ros2 launch beambot beambot_bringup.launch.py "$@" 2>&1 | tee "$BEAMBOT_LOG" &
 BEAMBOT_PID=$!
 
 echo ""
