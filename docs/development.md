@@ -158,7 +158,7 @@ ros2 topic echo /beambot/execution_state  # Monitor state
   - `contour` — Edge/Canny contour detection
 - **Fields**: `detection_type` and `sample_index` (1-indexed) in VisionMoveToAction
 - **Known issues**: contour/circle detection is unreliable (lighting-dependent, label instability between captures, centroid offset)
-- **Investigation**: `src/beambot/docs/aruco_detection_variance_investigation.md`
+- **Investigation**: `docs/archive/aruco_detection_variance_investigation.md`
 
 ### Octomap Integration
 - Point cloud obstacle avoidance works (`octomap_test.launch.py`), needs integration into `beambot_bringup.launch.py` with `use_octomap:=true` arg
