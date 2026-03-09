@@ -110,6 +110,13 @@ src/vision/zivid-python-samples/
 frames_*.pdf
 frames_*.gv
 
+# LaTeX build artifacts
+*.aux
+*.fls
+*.fdb_latexmk
+*.synctex.gz
+*.out
+
 # ROS bag recordings (can be large)
 *.bag
 *.db3
