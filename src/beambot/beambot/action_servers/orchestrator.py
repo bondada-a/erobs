@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """MTC Orchestrator - coordinates multi-step robot tasks.
 
-Python equivalent of mtc_orchestrator_action_server.cpp.
 Receives task scripts (JSON) and dispatches steps to specialized action servers.
 Manages MoveIt lifecycle based on gripper configuration.
 
@@ -16,7 +15,7 @@ import json
 import math
 import threading
 import time
-from typing import Dict, Any, List, Tuple
+from typing import Dict, Any, List
 
 import yaml
 import rclpy
@@ -45,7 +44,7 @@ from std_msgs.msg import String
 from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
 from beambot.stages.move_to_stages import MoveToStages
 from beambot.stages.end_effector_stages import EndEffectorStages
-from beambot.batch_planner import group_into_batches, BATCHABLE_TYPES, BATCH_BREAKERS
+from beambot.batch_planner import group_into_batches
 
 
 class MTCOrchestratorServer(Node):
@@ -69,9 +68,6 @@ class MTCOrchestratorServer(Node):
         "vision_pick_place": 180.0,
         "pipettor": 60.0,
     }
-
-    # Batchable/breaker task types -- defined in beambot.batch_planner
-    # Imported at module level: BATCHABLE_TYPES, BATCH_BREAKERS
 
     def __init__(self):
         super().__init__("beambot_orchestrator")
