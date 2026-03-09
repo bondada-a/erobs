@@ -1063,7 +1063,7 @@ async def get_point_3d(
             })
 
     # Look up 3D position from point cloud
-    xyz = _get_3d_position(node.last_cloud, pixel_x, pixel_y, search_radius)
+    xyz = get_3d_position(node.last_cloud, pixel_x, pixel_y, search_radius)
 
     if xyz is None:
         return json.dumps({
