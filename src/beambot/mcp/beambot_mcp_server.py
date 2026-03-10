@@ -1418,8 +1418,17 @@ def main():
     )
     logger.info("Starting EROBS MCP server...")
 
+    # Write crash logs to file since stderr may not be visible
+    crash_log = "/tmp/beambot_mcp_crash.log"
+
     try:
         mcp.run(transport="stdio")
+    except Exception:
+        import traceback
+        tb = traceback.format_exc()
+        logger.error(f"MCP server crashed:\n{tb}")
+        with open(crash_log, "a") as f:
+            f.write(f"\n{'='*60}\n{time.strftime('%Y-%m-%d %H:%M:%S')}\n{tb}\n")
     finally:
         bridge.shutdown()
 

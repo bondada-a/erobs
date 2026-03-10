@@ -83,8 +83,9 @@ The result is saved to `zed_calibration_result.json` with the `static_transform_
 # Terminal 1: ZED (keep running from step 1, or relaunch)
 ros2 launch zed_wrapper zed_camera.launch.py camera_model:=zed2i enable_ipc:=false publish_tf:=false publish_urdf:=false
 
-# Terminal 2: Publish calibration TF (copy command from script output)
-ros2 run tf2_ros static_transform_publisher --x ... --frame-id base_link --child-frame-id zed_left_camera_optical_frame
+# Terminal 2: Publish calibration TF (copy from zed_calibration_result.json or script output)
+# Example with current calibration values:
+ros2 run tf2_ros static_transform_publisher --x -0.967543 --y -0.735554 --z 0.044037 --qx -0.632920 --qy 0.294752 --qz -0.219842 --qw 0.681324 --frame-id base_link --child-frame-id zed_left_camera_optical_frame
 
 # Terminal 3: Bridge optical -> camera frame
 ros2 run tf2_ros static_transform_publisher --qx 0.5 --qy -0.5 --qz 0.5 --qw 0.5 --frame-id zed_left_camera_optical_frame --child-frame-id zed_left_camera_frame
