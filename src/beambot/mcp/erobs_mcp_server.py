@@ -69,11 +69,9 @@ ZIVID_CAPTURE_SERVICE = "/capture"
 ZIVID_FRAME = "zivid_optical_frame"
 
 # ZED topics (continuous streaming)
-ZED_IMAGE_TOPIC = "/zed/zed_node/rgb/image_rect_color"
+ZED_IMAGE_TOPIC = "/zed/zed_node/rgb/color/rect/image"
 ZED_CLOUD_TOPIC = "/zed/zed_node/point_cloud/cloud_registered"
 ZED_FRAME = "zed_left_camera_optical_frame"
-
-CAMERA_FRAME = ZIVID_FRAME  # Default camera frame (backward compat)
 
 ZIVID_QOS = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
@@ -383,7 +381,7 @@ class ROS2BridgeNode(Node):
         Returns True if data received within timeout.
         """
         if not self._capture_client.wait_for_service(timeout_sec=3.0):
-            self.get_logger().error(f"Capture service '{CAPTURE_SERVICE}' not available")
+            self.get_logger().error(f"Capture service '{ZIVID_CAPTURE_SERVICE}' not available")
             return False
 
         # Clear events and mark that we're waiting
@@ -523,6 +521,23 @@ class ROS2Bridge:
             self._node.destroy_node()
         if rclpy.ok():
             rclpy.shutdown()
+
+
+# ---------------------------------------------------------------------------
+# Camera state resolution
+# ---------------------------------------------------------------------------
+
+def _resolve_camera_state(
+    node: ROS2BridgeNode,
+    camera: str,
+) -> Tuple[Optional[np.ndarray], Optional[PointCloud2], Optional[Any], str]:
+    """Resolve camera name to (rgb, cloud, stamp, frame) from node state."""
+    if camera == "zivid":
+        return node.last_rgb, node.last_cloud, node.capture_stamp, ZIVID_FRAME
+    elif camera == "zed":
+        return node.zed_rgb, node.zed_cloud, node.zed_stamp, ZED_FRAME
+    else:
+        raise ValueError(f"Unknown camera '{camera}'. Use 'zivid' or 'zed'.")
 
 
 # ---------------------------------------------------------------------------
@@ -745,7 +760,7 @@ async def capture_image(
             if not got_frame:
                 return json.dumps({
                     "error": "No ZED image available. Is the ZED camera running? "
-                             "Check: ros2 topic hz /zed/zed_node/rgb/image_rect_color",
+                             "Check: ros2 topic hz /zed/zed_node/rgb/color/rect/image",
                 })
             rgb = node.zed_rgb
             cloud = node.zed_cloud
@@ -794,6 +809,7 @@ async def capture_image(
 @mcp.tool()
 async def detect_objects(
     method: str = "hsv_color",
+    camera: str = "zivid",
     hue_low: int = 100,
     hue_high: int = 130,
     sat_min: int = 80,
@@ -810,8 +826,8 @@ async def detect_objects(
 ) -> str:
     """Detect objects in the last captured image.
 
-    IMPORTANT: Call capture_image(mode="3d") first! This operates on the most
-    recent capture data.
+    IMPORTANT: Call capture_image() first! This operates on the most
+    recent capture data from the specified camera.
 
     Detection methods:
         - "hsv_color": Find objects by color in HSV space. Good for colored balls,
@@ -823,6 +839,8 @@ async def detect_objects(
 
     Args:
         method: Detection method — "hsv_color", "circle", "contour", or "marker".
+        camera: Which camera's data to use — "zivid" or "zed". Default "zivid".
+            Must match the camera used in the preceding capture_image() call.
         hue_low: HSV hue lower bound (0-180). Only for hsv_color.
         hue_high: HSV hue upper bound (0-180). Only for hsv_color.
         sat_min: Min saturation (0-255). Only for hsv_color.
@@ -843,13 +861,15 @@ async def detect_objects(
     """
     node = bridge.node
 
-    if node.last_rgb is None:
-        return json.dumps({
-            "error": "No image data. Call capture_image() first.",
-        })
+    try:
+        rgb, cloud, stamp, camera_frame = _resolve_camera_state(node, camera)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
 
-    rgb = node.last_rgb
-    cloud = node.last_cloud
+    if rgb is None:
+        return json.dumps({
+            "error": f"No image data from {camera}. Call capture_image(camera='{camera}') first.",
+        })
 
     # Run detection
     raw_detections = None
@@ -916,7 +936,7 @@ async def detect_objects(
                 # Transform to base_link if requested
                 if transform_to_base:
                     base_xyz = await _transform_point_to_base(
-                        node, xyz, node.capture_stamp,
+                        node, xyz, camera_frame, stamp,
                     )
                     if base_xyz is not None:
                         det["base_xyz"] = list(base_xyz)
@@ -937,7 +957,8 @@ async def detect_objects(
         "count": len(raw_detections),
         "method": method,
         "annotated_image_path": save_path,
-        "coordinate_frame": "base_link" if transform_to_base else CAMERA_FRAME,
+        "camera": camera,
+        "coordinate_frame": "base_link" if transform_to_base else camera_frame,
     }
     return json.dumps(result)
 
@@ -945,6 +966,7 @@ async def detect_objects(
 async def _transform_point_to_base(
     node: ROS2BridgeNode,
     camera_xyz: Tuple[float, float, float],
+    camera_frame: str,
     capture_stamp=None,
 ) -> Optional[Tuple[float, float, float]]:
     """Transform a 3D point from camera frame to base_link using TF.
@@ -960,7 +982,7 @@ async def _transform_point_to_base(
         transform = None
         if capture_stamp is not None:
             transform = node.lookup_transform(
-                "base_link", CAMERA_FRAME, stamp=capture_stamp,
+                "base_link", camera_frame, stamp=capture_stamp,
             )
             if transform is None:
                 logger.warning(
@@ -970,11 +992,11 @@ async def _transform_point_to_base(
         # Fallback: latest available transform
         if transform is None:
             transform = node.lookup_transform(
-                "base_link", CAMERA_FRAME, stamp=None,
+                "base_link", camera_frame, stamp=None,
             )
             if transform is None:
                 logger.error(
-                    f"TF lookup failed: {CAMERA_FRAME} → base_link not available "
+                    f"TF lookup failed: {camera_frame} → base_link not available "
                     "(even latest). Is the robot driver running?"
                 )
                 return None
@@ -1068,6 +1090,7 @@ async def _confirm_point_via_gui(
 async def get_point_3d(
     pixel_x: int,
     pixel_y: int,
+    camera: str = "zivid",
     transform_to_base: bool = True,
     search_radius: int = 10,
     confirm: bool = True,
@@ -1075,8 +1098,8 @@ async def get_point_3d(
 ) -> str:
     """Get the 3D position of a pixel from the last captured point cloud.
 
-    IMPORTANT: Call capture_image(mode="3d") first! This uses the most recent
-    point cloud data.
+    IMPORTANT: Call capture_image() first! This uses the most recent
+    point cloud data from the specified camera.
 
     Use this when you can see something in the camera image and want to know
     its real-world 3D position — e.g., "what are the 3D coordinates of the
@@ -1086,8 +1109,10 @@ async def get_point_3d(
     Args:
         pixel_x: X coordinate (column) in the image.
         pixel_y: Y coordinate (row) in the image.
+        camera: Which camera's data to use — "zivid" or "zed". Default "zivid".
+            Must match the camera used in the preceding capture_image() call.
         transform_to_base: If True, return position in base_link frame.
-            If False, return in camera (zivid_optical_frame) frame.
+            If False, return in the camera's optical frame.
         search_radius: If the exact pixel has no depth, search nearby pixels
             within this radius. Default 10.
         confirm: If True, open a GUI window showing the image with the
@@ -1101,18 +1126,23 @@ async def get_point_3d(
     """
     node = bridge.node
 
-    if node.last_cloud is None:
+    try:
+        rgb, cloud, stamp, camera_frame = _resolve_camera_state(node, camera)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
+
+    if cloud is None:
         return json.dumps({
-            "error": "No point cloud data. Call capture_image(mode='3d') first.",
+            "error": f"No point cloud data from {camera}. Call capture_image(camera='{camera}', mode='3d') first.",
         })
 
-    if node.last_rgb is None:
+    if rgb is None:
         return json.dumps({
-            "error": "No image data. Call capture_image(mode='3d') first.",
+            "error": f"No image data from {camera}. Call capture_image(camera='{camera}', mode='3d') first.",
         })
 
     # Bounds check
-    h, w = node.last_rgb.shape[:2]
+    h, w = rgb.shape[:2]
     if pixel_x < 0 or pixel_x >= w or pixel_y < 0 or pixel_y >= h:
         return json.dumps({
             "error": f"Pixel ({pixel_x}, {pixel_y}) out of bounds. "
@@ -1124,7 +1154,7 @@ async def get_point_3d(
         # Use the saved capture image, or save current frame as fallback
         image_path = DEFAULT_IMAGE_PATH
         if not os.path.exists(image_path):
-            bgr = cv2.cvtColor(node.last_rgb, cv2.COLOR_RGB2BGR)
+            bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
             cv2.imwrite(image_path, bgr)
 
         gui_result = await _confirm_point_via_gui(image_path, pixel_x, pixel_y)
@@ -1150,7 +1180,7 @@ async def get_point_3d(
             })
 
     # Look up 3D position from point cloud
-    xyz = get_3d_position(node.last_cloud, pixel_x, pixel_y, search_radius)
+    xyz = get_3d_position(cloud, pixel_x, pixel_y, search_radius)
 
     if xyz is None:
         return json.dumps({
@@ -1163,7 +1193,8 @@ async def get_point_3d(
         "pixel_x": pixel_x,
         "pixel_y": pixel_y,
         "camera_xyz": [round(v, 6) for v in xyz],
-        "camera_frame": CAMERA_FRAME,
+        "camera": camera,
+        "camera_frame": camera_frame,
         "base_xyz": None,
         "base_frame": "base_link",
     }
@@ -1171,13 +1202,13 @@ async def get_point_3d(
     # Transform to base_link
     if transform_to_base:
         base_xyz = await _transform_point_to_base(
-            node, xyz, node.capture_stamp,
+            node, xyz, camera_frame, stamp,
         )
         if base_xyz is not None:
             result["base_xyz"] = [round(v, 6) for v in base_xyz]
 
     # Annotate image with the queried point
-    annotated = cv2.cvtColor(node.last_rgb.copy(), cv2.COLOR_RGB2BGR)
+    annotated = cv2.cvtColor(rgb.copy(), cv2.COLOR_RGB2BGR)
     cv2.drawMarker(
         annotated, (pixel_x, pixel_y), (0, 0, 255),
         cv2.MARKER_CROSS, 20, 2,
