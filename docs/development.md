@@ -18,7 +18,7 @@ Bluesky RunEngine (experiment orchestration)
          ↓
 Ophyd Device (ROS2 Action Client wrapper)
          ↓                                    Claude (LLM via MCP)
-MTCOrchestratorActionServer  ←────────────────  erobs-mcp-server / ros-mcp-server
+MTCOrchestratorActionServer  ←────────────────  beambot-mcp-server / ros-mcp-server
          ↓
 Specialized Action Servers (8 types)
     ├── move_to, pick_place, end_effector
@@ -33,7 +33,7 @@ UR5e Robot + Grippers
 **Deployment**: VM with two Docker containers communicating via ROS2 DDS:
 - **bsui**: Bluesky/experiment orchestration, sends JSON task goals
 - **erobs-common-img**: MTC pipeline servers, MoveIt, Zivid SDK
-- **erobs-mcp-server**: MCP bridge for LLM control (Zivid capture, detection, TF, robot state, pose registry)
+- **beambot-mcp-server**: MCP bridge for LLM control (Zivid capture, detection, TF, robot state, pose registry)
 
 ## Key Packages
 
@@ -98,7 +98,7 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 | Action servers | `beambot/beambot/action_servers/` |
 | Stage implementations | `beambot/beambot/stages/` |
 | Detection algorithms | `beambot/beambot/detection/` |
-| MCP server (erobs) | `beambot/mcp/erobs_mcp_server.py` |
+| MCP server (beambot) | `beambot/mcp/beambot_mcp_server.py` |
 | Gripper configs | `beambot/config/grippers.yaml` |
 | Beamline configs | `beambot/config/*.yaml` |
 | Pose registry | `cms/poses.yaml` |

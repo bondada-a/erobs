@@ -134,17 +134,17 @@ Each layer does what it's best at:
 
 ---
 
-## 5. Custom MCP Server Plan — erobs-mcp-server
+## 5. Custom MCP Server Plan — beambot-mcp-server
 
 ### Decision: Separate server, not fork
 
-Keep upstream ros-mcp-server for generic ROS tools. Write a separate `erobs-mcp-server` for EROBS-specific tools. Both run simultaneously via `.mcp.json`:
+Keep upstream ros-mcp-server for generic ROS tools. Write a separate `beambot-mcp-server` for beambot-specific tools. Both run simultaneously via `.mcp.json`:
 
 ```json
 {
   "mcpServers": {
     "ros": {"command": "uvx", "args": ["ros-mcp", "--transport=stdio"]},
-    "erobs": {"command": "python3", "args": ["src/beambot/mcp/erobs_mcp_server.py"]}
+    "beambot": {"command": "python3", "args": ["src/beambot/mcp/beambot_mcp_server.py"]}
   }
 }
 ```
@@ -194,7 +194,7 @@ Two files:
 Phase 1 (Now):     Context document (CLAUDE.md + docs/mcp_ros_reference.md)
                    → Makes current MCP setup more reliable and efficient
 
-Phase 2 (Soon):    erobs-mcp-server with capture_zivid_3d + detect_object
+Phase 2 (Soon):    beambot-mcp-server with capture_zivid_3d + detect_object
                    → Eliminates the Python script workarounds
 
 Phase 3 (Later):   Additional tools (get_planning_scene, get_gripper_state)
@@ -248,7 +248,7 @@ Query the system state before sending a goal to prevent predictable failures:
 | Gripper matches config? | Compare physical gripper vs MoveIt config | Wrong collision model loaded |
 
 These can be implemented as:
-- Custom MCP tools in `erobs-mcp-server` (Phase 2)
+- Custom MCP tools in `beambot-mcp-server` (Phase 2)
 - Or context instructions for Claude to check manually via existing MCP tools (immediate)
 
 #### C. Post-failure diagnostics
@@ -285,7 +285,7 @@ Phase 1b (Soon):   Improve error messages in base_stages.py + orchestrator.py
                    → ~30 min, high impact, no interface changes
 Phase 2a:          Add pre-flight check instructions to context doc
                    → Claude checks /rosout and planning scene manually via MCP
-Phase 2b:          Build pre-flight checks into erobs-mcp-server
+Phase 2b:          Build pre-flight checks into beambot-mcp-server
                    → Automated, reliable, fast
 Phase 3:           Add /beambot/current_gripper topic to orchestrator
                    → Eliminates "ask user" workaround

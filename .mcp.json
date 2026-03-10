@@ -4,9 +4,9 @@
       "command": "bash",
       "args": ["-lc", "ROS_DEFAULT_TIMEOUT=60 uvx ros-mcp --transport=stdio"]
     },
-    "erobs": {
+    "beambot": {
       "command": "bash",
-      "args": ["-lc", "export DISPLAY=${DISPLAY:-:1} && WS=$(git rev-parse --show-toplevel) && export PATH=$(echo $PATH | tr ':' '\\n' | grep -v miniforge | tr '\\n' ':' | sed 's/:$//') && source /opt/ros/humble/setup.bash && source \"$WS/install/setup.bash\" && python3 \"$WS/src/beambot/mcp/erobs_mcp_server.py\""]
+      "args": ["-lc", "export DISPLAY=${DISPLAY:-:1} && WS=$(git rev-parse --show-toplevel) && export PATH=$(echo $PATH | tr ':' '\\n' | grep -v miniforge | tr '\\n' ':' | sed 's/:$//') && source /opt/ros/humble/setup.bash && source \"$WS/install/setup.bash\" && python3 \"$WS/src/beambot/mcp/beambot_mcp_server.py\""]
     }
   }
 }

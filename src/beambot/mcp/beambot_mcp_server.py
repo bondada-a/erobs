@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""EROBS MCP Server — Custom tools for Zivid camera, detection, and TF.
+"""Beambot MCP Server — Custom tools for Zivid camera, detection, and TF.
 
-Runs alongside ros-mcp-server to provide EROBS-specific tools that handle
+Runs alongside ros-mcp-server to provide beambot-specific tools that handle
 Zivid's single-shot capture quirks (QoS timing, large point cloud transfer)
 and wrap multi-step vision workflows into single tool calls.
 
@@ -57,7 +57,7 @@ from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformListener, TransformException
 from cv_bridge import CvBridge
 
-logger = logging.getLogger("erobs-mcp")
+logger = logging.getLogger("beambot-mcp")
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -99,8 +99,8 @@ POSES_FILE = os.environ.get(
 )
 
 # Default save locations
-DEFAULT_IMAGE_PATH = "/tmp/erobs_capture.jpg"
-DEFAULT_ANNOTATED_PATH = "/tmp/erobs_detection.jpg"
+DEFAULT_IMAGE_PATH = "/tmp/beambot_capture.jpg"
+DEFAULT_ANNOTATED_PATH = "/tmp/beambot_detection.jpg"
 
 
 def _detect_display() -> Tuple[str, str]:
@@ -261,7 +261,7 @@ class ROS2BridgeNode(Node):
     """Persistent ROS2 node with Zivid subscriptions and TF buffer."""
 
     def __init__(self):
-        super().__init__("erobs_mcp_bridge")
+        super().__init__("beambot_mcp_bridge")
         self._cb_group = ReentrantCallbackGroup()
         self._bridge = CvBridge()
 
@@ -544,7 +544,7 @@ def _resolve_camera_state(
 # MCP Server
 # ---------------------------------------------------------------------------
 
-mcp = FastMCP("erobs")
+mcp = FastMCP("beambot")
 
 # Global bridge instance (lazy-initialized)
 bridge = ROS2Bridge()
@@ -733,7 +733,7 @@ async def capture_image(
         camera: Which camera to use — "zivid" or "zed". Default "zivid".
         mode: "2d" for image only, "3d" for image + point cloud (needed for
               detect_objects 3D positions). Default "3d".
-        save_path: Where to save the captured image. Default /tmp/erobs_capture.jpg.
+        save_path: Where to save the captured image. Default /tmp/beambot_capture.jpg.
         timeout: Max seconds to wait for capture. Default 30.
 
     Returns:
@@ -853,7 +853,7 @@ async def detect_objects(
         contour_max_area: Max contour area in pixels². Only for contour.
         marker_ids: Comma-separated ArUco marker IDs to find (empty=all). Only for marker.
         transform_to_base: If True, transform 3D positions from camera frame to base_link.
-        save_path: Where to save annotated image. Default /tmp/erobs_detection.jpg.
+        save_path: Where to save annotated image. Default /tmp/beambot_detection.jpg.
 
     Returns:
         JSON with list of detections, each containing pixel coords, 3D position
@@ -1094,7 +1094,7 @@ async def get_point_3d(
     transform_to_base: bool = True,
     search_radius: int = 10,
     confirm: bool = True,
-    save_path: str = "/tmp/erobs_point3d.jpg",
+    save_path: str = "/tmp/beambot_point3d.jpg",
 ) -> str:
     """Get the 3D position of a pixel from the last captured point cloud.
 
@@ -1117,7 +1117,7 @@ async def get_point_3d(
             within this radius. Default 10.
         confirm: If True, open a GUI window showing the image with the
             suggested point. The user can click to adjust the position,
-            then press Enter to confirm or Esc to cancel. Default False.
+            then press Enter to confirm or Esc to cancel. Default True.
         save_path: Where to save annotated image showing the queried point.
 
     Returns:

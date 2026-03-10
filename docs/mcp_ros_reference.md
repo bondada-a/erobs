@@ -595,7 +595,7 @@ ros2 launch beambot beambot_bringup.launch.py timeout.moveto:=60.0
 ### Nothing Is Running Before the First Goal
 The beambot orchestrator launches MoveIt **lazily on the first goal**. Before that, there is no TF tree, no topics, and no services. Do NOT query TF transforms, subscribe to topics, or call services (via ros-mcp-server) before sending the first `/beambot_execution` goal — they will fail.
 
-**Exception**: `get_robot_state` (erobs-mcp-server) is safe to call anytime. It reads from persistent subscriptions and returns `system_running: false` with `gripper: "unknown"` when nothing is up.
+**Exception**: `get_robot_state` (beambot-mcp-server) is safe to call anytime. It reads from persistent subscriptions and returns `system_running: false` with `gripper: "unknown"` when nothing is up.
 
 **Recommended workflow**: Call `get_robot_state` → if system is running, use the returned gripper → if not, ask the user → construct JSON → send goal.
 
@@ -618,7 +618,7 @@ After a `tool_exchange` that changes the gripper, MoveIt restarts with the new c
 Relative move directions (`forward`, `backward`, etc.) are in the flange coordinate frame, not the world frame. At a downward-looking pose, `"forward"` moves the robot **down** (toward the table), not forward in the world.
 
 ### Zivid Single-Shot Capture Cannot Use MCP subscribe_once
-The Zivid camera publishes one point cloud per trigger. MCP's `subscribe_once` has a QoS timing race and will miss the message. Use the orchestrator's vision tasks, or the `erobs-mcp-server`'s `capture_image` tool which handles subscription timing correctly.
+The Zivid camera publishes one point cloud per trigger. MCP's `subscribe_once` has a QoS timing race and will miss the message. Use the orchestrator's vision tasks, or the `beambot-mcp-server`'s `capture_image` tool which handles subscription timing correctly.
 
 ### settle_time Matters for Vision Accuracy
 Robot vibrations after a move take ~0.5–2s to dampen. The `settle_time` field (default 1.0s for `vision_moveto`, 5.0s for `vision_pick_place`) adds a wait before Zivid capture. Reduce for speed, increase for accuracy.

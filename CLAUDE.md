@@ -62,6 +62,32 @@ Hybrid operation: vision-guided pick + hardcoded place positions.
 ```
 Executes: open -> sample_approach -> [detect] -> grasp -> close -> retreat -> place_approach -> place -> open -> retreat
 
+### Optional Path Constraints
+
+Any task step can include a `constraints` key to apply MoveIt path constraints during planning. If omitted, no constraints are applied (default behavior).
+
+```json
+{
+  "task_type": "moveto",
+  "target": "scan_position",
+  "constraints": {
+    "joint_constraints": [
+      {"joint_name": "wrist_3_joint", "position": 0.0, "tolerance_above": 5.0, "tolerance_below": 5.0, "weight": 1.0}
+    ],
+    "orientation_constraints": [
+      {"link_name": "flange", "frame_id": "base_link", "orientation": [180, 0, 0], "tolerance": [5, 5, 360], "weight": 1.0}
+    ]
+  }
+}
+```
+
+- All angles (position, tolerance, orientation) are in **degrees** (converted to radians internally)
+- `orientation` is `[roll, pitch, yaw]` (converted to quaternion internally)
+- `tolerance` is `[x_axis, y_axis, z_axis]` tolerance in degrees
+- Constraints apply to all arm movement stages in that task step (not gripper stages)
+- Supported on `moveto`, `pick_and_place`, and `vision_pick_place` task types
+- **Note**: OMPL handles path constraints via constraint-aware sampling. Tight tolerances may cause slow or failed planning -- prefer loose tolerances (10-30 degrees) when possible.
+
 ---
 
 ## MCP/ROS Action Interface
@@ -92,7 +118,7 @@ The [ros-mcp-server](https://github.com/robotmcp/ros-mcp-server) bridges LLM to 
 3. If `system_running: false` or `gripper: "unknown"` -> **ask the user** which gripper is attached
 4. Construct task JSON and send to `/beambot_execution` -- the orchestrator handles MoveIt launch
 
-**Note**: Do NOT query TF, topics, or services (via ros-mcp-server) before the first goal -- they will fail. `get_robot_state` is safe to call anytime because it reads from persistent subscriptions in the erobs-mcp-server.
+**Note**: Do NOT query TF, topics, or services (via ros-mcp-server) before the first goal -- they will fail. `get_robot_state` is safe to call anytime because it reads from persistent subscriptions in the beambot-mcp-server.
 
 ### MCP Usage -- Always Use the Orchestrator
 
@@ -106,7 +132,7 @@ send_action_goal(
 )
 ```
 
-The `full_json` value is a **JSON string** (not a nested object). Use `get_saved_poses()` from erobs-mcp-server to look up named positions from the pose registry (`src/cms/poses.yaml`).
+The `full_json` value is a **JSON string** (not a nested object). Use `get_saved_poses()` from beambot-mcp-server to look up named positions from the pose registry (`src/cms/poses.yaml`).
 
 **Relative move example** (no poses needed):
 ```json
@@ -124,7 +150,7 @@ The `full_json` value is a **JSON string** (not a nested object). Use `get_saved
 
 - **`start_gripper` must match the physically attached gripper**. Call `get_robot_state` first -- if the system is running it returns the current gripper. If `gripper: "unknown"`, **ask the user**. Valid values: `"hande"`, `"epick"`, `"pipettor"`, `"none"`. Sending the wrong gripper loads the wrong MoveIt config and causes planning failures.
 - **Direction vectors are in `flange` frame**, not world frame. At a downward-looking pose, "forward" ~ down toward table. Left/right and up/down are swapped due to 180 deg wrist rotation compensation. See `base_stages.py:DIRECTION_VECTORS`
-- **Zivid single-shot capture** cannot be triggered via MCP `subscribe_once` (QoS timing race). Use erobs-mcp-server's `capture_image` tool (preferred), orchestrator's `vision_moveto`/`vision_scan` tasks, or a Python script with RELIABLE+VOLATILE QoS
+- **Zivid single-shot capture** cannot be triggered via MCP `subscribe_once` (QoS timing race). Use beambot-mcp-server's `capture_image` tool (preferred), orchestrator's `vision_moveto`/`vision_scan` tasks, or a Python script with RELIABLE+VOLATILE QoS
 - **MoveIt restarts after tool exchange** -- wait ~5s before sending the next goal
 - **Cartesian planning may fail** for longer moves; use `"planning_type": "joint"` as fallback
 - **`cartesian_target` orientation is in the `flange` frame** (MoveIt/ROS convention), NOT `tool0` (UR convention). `flange` and `tool0` are at the same position but rotated by (-90 deg, -90 deg, 0 deg). When querying current orientation for a Cartesian move, use `get_tf_transform(source_frame="flange")`. Using `tool0` RPY will make the robot reach a ~90 deg wrong orientation. Use `tool0` only when comparing with UR teach pendant values.

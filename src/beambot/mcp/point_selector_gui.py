@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Standalone tkinter point selector GUI for the get_point_3d MCP tool.
 
-Launched as a subprocess by erobs_mcp_server.py. No ROS or OpenCV dependencies
+Launched as a subprocess by beambot_mcp_server.py. No ROS or OpenCV dependencies
 for the GUI itself — uses tkinter (always available) + PIL for image display.
 
 Usage:
