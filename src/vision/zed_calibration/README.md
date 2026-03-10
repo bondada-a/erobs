@@ -45,7 +45,7 @@ ros2 run tf2_ros tf2_echo base_link tool0
 ```bash
 cd ~/work/github_ws/experimental
 source install/setup.bash
-python3 src/beambot/scripts/zed_hand_eye_calibration.py
+python3 src/vision/zed_calibration/zed_hand_eye_calibration.py
 ```
 
 A live preview window shows the camera feed with detected markers highlighted.
@@ -97,7 +97,7 @@ In RViz:
 
 ### 7. Update the launch file
 
-Once verified, update `src/vision/zed_camera_pose.launch.py` with the new calibration values.
+Once verified, update `src/vision/zed_calibration/zed_camera_pose.launch.py` with the new calibration values.
 
 ## Running the Calibrated ZED
 
