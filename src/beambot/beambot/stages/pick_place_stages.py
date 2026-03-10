@@ -85,7 +85,6 @@ class PickPlaceStages(BaseStages):
 
         # Create single task with all stages
         task = self.create_task_template("Pick and Place")
-        pipeline_planner = self.make_pipeline_planner()
         gripper_planner = self.make_joint_interpolation_planner()
 
         # === PICK SEQUENCE ===
@@ -98,8 +97,7 @@ class PickPlaceStages(BaseStages):
 
         # 2. Move to pick approach
         stage = self.make_move_to_named_stage(
-            "pick approach", goal.pick_approach, poses, pipeline_planner,
-            constraints=constraints
+            "pick approach", goal.pick_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.pick_approach}' not found or invalid in poses_json (pick approach)"
@@ -107,8 +105,7 @@ class PickPlaceStages(BaseStages):
 
         # 3. Move to pick target (grasp position)
         stage = self.make_move_to_named_stage(
-            "pick", goal.pick_target, poses, pipeline_planner,
-            constraints=constraints
+            "pick", goal.pick_target, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.pick_target}' not found or invalid in poses_json (pick target)"
@@ -123,8 +120,7 @@ class PickPlaceStages(BaseStages):
 
         # 5. Retreat from pick (back to approach)
         stage = self.make_move_to_named_stage(
-            "pick retreat", goal.pick_approach, poses, pipeline_planner,
-            constraints=constraints
+            "pick retreat", goal.pick_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.pick_approach}' not found or invalid in poses_json (pick retreat)"
@@ -133,8 +129,7 @@ class PickPlaceStages(BaseStages):
         # === PLACE SEQUENCE ===
         # 6. Move to place approach
         stage = self.make_move_to_named_stage(
-            "place approach", goal.place_approach, poses, pipeline_planner,
-            constraints=constraints
+            "place approach", goal.place_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_approach}' not found or invalid in poses_json (place approach)"
@@ -142,8 +137,7 @@ class PickPlaceStages(BaseStages):
 
         # 7. Move to place target
         stage = self.make_move_to_named_stage(
-            "place", goal.place_target, poses, pipeline_planner,
-            constraints=constraints
+            "place", goal.place_target, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_target}' not found or invalid in poses_json (place target)"
@@ -158,8 +152,7 @@ class PickPlaceStages(BaseStages):
 
         # 9. Retreat from place
         stage = self.make_move_to_named_stage(
-            "place retreat", goal.place_approach, poses, pipeline_planner,
-            constraints=constraints
+            "place retreat", goal.place_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_approach}' not found or invalid in poses_json (place retreat)"
@@ -244,7 +237,6 @@ class PickPlaceStages(BaseStages):
             None if successful, error string on failure
         """
         task = self.create_task_template("Pick")
-        pipeline_planner = self.make_pipeline_planner()
         gripper_planner = self.make_joint_interpolation_planner()
 
         # 1. Open gripper
@@ -256,8 +248,7 @@ class PickPlaceStages(BaseStages):
 
         # 2. Move to pick approach
         stage = self.make_move_to_named_stage(
-            "pick approach", goal.pick_approach, poses, pipeline_planner,
-            constraints=constraints
+            "pick approach", goal.pick_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.pick_approach}' not found or invalid (pick approach)"
@@ -265,8 +256,7 @@ class PickPlaceStages(BaseStages):
 
         # 3. Move to pick target (grasp position)
         stage = self.make_move_to_named_stage(
-            "pick", goal.pick_target, poses, pipeline_planner,
-            constraints=constraints
+            "pick", goal.pick_target, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.pick_target}' not found or invalid (pick target)"
@@ -288,13 +278,11 @@ class PickPlaceStages(BaseStages):
             None if successful, error string on failure
         """
         task = self.create_task_template("Transport and Place")
-        pipeline_planner = self.make_pipeline_planner()
         gripper_planner = self.make_joint_interpolation_planner()
 
         # 5. Retreat from pick (back to approach)
         stage = self.make_move_to_named_stage(
-            "pick retreat", goal.pick_approach, poses, pipeline_planner,
-            constraints=constraints
+            "pick retreat", goal.pick_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.pick_approach}' not found or invalid (pick retreat)"
@@ -302,8 +290,7 @@ class PickPlaceStages(BaseStages):
 
         # 6. Move to place approach
         stage = self.make_move_to_named_stage(
-            "place approach", goal.place_approach, poses, pipeline_planner,
-            constraints=constraints
+            "place approach", goal.place_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_approach}' not found or invalid (place approach)"
@@ -311,8 +298,7 @@ class PickPlaceStages(BaseStages):
 
         # 7. Move to place target
         stage = self.make_move_to_named_stage(
-            "place", goal.place_target, poses, pipeline_planner,
-            constraints=constraints
+            "place", goal.place_target, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_target}' not found or invalid (place target)"
@@ -334,12 +320,10 @@ class PickPlaceStages(BaseStages):
             None if successful, error string on failure
         """
         task = self.create_task_template("Retreat")
-        pipeline_planner = self.make_pipeline_planner()
 
         # 9. Retreat from place
         stage = self.make_move_to_named_stage(
-            "place retreat", goal.place_approach, poses, pipeline_planner,
-            constraints=constraints
+            "place retreat", goal.place_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_approach}' not found or invalid (place retreat)"

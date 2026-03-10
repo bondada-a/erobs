@@ -468,7 +468,7 @@ class MTCOrchestratorServer(Node):
         """Create a MoveToAction.Goal from task dict."""
         goal = MoveToAction.Goal()
         goal.target = step.get("target", "")
-        goal.planning_type = step.get("planning_type", "joint")
+        goal.planning_type = step.get("planning_type", "")
         goal.direction = step.get("direction", "")
         goal.distance = float(step.get("distance", 0.0))
         goal.cartesian_target = [float(v) for v in step.get("cartesian_target", [])]

@@ -380,20 +380,25 @@ class BaseStages:
         label: str,
         direction: str,
         distance: float,
-        planner,
+        planner=None,
         constraints: Optional[Constraints] = None
-    ) -> stages.MoveRelative:
-        """Create a MoveRelative stage for directional movement.
+    ):
+        """Create a MoveRelative stage (or Fallbacks container) for directional movement.
+
+        When planner is provided, returns a single MoveRelative stage.
+        When planner is None, returns a Fallbacks container:
+        Pilz LIN → CartesianPath → Pilz PTP.
 
         Args:
             label: Stage name for identification
             direction: Direction string ("forward", "backward", "left",
                       "right", "up", "down", "x", "-x", "y", "-y", "z", "-z")
             distance: Distance in meters (positive value)
-            planner: Planner instance (CartesianPath or PipelinePlanner)
+            planner: Planner instance, or None for automatic fallback chain
+            constraints: Optional path constraints
 
         Returns:
-            Configured MoveRelative stage
+            Configured MoveRelative or Fallbacks stage
 
         Raises:
             ValueError: If direction is not recognized
@@ -406,24 +411,53 @@ class BaseStages:
 
         vec = DIRECTION_VECTORS[direction]
 
-        stage = stages.MoveRelative(label, planner)
-        stage.group = self.arm_group
-        self._set_ik_frame(stage)
+        # Build planner list: single planner or fallback chain
+        if planner is not None:
+            planners = [(planner, None)]
+        else:
+            planners = [
+                (self.make_pilz_planner("LIN"), "Pilz LIN"),
+                (self.make_cartesian_planner(), "CartesianPath"),
+                (self.make_pilz_planner("PTP"), "Pilz PTP"),
+            ]
 
-        # Create direction vector
-        header = Header(frame_id=self.ik_frame)
-        direction_vec = Vector3Stamped(
-            header=header,
-            vector=Vector3(
-                x=vec[0] * distance,
-                y=vec[1] * distance,
-                z=vec[2] * distance
+        if len(planners) == 1:
+            # Single planner — return a plain MoveRelative stage
+            stage = stages.MoveRelative(label, planners[0][0])
+            stage.group = self.arm_group
+            self._set_ik_frame(stage)
+            header = Header(frame_id=self.ik_frame)
+            direction_vec = Vector3Stamped(
+                header=header,
+                vector=Vector3(
+                    x=vec[0] * distance,
+                    y=vec[1] * distance,
+                    z=vec[2] * distance
+                )
             )
-        )
-        stage.setDirection(direction_vec)
-        apply_constraints(stage, constraints)
+            stage.setDirection(direction_vec)
+            apply_constraints(stage, constraints)
+            return stage
 
-        return stage
+        # Multiple planners — return a Fallbacks container
+        fb = core.Fallbacks(label)
+        for p, suffix in planners:
+            stage = stages.MoveRelative(f"{label} [{suffix}]", p)
+            stage.group = self.arm_group
+            self._set_ik_frame(stage)
+            header = Header(frame_id=self.ik_frame)
+            direction_vec = Vector3Stamped(
+                header=header,
+                vector=Vector3(
+                    x=vec[0] * distance,
+                    y=vec[1] * distance,
+                    z=vec[2] * distance
+                )
+            )
+            stage.setDirection(direction_vec)
+            apply_constraints(stage, constraints)
+            fb.add(stage)
+        return fb
 
     def load_plan_execute(self, task: core.Task) -> Optional[str]:
         """Initialize, plan, and execute the task.
@@ -535,30 +569,51 @@ class BaseStages:
         label: str,
         pose_key: str,
         poses: Dict[str, Any],
-        planner,
+        planner=None,
         constraints: Optional[Constraints] = None
-    ) -> Optional[stages.MoveTo]:
-        """Create a MoveTo stage for a named joint pose.
+    ):
+        """Create a MoveTo stage (or Fallbacks container) for a named joint pose.
+
+        When planner is provided, returns a single MoveTo stage with that planner.
+        When planner is None, returns a Fallbacks container: Pilz PTP → OMPL.
 
         Args:
             label: Stage name
             pose_key: Key in poses dict
             poses: Dictionary of pose definitions
-            planner: Planner to use
+            planner: Planner to use, or None for automatic fallback chain
+            constraints: Optional path constraints
 
         Returns:
-            Configured MoveTo stage, or None if pose not found
+            Configured MoveTo or Fallbacks stage, or None if pose not found
         """
         joint_pose = self.get_joint_pose(poses, pose_key)
         if joint_pose is None:
             return None
 
-        stage = stages.MoveTo(label, planner)
-        stage.group = self.arm_group
-        self._set_ik_frame(stage)
-        stage.setGoal(joints_from_degrees(joint_pose))
-        apply_constraints(stage, constraints)
-        return stage
+        joint_goal = joints_from_degrees(joint_pose)
+
+        if planner is not None:
+            stage = stages.MoveTo(label, planner)
+            stage.group = self.arm_group
+            self._set_ik_frame(stage)
+            stage.setGoal(joint_goal)
+            apply_constraints(stage, constraints)
+            return stage
+
+        # Fallback chain: Pilz PTP → OMPL
+        fb = core.Fallbacks(label)
+        for planner_fn, suffix in [
+            (lambda: self.make_pilz_planner("PTP"), "Pilz PTP"),
+            (self.make_pipeline_planner, "OMPL"),
+        ]:
+            stage = stages.MoveTo(f"{label} [{suffix}]", planner_fn())
+            stage.group = self.arm_group
+            self._set_ik_frame(stage)
+            stage.setGoal(joint_goal)
+            apply_constraints(stage, constraints)
+            fb.add(stage)
+        return fb
 
     def make_gripper_stage(
         self,
@@ -586,3 +641,4 @@ class BaseStages:
         stage.group = gripper_group
         stage.setGoal(state_name)
         return stage
+

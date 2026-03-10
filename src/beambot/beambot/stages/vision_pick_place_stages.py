@@ -28,7 +28,7 @@ import json
 from typing import Any, Dict, Optional
 
 from geometry_msgs.msg import PoseStamped
-from moveit.task_constructor import stages
+from moveit.task_constructor import core, stages
 
 from beambot.stages.base_stages import (
     BaseStages, joints_from_degrees, parse_constraints, apply_constraints,
@@ -156,7 +156,6 @@ class VisionPickPlaceStages(BaseStages):
             None if successful, error string on failure
         """
         task = self.create_task_template("Position for Detection")
-        pipeline_planner = self.make_pipeline_planner()
         gripper_planner = self.make_joint_interpolation_planner()
 
         # 1. Open gripper
@@ -168,8 +167,7 @@ class VisionPickPlaceStages(BaseStages):
 
         # 2. Move to sample_approach (where camera can see samples)
         stage = self.make_move_to_named_stage(
-            "sample approach", goal.sample_approach, poses, pipeline_planner,
-            constraints=constraints
+            "sample approach", goal.sample_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.sample_approach}' not found or invalid (sample approach)"
@@ -252,19 +250,23 @@ class VisionPickPlaceStages(BaseStages):
             None if successful, error string on failure
         """
         task = self.create_task_template("Pick and Place")
-        pipeline_planner = self.make_pipeline_planner()
         gripper_planner = self.make_joint_interpolation_planner()
-        pilz_lin_planner = self.make_pilz_planner("LIN")
 
         # === PICK SEQUENCE ===
 
-        # 3. Move to grasp pose (Pilz LIN for reliable straight-line approach)
-        grasp_stage = stages.MoveTo("grasp", pilz_lin_planner)
-        grasp_stage.group = self.arm_group
-        self._set_ik_frame(grasp_stage)
-        grasp_stage.setGoal(grasp_pose)
-        apply_constraints(grasp_stage, constraints)
-        task.add(grasp_stage)
+        # 3. Move to grasp pose (fallback: Pilz LIN → CartesianPath)
+        grasp_fb = core.Fallbacks("grasp")
+        for planner_fn, suffix in [
+            (lambda: self.make_pilz_planner("LIN"), "Pilz LIN"),
+            (self.make_cartesian_planner, "CartesianPath"),
+        ]:
+            grasp_stage = stages.MoveTo(f"grasp [{suffix}]", planner_fn())
+            grasp_stage.group = self.arm_group
+            self._set_ik_frame(grasp_stage)
+            grasp_stage.setGoal(grasp_pose)
+            apply_constraints(grasp_stage, constraints)
+            grasp_fb.add(grasp_stage)
+        task.add(grasp_fb)
 
         # 4. Close gripper
         close_stage = self.make_gripper_stage(
@@ -275,8 +277,7 @@ class VisionPickPlaceStages(BaseStages):
 
         # 5. Retreat to sample_approach (safe joint pose)
         stage = self.make_move_to_named_stage(
-            "pick retreat", goal.sample_approach, poses, pipeline_planner,
-            constraints=constraints
+            "pick retreat", goal.sample_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.sample_approach}' not found or invalid (pick retreat)"
@@ -286,8 +287,7 @@ class VisionPickPlaceStages(BaseStages):
 
         # 6. Move to place_approach
         stage = self.make_move_to_named_stage(
-            "place approach", goal.place_approach, poses, pipeline_planner,
-            constraints=constraints
+            "place approach", goal.place_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_approach}' not found or invalid (place approach)"
@@ -295,8 +295,7 @@ class VisionPickPlaceStages(BaseStages):
 
         # 7. Move to place_target
         stage = self.make_move_to_named_stage(
-            "place", goal.place_target, poses, pipeline_planner,
-            constraints=constraints
+            "place", goal.place_target, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_target}' not found or invalid (place target)"
@@ -311,8 +310,7 @@ class VisionPickPlaceStages(BaseStages):
 
         # 9. Retreat to place_approach
         stage = self.make_move_to_named_stage(
-            "place retreat", goal.place_approach, poses, pipeline_planner,
-            constraints=constraints
+            "place retreat", goal.place_approach, poses, constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_approach}' not found or invalid (place retreat)"

@@ -89,9 +89,11 @@ class MoveToStages(BaseStages):
         Returns:
             None if stages were added successfully, error string on failure
         """
-        # Select planner if not provided
-        if planner is None:
-            planning_type = goal.planning_type if goal.planning_type else "joint"
+        planning_type = goal.planning_type if goal.planning_type else ""
+        use_fallback = planning_type in ("", "auto") and planner is None
+
+        # Select single planner when not using fallbacks
+        if not use_fallback and planner is None:
             if planning_type == "cartesian":
                 planner = self.make_cartesian_planner()
                 self.logger.info("Using Cartesian planner")
@@ -105,6 +107,9 @@ class MoveToStages(BaseStages):
                 planner = self.make_pipeline_planner()
                 self.logger.info("Using pipeline planner (OMPL)")
 
+        if use_fallback:
+            self.logger.info("Using fallback planning (auto)")
+
         # Parse optional constraints
         constraints = parse_constraints(
             json.loads(goal.constraints_json) if goal.constraints_json else None
@@ -114,12 +119,10 @@ class MoveToStages(BaseStages):
 
         # Case 1: Relative move (direction + distance)
         if goal.direction and goal.distance != 0.0:
+            label = f"move_{goal.direction}_{goal.distance:.3f}m"
             stage = self.create_relative_move_stage(
-                f"move_{goal.direction}_{goal.distance:.3f}m",
-                goal.direction,
-                goal.distance,
-                planner,
-                constraints=constraints
+                label, goal.direction, goal.distance,
+                planner=planner, constraints=constraints
             )
             task.add(stage)
             self.logger.info(
@@ -149,22 +152,41 @@ class MoveToStages(BaseStages):
             pose.pose.orientation.z = q[2]
             pose.pose.orientation.w = q[3]
 
-            # Default to Cartesian planner for Cartesian targets
-            if planner is None:
-                planner = self.make_cartesian_planner()
-
             # Auto-detect gripper tip frame so the target places the gripper
             # tip (not the flange) at the desired position
             active_ik_frame = self._detect_gripper_ik_frame()
 
-            move_stage = stages.MoveTo("move_to_cartesian", planner)
-            move_stage.group = self.arm_group
-            ik_frame_pose = PoseStamped()
-            ik_frame_pose.header.frame_id = active_ik_frame
-            move_stage.ik_frame = ik_frame_pose
-            move_stage.setGoal(pose)
-            apply_constraints(move_stage, constraints)
-            task.add(move_stage)
+            if use_fallback:
+                # Fallback chain: Pilz LIN → CartesianPath
+                fb = core.Fallbacks("move_to_cartesian")
+                for planner_fn, suffix in [
+                    (lambda: self.make_pilz_planner("LIN"), "Pilz LIN"),
+                    (self.make_cartesian_planner, "CartesianPath"),
+                ]:
+                    move_stage = stages.MoveTo(
+                        f"move_to_cartesian [{suffix}]", planner_fn()
+                    )
+                    move_stage.group = self.arm_group
+                    ik_frame_pose = PoseStamped()
+                    ik_frame_pose.header.frame_id = active_ik_frame
+                    move_stage.ik_frame = ik_frame_pose
+                    move_stage.setGoal(pose)
+                    apply_constraints(move_stage, constraints)
+                    fb.add(move_stage)
+                task.add(fb)
+            else:
+                # Default to Cartesian planner for Cartesian targets
+                if planner is None:
+                    planner = self.make_cartesian_planner()
+
+                move_stage = stages.MoveTo("move_to_cartesian", planner)
+                move_stage.group = self.arm_group
+                ik_frame_pose = PoseStamped()
+                ik_frame_pose.header.frame_id = active_ik_frame
+                move_stage.ik_frame = ik_frame_pose
+                move_stage.setGoal(pose)
+                apply_constraints(move_stage, constraints)
+                task.add(move_stage)
             self.logger.info(
                 f"Planning Cartesian move to "
                 f"[{pose.pose.position.x:.3f}, {pose.pose.position.y:.3f}, "
@@ -182,30 +204,43 @@ class MoveToStages(BaseStages):
                 self.logger.error(error)
                 return error
 
-            move_stage = stages.MoveTo(f"move_to_{goal.target}", planner)
-            move_stage.group = self.arm_group
-            self._set_ik_frame(move_stage)
+            label = f"move_to_{goal.target}"
 
-            # Check if target is a defined joint pose in the JSON
             if goal.target in poses:
-                joint_values = poses[goal.target]
-                if isinstance(joint_values, list):
-                    move_stage.setGoal(joints_from_degrees(joint_values))
-                    self.logger.info(f"Planning move to joint pose: {goal.target}")
-                else:
-                    error = (
-                        f"Invalid pose format for '{goal.target}': "
-                        f"expected list, got {type(joint_values).__name__}"
-                    )
-                    self.logger.error(error)
-                    return error
+                # Joint pose from poses dict
+                stage = self.make_move_to_named_stage(
+                    label, goal.target, poses,
+                    planner=planner, constraints=constraints
+                )
+                if not stage:
+                    return f"Pose '{goal.target}' not found or invalid"
+                task.add(stage)
+                self.logger.info(f"Planning move to joint pose: {goal.target}")
             else:
-                # Assume it's a named SRDF state
-                move_stage.setGoal(goal.target)
+                # SRDF named state
+                if use_fallback:
+                    # Fallback chain: Pilz PTP → OMPL
+                    fb = core.Fallbacks(label)
+                    for planner_fn, suffix in [
+                        (lambda: self.make_pilz_planner("PTP"), "Pilz PTP"),
+                        (self.make_pipeline_planner, "OMPL"),
+                    ]:
+                        s = stages.MoveTo(f"{label} [{suffix}]", planner_fn())
+                        s.group = self.arm_group
+                        self._set_ik_frame(s)
+                        s.setGoal(goal.target)
+                        apply_constraints(s, constraints)
+                        fb.add(s)
+                    task.add(fb)
+                else:
+                    move_stage = stages.MoveTo(label, planner)
+                    move_stage.group = self.arm_group
+                    self._set_ik_frame(move_stage)
+                    move_stage.setGoal(goal.target)
+                    apply_constraints(move_stage, constraints)
+                    task.add(move_stage)
                 self.logger.info(f"Planning move to named state: {goal.target}")
 
-            apply_constraints(move_stage, constraints)
-            task.add(move_stage)
             return None
 
         else:
