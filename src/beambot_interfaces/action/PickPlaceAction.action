@@ -6,6 +6,7 @@ string pick_target          # Grasp pose name
 string place_approach       # Place approach pose name
 string place_target         # Place target pose name
 string poses_json           # Pose definitions from task
+string constraints_json     # Optional: JSON path constraints (empty = none)
 ---
 # Result
 bool success

@@ -474,6 +474,7 @@ class MTCOrchestratorServer(Node):
         goal.cartesian_target = [float(v) for v in step.get("cartesian_target", [])]
         goal.frame_id = step.get("frame_id", "base_link")
         goal.poses_json = poses_json
+        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
         return goal
 
     def _create_endeffector_goal(self, step: Dict[str, Any]) -> EndEffectorAction.Goal:
@@ -503,6 +504,7 @@ class MTCOrchestratorServer(Node):
         goal.place_approach = step.get("place_approach", "")
         goal.place_target = step.get("place_target", "")
         goal.poses_json = poses_json
+        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
         return goal
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):
@@ -1018,6 +1020,7 @@ class MTCOrchestratorServer(Node):
 
         # Pose definitions
         goal.poses_json = poses_json
+        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
 
         return self._send_and_wait(
             self._vision_pickplace_client, goal, "vision_pick_place",

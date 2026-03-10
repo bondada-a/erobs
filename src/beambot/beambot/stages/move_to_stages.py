@@ -6,6 +6,7 @@ Handles MoveTo operations:
 - Target-based moves (joint poses from JSON or named SRDF states)
 """
 
+import json
 import math
 
 import rclpy
@@ -14,7 +15,9 @@ from moveit.task_constructor import core, stages
 from tf2_ros import Buffer, TransformListener
 from tf_transformations import quaternion_from_euler
 
-from beambot.stages.base_stages import BaseStages, joints_from_degrees
+from beambot.stages.base_stages import (
+    BaseStages, joints_from_degrees, parse_constraints, apply_constraints,
+)
 
 # Known gripper tip frames and their TF parent for detection.
 # Checked in order — first match wins.
@@ -102,13 +105,21 @@ class MoveToStages(BaseStages):
                 planner = self.make_pipeline_planner()
                 self.logger.info("Using pipeline planner (OMPL)")
 
+        # Parse optional constraints
+        constraints = parse_constraints(
+            json.loads(goal.constraints_json) if goal.constraints_json else None
+        )
+        if constraints is not None:
+            self.logger.info("Path constraints active for this move")
+
         # Case 1: Relative move (direction + distance)
         if goal.direction and goal.distance != 0.0:
             stage = self.create_relative_move_stage(
                 f"move_{goal.direction}_{goal.distance:.3f}m",
                 goal.direction,
                 goal.distance,
-                planner
+                planner,
+                constraints=constraints
             )
             task.add(stage)
             self.logger.info(
@@ -152,6 +163,7 @@ class MoveToStages(BaseStages):
             ik_frame_pose.header.frame_id = active_ik_frame
             move_stage.ik_frame = ik_frame_pose
             move_stage.setGoal(pose)
+            apply_constraints(move_stage, constraints)
             task.add(move_stage)
             self.logger.info(
                 f"Planning Cartesian move to "
@@ -192,6 +204,7 @@ class MoveToStages(BaseStages):
                 move_stage.setGoal(goal.target)
                 self.logger.info(f"Planning move to named state: {goal.target}")
 
+            apply_constraints(move_stage, constraints)
             task.add(move_stage)
             return None
 

@@ -30,7 +30,9 @@ from typing import Any, Dict, Optional
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import stages
 
-from beambot.stages.base_stages import BaseStages, joints_from_degrees
+from beambot.stages.base_stages import (
+    BaseStages, joints_from_degrees, parse_constraints, apply_constraints,
+)
 from beambot.stages.vision_stages import VisionStages
 
 
@@ -111,9 +113,14 @@ class VisionPickPlaceStages(BaseStages):
         # Get z_offset (default 0.02m = 2cm above detected point)
         z_offset = goal.z_offset if goal.z_offset != 0.0 else 0.02
 
+        # Parse optional path constraints
+        constraints = parse_constraints(
+            json.loads(goal.constraints_json) if goal.constraints_json else None
+        )
+
         # === TASK 1: Position for Detection ===
         self.logger.info("Task 1/2: Moving to sample_approach for detection...")
-        error = self._execute_position_for_detection(goal, poses, gripper_states)
+        error = self._execute_position_for_detection(goal, poses, gripper_states, constraints)
         if error is not None:
             return f"Failed to position for detection: {error}"
 
@@ -129,7 +136,7 @@ class VisionPickPlaceStages(BaseStages):
 
         # === TASK 2: Pick and Place ===
         self.logger.info("Task 2/2: Executing pick and place...")
-        error = self._execute_pick_and_place(goal, poses, gripper_states, grasp_pose)
+        error = self._execute_pick_and_place(goal, poses, gripper_states, grasp_pose, constraints)
         if error is not None:
             return f"Vision pick/place execution failed: {error}"
 
@@ -140,7 +147,8 @@ class VisionPickPlaceStages(BaseStages):
         self,
         goal,
         poses: Dict[str, Any],
-        gripper_states: Dict[str, str]
+        gripper_states: Dict[str, str],
+        constraints=None
     ) -> 'Optional[str]':
         """Execute Task 1: Open gripper and move to sample_approach.
 
@@ -160,7 +168,8 @@ class VisionPickPlaceStages(BaseStages):
 
         # 2. Move to sample_approach (where camera can see samples)
         stage = self.make_move_to_named_stage(
-            "sample approach", goal.sample_approach, poses, pipeline_planner
+            "sample approach", goal.sample_approach, poses, pipeline_planner,
+            constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.sample_approach}' not found or invalid (sample approach)"
@@ -225,7 +234,8 @@ class VisionPickPlaceStages(BaseStages):
         goal,
         poses: Dict[str, Any],
         gripper_states: Dict[str, str],
-        grasp_pose: PoseStamped
+        grasp_pose: PoseStamped,
+        constraints=None
     ) -> 'Optional[str]':
         """Execute Task 2: Pick sequence + Place sequence.
 
@@ -253,6 +263,7 @@ class VisionPickPlaceStages(BaseStages):
         grasp_stage.group = self.arm_group
         self._set_ik_frame(grasp_stage)
         grasp_stage.setGoal(grasp_pose)
+        apply_constraints(grasp_stage, constraints)
         task.add(grasp_stage)
 
         # 4. Close gripper
@@ -264,7 +275,8 @@ class VisionPickPlaceStages(BaseStages):
 
         # 5. Retreat to sample_approach (safe joint pose)
         stage = self.make_move_to_named_stage(
-            "pick retreat", goal.sample_approach, poses, pipeline_planner
+            "pick retreat", goal.sample_approach, poses, pipeline_planner,
+            constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.sample_approach}' not found or invalid (pick retreat)"
@@ -274,7 +286,8 @@ class VisionPickPlaceStages(BaseStages):
 
         # 6. Move to place_approach
         stage = self.make_move_to_named_stage(
-            "place approach", goal.place_approach, poses, pipeline_planner
+            "place approach", goal.place_approach, poses, pipeline_planner,
+            constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_approach}' not found or invalid (place approach)"
@@ -282,7 +295,8 @@ class VisionPickPlaceStages(BaseStages):
 
         # 7. Move to place_target
         stage = self.make_move_to_named_stage(
-            "place", goal.place_target, poses, pipeline_planner
+            "place", goal.place_target, poses, pipeline_planner,
+            constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_target}' not found or invalid (place target)"
@@ -297,7 +311,8 @@ class VisionPickPlaceStages(BaseStages):
 
         # 9. Retreat to place_approach
         stage = self.make_move_to_named_stage(
-            "place retreat", goal.place_approach, poses, pipeline_planner
+            "place retreat", goal.place_approach, poses, pipeline_planner,
+            constraints=constraints
         )
         if not stage:
             return f"Pose '{goal.place_approach}' not found or invalid (place retreat)"

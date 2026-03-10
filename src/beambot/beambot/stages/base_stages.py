@@ -13,7 +13,10 @@ import rclcpp
 from moveit.task_constructor import core, stages
 from geometry_msgs.msg import PoseStamped, Vector3, Vector3Stamped
 from std_msgs.msg import Header
-from moveit_msgs.msg import Constraints, JointConstraint, MoveItErrorCodes
+from moveit_msgs.msg import (
+    Constraints, JointConstraint, OrientationConstraint, MoveItErrorCodes,
+)
+from tf_transformations import quaternion_from_euler
 
 
 # MoveIt error code → human-readable name mapping
@@ -179,6 +182,86 @@ def create_wrist3_level_constraint() -> Constraints:
     return constraint
 
 
+def parse_constraints(constraints_dict: Optional[Dict[str, Any]]) -> Optional[Constraints]:
+    """Parse a constraints dict from task JSON into a Constraints msg.
+
+    All angles (position, tolerances, orientation) are in degrees and
+    converted to radians internally, consistent with the rest of the framework.
+
+    Args:
+        constraints_dict: Dict with optional keys "joint_constraints" and
+                         "orientation_constraints". None or empty dict returns None.
+
+    Returns:
+        Constraints message, or None if no constraints specified.
+    """
+    if not constraints_dict:
+        return None
+
+    constraints = Constraints()
+
+    for jc_dict in constraints_dict.get("joint_constraints", []):
+        jc = JointConstraint()
+        jc.joint_name = jc_dict["joint_name"]
+        jc.position = math.radians(jc_dict["position"])
+        jc.tolerance_above = math.radians(jc_dict.get("tolerance_above", 1.0))
+        jc.tolerance_below = math.radians(jc_dict.get("tolerance_below", 1.0))
+        jc.weight = float(jc_dict.get("weight", 1.0))
+        constraints.joint_constraints.append(jc)
+
+    for oc_dict in constraints_dict.get("orientation_constraints", []):
+        oc = OrientationConstraint()
+        oc.header.frame_id = oc_dict.get("frame_id", "base_link")
+        oc.link_name = oc_dict["link_name"]
+
+        # orientation as [roll, pitch, yaw] in degrees -> quaternion
+        orient = oc_dict["orientation"]
+        q = quaternion_from_euler(
+            math.radians(orient[0]),
+            math.radians(orient[1]),
+            math.radians(orient[2]),
+        )
+        oc.orientation.x = q[0]
+        oc.orientation.y = q[1]
+        oc.orientation.z = q[2]
+        oc.orientation.w = q[3]
+
+        # tolerance as [x, y, z] in degrees -> radians
+        tol = oc_dict.get("tolerance", [5.0, 5.0, 5.0])
+        oc.absolute_x_axis_tolerance = math.radians(tol[0])
+        oc.absolute_y_axis_tolerance = math.radians(tol[1])
+        oc.absolute_z_axis_tolerance = math.radians(tol[2])
+
+        # parameterization: default ROTATION_VECTOR (matches MTC demo)
+        param = oc_dict.get("parameterization", "rotation_vector")
+        if param == "rotation_vector":
+            oc.parameterization = OrientationConstraint.ROTATION_VECTOR
+        elif param == "euler_xyz":
+            oc.parameterization = OrientationConstraint.XYZ_EULER_ANGLES
+        elif isinstance(param, int):
+            oc.parameterization = param
+
+        oc.weight = float(oc_dict.get("weight", 1.0))
+        constraints.orientation_constraints.append(oc)
+
+    # Return None if no actual constraints were added
+    if not constraints.joint_constraints and not constraints.orientation_constraints:
+        return None
+
+    return constraints
+
+
+def apply_constraints(stage, constraints: Optional[Constraints]) -> None:
+    """Apply path constraints to an MTC stage if constraints are provided.
+
+    Args:
+        stage: MTC stage (MoveTo, MoveRelative) with path_constraints property
+        constraints: Constraints message, or None to skip
+    """
+    if constraints is not None:
+        stage.path_constraints = constraints
+
+
 class BaseStages:
     """Base class providing MTC utilities for all stage implementations.
 
@@ -297,7 +380,8 @@ class BaseStages:
         label: str,
         direction: str,
         distance: float,
-        planner
+        planner,
+        constraints: Optional[Constraints] = None
     ) -> stages.MoveRelative:
         """Create a MoveRelative stage for directional movement.
 
@@ -337,6 +421,7 @@ class BaseStages:
             )
         )
         stage.setDirection(direction_vec)
+        apply_constraints(stage, constraints)
 
         return stage
 
@@ -450,7 +535,8 @@ class BaseStages:
         label: str,
         pose_key: str,
         poses: Dict[str, Any],
-        planner
+        planner,
+        constraints: Optional[Constraints] = None
     ) -> Optional[stages.MoveTo]:
         """Create a MoveTo stage for a named joint pose.
 
@@ -471,6 +557,7 @@ class BaseStages:
         stage.group = self.arm_group
         self._set_ik_frame(stage)
         stage.setGoal(joints_from_degrees(joint_pose))
+        apply_constraints(stage, constraints)
         return stage
 
     def make_gripper_stage(
