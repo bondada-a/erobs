@@ -36,7 +36,8 @@
 _Prioritized. Pick from top unless you have a reason not to._
 
 ### High Priority
-1. **MCP sample detection model** — current detection (circle/contour) is unreliable, needs redesign for MCP architecture. ArUco markers work but limited.
+1. **Review and update development.md** — needs a thorough review and refresh
+2. **MCP sample detection model** — current detection (circle/contour) is unreliable, needs redesign for MCP architecture. ArUco markers work but limited.
 
 ### Medium Priority
 2. **ePick suction cup z offset for new cups** — new suction cups require updated z_offset. Subtasks:
