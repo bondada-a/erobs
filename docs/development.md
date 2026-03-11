@@ -135,22 +135,15 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 
 ## Current Work
 
-### Motion Planning Improvements
-- **Goal**: Improve planning reliability, speed, and trajectory quality
-- **Current**: OMPL/RRTConnect (`goal_bias=0.15`), MTC `CartesianPath` (`min_fraction=0.95`), Pilz LIN/PTP available, 30% velocity/accel scaling
-- **Completed**:
-  - Pilz LIN for Cartesian targets (`planning_type: "pilz"`)
-  - Pilz PTP for joint moves (`planning_type: "pilz_ptp"`)
-  - Pilz configs in all 4 MoveIt config packages
-  - `goal_bias` increased from 0.05 to 0.15
-- **Remaining**:
-  - OMPL tuning — increase `goal_bias` to 0.3+, verify path simplification adapters
-  - MTC Fallbacks container — CartesianPath → Pilz LIN → OMPL cascade
-- **Files**: `base_stages.py`, `move_to_stages.py`, `ur5e_moveit_configs/*/config/ompl_planning.yaml`
+> For current task priorities, see [`STATUS.md`](../STATUS.md).
 
-### Minimal bsui Container
-- **Goal**: Reduce bsui from ~5GB to ~500MB (only needs rclpy + beambot_interfaces)
-- **Files**: `docker/bsui/Dockerfile`
+### Motion Planning
+- **Planners**: OMPL/RRTConnect (`goal_bias=0.15`), Pilz LIN/PTP, MTC CartesianPath (`min_fraction=0.95`)
+- **MTC Fallbacks**: Implemented — CartesianPath → Pilz LIN → OMPL cascade
+- **Path constraints**: Implemented — optional constraints for moveto + pick/place stages
+- **Speed**: Fixed at 20% velocity/acceleration scaling (`base_stages.py` lines 78-79)
+- **OMPL goal_bias**: Left at 0.15 intentionally — PTP is the primary deterministic planner, OMPL needs randomness to find alternate paths
+- **Files**: `base_stages.py`, `move_to_stages.py`, `ur5e_moveit_configs/*/config/ompl_planning.yaml`
 
 ### Sample Detection
 - **Status**: Needs redesign for MCP architecture
@@ -165,10 +158,9 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 ### Octomap Integration
 - Point cloud obstacle avoidance works (`octomap_test.launch.py`), needs integration into `beambot_bringup.launch.py` with `use_octomap:=true` arg
 
-### Cartesian Path Reliability
-- MTC CartesianPath checks collisions (`is_valid` at every 1mm step), `min_fraction=0.95`
-- TODO: Implement Fallbacks container (Cartesian first → OMPL backup)
-- Overlaps with Motion Planning above
+### Minimal bsui Container
+- **Goal**: Reduce bsui from ~5GB to ~500MB (only needs rclpy + beambot_interfaces)
+- **Files**: `docker/bsui/Dockerfile`
 
 ## References
 

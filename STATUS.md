@@ -39,9 +39,12 @@ _Prioritized. Pick from top unless you have a reason not to._
 1. **MCP sample detection model** — current detection (circle/contour) is unreliable, needs redesign for MCP architecture. ArUco markers work but limited.
 
 ### Medium Priority
-2. **Edit epick suction cup z offset** — new suction cups installed
+2. **ePick suction cup z offset for new cups** — new suction cups require updated z_offset. Subtasks:
+   - Architect config support for different suction cups (e.g. per-cup z_offset in `grippers.yaml` or `default_beamline.yaml`). Currently hardcoded at 0.1m in `vision_stages.py`.
+   - Measure and set correct z_offset for each suction cup type
+   - Test and verify accurate sample pickup with new offsets
 3. **Octomap integration** — point cloud obstacle avoidance into beambot_bringup.launch.py
-4. **Dynamic speed profiles** — velocity/accel hardcoded at 20% in base_stages.py. Add per-task `velocity_scaling`/`acceleration_scaling` fields. (P1 from hardware audit)
+4. **Dynamic speed profiles** — velocity/accel hardcoded at 20% in base_stages.py (lines 78-79). Add per-task `velocity_scaling`/`acceleration_scaling` fields. (P1 from hardware audit)
 
 ### Lower Priority
 5. **Hardware capabilities integration** — see `.planning/HARDWARE-CAPABILITIES.md` for full audit. Key subtasks:
