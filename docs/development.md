@@ -135,32 +135,7 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 
 ## Current Work
 
-> For current task priorities, see [`STATUS.md`](../STATUS.md).
-
-### Motion Planning
-- **Planners**: OMPL/RRTConnect (`goal_bias=0.15`), Pilz LIN/PTP, MTC CartesianPath (`min_fraction=0.95`)
-- **MTC Fallbacks**: Implemented — CartesianPath → Pilz LIN → OMPL cascade
-- **Path constraints**: Implemented — optional constraints for moveto + pick/place stages
-- **Speed**: Fixed at 20% velocity/acceleration scaling (`base_stages.py` lines 78-79)
-- **OMPL goal_bias**: Left at 0.15 intentionally — PTP is the primary deterministic planner, OMPL needs randomness to find alternate paths
-- **Files**: `base_stages.py`, `move_to_stages.py`, `ur5e_moveit_configs/*/config/ompl_planning.yaml`
-
-### Sample Detection
-- **Status**: Needs redesign for MCP architecture
-- **Current methods** (in `beambot/camera/zivid.py` and `beambot/detection/`):
-  - `marker` — ArUco marker detection (most reliable)
-  - `circle` — Hough Circle Transform
-  - `contour` — Edge/Canny contour detection
-- **Fields**: `detection_type` and `sample_index` (1-indexed) in VisionMoveToAction
-- **Known issues**: contour/circle detection is unreliable (lighting-dependent, label instability between captures, centroid offset)
-- **Investigation**: `docs/archive/aruco_detection_variance_investigation.md`
-
-### Octomap Integration
-- Point cloud obstacle avoidance works (`octomap_test.launch.py`), needs integration into `beambot_bringup.launch.py` with `use_octomap:=true` arg
-
-### Minimal bsui Container
-- **Goal**: Reduce bsui from ~5GB to ~500MB (only needs rclpy + beambot_interfaces)
-- **Files**: `docker/bsui/Dockerfile`
+See [`STATUS.md`](../STATUS.md) for active tasks, priorities, and recent changes.
 
 ## References
 
