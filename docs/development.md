@@ -2,6 +2,9 @@
 
 > Operational MCP reference (task JSON, error handling, gotchas) is in the project root `CLAUDE.md`.
 > This document covers architecture, development setup, and current work items.
+>
+> For current task priorities and shared work status, see [`STATUS.md`](../STATUS.md) in the repo root.
+> **If you make code changes, update STATUS.md with what you changed.**
 
 ## Overview
 
