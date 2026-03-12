@@ -15,8 +15,6 @@ Autonomous robotic sample handling system for synchrotron beamlines at NSLS-II. 
 ## Architecture
 
 ```
-Bluesky Adaptive (AI agent suggests next sample)
-         ↓
 Bluesky RunEngine (experiment orchestration)
          ↓
 Ophyd Device (ROS2 Action Client wrapper)
