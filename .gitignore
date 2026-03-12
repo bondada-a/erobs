@@ -120,3 +120,4 @@ frames_*.gv
 # ROS bag recordings (can be large)
 *.bag
 *.db3
+src/moveit_task_constructor/
