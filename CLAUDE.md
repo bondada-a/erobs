@@ -181,6 +181,7 @@ After sending a goal to `/beambot_execution`, **always read `error_message`** fr
 | `Failed to parse poses_json` | Configuration | The poses JSON is malformed. Fix the JSON syntax. |
 | `Pipettor action server ... not available` | Connectivity | Pipettor driver isn't running. Ask user to start it. |
 | `Controller activation failed` | Connectivity | UR driver may have disconnected. Ask user to check robot connection. |
+| `VACUUM_LOST` | Grasp | Object dropped during transport. Send `vacuum_off` then `vacuum_on` to retry pick. Do NOT proceed to place. |
 | Unknown / doesn't match above | Unknown | Call `get_recent_logs(severity="ERROR", count=30)`, explain findings to user, propose fix. |
 
 ### Recovery Policy
@@ -192,6 +193,8 @@ After sending a goal to `/beambot_execution`, **always read `error_message`** fr
 - **For unknown errors**: Call `get_recent_logs(severity="ERROR", count=30)`, read the MoveIt/beambot logs, explain your findings to the user, and wait for their approval before taking action
 - **After PLANNING_FAILED with cartesian**: The single allowed automatic retry is switching to `planning_type: joint`. Do NOT try other arbitrary poses.
 - **After DETECTION_FAILED**: One automatic re-capture is allowed. If the second detection also fails, ask the user.
+- **After ePick vacuum pick**: Call `get_vacuum_status()` to verify the object was grasped. If `object_detected` is false (`NO_OBJECT_DETECTED`), do NOT proceed to transport. Report to user and ask whether to retry the pick or abort.
+- **ePick retry requires off→on cycle**: The ePick hardware will NOT re-attempt suction automatically. To retry a failed pick, you MUST send `vacuum_off` first, then `vacuum_on` again — even if no object was detected. Skipping the off step means the vacuum won't activate.
 
 ---
 

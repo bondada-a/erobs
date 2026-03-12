@@ -49,7 +49,7 @@ _Prioritized. Pick from top unless you have a reason not to._
 
 ### Lower Priority
 5. **Hardware capabilities integration** — see `.planning/HARDWARE-CAPABILITIES.md` for full audit. Key subtasks:
-   - **ePick vacuum feedback** — driver already has `ObjectDetectionStatus` publisher on `/object_detection_status`. Ensure status controller loads at startup, subscribe in MCP server, add post-grip checkpoint. (P0 in audit)
+   - ~~**ePick vacuum feedback**~~ — DONE. MCP server subscribes to `/object_detection_status`, new `get_vacuum_status()` tool, `get_robot_state()` includes vacuum status when ePick active. Controller already spawned at launch.
    - **Hand-E position feedback** — finger position already in `/joint_states`. Subscribe and check after close command for grasp detection. (P0 in audit)
    - **MCP sensor tools** — expose `get_ft_reading()`, `get_gripper_state()`, `get_vacuum_level()`, `check_grasp()` in beambot-mcp-server
    - **Freedrive/teach mode** — controller configured, needs action server + MCP tool

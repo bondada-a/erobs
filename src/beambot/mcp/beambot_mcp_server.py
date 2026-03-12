@@ -57,6 +57,13 @@ from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformListener, TransformException
 from cv_bridge import CvBridge
 
+# ePick vacuum feedback (optional — only available when epick_msgs is built)
+try:
+    from epick_msgs.msg import ObjectDetectionStatus
+    _EPICK_MSGS_AVAILABLE = True
+except ImportError:
+    _EPICK_MSGS_AVAILABLE = False
+
 logger = logging.getLogger("beambot-mcp")
 
 # ---------------------------------------------------------------------------
@@ -91,6 +98,15 @@ ZED_QOS = QoSProfile(
 JOINT_STATES_TOPIC = "/joint_states"
 CURRENT_GRIPPER_TOPIC = "/beambot/current_gripper"
 EXECUTION_STATE_TOPIC = "/beambot/execution_state"
+EPICK_STATUS_TOPIC = "/object_detection_status"
+
+# ePick ObjectDetectionStatus integer → human-readable string
+EPICK_STATUS_NAMES = {
+    0: "UNKNOWN",
+    1: "OBJECT_DETECTED_AT_MIN_PRESSURE",
+    2: "OBJECT_DETECTED_AT_MAX_PRESSURE",
+    3: "NO_OBJECT_DETECTED",
+}
 
 # Pose registry
 POSES_FILE = os.environ.get(
@@ -314,11 +330,21 @@ class ROS2BridgeNode(Node):
             callback_group=self._cb_group,
         )
 
+        # ePick vacuum object detection status (only if epick_msgs is available)
+        self._epick_status_sub = None
+        if _EPICK_MSGS_AVAILABLE:
+            self._epick_status_sub = self.create_subscription(
+                ObjectDetectionStatus, EPICK_STATUS_TOPIC,
+                self._on_epick_status, 10,
+                callback_group=self._cb_group,
+            )
+
         # Robot state (updated by callbacks, None = no data received yet)
         self.joint_names: Optional[List[str]] = None
         self.joint_positions: Optional[List[float]] = None
         self.current_gripper: Optional[str] = None
         self.execution_state: Optional[str] = None
+        self.epick_status: Optional[int] = None  # Raw status int from ObjectDetectionStatus
 
         # Zivid state
         self.last_rgb: Optional[np.ndarray] = None
@@ -374,6 +400,9 @@ class ROS2BridgeNode(Node):
 
     def _on_execution_state(self, msg: String):
         self.execution_state = msg.data
+
+    def _on_epick_status(self, msg):
+        self.epick_status = int(msg.status)
 
     def trigger_capture(self, timeout: float = 30.0, need_cloud: bool = True) -> bool:
         """Trigger Zivid capture and wait for data. Called from executor thread.
@@ -589,13 +618,71 @@ async def get_robot_state() -> str:
             for name, pos in zip(node.joint_names, node.joint_positions)
         }
 
+    # Include ePick vacuum status when ePick is the active gripper
+    vacuum_status = None
+    if gripper == "epick" and node.epick_status is not None:
+        status_int = node.epick_status
+        vacuum_status = {
+            "status": EPICK_STATUS_NAMES.get(status_int, f"UNKNOWN({status_int})"),
+            "object_detected": status_int in (1, 2),
+        }
+
     result = {
         "system_running": system_running,
         "gripper": gripper,
         "execution_state": exec_state,
         "joints_deg": joints_deg,
     }
+    if vacuum_status is not None:
+        result["vacuum_status"] = vacuum_status
     return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+async def get_vacuum_status() -> str:
+    """Get the ePick vacuum gripper's object detection status.
+
+    Returns a JSON object with:
+    - status: one of "UNKNOWN", "OBJECT_DETECTED_AT_MIN_PRESSURE",
+      "OBJECT_DETECTED_AT_MAX_PRESSURE", "NO_OBJECT_DETECTED"
+    - object_detected: boolean — true if vacuum seal confirms an object is held
+    - available: whether the ePick status topic is being published
+
+    Use this AFTER a vacuum pick operation to verify the object was grasped.
+    If object_detected is false after closing the vacuum, the pick failed —
+    do NOT proceed to transport.
+
+    Status meanings:
+    - OBJECT_DETECTED_AT_MIN_PRESSURE: Object held with minimum vacuum (light seal)
+    - OBJECT_DETECTED_AT_MAX_PRESSURE: Object held with maximum vacuum (strong seal)
+    - NO_OBJECT_DETECTED: No vacuum seal — nothing picked up, or object dropped
+    - UNKNOWN: Regulating toward target vacuum, status not yet determined
+    """
+    node = bridge.node
+    gripper = node.current_gripper or "unknown"
+
+    if not _EPICK_MSGS_AVAILABLE:
+        return json.dumps({
+            "available": False,
+            "error": "epick_msgs not installed — rebuild workspace with epick packages",
+        })
+
+    if node.epick_status is None:
+        return json.dumps({
+            "available": False,
+            "gripper": gripper,
+            "note": "No data received on /object_detection_status yet. "
+                    "The ePick status controller may not be running "
+                    "(only active when ePick gripper is loaded).",
+        })
+
+    status_int = node.epick_status
+    return json.dumps({
+        "available": True,
+        "gripper": gripper,
+        "status": EPICK_STATUS_NAMES.get(status_int, f"UNKNOWN({status_int})"),
+        "object_detected": status_int in (1, 2),
+    }, indent=2)
 
 
 def _read_poses_file() -> dict:
