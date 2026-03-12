@@ -208,6 +208,7 @@ class MTCOrchestratorServer(Node):
         self._publish_gripper(self._current_gripper)
 
         self.get_logger().info("MTC Orchestrator (Python) started on 'beambot_execution'")
+        self.get_logger().info("AI dev loop test — orchestrator ready")
         self.get_logger().info("Pause/Resume services available: beambot/pause, beambot/resume")
 
     def _goal_callback(self, goal_request) -> GoalResponse:
