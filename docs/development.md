@@ -3,8 +3,9 @@
 > Operational MCP reference (task JSON, error handling, gotchas) is in the project root `CLAUDE.md`.
 > This document covers architecture, development setup, and current work items.
 >
-> For current task priorities and shared work status, see [`STATUS.md`](../STATUS.md) in the repo root.
-> **If you make code changes, update STATUS.md with what you changed.**
+> For current task priorities, see [GitHub Issues](https://github.com/bondada-a/erobs/issues).
+> Use `gh issue list --label P0` to see critical tasks. Close issues when done, open new ones when you find work.
+> Decisions and architectural context are in [`STATUS.md`](../STATUS.md).
 
 ## Overview
 
@@ -141,7 +142,7 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 
 ## Current Work
 
-See [`STATUS.md`](../STATUS.md) for active tasks, priorities, and recent changes.
+See [GitHub Issues](https://github.com/bondada-a/erobs/issues) for active tasks and priorities. Decisions and context in [`STATUS.md`](../STATUS.md).
 
 ## References
 
