@@ -71,12 +71,19 @@ The Zivid camera is mounted on the robot arm (eye-in-hand). The transform `tool0
 **Calibration tool**: `zivid-python-samples/source/applications/advanced/hand_eye_calibration/hand_eye_gui.py` or Zivid Studio → Tools → Hand-Eye Calibration
 
 ## Build & Launch
-
+### Build
 ```bash
 colcon build --packages-skip epick_moveit_studio && source install/setup.bash
+```
+### Option A: Launch Framework+GUI for Manual 
+```bash
 ros2 launch beambot beambot_bringup.launch.py
 ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true  # simulation
 ros2 run mtc_gui mtc_gui_client  # GUI
+```
+### Option B: Launch Framework+Rosbridge for MCP based control
+```bash
+./start_mcp.sh
 ```
 
 Note: Always `source install/setup.bash` after building. Vision requires Zivid camera connected and calibrated.
