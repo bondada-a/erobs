@@ -31,10 +31,11 @@ MoveIt Task Constructor (motion planning)
 UR5e Robot + Grippers
 ```
 
-**Deployment**: VM with two Docker containers communicating via ROS2 DDS:
-- **bsui**: Bluesky/experiment orchestration, sends JSON task goals
-- **erobs-common-img**: MTC pipeline servers, MoveIt, Zivid SDK
-- **beambot-mcp-server**: MCP bridge for LLM control (Zivid capture, detection, TF, robot state, pose registry)
+**Deployment**: Host machine running ROS2 natively with one of two control interfaces:
+- **beambot bringup** (`beambot_bringup.launch.py`): MTC pipeline servers, MoveIt, Zivid SDK, action servers
+- **MCP interface** (`start_mcp.sh`): rosbridge + beambot bringup for LLM-driven control via `beambot-mcp-server`
+- **GUI interface** (`mtc_gui_client`): Manual task execution via Qt GUI
+- **bsui** (separate container): Bluesky/experiment orchestration, sends JSON task goals via ROS2 DDS
 
 ## Key Packages
 
@@ -44,7 +45,7 @@ UR5e Robot + Grippers
 | **beambot_interfaces** | Action definitions (8 actions) |
 | **mtc_gui** | GUI client for task execution |
 | **custom-ur-descriptions** | MoveIt configs per gripper type |
-| **vision** | Zivid 3D camera driver + ROS2 nodes |
+| **vision** | Camera drivers + ROS2 nodes (Zivid 3D eye-in-hand, ZED stereo external) |
 | **end_effectors** | Gripper drivers (Hand-E, ePick, pipettor) |
 | **bluesky_ros** | Bluesky-ROS integration (Ophyd devices) |
 | **cms** | CMS beamline task JSONs and pose registry (`poses.yaml`) |
@@ -83,7 +84,7 @@ ros2 run mtc_gui mtc_gui_client  # GUI
 ```
 ### Option B: Launch Framework+Rosbridge for MCP based control
 ```bash
-./start_mcp.sh
+./start_mcp.sh  # Launches rosbridge (port 9090) + beambot bringup for LLM control via MCP
 ```
 
 Note: Always `source install/setup.bash` after building. Vision requires Zivid camera connected and calibrated.
