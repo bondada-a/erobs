@@ -73,7 +73,7 @@ The Zivid camera is mounted on the robot arm (eye-in-hand). The transform `tool0
 ## Build & Launch
 
 ```bash
-colcon build && source install/setup.bash
+colcon build --packages-skip epick_moveit_studio && source install/setup.bash
 ros2 launch beambot beambot_bringup.launch.py
 ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true  # simulation
 ros2 run mtc_gui mtc_gui_client  # GUI
