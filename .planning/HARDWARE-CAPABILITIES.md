@@ -1,6 +1,6 @@
 # EROBS Hardware Capabilities Audit
 
-**Date**: 2026-03-10
+**Date**: 2026-03-10 (reviewed 2026-03-12)
 **Branch**: humble-experimental
 **Purpose**: Thorough audit of what hardware CAN do that we are NOT using yet.
 
@@ -8,39 +8,40 @@
 
 ## Executive Summary
 
-EROBS currently uses a fraction of its hardware capabilities. The system operates in **open-loop mode** for all grippers (no feedback verification), runs the robot at a **fixed 20% speed**, has a **built-in force/torque sensor that is configured but never read**, and uses the Zivid camera for basic capture+detection while ignoring advanced features like region-of-interest filtering, diagnostics, and projector-only 2D imaging. The most impactful untapped capabilities are:
+EROBS has made progress closing the loop on gripper feedback (ePick vacuum detection is now integrated), but several hardware capabilities remain untapped. The robot runs at a **fixed 20% speed** (intentional safety cap), has a **built-in force/torque sensor that is configured but not useful for current gram-scale samples**, and uses the Zivid camera for basic capture+detection while ignoring advanced features like region-of-interest filtering, diagnostics, and native resampling. The most impactful remaining capabilities are:
 
-1. **ePick vacuum object detection** — driver has `ObjectDetectionStatus` publisher, already configured
-2. **Hand-E position feedback for grasp detection** — already in `/joint_states`
-3. **Freedrive/teach mode** — controller configured, needs action server
-4. **Dynamic speed profiles** — currently hardcoded at 20%
+1. **~~ePick vacuum object detection~~** — **DONE.** MCP `get_vacuum_status()`, orchestrator watchdog with `VACUUM_LOST`, off→on retry cycle.
+2. **Hand-E position feedback for grasp detection** — already in `/joint_states`, not yet integrated
+3. **Force mode controller** — for compliant insertion (pipette tips), controller configured
+4. **Zivid native resampling** — could replace DIY Open3D downsampling
 5. **Zivid depth ROI filtering** — configured but disabled
-6. **Tool contact detection** — controller configured, never activated
+6. **Iterative visual correction** — coarse-fine positioning for precision picks (software, tracked in STATUS.md)
 
-## Rocky's Review Notes (Mar 10, 2026)
+## Review Notes (Mar 10-12, 2026)
 
-### Priority Re-ranking After Discussion
+### Priority Re-ranking After Review
 
-The original audit ranked F/T sensor as P0. After reviewing with Rocky, priorities were adjusted based on current operational reality:
+The original audit ranked F/T sensor as P0. After review, priorities were adjusted based on current operational reality:
 
-**F/T sensor de-prioritized:** The samples handled at CMS beamline are very light (thin sample bars, slides, vials). The UR5e's F/T sensor is designed for kilogram-scale forces — signal-to-noise ratio would be poor for gram-scale samples. Not worth integrating right now. Moved to "nice to have someday" — potentially useful later for force-controlled insertions into tight holders or compliant placement on hot plates.
+**F/T sensor de-prioritized (P0 → P3):** The samples handled at CMS beamline are very light (thin sample bars, slides, vials). The UR5e's F/T sensor has ~2N resolution (~200g minimum detectable weight) and 3-5N noise floor. Gram-scale samples are 40-100x below these thresholds. Not worth integrating right now. Revisit for force-controlled insertions into tight holders or heavier samples at other beamlines.
 
-**ePick vacuum feedback elevated to top priority:** The ePick is the primary gripper for sample handling at CMS. The driver already has a dedicated `ObjectDetectionStatus` publisher on `/object_detection_status` with hardware-level vacuum feedback:
+**ePick vacuum feedback — DONE:** The ePick is the primary gripper for sample handling at CMS. Fully integrated:
+- MCP `get_vacuum_status()` tool + `get_robot_state()` includes vacuum status
+- Orchestrator watchdog auto-aborts with `VACUUM_LOST` if object drops between steps
+- Batching disabled for ePick to ensure per-step boundary checks
+- Off→on retry cycle documented and working
+
+The `ObjectDetectionStatus` publisher reports:
 - `OBJECT_DETECTED_AT_MIN_PRESSURE` — holding at minimum vacuum
-- `OBJECT_DETECTED_AT_MAX_PRESSURE` — strong seal, holding at max vacuum  
+- `OBJECT_DETECTED_AT_MAX_PRESSURE` — strong seal, holding at max vacuum
 - `NO_OBJECT_DETECTED` — no vacuum seal, nothing picked up
 - `UNKNOWN` — indeterminate
 
-**Key finding:** The `epick_status_publisher_controller` is **already configured** in `ur_epick_controllers.yaml`. The controller and its action controller (`epick_gripper_action_controller`) are both registered. Integration requires:
-1. Ensure the status controller is loaded/activated at startup
-2. Subscribe to `/object_detection_status` in the MCP server or orchestrator
-3. Add a post-grip checkpoint in pick-and-place stages — check status before proceeding to place
-
-**Better approach for grasp verification (ranked):**
-1. ePick vacuum feedback (direct hardware signal) — **do this first**
-2. Hand-E finger position feedback (from `/joint_states`) — next
-3. Vision-based verification (camera confirms object before/after pick) — supplement
-4. F/T sensor — deprioritized, not useful for current sample weights
+**Grasp verification approach (ranked):**
+1. ~~ePick vacuum feedback~~ — **DONE**
+2. Hand-E finger position feedback (from `/joint_states`) — **next, P0**
+3. Vision-based verification (iterative visual correction) — tracked in STATUS.md
+4. F/T sensor — deprioritized (P3), not useful for current sample weights
 
 ---
 
@@ -68,7 +69,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
   - Collision detection: Detect unexpected contact during transport
   - Sample weight measurement: Read Z-axis force after grasp to verify correct sample
   - Insertion tasks: Force-controlled sample placement into holders
-- **Priority**: **P0 — Highest**. Zero hardware work. Just subscribe and use the data.
+- **Priority**: **P3** (deprioritized). Sensor resolution (~2N) and noise floor (3-5N) too high for gram-scale samples. Revisit for force-controlled insertion tasks or heavier samples.
 
 #### 1.2 Force Mode Controller
 - **What**: `ur_controllers/ForceModeController` — UR's built-in compliant force control mode. Robot becomes "soft" in selected axes while maintaining position in others.
@@ -90,7 +91,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
   - Beamline setup: New beamline technicians can teach positions without programming
   - Calibration: Hand-guide camera to calibration targets
   - Recovery: Manually move robot out of collision states
-- **Priority**: **P1**
+- **Priority**: **P3** (deprioritized). Project direction is toward vision-driven positioning, not more hardcoded teach positions.
 
 #### 1.4 Tool Contact Controller
 - **What**: `ur_controllers/ToolContactController` — Detects contact events at the tool. Hardware-level contact detection at higher frequency than F/T threshold monitoring.
@@ -100,7 +101,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
   - Automatic surface finding: Approach until contact, record height
   - Safer placement: Detect when sample touches surface
   - Collision safety: Hardware-speed contact interrupts
-- **Priority**: **P2**
+- **Priority**: **P3** (deprioritized). Force Mode (1.2) covers the functional need for contact-based tasks. Tool Contact is a niche safety interrupt — uses joint motor current, not F/T sensor. Works best with rigid-on-rigid contact, less reliable with compliant surfaces (e.g., ePick suction cup).
 
 #### 1.5 Dynamic Speed/Acceleration Profiles
 - **What**: Velocity and acceleration scaling are **hardcoded at 20%** in `base_stages.py` (lines 74-76). MoveIt supports per-stage scaling from 0-100%.
@@ -111,7 +112,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
   - Slower approach: 5-10% speed for final approach to delicate samples
   - Throughput: A beamline running 24/7 benefits significantly from faster transport moves
   - Per-task tuning: Different tasks have different speed requirements
-- **Priority**: **P1**
+- **Priority**: **P3** (deprioritized). 20% speed cap is an intentional safety choice, not a limitation. Higher speeds possible but not wanted for current operations.
 
 #### 1.6 Passthrough Trajectory Controller
 - **What**: `ur_controllers/PassthroughTrajectoryController` — Sends trajectories directly to UR controller, bypassing ROS2 interpolation. Lower latency, smoother execution.
@@ -120,7 +121,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
 - **Scientific/operational value**: **LOW-MEDIUM**
   - Smoother motions for sensitive operations
   - Lower jitter during liquid handling
-- **Priority**: **P3**
+- **Priority**: **P4** (deprioritized). No observed jitter issues with current controller.
 
 #### 1.7 Forward Velocity Controller
 - **What**: `velocity_controllers/JointGroupVelocityController` — Direct velocity control of joints.
@@ -183,8 +184,8 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
 - **Integration difficulty**: **LOW** — Change `Mode: disabled` to desired mode in config.
 - **Scientific/operational value**: **LOW-MEDIUM**
   - Faster processing with reduced-density clouds
-  - Would complement/replace the Open3D voxel downsampling in `pointcloud_relay.py`
-- **Priority**: **P3**
+  - Would replace the Open3D voxel downsampling in `pointcloud_relay.py` — prefer native SDK over DIY
+- **Priority**: **P2** (bumped up). Config toggle that could simplify the pipeline and remove custom code.
 
 #### 2.4 Contrast Distortion Correction
 - **What**: Corrects systematic errors from structured light pattern on shiny surfaces. Currently **partially enabled** (Removal: yes, Correction: no).
@@ -261,7 +262,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
   - Workspace monitoring from external viewpoint
   - Detect obstacles not visible to eye-in-hand Zivid
   - Human detection in workspace for safety
-- **Priority**: **P2**
+- **Priority**: **P3** (deprioritized). ZED role still maturing — unclear how it fits in the pipeline yet.
 
 #### 3.2 Object Detection / Body Tracking
 - **What**: ZED SDK includes built-in object detection and body/skeleton tracking.
@@ -341,16 +342,14 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
 
 ### Untapped Capabilities
 
-#### 5.1 Vacuum Level Feedback
-- **What**: ePick hardware reports vacuum pressure level. The ePick driver (PickNikRobotics/ros2_epick_gripper) likely publishes vacuum state on a topic.
-- **Current state**: **No subscription** to vacuum level in any EROBS code. Completely ignored.
-- **Integration difficulty**: **LOW-MEDIUM** — Find and subscribe to vacuum state topic from ePick driver.
-- **Scientific/operational value**: **HIGH**
-  - Suction confirmation: Verify vacuum established (object picked up)
-  - Vacuum loss detection: Object fell during transport
-  - Blockage detection: Cannot build vacuum (gripper clogged)
-  - Leak detection: Vacuum slowly decreasing (poor seal = wrong surface)
-- **Priority**: **P0 — Highest**. Critical for reliable vacuum picking. Currently blind.
+#### 5.1 Vacuum Level Feedback — ✅ DONE
+- **What**: ePick hardware reports vacuum pressure level via `ObjectDetectionStatus` publisher on `/object_detection_status`.
+- **Status**: **Fully integrated** (completed 2026-03-12):
+  - MCP `get_vacuum_status()` tool + `get_robot_state()` includes vacuum status
+  - Orchestrator watchdog auto-aborts with `VACUUM_LOST` if object drops between steps
+  - Batching disabled for ePick to ensure per-step boundary checks
+  - Off→on retry cycle for failed picks (ePick hardware quirk)
+- **Priority**: **DONE**
 
 #### 5.2 Vacuum Level Threshold (Adaptive Suction)
 - **What**: ePick supports configurable vacuum threshold for grip detection.
@@ -359,7 +358,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
 - **Scientific/operational value**: **MEDIUM**
   - Different thresholds for porous vs. non-porous surfaces
   - Auto-detect grip quality
-- **Priority**: **P2**
+- **Priority**: **P3** (deprioritized). Current binary detection (object detected / not detected) works for current samples. Revisit if false negatives appear with different surfaces.
 
 #### 5.3 Suction Cup Pressure Monitoring
 - **What**: Real-time pressure monitoring for continuous feedback.
@@ -368,7 +367,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
 - **Scientific/operational value**: **MEDIUM**
   - Continuous monitoring during transport
   - Emergency stop on vacuum loss
-- **Priority**: **P2**
+- **Priority**: **P3** (deprioritized). Per-step boundary check via orchestrator watchdog already covers the practical risk.
 
 ---
 
@@ -390,7 +389,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
   - Verify correct volume aspirated
   - Detect clogged or leaking tips
   - Precision dispensing with feedback
-- **Priority**: **P2** (depends on driver capabilities)
+- **Priority**: **P4** (hardware doesn't support volume feedback)
 
 #### 6.2 Pressure/Flow Monitoring
 - **What**: Advanced pipettors monitor aspiration pressure to detect:
@@ -403,7 +402,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
 - **Scientific/operational value**: **HIGH** for scientific accuracy
   - Critical for liquid handling reliability
   - Prevents wrong experiment results from failed aspiration
-- **Priority**: **P2**
+- **Priority**: **P4** (hardware doesn't support pressure/flow monitoring)
 
 #### 6.3 Tip Detection / Verification
 - **What**: Verify tip is properly seated before aspiration.
@@ -412,39 +411,39 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
 - **Scientific/operational value**: **MEDIUM**
   - Prevent aspiration without tip (contaminates pipettor)
   - Verify tip ejected successfully
-- **Priority**: **P3**
+- **Priority**: **P4** (hardware doesn't support tip detection)
 
 ---
 
 ## 7. System-Level / Cross-Component Capabilities
 
-### 7.1 Closed-Loop Grasp Verification Pipeline
-- **What**: Combine F/T sensor + gripper position + visual re-check for reliable grasping.
-- **Current state**: Open-loop: command → assume success.
-- **Proposed flow**:
+### 7.1 Closed-Loop Grasp Verification Pipeline — PARTIAL
+- **What**: Combine gripper feedback + visual re-check for reliable grasping.
+- **Current state**: ePick vacuum verification **DONE**. Hand-E position check still open.
+- **Implemented flow (ePick)**:
   ```
-  Current:  approach → close → transport → place (hope for the best)
-  Proposed: approach → close → CHECK F/T → CHECK position → transport → CHECK vacuum → place → verify
+  approach → close → vacuum_on → CHECK vacuum status → transport → CHECK vacuum (per-step watchdog) → place
   ```
-- **Integration difficulty**: **MEDIUM** — Requires new verification stages between existing stages.
+- **Remaining work**:
+  - Hand-E finger position check after close (P0, items 4.1/4.2)
+  - F/T sensor check deprioritized (P3, gram-scale samples)
+- **Integration difficulty**: **LOW** for remaining Hand-E work — pattern established by ePick integration.
 - **Scientific/operational value**: **VERY HIGH**
-  - Eliminates blind operations
-  - Required for true 24/7 autonomous operation
-  - Prevents cascading failures (dropped sample contaminates beamline)
-- **Priority**: **P0**
+- **Priority**: **PARTIAL DONE** — remaining work is Hand-E feedback (P0)
 
-### 7.2 Sensor Data via MCP
+### 7.2 Sensor Data via MCP — PARTIAL
 - **What**: Expose hardware sensor data as MCP tools for LLM-driven verification.
-- **Proposed MCP tools**:
+- **MCP tools status**:
   ```
-  get_ft_reading()      → Current force/torque values
-  get_gripper_state()   → Position, stall status, holding?
-  get_vacuum_level()    → ePick vacuum pressure
-  check_grasp()         → Combined: F/T + position → "holding" / "empty"
+  get_vacuum_status()   → ePick vacuum state          ✅ DONE
+  get_robot_state()     → Gripper info + vacuum        ✅ DONE
+  get_ft_reading()      → Current force/torque values  ❌ Deprioritized (P3)
+  get_gripper_state()   → Hand-E position/stall        ❌ Pending (depends on 4.1/4.2)
+  check_grasp()         → Combined verification        ❌ Pending (depends on above)
   ```
-- **Integration difficulty**: **LOW-MEDIUM** — Add subscriptions and tool definitions to erobs_mcp_server.py.
+- **Integration difficulty**: **LOW** for remaining Hand-E tools — pattern established by vacuum tools.
 - **Scientific/operational value**: **VERY HIGH** — Enables LLM to verify and recover from failures.
-- **Priority**: **P0**
+- **Priority**: **PARTIAL DONE** — remaining work ties to Hand-E integration (P0)
 
 ### 7.3 Dynamic Speed for Task Phases
 - **What**: Allow different speed profiles for different task phases within a single operation.
@@ -462,7 +461,7 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
   - 2-5x faster transport moves
   - Safer approach/retreat at lower speeds
   - Overall throughput improvement for 24/7 operation
-- **Priority**: **P1**
+- **Priority**: **P3** (deprioritized). 20% speed cap is intentional safety choice.
 
 ### 7.4 Safety Monitoring Service
 - **What**: Combine F/T sensor, speed scaling, and workspace boundaries for autonomous safety.
@@ -473,97 +472,104 @@ The original audit ranked F/T sensor as P0. After reviewing with Rocky, prioriti
   - Speed reduction near boundaries
 - **Integration difficulty**: **MEDIUM-HIGH**
 - **Scientific/operational value**: **HIGH** for unattended operation
-- **Priority**: **P1**
+- **Priority**: **P3** (deprioritized). Multi-week effort with many dependencies (F/T deprioritized, safety limits P2, speed profiles P3).
 
 ---
 
 ## Priority Summary
 
+### DONE
+| Capability | Component | Notes |
+|---|---|---|
+| ePick vacuum level feedback | ePick | MCP `get_vacuum_status()`, orchestrator watchdog, off→on retry |
+| MCP sensor tools (vacuum) | System | `get_vacuum_status()`, `get_robot_state()` includes vacuum |
+| Closed-loop pipeline (ePick) | System | Per-step vacuum verification with `VACUUM_LOST` abort |
+
 ### P0 — Immediate, High Impact, Low Effort
 | Capability | Component | Effort | Impact |
 |---|---|---|---|
-| F/T sensor subscription | UR5e | 2-4 hours | Grasp verification, contact detection |
 | Hand-E position feedback | Hand-E | 1-2 hours | Grasp detection (holding vs. empty) |
-| ePick vacuum level feedback | ePick | 2-4 hours | Suction confirmation |
-| MCP sensor tools | System | 4-8 hours | LLM-accessible verification |
+| Hand-E stall detection | Hand-E | (combine with above) | Grasp confirmation |
+| MCP sensor tools (Hand-E) | System | 2-4 hours | `get_gripper_state()`, `check_grasp()` |
 
 ### P1 — High Value, Moderate Effort
 | Capability | Component | Effort | Impact |
 |---|---|---|---|
-| Dynamic speed profiles | UR5e | 2-4 hours | 2-5x throughput improvement |
-| Force mode controller | UR5e | 1-2 days | Compliant manipulation |
-| Freedrive/teach mode | UR5e | 4-8 hours | Rapid pose teaching |
-| Safety monitoring | System | 2-3 days | 24/7 autonomous operation |
+| Force mode controller | UR5e | 1-2 days | Compliant insertion (pipette tips) |
 
 ### P2 — Valuable, Some Effort
 | Capability | Component | Effort | Impact |
 |---|---|---|---|
 | Zivid depth ROI | Zivid | 30 min | Cleaner captures, less noise |
+| Zivid resampling (native) | Zivid | 30 min | Replace DIY Open3D downsampling |
 | Contrast distortion correction | Zivid | 30 min | Better accuracy on shiny surfaces |
 | Dynamic capture settings | Zivid | 4-8 hours | Scene-adaptive capture quality |
 | Variable gripper position | Hand-E | 2-4 hours | Custom grip widths |
-| ePick adaptive thresholds | ePick | 2-4 hours | Surface-specific vacuum |
-| Tool contact controller | UR5e | 4-8 hours | Hardware contact detection |
 | Safety limits (URDF) | UR5e | 1 hour | Joint limit protection |
-| ZED stereo depth | ZED | 2-4 hours | External depth monitoring |
-| Pipettor volume feedback | Pipettor | 4-8 hours | Accurate liquid handling |
-| Pipettor pressure monitoring | Pipettor | 4-8 hours | Error detection |
 
 ### P3 — Nice to Have
 | Capability | Component | Effort | Impact |
 |---|---|---|---|
+| F/T sensor subscription | UR5e | 2-4 hours | Only for insertion tasks (poor SNR for light samples) |
+| Freedrive/teach mode | UR5e | 4-8 hours | Rapid pose teaching |
+| Tool contact controller | UR5e | 4-8 hours | Hardware contact detection |
+| Dynamic speed profiles | UR5e | 2-4 hours | Speed cap is intentional safety choice |
 | Zivid diagnostics mode | Zivid | 30 min | Capture quality monitoring |
-| Zivid resampling | Zivid | 30 min | Faster point cloud processing |
 | Noise suppression filter | Zivid | 30 min | Cleaner point clouds |
 | 2D-only capture (projector off) | Zivid | 4-8 hours | Faster color-only detection |
 | Hand-eye calibration verification | Zivid | 1-2 days | Automated accuracy monitoring |
 | Hand-E speed control | Hand-E | 4-8 hours | Gripper speed tuning |
+| ePick adaptive thresholds | ePick | 2-4 hours | Surface-specific vacuum |
+| ePick pressure monitoring | ePick | 2-4 hours | Continuous transport monitoring |
+| ZED stereo depth | ZED | 2-4 hours | External depth monitoring |
 | ZED object detection | ZED | 1-2 days | Human presence detection |
-| Pipettor tip detection | Pipettor | 4-8 hours | Tip verification |
+| Dynamic speed (task phases) | System | 2-4 hours | Per-task speed tuning |
+| Safety monitoring service | System | 2-3 days | Multi-dependency, long-term |
 
 ### P4 — Future / Low Priority
 | Capability | Component | Effort | Impact |
 |---|---|---|---|
-| Passthrough trajectory controller | UR5e | 1-2 days | Smoother motions |
-| Forward velocity controller | UR5e | 2-3 days | Visual servoing |
+| Passthrough trajectory controller | UR5e | 1-2 days | Smoother motions (no current issues) |
+| Forward velocity controller | UR5e | 2-3 days | Visual servoing (not needed — iterative correction preferred) |
 | Projector-only illumination | Zivid | 1-2 days | Consistent lighting |
 | ZED spatial mapping | ZED | 1-2 days | Environment mapping |
+| Pipettor volume feedback | Pipettor | N/A | Hardware doesn't support |
+| Pipettor pressure monitoring | Pipettor | N/A | Hardware doesn't support |
+| Pipettor tip detection | Pipettor | N/A | Hardware doesn't support |
 
 ---
 
 ## Implementation Recommendations
 
-### Phase 1: Sensor Feedback (1-2 weeks)
-The highest-impact work is adding sensor feedback to close the loop on grasp operations. This requires:
+### Phase 1: Hand-E Feedback (P0, ~1 week)
+ePick vacuum is done. Complete the grasp verification loop for Hand-E:
 
-1. **MCP server additions** (`erobs_mcp_server.py`):
-   - Subscribe to `/ft_data` (WrenchStamped) — F/T sensor
-   - Subscribe to `/joint_states` — extract gripper finger position
-   - Find and subscribe to ePick vacuum state topic
-   - New tools: `get_ft_reading()`, `get_gripper_state()`, `get_vacuum_level()`, `check_grasp()`
+1. **MCP server additions** (`beambot_mcp_server.py`):
+   - Subscribe to `/joint_states` — extract `robotiq_hande_left_finger_joint` position
+   - Check GripperActionController result for stall indication
+   - New tools: `get_gripper_state()`, `check_grasp()`
 
 2. **Orchestrator/stage additions**:
    - Post-grasp verification checkpoint in `pick_place_stages.py`
    - Read finger position after close → report in action result
-   - Read F/T after close → report in action result
+   - Fully closed (0.0m) = empty grasp, partially closed = holding
 
-### Phase 2: Speed & Control (1-2 weeks)
-1. Add `velocity_scaling` / `acceleration_scaling` to task JSON schema
-2. Pass through to planner factories in `base_stages.py`
-3. Implement freedrive mode toggle (new MCP tool + action)
-4. Enable URDF safety limits
+### Phase 2: Force Mode for Pipette Tips (P1, 1-2 weeks)
+1. Controller switching logic in orchestrator (scaled_joint_trajectory ↔ force_mode)
+2. New task type or stage for compliant insertion
+3. Safety testing with force limits
+4. Alternative: MoveIt Servo approach (avoids controller switching)
 
-### Phase 3: Vision Enhancement (1 week)
+### Phase 3: Vision Enhancement (P2, 1 week)
 1. Enable depth ROI filtering in `scene_capture.yml`
-2. Enable contrast distortion correction
-3. Add capture quality diagnostics
+2. Enable Zivid native resampling (replace Open3D in `pointcloud_relay.py`)
+3. Enable contrast distortion correction
 4. Dynamic settings profiles (fast vs. quality)
 
-### Phase 4: Advanced Control (2-4 weeks)
-1. Force mode controller integration
-2. Tool contact detection
-3. Compliant insertion tasks
-4. Safety monitoring service
+### Phase 4: Safety & Deployment (P2, when approaching 24/7)
+1. Enable URDF safety limits (tune margins for workspace)
+2. Hand-eye calibration verification routine
+3. Safety monitoring service (long-term)
 
 ---
 
@@ -575,7 +581,7 @@ The highest-impact work is adding sensor feedback to close the loop on grasp ope
 | **Speed/accel scaling** | `src/beambot/beambot/stages/base_stages.py` (lines 74-76) |
 | **Zivid 3D settings** | `src/beambot/config/scene_capture.yml` |
 | **Zivid 2D settings** | `src/beambot/config/zivid_settings.yml` |
-| **MCP server** | `src/beambot/mcp/erobs_mcp_server.py` |
+| **MCP server** | `src/beambot/mcp/beambot_mcp_server.py` |
 | **Orchestrator** | `src/beambot/beambot/action_servers/orchestrator.py` |
 | **Pick/place stages** | `src/beambot/beambot/stages/pick_place_stages.py` |
 | **End effector stages** | `src/beambot/beambot/stages/end_effector_stages.py` |

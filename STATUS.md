@@ -36,8 +36,9 @@
 _Prioritized. Pick from top unless you have a reason not to._
 
 ### High Priority
-1. **Review and update development.md** — needs a thorough review and refresh
+1. ~~**Review and update development.md**~~ — DONE. Updated deployment model, start_mcp.sh docs, ZED camera reference.
 2. **MCP sample detection model** — current detection (circle/contour) is unreliable, needs redesign for MCP architecture. ArUco markers work but limited.
+3. **Iterative visual correction (precision pick)** — coarse-fine positioning for small samples. Phase 1: current detect→move pipeline gets within ~5-10mm. Phase 2: iterative loop (capture → detect → compute offset → small Cartesian correction) until alignment < threshold. Uses existing Zivid + MTC, no new controllers needed. Could be a new task type (`precision_pick`) or enhancement to `vision_pick_place`.
 
 ### Medium Priority
 2. **ePick suction cup z offset for new cups** — new suction cups require updated z_offset. Subtasks:
@@ -45,14 +46,14 @@ _Prioritized. Pick from top unless you have a reason not to._
    - Measure and set correct z_offset for each suction cup type
    - Test and verify accurate sample pickup with new offsets
 3. **Octomap integration** — point cloud obstacle avoidance into beambot_bringup.launch.py
-4. **Dynamic speed profiles** — velocity/accel hardcoded at 20% in base_stages.py (lines 78-79). Add per-task `velocity_scaling`/`acceleration_scaling` fields. (P1 from hardware audit)
+4. ~~**Dynamic speed profiles**~~ — deprioritized (P3). 20% speed cap is intentional safety choice, not a limitation.
 
 ### Lower Priority
 5. **Hardware capabilities integration** — see `.planning/HARDWARE-CAPABILITIES.md` for full audit. Key subtasks:
    - ~~**ePick vacuum feedback**~~ — DONE. Two layers: (1) MCP `get_vacuum_status()` tool + `get_robot_state()` includes vacuum status; (2) Orchestrator watchdog auto-aborts with `VACUUM_LOST` if object drops between steps. Batching disabled for ePick to ensure per-step boundary checks. Tested on hardware.
    - **Hand-E position feedback** — finger position already in `/joint_states`. Subscribe and check after close command for grasp detection. (P0 in audit)
-   - **MCP sensor tools** — expose `get_ft_reading()`, `get_gripper_state()`, `get_vacuum_level()`, `check_grasp()` in beambot-mcp-server
-   - **Freedrive/teach mode** — controller configured, needs action server + MCP tool
+   - **MCP sensor tools (Hand-E)** — expose `get_gripper_state()`, `check_grasp()` in beambot-mcp-server (depends on Hand-E feedback above)
+   - **Force mode controller** — for compliant insertion (pipette tips). Controller configured, needs integration (P1)
    - **Zivid depth ROI** — configured but disabled, toggle in scene_capture.yml
 6. **Add camera housing to rviz**
 7. **Minimal bsui container** — reduce from ~5GB to ~500MB
