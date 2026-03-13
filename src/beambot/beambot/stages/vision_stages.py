@@ -1000,7 +1000,7 @@ class VisionStages(BaseStages):
             active_ik_frame = self.ik_frame
             # Default z_offset based on gripper type
             if "epick" in active_ik_frame:
-                active_z_offset = 0.1
+                active_z_offset = 0.002  # compensates for ~2mm URDF residual error
             else:
                 active_z_offset = -0.02
 
@@ -1081,8 +1081,9 @@ class VisionStages(BaseStages):
             rclpy.time.Time(),
             timeout=rclpy.duration.Duration(seconds=1.0)
         ):
-            # z_offset: ePick suction cup height above sample surface
-            return GripperDetection("epick_tip", 0.023)
+            # z_offset: URDF has ~2mm residual error — tip is 2mm short of physical.
+            # Current 0.002 compensates for this. Set to 0 once URDF is corrected.
+            return GripperDetection("epick_tip", 0.002)
 
         # Check for Hand-E gripper
         if self._tf_buffer.can_transform(

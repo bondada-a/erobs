@@ -118,7 +118,7 @@
     zivid_model="ZIVID_2_PLUS_MR60"/>
 
   <!-- Tool block attached to the Zivid arm mount (not the camera) -->
-  <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.055" rpy="-1.5708 0 3.14159"/>
+  <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.051" rpy="-1.5708 0 3.14159"/>
 
   <!-- gripper pos wrt camera    -->
   <xacro:arg name="grip_pos_min" default="0"/>
@@ -133,6 +133,7 @@
   <xacro:arg name="socat_ip_address" default="$(arg robot_ip)"/>
   <xacro:arg name="socat_port" default="54321"/>
 
+  <!-- Hand-E xyz previously "0 -0.02 0" — updated based on physical measurement -->
   <xacro:robotiq_hande_gripper
     name="robotiq_hande_gripper"
     prefix="$(arg tf_prefix)"
@@ -146,7 +147,7 @@
     stop_bit="$(arg stop_bit)"
     slave_id="$(arg slave_id)"
     use_fake_hardware="$(arg use_fake_hardware)"
-    xyz="0 -0.02 0"
+    xyz="0 -0.03235 0"
     rpy="-1.5708 0 3.1416"
     create_socat_tty="$(arg create_socat_tty)"
     socat_ip_address="$(arg socat_ip_address)"
