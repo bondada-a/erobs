@@ -108,6 +108,10 @@ EPICK_STATUS_NAMES = {
     3: "NO_OBJECT_DETECTED",
 }
 
+# Hand-E grasp detection via finger position from /joint_states
+HANDE_JOINT_NAME = "robotiq_hande_left_finger_joint"
+HANDE_CLOSED_THRESHOLD = 0.002  # meters — below this, fingers are fully closed (no object)
+
 # Pose registry
 POSES_FILE = os.environ.get(
     "EROBS_POSES_FILE",
@@ -345,6 +349,7 @@ class ROS2BridgeNode(Node):
         self.current_gripper: Optional[str] = None
         self.execution_state: Optional[str] = None
         self.epick_status: Optional[int] = None  # Raw status int from ObjectDetectionStatus
+        self.hande_position: Optional[float] = None  # Hand-E finger position (meters) from /joint_states
 
         # Zivid state
         self.last_rgb: Optional[np.ndarray] = None
@@ -394,6 +399,11 @@ class ROS2BridgeNode(Node):
     def _on_joint_states(self, msg: JointState):
         self.joint_names = list(msg.name)
         self.joint_positions = list(msg.position)
+        # Track Hand-E finger position for grasp detection
+        for name, pos in zip(msg.name, msg.position):
+            if name == HANDE_JOINT_NAME:
+                self.hande_position = pos
+                break
 
     def _on_current_gripper(self, msg: String):
         self.current_gripper = msg.data
@@ -627,6 +637,16 @@ async def get_robot_state() -> str:
             "object_detected": status_int in (1, 2),
         }
 
+    # Include Hand-E grasp status when Hand-E is the active gripper
+    hande_status = None
+    if gripper == "hande" and node.hande_position is not None:
+        pos = node.hande_position
+        object_detected = pos > HANDE_CLOSED_THRESHOLD
+        hande_status = {
+            "position_mm": round(pos * 1000, 2),
+            "object_detected": object_detected,
+        }
+
     result = {
         "system_running": system_running,
         "gripper": gripper,
@@ -635,6 +655,8 @@ async def get_robot_state() -> str:
     }
     if vacuum_status is not None:
         result["vacuum_status"] = vacuum_status
+    if hande_status is not None:
+        result["hande_grasp_status"] = hande_status
     return json.dumps(result, indent=2)
 
 
@@ -683,6 +705,114 @@ async def get_vacuum_status() -> str:
         "status": EPICK_STATUS_NAMES.get(status_int, f"UNKNOWN({status_int})"),
         "object_detected": status_int in (1, 2),
     }, indent=2)
+
+
+@mcp.tool()
+async def get_gripper_state() -> str:
+    """Get the Hand-E gripper's grasp detection status using finger position.
+
+    Returns a JSON object with:
+    - gripper: currently attached gripper name
+    - available: whether grasp detection data is available
+    - For Hand-E:
+      - position_m: finger position in meters (0 = fully closed, ~0.025 = fully open)
+      - position_mm: finger position in millimeters
+      - object_detected: boolean — true if fingers stopped on an object (position > threshold)
+      - note: explanation of the detection
+    - For ePick: delegates to get_vacuum_status()
+
+    Use this AFTER a close/grasp operation to verify the object was grasped.
+    If object_detected is false after closing, the pick failed.
+    """
+    node = bridge.node
+    gripper = node.current_gripper or "unknown"
+
+    if gripper == "epick":
+        return await get_vacuum_status()
+
+    if gripper == "hande":
+        if node.hande_position is None:
+            return json.dumps({
+                "available": False,
+                "gripper": gripper,
+                "note": "No Hand-E finger position received on /joint_states yet. "
+                        "The system may not be running.",
+            })
+
+        pos = node.hande_position
+        # If fingers stopped above threshold, an object is between them
+        object_detected = pos > HANDE_CLOSED_THRESHOLD
+        return json.dumps({
+            "available": True,
+            "gripper": gripper,
+            "position_m": round(pos, 5),
+            "position_mm": round(pos * 1000, 2),
+            "object_detected": object_detected,
+            "note": (
+                "Object detected between fingers"
+                if object_detected
+                else "Fingers fully closed — no object detected"
+            ),
+        }, indent=2)
+
+    return json.dumps({
+        "available": False,
+        "gripper": gripper,
+        "note": f"Grasp detection not available for gripper '{gripper}'",
+    })
+
+
+@mcp.tool()
+async def check_grasp() -> str:
+    """Quick unified grasp check for any gripper (Hand-E or ePick).
+
+    Returns a JSON object with:
+    - gripper: currently attached gripper name
+    - object_detected: boolean — true if an object is currently held
+    - method: how detection was performed ("finger_position" or "vacuum_seal")
+
+    Use this as a quick go/no-go check after any grasp operation.
+    For detailed status, use get_gripper_state() or get_vacuum_status().
+    """
+    node = bridge.node
+    gripper = node.current_gripper or "unknown"
+
+    if gripper == "hande":
+        if node.hande_position is None:
+            return json.dumps({
+                "gripper": gripper,
+                "object_detected": False,
+                "method": "finger_position",
+                "error": "No finger position data available",
+            })
+        detected = node.hande_position > HANDE_CLOSED_THRESHOLD
+        return json.dumps({
+            "gripper": gripper,
+            "object_detected": detected,
+            "method": "finger_position",
+        })
+
+    if gripper == "epick":
+        if not _EPICK_MSGS_AVAILABLE or node.epick_status is None:
+            return json.dumps({
+                "gripper": gripper,
+                "object_detected": False,
+                "method": "vacuum_seal",
+                "error": "No vacuum status data available",
+            })
+        detected = node.epick_status in (1, 2)
+        return json.dumps({
+            "gripper": gripper,
+            "object_detected": detected,
+            "method": "vacuum_seal",
+        })
+
+    return json.dumps({
+        "gripper": gripper,
+        "object_detected": False,
+        "method": "none",
+        "note": f"No grasp detection for gripper '{gripper}'",
+    })
 
 
 def _read_poses_file() -> dict:

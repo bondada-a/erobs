@@ -182,6 +182,7 @@ After sending a goal to `/beambot_execution`, **always read `error_message`** fr
 | `Pipettor action server ... not available` | Connectivity | Pipettor driver isn't running. Ask user to start it. |
 | `Controller activation failed` | Connectivity | UR driver may have disconnected. Ask user to check robot connection. |
 | `VACUUM_LOST` | Grasp | Object dropped during transport. Send `vacuum_off` then `vacuum_on` to retry pick. Do NOT proceed to place. |
+| `GRASP_LOST` | Grasp | Object dropped during Hand-E transport. Re-close gripper to retry pick. Do NOT proceed to place. |
 | Unknown / doesn't match above | Unknown | Call `get_recent_logs(severity="ERROR", count=30)`, explain findings to user, propose fix. |
 
 ### Recovery Policy
@@ -195,6 +196,8 @@ After sending a goal to `/beambot_execution`, **always read `error_message`** fr
 - **After DETECTION_FAILED**: One automatic re-capture is allowed. If the second detection also fails, ask the user.
 - **After ePick vacuum pick**: Call `get_vacuum_status()` to verify the object was grasped. If `object_detected` is false (`NO_OBJECT_DETECTED`), do NOT proceed to transport. Report to user and ask whether to retry the pick or abort.
 - **ePick retry requires off→on cycle**: The ePick hardware will NOT re-attempt suction automatically. To retry a failed pick, you MUST send `vacuum_off` first, then `vacuum_on` again — even if no object was detected. Skipping the off step means the vacuum won't activate.
+- **After Hand-E grasp**: Call `check_grasp()` or `get_gripper_state()` to verify the object was grasped. If `object_detected` is false, do NOT proceed to transport. Report to user and ask whether to retry the pick or abort.
+- **After Hand-E GRASP_LOST**: Object was detected after close but lost during transport. Report to user and ask whether to retry the pick or abort. Unlike ePick, Hand-E does not need an off→on cycle — just re-close the gripper.
 
 ---
 

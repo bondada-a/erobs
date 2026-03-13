@@ -39,7 +39,12 @@ from beambot_interfaces.action import (
 )
 from controller_manager_msgs.srv import ListControllers, SwitchController
 from std_srvs.srv import Trigger
+from sensor_msgs.msg import JointState
 from std_msgs.msg import String
+
+# Hand-E grasp detection via finger position from /joint_states
+HANDE_JOINT_NAME = "robotiq_hande_left_finger_joint"
+HANDE_CLOSED_THRESHOLD = 0.002  # meters — below this, fingers are fully closed (no object)
 
 # ePick vacuum feedback (optional — only when epick_msgs is built)
 try:
@@ -225,6 +230,16 @@ class MTCOrchestratorServer(Node):
                 self._on_epick_status, 10,
                 callback_group=self._callback_group,
             )
+
+        # Hand-E grasp monitoring (via finger position from /joint_states)
+        self._hande_grasp_armed = False
+        self._hande_grasp_lost = False
+        self._hande_position: 'float | None' = None
+        self._joint_states_sub = self.create_subscription(
+            JointState, '/joint_states',
+            self._on_joint_state, 10,
+            callback_group=self._callback_group,
+        )
 
         self.get_logger().info("MTC Orchestrator (Python) started on 'beambot_execution'")
         self.get_logger().info("Pause/Resume services available: beambot/pause, beambot/resume")
@@ -545,9 +560,11 @@ class MTCOrchestratorServer(Node):
         """Main execution logic."""
         self.get_logger().info("Executing orchestration goal")
 
-        # Reset vacuum monitor for new goal
+        # Reset grasp monitors for new goal
         self._vacuum_armed = False
         self._vacuum_lost = False
+        self._hande_grasp_armed = False
+        self._hande_grasp_lost = False
 
         result = MTCExecution.Result()
         feedback = MTCExecution.Feedback()
@@ -583,10 +600,10 @@ class MTCOrchestratorServer(Node):
         # Group tasks into batches for optimized execution.
         # Disable batching when ePick is attached — the vacuum watchdog needs
         # step boundaries between every move to detect dropped objects.
-        batching_enabled = self._enable_batching and start_gripper != "epick"
+        batching_enabled = self._enable_batching and start_gripper not in ("epick", "hande")
         if self._enable_batching and not batching_enabled:
             self.get_logger().info(
-                "Batching disabled for ePick — vacuum watchdog needs per-step boundaries"
+                f"Batching disabled for {start_gripper} — grasp watchdog needs per-step boundaries"
             )
         batches = group_into_batches(tasks, enabled=batching_enabled)
         self.get_logger().info(
@@ -621,7 +638,7 @@ class MTCOrchestratorServer(Node):
                     return result
 
             # Check if vacuum was lost since last step
-            if self._check_vacuum_lost():
+            if self._check_grasp_lost():
                 result.error_message = f"Step {completed_tasks + 1} aborted: {self._last_error}"
                 result.completed_steps = completed_tasks
                 goal_handle.abort()
@@ -652,7 +669,7 @@ class MTCOrchestratorServer(Node):
                     self._publish_state("IDLE")
                     return result
 
-                self._update_vacuum_state(batch_tasks)
+                self._update_grasp_state(batch_tasks)
                 completed_tasks += batch_size
 
             else:
@@ -678,13 +695,13 @@ class MTCOrchestratorServer(Node):
                     self._publish_state("IDLE")
                     return result
 
-                self._update_vacuum_state([task])
+                self._update_grasp_state([task])
                 completed_tasks += 1
 
             result.completed_steps = completed_tasks
 
         # Final vacuum check — catch drops during the last step
-        if self._check_vacuum_lost():
+        if self._check_grasp_lost():
             result.error_message = f"Final step aborted: {self._last_error}"
             result.completed_steps = completed_tasks
             goal_handle.abort()
@@ -741,7 +758,7 @@ class MTCOrchestratorServer(Node):
         )
 
     # ------------------------------------------------------------------
-    # Vacuum monitoring (ePick grasp verification)
+    # Grasp monitoring (ePick vacuum + Hand-E finger position)
     # ------------------------------------------------------------------
 
     def _on_epick_status(self, msg):
@@ -754,15 +771,35 @@ class MTCOrchestratorServer(Node):
                 "while vacuum is active"
             )
 
-    def _update_vacuum_state(self, executed_tasks: List[Dict[str, Any]]):
-        """Update vacuum monitor after tasks execute.
+    def _on_joint_state(self, msg: JointState):
+        """Callback for /joint_states — extract Hand-E finger position for grasp monitoring."""
+        for name, pos in zip(msg.name, msg.position):
+            if name == HANDE_JOINT_NAME:
+                self._hande_position = pos
+                # If armed and fingers closed below threshold, object was lost
+                if self._hande_grasp_armed and pos < HANDE_CLOSED_THRESHOLD:
+                    self._hande_grasp_lost = True
+                    self.get_logger().warn(
+                        f"GRASP_LOST: Hand-E finger position {pos:.4f}m < "
+                        f"threshold {HANDE_CLOSED_THRESHOLD}m while grasp was active"
+                    )
+                break
 
-        Scans the executed tasks for vacuum on/off actions and arms/disarms
-        the background monitor accordingly.
+    def _update_grasp_state(self, executed_tasks: List[Dict[str, Any]]):
+        """Update grasp monitor after tasks execute.
+
+        For ePick: arms/disarms vacuum watchdog on vacuum_on/vacuum_off.
+        For Hand-E: arms/disarms grasp watchdog on hande_closed/hande_open.
         """
-        if self._current_gripper != "epick" or not _EPICK_MSGS_AVAILABLE:
-            return
+        gripper = self._current_gripper
 
+        if gripper == "epick" and _EPICK_MSGS_AVAILABLE:
+            self._update_epick_vacuum_state(executed_tasks)
+        elif gripper == "hande":
+            self._update_hande_grasp_state(executed_tasks)
+
+    def _update_epick_vacuum_state(self, executed_tasks: List[Dict[str, Any]]):
+        """ePick vacuum monitoring — arms/disarms on vacuum_on/vacuum_off."""
         grasp_state = self._grippers.get("epick", {}).get("states", {}).get("grasp", "vacuum_on")
         release_state = self._grippers.get("epick", {}).get("states", {}).get("release", "vacuum_off")
 
@@ -787,22 +824,60 @@ class MTCOrchestratorServer(Node):
                 self._vacuum_lost = False
                 self.get_logger().info("Vacuum monitor DISARMED (vacuum_off detected)")
 
-    def _check_vacuum_lost(self) -> bool:
-        """Check if vacuum was lost since last armed.
+    def _update_hande_grasp_state(self, executed_tasks: List[Dict[str, Any]]):
+        """Hand-E grasp monitoring — arms/disarms on hande_closed/hande_open."""
+        grasp_state = self._grippers.get("hande", {}).get("states", {}).get("grasp", "hande_closed")
+        release_state = self._grippers.get("hande", {}).get("states", {}).get("release", "hande_open")
 
-        Returns True if vacuum lost (caller should abort), False if OK.
+        for task in executed_tasks:
+            if task.get("task_type") != "end_effector":
+                continue
+            action = task.get("end_effector_action", "")
+            if action == grasp_state:
+                # ARM the monitor — gripper just closed
+                self._hande_grasp_lost = False
+                self._hande_grasp_armed = True
+                self.get_logger().info("Hand-E grasp monitor ARMED (close detected)")
+                # Immediate check: did we detect an object?
+                if self._hande_position is not None and self._hande_position < HANDE_CLOSED_THRESHOLD:
+                    self._hande_grasp_lost = True
+                    self.get_logger().warn(
+                        "GRASP_LOST: no object detected immediately after Hand-E close "
+                        f"(position {self._hande_position:.4f}m < threshold {HANDE_CLOSED_THRESHOLD}m)"
+                    )
+            elif action == release_state:
+                # DISARM — intentional open
+                self._hande_grasp_armed = False
+                self._hande_grasp_lost = False
+                self.get_logger().info("Hand-E grasp monitor DISARMED (open detected)")
+
+    def _check_grasp_lost(self) -> bool:
+        """Check if grasp was lost since last armed (ePick or Hand-E).
+
+        Returns True if grasp lost (caller should abort), False if OK.
         Sets self._last_error on failure.
         """
-        if not self._vacuum_armed or not self._vacuum_lost:
-            return False
-        self._last_error = (
-            "VACUUM_LOST: object dropped — ePick reports NO_OBJECT_DETECTED "
-            "while vacuum was active. Send vacuum_off then vacuum_on to retry."
-        )
-        self.get_logger().error(self._last_error)
-        # Disarm so we don't keep firing
-        self._vacuum_armed = False
-        return True
+        # ePick vacuum check
+        if self._vacuum_armed and self._vacuum_lost:
+            self._last_error = (
+                "VACUUM_LOST: object dropped — ePick reports NO_OBJECT_DETECTED "
+                "while vacuum was active. Send vacuum_off then vacuum_on to retry."
+            )
+            self.get_logger().error(self._last_error)
+            self._vacuum_armed = False
+            return True
+
+        # Hand-E grasp check
+        if self._hande_grasp_armed and self._hande_grasp_lost:
+            self._last_error = (
+                "GRASP_LOST: object dropped — Hand-E fingers closed below threshold "
+                "while gripper was holding an object. Re-close gripper to retry pick."
+            )
+            self.get_logger().error(self._last_error)
+            self._hande_grasp_armed = False
+            return True
+
+        return False
 
     def _execute_step(
         self, task_type: str, step: Dict[str, Any], poses_json: str
