@@ -1100,7 +1100,7 @@ class MTCOrchestratorServer(Node):
         Vision-guided pick with hardcoded place:
         - Pick: Detects marker/circle, grasps at detected location
         - Place: Uses predefined joint poses from poses_json
-        - settle_time: Seconds to wait before capture for robot to settle (default: 10.0)
+        - settle_time: Seconds to wait before capture for robot to settle (default: 5.0)
         """
         # Wait for robot vibrations to settle BEFORE calling vision action
         # This happens in orchestrator, completely outside MTC and action server

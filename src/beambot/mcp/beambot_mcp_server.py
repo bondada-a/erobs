@@ -696,11 +696,24 @@ def _read_poses_file() -> dict:
 
 
 def _write_poses_file(poses: dict):
-    """Write poses dict to the YAML file."""
+    """Write poses dict to the YAML file atomically.
+
+    Writes to a temp file first, then renames — prevents corruption
+    if the process is killed mid-write.
+    """
+    import tempfile
+
     path = os.path.realpath(POSES_FILE)
-    os.makedirs(os.path.dirname(path), exist_ok=True)
-    with open(path, "w") as f:
-        yaml.dump(poses, f, default_flow_style=None, width=200)
+    dir_path = os.path.dirname(path)
+    os.makedirs(dir_path, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(dir=dir_path, suffix=".yaml.tmp")
+    try:
+        with os.fdopen(fd, "w") as f:
+            yaml.dump(poses, f, default_flow_style=None, width=200)
+        os.replace(tmp_path, path)
+    except BaseException:
+        os.unlink(tmp_path)
+        raise
 
 
 @mcp.tool()
