@@ -628,6 +628,16 @@ class MTCOrchestratorServer(Node):
                 self._publish_state("IDLE")
                 return result
 
+            # Check if MoveIt subprocess is still alive before dispatching
+            if not self._moveit_manager.is_moveit_alive():
+                exit_info = self._moveit_manager.get_moveit_exit_info()
+                result.error_message = f"MoveIt crashed before step {completed_tasks + 1}: {exit_info}"
+                self.get_logger().error(result.error_message)
+                result.completed_steps = completed_tasks
+                goal_handle.abort()
+                self._publish_state("IDLE")
+                return result
+
             if batch_type == "batched":
                 # Execute batch of batchable tasks as single MTC Task
                 batch_desc = ", ".join(t.get("task_type", "?") for t in batch_tasks)

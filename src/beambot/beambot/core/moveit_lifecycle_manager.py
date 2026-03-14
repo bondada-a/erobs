@@ -63,6 +63,21 @@ class MoveItLifecycleManager:
         # Ensure MoveIt is killed when orchestrator exits
         atexit.register(self.kill_current_process)
 
+    def is_moveit_alive(self) -> bool:
+        """Check if the MoveIt subprocess is still running."""
+        if self._moveit_process is None:
+            return False
+        return self._moveit_process.poll() is None
+
+    def get_moveit_exit_info(self) -> str:
+        """Get exit info if MoveIt has died. Empty string if still running."""
+        if self._moveit_process is None:
+            return "MoveIt process not started"
+        rc = self._moveit_process.poll()
+        if rc is None:
+            return ""
+        return f"MoveIt process exited with code {rc}"
+
     def launch_moveit_with_gripper(self, gripper: str) -> bool:
         """Launch MoveIt with configuration for the specified gripper.
 
