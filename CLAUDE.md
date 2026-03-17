@@ -54,7 +54,7 @@ Hybrid operation: vision-guided pick + hardcoded place positions.
   "task_type": "vision_pick_place",
   "detection_type": "marker",        // "marker" or "circle"
   "tag_id": 5,                       // ArUco marker ID (for marker detection)
-  "z_offset": 0.02,                  // Optional: height above detected point (default: 0.02m)
+  "z_offset": 0.0,                   // Optional: height above detected point (default: from beamline config z_offset)
   "sample_approach": "scan_position", // Joint pose key - robot scans from here
   "place_approach": "place_approach", // Joint pose key
   "place_target": "place"             // Joint pose key
@@ -170,8 +170,8 @@ set_cup_profile(name="7mm_dia")
 This sets the `cup_profile` ROS parameter on the orchestrator. Takes effect on the **next MoveIt launch** for ePick (next goal with `start_gripper="epick"`, or after tool exchange to ePick).
 
 **Available profiles** (defined in `suction_cups.yaml`):
-- `pen_vacuum` -- custom extension nozzle + small cup (37mm extension, 2mm cup)
-- `7mm_dia` -- 7mm diameter cup with short extension (19mm extension, 7mm cup)
+- `pen_vacuum` -- custom extension nozzle + small cup (34.5mm extension, 2mm cup)
+- `7mm_dia` -- 7mm diameter cup with short extension (18mm extension, 6mm cup)
 - `default` -- stock ePick suction cup (no extension, 20mm cup)
 
 **Default**: Set in `default_beamline.yaml` under `grippers.epick.cup_profile`. Currently `"7mm_dia"`. The MCP `set_cup_profile` tool overrides this for the current session.

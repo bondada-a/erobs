@@ -118,7 +118,7 @@
     zivid_model="ZIVID_2_PLUS_MR60"/>
 
   <!-- Tool block attached to the Zivid arm mount (not the camera) -->
-  <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.051" rpy="-1.5708 0 3.14159"/>
+  <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.049" rpy="-1.5708 0 3.14159"/>
 
   <!-- Pipettor attached to tool block -->
   <xacro:pipette

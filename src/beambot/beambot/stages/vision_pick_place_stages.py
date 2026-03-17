@@ -110,8 +110,7 @@ class VisionPickPlaceStages(BaseStages):
         except json.JSONDecodeError as e:
             return f"Invalid gripper_states_json: {e}"
 
-        # Get z_offset (default 0.002m — compensates for ~2mm URDF residual error, set to 0 once fixed)
-        z_offset = goal.z_offset if goal.z_offset != 0.0 else 0.002
+        z_offset = goal.z_offset
 
         # Parse optional path constraints
         constraints = parse_constraints(

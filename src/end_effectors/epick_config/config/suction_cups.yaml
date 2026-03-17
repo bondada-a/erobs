@@ -12,16 +12,16 @@
 cups:
   pen_vacuum:
     description: "Custom extension nozzle + small cup (CMS beamline)"
-    extension_length: 0.037
+    extension_length: 0.0345
     extension_radius: 0.001
     suction_cup_height: 0.002
     suction_cup_radius: 0.0035
 
   7mm_dia:
     description: "7mm diameter cup with short extension"
-    extension_length: 0.019
+    extension_length: 0.018
     extension_radius: 0.006
-    suction_cup_height: 0.007
+    suction_cup_height: 0.006
     suction_cup_radius: 0.0035
 
   default:

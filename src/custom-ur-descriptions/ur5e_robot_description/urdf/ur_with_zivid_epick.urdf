@@ -729,7 +729,7 @@
   <joint name="tool_block_joint" type="fixed">
     <parent link="zivid_arm_mount"/>
     <child link="tool_block"/>
-    <origin rpy="-1.5708 0 3.14159" xyz="0 0 0.051"/>
+    <origin rpy="-1.5708 0 3.14159" xyz="0 0 0.049"/>
   </joint>
   <ros2_control name="epick_driver_ros2_control" type="system">
     <hardware>
@@ -823,7 +823,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <cylinder length="0.037" radius="0.001"/>
+        <cylinder length="0.0345" radius="0.001"/>
       </geometry>
       <material name="">
         <color rgba="0.25 0.25 0.25 1"/>
@@ -832,14 +832,14 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <cylinder length="0.037" radius="0.001"/>
+        <cylinder length="0.0345" radius="0.001"/>
       </geometry>
     </collision>
   </link>
   <joint name="epick_body_to_epick_extension" type="fixed">
     <parent link="epick_body"/>
     <child link="epick_extension"/>
-    <origin rpy="0 0 0" xyz="0 0 0.06965"/>
+    <origin rpy="0 0 0" xyz="0 0 0.0684"/>
   </joint>
   <link name="epick_suction_cup">
     <visual>
@@ -861,7 +861,7 @@
   <joint name="epick_extension_to_epick_suction_cup" type="fixed">
     <parent link="epick_extension"/>
     <child link="epick_suction_cup"/>
-    <origin rpy="0 0 0" xyz="0 0 0.0195"/>
+    <origin rpy="0 0 0" xyz="0 0 0.018250000000000002"/>
   </joint>
   <!-- TIP Frame -->
   <!-- represents the outmost point of the collision geometry -->
