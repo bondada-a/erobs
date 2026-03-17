@@ -120,10 +120,20 @@
   <!-- Tool block attached to the Zivid arm mount (not the camera) -->
   <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.051" rpy="-1.5708 0 3.14159"/>
 
+  <!-- Suction cup dimensions (passed from launch file via cup profile) -->
+  <xacro:arg name="extension_length" default="0.037"/>
+  <xacro:arg name="extension_radius" default="0.001"/>
+  <xacro:arg name="suction_cup_height" default="0.002"/>
+  <xacro:arg name="suction_cup_radius" default="0.0035"/>
+
   <!-- Epick Gripper -->
   <xacro:epick_overlay use_fake_hardware="$(arg use_fake_hardware)" parent="tool_block"
                   origin_xyz="0 -0.03235 0"
-                  origin_rpy="-1.5708 0 3.1416"/>
+                  origin_rpy="-1.5708 0 3.1416"
+                  extension_length="$(arg extension_length)"
+                  extension_radius="$(arg extension_radius)"
+                  suction_cup_height="$(arg suction_cup_height)"
+                  suction_cup_radius="$(arg suction_cup_radius)"/>
 </robot>
 
 

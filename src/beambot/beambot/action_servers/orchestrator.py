@@ -94,6 +94,7 @@ class MTCOrchestratorServer(Node):
         self.declare_parameter("beamline_config", "config/default_beamline.yaml")
         self.declare_parameter("use_fake_hardware", False)
         self.declare_parameter("enable_batching", True)
+        self.declare_parameter("cup_profile", "")  # Override cup profile (empty = use beamline config default)
 
         config_file = self.get_parameter("beamline_config").value
         self._use_fake_hardware = self.get_parameter("use_fake_hardware").value
@@ -566,6 +567,11 @@ class MTCOrchestratorServer(Node):
         self._current_gripper = start_gripper
         self._publish_gripper(start_gripper)
 
+        # Apply cup_profile override if parameter was changed via MCP
+        cup_override = self.get_parameter("cup_profile").value
+        if cup_override and start_gripper in self._grippers:
+            self._grippers[start_gripper]["cup_profile"] = cup_override
+
         # Step 1: Launch MoveIt for the gripper configuration
         self._update_feedback(
             feedback, goal_handle, 0, task_count, "Initializing MoveIt"
@@ -1012,7 +1018,7 @@ class MTCOrchestratorServer(Node):
         goal.timeout = float(step.get("timeout", 10.0))
         goal.poses_json = poses_json
         goal.detection_type = step.get("detection_type", "marker")
-        goal.z_offset = float(step.get("z_offset", 0.0))
+        goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
 
         # Handle multi-position scan mode
         # Task JSON: "scan_positions": ["sample_scan_1", "sample_scan_2", "sample_scan_3"]
@@ -1129,7 +1135,7 @@ class MTCOrchestratorServer(Node):
         # Vision detection config
         goal.detection_type = step.get("detection_type", "marker")
         goal.tag_id = int(step.get("tag_id", 0))
-        goal.z_offset = float(step.get("z_offset", 0.02))
+        goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
 
         # Pose keys (references into poses_json)
         goal.sample_approach = step.get("sample_approach", "")

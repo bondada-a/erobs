@@ -29,6 +29,8 @@ grippers:
     moveit_package: "ur_zivid_epick_moveit_config"
     tool_voltage: 24
     gripper_group: "epick_gripper"
+    cup_profile: "7mm_dia"
+    z_offset: 0.002  # ~2mm residual error in shared chain (arm_mount/tool_block), set to 0 once fixed
     states:
       grasp: "vacuum_on"
       release: "vacuum_off"

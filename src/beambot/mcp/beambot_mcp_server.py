@@ -812,6 +812,40 @@ async def delete_pose(name: str) -> str:
 
 
 @mcp.tool()
+async def set_cup_profile(name: str) -> str:
+    """Set the active ePick suction cup profile.
+
+    Changes which suction cup dimensions are used when MoveIt launches
+    for the ePick gripper. Takes effect on the next MoveIt launch (next goal
+    with start_gripper="epick", or after a tool exchange to ePick).
+
+    Available profiles are defined in epick_config/config/suction_cups.yaml.
+
+    Args:
+        name: Cup profile name (e.g., "pen_vacuum", "7mm_dia", "default").
+    """
+    import subprocess as _sp
+
+    try:
+        result = _sp.run(
+            ["ros2", "param", "set", "/beambot_orchestrator", "cup_profile", name],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0:
+            return json.dumps({
+                "cup_profile": name,
+                "message": f"Cup profile set to '{name}'. Takes effect on next ePick MoveIt launch.",
+            })
+        else:
+            return json.dumps({
+                "error": f"Failed to set parameter: {result.stderr.strip()}",
+                "note": "Is the orchestrator running?",
+            })
+    except Exception as e:
+        return json.dumps({"error": f"Failed to set cup profile: {e}"})
+
+
+@mcp.tool()
 async def capture_image(
     camera: str = "zivid",
     mode: str = "3d",

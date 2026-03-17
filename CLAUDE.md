@@ -159,6 +159,27 @@ The `full_json` value is a **JSON string** (not a nested object). Use `get_saved
 
 ---
 
+## ePick Suction Cup Profiles
+
+The ePick gripper supports swappable suction cups. Cup dimensions are defined in `epick_config/config/suction_cups.yaml` and affect the URDF geometry (collision, tip frame position).
+
+**Changing cup profile via MCP** (no rebuild needed):
+```
+set_cup_profile(name="7mm_dia")
+```
+This sets the `cup_profile` ROS parameter on the orchestrator. Takes effect on the **next MoveIt launch** for ePick (next goal with `start_gripper="epick"`, or after tool exchange to ePick).
+
+**Available profiles** (defined in `suction_cups.yaml`):
+- `pen_vacuum` -- custom extension nozzle + small cup (37mm extension, 2mm cup)
+- `7mm_dia` -- 7mm diameter cup with short extension (19mm extension, 7mm cup)
+- `default` -- stock ePick suction cup (no extension, 20mm cup)
+
+**Default**: Set in `default_beamline.yaml` under `grippers.epick.cup_profile`. Currently `"7mm_dia"`. The MCP `set_cup_profile` tool overrides this for the current session.
+
+**Adding a new cup**: Add an entry to `suction_cups.yaml` with `extension_length`, `extension_radius`, `suction_cup_height`, `suction_cup_radius` (all in meters), then `colcon build --packages-select epick_config`.
+
+---
+
 ## Error Handling -- Taxonomy & Recovery Policy
 
 After sending a goal to `/beambot_execution`, **always read `error_message`** from the result before deciding what to do next. The orchestrator propagates specific error strings from MoveIt and the stage implementations.
