@@ -22,9 +22,9 @@ from beambot.stages.base_stages import (
 # Known gripper tip frames and their TF parent for detection.
 # Checked in order — first match wins.
 _GRIPPER_TIP_FRAMES = [
-    "epick_tip",           # OnRobot ePick vacuum gripper
+    "epick_tip",           # Robotiq ePick vacuum gripper
     "robotiq_hande_end",   # Robotiq Hand-E adaptive gripper
-    # Add new gripper tip frames here
+    "2fg7_tip",            # OnRobot 2FG7 parallel gripper
 ]
 
 

@@ -35,6 +35,16 @@ grippers:
       grasp: "vacuum_on"
       release: "vacuum_off"
 
+  2fg7:
+    moveit_package: "ur_zivid_2fg7_moveit_config"
+    tool_voltage: 24
+    tool_baud_rate: 1000000
+    tool_parity: 2                 # Even parity (0=none, 1=odd, 2=even)
+    gripper_group: "2fg7_gripper"
+    states:
+      grasp: "2fg7_closed"
+      release: "2fg7_open"
+
   pipettor:
     moveit_package: "ur_zivid_pipettor_moveit_config"
     tool_voltage: 24
