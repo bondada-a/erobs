@@ -25,6 +25,7 @@ _GRIPPER_TIP_FRAMES = [
     "epick_tip",           # Robotiq ePick vacuum gripper
     "robotiq_hande_end",   # Robotiq Hand-E adaptive gripper
     "2fg7_tip",            # OnRobot 2FG7 parallel gripper
+    "pipette_tip_link",    # Pipettor nozzle tip
 ]
 
 

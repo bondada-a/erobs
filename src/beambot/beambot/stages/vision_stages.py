@@ -1091,6 +1091,14 @@ class VisionStages(BaseStages):
         ):
             return GripperDetection("robotiq_hande_end", -0.02)
 
+        # Check for Pipettor
+        if self._tf_buffer.can_transform(
+            "base", "pipette_tip_link",
+            rclpy.time.Time(),
+            timeout=rclpy.duration.Duration(seconds=1.0)
+        ):
+            return GripperDetection("pipette_tip_link", 0.0)
+
         # Default to flange
         self.logger.info("No gripper detected, using flange")
         return GripperDetection("flange", 0.0)

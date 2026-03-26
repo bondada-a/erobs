@@ -69,3 +69,21 @@ camera:
   type: "zivid"
   frame: "zivid_optical_frame"
   marker_dictionary: "aruco4x4_50"
+
+# Pipettor tip rack configuration
+tip_rack:
+  marker_id: 10
+  marker_dictionary: "aruco4x4_50"
+  # Offset from marker center to first tip (A1) in marker local frame (meters)
+  offset_marker_x: -0.024      # -X in marker frame
+  offset_marker_y: -0.058      # -Y in marker frame
+  # Approach/press distances in flange frame (gravity-aligned, meters)
+  approach_forward: 0.050       # descend to above tip
+  press_forward: 0.023          # press down to seat tip
+  retreat_backward: 0.100       # retreat after pickup
+  # Grid layout (standard 96-well rack)
+  grid_rows: 8                  # A-H
+  grid_cols: 12                 # 1-12
+  grid_pitch: 0.009             # 9mm between wells
+  row_direction: "marker_-y"    # next row = -9mm in marker Y
+  col_direction: "marker_-x"    # next col = -9mm in marker X

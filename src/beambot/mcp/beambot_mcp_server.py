@@ -55,6 +55,14 @@ from sensor_msgs.msg import Image, JointState, PointCloud2
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
 from tf2_ros import Buffer, TransformListener, TransformException
+from tf_transformations import quaternion_matrix
+
+# Zivid native marker detection (optional — only when zivid_interfaces is available)
+try:
+    from zivid_interfaces.srv import CaptureAndDetectMarkers
+    _ZIVID_MARKER_AVAILABLE = True
+except ImportError:
+    _ZIVID_MARKER_AVAILABLE = False
 from cv_bridge import CvBridge
 
 # ePick vacuum feedback (optional — only available when epick_msgs is built)
@@ -73,6 +81,7 @@ logger = logging.getLogger("beambot-mcp")
 ZIVID_IMAGE_TOPIC = "/color/image_color"
 ZIVID_CLOUD_TOPIC = "/points/xyzrgba"
 ZIVID_CAPTURE_SERVICE = "/capture"
+ZIVID_MARKER_SERVICE = "/capture_and_detect_markers"
 ZIVID_FRAME = "zivid_optical_frame"
 
 # ZED topics (continuous streaming)
@@ -296,6 +305,14 @@ class ROS2BridgeNode(Node):
             Trigger, ZIVID_CAPTURE_SERVICE, callback_group=self._cb_group,
         )
 
+        # Zivid native marker detection client
+        self._marker_detect_client = None
+        if _ZIVID_MARKER_AVAILABLE:
+            self._marker_detect_client = self.create_client(
+                CaptureAndDetectMarkers, ZIVID_MARKER_SERVICE,
+                callback_group=self._cb_group,
+            )
+
         # ZED subscriptions (streaming — always has latest frame)
         self._zed_image_sub = self.create_subscription(
             Image, ZED_IMAGE_TOPIC, self._on_zed_image, ZED_QOS,
@@ -461,6 +478,88 @@ class ROS2BridgeNode(Node):
         self._waiting_for_capture = False
         self.get_logger().info("Capture complete — image and cloud received")
         return True
+
+    def detect_marker(self, marker_id: int, dictionary: str = "aruco4x4_50",
+                      timeout: float = 30.0) -> Optional[Dict]:
+        """Detect an ArUco marker using Zivid native detection and transform to base_link.
+
+        Returns dict with 'position' [x,y,z], 'orientation' [x,y,z,w], or None on failure.
+        """
+        if self._marker_detect_client is None:
+            self.get_logger().error("Zivid marker detection not available")
+            return None
+
+        # Wait for service with extended timeout (DDS discovery can be slow)
+        service_ready = False
+        for _ in range(10):
+            if self._marker_detect_client.service_is_ready():
+                service_ready = True
+                break
+            time.sleep(0.5)
+        if not service_ready:
+            self.get_logger().error(
+                f"Zivid marker service '{ZIVID_MARKER_SERVICE}' not available after 5s"
+            )
+            return None
+
+        # Record pre-capture timestamp for TF accuracy
+        pre_capture_stamp = self.get_clock().now().to_msg()
+
+        request = CaptureAndDetectMarkers.Request()
+        request.marker_ids = [marker_id]
+        request.marker_dictionary = dictionary
+
+        self.get_logger().info(f"Calling marker detection for ID {marker_id}...")
+        future = self._marker_detect_client.call_async(request)
+        deadline = time.monotonic() + timeout
+        while not future.done() and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+        if not future.done():
+            self.get_logger().error("Marker detection timed out")
+            return None
+
+        result = future.result()
+        if not result.success or not result.detection_result.detected_markers:
+            self.get_logger().warn(f"Marker {marker_id} not detected: {result.message}")
+            return None
+
+        marker = result.detection_result.detected_markers[0]
+        cam_pos = marker.pose.position
+        cam_ori = marker.pose.orientation
+        self.get_logger().info(
+            f"Marker {marker_id} in camera: ({cam_pos.x*1000:.1f}, "
+            f"{cam_pos.y*1000:.1f}, {cam_pos.z*1000:.1f}) mm"
+        )
+
+        # Transform to base_link using pre-capture timestamp
+        tf = self.lookup_transform("base_link", ZIVID_FRAME, stamp=pre_capture_stamp)
+        if tf is None:
+            self.get_logger().error("Failed to get TF for marker transform")
+            return None
+
+        # Apply transform: rotate position, then translate
+        from geometry_msgs.msg import PoseStamped
+        from tf2_geometry_msgs import do_transform_pose_stamped
+
+        pose_in = PoseStamped()
+        pose_in.header.frame_id = ZIVID_FRAME
+        pose_in.header.stamp = pre_capture_stamp
+        pose_in.pose = marker.pose
+
+        pose_out = do_transform_pose_stamped(pose_in, tf)
+
+        pos = pose_out.pose.position
+        ori = pose_out.pose.orientation
+        self.get_logger().info(
+            f"Marker {marker_id} in base_link: ({pos.x*1000:.1f}, "
+            f"{pos.y*1000:.1f}, {pos.z*1000:.1f}) mm"
+        )
+
+        return {
+            "position": [pos.x, pos.y, pos.z],
+            "orientation": [ori.x, ori.y, ori.z, ori.w],
+        }
 
     def lookup_transform(
         self, target_frame: str, source_frame: str, stamp=None, timeout_sec: float = 2.0,
@@ -1537,6 +1636,120 @@ async def get_recent_logs(
         },
     }
     return json.dumps(result)
+
+
+# ---------------------------------------------------------------------------
+# Tip Rack Configuration
+# ---------------------------------------------------------------------------
+
+def _load_tip_rack_config() -> Optional[Dict]:
+    """Load tip rack config from default_beamline.yaml."""
+    try:
+        from ament_index_python.packages import get_package_share_directory
+        config_path = os.path.join(
+            get_package_share_directory("beambot"), "config", "default_beamline.yaml"
+        )
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+        return config.get("tip_rack")
+    except Exception as e:
+        logger.error(f"Failed to load tip rack config: {e}")
+        return None
+
+
+@mcp.tool()
+async def pickup_tip(
+    tip_index: int = 0,
+    row: int = -1,
+    col: int = -1,
+) -> str:
+    """Build task JSON for picking up a pipettor tip from the tip rack.
+
+    Uses vision_moveto to detect the ArUco marker and align the flange with it.
+    Since vision_moveto orients the flange to match the marker, the flange-frame
+    offsets to any tip are constant regardless of rack rotation on the table.
+
+    Grid offsets are applied in flange frame:
+      - A1 is at "left"/"up" from marker (marker -X/-Y direction)
+      - Next columns go "right" (marker +X), next rows go "down" (marker +Y)
+
+    Returns the task JSON. Send it to /beambot_execution via send_action_goal
+    to execute.
+
+    Specify the tip by either:
+      - tip_index: 0-95, row-major order (0=A1, 1=A2, ..., 12=B1, etc.)
+      - row + col: 0-indexed (row=0 col=0 is A1)
+
+    Args:
+        tip_index: Tip number 0-95 in row-major order. Ignored if row/col given.
+        row: Row index 0-7 (A-H). Use with col.
+        col: Column index 0-11 (1-12). Use with row.
+
+    Returns:
+        JSON with task_json to send to the orchestrator.
+    """
+    # Load config
+    config = _load_tip_rack_config()
+    if config is None:
+        return json.dumps({"error": "tip_rack config not found in default_beamline.yaml"})
+
+    marker_id = config["marker_id"]
+    grid_rows = config["grid_rows"]
+    grid_cols = config["grid_cols"]
+    grid_pitch = config["grid_pitch"]
+    offset_left = abs(config["offset_marker_x"])    # marker -X = flange "left"
+    offset_up = abs(config["offset_marker_y"])       # marker -Y = flange "up"
+    approach_fwd = config["approach_forward"]
+    press_fwd = config["press_forward"]
+    retreat_bwd = config["retreat_backward"]
+
+    # Resolve row/col
+    if row >= 0 and col >= 0:
+        if row >= grid_rows or col >= grid_cols:
+            return json.dumps({"error": f"row={row}, col={col} out of range "
+                               f"(max: {grid_rows-1}, {grid_cols-1})"})
+    else:
+        if tip_index < 0 or tip_index >= grid_rows * grid_cols:
+            return json.dumps({"error": f"tip_index={tip_index} out of range (0-{grid_rows*grid_cols-1})"})
+        row = tip_index // grid_cols
+        col = tip_index % grid_cols
+
+    # Compute flange-frame offsets for this tip
+    # A1 is at offset_left/offset_up from marker
+    # Next columns go right (subtract from left), next rows go down (subtract from up)
+    tip_left = offset_left - col * grid_pitch
+    tip_up = offset_up - row * grid_pitch
+
+    # Build flange-frame move steps, handling sign flips for right/down
+    col_dir = "left" if tip_left >= 0 else "right"
+    col_dist = abs(tip_left)
+    row_dir = "up" if tip_up >= 0 else "down"
+    row_dist = abs(tip_up)
+
+    # Build the full task sequence
+    task_json = json.dumps({
+        "start_gripper": "pipettor",
+        "tasks": [
+            {"task_type": "vision_moveto", "tag_id": marker_id},
+            {"task_type": "moveto", "target": "", "planning_type": "cartesian",
+             "direction": "forward", "distance": approach_fwd},
+            {"task_type": "moveto", "target": "", "planning_type": "cartesian",
+             "direction": col_dir, "distance": round(col_dist, 6)},
+            {"task_type": "moveto", "target": "", "planning_type": "cartesian",
+             "direction": row_dir, "distance": round(row_dist, 6)},
+            {"task_type": "moveto", "target": "", "planning_type": "cartesian",
+             "direction": "forward", "distance": press_fwd},
+            {"task_type": "moveto", "target": "", "planning_type": "cartesian",
+             "direction": "backward", "distance": retreat_bwd},
+        ],
+        "poses": {},
+    })
+
+    return json.dumps({
+        "task_json": task_json,
+        "tip": {"row": row, "col": col, "index": row * grid_cols + col},
+        "offsets_mm": {col_dir: round(col_dist * 1000, 1), row_dir: round(row_dist * 1000, 1)},
+    })
 
 
 # ---------------------------------------------------------------------------
