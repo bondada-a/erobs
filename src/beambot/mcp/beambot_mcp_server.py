@@ -1727,22 +1727,37 @@ async def pickup_tip(
     row_dist = abs(tip_up)
 
     # Build the full task sequence
+    # Read scan pose from poses.yaml and include inline (orchestrator needs it in the JSON)
+    scan_pose_name = config.get("scan_pose", "pipettor_scan")
+    poses_dict = {}
+    all_poses = _read_poses_file()
+    if scan_pose_name in all_poses:
+        poses_dict[scan_pose_name] = all_poses[scan_pose_name]
+
     task_json = json.dumps({
         "start_gripper": "pipettor",
         "tasks": [
+            # Move to scan position where camera can see the marker
+            {"task_type": "moveto", "target": scan_pose_name},
+            # Detect marker and align flange with it
             {"task_type": "vision_moveto", "tag_id": marker_id},
+            # Approach toward rack surface
             {"task_type": "moveto", "target": "", "planning_type": "cartesian",
              "direction": "forward", "distance": approach_fwd},
+            # Move to tip column
             {"task_type": "moveto", "target": "", "planning_type": "cartesian",
              "direction": col_dir, "distance": round(col_dist, 6)},
+            # Move to tip row
             {"task_type": "moveto", "target": "", "planning_type": "cartesian",
              "direction": row_dir, "distance": round(row_dist, 6)},
+            # Press down to seat tip
             {"task_type": "moveto", "target": "", "planning_type": "cartesian",
              "direction": "forward", "distance": press_fwd},
+            # Retreat to clear the rack
             {"task_type": "moveto", "target": "", "planning_type": "cartesian",
              "direction": "backward", "distance": retreat_bwd},
         ],
-        "poses": {},
+        "poses": poses_dict,
     })
 
     return json.dumps({

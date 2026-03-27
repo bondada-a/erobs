@@ -74,13 +74,14 @@ camera:
 tip_rack:
   marker_id: 10
   marker_dictionary: "aruco4x4_50"
+  scan_pose: "pipettor_scan"            # Named pose from poses.yaml — camera sees marker
   # Offset from marker center to first tip (A1) in marker local frame (meters)
   offset_marker_x: -0.024      # -X in marker frame
   offset_marker_y: -0.058      # -Y in marker frame
   # Approach/press distances in flange frame (gravity-aligned, meters)
   approach_forward: 0.050       # descend to above tip
   press_forward: 0.023          # press down to seat tip
-  retreat_backward: 0.100       # retreat after pickup
+  retreat_backward: 0.150       # retreat after pickup (clear the rack)
   # Grid layout (standard 96-well rack)
   grid_rows: 8                  # A-H
   grid_cols: 12                 # 1-12
