@@ -1000,7 +1000,7 @@ class VisionStages(BaseStages):
             active_ik_frame = self.ik_frame
             # Default z_offset based on gripper type
             if "epick" in active_ik_frame:
-                active_z_offset = 0.0
+                active_z_offset = 0.003
             else:
                 active_z_offset = -0.02
 
@@ -1086,7 +1086,7 @@ class VisionStages(BaseStages):
             rclpy.time.Time(),
             timeout=rclpy.duration.Duration(seconds=1.0)
         ):
-            return GripperDetection("epick_tip", 0.0)
+            return GripperDetection("epick_tip", 0.003)
 
         # Check for Hand-E gripper
         if self._tf_buffer.can_transform(

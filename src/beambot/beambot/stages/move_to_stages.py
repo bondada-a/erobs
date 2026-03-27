@@ -13,7 +13,7 @@ import rclpy
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 from tf2_ros import Buffer, TransformListener
-from tf_transformations import quaternion_from_euler
+from tf_transformations import quaternion_from_euler, euler_from_quaternion
 
 from beambot.stages.base_stages import (
     BaseStages, joints_from_degrees, parse_constraints, apply_constraints,
@@ -34,14 +34,46 @@ class MoveToStages(BaseStages):
 
     def __init__(self, rclpy_node, arm_group: str = "", ik_frame: str = ""):
         super().__init__(rclpy_node, arm_group, ik_frame)
-        self._tf_buffer = None
-        self._tf_listener = None
+        # Initialize TF eagerly so the buffer is populated by the time
+        # any Cartesian target or IK frame detection is needed
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self.rclpy_node)
 
     def _ensure_tf(self):
-        """Lazy-initialize TF buffer on first Cartesian target use."""
-        if self._tf_buffer is None:
-            self._tf_buffer = Buffer()
-            self._tf_listener = TransformListener(self._tf_buffer, self.rclpy_node)
+        """No-op kept for backward compatibility."""
+        pass
+
+    def _get_current_yaw(self, frame: str = "flange") -> float:
+        """Get the current yaw of a robot frame in base_link.
+
+        Used as the default yaw for 3-value cartesian_target (XYZ only)
+        so the robot maintains its current wrist orientation.
+
+        Args:
+            frame: Robot frame to query (should match the IK frame, e.g.
+                   "epick_tip", "robotiq_hande_end", or "flange").
+
+        Returns:
+            Current yaw in radians, or 0.0 if TF lookup fails.
+        """
+        self._ensure_tf()
+        try:
+            t = self._tf_buffer.lookup_transform(
+                "base_link", frame,
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=2.0)
+            )
+            q = [
+                t.transform.rotation.x,
+                t.transform.rotation.y,
+                t.transform.rotation.z,
+                t.transform.rotation.w
+            ]
+            _, _, yaw = euler_from_quaternion(q)
+            return yaw
+        except Exception as e:
+            self.logger.warn(f"Failed to get current yaw from {frame}: {e}, defaulting to 0")
+            return 0.0
 
     def _detect_gripper_ik_frame(self) -> str:
         """Auto-detect gripper tip frame from TF, like vision_stages.py.
@@ -133,6 +165,10 @@ class MoveToStages(BaseStages):
 
         # Case 2: Cartesian pose target ([x,y,z] or [x,y,z,r,p,y])
         elif len(goal.cartesian_target) >= 3:
+            # Auto-detect gripper tip frame first — needed for both IK and
+            # default yaw lookup (different frames have different yaw values)
+            active_ik_frame = self._detect_gripper_ik_frame()
+
             pose = PoseStamped()
             pose.header.frame_id = goal.frame_id if goal.frame_id else "base_link"
             pose.pose.position.x = goal.cartesian_target[0]
@@ -145,17 +181,16 @@ class MoveToStages(BaseStages):
                 y = math.radians(goal.cartesian_target[5])
                 q = quaternion_from_euler(r, p, y)
             else:
-                # Default: straight-down (180° around X)
-                q = quaternion_from_euler(math.pi, 0.0, 0.0)
+                # Default: straight-down with current IK frame yaw
+                # Preserves the robot's current yaw to avoid unreachable orientations
+                current_yaw = self._get_current_yaw(active_ik_frame)
+                q = quaternion_from_euler(math.pi, 0.0, current_yaw)
+                self.logger.info(f"Using current yaw from {active_ik_frame}: {math.degrees(current_yaw):.1f}°")
 
             pose.pose.orientation.x = q[0]
             pose.pose.orientation.y = q[1]
             pose.pose.orientation.z = q[2]
             pose.pose.orientation.w = q[3]
-
-            # Auto-detect gripper tip frame so the target places the gripper
-            # tip (not the flange) at the desired position
-            active_ik_frame = self._detect_gripper_ik_frame()
 
             if use_fallback:
                 # Fallback chain: Pilz LIN → CartesianPath

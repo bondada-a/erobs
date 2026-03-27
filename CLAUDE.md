@@ -32,6 +32,17 @@ Note: Joint poses are in **degrees**, converted to radians internally.
 ```
 Executes 9-stage sequence: open -> approach -> pick -> close -> retreat -> approach -> place -> open -> retreat
 
+### tool_exchange Task Format
+```json
+{"task_type": "tool_exchange", "operation": "dock", "gripper": "epick", "dock_number": 4, "approach_pose": "dock_approach"}
+{"task_type": "tool_exchange", "operation": "load", "gripper": "pipettor", "dock_number": 2, "approach_pose": "load_approach"}
+```
+- `operation`: `"dock"` (put gripper away) or `"load"` (pick up gripper)
+- `gripper`: Which gripper to dock/load
+- `dock_number`: Physical dock slot number
+- `approach_pose`: Joint pose name for approaching the dock
+- **IMPORTANT: ALWAYS use `"dock_approach"` for dock operations and `"load_approach"` for load operations.** These are different poses tuned for each operation direction. Using the wrong approach pose causes collisions or failed exchanges.
+
 ### Gripper Auto-Detection
 Tasks that need gripper info (`end_effector`, `pick_and_place`, `vision_pick_place`) default to the currently attached gripper if not specified. The orchestrator tracks `start_gripper` and updates it after `tool_exchange` operations.
 

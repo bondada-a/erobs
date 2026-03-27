@@ -30,7 +30,7 @@ grippers:
     tool_voltage: 24
     gripper_group: "epick_gripper"
     cup_profile: "7mm_dia"
-    z_offset: 0.0
+    z_offset: 0.003
     states:
       grasp: "vacuum_on"
       release: "vacuum_off"
