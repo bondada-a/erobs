@@ -25,7 +25,7 @@ from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from shape_msgs.msg import SolidPrimitive
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
-from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix
+from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix, euler_from_quaternion
 
 from beambot.camera import get_camera
 from beambot.camera.zivid import DetectionResult
@@ -1034,25 +1034,30 @@ class VisionStages(BaseStages):
         approach.pose.position.y = target.pose.position.y + world_offset[1]
         approach.pose.position.z = target.pose.position.z + active_z_offset
 
-        # Apply 180° rotation around Z axis
-        q_orig = [
+        # Straight-down orientation with marker-aligned yaw
+        # 1. Compute yaw from the original marker orientation + 180° Z rotation
+        #    (this produces a yaw consistent with the robot's wrist angle)
+        # 2. Combine with fixed roll=180°, pitch=0 for stable flat approach
+        #    (avoids bimodal Z errors from using marker roll/pitch directly)
+        q_marker = [
             target.pose.orientation.x,
             target.pose.orientation.y,
             target.pose.orientation.z,
             target.pose.orientation.w
         ]
-        q_rot = quaternion_from_euler(0, 0, math.pi)
-        q_final = quaternion_multiply(q_orig, q_rot)
-
-        approach.pose.orientation.x = q_final[0]
-        approach.pose.orientation.y = q_final[1]
-        approach.pose.orientation.z = q_final[2]
-        approach.pose.orientation.w = q_final[3]
+        q_z180 = quaternion_from_euler(0, 0, math.pi)
+        q_rotated = quaternion_multiply(q_marker, q_z180)
+        _, _, approach_yaw = euler_from_quaternion(q_rotated)
+        q_approach = quaternion_from_euler(math.pi, 0, approach_yaw)
+        approach.pose.orientation.x = q_approach[0]
+        approach.pose.orientation.y = q_approach[1]
+        approach.pose.orientation.z = q_approach[2]
+        approach.pose.orientation.w = q_approach[3]
 
         self.logger.info(
             f"Moving to [{approach.pose.position.x:.3f}, "
             f"{approach.pose.position.y:.3f}, {approach.pose.position.z:.3f}] "
-            f"with 180° Z-rot, z_offset={active_z_offset:.3f}"
+            f"yaw={math.degrees(approach_yaw):.1f}°, z_offset={active_z_offset:.3f}"
         )
 
         # Use MTC with Pilz LIN for collision-free straight-line approach

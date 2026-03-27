@@ -75,9 +75,9 @@
     <hardware>
       <plugin>ur_robot_driver/URPositionHardwareInterface</plugin>
       <param name="robot_ip">0.0.0.0</param>
-      <param name="script_filename"></param>
-      <param name="output_recipe_filename"></param>
-      <param name="input_recipe_filename"></param>
+      <param name="script_filename">&quot;&quot;</param>
+      <param name="output_recipe_filename">&quot;&quot;</param>
+      <param name="input_recipe_filename">&quot;&quot;</param>
       <param name="headless_mode">False</param>
       <param name="reverse_port">50001</param>
       <param name="script_sender_port">50002</param>
@@ -627,8 +627,11 @@
     <child link="zivid_optical_frame"/>
     <!-- Hand-eye calibration: tool0 -> optical_frame -->
     <!-- Rotation: Euler XYZ extrinsic, radians | Translation: meters -->
-    <!-- Calibration (2026-03-25): Residuals: rot < 0.15°, trans < 1.0mm -->
-    <origin rpy="-0.03489 0.05317 3.13637" xyz="0.05475 0.10491 0.06013"/>
+    <!-- Calibration (2026-03-27): 12 poses (pose 4 excluded as outlier). Residuals: rot < 0.33°, trans < 1.53mm -->
+    <origin rpy="-0.03622 0.05218 3.13437" xyz="0.05635 0.10228 0.06025"/>
+    <!-- Calibration (2026-03-25): Residuals: rot < 0.15°, trans < 1.0mm
+      <origin xyz="0.05475 0.10491 0.06013"
+              rpy="-0.03489 0.05317 3.13637"/> -->
     <!-- Calibration (2026-01-15): Residuals: rot < 0.22°, trans < 0.47mm
       <origin xyz="0.05675 0.10322 0.05489"
               rpy="-0.00615 0.04362 3.13541"/> -->
@@ -826,7 +829,7 @@
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <cylinder length="0.0345" radius="0.001"/>
+        <cylinder length="0.018" radius="0.006"/>
       </geometry>
       <material name="">
         <color rgba="0.25 0.25 0.25 1"/>
@@ -835,20 +838,20 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <cylinder length="0.0345" radius="0.001"/>
+        <cylinder length="0.018" radius="0.006"/>
       </geometry>
     </collision>
   </link>
   <joint name="epick_body_to_epick_extension" type="fixed">
     <parent link="epick_body"/>
     <child link="epick_extension"/>
-    <origin rpy="0 0 0" xyz="0 0 0.0684"/>
+    <origin rpy="0 0 0" xyz="0 0 0.06015"/>
   </joint>
   <link name="epick_suction_cup">
     <visual>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <cylinder length="0.002" radius="0.0035"/>
+        <cylinder length="0.006" radius="0.0035"/>
       </geometry>
       <material name="">
         <color rgba="0.25 0.25 0.25 1"/>
@@ -857,14 +860,14 @@
     <collision>
       <origin rpy="0 0 0" xyz="0 0 0"/>
       <geometry>
-        <cylinder length="0.002" radius="0.0035"/>
+        <cylinder length="0.006" radius="0.0035"/>
       </geometry>
     </collision>
   </link>
   <joint name="epick_extension_to_epick_suction_cup" type="fixed">
     <parent link="epick_extension"/>
     <child link="epick_suction_cup"/>
-    <origin rpy="0 0 0" xyz="0 0 0.018250000000000002"/>
+    <origin rpy="0 0 0" xyz="0 0 0.012"/>
   </joint>
   <!-- TIP Frame -->
   <!-- represents the outmost point of the collision geometry -->
@@ -872,7 +875,7 @@
   <joint name="epick_suction_cup_to_epick_tip" type="fixed">
     <parent link="epick_suction_cup"/>
     <child link="epick_tip"/>
-    <origin rpy="0 0 0" xyz="0 0 0.001"/>
+    <origin rpy="0 0 0" xyz="0 0 0.003"/>
   </joint>
   <!-- TCP Frame -->
   <!-- contact point to use for IK, Z-axis points "forwards", recessed by tcp_stroke_compensation -->

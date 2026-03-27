@@ -121,9 +121,9 @@
   <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.049" rpy="-1.5708 0 3.14159"/>
 
   <!-- Suction cup dimensions (passed from launch file via cup profile) -->
-  <xacro:arg name="extension_length" default="0.0345"/>
-  <xacro:arg name="extension_radius" default="0.001"/>
-  <xacro:arg name="suction_cup_height" default="0.002"/>
+  <xacro:arg name="extension_length" default="0.018"/>
+  <xacro:arg name="extension_radius" default="0.006"/>
+  <xacro:arg name="suction_cup_height" default="0.006"/>
   <xacro:arg name="suction_cup_radius" default="0.0035"/>
 
   <!-- Epick Gripper -->

@@ -27,9 +27,12 @@
       <child link="zivid_optical_frame"/>
       <!-- Hand-eye calibration: tool0 -> optical_frame -->
       <!-- Rotation: Euler XYZ extrinsic, radians | Translation: meters -->
-      <!-- Calibration (2026-03-25): Residuals: rot < 0.15°, trans < 1.0mm -->
+      <!-- Calibration (2026-03-27): 12 poses (pose 4 excluded as outlier). Residuals: rot < 0.33°, trans < 1.53mm -->
+      <origin xyz="0.05635 0.10228 0.06025"
+              rpy="-0.03622 0.05218 3.13437"/>
+      <!-- Calibration (2026-03-25): Residuals: rot < 0.15°, trans < 1.0mm
       <origin xyz="0.05475 0.10491 0.06013"
-              rpy="-0.03489 0.05317 3.13637"/>
+              rpy="-0.03489 0.05317 3.13637"/> -->
       <!-- Calibration (2026-01-15): Residuals: rot < 0.22°, trans < 0.47mm
       <origin xyz="0.05675 0.10322 0.05489"
               rpy="-0.00615 0.04362 3.13541"/> -->

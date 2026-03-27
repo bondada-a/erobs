@@ -6,10 +6,10 @@
   <xacro:macro name="epick_overlay" params="parent prefix:=''
                                  origin_xyz:='0 -0.03235 0'
                                  origin_rpy:='1.5708 0 0'
-                                 suction_cup_height:=0.002
+                                 suction_cup_height:=0.006
                                  suction_cup_radius:=0.0035
-                                 extension_length:=0.037
-                                 extension_radius:=0.001
+                                 extension_length:=0.018
+                                 extension_radius:=0.006
                                  use_fake_hardware:=false
                                  usb_port:=/tmp/ttyUR">
     <xacro:epick_single_suction_cup

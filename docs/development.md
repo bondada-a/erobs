@@ -65,7 +65,8 @@ The Zivid camera is mounted on the robot arm (eye-in-hand). The transform `tool0
 
 | Date | xyz (meters) | rpy (radians) | Notes |
 |------|--------------|---------------|-------|
-| **2026-03-25** | 0.05475 0.10491 0.06013 | -0.03489 0.05317 3.13637 | Current. Recalibration after URDF chain changes. Residuals: rot < 0.15°, trans < 1.0mm |
+| **2026-03-27** | 0.05635 0.10228 0.06025 | -0.03622 0.05218 3.13437 | Current. Beamline recalibration, 12 poses (pose 4 outlier excluded). Residuals: rot < 0.33°, trans < 1.53mm |
+| 2026-03-25 | 0.05475 0.10491 0.06013 | -0.03489 0.05317 3.13637 | Recalibration after URDF chain changes. Residuals: rot < 0.15°, trans < 1.0mm |
 | 2026-01-15 | 0.05675 0.10322 0.05489 | -0.00615 0.04362 3.13541 | Residuals: rot < 0.22°, trans < 0.47mm |
 | 2026-01-13 | 0.05646 0.10182 0.05680 | -0.03542 0.04745 3.13222 | After robot moved to new room |
 | 2025-12-17 | 0.05659 0.10548 0.05660 | -0.01432 0.04829 3.13430 | Original location |

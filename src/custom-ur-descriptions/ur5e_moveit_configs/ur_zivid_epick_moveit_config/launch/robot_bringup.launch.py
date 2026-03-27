@@ -20,10 +20,10 @@ def generate_launch_description():
     controllers_file = DeclareLaunchArgument('controllers_file', default_value=os.path.join(get_package_share_directory("ur_zivid_epick_moveit_config"), "config", "ur_epick_controllers.yaml"))
 
 
-    # Suction cup dimensions (passed from orchestrator via cup profile, defaults match nozzle_small)
-    extension_length = DeclareLaunchArgument('extension_length', default_value='0.037')
-    extension_radius = DeclareLaunchArgument('extension_radius', default_value='0.001')
-    suction_cup_height = DeclareLaunchArgument('suction_cup_height', default_value='0.002')
+    # Suction cup dimensions (passed from orchestrator via cup profile, defaults match 7mm_dia)
+    extension_length = DeclareLaunchArgument('extension_length', default_value='0.018')
+    extension_radius = DeclareLaunchArgument('extension_radius', default_value='0.006')
+    suction_cup_height = DeclareLaunchArgument('suction_cup_height', default_value='0.006')
     suction_cup_radius = DeclareLaunchArgument('suction_cup_radius', default_value='0.0035')
 
     xacro_args = {
