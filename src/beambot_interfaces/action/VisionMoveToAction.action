@@ -12,6 +12,9 @@ bool detect_only            # If true, detect and return position without moving
 string offset_direction     # Direction offset from approach pose (e.g. "right", "left", "forward")
                             # Uses same names as DIRECTION_VECTORS (flange frame). Empty = no offset.
 float64 offset_distance     # Distance in meters for offset_direction (default: 0.0)
+float64 marker_offset_x     # Offset from marker in marker local X (meters). 0 = use class default.
+float64 marker_offset_y     # Offset from marker in marker local Y (meters). 0 = use class default.
+float64 marker_offset_z     # Offset from marker in marker local Z (meters). 0 = none.
 ---
 # Result
 bool success

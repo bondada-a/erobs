@@ -1693,11 +1693,34 @@ async def get_recent_logs(
 
 
 # ---------------------------------------------------------------------------
-# Tip Rack Configuration
+# Vision Target Framework
 # ---------------------------------------------------------------------------
 
+# Direction opposites for grid offset sign flips
+_DIRECTION_OPPOSITES = {
+    "forward": "backward", "backward": "forward",
+    "left": "right", "right": "left",
+    "up": "down", "down": "up",
+}
+
+
+def _load_vision_targets() -> Dict:
+    """Load vision target configs from default_beamline.yaml."""
+    try:
+        from ament_index_python.packages import get_package_share_directory
+        config_path = os.path.join(
+            get_package_share_directory("beambot"), "config", "default_beamline.yaml"
+        )
+        with open(config_path) as f:
+            config = yaml.safe_load(f)
+        return config.get("vision_targets", {})
+    except Exception as e:
+        logger.error(f"Failed to load vision targets config: {e}")
+        return {}
+
+
 def _load_tip_rack_config() -> Optional[Dict]:
-    """Load tip rack config from default_beamline.yaml."""
+    """Load legacy tip rack config from default_beamline.yaml."""
     try:
         from ament_index_python.packages import get_package_share_directory
         config_path = os.path.join(
@@ -1711,6 +1734,186 @@ def _load_tip_rack_config() -> Optional[Dict]:
         return None
 
 
+def _build_vision_target_tasks(
+    target_name: str,
+    element_index: int = 0,
+    row: int = -1,
+    col: int = -1,
+) -> Dict:
+    """Build task JSON for a vision target from config.
+
+    For offset mode: moveto scan_pose → vision_moveto with marker-frame offsets.
+    For grid mode: moveto scan_pose → vision_moveto → relative cartesian moves.
+
+    Args:
+        target_name: Name of the target in vision_targets config.
+        element_index: For grid targets, 0-based index in row-major order.
+        row: For grid targets, 0-indexed row (overrides element_index).
+        col: For grid targets, 0-indexed column (overrides element_index).
+
+    Returns:
+        Dict with 'task_json' key on success, 'error' key on failure.
+    """
+    targets = _load_vision_targets()
+    if target_name not in targets:
+        available = list(targets.keys()) if targets else []
+        return {"error": f"Unknown target '{target_name}'. Available: {available}"}
+
+    cfg = targets[target_name]
+    mode = cfg.get("mode", "offset")
+    marker_id = cfg["marker_id"]
+    scan_pose_name = cfg.get("scan_pose", "")
+    start_gripper = cfg.get("start_gripper", "pipettor")
+
+    # Load scan pose from poses.yaml
+    poses_dict = {}
+    all_poses = _read_poses_file()
+    if scan_pose_name and scan_pose_name in all_poses:
+        poses_dict[scan_pose_name] = all_poses[scan_pose_name]
+
+    tasks = []
+
+    # Step 1: Move to scan position
+    if scan_pose_name:
+        tasks.append({"task_type": "moveto", "target": scan_pose_name})
+
+    marker_offset = cfg.get("marker_offset", {})
+
+    if mode == "offset":
+        # Single vision_moveto with marker-frame offsets → direct move
+        vision_step = {
+            "task_type": "vision_moveto",
+            "tag_id": marker_id,
+            "marker_offset_x": float(marker_offset.get("x", 0.0)),
+            "marker_offset_y": float(marker_offset.get("y", 0.0)),
+            "marker_offset_z": float(marker_offset.get("z", 0.0)),
+        }
+        if "z_offset" in cfg:
+            vision_step["z_offset"] = float(cfg["z_offset"])
+        tasks.append(vision_step)
+
+        task_json = json.dumps({
+            "start_gripper": start_gripper,
+            "tasks": tasks,
+            "poses": poses_dict,
+        })
+        return {"task_json": task_json, "target": target_name, "mode": "offset"}
+
+    elif mode == "grid":
+        grid_cfg = cfg.get("grid", {})
+        grid_rows = grid_cfg.get("rows", 1)
+        grid_cols = grid_cfg.get("cols", 1)
+        grid_pitch = grid_cfg.get("pitch", 0.009)
+        # Flange directions: toward A1 (negative index direction)
+        col_dir_a1 = grid_cfg.get("col_direction", "left")
+        row_dir_a1 = grid_cfg.get("row_direction", "up")
+        col_dir_away = _DIRECTION_OPPOSITES.get(col_dir_a1, "right")
+        row_dir_away = _DIRECTION_OPPOSITES.get(row_dir_a1, "down")
+
+        # Resolve row/col from index
+        if row >= 0 and col >= 0:
+            if row >= grid_rows or col >= grid_cols:
+                return {"error": f"row={row}, col={col} out of range "
+                                 f"(max: {grid_rows-1}, {grid_cols-1})"}
+        else:
+            total = grid_rows * grid_cols
+            if element_index < 0 or element_index >= total:
+                return {"error": f"element_index={element_index} out of range (0-{total-1})"}
+            row = element_index // grid_cols
+            col = element_index % grid_cols
+
+        # Compute flange-frame offsets for this grid element
+        # A1 is at abs(marker_offset) in the A1-ward direction from marker
+        # Subsequent elements go in the away direction (subtract from base offset)
+        base_offset_x = abs(marker_offset.get("x", 0.0))
+        base_offset_y = abs(marker_offset.get("y", 0.0))
+
+        col_offset = base_offset_x - col * grid_pitch
+        row_offset = base_offset_y - row * grid_pitch
+
+        col_dir = col_dir_a1 if col_offset >= 0 else col_dir_away
+        col_dist = abs(col_offset)
+        row_dir = row_dir_a1 if row_offset >= 0 else row_dir_away
+        row_dist = abs(row_offset)
+
+        # Vision alignment step (move to marker)
+        tasks.append({"task_type": "vision_moveto", "tag_id": marker_id})
+
+        # Build moves from config, replacing sentinels with computed offsets
+        for move in cfg.get("moves", []):
+            if move == "column_offset":
+                if col_dist > 1e-6:  # Skip zero-distance moves
+                    tasks.append({
+                        "task_type": "moveto", "target": "",
+                        "planning_type": "cartesian",
+                        "direction": col_dir,
+                        "distance": round(col_dist, 6),
+                    })
+            elif move == "row_offset":
+                if row_dist > 1e-6:  # Skip zero-distance moves
+                    tasks.append({
+                        "task_type": "moveto", "target": "",
+                        "planning_type": "cartesian",
+                        "direction": row_dir,
+                        "distance": round(row_dist, 6),
+                    })
+            elif isinstance(move, dict) and "direction" in move:
+                tasks.append({
+                    "task_type": "moveto", "target": "",
+                    "planning_type": "cartesian",
+                    "direction": move["direction"],
+                    "distance": float(move["distance"]),
+                })
+
+        task_json = json.dumps({
+            "start_gripper": start_gripper,
+            "tasks": tasks,
+            "poses": poses_dict,
+        })
+        return {
+            "task_json": task_json,
+            "target": target_name,
+            "mode": "grid",
+            "element": {"row": row, "col": col, "index": row * grid_cols + col},
+            "offsets_mm": {
+                col_dir: round(col_dist * 1000, 1),
+                row_dir: round(row_dist * 1000, 1),
+            },
+        }
+
+    else:
+        return {"error": f"Unknown mode '{mode}' for target '{target_name}'"}
+
+
+@mcp.tool()
+async def vision_target(
+    target_name: str,
+    element_index: int = 0,
+    row: int = -1,
+    col: int = -1,
+) -> str:
+    """Build task JSON for a config-driven vision target operation.
+
+    Vision targets are defined in default_beamline.yaml under 'vision_targets'.
+    Each target uses ArUco marker detection to locate the target, then either:
+      - offset mode: moves directly to a marker-relative position (single point)
+      - grid mode: aligns with marker, then does relative moves to grid element
+
+    Args:
+        target_name: Name of the vision target from config (e.g. "tip_rack",
+            "spincoater", "hotplate").
+        element_index: For grid targets: 0-based element index in row-major order.
+            Ignored if row/col are specified. Ignored for offset targets.
+        row: For grid targets: 0-indexed row. Use with col.
+        col: For grid targets: 0-indexed column. Use with row.
+
+    Returns:
+        JSON with task_json to send to the orchestrator via send_action_goal.
+    """
+    result = _build_vision_target_tasks(target_name, element_index, row, col)
+    return json.dumps(result, indent=2)
+
+
 @mcp.tool()
 async def pickup_tip(
     tip_index: int = 0,
@@ -1719,20 +1922,8 @@ async def pickup_tip(
 ) -> str:
     """Build task JSON for picking up a pipettor tip from the tip rack.
 
-    Uses vision_moveto to detect the ArUco marker and align the flange with it.
-    Since vision_moveto orients the flange to match the marker, the flange-frame
-    offsets to any tip are constant regardless of rack rotation on the table.
-
-    Grid offsets are applied in flange frame:
-      - A1 is at "left"/"up" from marker (marker -X/-Y direction)
-      - Next columns go "right" (marker +X), next rows go "down" (marker +Y)
-
-    Returns the task JSON. Send it to /beambot_execution via send_action_goal
-    to execute.
-
-    Specify the tip by either:
-      - tip_index: 0-95, row-major order (0=A1, 1=A2, ..., 12=B1, etc.)
-      - row + col: 0-indexed (row=0 col=0 is A1)
+    Convenience wrapper around vision_target(target_name="tip_rack").
+    Specify the tip by either tip_index (0-95, row-major) or row + col (0-indexed).
 
     Args:
         tip_index: Tip number 0-95 in row-major order. Ignored if row/col given.
@@ -1742,83 +1933,8 @@ async def pickup_tip(
     Returns:
         JSON with task_json to send to the orchestrator.
     """
-    # Load config
-    config = _load_tip_rack_config()
-    if config is None:
-        return json.dumps({"error": "tip_rack config not found in default_beamline.yaml"})
-
-    marker_id = config["marker_id"]
-    grid_rows = config["grid_rows"]
-    grid_cols = config["grid_cols"]
-    grid_pitch = config["grid_pitch"]
-    offset_left = abs(config["offset_marker_x"])    # marker -X = flange "left"
-    offset_up = abs(config["offset_marker_y"])       # marker -Y = flange "up"
-    approach_fwd = config["approach_forward"]
-    press_fwd = config["press_forward"]
-    retreat_bwd = config["retreat_backward"]
-
-    # Resolve row/col
-    if row >= 0 and col >= 0:
-        if row >= grid_rows or col >= grid_cols:
-            return json.dumps({"error": f"row={row}, col={col} out of range "
-                               f"(max: {grid_rows-1}, {grid_cols-1})"})
-    else:
-        if tip_index < 0 or tip_index >= grid_rows * grid_cols:
-            return json.dumps({"error": f"tip_index={tip_index} out of range (0-{grid_rows*grid_cols-1})"})
-        row = tip_index // grid_cols
-        col = tip_index % grid_cols
-
-    # Compute flange-frame offsets for this tip
-    # A1 is at offset_left/offset_up from marker
-    # Next columns go right (subtract from left), next rows go down (subtract from up)
-    tip_left = offset_left - col * grid_pitch
-    tip_up = offset_up - row * grid_pitch
-
-    # Build flange-frame move steps, handling sign flips for right/down
-    col_dir = "left" if tip_left >= 0 else "right"
-    col_dist = abs(tip_left)
-    row_dir = "up" if tip_up >= 0 else "down"
-    row_dist = abs(tip_up)
-
-    # Build the full task sequence
-    # Read scan pose from poses.yaml and include inline (orchestrator needs it in the JSON)
-    scan_pose_name = config.get("scan_pose", "pipettor_scan")
-    poses_dict = {}
-    all_poses = _read_poses_file()
-    if scan_pose_name in all_poses:
-        poses_dict[scan_pose_name] = all_poses[scan_pose_name]
-
-    task_json = json.dumps({
-        "start_gripper": "pipettor",
-        "tasks": [
-            # Move to scan position where camera can see the marker
-            {"task_type": "moveto", "target": scan_pose_name},
-            # Detect marker and align flange with it
-            {"task_type": "vision_moveto", "tag_id": marker_id},
-            # Approach toward rack surface
-            {"task_type": "moveto", "target": "", "planning_type": "cartesian",
-             "direction": "forward", "distance": approach_fwd},
-            # Move to tip column
-            {"task_type": "moveto", "target": "", "planning_type": "cartesian",
-             "direction": col_dir, "distance": round(col_dist, 6)},
-            # Move to tip row
-            {"task_type": "moveto", "target": "", "planning_type": "cartesian",
-             "direction": row_dir, "distance": round(row_dist, 6)},
-            # Press down to seat tip
-            {"task_type": "moveto", "target": "", "planning_type": "cartesian",
-             "direction": "forward", "distance": press_fwd},
-            # Retreat to clear the rack
-            {"task_type": "moveto", "target": "", "planning_type": "cartesian",
-             "direction": "backward", "distance": retreat_bwd},
-        ],
-        "poses": poses_dict,
-    })
-
-    return json.dumps({
-        "task_json": task_json,
-        "tip": {"row": row, "col": col, "index": row * grid_cols + col},
-        "offsets_mm": {col_dir: round(col_dist * 1000, 1), row_dir: round(row_dist * 1000, 1)},
-    })
+    result = _build_vision_target_tasks("tip_rack", tip_index, row, col)
+    return json.dumps(result, indent=2)
 
 
 # ---------------------------------------------------------------------------

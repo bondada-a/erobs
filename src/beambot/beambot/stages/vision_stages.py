@@ -154,6 +154,20 @@ class VisionStages(BaseStages):
             f"settle_time: {self._settle_time:.2f}s)"
         )
 
+    def reset_tf(self):
+        """Reset the TF buffer and re-subscribe to /tf_static.
+
+        Call after a tool exchange when robot_state_publisher restarts with
+        a new URDF. Clears stale static transforms from the old gripper
+        and re-subscribes to pick up the new publisher's frames.
+        """
+        self.logger.info("Resetting TF buffer (URDF changed)")
+        self._tf_buffer.clear()
+        # Recreate listener to trigger TRANSIENT_LOCAL re-delivery
+        # from the new robot_state_publisher
+        self._tf_listener = TransformListener(self._tf_buffer, self.rclpy_node)
+        self.logger.info("TF buffer cleared, listener re-created")
+
     def _load_vision_objects_config(self):
         """Load vision objects configuration from JSON file."""
         try:
@@ -350,6 +364,11 @@ class VisionStages(BaseStages):
         offset_direction = getattr(goal, 'offset_direction', '') or ''
         offset_distance = getattr(goal, 'offset_distance', 0.0)
 
+        # Parse marker-frame offset parameters
+        marker_offset_x = getattr(goal, 'marker_offset_x', 0.0)
+        marker_offset_y = getattr(goal, 'marker_offset_y', 0.0)
+        marker_offset_z = getattr(goal, 'marker_offset_z', 0.0)
+
         # Route to appropriate detection method
         if detection_type == self.DETECTION_CIRCLE:
             self.logger.info("Using circle detection")
@@ -400,8 +419,13 @@ class VisionStages(BaseStages):
                         f"(timeout: {goal.timeout}s, retries: {self._retry_count})"
                     )
 
-        # Compute the full approach pose (sample offset, z_offset, orientation)
-        approach, _ = self._compute_approach_pose(target_pose, z_offset_override)
+        # Compute the full approach pose (marker offset, z_offset, orientation)
+        approach, active_ik_frame = self._compute_approach_pose(
+            target_pose, z_offset_override,
+            marker_offset_x=marker_offset_x,
+            marker_offset_y=marker_offset_y,
+            marker_offset_z=marker_offset_z,
+        )
 
         # Apply directional offset in flange frame if specified
         if offset_direction and offset_distance > 0:
@@ -417,7 +441,7 @@ class VisionStages(BaseStages):
             )
             return None
 
-        return self._move_to_approach(approach)
+        return self._move_to_approach(approach, ik_frame=active_ik_frame)
 
     def detect_and_transform_tag(
         self,
@@ -992,25 +1016,31 @@ class VisionStages(BaseStages):
         tf.transform.rotation = pose.pose.orientation
         self._tf_broadcaster.sendTransform(tf)
 
-    # Sample offset from tag center in tag's local frame (meters)
-    # Set to (0, 0) if sample is directly on the tag
-    SAMPLE_OFFSET_X = 0.02   # X offset in tag frame (20mm to the right)
-    SAMPLE_OFFSET_Y = 0.0    # Y offset in tag frame
+    # Default marker-frame offset (meters). Used when no marker_offset_x/y/z
+    # are provided in the goal. Set to 0 — all offsets should come from config.
+    SAMPLE_OFFSET_X = 0.0
+    SAMPLE_OFFSET_Y = 0.0
 
     def _compute_approach_pose(
         self,
         target: PoseStamped,
-        z_offset_override: float = 0.0
+        z_offset_override: float = 0.0,
+        marker_offset_x: float = 0.0,
+        marker_offset_y: float = 0.0,
+        marker_offset_z: float = 0.0,
     ) -> Tuple[PoseStamped, str]:
         """Compute the final approach pose from a detected target.
 
-        Applies sample XY offset, marker-aligned yaw, z_offset, and gripper
-        tip frame detection — everything needed to turn a raw detection into
-        an actual robot goal.
+        Applies marker-frame XYZ offset, marker-aligned yaw, z_offset, and
+        gripper tip frame detection — everything needed to turn a raw detection
+        into an actual robot goal.
 
         Args:
             target: Raw detected pose in base_link
             z_offset_override: Override z_offset (0 = use gripper default)
+            marker_offset_x: Offset in marker local X (meters). 0 = use class default.
+            marker_offset_y: Offset in marker local Y (meters). 0 = use class default.
+            marker_offset_z: Offset in marker local Z (meters). 0 = none.
 
         Returns:
             Tuple of (approach PoseStamped, active_ik_frame)
@@ -1036,8 +1066,19 @@ class VisionStages(BaseStages):
             self.logger.info(f"Using z_offset override: {z_offset_override:.3f}")
             active_z_offset = z_offset_override
 
-        # Apply sample XY offset in tag's local frame
-        if self.SAMPLE_OFFSET_X != 0.0 or self.SAMPLE_OFFSET_Y != 0.0:
+        # Determine marker-frame offset: use provided values if any are non-zero,
+        # otherwise fall back to class defaults (SAMPLE_OFFSET_X/Y)
+        if marker_offset_x != 0.0 or marker_offset_y != 0.0 or marker_offset_z != 0.0:
+            offset_x = marker_offset_x
+            offset_y = marker_offset_y
+            offset_z = marker_offset_z
+        else:
+            offset_x = self.SAMPLE_OFFSET_X
+            offset_y = self.SAMPLE_OFFSET_Y
+            offset_z = 0.0
+
+        # Apply marker-frame offset → rotate to base_link world frame
+        if offset_x != 0.0 or offset_y != 0.0 or offset_z != 0.0:
             q = [
                 target.pose.orientation.x,
                 target.pose.orientation.y,
@@ -1045,21 +1086,21 @@ class VisionStages(BaseStages):
                 target.pose.orientation.w
             ]
             rot_matrix = quaternion_matrix(q)[:3, :3]
-            local_offset = np.array([self.SAMPLE_OFFSET_X, self.SAMPLE_OFFSET_Y, 0.0])
+            local_offset = np.array([offset_x, offset_y, offset_z])
             world_offset = rot_matrix @ local_offset
             self.logger.info(
-                f"Sample offset: [{self.SAMPLE_OFFSET_X:.3f}, {self.SAMPLE_OFFSET_Y:.3f}] → "
-                f"world [{world_offset[0]:.3f}, {world_offset[1]:.3f}]"
+                f"Marker offset: [{offset_x:.3f}, {offset_y:.3f}, {offset_z:.3f}] → "
+                f"world [{world_offset[0]:.3f}, {world_offset[1]:.3f}, {world_offset[2]:.3f}]"
             )
         else:
             world_offset = np.array([0.0, 0.0, 0.0])
 
-        # Compute approach pose: XY offset + 180° Z rotation + z_offset
+        # Compute approach pose: marker offset + z_offset + orientation
         approach = PoseStamped()
         approach.header = target.header
         approach.pose.position.x = target.pose.position.x + world_offset[0]
         approach.pose.position.y = target.pose.position.y + world_offset[1]
-        approach.pose.position.z = target.pose.position.z + active_z_offset
+        approach.pose.position.z = target.pose.position.z + world_offset[2] + active_z_offset
 
         # Straight-down orientation with marker-aligned yaw
         # 1. Compute yaw from the original marker orientation + 180° Z rotation
@@ -1152,18 +1193,23 @@ class VisionStages(BaseStages):
 
         return pose
 
-    def _move_to_approach(self, approach: PoseStamped) -> 'Optional[str]':
+    def _move_to_approach(
+        self, approach: PoseStamped, ik_frame: str = ""
+    ) -> 'Optional[str]':
         """Execute MoveIt move to a pre-computed approach pose.
 
         Args:
             approach: Fully computed approach pose in base_link (with offsets,
                       orientation, and z_offset already applied)
+            ik_frame: IK frame to use (e.g. "epick_tip"). If empty,
+                      auto-detects from TF.
 
         Returns:
             None if successful, error string describing failure otherwise
         """
-        # Detect gripper IK frame for this move
-        detection = self._detect_current_gripper()
+        if not ik_frame:
+            detection = self._detect_current_gripper()
+            ik_frame = detection.ik_frame
 
         # Use MTC with Pilz LIN for collision-free straight-line approach
         task = self.create_task_template("Vision Move")
@@ -1172,7 +1218,7 @@ class VisionStages(BaseStages):
         stage = stages.MoveTo("move to tag", planner)
         stage.group = self.arm_group
         ik_frame_pose = PoseStamped()
-        ik_frame_pose.header.frame_id = detection.ik_frame
+        ik_frame_pose.header.frame_id = ik_frame
         stage.ik_frame = ik_frame_pose
         stage.setGoal(approach)
         task.add(stage)
@@ -1196,8 +1242,8 @@ class VisionStages(BaseStages):
         Returns:
             None if successful, error string describing failure otherwise
         """
-        approach, _ = self._compute_approach_pose(target, z_offset_override)
-        return self._move_to_approach(approach)
+        approach, active_ik_frame = self._compute_approach_pose(target, z_offset_override)
+        return self._move_to_approach(approach, ik_frame=active_ik_frame)
 
     def _detect_current_gripper(self) -> GripperDetection:
         """Auto-detect the current gripper by checking TF frames.

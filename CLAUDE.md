@@ -73,6 +73,31 @@ Hybrid operation: vision-guided pick + hardcoded place positions.
 ```
 Executes: open -> sample_approach -> [detect] -> grasp -> close -> retreat -> place_approach -> place -> open -> retreat
 
+### vision_moveto Task Format
+Vision-guided movement to a detected marker with optional offsets.
+```json
+{
+  "task_type": "vision_moveto",
+  "tag_id": 30,
+  "marker_offset_x": 0.02,       // Optional: marker-frame X offset (meters)
+  "marker_offset_y": 0.0,        // Optional: marker-frame Y offset (meters)
+  "marker_offset_z": 0.0,        // Optional: marker-frame Z offset (meters)
+  "offset_direction": "right",   // Optional: flange-frame direction offset (uses DIRECTION_VECTORS)
+  "offset_distance": 0.0312,     // Optional: distance for offset_direction (meters)
+  "detect_only": true,            // Optional: return position without moving
+  "z_offset": 0.003              // Optional: override approach height
+}
+```
+- `marker_offset_x/y/z`: Offset from marker center in the **marker's local frame**. Transformed to base_link internally using the marker's orientation. Use for config-driven targets.
+- `offset_direction` + `offset_distance`: Additional offset in **flange frame** (uses live flange TF). Applied after marker offset. Use for ad-hoc offsets.
+- `detect_only`: Detects and returns `detected_position` and `detected_orientation` in the result without moving. Offsets are still applied to the returned position.
+- **WARNING**: `detected_orientation` in the result is the **IK frame** orientation (e.g. epick_tip, robotiq_hande_end), NOT the flange orientation. There is a ~90° rotation between them (tool_block joint). Do NOT use `detected_orientation` to manually compute flange-frame direction offsets — use `offset_direction`/`offset_distance` or `marker_offset_x/y/z` instead. Using the wrong frame will send the robot to the wrong position.
+
+### Vision Target Framework
+Config-driven vision targets are defined in `default_beamline.yaml` under `vision_targets`. Use the `vision_target` MCP tool to build task JSON from config. Two modes:
+- **offset**: detect marker → move directly to marker-frame offset position (single move)
+- **grid**: detect marker → move to marker → relative cartesian moves for grid element + approach/retreat
+
 ### Optional Path Constraints
 
 Any task step can include a `constraints` key to apply MoveIt path constraints during planning. If omitted, no constraints are applied (default behavior).

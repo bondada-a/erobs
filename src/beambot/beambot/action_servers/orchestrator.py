@@ -178,6 +178,12 @@ class MTCOrchestratorServer(Node):
             callback_group=self._callback_group
         )
 
+        # Vision server TF reset service (called after tool exchange)
+        self._vision_reset_tf_client = self.create_client(
+            Trigger, "beambot_vision_reset_tf",
+            callback_group=self._callback_group
+        )
+
         # Controller manager service clients for recovery
         self._list_controllers_client = self.create_client(
             ListControllers,
@@ -959,6 +965,28 @@ class MTCOrchestratorServer(Node):
             self._toolexchange_client, goal, "tool_exchange", self._timeouts["tool_exchange"]
         )
 
+    def _reset_vision_tf(self):
+        """Call the vision server's TF reset service after tool exchange.
+
+        Clears stale static transforms from the old URDF so
+        _detect_current_gripper picks up the correct IK frame.
+        """
+        if not self._vision_reset_tf_client.wait_for_service(timeout_sec=3.0):
+            self.get_logger().warn(
+                "Vision TF reset service not available — "
+                "vision server may detect wrong gripper frame"
+            )
+            return
+        future = self._vision_reset_tf_client.call_async(Trigger.Request())
+        # Poll for result (can't use spin in callback context)
+        start = time.time()
+        while not future.done() and time.time() - start < 5.0:
+            time.sleep(0.05)
+        if future.done() and future.result().success:
+            self.get_logger().info("Vision server TF buffer reset")
+        else:
+            self.get_logger().warn("Vision TF reset did not complete")
+
     def _handle_tool_exchange(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Handle tool exchange with gripper state tracking and MoveIt restart.
 
@@ -1003,6 +1031,9 @@ class MTCOrchestratorServer(Node):
                 self.get_logger().error(self._last_error)
                 return False
 
+            # Reset vision server TF buffer so it picks up the new URDF frames
+            self._reset_vision_tf()
+
         return True
 
     def _call_vision_moveto(self, step: Dict[str, Any], poses_json: str) -> bool:
@@ -1035,6 +1066,9 @@ class MTCOrchestratorServer(Node):
         goal.detect_only = bool(step.get("detect_only", False))
         goal.offset_direction = step.get("offset_direction", "")
         goal.offset_distance = float(step.get("offset_distance", 0.0))
+        goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
+        goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
+        goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
 
         # Handle multi-position scan mode
         # Task JSON: "scan_positions": ["sample_scan_1", "sample_scan_2", "sample_scan_3"]
