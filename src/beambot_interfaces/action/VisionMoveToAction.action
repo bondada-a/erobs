@@ -8,9 +8,15 @@ string detection_type       # Detection method: "marker" (default), "circle", "c
 float64 z_offset            # Z offset for approach (0 = use gripper default)
 float64[] scan_positions_flat  # Multi-position mode: Flattened joint poses [j1..j6, j1..j6, ...]
 int32 num_scan_positions       # Number of scan positions (0 = single-position mode)
+bool detect_only            # If true, detect and return position without moving
+string offset_direction     # Direction offset from approach pose (e.g. "right", "left", "forward")
+                            # Uses same names as DIRECTION_VECTORS (flange frame). Empty = no offset.
+float64 offset_distance     # Distance in meters for offset_direction (default: 0.0)
 ---
 # Result
 bool success
 string error_message
+float64[] detected_position    # [x, y, z] in base_link frame (populated when detect_only=true)
+float64[] detected_orientation # [x, y, z, w] quaternion in base_link (populated when detect_only=true)
 ---
 # Feedback

@@ -83,6 +83,9 @@ class MTCOrchestratorServer(Node):
         self._lock = threading.Lock()
         self._current_gripper = "none"
         self._last_error = ""  # Error from last failed action/batch
+        self._last_result = None  # Full result from last _send_and_wait
+        self._last_detected_position = None  # [x, y, z] from detect_only vision
+        self._last_detected_orientation = None  # [x, y, z, w] from detect_only vision
 
         # Pause/Resume state
         self._pause_requested = False
@@ -546,9 +549,11 @@ class MTCOrchestratorServer(Node):
         """Main execution logic."""
         self.get_logger().info("Executing orchestration goal")
 
-        # Reset vacuum monitor for new goal
+        # Reset state for new goal
         self._vacuum_armed = False
         self._vacuum_lost = False
+        self._last_detected_position = None
+        self._last_detected_orientation = None
 
         result = MTCExecution.Result()
         feedback = MTCExecution.Feedback()
@@ -710,6 +715,13 @@ class MTCOrchestratorServer(Node):
         # Success
         result.success = True
         result.total_steps = task_count
+
+        # Propagate detected pose from detect_only vision_moveto
+        if self._last_detected_position is not None:
+            result.detected_position = self._last_detected_position
+        if self._last_detected_orientation is not None:
+            result.detected_orientation = self._last_detected_orientation
+
         self._update_feedback(
             feedback, goal_handle, task_count, task_count, ""
         )
@@ -905,6 +917,7 @@ class MTCOrchestratorServer(Node):
             time.sleep(0.01)
 
         result = result_future.result()
+        self._last_result = result.result
         if not result.result.success:
             # Capture the real error_message from the action server
             self._last_error = getattr(result.result, 'error_message', '') or f"{name} failed (no details)"
@@ -1019,6 +1032,9 @@ class MTCOrchestratorServer(Node):
         goal.poses_json = poses_json
         goal.detection_type = step.get("detection_type", "marker")
         goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
+        goal.detect_only = bool(step.get("detect_only", False))
+        goal.offset_direction = step.get("offset_direction", "")
+        goal.offset_distance = float(step.get("offset_distance", 0.0))
 
         # Handle multi-position scan mode
         # Task JSON: "scan_positions": ["sample_scan_1", "sample_scan_2", "sample_scan_3"]
@@ -1047,9 +1063,22 @@ class MTCOrchestratorServer(Node):
                     f"Multi-position mode: {valid_positions} scan positions configured"
                 )
 
-        return self._send_and_wait(
+        success = self._send_and_wait(
             self._vision_client, goal, "vision_moveto", self._timeouts["vision_moveto"]
         )
+
+        # For detect_only, store detected pose for use by subsequent steps
+        if success and goal.detect_only and self._last_result is not None:
+            pos = list(self._last_result.detected_position)
+            ori = list(self._last_result.detected_orientation)
+            if len(pos) == 3:
+                self._last_detected_position = pos
+                self._last_detected_orientation = ori if len(ori) == 4 else None
+                self.get_logger().info(
+                    f"Stored detected pose: [{pos[0]:.4f}, {pos[1]:.4f}, {pos[2]:.4f}]"
+                )
+
+        return success
 
     def _call_vision_scan(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the VisionScan action server to batch-scan all markers.

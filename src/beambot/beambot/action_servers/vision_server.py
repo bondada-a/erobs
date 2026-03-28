@@ -72,6 +72,28 @@ class VisionActionServer(BaseActionServer):
             marker_dictionary=camera_config.get("marker_dictionary"),
         )
 
+    def _execute(self, goal_handle):
+        """Execute VisionMoveToAction with detect_only support."""
+        goal = goal_handle.request
+        error = self._stages.run(goal)
+
+        result = VisionMoveToAction.Result()
+        if error is not None:
+            result.success = False
+            result.error_message = error
+        else:
+            result.success = True
+            # Populate detected pose if detect_only was used
+            if goal.detect_only and self._stages.last_detected_pose is not None:
+                pose = self._stages.last_detected_pose.pose
+                result.detected_position = [pose.position.x, pose.position.y, pose.position.z]
+                result.detected_orientation = [
+                    pose.orientation.x, pose.orientation.y,
+                    pose.orientation.z, pose.orientation.w
+                ]
+
+        return result
+
     def _execute_scan(self, goal_handle):
         """Execute VisionScanAction - batch scan all markers from multiple positions.
 

@@ -29,7 +29,7 @@ from tf_transformations import quaternion_multiply, quaternion_from_euler, quate
 
 from beambot.camera import get_camera
 from beambot.camera.zivid import DetectionResult
-from beambot.stages.base_stages import BaseStages, DEFAULT_JOINT_NAMES
+from beambot.stages.base_stages import BaseStages, DEFAULT_JOINT_NAMES, DIRECTION_VECTORS
 
 
 @dataclass
@@ -57,7 +57,7 @@ class VisionStages(BaseStages):
     DETECTION_CONTOUR = "contour"
 
     # Retry configuration defaults
-    DEFAULT_RETRY_COUNT = 10  # Number of retries after first attempt
+    DEFAULT_RETRY_COUNT = 3  # Number of retries after first attempt
     DEFAULT_RETRY_DELAY = 0.5  # Seconds between retries
 
     # Default camera settings (used if not specified)
@@ -305,10 +305,13 @@ class VisionStages(BaseStages):
                 - z_offset: Override z_offset (0 = use gripper default)
                 - scan_positions_flat: Flattened joint poses for multi-position mode
                 - num_scan_positions: Number of scan positions (0 = single-position)
+                - detect_only: If true, detect and return position without moving
 
         Returns:
             None if successful, error string describing failure otherwise
         """
+        # Clear any previous detect_only result
+        self.last_detected_pose = None
         # Optional: Wait for robot to settle BEFORE any detection
         # This ensures vibrations from the previous motion have damped out
         if self._settle_time > 0:
@@ -340,6 +343,13 @@ class VisionStages(BaseStages):
         # Get z_offset override (0 or missing means use gripper default)
         z_offset_override = getattr(goal, 'z_offset', 0.0)
 
+        # Check detect_only flag
+        detect_only = getattr(goal, 'detect_only', False)
+
+        # Parse offset parameters
+        offset_direction = getattr(goal, 'offset_direction', '') or ''
+        offset_distance = getattr(goal, 'offset_distance', 0.0)
+
         # Route to appropriate detection method
         if detection_type == self.DETECTION_CIRCLE:
             self.logger.info("Using circle detection")
@@ -367,10 +377,8 @@ class VisionStages(BaseStages):
                     f"Using cached pose for tag {goal.tag_id}: "
                     f"[{pos.x*1000:.2f}, {pos.y*1000:.2f}, {pos.z*1000:.2f}] mm"
                 )
-                return self._move_to_pose(cached_pose, z_offset_override=z_offset_override)
-
-            # Not cached - check for multi-position mode
-            if scan_positions is not None:
+                target_pose = cached_pose
+            elif scan_positions is not None:
                 # Multi-position averaging mode
                 target_pose = self.detect_tag_multiposition(
                     tag_id=goal.tag_id,
@@ -392,7 +400,24 @@ class VisionStages(BaseStages):
                         f"(timeout: {goal.timeout}s, retries: {self._retry_count})"
                     )
 
-        return self._move_to_pose(target_pose, z_offset_override=z_offset_override)
+        # Compute the full approach pose (sample offset, z_offset, orientation)
+        approach, _ = self._compute_approach_pose(target_pose, z_offset_override)
+
+        # Apply directional offset in flange frame if specified
+        if offset_direction and offset_distance > 0:
+            approach = self._apply_flange_offset(approach, offset_direction, offset_distance)
+
+        # If detect_only, return the pose without moving
+        if detect_only:
+            self.last_detected_pose = approach
+            pos = approach.pose.position
+            self.logger.info(
+                f"Detect-only: returning approach pose [{pos.x:.4f}, {pos.y:.4f}, {pos.z:.4f}] "
+                f"in {approach.header.frame_id}"
+            )
+            return None
+
+        return self._move_to_approach(approach)
 
     def detect_and_transform_tag(
         self,
@@ -972,21 +997,23 @@ class VisionStages(BaseStages):
     SAMPLE_OFFSET_X = 0.02   # X offset in tag frame (20mm to the right)
     SAMPLE_OFFSET_Y = 0.0    # Y offset in tag frame
 
-    def _move_to_pose(
+    def _compute_approach_pose(
         self,
         target: PoseStamped,
         z_offset_override: float = 0.0
-    ) -> 'Optional[str]':
-        """Move robot to the target pose with orientation adjustment.
+    ) -> Tuple[PoseStamped, str]:
+        """Compute the final approach pose from a detected target.
 
-        Applies sample XY offset, 180° Z rotation, and z_offset for proper approach.
+        Applies sample XY offset, marker-aligned yaw, z_offset, and gripper
+        tip frame detection — everything needed to turn a raw detection into
+        an actual robot goal.
 
         Args:
-            target: Target pose in base_link
+            target: Raw detected pose in base_link
             z_offset_override: Override z_offset (0 = use gripper default)
 
         Returns:
-            None if successful, error string describing failure otherwise
+            Tuple of (approach PoseStamped, active_ik_frame)
         """
         # Auto-detect gripper if ik_frame not set
         if not self.ik_frame or self.ik_frame == "flange":
@@ -1055,10 +1082,88 @@ class VisionStages(BaseStages):
         approach.pose.orientation.w = q_approach[3]
 
         self.logger.info(
-            f"Moving to [{approach.pose.position.x:.3f}, "
+            f"Approach pose: [{approach.pose.position.x:.3f}, "
             f"{approach.pose.position.y:.3f}, {approach.pose.position.z:.3f}] "
             f"yaw={math.degrees(approach_yaw):.1f}°, z_offset={active_z_offset:.3f}"
         )
+
+        return approach, active_ik_frame
+
+    def _apply_flange_offset(
+        self,
+        pose: PoseStamped,
+        direction: str,
+        distance: float
+    ) -> PoseStamped:
+        """Apply a directional offset in the flange frame to a base_link pose.
+
+        Looks up the current flange TF to get the flange-to-base rotation,
+        then transforms the direction vector from flange frame to base_link
+        and applies it as a position offset.
+
+        Args:
+            pose: Input pose in base_link frame (modified in place)
+            direction: Direction name from DIRECTION_VECTORS (e.g. "right")
+            distance: Offset distance in meters
+
+        Returns:
+            The pose with offset applied
+        """
+        if direction not in DIRECTION_VECTORS:
+            self.logger.warn(
+                f"Unknown offset direction '{direction}', skipping. "
+                f"Valid: {list(DIRECTION_VECTORS.keys())}"
+            )
+            return pose
+
+        # Get the flange orientation in base_link from TF
+        try:
+            tf = self._tf_buffer.lookup_transform(
+                "base_link", "flange",
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=2.0)
+            )
+        except TransformException as e:
+            self.logger.error(f"Failed to look up flange TF for offset: {e}")
+            return pose
+
+        # Build rotation matrix from flange quaternion
+        q = [
+            tf.transform.rotation.x,
+            tf.transform.rotation.y,
+            tf.transform.rotation.z,
+            tf.transform.rotation.w
+        ]
+        rot = quaternion_matrix(q)[:3, :3]
+
+        # Transform direction vector from flange frame to base_link
+        flange_vec = np.array(DIRECTION_VECTORS[direction])
+        base_vec = rot @ flange_vec
+
+        # Apply offset
+        pose.pose.position.x += base_vec[0] * distance
+        pose.pose.position.y += base_vec[1] * distance
+        pose.pose.position.z += base_vec[2] * distance
+
+        self.logger.info(
+            f"Applied offset: {distance*1000:.1f}mm {direction} "
+            f"(flange {flange_vec} → base [{base_vec[0]:.3f}, {base_vec[1]:.3f}, {base_vec[2]:.3f}])"
+        )
+
+        return pose
+
+    def _move_to_approach(self, approach: PoseStamped) -> 'Optional[str]':
+        """Execute MoveIt move to a pre-computed approach pose.
+
+        Args:
+            approach: Fully computed approach pose in base_link (with offsets,
+                      orientation, and z_offset already applied)
+
+        Returns:
+            None if successful, error string describing failure otherwise
+        """
+        # Detect gripper IK frame for this move
+        detection = self._detect_current_gripper()
 
         # Use MTC with Pilz LIN for collision-free straight-line approach
         task = self.create_task_template("Vision Move")
@@ -1067,12 +1172,32 @@ class VisionStages(BaseStages):
         stage = stages.MoveTo("move to tag", planner)
         stage.group = self.arm_group
         ik_frame_pose = PoseStamped()
-        ik_frame_pose.header.frame_id = active_ik_frame
+        ik_frame_pose.header.frame_id = detection.ik_frame
         stage.ik_frame = ik_frame_pose
         stage.setGoal(approach)
         task.add(stage)
 
         return self.load_plan_execute(task)
+
+    def _move_to_pose(
+        self,
+        target: PoseStamped,
+        z_offset_override: float = 0.0
+    ) -> 'Optional[str]':
+        """Move robot to the target pose with orientation adjustment.
+
+        Applies sample XY offset, 180° Z rotation, and z_offset for proper approach.
+        Used by vision_pick_place_stages.py.
+
+        Args:
+            target: Raw detected pose in base_link
+            z_offset_override: Override z_offset (0 = use gripper default)
+
+        Returns:
+            None if successful, error string describing failure otherwise
+        """
+        approach, _ = self._compute_approach_pose(target, z_offset_override)
+        return self._move_to_approach(approach)
 
     def _detect_current_gripper(self) -> GripperDetection:
         """Auto-detect the current gripper by checking TF frames.

@@ -160,7 +160,7 @@ The `full_json` value is a **JSON string** (not a nested object). Use `get_saved
 ## MCP Gotchas
 
 - **`start_gripper` must match the physically attached gripper**. Call `get_robot_state` first -- if the system is running it returns the current gripper. If `gripper: "unknown"`, **ask the user**. Valid values: `"hande"`, `"epick"`, `"pipettor"`, `"none"`. Sending the wrong gripper loads the wrong MoveIt config and causes planning failures.
-- **Direction vectors are in `flange` frame**, not world frame. At a downward-looking pose, "forward" ~ down toward table. Left/right and up/down are swapped due to 180 deg wrist rotation compensation. See `base_stages.py:DIRECTION_VECTORS`
+- **Direction vectors** (`base_stages.py:DIRECTION_VECTORS`) — use these strings exactly as the user says them. Available: `forward`, `backward`, `left`, `right`, `up`, `down` (aliases: `x`, `-x`, `y`, `-y`, `z`, `-z`). These are in the `flange` frame. Do NOT remap or reinterpret directions.
 - **Zivid single-shot capture** cannot be triggered via MCP `subscribe_once` (QoS timing race). Use beambot-mcp-server's `capture_image` tool (preferred), orchestrator's `vision_moveto`/`vision_scan` tasks, or a Python script with RELIABLE+VOLATILE QoS
 - **MoveIt restarts after tool exchange** -- wait ~5s before sending the next goal
 - **Cartesian planning may fail** for longer moves; use `"planning_type": "joint"` as fallback

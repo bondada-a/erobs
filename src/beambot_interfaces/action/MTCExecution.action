@@ -6,6 +6,8 @@ bool success
 string error_message
 int32 completed_steps
 int32 total_steps
+float64[] detected_position    # [x, y, z] in base_link frame (from detect_only vision_moveto)
+float64[] detected_orientation # [x, y, z, w] quaternion in base_link (from detect_only vision_moveto)
 ---
 # Feedback
 int32 current_step
