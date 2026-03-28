@@ -18,8 +18,8 @@ Settings:
         - Acquisition:
             Aperture: 2.83
             Brightness: 0
-            ExposureTime: 4500
-            Gain: 3.5
+            ExposureTime: 8333
+            Gain: 5
       Processing:
         Color:
           Balance:
