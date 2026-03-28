@@ -43,6 +43,18 @@ Executes 9-stage sequence: open -> approach -> pick -> close -> retreat -> appro
 - `approach_pose`: Joint pose name for approaching the dock
 - **IMPORTANT: ALWAYS use `"dock_approach"` for dock operations and `"load_approach"` for load operations.** These are different poses tuned for each operation direction. Using the wrong approach pose causes collisions or failed exchanges.
 
+### pipettor Task Format
+```json
+{"task_type": "pipettor", "operation": "SUCK", "volume_pct": 0.5}
+{"task_type": "pipettor", "operation": "EXPEL", "volume_pct": 0.5}
+{"task_type": "pipettor", "operation": "EJECT_TIP"}
+{"task_type": "pipettor", "operation": "SET_LED", "led_color": {"r": 1.0, "g": 0.0, "b": 0.0}}
+```
+- `operation`: `"SUCK"` (aspirate), `"EXPEL"` (dispense), `"EJECT_TIP"`, or `"SET_LED"`
+- `volume_pct`: 0.0-1.0 for SUCK/EXPEL (fraction of full pipette volume)
+- `led_color`: `{r, g, b}` floats 0.0-1.0 for SET_LED
+- Requires `start_gripper: "pipettor"` and pipettor physically attached
+
 ### Gripper Auto-Detection
 Tasks that need gripper info (`end_effector`, `pick_and_place`, `vision_pick_place`) default to the currently attached gripper if not specified. The orchestrator tracks `start_gripper` and updates it after `tool_exchange` operations.
 
