@@ -965,6 +965,39 @@ class MTCOrchestratorServer(Node):
             self._toolexchange_client, goal, "tool_exchange", self._timeouts["tool_exchange"]
         )
 
+    def _set_tool_voltage_via_io(self, voltage: int) -> bool:
+        """Set tool voltage via UR driver's set_io service.
+
+        Unlike the raw socket approach, this doesn't stop the external_control
+        program — safe to call while the robot is ready for trajectories.
+        """
+        from ur_msgs.srv import SetIO
+        client = self.create_client(
+            SetIO, "/io_and_status_controller/set_io",
+            callback_group=self._callback_group
+        )
+        if not client.wait_for_service(timeout_sec=3.0):
+            self.get_logger().error("set_io service not available")
+            self.destroy_client(client)
+            return False
+
+        request = SetIO.Request()
+        request.fun = 4   # FUN_SET_TOOL_VOLTAGE
+        request.pin = 0
+        request.state = float(voltage)
+
+        future = client.call_async(request)
+        start = time.time()
+        while not future.done() and time.time() - start < 5.0:
+            time.sleep(0.05)
+
+        self.destroy_client(client)
+        if future.done() and future.result().success:
+            self.get_logger().info(f"Tool voltage set to {voltage}V via set_io")
+            return True
+        self.get_logger().error(f"Failed to set tool voltage to {voltage}V")
+        return False
+
     def _reset_vision_tf(self):
         """Call the vision server's TF reset service after tool exchange.
 
@@ -993,6 +1026,17 @@ class MTCOrchestratorServer(Node):
         Like the C++ version, this restarts MoveIt with the new gripper config
         after a tool exchange operation completes.
         """
+        operation = step.get("operation", "")
+
+        # For dock: turn off tool voltage BEFORE the motion so the
+        # Quick Changer releases (de-energizes the lock).
+        # Uses the UR driver's set_io service (doesn't stop external_control,
+        # unlike the raw socket approach via secondary interface).
+        if operation == "dock" and not self._use_fake_hardware:
+            self.get_logger().info("Setting tool voltage to 0V for dock (QC release)")
+            self._set_tool_voltage_via_io(0)
+            time.sleep(0.5)  # Wait for QC to release
+
         # Execute the physical exchange motion
         if not self._call_toolexchange(step, poses_json):
             # _last_error already set by _send_and_wait
