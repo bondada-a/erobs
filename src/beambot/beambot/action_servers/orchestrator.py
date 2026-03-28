@@ -1097,6 +1097,15 @@ class MTCOrchestratorServer(Node):
             # Reset vision server TF buffer so it picks up the new URDF frames
             self._reset_vision_tf()
 
+            # Restore tool voltage for the new gripper (dock sets it to 0V)
+            if operation == "load" and not self._use_fake_hardware:
+                tool_voltage = self._grippers.get(new_gripper, {}).get("tool_voltage", 0)
+                if tool_voltage > 0:
+                    self.get_logger().info(
+                        f"Restoring tool voltage to {tool_voltage}V for {new_gripper}"
+                    )
+                    self._set_tool_voltage_via_io(tool_voltage)
+
         return True
 
     def _call_vision_moveto(self, step: Dict[str, Any], poses_json: str) -> bool:

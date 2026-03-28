@@ -42,7 +42,8 @@ Executes 9-stage sequence: open -> approach -> pick -> close -> retreat -> appro
 - `dock_number`: Physical dock slot number
 - `approach_pose`: Joint pose name for approaching the dock
 - `dock_number`: Physical dock slot. **Look up from `default_beamline.yaml` `grippers.<name>.dock_number`** — do NOT hardcode.
-- **IMPORTANT: ALWAYS use `"dock_approach"` for dock operations and `"load_approach"` for load operations.** These are different poses tuned for each operation direction. Using the wrong approach pose causes collisions or failed exchanges.
+- **ALWAYS move to `safe_tool_exchange` BEFORE and AFTER any tool exchange operation.** This pose provides clearance for all gripper lengths (including pipettor). Move there before docking to avoid collisions on approach, and after loading to ensure safe departure.
+- **ALWAYS use `"dock_approach"` for dock operations and `"load_approach"` for load operations.** These are different poses tuned for each operation direction. Using the wrong approach pose causes collisions or failed exchanges.
 
 ### pipettor Task Format
 ```json
