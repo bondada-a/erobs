@@ -38,6 +38,8 @@ from beambot.detection import (
     detect_hough_circles,
     detect_contours_in_image,
     get_3d_position,
+    YoloDetectionParams,
+    get_yolo_detector,
 )
 
 # ROS2 imports — these require a sourced ROS2 environment
@@ -1054,6 +1056,9 @@ async def detect_objects(
     contour_min_area: int = 500,
     contour_max_area: int = 50000,
     marker_ids: str = "",
+    yolo_model: str = "yolov8n.pt",
+    yolo_confidence: float = 0.25,
+    yolo_classes: str = "",
     transform_to_base: bool = True,
     save_path: str = DEFAULT_ANNOTATED_PATH,
 ) -> str:
@@ -1069,9 +1074,12 @@ async def detect_objects(
         - "circle": Hough circle detection. Good for round samples/wafers.
         - "contour": Edge-based contour detection. Finds any shape.
         - "marker": ArUco marker detection (2D image-based, not Zivid native).
+        - "yolo": Deep learning object detection (Ultralytics YOLOv8/v11). Most robust
+          method — detects objects by class with bounding boxes. Works well regardless
+          of lighting/contrast. Use yolo_model for custom weights, yolo_classes to filter.
 
     Args:
-        method: Detection method — "hsv_color", "circle", "contour", or "marker".
+        method: Detection method — "hsv_color", "circle", "contour", "marker", or "yolo".
         camera: Which camera's data to use — "zivid" or "zed". Default "zivid".
             Must match the camera used in the preceding capture_image() call.
         hue_low: HSV hue lower bound (0-180). Only for hsv_color.
@@ -1085,6 +1093,11 @@ async def detect_objects(
         contour_min_area: Min contour area in pixels². Only for contour.
         contour_max_area: Max contour area in pixels². Only for contour.
         marker_ids: Comma-separated ArUco marker IDs to find (empty=all). Only for marker.
+        yolo_model: YOLO model weights — "yolov8n.pt" (nano/fast), "yolov8s.pt" (small),
+            "yolov8m.pt" (medium), or path to custom fine-tuned weights. Only for yolo.
+        yolo_confidence: Min detection confidence 0-1. Lower = more detections. Only for yolo.
+        yolo_classes: Comma-separated class names or IDs to filter (e.g. "book,cell phone"
+            or "73,67"). Empty = detect all classes. Only for yolo.
         transform_to_base: If True, transform 3D positions from camera frame to base_link.
         save_path: Where to save annotated image. Default /tmp/beambot_detection.jpg.
 
@@ -1145,8 +1158,48 @@ async def detect_objects(
                 {"pixel_x": cx, "pixel_y": cy, "marker_id": mid, "corners": corners}
                 for cx, cy, mid, corners in raw
             ]
+
+    elif method == "yolo":
+        # Parse class filter (names or IDs)
+        class_ids = None
+        class_filter_names = []
+        if yolo_classes.strip():
+            parts = [c.strip() for c in yolo_classes.split(",")]
+            # Check if they're numeric (class IDs) or names
+            if all(p.isdigit() for p in parts):
+                class_ids = [int(p) for p in parts]
+            else:
+                class_filter_names = [p.lower() for p in parts]
+
+        params = YoloDetectionParams(
+            model_path=yolo_model,
+            confidence=yolo_confidence,
+            classes=class_ids,
+        )
+        detector = get_yolo_detector(yolo_model)
+        raw = detector.detect(rgb, params)
+
+        # Filter by class name if specified as strings
+        if class_filter_names:
+            raw = [d for d in raw if d[0].lower() in class_filter_names]
+
+        if raw:
+            # Annotate with YOLO-specific visualization
+            annotated_yolo = detector.annotate(rgb, raw)
+            os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
+            cv2.imwrite(save_path, annotated_yolo)
+
+            raw_detections = [
+                {
+                    "pixel_x": cx, "pixel_y": cy,
+                    "class": cls_name, "confidence": round(conf, 3),
+                    "bbox": [x1, y1, x2, y2],
+                }
+                for cls_name, conf, cx, cy, x1, y1, x2, y2 in raw
+            ]
+
     else:
-        return json.dumps({"error": f"Unknown method '{method}'. Use: hsv_color, circle, contour, marker"})
+        return json.dumps({"error": f"Unknown method '{method}'. Use: hsv_color, circle, contour, marker, yolo"})
 
     if not raw_detections:
         return json.dumps({
@@ -1174,10 +1227,11 @@ async def detect_objects(
                     if base_xyz is not None:
                         det["base_xyz"] = list(base_xyz)
 
-    # Annotate and save image
-    annotated = _annotate_image(rgb, raw_detections, method)
-    os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
-    cv2.imwrite(save_path, annotated)
+    # Annotate and save image (YOLO handles its own annotation above)
+    if method != "yolo":
+        annotated = _annotate_image(rgb, raw_detections, method)
+        os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
+        cv2.imwrite(save_path, annotated)
 
     # Clean up non-serializable fields
     for det in raw_detections:
