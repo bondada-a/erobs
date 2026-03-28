@@ -65,7 +65,7 @@ obstacles:
     pose:
       x: -0.38
       y: -0.50
-      z: 0.0
+      z: -0.03
       roll: 0.0
       pitch: 0.0
       yaw: 0.0

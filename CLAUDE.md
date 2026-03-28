@@ -111,6 +111,9 @@ Config-driven vision targets are defined in `default_beamline.yaml` under `visio
 - **grid**: detect marker → move to marker → relative cartesian moves for grid element + approach/retreat
 - **NOTE**: The `vision_target` tool returns task JSON with movement steps only. For targets that require end-effector actions (e.g. pipettor aspirate/dispense at a vial), you must manually insert the action step into the task list before sending to the orchestrator. Insert it between the last approach move and the retreat move. Example: for `vial_rack`, insert `{"task_type": "pipettor", ...}` between the forward (insert) and backward (retreat) steps.
 
+### Experiment Protocols
+Experiment protocols are defined in `src/cms/experiments.md`. Read this file before running experiments — it contains the step-by-step protocol, parameters (tag IDs, gripper, etc.), and any experiment-specific notes. The user edits this file before each experiment session. Execute protocols step by step using existing MCP tools.
+
 ### Optional Path Constraints
 
 Any task step can include a `constraints` key to apply MoveIt path constraints during planning. If omitted, no constraints are applied (default behavior).

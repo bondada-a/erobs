@@ -117,7 +117,7 @@ vision_targets:
   vial_rack:
     mode: grid
     marker_id: 25
-    scan_pose: "pipettor_scan"          # TODO: create dedicated vial_scan pose
+    scan_pose: "vial_scan"
     start_gripper: "pipettor"
     grid:
       rows: 2                    # A-B
@@ -136,4 +136,12 @@ vision_targets:
       - row_offset                                   # computed row offset
       - {direction: "forward", distance: 0.065}    # insert into vial
       - {direction: "backward", distance: 0.065}   # retreat from vial
+
+  sample:
+    mode: offset
+    marker_id: 0                 # Override with tag_id parameter per sample
+    scan_pose: "sample_scan_1"
+    start_gripper: "epick"
+    marker_offset: {x: 0.020, y: 0.0, z: 0.0}   # 20mm in marker +X (right of tag)
+    z_offset: 0.003
 

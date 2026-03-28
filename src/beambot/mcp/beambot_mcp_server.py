@@ -1739,6 +1739,7 @@ def _build_vision_target_tasks(
     element_index: int = 0,
     row: int = -1,
     col: int = -1,
+    tag_id: int = -1,
 ) -> Dict:
     """Build task JSON for a vision target from config.
 
@@ -1750,6 +1751,7 @@ def _build_vision_target_tasks(
         element_index: For grid targets, 0-based index in row-major order.
         row: For grid targets, 0-indexed row (overrides element_index).
         col: For grid targets, 0-indexed column (overrides element_index).
+        tag_id: Override marker ID from config (-1 = use config value).
 
     Returns:
         Dict with 'task_json' key on success, 'error' key on failure.
@@ -1761,7 +1763,7 @@ def _build_vision_target_tasks(
 
     cfg = targets[target_name]
     mode = cfg.get("mode", "offset")
-    marker_id = cfg["marker_id"]
+    marker_id = tag_id if tag_id >= 0 else cfg["marker_id"]
     scan_pose_name = cfg.get("scan_pose", "")
     start_gripper = cfg.get("start_gripper", "pipettor")
 
@@ -1909,6 +1911,7 @@ async def vision_target(
     element_index: int = 0,
     row: int = -1,
     col: int = -1,
+    tag_id: int = -1,
 ) -> str:
     """Build task JSON for a config-driven vision target operation.
 
@@ -1919,16 +1922,18 @@ async def vision_target(
 
     Args:
         target_name: Name of the vision target from config (e.g. "tip_rack",
-            "spincoater", "hotplate").
+            "sample", "vial_rack").
         element_index: For grid targets: 0-based element index in row-major order.
             Ignored if row/col are specified. Ignored for offset targets.
         row: For grid targets: 0-indexed row. Use with col.
         col: For grid targets: 0-indexed column. Use with row.
+        tag_id: Override the marker ID from config. Use for targets like "sample"
+            where the same offset applies to different markers. -1 = use config value.
 
     Returns:
         JSON with task_json to send to the orchestrator via send_action_goal.
     """
-    result = _build_vision_target_tasks(target_name, element_index, row, col)
+    result = _build_vision_target_tasks(target_name, element_index, row, col, tag_id=tag_id)
     return json.dumps(result, indent=2)
 
 
