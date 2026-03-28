@@ -619,6 +619,9 @@ class MTCOrchestratorServer(Node):
 
             # Check for cancellation at batch boundary
             if goal_handle.is_cancel_requested:
+                self.get_logger().warn(
+                    f"Task cancelled after step {completed_tasks}/{task_count}"
+                )
                 result.error_message = "Task was canceled"
                 result.completed_steps = completed_tasks
                 goal_handle.canceled()
@@ -631,6 +634,9 @@ class MTCOrchestratorServer(Node):
 
                 # Check if cancelled DURING pause
                 if goal_handle.is_cancel_requested:
+                    self.get_logger().warn(
+                        f"Task cancelled while paused at step {completed_tasks}/{task_count}"
+                    )
                     result.error_message = "Task was cancelled while paused"
                     result.completed_steps = completed_tasks
                     goal_handle.canceled()
@@ -965,6 +971,19 @@ class MTCOrchestratorServer(Node):
             self._toolexchange_client, goal, "tool_exchange", self._timeouts["tool_exchange"]
         )
 
+    # Gripper name → IK tip frame mapping
+    _GRIPPER_IK_FRAMES = {
+        "epick": "epick_tip",
+        "hande": "robotiq_hande_end",
+        "pipettor": "pipette_tip_link",
+        "2fg7": "2fg7_tip",
+        "none": "flange",
+    }
+
+    def _gripper_ik_frame(self) -> str:
+        """Return the IK frame for the currently attached gripper."""
+        return self._GRIPPER_IK_FRAMES.get(self._current_gripper, "flange")
+
     def _set_tool_voltage_via_io(self, voltage: int) -> bool:
         """Set tool voltage via UR driver's set_io service.
 
@@ -1113,6 +1132,8 @@ class MTCOrchestratorServer(Node):
         goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
         goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
         goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
+        # Pass current gripper's IK frame to avoid stale TF auto-detection
+        goal.ik_frame = self._gripper_ik_frame()
 
         # Handle multi-position scan mode
         # Task JSON: "scan_positions": ["sample_scan_1", "sample_scan_2", "sample_scan_3"]

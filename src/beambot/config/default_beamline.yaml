@@ -20,6 +20,7 @@ grippers:
   hande:
     moveit_package: "ur_zivid_hande_moveit_config"
     tool_voltage: 24
+    dock_number: 3
     gripper_group: "hande_gripper"
     states:
       grasp: "hande_closed"
@@ -28,6 +29,7 @@ grippers:
   epick:
     moveit_package: "ur_zivid_epick_moveit_config"
     tool_voltage: 24
+    dock_number: 4
     gripper_group: "epick_gripper"
     cup_profile: "7mm_dia"
     z_offset: 0.003
@@ -48,6 +50,7 @@ grippers:
   pipettor:
     moveit_package: "ur_zivid_pipettor_moveit_config"
     tool_voltage: 24
+    dock_number: 2
     gripper_group: ""              # Pipettor has no gripper group
     states: {}                     # No states
 

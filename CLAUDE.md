@@ -41,6 +41,7 @@ Executes 9-stage sequence: open -> approach -> pick -> close -> retreat -> appro
 - `gripper`: Which gripper to dock/load
 - `dock_number`: Physical dock slot number
 - `approach_pose`: Joint pose name for approaching the dock
+- `dock_number`: Physical dock slot. **Look up from `default_beamline.yaml` `grippers.<name>.dock_number`** — do NOT hardcode.
 - **IMPORTANT: ALWAYS use `"dock_approach"` for dock operations and `"load_approach"` for load operations.** These are different poses tuned for each operation direction. Using the wrong approach pose causes collisions or failed exchanges.
 
 ### pipettor Task Format

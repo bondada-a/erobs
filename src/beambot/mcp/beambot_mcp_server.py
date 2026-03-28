@@ -56,6 +56,7 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from sensor_msgs.msg import Image, JointState, PointCloud2
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
+from action_msgs.srv import CancelGoal
 from tf2_ros import Buffer, TransformListener, TransformException
 from tf_transformations import quaternion_matrix
 
@@ -110,6 +111,7 @@ JOINT_STATES_TOPIC = "/joint_states"
 CURRENT_GRIPPER_TOPIC = "/beambot/current_gripper"
 EXECUTION_STATE_TOPIC = "/beambot/execution_state"
 EPICK_STATUS_TOPIC = "/object_detection_status"
+BEAMBOT_EXECUTION_ACTION = "/beambot_execution"
 
 # ePick ObjectDetectionStatus integer → human-readable string
 EPICK_STATUS_NAMES = {
@@ -333,6 +335,13 @@ class ROS2BridgeNode(Node):
         # timing with 50+ publishers. get_recent_logs now reads from the launch
         # output file (/tmp/beambot_launch.log) written by start_mcp.sh.
 
+        # Cancel service client for stopping orchestrator goals
+        # Uses the action's cancel service directly (cancel-all with empty request)
+        self._cancel_client = self.create_client(
+            CancelGoal, f"{BEAMBOT_EXECUTION_ACTION}/_action/cancel_goal",
+            callback_group=self._cb_group,
+        )
+
         # Robot state subscriptions
         latched_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
 
@@ -383,6 +392,30 @@ class ROS2BridgeNode(Node):
         self._waiting_for_capture = False
 
         self.get_logger().info("ROS2BridgeNode initialized")
+
+    def cancel_all_goals(self) -> str:
+        """Cancel all active goals on the beambot execution action server.
+
+        Sends an empty CancelGoal request which cancels ALL active goals.
+        Returns a status message.
+        """
+        if not self._cancel_client.wait_for_service(timeout_sec=2.0):
+            return "Cancel service not available (orchestrator not running?)"
+        request = CancelGoal.Request()
+        # Empty goal_info = cancel all goals
+        future = self._cancel_client.call_async(request)
+        start = time.time()
+        while not future.done() and time.time() - start < 5.0:
+            time.sleep(0.05)
+        if future.done():
+            result = future.result()
+            if result is not None:
+                n = len(result.goals_canceling)
+                if n > 0:
+                    return f"Cancel accepted — {n} goal(s) being cancelled"
+                return "No active goals to cancel"
+            return "Cancel sent but no response received"
+        return "Cancel request timed out"
 
     def _on_zivid_image(self, msg: Image):
         self.last_image_msg = msg
@@ -688,6 +721,21 @@ async def ping() -> str:
     is reachable before calling other tools.
     """
     return "pong"
+
+
+@mcp.tool()
+async def stop_robot() -> str:
+    """Emergency stop: cancel all active goals on the beambot orchestrator.
+
+    Sends a cancel-all request to /beambot_execution. The orchestrator will
+    finish the current motion step and then stop (does not interrupt mid-motion).
+    Use this when the robot needs to be stopped and you don't have the goal ID.
+    """
+    node = bridge.node
+    result = await asyncio.get_event_loop().run_in_executor(
+        None, node.cancel_all_goals
+    )
+    return json.dumps({"result": result})
 
 
 @mcp.tool()
@@ -1704,34 +1752,33 @@ _DIRECTION_OPPOSITES = {
 }
 
 
-def _load_vision_targets() -> Dict:
-    """Load vision target configs from default_beamline.yaml."""
+def _load_beamline_config() -> Dict:
+    """Load the full beamline config from default_beamline.yaml."""
     try:
         from ament_index_python.packages import get_package_share_directory
         config_path = os.path.join(
             get_package_share_directory("beambot"), "config", "default_beamline.yaml"
         )
         with open(config_path) as f:
-            config = yaml.safe_load(f)
-        return config.get("vision_targets", {})
+            return yaml.safe_load(f) or {}
     except Exception as e:
-        logger.error(f"Failed to load vision targets config: {e}")
+        logger.error(f"Failed to load beamline config: {e}")
         return {}
+
+
+def _load_vision_targets() -> Dict:
+    """Load vision target configs from default_beamline.yaml."""
+    return _load_beamline_config().get("vision_targets", {})
+
+
+def _load_grippers_config() -> Dict:
+    """Load gripper configs (including dock_number) from default_beamline.yaml."""
+    return _load_beamline_config().get("grippers", {})
 
 
 def _load_tip_rack_config() -> Optional[Dict]:
     """Load legacy tip rack config from default_beamline.yaml."""
-    try:
-        from ament_index_python.packages import get_package_share_directory
-        config_path = os.path.join(
-            get_package_share_directory("beambot"), "config", "default_beamline.yaml"
-        )
-        with open(config_path) as f:
-            config = yaml.safe_load(f)
-        return config.get("tip_rack")
-    except Exception as e:
-        logger.error(f"Failed to load tip rack config: {e}")
-        return None
+    return _load_beamline_config().get("tip_rack")
 
 
 def _build_vision_target_tasks(

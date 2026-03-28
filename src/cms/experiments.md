@@ -47,6 +47,21 @@
 
 ---
 
+## Common Pipettor Procedures
+
+### Pipettor to Spincoater (dispense position)
+1. move to pipettor_pre_spincoat
+2. move to pipettor_pre_dispense
+3. move to pipettor_dispense
+
+### Tip Eject
+1. move to pipettor_pre_tip_eject
+2. move 100mm forward
+3. EJECT_TIP
+4. move 100mm backward
+
+---
+
 ## Experiment 2: (template)
 
 ### Parameters

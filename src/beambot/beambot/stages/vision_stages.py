@@ -369,6 +369,9 @@ class VisionStages(BaseStages):
         marker_offset_y = getattr(goal, 'marker_offset_y', 0.0)
         marker_offset_z = getattr(goal, 'marker_offset_z', 0.0)
 
+        # IK frame override from orchestrator (avoids stale TF auto-detection)
+        goal_ik_frame = getattr(goal, 'ik_frame', '') or ''
+
         # Route to appropriate detection method
         if detection_type == self.DETECTION_CIRCLE:
             self.logger.info("Using circle detection")
@@ -425,6 +428,7 @@ class VisionStages(BaseStages):
             marker_offset_x=marker_offset_x,
             marker_offset_y=marker_offset_y,
             marker_offset_z=marker_offset_z,
+            ik_frame_override=goal_ik_frame,
         )
 
         # Apply directional offset in flange frame if specified
@@ -1021,6 +1025,19 @@ class VisionStages(BaseStages):
     SAMPLE_OFFSET_X = 0.0
     SAMPLE_OFFSET_Y = 0.0
 
+    # Default z_offsets per gripper tip frame
+    _Z_OFFSETS = {
+        "epick_tip": 0.003,
+        "robotiq_hande_end": -0.02,
+        "pipette_tip_link": 0.0,
+        "flange": 0.0,
+    }
+
+    @classmethod
+    def _z_offset_for_frame(cls, ik_frame: str) -> float:
+        """Return default z_offset for a given IK frame name."""
+        return cls._Z_OFFSETS.get(ik_frame, 0.0)
+
     def _compute_approach_pose(
         self,
         target: PoseStamped,
@@ -1028,6 +1045,7 @@ class VisionStages(BaseStages):
         marker_offset_x: float = 0.0,
         marker_offset_y: float = 0.0,
         marker_offset_z: float = 0.0,
+        ik_frame_override: str = "",
     ) -> Tuple[PoseStamped, str]:
         """Compute the final approach pose from a detected target.
 
@@ -1041,25 +1059,31 @@ class VisionStages(BaseStages):
             marker_offset_x: Offset in marker local X (meters). 0 = use class default.
             marker_offset_y: Offset in marker local Y (meters). 0 = use class default.
             marker_offset_z: Offset in marker local Z (meters). 0 = none.
+            ik_frame_override: Explicit IK frame from orchestrator (e.g. "pipette_tip_link").
+                Empty = auto-detect from TF. Bypasses TF-based detection which can
+                return stale frames after tool exchange.
 
         Returns:
             Tuple of (approach PoseStamped, active_ik_frame)
         """
-        # Auto-detect gripper if ik_frame not set
-        if not self.ik_frame or self.ik_frame == "flange":
+        # Determine IK frame: explicit override > constructor arg > auto-detect
+        if ik_frame_override:
+            active_ik_frame = ik_frame_override
+            active_z_offset = self._z_offset_for_frame(active_ik_frame)
+            self.logger.info(
+                f"Using orchestrator IK frame: {active_ik_frame} "
+                f"(z_offset: {active_z_offset:.3f})"
+            )
+        elif self.ik_frame and self.ik_frame != "flange":
+            active_ik_frame = self.ik_frame
+            active_z_offset = self._z_offset_for_frame(active_ik_frame)
+        else:
             detection = self._detect_current_gripper()
             active_ik_frame = detection.ik_frame
             active_z_offset = detection.z_offset
             self.logger.info(
                 f"Auto-detected: {active_ik_frame} (z_offset: {active_z_offset:.3f})"
             )
-        else:
-            active_ik_frame = self.ik_frame
-            # Default z_offset based on gripper type
-            if "epick" in active_ik_frame:
-                active_z_offset = 0.003
-            else:
-                active_z_offset = -0.02
 
         # Use override if provided (non-zero)
         if z_offset_override != 0.0:

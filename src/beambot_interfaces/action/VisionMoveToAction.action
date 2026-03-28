@@ -15,6 +15,9 @@ float64 offset_distance     # Distance in meters for offset_direction (default: 
 float64 marker_offset_x     # Offset from marker in marker local X (meters). 0 = use class default.
 float64 marker_offset_y     # Offset from marker in marker local Y (meters). 0 = use class default.
 float64 marker_offset_z     # Offset from marker in marker local Z (meters). 0 = none.
+string ik_frame             # IK frame override (e.g. "pipette_tip_link", "epick_tip").
+                            # Empty = auto-detect from TF. Set by orchestrator after tool exchange
+                            # to avoid stale TF auto-detection.
 ---
 # Result
 bool success
