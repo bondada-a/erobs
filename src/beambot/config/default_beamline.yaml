@@ -114,3 +114,26 @@ vision_targets:
       - {direction: "forward", distance: 0.023}    # press to seat tip
       - {direction: "backward", distance: 0.150}   # retreat clear of rack
 
+  vial_rack:
+    mode: grid
+    marker_id: 25
+    scan_pose: "pipettor_scan"          # TODO: create dedicated vial_scan pose
+    start_gripper: "pipettor"
+    grid:
+      rows: 2                    # A-B
+      cols: 5                    # 1-5
+      col_pitch: 0.022           # 22mm between columns (A1→A2)
+      row_pitch: 0.044           # 44mm between rows (A→B)
+      col_offset: 0.003          # A1 offset from tag: 3mm right
+      row_offset: 0.080          # A1 offset from tag: 80mm up
+      col_direction: "right"     # flange direction toward A1 col
+      col_increasing: "right"   # columns increase going right (same as A1)
+      row_direction: "up"        # flange direction toward A1 row
+      row_increasing: "down"    # rows increase going down (opposite of A1)
+    moves:
+      - {direction: "backward", distance: 0.020}   # clearance before lateral moves
+      - column_offset                               # computed col offset
+      - row_offset                                   # computed row offset
+      - {direction: "forward", distance: 0.065}    # insert into vial
+      - {direction: "backward", distance: 0.065}   # retreat from vial
+

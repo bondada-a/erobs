@@ -97,6 +97,7 @@ Vision-guided movement to a detected marker with optional offsets.
 Config-driven vision targets are defined in `default_beamline.yaml` under `vision_targets`. Use the `vision_target` MCP tool to build task JSON from config. Two modes:
 - **offset**: detect marker → move directly to marker-frame offset position (single move)
 - **grid**: detect marker → move to marker → relative cartesian moves for grid element + approach/retreat
+- **NOTE**: The `vision_target` tool returns task JSON with movement steps only. For targets that require end-effector actions (e.g. pipettor aspirate/dispense at a vial), you must manually insert the action step into the task list before sending to the orchestrator. Insert it between the last approach move and the retreat move. Example: for `vial_rack`, insert `{"task_type": "pipettor", ...}` between the forward (insert) and backward (retreat) steps.
 
 ### Optional Path Constraints
 

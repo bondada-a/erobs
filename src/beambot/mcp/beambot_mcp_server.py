@@ -1803,12 +1803,24 @@ def _build_vision_target_tasks(
         grid_cfg = cfg.get("grid", {})
         grid_rows = grid_cfg.get("rows", 1)
         grid_cols = grid_cfg.get("cols", 1)
-        grid_pitch = grid_cfg.get("pitch", 0.009)
-        # Flange directions: toward A1 (negative index direction)
+        # Support separate row/col pitch, fall back to single pitch for backward compat
+        default_pitch = grid_cfg.get("pitch", 0.009)
+        col_pitch = grid_cfg.get("col_pitch", default_pitch)
+        row_pitch = grid_cfg.get("row_pitch", default_pitch)
+        # Flange directions for A1 offset from tag
         col_dir_a1 = grid_cfg.get("col_direction", "left")
         row_dir_a1 = grid_cfg.get("row_direction", "up")
         col_dir_away = _DIRECTION_OPPOSITES.get(col_dir_a1, "right")
         row_dir_away = _DIRECTION_OPPOSITES.get(row_dir_a1, "down")
+        # Direction indices increase: defaults to opposite of A1 direction
+        # (backward compat: tip_rack has A1 at max offset, indices go toward tag)
+        col_increasing = grid_cfg.get("col_increasing", col_dir_away)
+        row_increasing = grid_cfg.get("row_increasing", row_dir_away)
+
+        # A1 offset from tag: use grid-level overrides if present,
+        # else fall back to marker_offset for backward compat
+        a1_col_offset = grid_cfg.get("col_offset", abs(marker_offset.get("x", 0.0)))
+        a1_row_offset = grid_cfg.get("row_offset", abs(marker_offset.get("y", 0.0)))
 
         # Resolve row/col from index
         if row >= 0 and col >= 0:
@@ -1823,13 +1835,19 @@ def _build_vision_target_tasks(
             col = element_index % grid_cols
 
         # Compute flange-frame offsets for this grid element
-        # A1 is at abs(marker_offset) in the A1-ward direction from marker
-        # Subsequent elements go in the away direction (subtract from base offset)
-        base_offset_x = abs(marker_offset.get("x", 0.0))
-        base_offset_y = abs(marker_offset.get("y", 0.0))
+        # A1 is at a1_offset in the A1-ward direction.
+        # Grid displacement goes in the col/row_increasing direction.
+        # If increasing == A1 direction: ADD (elements go further from tag)
+        # If increasing != A1 direction: SUBTRACT (elements go back toward tag)
+        if col_increasing == col_dir_a1:
+            col_offset = a1_col_offset + col * col_pitch
+        else:
+            col_offset = a1_col_offset - col * col_pitch
 
-        col_offset = base_offset_x - col * grid_pitch
-        row_offset = base_offset_y - row * grid_pitch
+        if row_increasing == row_dir_a1:
+            row_offset = a1_row_offset + row * row_pitch
+        else:
+            row_offset = a1_row_offset - row * row_pitch
 
         col_dir = col_dir_a1 if col_offset >= 0 else col_dir_away
         col_dist = abs(col_offset)
