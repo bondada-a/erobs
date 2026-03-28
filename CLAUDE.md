@@ -107,6 +107,16 @@ Vision-guided movement to a detected marker with optional offsets.
 - `detect_only`: Detects and returns `detected_position` and `detected_orientation` in the result without moving. Offsets are still applied to the returned position.
 - **WARNING**: `detected_orientation` in the result is the **IK frame** orientation (e.g. epick_tip, robotiq_hande_end), NOT the flange orientation. There is a ~90° rotation between them (tool_block joint). Do NOT use `detected_orientation` to manually compute flange-frame direction offsets — use `offset_direction`/`offset_distance` or `marker_offset_x/y/z` instead. Using the wrong frame will send the robot to the wrong position.
 
+### Contour-Based Sample Detection (detect_sample MCP tool)
+For precise off-center sample pickup (e.g., X-ray beam needs the center clear):
+1. Move to `sample_scan_1`
+2. `capture_image(mode="3d")` — captures image + point cloud
+3. `detect_sample(tag_id=0)` — returns `pickup_base_xyz` and `offset_from_center_mm`
+4. Move to `pickup_base_xyz` using `cartesian_target`
+5. Vacuum on, retreat
+6. When placing on hotplate: add `offset_from_center_mm` to the base 51.2mm offset
+   (e.g., 51.2 + 5.4 = 56.6mm right of tag 30) so the sample center aligns with the hotplate center
+
 ### Vision Target Framework
 Config-driven vision targets are defined in `default_beamline.yaml` under `vision_targets`. Use the `vision_target` MCP tool to build task JSON from config. Two modes:
 - **offset**: detect marker → move directly to marker-frame offset position (single move)

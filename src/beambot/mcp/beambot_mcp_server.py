@@ -38,6 +38,7 @@ from beambot.detection import (
     detect_hough_circles,
     detect_contours_in_image,
     get_3d_position,
+    get_3d_position_averaged,
     YoloDetectionParams,
     get_yolo_detector,
 )
@@ -222,10 +223,16 @@ def _detect_aruco_markers(
         "DICT_6X6_250": cv2.aruco.DICT_6X6_250,
     }
     dict_id = aruco_dicts.get(dictionary_name, cv2.aruco.DICT_4X4_50)
-    aruco_dict = cv2.aruco.Dictionary_get(dict_id)
-    aruco_params = cv2.aruco.DetectorParameters_create()
     gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
-    corners_list, ids, _ = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=aruco_params)
+    try:
+        aruco_dict = cv2.aruco.getPredefinedDictionary(dict_id)
+        aruco_params = cv2.aruco.DetectorParameters()
+        detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
+        corners_list, ids, _ = detector.detectMarkers(gray)
+    except AttributeError:
+        aruco_dict = cv2.aruco.Dictionary_get(dict_id)
+        aruco_params = cv2.aruco.DetectorParameters_create()
+        corners_list, ids, _ = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=aruco_params)
 
     if ids is None or len(ids) == 0:
         return None
@@ -1419,6 +1426,344 @@ async def _confirm_point_via_gui(
         return None  # User cancelled
 
     return result
+
+
+def _detect_sample_in_roi(
+    rgb_image: np.ndarray,
+    marker_corners: np.ndarray,
+    px_per_mm: float,
+    roi_offset_x_mm: float = 19.3,
+    roi_offset_y_mm: float = 0.3,
+    roi_width_mm: float = 22.1,
+    roi_height_mm: float = 21.8,
+    edge_inset_mm: float = 4.0,
+    strategy: str = "farthest_edge",
+    min_area: int = 100,
+    max_area: int = 15000,
+    max_aspect_ratio: float = 3.0,
+) -> Optional[Dict[str, Any]]:
+    """Detect a sample contour in a fixed ROI relative to an ArUco marker.
+
+    Pure OpenCV — no ROS dependencies. Reusable from scripts and MCP tools.
+
+    Args:
+        rgb_image: Full image (BGR or RGB)
+        marker_corners: Shape (4, 2) — tag corner pixels [TL, TR, BR, BL]
+        px_per_mm: Pixel-to-mm scale
+        roi_offset_x_mm: ROI center offset in marker +X direction (mm)
+        roi_offset_y_mm: ROI center offset in marker +Y direction (mm)
+        roi_width_mm: ROI width in mm
+        roi_height_mm: ROI height in mm
+        edge_inset_mm: Distance to move inward from edge toward center (mm)
+        strategy: Pickup strategy — "center", "farthest_edge", "nearest_edge",
+                  "farthest_corner", "nearest_corner"
+        min_area: Min contour area (px²)
+        max_area: Max contour area (px²)
+        max_aspect_ratio: Max width/height ratio for valid sample
+
+    Returns:
+        Dict with pickup_px, center_px, sample_size_mm, angle, offset_from_center_mm,
+        or None if no sample found.
+    """
+    # Marker axes in pixel space
+    top_left, top_right = marker_corners[0], marker_corners[1]
+    bottom_left = marker_corners[3]
+    marker_x = top_right - top_left
+    marker_x = marker_x / np.linalg.norm(marker_x)
+    marker_y = bottom_left - top_left
+    marker_y = marker_y / np.linalg.norm(marker_y)
+    tag_center = marker_corners.mean(axis=0)
+
+    # ROI center in pixel space
+    roi_center = (tag_center
+                  + marker_x * (roi_offset_x_mm * px_per_mm)
+                  + marker_y * (roi_offset_y_mm * px_per_mm))
+
+    half_w = (roi_width_mm * px_per_mm) / 2
+    half_h = (roi_height_mm * px_per_mm) / 2
+
+    h, w = rgb_image.shape[:2]
+    roi_x1 = max(0, int(roi_center[0] - half_w))
+    roi_y1 = max(0, int(roi_center[1] - half_h))
+    roi_x2 = min(w, int(roi_center[0] + half_w))
+    roi_y2 = min(h, int(roi_center[1] + half_h))
+
+    roi = rgb_image[roi_y1:roi_y2, roi_x1:roi_x2]
+    if roi.size == 0:
+        return None
+
+    # Convert to grayscale
+    if len(roi.shape) == 3:
+        roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+    else:
+        roi_gray = roi
+
+    # Edge detection + contour finding
+    blurred = cv2.GaussianBlur(roi_gray, (5, 5), 0)
+    edges = cv2.Canny(blurred, 50, 150)
+    kernel = np.ones((3, 3), np.uint8)
+    edges = cv2.dilate(edges, kernel, iterations=1)
+    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    # Filter by area and aspect ratio
+    valid = []
+    for c in contours:
+        area = cv2.contourArea(c)
+        if area < min_area or area > max_area:
+            continue
+        rect = cv2.minAreaRect(c)
+        rw, rh = rect[1]
+        if rw == 0 or rh == 0:
+            continue
+        if max(rw, rh) / min(rw, rh) > max_aspect_ratio:
+            continue
+        valid.append((area, c))
+
+    if not valid:
+        return None
+
+    # Select largest contour
+    valid.sort(key=lambda x: x[0], reverse=True)
+    sample_contour = valid[0][1]
+
+    # Fit rectangle
+    rect = cv2.minAreaRect(sample_contour)
+    rect_center_roi = rect[0]
+    rect_size = rect[1]
+    rect_angle = rect[2]
+    rect_corners_roi = cv2.boxPoints(rect)
+
+    # Convert to full image coordinates
+    rect_center_full = np.array([rect_center_roi[0] + roi_x1,
+                                  rect_center_roi[1] + roi_y1])
+    rect_corners_full = rect_corners_roi + np.array([roi_x1, roi_y1])
+
+    # Compute pickup point based on strategy
+    tag_pt = tag_center
+    center_pt = rect_center_full.copy()
+    edge_inset_px = edge_inset_mm * px_per_mm
+
+    if strategy == "center":
+        pickup = center_pt.copy()
+    elif "corner" in strategy:
+        distances = [np.linalg.norm(c - tag_pt) for c in rect_corners_full]
+        idx = np.argmax(distances) if "farthest" in strategy else np.argmin(distances)
+        pickup = rect_corners_full[idx].copy()
+        if edge_inset_px > 0:
+            toward = center_pt - pickup
+            norm = np.linalg.norm(toward)
+            if norm > 0:
+                pickup = pickup + toward / norm * edge_inset_px
+    elif "edge" in strategy:
+        midpoints = []
+        for i in range(4):
+            midpoints.append((rect_corners_full[i] + rect_corners_full[(i + 1) % 4]) / 2)
+        distances = [np.linalg.norm(m - tag_pt) for m in midpoints]
+        idx = np.argmax(distances) if "farthest" in strategy else np.argmin(distances)
+        pickup = midpoints[idx].copy()
+        if edge_inset_px > 0:
+            toward = center_pt - pickup
+            norm = np.linalg.norm(toward)
+            if norm > 0:
+                pickup = pickup + toward / norm * edge_inset_px
+    else:
+        pickup = center_pt.copy()
+
+    # Compute offset from center to pickup point in mm
+    offset_from_center_mm = np.linalg.norm(pickup - center_pt) / px_per_mm
+
+    return {
+        "pickup_px": (int(pickup[0]), int(pickup[1])),
+        "center_px": (int(center_pt[0]), int(center_pt[1])),
+        "sample_size_mm": (round(rect_size[0] / px_per_mm, 1),
+                           round(rect_size[1] / px_per_mm, 1)),
+        "sample_angle": round(rect_angle, 1),
+        "sample_area_px": int(cv2.contourArea(sample_contour)),
+        "offset_from_center_mm": round(offset_from_center_mm, 1),
+        "roi": (roi_x1, roi_y1, roi_x2, roi_y2),
+        "strategy": strategy,
+        "edge_inset_mm": edge_inset_mm,
+    }
+
+
+@mcp.tool()
+async def detect_sample(
+    tag_id: int,
+    camera: str = "zivid",
+    strategy: str = "farthest_edge",
+    edge_inset_mm: float = 4.0,
+    save_path: str = "/tmp/sample_detection.jpg",
+) -> str:
+    """Detect a sample near an ArUco tag and return its 3D pickup point.
+
+    IMPORTANT: Call capture_image(mode='3d') first! This uses the most recent
+    capture data for both image analysis and 3D position lookup.
+
+    Pipeline:
+    1. Detect ArUco tag in the captured image (pixel corners)
+    2. Crop a fixed ROI at 26mm right of the tag
+    3. Run contour detection in the ROI to find the sample shape
+    4. Fit a rectangle to the sample, compute pickup point on the edge
+    5. Look up 3D position from point cloud at the pickup pixel
+    6. Transform to base_link
+
+    The pickup point is offset from the sample center based on strategy,
+    so the X-ray beam can hit the center while the suction cup grips the edge.
+
+    Args:
+        tag_id: ArUco marker ID near the sample
+        camera: Camera to use ("zivid" or "zed"). Default "zivid".
+        strategy: Where to grip — "center", "farthest_edge" (default),
+            "nearest_edge", "farthest_corner", "nearest_corner".
+            "farthest_edge" = midpoint of edge farthest from tag, inset by edge_inset_mm.
+        edge_inset_mm: How far inward from edge toward center (mm). Default 4.0.
+            Only used for edge/corner strategies.
+        save_path: Where to save annotated detection image.
+
+    Returns:
+        JSON with:
+        - pickup_base_xyz: [x, y, z] pickup point in base_link (use as cartesian_target)
+        - center_base_xyz: [x, y, z] sample center in base_link
+        - offset_from_center_mm: distance from center to pickup (add to placement offset)
+        - sample_size_mm: [width, height] of detected sample
+        - sample_angle: rotation angle
+    """
+    node = bridge.node
+
+    # Get camera state (image + point cloud from last capture)
+    try:
+        rgb, cloud, stamp, camera_frame = _resolve_camera_state(node, camera)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
+
+    if rgb is None or cloud is None:
+        return json.dumps({
+            "error": f"No image/point cloud from {camera}. "
+                     f"Call capture_image(camera='{camera}', mode='3d') first."
+        })
+
+    # Step 1: Detect ArUco markers in the image
+    # Convert RGB to BGR for OpenCV ArUco detection
+    bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    markers = _detect_aruco_markers(rgb, marker_ids=[tag_id])
+
+    if markers is None:
+        return json.dumps({
+            "error": f"Tag {tag_id} not detected in image. "
+                     "Ensure the tag is visible from the current position."
+        })
+
+    # Extract corners for target tag
+    tag_cx, tag_cy, tag_mid, tag_corners_list = markers[0]
+    tag_corners = np.array(tag_corners_list)  # Shape (4, 2)
+
+    # Compute pixel scale from marker size (20mm printed)
+    side_lengths = [np.linalg.norm(tag_corners[(i+1)%4] - tag_corners[i]) for i in range(4)]
+    MARKER_SIZE_MM = 14.9  # Measured physical marker size (black square)
+    px_per_mm = np.mean(side_lengths) / MARKER_SIZE_MM
+
+    # Step 2-4: Detect sample in ROI
+    detection = _detect_sample_in_roi(
+        bgr, tag_corners, px_per_mm,
+        strategy=strategy,
+        edge_inset_mm=edge_inset_mm,
+    )
+
+    if detection is None:
+        return json.dumps({
+            "error": f"No sample contour found near tag {tag_id}. "
+                     "Check that a sample is placed in the expected ROI area."
+        })
+
+    pickup_px = detection["pickup_px"]
+    center_px = detection["center_px"]
+
+    # Step 5: Get 3D positions from point cloud
+    # The dark sample surface has sparse/missing depth at individual pixels.
+    # Solution: average ALL valid pixels within a radius around the target pixel.
+    # This centers the estimate on the target rather than biasing toward
+    # whichever direction has the first valid depth.
+    # Use the tag center's Z (depth) since tag is coplanar and always reliable.
+
+    # Get tag depth (always reliable — white paper)
+    tag_xyz = get_3d_position(cloud, tag_cx, tag_cy, search_radius=10)
+    if tag_xyz is None:
+        return json.dumps({
+            "error": f"No valid depth at tag center ({tag_cx}, {tag_cy})."
+        })
+    tag_z = tag_xyz[2]
+
+    # Look up 3D at pickup pixel (same approach as get_point_3d)
+    pickup_xyz = get_3d_position(cloud, pickup_px[0], pickup_px[1], search_radius=20)
+    if pickup_xyz is None:
+        return json.dumps({
+            "error": f"No valid depth at pickup pixel {pickup_px} "
+                     f"within search_radius=20."
+        })
+
+    # Look up 3D at center pixel
+    center_xyz = get_3d_position(cloud, center_px[0], center_px[1], search_radius=20)
+    if center_xyz is None:
+        center_xyz = tag_xyz  # fallback to tag position
+
+    # Step 6: Transform to base_link
+    pickup_base = await _transform_point_to_base(node, pickup_xyz, camera_frame, stamp)
+    center_base = None
+    if center_xyz is not None:
+        center_base = await _transform_point_to_base(node, center_xyz, camera_frame, stamp)
+
+    if pickup_base is None:
+        return json.dumps({
+            "error": "TF transform to base_link failed. Is the robot driver running?"
+        })
+
+    # Annotate image
+    annotated = bgr.copy()
+    # ROI box (yellow)
+    rx1, ry1, rx2, ry2 = detection["roi"]
+    cv2.rectangle(annotated, (rx1, ry1), (rx2, ry2), (0, 255, 255), 2)
+    # Tag (blue)
+    cv2.polylines(annotated, [tag_corners.astype(int)], True, (255, 0, 0), 2)
+    # Sample center (cyan)
+    cv2.circle(annotated, center_px, 5, (255, 255, 0), -1)
+    # Pickup point (red)
+    cv2.circle(annotated, pickup_px, 8, (0, 0, 255), -1)
+    cv2.circle(annotated, pickup_px, 12, (0, 0, 255), 2)
+    cv2.putText(annotated, f"tag{tag_id} {strategy}",
+                (pickup_px[0] + 15, pickup_px[1] - 10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+    cv2.imwrite(save_path, annotated)
+
+    # Compute marker-frame offset for use with vision_moveto
+    # Project pixel offset from tag to pickup onto marker axes
+    top_left, top_right = tag_corners[0], tag_corners[1]
+    bottom_left = tag_corners[3]
+    marker_x_dir = top_right - top_left
+    marker_x_dir = marker_x_dir / np.linalg.norm(marker_x_dir)
+    marker_y_dir = bottom_left - top_left
+    marker_y_dir = marker_y_dir / np.linalg.norm(marker_y_dir)
+    tag_center_px = np.array([tag_cx, tag_cy], dtype=float)
+    offset_px = np.array(pickup_px, dtype=float) - tag_center_px
+    marker_offset_x_m = np.dot(offset_px, marker_x_dir) / px_per_mm / 1000.0
+    marker_offset_y_m = np.dot(offset_px, marker_y_dir) / px_per_mm / 1000.0
+
+    result = {
+        "pickup_base_xyz": [round(v, 6) for v in pickup_base],
+        "center_base_xyz": [round(v, 6) for v in center_base] if center_base else None,
+        "marker_offset_x": round(marker_offset_x_m, 5),
+        "marker_offset_y": round(marker_offset_y_m, 5),
+        "offset_from_center_mm": detection["offset_from_center_mm"],
+        "sample_size_mm": detection["sample_size_mm"],
+        "sample_angle": detection["sample_angle"],
+        "pickup_pixel": pickup_px,
+        "center_pixel": center_px,
+        "strategy": strategy,
+        "edge_inset_mm": edge_inset_mm,
+        "tag_id": tag_id,
+        "annotated_image_path": save_path,
+    }
+
+    return json.dumps(result)
 
 
 @mcp.tool()

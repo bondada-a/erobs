@@ -185,3 +185,60 @@ def get_3d_position(
                     if xyz is not None:
                         return xyz
     return None
+
+
+def get_3d_position_averaged(
+    cloud,
+    cx: int,
+    cy: int,
+    search_radius: int = 10,
+    min_points: int = 3,
+) -> Optional[Tuple[float, float, float]]:
+    """Get averaged 3D position from organized point cloud at pixel (cx, cy).
+
+    Unlike get_3d_position which returns the FIRST valid nearby pixel's XYZ,
+    this collects ALL valid pixels within search_radius and averages their XYZ.
+    This gives a position estimate centered on the target pixel rather than
+    biased toward whichever direction has valid depth first.
+
+    Useful for dark surfaces where the exact pixel may lack depth but
+    surrounding pixels have valid data.
+
+    Args:
+        cloud: Organized point cloud (PointCloud2 message)
+        cx, cy: Target pixel coordinates
+        search_radius: Pixels to search around center
+        min_points: Minimum valid points required for a reliable average
+
+    Returns:
+        (x, y, z) average in meters, or None if fewer than min_points found
+    """
+    width = cloud.width
+    height = cloud.height
+    point_step = cloud.point_step
+
+    points = []
+    for dv in range(-search_radius, search_radius + 1):
+        for du in range(-search_radius, search_radius + 1):
+            u = cx + du
+            v = cy + dv
+            if u < 0 or u >= width or v < 0 or v >= height:
+                continue
+            offset = v * cloud.row_step + u * point_step
+            try:
+                x, y, z = struct.unpack_from("<fff", cloud.data, offset)
+            except struct.error:
+                continue
+            if math.isnan(x) or math.isnan(y) or math.isnan(z):
+                continue
+            if x == 0.0 and y == 0.0 and z == 0.0:
+                continue
+            points.append((x, y, z))
+
+    if len(points) < min_points:
+        return None
+
+    avg_x = sum(p[0] for p in points) / len(points)
+    avg_y = sum(p[1] for p in points) / len(points)
+    avg_z = sum(p[2] for p in points) / len(points)
+    return (avg_x, avg_y, avg_z)

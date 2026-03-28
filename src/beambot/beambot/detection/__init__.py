@@ -10,6 +10,7 @@ from beambot.detection.algorithms import (
     detect_contours_in_image,
     sort_contours_reading_order,
     get_3d_position,
+    get_3d_position_averaged,
 )
 from beambot.detection.yolo_detector import (
     YoloDetector,
@@ -24,6 +25,7 @@ __all__ = [
     "detect_contours_in_image",
     "sort_contours_reading_order",
     "get_3d_position",
+    "get_3d_position_averaged",
     "YoloDetector",
     "YoloDetectionParams",
     "get_yolo_detector",

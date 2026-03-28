@@ -23,10 +23,10 @@ import numpy as np
 
 
 # --- Detection Parameters (set after draw mode calibration) ---
-ROI_OFFSET_X_MM = 26.2   # ROI center offset from tag in marker +X (mm)
-ROI_OFFSET_Y_MM = 0.5    # ROI center offset from tag in marker +Y (mm)
-ROI_WIDTH_MM = 28.4       # ROI width in mm
-ROI_HEIGHT_MM = 31.6      # ROI height in mm
+ROI_OFFSET_X_MM = 19.3   # ROI center offset from tag in marker +X (mm)
+ROI_OFFSET_Y_MM = 0.3    # ROI center offset from tag in marker +Y (mm)
+ROI_WIDTH_MM = 22.1       # ROI width in mm
+ROI_HEIGHT_MM = 21.8      # ROI height in mm
 EDGE_INSET_MM = 4.0       # How far inward from the edge toward center (mm)
 SAMPLE_MIN_AREA = 100
 SAMPLE_MAX_AREA = 15000
@@ -67,7 +67,7 @@ def get_marker_info(corners):
     """Get pixel scale and orientation from marker corners."""
     side_lengths = [np.linalg.norm(corners[(i+1)%4] - corners[i]) for i in range(4)]
     avg_side_px = np.mean(side_lengths)
-    marker_size_mm = 20.0  # 4x4_50 printed at 100%
+    marker_size_mm = 14.9  # Measured physical marker size (black square)
     px_per_mm = avg_side_px / marker_size_mm
 
     # Marker axes in pixel space
