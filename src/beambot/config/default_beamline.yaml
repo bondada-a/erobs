@@ -31,8 +31,8 @@ grippers:
     tool_voltage: 24
     dock_number: 4
     gripper_group: "epick_gripper"
-    cup_profile: "7mm_dia"
-    z_offset: 0.003
+    cup_profile: "3mm_dia"
+    z_offset: 0.0
     states:
       grasp: "vacuum_on"
       release: "vacuum_off"
@@ -146,5 +146,5 @@ vision_targets:
     scan_pose: "sample_scan_1"
     start_gripper: "epick"
     marker_offset: {x: 0.020, y: 0.0, z: 0.0}   # 20mm in marker +X (right of tag)
-    z_offset: 0.003
+    z_offset: 0.0
 

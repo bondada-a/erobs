@@ -1027,7 +1027,7 @@ class VisionStages(BaseStages):
 
     # Default z_offsets per gripper tip frame
     _Z_OFFSETS = {
-        "epick_tip": 0.003,
+        "epick_tip": 0.0,
         "robotiq_hande_end": -0.02,
         "pipette_tip_link": 0.0,
         "flange": 0.0,

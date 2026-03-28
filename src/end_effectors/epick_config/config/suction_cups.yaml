@@ -24,6 +24,13 @@ cups:
     suction_cup_height: 0.006
     suction_cup_radius: 0.0035
 
+  3mm_dia:
+    description: "3mm diameter cup with short extension (small samples)"
+    extension_length: 0.013
+    extension_radius: 0.004
+    suction_cup_height: 0.003
+    suction_cup_radius: 0.0015
+
   default:
     description: "Stock ePick suction cup (no extension)"
     extension_length: 0.0
