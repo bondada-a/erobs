@@ -17,16 +17,8 @@ source "$SCRIPT_DIR/install/setup.bash" 2>/dev/null || {
     exit 1
 }
 
-# Cleanup on exit — kill both processes
-cleanup() {
-    echo ""
-    echo "Shutting down..."
-    [[ -n "$ROSBRIDGE_PID" ]] && kill "$ROSBRIDGE_PID" 2>/dev/null
-    [[ -n "$BEAMBOT_PID" ]] && kill "$BEAMBOT_PID" 2>/dev/null
-    wait 2>/dev/null
-    echo "Done."
-}
-trap cleanup EXIT INT TERM
+# Cleanup on exit — defined later after all PIDs are known
+trap 'cleanup' EXIT INT TERM
 
 # Start rosbridge in background
 echo "Starting rosbridge on port 9090..."
@@ -55,11 +47,45 @@ echo "Starting beambot..."
 ros2 launch beambot beambot_bringup.launch.py "$@" 2>&1 | tee "$BEAMBOT_LOG" &
 BEAMBOT_PID=$!
 
+# Start rosbag recording for experiment data
+BAG_DIR="$SCRIPT_DIR/recorded_bags/beamline_experiments"
+mkdir -p "$BAG_DIR"
+BAG_NAME="experiment_$(date +%Y-%m-%d_%H-%M-%S)"
+echo "Starting rosbag recording: $BAG_DIR/$BAG_NAME"
+ros2 bag record \
+    /joint_states \
+    /tf \
+    /tf_static \
+    /color/image_color \
+    /points/xyzrgba \
+    /zed/zed_node/rgb/color/rect/image \
+    /zed/zed_node/point_cloud/cloud_registered \
+    /beambot/current_gripper \
+    /beambot/execution_state \
+    /object_detection_status \
+    /rosout \
+    -o "$BAG_DIR/$BAG_NAME" \
+    --max-cache-size 0 \
+    &
+ROSBAG_PID=$!
+
+# Update cleanup to also kill rosbag
+cleanup() {
+    echo ""
+    echo "Shutting down..."
+    [[ -n "$ROSBAG_PID" ]] && kill -INT "$ROSBAG_PID" 2>/dev/null && echo "Stopping rosbag..."
+    [[ -n "$ROSBRIDGE_PID" ]] && kill "$ROSBRIDGE_PID" 2>/dev/null
+    [[ -n "$BEAMBOT_PID" ]] && kill "$BEAMBOT_PID" 2>/dev/null
+    wait 2>/dev/null
+    echo "Done."
+}
+
 echo ""
 echo "=== MCP Ready ==="
 echo "  rosbridge:  PID $ROSBRIDGE_PID (port 9090)"
 echo "  beambot:    PID $BEAMBOT_PID"
-echo "  Press Ctrl+C to stop both"
+echo "  rosbag:     PID $ROSBAG_PID → $BAG_DIR/$BAG_NAME"
+echo "  Press Ctrl+C to stop all"
 echo "================="
 echo ""
 
