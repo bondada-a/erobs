@@ -1695,27 +1695,22 @@ async def detect_sample(
 
     # Look up 3D at pickup pixel (same approach as get_point_3d)
     pickup_xyz = get_3d_position(cloud, pickup_px[0], pickup_px[1], search_radius=20)
-    if pickup_xyz is None:
-        return json.dumps({
-            "error": f"No valid depth at pickup pixel {pickup_px} "
-                     f"within search_radius=20."
-        })
 
     # Look up 3D at center pixel
     center_xyz = get_3d_position(cloud, center_px[0], center_px[1], search_radius=20)
     if center_xyz is None:
         center_xyz = tag_xyz  # fallback to tag position
 
-    # Step 6: Transform to base_link
-    pickup_base = await _transform_point_to_base(node, pickup_xyz, camera_frame, stamp)
+    # Step 6: Transform to base_link (may be None if depth was missing)
+    pickup_base = None
+    if pickup_xyz is not None:
+        pickup_base = await _transform_point_to_base(node, pickup_xyz, camera_frame, stamp)
     center_base = None
     if center_xyz is not None:
         center_base = await _transform_point_to_base(node, center_xyz, camera_frame, stamp)
 
-    if pickup_base is None:
-        return json.dumps({
-            "error": "TF transform to base_link failed. Is the robot driver running?"
-        })
+    # pickup_base may be None if depth was missing — that's OK,
+    # we still return marker_offset_x/y which are pixel-based
 
     # Annotate image
     annotated = bgr.copy()
@@ -1748,7 +1743,7 @@ async def detect_sample(
     marker_offset_y_m = np.dot(offset_px, marker_y_dir) / px_per_mm / 1000.0
 
     result = {
-        "pickup_base_xyz": [round(v, 6) for v in pickup_base],
+        "pickup_base_xyz": [round(v, 6) for v in pickup_base] if pickup_base else None,
         "center_base_xyz": [round(v, 6) for v in center_base] if center_base else None,
         "marker_offset_x": round(marker_offset_x_m, 5),
         "marker_offset_y": round(marker_offset_y_m, 5),

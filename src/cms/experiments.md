@@ -32,6 +32,8 @@
    - vision_moveto tag={hotplate_tag}, offset_direction="right", offset_distance=0.0512
    - vacuum on
    - move 100mm backward (retreat with sample)
+   - move to sample_scan_1 
+   - take a 3d image and wait for confirmation to proceed
 
 2. **Transport to discard**
    - move to hotplate_scan
