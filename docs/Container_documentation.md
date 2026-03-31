@@ -149,7 +149,7 @@ docker run -it --rm \
     --pid=host \
     --name beambot_bsui \
     beambot_bsui_minimal \
-    /bin/bash -c "source /opt/ros/humble/setup.bash && \
+    /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
                   source /ros2_ws/install/setup.bash && \
                   bash"
 ```
@@ -164,7 +164,7 @@ docker run -it --rm \
     -v /nsls2/conda/envs:/nsls2/conda/envs:ro \
     --name beambot_bsui \
     beambot_bsui_minimal \
-    /bin/bash -c "source /opt/ros/humble/setup.bash && \
+    /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
                   source /ros2_ws/install/setup.bash && \
                   bsui"
 ```
@@ -286,7 +286,7 @@ docker run -it --rm \
     -v /nsls2/conda/envs:/nsls2/conda/envs:ro \
     --name beambot_bsui \
     beambot_bsui_minimal \
-    /bin/bash -c "source /opt/ros/humble/setup.bash && \
+    /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
                   source /ros2_ws/install/setup.bash && \
                   bsui"
 ```

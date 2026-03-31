@@ -44,7 +44,7 @@ def generate_launch_description():
         launch_arguments={
             "ur_type": LaunchConfiguration("ur_type"),
             "robot_ip": LaunchConfiguration("robot_ip"),
-            "use_fake_hardware": LaunchConfiguration("use_fake_hardware"),
+            "use_mock_hardware": LaunchConfiguration("use_fake_hardware"),
             "launch_rviz": "false",
             "description_package": LaunchConfiguration("description_package"),
             "description_file": LaunchConfiguration("description_file"),

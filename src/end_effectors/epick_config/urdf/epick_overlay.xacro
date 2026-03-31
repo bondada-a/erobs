@@ -21,7 +21,7 @@
       suction_cup_radius="${suction_cup_radius}"
       extension_length="${extension_length}"
       extension_radius="${extension_radius}"
-      use_mock_hardware="${use_mock_hardware}"
+      use_fake_hardware="${use_mock_hardware}"
       usb_port="${usb_port}"/>
   </xacro:macro>
 </robot>

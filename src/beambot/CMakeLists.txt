@@ -42,6 +42,7 @@ install(PROGRAMS
   # Test/debug scripts
   scripts/test_wafer_detection.py
   scripts/test_contour_detection.py
+  scripts/test_sample_detection.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
