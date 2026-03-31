@@ -13,7 +13,10 @@ import rclcpp
 from moveit.task_constructor import core, stages
 from geometry_msgs.msg import PoseStamped, Vector3, Vector3Stamped
 from std_msgs.msg import Header
-from moveit_msgs.msg import Constraints, JointConstraint, MoveItErrorCodes
+from moveit_msgs.msg import (
+    Constraints, JointConstraint, OrientationConstraint, MoveItErrorCodes,
+)
+from tf_transformations import quaternion_from_euler
 
 
 # MoveIt error code → human-readable name mapping
@@ -92,12 +95,20 @@ DEFAULT_IK_FRAME = "flange"
 # Parameters MUST be passed via NodeOptions.arguments using --ros-args -p key:=value.
 # With automatically_declare_parameters_from_overrides=True, these are auto-declared
 # on the C++ node and visible to MoveIt's PlanningPipeline.
+#
+# The __node:=beambot_mtc remapping is critical: ros2 launch injects
+# --ros-args -r __node:=<server_name> which renames ALL nodes in the process.
+# Without this override, both the rclcpp MTC node and the rclpy action server
+# node end up with the same name, causing the shared /rosout publisher to be
+# unregistered when either node is destroyed — silently breaking all /rosout
+# logging for the process.
 rclcpp.init()
 _options = rclcpp.NodeOptions()
 _options.automatically_declare_parameters_from_overrides = True
 _options.allow_undeclared_parameters = True
 _options.arguments = [
     "--ros-args",
+    "-r", "__node:=beambot_mtc",
     # OMPL planning pipeline
     "-p", "ompl.planning_plugin:=ompl_interface/OMPLPlanner",
     "-p", "ompl.start_state_max_bounds_error:=0.1",
@@ -125,7 +136,7 @@ _options.arguments = [
     "-p", "robot_description_planning.joint_limits.wrist_3_joint.has_acceleration_limits:=true",
     "-p", "robot_description_planning.joint_limits.wrist_3_joint.max_acceleration:=5.0",
 ]
-_mtc_node = rclcpp.Node("beambot", _options)
+_mtc_node = rclcpp.Node("beambot_mtc", _options)
 
 
 def joints_from_degrees(degrees: List[float]) -> Dict[str, float]:
@@ -169,6 +180,86 @@ def create_wrist3_level_constraint() -> Constraints:
     jc.weight = 1.0
     constraint.joint_constraints.append(jc)
     return constraint
+
+
+def parse_constraints(constraints_dict: Optional[Dict[str, Any]]) -> Optional[Constraints]:
+    """Parse a constraints dict from task JSON into a Constraints msg.
+
+    All angles (position, tolerances, orientation) are in degrees and
+    converted to radians internally, consistent with the rest of the framework.
+
+    Args:
+        constraints_dict: Dict with optional keys "joint_constraints" and
+                         "orientation_constraints". None or empty dict returns None.
+
+    Returns:
+        Constraints message, or None if no constraints specified.
+    """
+    if not constraints_dict:
+        return None
+
+    constraints = Constraints()
+
+    for jc_dict in constraints_dict.get("joint_constraints", []):
+        jc = JointConstraint()
+        jc.joint_name = jc_dict["joint_name"]
+        jc.position = math.radians(jc_dict["position"])
+        jc.tolerance_above = math.radians(jc_dict.get("tolerance_above", 1.0))
+        jc.tolerance_below = math.radians(jc_dict.get("tolerance_below", 1.0))
+        jc.weight = float(jc_dict.get("weight", 1.0))
+        constraints.joint_constraints.append(jc)
+
+    for oc_dict in constraints_dict.get("orientation_constraints", []):
+        oc = OrientationConstraint()
+        oc.header.frame_id = oc_dict.get("frame_id", "base_link")
+        oc.link_name = oc_dict["link_name"]
+
+        # orientation as [roll, pitch, yaw] in degrees -> quaternion
+        orient = oc_dict["orientation"]
+        q = quaternion_from_euler(
+            math.radians(orient[0]),
+            math.radians(orient[1]),
+            math.radians(orient[2]),
+        )
+        oc.orientation.x = q[0]
+        oc.orientation.y = q[1]
+        oc.orientation.z = q[2]
+        oc.orientation.w = q[3]
+
+        # tolerance as [x, y, z] in degrees -> radians
+        tol = oc_dict.get("tolerance", [5.0, 5.0, 5.0])
+        oc.absolute_x_axis_tolerance = math.radians(tol[0])
+        oc.absolute_y_axis_tolerance = math.radians(tol[1])
+        oc.absolute_z_axis_tolerance = math.radians(tol[2])
+
+        # parameterization: default ROTATION_VECTOR (matches MTC demo)
+        param = oc_dict.get("parameterization", "rotation_vector")
+        if param == "rotation_vector":
+            oc.parameterization = OrientationConstraint.ROTATION_VECTOR
+        elif param == "euler_xyz":
+            oc.parameterization = OrientationConstraint.XYZ_EULER_ANGLES
+        elif isinstance(param, int):
+            oc.parameterization = param
+
+        oc.weight = float(oc_dict.get("weight", 1.0))
+        constraints.orientation_constraints.append(oc)
+
+    # Return None if no actual constraints were added
+    if not constraints.joint_constraints and not constraints.orientation_constraints:
+        return None
+
+    return constraints
+
+
+def apply_constraints(stage, constraints: Optional[Constraints]) -> None:
+    """Apply path constraints to an MTC stage if constraints are provided.
+
+    Args:
+        stage: MTC stage (MoveTo, MoveRelative) with path_constraints property
+        constraints: Constraints message, or None to skip
+    """
+    if constraints is not None:
+        stage.path_constraints = constraints
 
 
 class BaseStages:
@@ -289,19 +380,25 @@ class BaseStages:
         label: str,
         direction: str,
         distance: float,
-        planner
-    ) -> stages.MoveRelative:
-        """Create a MoveRelative stage for directional movement.
+        planner=None,
+        constraints: Optional[Constraints] = None
+    ):
+        """Create a MoveRelative stage (or Fallbacks container) for directional movement.
+
+        When planner is provided, returns a single MoveRelative stage.
+        When planner is None, returns a Fallbacks container:
+        Pilz LIN → CartesianPath → Pilz PTP.
 
         Args:
             label: Stage name for identification
             direction: Direction string ("forward", "backward", "left",
                       "right", "up", "down", "x", "-x", "y", "-y", "z", "-z")
             distance: Distance in meters (positive value)
-            planner: Planner instance (CartesianPath or PipelinePlanner)
+            planner: Planner instance, or None for automatic fallback chain
+            constraints: Optional path constraints
 
         Returns:
-            Configured MoveRelative stage
+            Configured MoveRelative or Fallbacks stage
 
         Raises:
             ValueError: If direction is not recognized
@@ -314,23 +411,53 @@ class BaseStages:
 
         vec = DIRECTION_VECTORS[direction]
 
-        stage = stages.MoveRelative(label, planner)
-        stage.group = self.arm_group
-        self._set_ik_frame(stage)
+        # Build planner list: single planner or fallback chain
+        if planner is not None:
+            planners = [(planner, None)]
+        else:
+            planners = [
+                (self.make_pilz_planner("LIN"), "Pilz LIN"),
+                (self.make_cartesian_planner(), "CartesianPath"),
+                (self.make_pilz_planner("PTP"), "Pilz PTP"),
+            ]
 
-        # Create direction vector
-        header = Header(frame_id=self.ik_frame)
-        direction_vec = Vector3Stamped(
-            header=header,
-            vector=Vector3(
-                x=vec[0] * distance,
-                y=vec[1] * distance,
-                z=vec[2] * distance
+        if len(planners) == 1:
+            # Single planner — return a plain MoveRelative stage
+            stage = stages.MoveRelative(label, planners[0][0])
+            stage.group = self.arm_group
+            self._set_ik_frame(stage)
+            header = Header(frame_id=self.ik_frame)
+            direction_vec = Vector3Stamped(
+                header=header,
+                vector=Vector3(
+                    x=vec[0] * distance,
+                    y=vec[1] * distance,
+                    z=vec[2] * distance
+                )
             )
-        )
-        stage.setDirection(direction_vec)
+            stage.setDirection(direction_vec)
+            apply_constraints(stage, constraints)
+            return stage
 
-        return stage
+        # Multiple planners — return a Fallbacks container
+        fb = core.Fallbacks(label)
+        for p, suffix in planners:
+            stage = stages.MoveRelative(f"{label} [{suffix}]", p)
+            stage.group = self.arm_group
+            self._set_ik_frame(stage)
+            header = Header(frame_id=self.ik_frame)
+            direction_vec = Vector3Stamped(
+                header=header,
+                vector=Vector3(
+                    x=vec[0] * distance,
+                    y=vec[1] * distance,
+                    z=vec[2] * distance
+                )
+            )
+            stage.setDirection(direction_vec)
+            apply_constraints(stage, constraints)
+            fb.add(stage)
+        return fb
 
     def load_plan_execute(self, task: core.Task) -> Optional[str]:
         """Initialize, plan, and execute the task.
@@ -437,6 +564,57 @@ class BaseStages:
 
         return joint_pose
 
+    def make_move_to_named_stage(
+        self,
+        label: str,
+        pose_key: str,
+        poses: Dict[str, Any],
+        planner=None,
+        constraints: Optional[Constraints] = None
+    ):
+        """Create a MoveTo stage (or Fallbacks container) for a named joint pose.
+
+        When planner is provided, returns a single MoveTo stage with that planner.
+        When planner is None, returns a Fallbacks container: Pilz PTP → OMPL.
+
+        Args:
+            label: Stage name
+            pose_key: Key in poses dict
+            poses: Dictionary of pose definitions
+            planner: Planner to use, or None for automatic fallback chain
+            constraints: Optional path constraints
+
+        Returns:
+            Configured MoveTo or Fallbacks stage, or None if pose not found
+        """
+        joint_pose = self.get_joint_pose(poses, pose_key)
+        if joint_pose is None:
+            return None
+
+        joint_goal = joints_from_degrees(joint_pose)
+
+        if planner is not None:
+            stage = stages.MoveTo(label, planner)
+            stage.group = self.arm_group
+            self._set_ik_frame(stage)
+            stage.setGoal(joint_goal)
+            apply_constraints(stage, constraints)
+            return stage
+
+        # Fallback chain: Pilz PTP → OMPL
+        fb = core.Fallbacks(label)
+        for planner_fn, suffix in [
+            (lambda: self.make_pilz_planner("PTP"), "Pilz PTP"),
+            (self.make_pipeline_planner, "OMPL"),
+        ]:
+            stage = stages.MoveTo(f"{label} [{suffix}]", planner_fn())
+            stage.group = self.arm_group
+            self._set_ik_frame(stage)
+            stage.setGoal(joint_goal)
+            apply_constraints(stage, constraints)
+            fb.add(stage)
+        return fb
+
     def make_gripper_stage(
         self,
         label: str,
@@ -463,3 +641,4 @@ class BaseStages:
         stage.group = gripper_group
         stage.setGoal(state_name)
         return stage
+

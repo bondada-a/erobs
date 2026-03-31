@@ -1,0 +1,17 @@
+{
+  "calibration": "base_link -> zed_left_camera_optical_frame",
+  "type": "eye-to-hand",
+  "n_samples": 11,
+  "translation": {
+    "x": -0.9675432906569408,
+    "y": -0.7355542991823474,
+    "z": 0.04403674067251928
+  },
+  "quaternion": {
+    "x": -0.6329200171308837,
+    "y": 0.2947524507042582,
+    "z": -0.21984166989202103,
+    "w": 0.6813243610043337
+  },
+  "static_tf_command": "ros2 run tf2_ros static_transform_publisher --x -0.967543 --y -0.735554 --z 0.044037 --qx -0.632920 --qy 0.294752 --qz -0.219842 --qw 0.681324 --frame-id base_link --child-frame-id zed_left_camera_optical_frame"
+}

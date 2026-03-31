@@ -32,6 +32,31 @@ Note: Joint poses are in **degrees**, converted to radians internally.
 ```
 Executes 9-stage sequence: open -> approach -> pick -> close -> retreat -> approach -> place -> open -> retreat
 
+### tool_exchange Task Format
+```json
+{"task_type": "tool_exchange", "operation": "dock", "gripper": "epick", "dock_number": 4, "approach_pose": "dock_approach"}
+{"task_type": "tool_exchange", "operation": "load", "gripper": "pipettor", "dock_number": 2, "approach_pose": "load_approach"}
+```
+- `operation`: `"dock"` (put gripper away) or `"load"` (pick up gripper)
+- `gripper`: Which gripper to dock/load
+- `dock_number`: Physical dock slot number
+- `approach_pose`: Joint pose name for approaching the dock
+- `dock_number`: Physical dock slot. **Look up from `default_beamline.yaml` `grippers.<name>.dock_number`** — do NOT hardcode.
+- **ALWAYS move to `safe_tool_exchange` BEFORE and AFTER any tool exchange operation.** This pose provides clearance for all gripper lengths (including pipettor). Move there before docking to avoid collisions on approach, and after loading to ensure safe departure.
+- **ALWAYS use `"dock_approach"` for dock operations and `"load_approach"` for load operations.** These are different poses tuned for each operation direction. Using the wrong approach pose causes collisions or failed exchanges.
+
+### pipettor Task Format
+```json
+{"task_type": "pipettor", "operation": "SUCK", "volume_pct": 0.5}
+{"task_type": "pipettor", "operation": "EXPEL", "volume_pct": 0.5}
+{"task_type": "pipettor", "operation": "EJECT_TIP"}
+{"task_type": "pipettor", "operation": "SET_LED", "led_color": {"r": 1.0, "g": 0.0, "b": 0.0}}
+```
+- `operation`: `"SUCK"` (aspirate), `"EXPEL"` (dispense), `"EJECT_TIP"`, or `"SET_LED"`
+- `volume_pct`: 0.0-1.0 for SUCK/EXPEL (fraction of full pipette volume)
+- `led_color`: `{r, g, b}` floats 0.0-1.0 for SET_LED
+- Requires `start_gripper: "pipettor"` and pipettor physically attached
+
 ### Gripper Auto-Detection
 Tasks that need gripper info (`end_effector`, `pick_and_place`, `vision_pick_place`) default to the currently attached gripper if not specified. The orchestrator tracks `start_gripper` and updates it after `tool_exchange` operations.
 
@@ -54,13 +79,78 @@ Hybrid operation: vision-guided pick + hardcoded place positions.
   "task_type": "vision_pick_place",
   "detection_type": "marker",        // "marker" or "circle"
   "tag_id": 5,                       // ArUco marker ID (for marker detection)
-  "z_offset": 0.02,                  // Optional: height above detected point (default: 0.02m)
+  "z_offset": 0.0,                   // Optional: height above detected point (default: from beamline config z_offset)
   "sample_approach": "scan_position", // Joint pose key - robot scans from here
   "place_approach": "place_approach", // Joint pose key
   "place_target": "place"             // Joint pose key
 }
 ```
 Executes: open -> sample_approach -> [detect] -> grasp -> close -> retreat -> place_approach -> place -> open -> retreat
+
+### vision_moveto Task Format
+Vision-guided movement to a detected marker with optional offsets.
+```json
+{
+  "task_type": "vision_moveto",
+  "tag_id": 30,
+  "marker_offset_x": 0.02,       // Optional: marker-frame X offset (meters)
+  "marker_offset_y": 0.0,        // Optional: marker-frame Y offset (meters)
+  "marker_offset_z": 0.0,        // Optional: marker-frame Z offset (meters)
+  "offset_direction": "right",   // Optional: flange-frame direction offset (uses DIRECTION_VECTORS)
+  "offset_distance": 0.0312,     // Optional: distance for offset_direction (meters)
+  "detect_only": true,            // Optional: return position without moving
+  "z_offset": 0.003              // Optional: override approach height
+}
+```
+- `marker_offset_x/y/z`: Offset from marker center in the **marker's local frame**. Transformed to base_link internally using the marker's orientation. Use for config-driven targets.
+- `offset_direction` + `offset_distance`: Additional offset in **flange frame** (uses live flange TF). Applied after marker offset. Use for ad-hoc offsets.
+- `detect_only`: Detects and returns `detected_position` and `detected_orientation` in the result without moving. Offsets are still applied to the returned position.
+- **WARNING**: `detected_orientation` in the result is the **IK frame** orientation (e.g. epick_tip, robotiq_hande_end), NOT the flange orientation. There is a ~90° rotation between them (tool_block joint). Do NOT use `detected_orientation` to manually compute flange-frame direction offsets — use `offset_direction`/`offset_distance` or `marker_offset_x/y/z` instead. Using the wrong frame will send the robot to the wrong position.
+
+### Contour-Based Sample Detection (detect_sample MCP tool)
+For precise off-center sample pickup (e.g., X-ray beam needs the center clear):
+1. Move to `sample_scan_1`
+2. `capture_image(mode="3d")` — captures image + point cloud
+3. `detect_sample(tag_id=0)` — returns `pickup_base_xyz` and `offset_from_center_mm`
+4. Move to `pickup_base_xyz` using `cartesian_target`
+5. Vacuum on, retreat
+6. When placing on hotplate: add `offset_from_center_mm` to the base 51.2mm offset
+   (e.g., 51.2 + 5.4 = 56.6mm right of tag 30) so the sample center aligns with the hotplate center
+
+### Vision Target Framework
+Config-driven vision targets are defined in `default_beamline.yaml` under `vision_targets`. Use the `vision_target` MCP tool to build task JSON from config. Two modes:
+- **offset**: detect marker → move directly to marker-frame offset position (single move)
+- **grid**: detect marker → move to marker → relative cartesian moves for grid element + approach/retreat
+- **NOTE**: The `vision_target` tool returns task JSON with movement steps only. For targets that require end-effector actions (e.g. pipettor aspirate/dispense at a vial), you must manually insert the action step into the task list before sending to the orchestrator. Insert it between the last approach move and the retreat move. Example: for `vial_rack`, insert `{"task_type": "pipettor", ...}` between the forward (insert) and backward (retreat) steps.
+
+### Experiment Protocols
+Experiment protocols are defined in `src/cms/experiments.md`. Read this file before running experiments — it contains the step-by-step protocol, parameters (tag IDs, gripper, etc.), and any experiment-specific notes. The user edits this file before each experiment session. Execute protocols step by step using existing MCP tools.
+
+### Optional Path Constraints
+
+Any task step can include a `constraints` key to apply MoveIt path constraints during planning. If omitted, no constraints are applied (default behavior).
+
+```json
+{
+  "task_type": "moveto",
+  "target": "scan_position",
+  "constraints": {
+    "joint_constraints": [
+      {"joint_name": "wrist_3_joint", "position": 0.0, "tolerance_above": 5.0, "tolerance_below": 5.0, "weight": 1.0}
+    ],
+    "orientation_constraints": [
+      {"link_name": "flange", "frame_id": "base_link", "orientation": [180, 0, 0], "tolerance": [5, 5, 360], "weight": 1.0}
+    ]
+  }
+}
+```
+
+- All angles (position, tolerance, orientation) are in **degrees** (converted to radians internally)
+- `orientation` is `[roll, pitch, yaw]` (converted to quaternion internally)
+- `tolerance` is `[x_axis, y_axis, z_axis]` tolerance in degrees
+- Constraints apply to all arm movement stages in that task step (not gripper stages)
+- Supported on `moveto`, `pick_and_place`, and `vision_pick_place` task types
+- **Note**: OMPL handles path constraints via constraint-aware sampling. Tight tolerances may cause slow or failed planning -- prefer loose tolerances (10-30 degrees) when possible.
 
 ---
 
@@ -92,7 +182,7 @@ The [ros-mcp-server](https://github.com/robotmcp/ros-mcp-server) bridges LLM to 
 3. If `system_running: false` or `gripper: "unknown"` -> **ask the user** which gripper is attached
 4. Construct task JSON and send to `/beambot_execution` -- the orchestrator handles MoveIt launch
 
-**Note**: Do NOT query TF, topics, or services (via ros-mcp-server) before the first goal -- they will fail. `get_robot_state` is safe to call anytime because it reads from persistent subscriptions in the erobs-mcp-server.
+**Note**: Do NOT query TF, topics, or services (via ros-mcp-server) before the first goal -- they will fail. `get_robot_state` is safe to call anytime because it reads from persistent subscriptions in the beambot-mcp-server.
 
 ### MCP Usage -- Always Use the Orchestrator
 
@@ -106,7 +196,7 @@ send_action_goal(
 )
 ```
 
-The `full_json` value is a **JSON string** (not a nested object). Use `get_saved_poses()` from erobs-mcp-server to look up named positions from the pose registry (`src/cms/poses.yaml`).
+The `full_json` value is a **JSON string** (not a nested object). Use `get_saved_poses()` from beambot-mcp-server to look up named positions from the pose registry (`src/cms/poses.yaml`).
 
 **Relative move example** (no poses needed):
 ```json
@@ -123,13 +213,34 @@ The `full_json` value is a **JSON string** (not a nested object). Use `get_saved
 ## MCP Gotchas
 
 - **`start_gripper` must match the physically attached gripper**. Call `get_robot_state` first -- if the system is running it returns the current gripper. If `gripper: "unknown"`, **ask the user**. Valid values: `"hande"`, `"epick"`, `"pipettor"`, `"none"`. Sending the wrong gripper loads the wrong MoveIt config and causes planning failures.
-- **Direction vectors are in `flange` frame**, not world frame. At a downward-looking pose, "forward" ~ down toward table. Left/right and up/down are swapped due to 180 deg wrist rotation compensation. See `base_stages.py:DIRECTION_VECTORS`
-- **Zivid single-shot capture** cannot be triggered via MCP `subscribe_once` (QoS timing race). Use erobs-mcp-server's `capture_image` tool (preferred), orchestrator's `vision_moveto`/`vision_scan` tasks, or a Python script with RELIABLE+VOLATILE QoS
+- **Direction vectors** (`base_stages.py:DIRECTION_VECTORS`) — use these strings exactly as the user says them. Available: `forward`, `backward`, `left`, `right`, `up`, `down` (aliases: `x`, `-x`, `y`, `-y`, `z`, `-z`). These are in the `flange` frame. Do NOT remap or reinterpret directions.
+- **Zivid single-shot capture** cannot be triggered via MCP `subscribe_once` (QoS timing race). Use beambot-mcp-server's `capture_image` tool (preferred), orchestrator's `vision_moveto`/`vision_scan` tasks, or a Python script with RELIABLE+VOLATILE QoS
 - **MoveIt restarts after tool exchange** -- wait ~5s before sending the next goal
 - **Cartesian planning may fail** for longer moves; use `"planning_type": "joint"` as fallback
 - **`cartesian_target` orientation is in the `flange` frame** (MoveIt/ROS convention), NOT `tool0` (UR convention). `flange` and `tool0` are at the same position but rotated by (-90 deg, -90 deg, 0 deg). When querying current orientation for a Cartesian move, use `get_tf_transform(source_frame="flange")`. Using `tool0` RPY will make the robot reach a ~90 deg wrong orientation. Use `tool0` only when comparing with UR teach pendant values.
 - **Joint poses are in DEGREES** in JSON -- converted to radians internally
 - **Detailed field reference**: See `docs/mcp_ros_reference.md` for per-task-type goal fields, timeouts, and gripper config
+
+---
+
+## ePick Suction Cup Profiles
+
+The ePick gripper supports swappable suction cups. Cup dimensions are defined in `epick_config/config/suction_cups.yaml` and affect the URDF geometry (collision, tip frame position).
+
+**Changing cup profile via MCP** (no rebuild needed):
+```
+set_cup_profile(name="7mm_dia")
+```
+This sets the `cup_profile` ROS parameter on the orchestrator. Takes effect on the **next MoveIt launch** for ePick (next goal with `start_gripper="epick"`, or after tool exchange to ePick).
+
+**Available profiles** (defined in `suction_cups.yaml`):
+- `pen_vacuum` -- custom extension nozzle + small cup (34.5mm extension, 2mm cup)
+- `7mm_dia` -- 7mm diameter cup with short extension (18mm extension, 6mm cup)
+- `default` -- stock ePick suction cup (no extension, 20mm cup)
+
+**Default**: Set in `default_beamline.yaml` under `grippers.epick.cup_profile`. Currently `"7mm_dia"`. The MCP `set_cup_profile` tool overrides this for the current session.
+
+**Adding a new cup**: Add an entry to `suction_cups.yaml` with `extension_length`, `extension_radius`, `suction_cup_height`, `suction_cup_radius` (all in meters), then `colcon build --packages-select epick_config`.
 
 ---
 
@@ -155,6 +266,7 @@ After sending a goal to `/beambot_execution`, **always read `error_message`** fr
 | `Failed to parse poses_json` | Configuration | The poses JSON is malformed. Fix the JSON syntax. |
 | `Pipettor action server ... not available` | Connectivity | Pipettor driver isn't running. Ask user to start it. |
 | `Controller activation failed` | Connectivity | UR driver may have disconnected. Ask user to check robot connection. |
+| `VACUUM_LOST` | Grasp | Object dropped during transport. Send `vacuum_off` then `vacuum_on` to retry pick. Do NOT proceed to place. |
 | Unknown / doesn't match above | Unknown | Call `get_recent_logs(severity="ERROR", count=30)`, explain findings to user, propose fix. |
 
 ### Recovery Policy
@@ -166,6 +278,8 @@ After sending a goal to `/beambot_execution`, **always read `error_message`** fr
 - **For unknown errors**: Call `get_recent_logs(severity="ERROR", count=30)`, read the MoveIt/beambot logs, explain your findings to the user, and wait for their approval before taking action
 - **After PLANNING_FAILED with cartesian**: The single allowed automatic retry is switching to `planning_type: joint`. Do NOT try other arbitrary poses.
 - **After DETECTION_FAILED**: One automatic re-capture is allowed. If the second detection also fails, ask the user.
+- **After ePick vacuum pick**: Call `get_vacuum_status()` to verify the object was grasped. If `object_detected` is false (`NO_OBJECT_DETECTED`), do NOT proceed to transport. Report to user and ask whether to retry the pick or abort.
+- **ePick retry requires off→on cycle**: The ePick hardware will NOT re-attempt suction automatically. To retry a failed pick, you MUST send `vacuum_off` first, then `vacuum_on` again — even if no object was detected. Skipping the off step means the vacuum won't activate.
 
 ---
 

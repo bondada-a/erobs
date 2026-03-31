@@ -59,9 +59,64 @@ class MoveItLifecycleManager:
 
         self._moveit_process: Optional[subprocess.Popen] = None
         self._current_gripper: str = ""
+        self._cup_z_offset: float = 0.0
 
         # Ensure MoveIt is killed when orchestrator exits
         atexit.register(self.kill_current_process)
+
+    def is_moveit_alive(self) -> bool:
+        """Check if the MoveIt subprocess is still running."""
+        if self._moveit_process is None:
+            return False
+        return self._moveit_process.poll() is None
+
+    def get_moveit_exit_info(self) -> str:
+        """Get exit info if MoveIt has died. Empty string if still running."""
+        if self._moveit_process is None:
+            return "MoveIt process not started"
+        rc = self._moveit_process.poll()
+        if rc is None:
+            return ""
+        return f"MoveIt process exited with code {rc}"
+
+    @property
+    def cup_z_offset(self) -> float:
+        """Z offset for the active suction cup profile (meters)."""
+        return self._cup_z_offset
+
+    def _resolve_cup_profile(self, gripper_config: dict) -> Optional[dict]:
+        """Resolve suction cup dimensions from the cup profile in gripper config.
+
+        Returns dict of cup dimensions, or None if no cup_profile specified.
+        """
+        profile_name = gripper_config.get("cup_profile")
+        if not profile_name:
+            return None
+
+        try:
+            cups_file = os.path.join(
+                get_package_share_directory("epick_config"), "config", "suction_cups.yaml"
+            )
+            with open(cups_file, "r") as f:
+                cups_data = yaml.safe_load(f)
+
+            cups = cups_data.get("cups", {})
+            if profile_name not in cups:
+                self._logger.error(
+                    f"Cup profile '{profile_name}' not found in {cups_file}. "
+                    f"Available: {list(cups.keys())}"
+                )
+                return None
+
+            profile = cups[profile_name]
+            self._logger.info(
+                f"Cup profile '{profile_name}': {profile.get('description', '')}"
+            )
+            return profile
+
+        except Exception as e:
+            self._logger.error(f"Failed to load cup profile '{profile_name}': {e}")
+            return None
 
     def launch_moveit_with_gripper(self, gripper: str) -> bool:
         """Launch MoveIt with configuration for the specified gripper.
@@ -102,6 +157,16 @@ class MoveItLifecycleManager:
                 f"robot_ip:={self._robot_ip}",
                 f"use_fake_hardware:={'true' if self._use_fake_hardware else 'false'}",
             ]
+
+            # Add suction cup dimensions if cup_profile is specified (ePick)
+            cup_dims = self._resolve_cup_profile(config)
+            if cup_dims:
+                for key, value in cup_dims.items():
+                    if key != "description":
+                        cmd.append(f"{key}:={value}")
+
+            # z_offset lives in the gripper config (shared chain error, not per-cup)
+            self._cup_z_offset = float(config.get("z_offset", 0.0))
             self._logger.info(f"Executing: {' '.join(cmd)}")
             self._moveit_process = subprocess.Popen(cmd, start_new_session=True)
         except Exception as e:

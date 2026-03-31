@@ -6,22 +6,26 @@ Handles MoveTo operations:
 - Target-based moves (joint poses from JSON or named SRDF states)
 """
 
+import json
 import math
 
 import rclpy
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 from tf2_ros import Buffer, TransformListener
-from tf_transformations import quaternion_from_euler
+from tf_transformations import quaternion_from_euler, euler_from_quaternion
 
-from beambot.stages.base_stages import BaseStages, joints_from_degrees
+from beambot.stages.base_stages import (
+    BaseStages, joints_from_degrees, parse_constraints, apply_constraints,
+)
 
 # Known gripper tip frames and their TF parent for detection.
 # Checked in order — first match wins.
 _GRIPPER_TIP_FRAMES = [
-    "epick_tip",           # OnRobot ePick vacuum gripper
+    "epick_tip",           # Robotiq ePick vacuum gripper
     "robotiq_hande_end",   # Robotiq Hand-E adaptive gripper
-    # Add new gripper tip frames here
+    "2fg7_tip",            # OnRobot 2FG7 parallel gripper
+    "pipette_tip_link",    # Pipettor nozzle tip
 ]
 
 
@@ -30,14 +34,46 @@ class MoveToStages(BaseStages):
 
     def __init__(self, rclpy_node, arm_group: str = "", ik_frame: str = ""):
         super().__init__(rclpy_node, arm_group, ik_frame)
-        self._tf_buffer = None
-        self._tf_listener = None
+        # Initialize TF eagerly so the buffer is populated by the time
+        # any Cartesian target or IK frame detection is needed
+        self._tf_buffer = Buffer()
+        self._tf_listener = TransformListener(self._tf_buffer, self.rclpy_node)
 
     def _ensure_tf(self):
-        """Lazy-initialize TF buffer on first Cartesian target use."""
-        if self._tf_buffer is None:
-            self._tf_buffer = Buffer()
-            self._tf_listener = TransformListener(self._tf_buffer, self.rclpy_node)
+        """No-op kept for backward compatibility."""
+        pass
+
+    def _get_current_yaw(self, frame: str = "flange") -> float:
+        """Get the current yaw of a robot frame in base_link.
+
+        Used as the default yaw for 3-value cartesian_target (XYZ only)
+        so the robot maintains its current wrist orientation.
+
+        Args:
+            frame: Robot frame to query (should match the IK frame, e.g.
+                   "epick_tip", "robotiq_hande_end", or "flange").
+
+        Returns:
+            Current yaw in radians, or 0.0 if TF lookup fails.
+        """
+        self._ensure_tf()
+        try:
+            t = self._tf_buffer.lookup_transform(
+                "base_link", frame,
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=2.0)
+            )
+            q = [
+                t.transform.rotation.x,
+                t.transform.rotation.y,
+                t.transform.rotation.z,
+                t.transform.rotation.w
+            ]
+            _, _, yaw = euler_from_quaternion(q)
+            return yaw
+        except Exception as e:
+            self.logger.warn(f"Failed to get current yaw from {frame}: {e}, defaulting to 0")
+            return 0.0
 
     def _detect_gripper_ik_frame(self) -> str:
         """Auto-detect gripper tip frame from TF, like vision_stages.py.
@@ -86,9 +122,11 @@ class MoveToStages(BaseStages):
         Returns:
             None if stages were added successfully, error string on failure
         """
-        # Select planner if not provided
-        if planner is None:
-            planning_type = goal.planning_type if goal.planning_type else "joint"
+        planning_type = goal.planning_type if goal.planning_type else ""
+        use_fallback = planning_type in ("", "auto") and planner is None
+
+        # Select single planner when not using fallbacks
+        if not use_fallback and planner is None:
             if planning_type == "cartesian":
                 planner = self.make_cartesian_planner()
                 self.logger.info("Using Cartesian planner")
@@ -102,13 +140,22 @@ class MoveToStages(BaseStages):
                 planner = self.make_pipeline_planner()
                 self.logger.info("Using pipeline planner (OMPL)")
 
+        if use_fallback:
+            self.logger.info("Using fallback planning (auto)")
+
+        # Parse optional constraints
+        constraints = parse_constraints(
+            json.loads(goal.constraints_json) if goal.constraints_json else None
+        )
+        if constraints is not None:
+            self.logger.info("Path constraints active for this move")
+
         # Case 1: Relative move (direction + distance)
         if goal.direction and goal.distance != 0.0:
+            label = f"move_{goal.direction}_{goal.distance:.3f}m"
             stage = self.create_relative_move_stage(
-                f"move_{goal.direction}_{goal.distance:.3f}m",
-                goal.direction,
-                goal.distance,
-                planner
+                label, goal.direction, goal.distance,
+                planner=planner, constraints=constraints
             )
             task.add(stage)
             self.logger.info(
@@ -118,6 +165,10 @@ class MoveToStages(BaseStages):
 
         # Case 2: Cartesian pose target ([x,y,z] or [x,y,z,r,p,y])
         elif len(goal.cartesian_target) >= 3:
+            # Auto-detect gripper tip frame first — needed for both IK and
+            # default yaw lookup (different frames have different yaw values)
+            active_ik_frame = self._detect_gripper_ik_frame()
+
             pose = PoseStamped()
             pose.header.frame_id = goal.frame_id if goal.frame_id else "base_link"
             pose.pose.position.x = goal.cartesian_target[0]
@@ -130,29 +181,48 @@ class MoveToStages(BaseStages):
                 y = math.radians(goal.cartesian_target[5])
                 q = quaternion_from_euler(r, p, y)
             else:
-                # Default: straight-down (180° around X)
-                q = quaternion_from_euler(math.pi, 0.0, 0.0)
+                # Default: straight-down with current IK frame yaw
+                # Preserves the robot's current yaw to avoid unreachable orientations
+                current_yaw = self._get_current_yaw(active_ik_frame)
+                q = quaternion_from_euler(math.pi, 0.0, current_yaw)
+                self.logger.info(f"Using current yaw from {active_ik_frame}: {math.degrees(current_yaw):.1f}°")
 
             pose.pose.orientation.x = q[0]
             pose.pose.orientation.y = q[1]
             pose.pose.orientation.z = q[2]
             pose.pose.orientation.w = q[3]
 
-            # Default to Cartesian planner for Cartesian targets
-            if planner is None:
-                planner = self.make_cartesian_planner()
+            if use_fallback:
+                # Fallback chain: Pilz LIN → CartesianPath
+                fb = core.Fallbacks("move_to_cartesian")
+                for planner_fn, suffix in [
+                    (lambda: self.make_pilz_planner("LIN"), "Pilz LIN"),
+                    (self.make_cartesian_planner, "CartesianPath"),
+                ]:
+                    move_stage = stages.MoveTo(
+                        f"move_to_cartesian [{suffix}]", planner_fn()
+                    )
+                    move_stage.group = self.arm_group
+                    ik_frame_pose = PoseStamped()
+                    ik_frame_pose.header.frame_id = active_ik_frame
+                    move_stage.ik_frame = ik_frame_pose
+                    move_stage.setGoal(pose)
+                    apply_constraints(move_stage, constraints)
+                    fb.add(move_stage)
+                task.add(fb)
+            else:
+                # Default to Cartesian planner for Cartesian targets
+                if planner is None:
+                    planner = self.make_cartesian_planner()
 
-            # Auto-detect gripper tip frame so the target places the gripper
-            # tip (not the flange) at the desired position
-            active_ik_frame = self._detect_gripper_ik_frame()
-
-            move_stage = stages.MoveTo("move_to_cartesian", planner)
-            move_stage.group = self.arm_group
-            ik_frame_pose = PoseStamped()
-            ik_frame_pose.header.frame_id = active_ik_frame
-            move_stage.ik_frame = ik_frame_pose
-            move_stage.setGoal(pose)
-            task.add(move_stage)
+                move_stage = stages.MoveTo("move_to_cartesian", planner)
+                move_stage.group = self.arm_group
+                ik_frame_pose = PoseStamped()
+                ik_frame_pose.header.frame_id = active_ik_frame
+                move_stage.ik_frame = ik_frame_pose
+                move_stage.setGoal(pose)
+                apply_constraints(move_stage, constraints)
+                task.add(move_stage)
             self.logger.info(
                 f"Planning Cartesian move to "
                 f"[{pose.pose.position.x:.3f}, {pose.pose.position.y:.3f}, "
@@ -170,29 +240,43 @@ class MoveToStages(BaseStages):
                 self.logger.error(error)
                 return error
 
-            move_stage = stages.MoveTo(f"move_to_{goal.target}", planner)
-            move_stage.group = self.arm_group
-            self._set_ik_frame(move_stage)
+            label = f"move_to_{goal.target}"
 
-            # Check if target is a defined joint pose in the JSON
             if goal.target in poses:
-                joint_values = poses[goal.target]
-                if isinstance(joint_values, list):
-                    move_stage.setGoal(joints_from_degrees(joint_values))
-                    self.logger.info(f"Planning move to joint pose: {goal.target}")
-                else:
-                    error = (
-                        f"Invalid pose format for '{goal.target}': "
-                        f"expected list, got {type(joint_values).__name__}"
-                    )
-                    self.logger.error(error)
-                    return error
+                # Joint pose from poses dict
+                stage = self.make_move_to_named_stage(
+                    label, goal.target, poses,
+                    planner=planner, constraints=constraints
+                )
+                if not stage:
+                    return f"Pose '{goal.target}' not found or invalid"
+                task.add(stage)
+                self.logger.info(f"Planning move to joint pose: {goal.target}")
             else:
-                # Assume it's a named SRDF state
-                move_stage.setGoal(goal.target)
+                # SRDF named state
+                if use_fallback:
+                    # Fallback chain: Pilz PTP → OMPL
+                    fb = core.Fallbacks(label)
+                    for planner_fn, suffix in [
+                        (lambda: self.make_pilz_planner("PTP"), "Pilz PTP"),
+                        (self.make_pipeline_planner, "OMPL"),
+                    ]:
+                        s = stages.MoveTo(f"{label} [{suffix}]", planner_fn())
+                        s.group = self.arm_group
+                        self._set_ik_frame(s)
+                        s.setGoal(goal.target)
+                        apply_constraints(s, constraints)
+                        fb.add(s)
+                    task.add(fb)
+                else:
+                    move_stage = stages.MoveTo(label, planner)
+                    move_stage.group = self.arm_group
+                    self._set_ik_frame(move_stage)
+                    move_stage.setGoal(goal.target)
+                    apply_constraints(move_stage, constraints)
+                    task.add(move_stage)
                 self.logger.info(f"Planning move to named state: {goal.target}")
 
-            task.add(move_stage)
             return None
 
         else:

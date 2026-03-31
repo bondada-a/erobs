@@ -20,7 +20,21 @@ def generate_launch_description():
     controllers_file = DeclareLaunchArgument('controllers_file', default_value=os.path.join(get_package_share_directory("ur_zivid_epick_moveit_config"), "config", "ur_epick_controllers.yaml"))
 
 
-    xacro_args = {"name": LaunchConfiguration("ur_type"), "ur_type": LaunchConfiguration("ur_type"), "tf_prefix": "" }
+    # Suction cup dimensions (passed from orchestrator via cup profile, defaults match 7mm_dia)
+    extension_length = DeclareLaunchArgument('extension_length', default_value='0.018')
+    extension_radius = DeclareLaunchArgument('extension_radius', default_value='0.006')
+    suction_cup_height = DeclareLaunchArgument('suction_cup_height', default_value='0.006')
+    suction_cup_radius = DeclareLaunchArgument('suction_cup_radius', default_value='0.0035')
+
+    xacro_args = {
+        "name": LaunchConfiguration("ur_type"),
+        "ur_type": LaunchConfiguration("ur_type"),
+        "tf_prefix": "",
+        "extension_length": LaunchConfiguration("extension_length"),
+        "extension_radius": LaunchConfiguration("extension_radius"),
+        "suction_cup_height": LaunchConfiguration("suction_cup_height"),
+        "suction_cup_radius": LaunchConfiguration("suction_cup_radius"),
+    }
 
     ## ur_driver
     ur_control_launch = IncludeLaunchDescription(
@@ -157,6 +171,10 @@ def generate_launch_description():
         description_file,
         controllers_file,
         rviz_arg,
+        extension_length,
+        extension_radius,
+        suction_cup_height,
+        suction_cup_radius,
 
 
         ## Nodes

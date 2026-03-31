@@ -2,6 +2,10 @@
 
 > Operational MCP reference (task JSON, error handling, gotchas) is in the project root `CLAUDE.md`.
 > This document covers architecture, development setup, and current work items.
+>
+> For current task priorities, see [GitHub Issues](https://github.com/bondada-a/erobs/issues).
+> Use `gh issue list --label P0` to see critical tasks. Close issues when done, open new ones when you find work.
+> Decisions and architectural context are in [`STATUS.md`](../STATUS.md).
 
 ## Overview
 
@@ -12,13 +16,11 @@ Autonomous robotic sample handling system for synchrotron beamlines at NSLS-II. 
 ## Architecture
 
 ```
-Bluesky Adaptive (AI agent suggests next sample)
-         ↓
 Bluesky RunEngine (experiment orchestration)
          ↓
 Ophyd Device (ROS2 Action Client wrapper)
          ↓                                    Claude (LLM via MCP)
-MTCOrchestratorActionServer  ←────────────────  erobs-mcp-server / ros-mcp-server
+MTCOrchestratorActionServer  ←────────────────  beambot-mcp-server / ros-mcp-server
          ↓
 Specialized Action Servers (8 types)
     ├── move_to, pick_place, end_effector
@@ -30,10 +32,11 @@ MoveIt Task Constructor (motion planning)
 UR5e Robot + Grippers
 ```
 
-**Deployment**: VM with two Docker containers communicating via ROS2 DDS:
-- **bsui**: Bluesky/experiment orchestration, sends JSON task goals
-- **erobs-common-img**: MTC pipeline servers, MoveIt, Zivid SDK
-- **erobs-mcp-server**: MCP bridge for LLM control (Zivid capture, detection, TF, robot state, pose registry)
+**Deployment**: Host machine running ROS2 natively with one of two control interfaces:
+- **beambot bringup** (`beambot_bringup.launch.py`): MTC pipeline servers, MoveIt, Zivid SDK, action servers
+- **MCP interface** (`start_mcp.sh`): rosbridge + beambot bringup for LLM-driven control via `beambot-mcp-server`
+- **GUI interface** (`mtc_gui_client`): Manual task execution via Qt GUI
+- **bsui** (separate container): Bluesky/experiment orchestration, sends JSON task goals via ROS2 DDS
 
 ## Key Packages
 
@@ -43,7 +46,7 @@ UR5e Robot + Grippers
 | **beambot_interfaces** | Action definitions (8 actions) |
 | **mtc_gui** | GUI client for task execution |
 | **custom-ur-descriptions** | MoveIt configs per gripper type |
-| **vision** | Zivid 3D camera driver + ROS2 nodes |
+| **vision** | Camera drivers + ROS2 nodes (Zivid 3D eye-in-hand, ZED stereo external) |
 | **end_effectors** | Gripper drivers (Hand-E, ePick, pipettor) |
 | **bluesky_ros** | Bluesky-ROS integration (Ophyd devices) |
 | **cms** | CMS beamline task JSONs and pose registry (`poses.yaml`) |
@@ -62,7 +65,9 @@ The Zivid camera is mounted on the robot arm (eye-in-hand). The transform `tool0
 
 | Date | xyz (meters) | rpy (radians) | Notes |
 |------|--------------|---------------|-------|
-| **2026-01-15** | 0.05675 0.10322 0.05489 | -0.00615 0.04362 3.13541 | Current. Recalibration. Residuals: rot < 0.22°, trans < 0.47mm |
+| **2026-03-27** | 0.05635 0.10228 0.06025 | -0.03622 0.05218 3.13437 | Current. Beamline recalibration, 12 poses (pose 4 outlier excluded). Residuals: rot < 0.33°, trans < 1.53mm |
+| 2026-03-25 | 0.05475 0.10491 0.06013 | -0.03489 0.05317 3.13637 | Recalibration after URDF chain changes. Residuals: rot < 0.15°, trans < 1.0mm |
+| 2026-01-15 | 0.05675 0.10322 0.05489 | -0.00615 0.04362 3.13541 | Residuals: rot < 0.22°, trans < 0.47mm |
 | 2026-01-13 | 0.05646 0.10182 0.05680 | -0.03542 0.04745 3.13222 | After robot moved to new room |
 | 2025-12-17 | 0.05659 0.10548 0.05660 | -0.01432 0.04829 3.13430 | Original location |
 | 2025-10-09 | 0.02803 0.07664 0.0 | 0.53964 -1.53712 -2.13794 | Initial calibration (different mount?) |
@@ -70,12 +75,19 @@ The Zivid camera is mounted on the robot arm (eye-in-hand). The transform `tool0
 **Calibration tool**: `zivid-python-samples/source/applications/advanced/hand_eye_calibration/hand_eye_gui.py` or Zivid Studio → Tools → Hand-Eye Calibration
 
 ## Build & Launch
-
+### Build
 ```bash
-colcon build && source install/setup.bash
+colcon build --packages-skip epick_moveit_studio && source install/setup.bash
+```
+### Option A: Launch Framework+GUI for Manual 
+```bash
 ros2 launch beambot beambot_bringup.launch.py
 ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true  # simulation
 ros2 run mtc_gui mtc_gui_client  # GUI
+```
+### Option B: Launch Framework+Rosbridge for MCP based control
+```bash
+./start_mcp.sh  # Launches rosbridge (port 9090) + beambot bringup for LLM control via MCP
 ```
 
 Note: Always `source install/setup.bash` after building. Vision requires Zivid camera connected and calibrated.
@@ -98,7 +110,7 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 | Action servers | `beambot/beambot/action_servers/` |
 | Stage implementations | `beambot/beambot/stages/` |
 | Detection algorithms | `beambot/beambot/detection/` |
-| MCP server (erobs) | `beambot/mcp/erobs_mcp_server.py` |
+| MCP server (beambot) | `beambot/mcp/beambot_mcp_server.py` |
 | Gripper configs | `beambot/config/grippers.yaml` |
 | Beamline configs | `beambot/config/*.yaml` |
 | Pose registry | `cms/poses.yaml` |
@@ -132,41 +144,7 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 
 ## Current Work
 
-### Motion Planning Improvements
-- **Goal**: Improve planning reliability, speed, and trajectory quality
-- **Current**: OMPL/RRTConnect (`goal_bias=0.15`), MTC `CartesianPath` (`min_fraction=0.95`), 30% velocity/accel scaling
-- **Known issues**:
-  - CartesianPath fails for longer moves (incremental IK stepping hits singularities/joint limits)
-  - RRTConnect produces unintuitive joint-space paths (random sampling, not shortest path)
-- **Plan** (4 phases):
-  1. **Pilz LIN for Cartesian targets** — deterministic straight-line, more robust than CartesianPath for longer distances
-  2. **OMPL tuning** — increase `goal_bias` to 0.3+, verify path simplification adapters
-  3. **MTC Fallbacks container** — CartesianPath → Pilz LIN → OMPL cascade
-  4. **Pilz PTP for joint moves** (optional) — predictable industrial-standard joint motion
-- **Detailed notes**: `~/.claude/projects/.../memory/motion_planning_improvements.md`
-- **Files**: `base_stages.py`, `move_to_stages.py`, `ur5e_moveit_configs/*/config/ompl_planning.yaml`
-
-### Minimal bsui Container
-- **Goal**: Reduce bsui from ~5GB to ~500MB (only needs rclpy + beambot_interfaces)
-- **Files**: `docker/bsui/Dockerfile`
-
-### Sample Detection
-- **Status**: Needs redesign for MCP architecture
-- **Current methods** (in `beambot/camera/zivid.py` and `beambot/detection/`):
-  - `marker` — ArUco marker detection (most reliable)
-  - `circle` — Hough Circle Transform
-  - `contour` — Edge/Canny contour detection
-- **Fields**: `detection_type` and `sample_index` (1-indexed) in VisionMoveToAction
-- **Known issues**: contour/circle detection is unreliable (lighting-dependent, label instability between captures, centroid offset)
-- **Investigation**: `docs/archive/aruco_detection_variance_investigation.md`
-
-### Octomap Integration
-- Point cloud obstacle avoidance works (`octomap_test.launch.py`), needs integration into `beambot_bringup.launch.py` with `use_octomap:=true` arg
-
-### Cartesian Path Reliability
-- MTC CartesianPath checks collisions (`is_valid` at every 1mm step), `min_fraction=0.95`
-- TODO: Implement Fallbacks container (Cartesian first → OMPL backup)
-- Overlaps with Motion Planning above
+See [GitHub Issues](https://github.com/bondada-a/erobs/issues) for active tasks and priorities. Decisions and context in [`STATUS.md`](../STATUS.md).
 
 ## References
 

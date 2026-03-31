@@ -119,7 +119,7 @@ def generate_launch_description():
                 output='screen',
                 parameters=[
                     {'serial_port': '/tmp/ttyUR'},
-                    {'use_fake_hardware': False}  # Using real hardware
+                    {'use_fake_hardware': LaunchConfiguration('use_fake_hardware')}
                 ]
             )
         ]

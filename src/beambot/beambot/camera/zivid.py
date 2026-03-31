@@ -161,36 +161,39 @@ def detect_markers(
 
 
 # ============================================================================
-# Circle Detection
+# Shared Capture Helper
 # ============================================================================
 
+# Match Zivid's default QoS: RELIABLE, VOLATILE, KEEP_LAST
+_ZIVID_QOS = QoSProfile(
+    reliability=ReliabilityPolicy.RELIABLE,
+    durability=DurabilityPolicy.VOLATILE,
+    history=HistoryPolicy.KEEP_LAST,
+    depth=1,
+)
 
-def detect_circles(
+
+def _capture_image_and_cloud(
     node: Node,
     timeout: float = 45.0,
-    params: CircleDetectionParams = None
-) -> List[Pose]:
-    """Detect circular objects using the Zivid camera.
+    label: str = "detection",
+) -> Optional[tuple]:
+    """Trigger a Zivid capture and wait for RGB image + point cloud.
 
-    Captures an image and point cloud, runs Hough circle detection,
-    and returns 3D poses for detected circles.
-
-    Uses the same pattern as ArUco detection: spin_until_future_complete()
-    processes both the service call AND subscription callbacks.
+    Handles the full subscription lifecycle: create temporary subscriptions,
+    wait for publisher discovery, trigger capture via the marker-detection
+    service (which publishes image + cloud as a side effect), wait for data,
+    then clean up.
 
     Args:
         node: ROS2 node for subscriptions and service calls
-        timeout: Detection timeout in seconds
-        params: Circle detection parameters (uses defaults if None)
+        timeout: Capture timeout in seconds
+        label: Human-readable label for log messages (e.g. "circle detection")
 
     Returns:
-        List of Pose objects for detected circles (in camera optical frame).
-        The pose orientation is identity (flat surface facing camera).
-        Empty list if detection failed or no circles found.
+        (rgb_image, cloud) tuple on success, or None on failure.
+        rgb_image is an np.ndarray (RGB8), cloud is a PointCloud2 message.
     """
-    if params is None:
-        params = CircleDetectionParams()
-
     logger = node.get_logger()
     bridge = CvBridge()
 
@@ -206,38 +209,24 @@ def detect_circles(
         received_cloud[0] = msg
         logger.debug("Point cloud callback triggered")
 
-    # Zivid driver uses rmw_qos_profile_default (RELIABLE reliability)
-    # We must match this QoS profile for the subscription to work
-    # Note: Point cloud is ~40MB and takes 3-4s longer to transmit than image
-    from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
-
-    # Match Zivid's default QoS: RELIABLE, VOLATILE, KEEP_LAST
-    zivid_qos = QoSProfile(
-        reliability=ReliabilityPolicy.RELIABLE,
-        durability=DurabilityPolicy.VOLATILE,
-        history=HistoryPolicy.KEEP_LAST,
-        depth=1
-    )
-
-    image_sub = node.create_subscription(Image, IMAGE_TOPIC, on_image, zivid_qos)
-    cloud_sub = node.create_subscription(PointCloud2, CLOUD_TOPIC, on_cloud, zivid_qos)
-
-    # Use the marker detection service - it does capture AND publishes to topics
-    marker_client = node.create_client(CaptureAndDetectMarkers, SERVICE_NAME)
+    image_sub = None
+    cloud_sub = None
+    marker_client = None
 
     try:
+        image_sub = node.create_subscription(Image, IMAGE_TOPIC, on_image, _ZIVID_QOS)
+        cloud_sub = node.create_subscription(PointCloud2, CLOUD_TOPIC, on_cloud, _ZIVID_QOS)
+        marker_client = node.create_client(CaptureAndDetectMarkers, SERVICE_NAME)
+
         # Wait for service
         if not marker_client.wait_for_service(timeout_sec=2.0):
             logger.error(f"Zivid service '{SERVICE_NAME}' not available")
-            return []
+            return None
 
-        # CRITICAL: Wait for subscriptions to discover the publisher
-        # The test script has persistent subs that are always connected
-        # We need to give temporary subs time to connect
+        # Wait for subscriptions to discover the publisher (up to 2s)
         logger.info("Waiting for subscriptions to connect...")
-        for i in range(20):  # Up to 2 seconds
+        for i in range(20):
             rclpy.spin_once(node, timeout_sec=0.1)
-            # Check if we got any data (even stale) - means we're connected
             if received_image[0] is not None or received_cloud[0] is not None:
                 logger.info(f"Subscriptions connected after {(i+1)*0.1:.1f}s")
                 break
@@ -246,43 +235,38 @@ def detect_circles(
         received_image[0] = None
         received_cloud[0] = None
 
-        # Trigger capture via marker detection service (we ignore the marker results)
-        # This publishes image + point cloud to topics as a side effect
-        logger.info("Triggering Zivid capture for circle detection...")
+        # Trigger capture via marker detection service (we ignore the marker results).
+        # This publishes image + point cloud to topics as a side effect.
+        logger.info(f"Triggering Zivid capture for {label}...")
         request = CaptureAndDetectMarkers.Request()
-        # Must provide at least one marker ID (Zivid service requires non-empty list)
-        # Use ID 999 which likely doesn't exist - we don't care about marker results
-        request.marker_ids = [999]
+        request.marker_ids = [999]  # Dummy ID — we don't care about markers
         request.marker_dictionary = "aruco4x4_50"
 
         future = marker_client.call_async(request)
         logger.info(f"Service call sent, waiting up to {timeout}s for response...")
 
         # spin_until_future_complete processes BOTH the service call
-        # AND our subscription callbacks - same pattern as ArUco detection!
+        # AND our subscription callbacks.
         rclpy.spin_until_future_complete(node, future, timeout_sec=timeout)
 
         if not future.done():
-            logger.error(f"Zivid capture timed out after {timeout}s - service future not completed")
-            return []
+            logger.error(f"Zivid capture timed out after {timeout}s")
+            return None
 
-        # Check service response
         try:
             response = future.result()
             logger.info(f"Service responded: success={response.success}")
         except Exception as e:
             logger.error(f"Service call exception: {e}")
-            return []
+            return None
 
-        # Wait for FRESH data to arrive via subscriptions
-        # CRITICAL: Point cloud (~40MB for 2448x2048x16 bytes) takes 3-4s longer
-        # to transmit than the image (~10MB). We must wait long enough!
+        # Wait for FRESH data to arrive via subscriptions.
+        # Point cloud (~40MB) takes 3-4s longer to transmit than image (~10MB).
         logger.info("Waiting for image and point cloud data...")
-        max_wait_iterations = 200  # Up to 20 seconds (slower depth engines need more time)
+        max_wait_iterations = 200  # Up to 20 seconds
         for i in range(max_wait_iterations):
             rclpy.spin_once(node, timeout_sec=0.1)
 
-            # Log progress every second
             if (i + 1) % 10 == 0:
                 img_status = "✓" if received_image[0] else "waiting"
                 cloud_status = "✓" if received_cloud[0] else "waiting"
@@ -297,52 +281,83 @@ def detect_circles(
             cloud_status = "received" if received_cloud[0] else "MISSING"
             logger.error(f"Timeout waiting for data (image: {img_status}, cloud: {cloud_status})")
             logger.error("Point cloud transmission may be slow - try increasing timeout")
-            return []
+            return None
 
         logger.info("Image and point cloud received")
-
-        # Convert image
         rgb_image = bridge.imgmsg_to_cv2(received_image[0], desired_encoding='rgb8')
-        cloud = received_cloud[0]
-
-        # Detect circles
-        circles = detect_hough_circles(rgb_image, params)
-        if circles is None or len(circles) == 0:
-            logger.warning("No circles detected")
-            return []
-
-        logger.info(f"Detected {len(circles)} circle(s)")
-
-        # Convert to 3D poses
-        poses = []
-        for cx, cy, radius in circles:
-            xyz = get_3d_position(cloud, cx, cy, params.search_radius)
-            if xyz is None:
-                logger.warning(f"No valid depth at circle ({cx}, {cy})")
-                continue
-
-            x, y, z = xyz
-            logger.info(f"Circle at ({cx}, {cy}) r={radius}px -> "
-                        f"({x:.3f}, {y:.3f}, {z:.3f}) m")
-
-            # Create pose (identity orientation = flat surface facing camera)
-            pose = Pose()
-            pose.position.x = x
-            pose.position.y = y
-            pose.position.z = z
-            pose.orientation.x = 0.0
-            pose.orientation.y = 0.0
-            pose.orientation.z = 0.0
-            pose.orientation.w = 1.0
-            poses.append(pose)
-
-        return poses
+        return (rgb_image, received_cloud[0])
 
     finally:
-        # Clean up subscriptions and client
-        node.destroy_subscription(image_sub)
-        node.destroy_subscription(cloud_sub)
-        node.destroy_client(marker_client)
+        if image_sub is not None:
+            node.destroy_subscription(image_sub)
+        if cloud_sub is not None:
+            node.destroy_subscription(cloud_sub)
+        if marker_client is not None:
+            node.destroy_client(marker_client)
+
+
+# ============================================================================
+# Circle Detection
+# ============================================================================
+
+
+def detect_circles(
+    node: Node,
+    timeout: float = 45.0,
+    params: CircleDetectionParams = None
+) -> List[Pose]:
+    """Detect circular objects using the Zivid camera.
+
+    Captures an image and point cloud, runs Hough circle detection,
+    and returns 3D poses for detected circles.
+
+    Args:
+        node: ROS2 node for subscriptions and service calls
+        timeout: Detection timeout in seconds
+        params: Circle detection parameters (uses defaults if None)
+
+    Returns:
+        List of Pose objects for detected circles (in camera optical frame).
+        The pose orientation is identity (flat surface facing camera).
+        Empty list if detection failed or no circles found.
+    """
+    if params is None:
+        params = CircleDetectionParams()
+
+    logger = node.get_logger()
+
+    result = _capture_image_and_cloud(node, timeout, label="circle detection")
+    if result is None:
+        return []
+
+    rgb_image, cloud = result
+
+    circles = detect_hough_circles(rgb_image, params)
+    if circles is None or len(circles) == 0:
+        logger.warning("No circles detected")
+        return []
+
+    logger.info(f"Detected {len(circles)} circle(s)")
+
+    poses = []
+    for cx, cy, radius in circles:
+        xyz = get_3d_position(cloud, cx, cy, params.search_radius)
+        if xyz is None:
+            logger.warning(f"No valid depth at circle ({cx}, {cy})")
+            continue
+
+        x, y, z = xyz
+        logger.info(f"Circle at ({cx}, {cy}) r={radius}px -> "
+                    f"({x:.3f}, {y:.3f}, {z:.3f}) m")
+
+        pose = Pose()
+        pose.position.x = x
+        pose.position.y = y
+        pose.position.z = z
+        pose.orientation.w = 1.0
+        poses.append(pose)
+
+    return poses
 
 
 # ============================================================================
@@ -376,141 +391,39 @@ def detect_contours(
         params = ContourDetectionParams()
 
     logger = node.get_logger()
-    bridge = CvBridge()
 
-    # Storage for received data (using list for mutability in closure)
-    received_image: List[Optional[Image]] = [None]
-    received_cloud: List[Optional[PointCloud2]] = [None]
+    result = _capture_image_and_cloud(node, timeout, label="contour detection")
+    if result is None:
+        return []
 
-    def on_image(msg: Image):
-        received_image[0] = msg
-        logger.debug("Image callback triggered")
+    rgb_image, cloud = result
 
-    def on_cloud(msg: PointCloud2):
-        received_cloud[0] = msg
-        logger.debug("Point cloud callback triggered")
+    contours_info = detect_contours_in_image(rgb_image, params, logger)
+    if contours_info is None or len(contours_info) == 0:
+        logger.warning("No contours detected matching area criteria")
+        return []
 
-    # Zivid driver uses rmw_qos_profile_default (RELIABLE reliability)
-    from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
+    logger.info(f"Detected {len(contours_info)} object(s), sorted in reading order")
 
-    zivid_qos = QoSProfile(
-        reliability=ReliabilityPolicy.RELIABLE,
-        durability=DurabilityPolicy.VOLATILE,
-        history=HistoryPolicy.KEEP_LAST,
-        depth=1
-    )
+    poses = []
+    for i, (cx, cy, area, vertices) in enumerate(contours_info):
+        sample_num = i + 1
+        xyz = get_3d_position(cloud, cx, cy, params.search_radius)
+        if xyz is None:
+            logger.warning(f"Sample #{sample_num}: No valid depth at ({cx}, {cy})")
+            continue
 
-    image_sub = node.create_subscription(Image, IMAGE_TOPIC, on_image, zivid_qos)
-    cloud_sub = node.create_subscription(PointCloud2, CLOUD_TOPIC, on_cloud, zivid_qos)
+        x, y, z = xyz
+        logger.info(f"Sample #{sample_num}: ({cx}, {cy}) area={area}px² -> "
+                    f"({x:.3f}, {y:.3f}, {z:.3f}) m")
 
-    # Use the marker detection service - it does capture AND publishes to topics
-    marker_client = node.create_client(CaptureAndDetectMarkers, SERVICE_NAME)
+        pose = Pose()
+        pose.position.x = x
+        pose.position.y = y
+        pose.position.z = z
+        pose.orientation.w = 1.0
+        poses.append(pose)
 
-    try:
-        # Wait for service
-        if not marker_client.wait_for_service(timeout_sec=2.0):
-            logger.error(f"Zivid service '{SERVICE_NAME}' not available")
-            return []
-
-        # Wait for subscriptions to discover the publisher
-        logger.info("Waiting for subscriptions to connect...")
-        for i in range(20):  # Up to 2 seconds
-            rclpy.spin_once(node, timeout_sec=0.1)
-            if received_image[0] is not None or received_cloud[0] is not None:
-                logger.info(f"Subscriptions connected after {(i+1)*0.1:.1f}s")
-                break
-
-        # Clear any stale data before triggering fresh capture
-        received_image[0] = None
-        received_cloud[0] = None
-
-        # Trigger capture via marker detection service
-        logger.info("Triggering Zivid capture for contour detection...")
-        request = CaptureAndDetectMarkers.Request()
-        request.marker_ids = [999]  # Dummy ID - we don't care about markers
-        request.marker_dictionary = "aruco4x4_50"
-
-        future = marker_client.call_async(request)
-        logger.info(f"Service call sent, waiting up to {timeout}s for response...")
-        rclpy.spin_until_future_complete(node, future, timeout_sec=timeout)
-
-        if not future.done():
-            logger.error(f"Zivid capture timed out after {timeout}s - service future not completed")
-            return []
-
-        # Check service response
-        try:
-            response = future.result()
-            logger.info(f"Service responded: success={response.success}")
-        except Exception as e:
-            logger.error(f"Service call exception: {e}")
-            return []
-
-        # Wait for data to arrive
-        logger.info("Waiting for image and point cloud data...")
-        max_wait_iterations = 200  # Up to 20 seconds (slower depth engines need more time)
-        for i in range(max_wait_iterations):
-            rclpy.spin_once(node, timeout_sec=0.1)
-
-            if (i + 1) % 10 == 0:
-                img_status = "✓" if received_image[0] else "waiting"
-                cloud_status = "✓" if received_cloud[0] else "waiting"
-                logger.info(f"  {(i+1)*0.1:.1f}s - image: {img_status}, cloud: {cloud_status}")
-
-            if received_image[0] is not None and received_cloud[0] is not None:
-                logger.info(f"Both image and point cloud received after {(i+1)*0.1:.1f}s")
-                break
-
-        if received_image[0] is None or received_cloud[0] is None:
-            img_status = "received" if received_image[0] else "MISSING"
-            cloud_status = "received" if received_cloud[0] else "MISSING"
-            logger.error(f"Timeout waiting for data (image: {img_status}, cloud: {cloud_status})")
-            return []
-
-        logger.info("Image and point cloud received")
-
-        # Convert image
-        rgb_image = bridge.imgmsg_to_cv2(received_image[0], desired_encoding='rgb8')
-        cloud = received_cloud[0]
-
-        # Detect contours
-        contours_info = detect_contours_in_image(rgb_image, params, logger)
-        if contours_info is None or len(contours_info) == 0:
-            logger.warning("No contours detected matching area criteria")
-            return []
-
-        logger.info(f"Detected {len(contours_info)} object(s), sorted in reading order")
-
-        # Convert to 3D poses
-        poses = []
-        for i, (cx, cy, area, vertices) in enumerate(contours_info):
-            sample_num = i + 1  # 1-indexed for user-facing sample selection
-            xyz = get_3d_position(cloud, cx, cy, params.search_radius)
-            if xyz is None:
-                logger.warning(f"Sample #{sample_num}: No valid depth at ({cx}, {cy})")
-                continue
-
-            x, y, z = xyz
-            logger.info(f"Sample #{sample_num}: ({cx}, {cy}) area={area}px² -> "
-                        f"({x:.3f}, {y:.3f}, {z:.3f}) m")
-
-            # Create pose (identity orientation = flat surface facing camera)
-            pose = Pose()
-            pose.position.x = x
-            pose.position.y = y
-            pose.position.z = z
-            pose.orientation.x = 0.0
-            pose.orientation.y = 0.0
-            pose.orientation.z = 0.0
-            pose.orientation.w = 1.0
-            poses.append(pose)
-
-        return poses
-
-    finally:
-        # Clean up subscriptions and client
-        node.destroy_subscription(image_sub)
-        node.destroy_subscription(cloud_sub)
-        node.destroy_client(marker_client)
+    return poses
 
 

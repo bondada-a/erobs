@@ -9,8 +9,8 @@ Interface contract (matches beambot camera abstraction):
     - detect_circles(node, ...) -> List[Pose]
     - detect_contours(node, ...) -> List[Pose]
 
-ZED 2i default topics (namespace: /zed/zed_node):
-    - /zed/zed_node/rgb/image_rect_color  (sensor_msgs/Image, bgra8)
+ZED 2i default topics (namespace: /zed/zed_node, SDK 5.2.1+):
+    - /zed/zed_node/rgb/color/rect/image  (sensor_msgs/Image, bgra8)
     - /zed/zed_node/point_cloud/cloud_registered  (sensor_msgs/PointCloud2)
     - /zed/zed_node/depth/depth_registered  (sensor_msgs/Image, 32FC1)
 """
@@ -43,7 +43,7 @@ class DetectionResult:
 
 
 # Default topic names (with zed2i default namespace)
-IMAGE_TOPIC = "/zed/zed_node/rgb/image_rect_color"
+IMAGE_TOPIC = "/zed/zed_node/rgb/color/rect/image"
 CLOUD_TOPIC = "/zed/zed_node/point_cloud/cloud_registered"
 
 # ZED uses default ROS2 QoS

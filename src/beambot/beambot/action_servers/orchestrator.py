@@ -41,6 +41,13 @@ from controller_manager_msgs.srv import ListControllers, SwitchController
 from std_srvs.srv import Trigger
 from std_msgs.msg import String
 
+# ePick vacuum feedback (optional — only when epick_msgs is built)
+try:
+    from epick_msgs.msg import ObjectDetectionStatus
+    _EPICK_MSGS_AVAILABLE = True
+except ImportError:
+    _EPICK_MSGS_AVAILABLE = False
+
 from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
 from beambot.stages.move_to_stages import MoveToStages
 from beambot.stages.end_effector_stages import EndEffectorStages
@@ -76,6 +83,9 @@ class MTCOrchestratorServer(Node):
         self._lock = threading.Lock()
         self._current_gripper = "none"
         self._last_error = ""  # Error from last failed action/batch
+        self._last_result = None  # Full result from last _send_and_wait
+        self._last_detected_position = None  # [x, y, z] from detect_only vision
+        self._last_detected_orientation = None  # [x, y, z, w] from detect_only vision
 
         # Pause/Resume state
         self._pause_requested = False
@@ -87,6 +97,7 @@ class MTCOrchestratorServer(Node):
         self.declare_parameter("beamline_config", "config/default_beamline.yaml")
         self.declare_parameter("use_fake_hardware", False)
         self.declare_parameter("enable_batching", True)
+        self.declare_parameter("cup_profile", "")  # Override cup profile (empty = use beamline config default)
 
         config_file = self.get_parameter("beamline_config").value
         self._use_fake_hardware = self.get_parameter("use_fake_hardware").value
@@ -167,6 +178,12 @@ class MTCOrchestratorServer(Node):
             callback_group=self._callback_group
         )
 
+        # Vision server TF reset service (called after tool exchange)
+        self._vision_reset_tf_client = self.create_client(
+            Trigger, "beambot_vision_reset_tf",
+            callback_group=self._callback_group
+        )
+
         # Controller manager service clients for recovery
         self._list_controllers_client = self.create_client(
             ListControllers,
@@ -206,6 +223,18 @@ class MTCOrchestratorServer(Node):
             String, 'beambot/current_gripper', latched_qos
         )
         self._publish_gripper(self._current_gripper)
+
+        # Vacuum monitoring (ePick grasp verification)
+        self._vacuum_armed = False
+        self._vacuum_lost = False
+        self._epick_status: 'int | None' = None
+        self._epick_sub = None
+        if _EPICK_MSGS_AVAILABLE:
+            self._epick_sub = self.create_subscription(
+                ObjectDetectionStatus, '/object_detection_status',
+                self._on_epick_status, 10,
+                callback_group=self._callback_group,
+            )
 
         self.get_logger().info("MTC Orchestrator (Python) started on 'beambot_execution'")
         self.get_logger().info("Pause/Resume services available: beambot/pause, beambot/resume")
@@ -468,12 +497,13 @@ class MTCOrchestratorServer(Node):
         """Create a MoveToAction.Goal from task dict."""
         goal = MoveToAction.Goal()
         goal.target = step.get("target", "")
-        goal.planning_type = step.get("planning_type", "joint")
+        goal.planning_type = step.get("planning_type", "")
         goal.direction = step.get("direction", "")
         goal.distance = float(step.get("distance", 0.0))
         goal.cartesian_target = [float(v) for v in step.get("cartesian_target", [])]
         goal.frame_id = step.get("frame_id", "base_link")
         goal.poses_json = poses_json
+        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
         return goal
 
     def _create_endeffector_goal(self, step: Dict[str, Any]) -> EndEffectorAction.Goal:
@@ -503,6 +533,7 @@ class MTCOrchestratorServer(Node):
         goal.place_approach = step.get("place_approach", "")
         goal.place_target = step.get("place_target", "")
         goal.poses_json = poses_json
+        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
         return goal
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):
@@ -524,6 +555,12 @@ class MTCOrchestratorServer(Node):
         """Main execution logic."""
         self.get_logger().info("Executing orchestration goal")
 
+        # Reset state for new goal
+        self._vacuum_armed = False
+        self._vacuum_lost = False
+        self._last_detected_position = None
+        self._last_detected_orientation = None
+
         result = MTCExecution.Result()
         feedback = MTCExecution.Feedback()
 
@@ -541,6 +578,11 @@ class MTCOrchestratorServer(Node):
         self._current_gripper = start_gripper
         self._publish_gripper(start_gripper)
 
+        # Apply cup_profile override if parameter was changed via MCP
+        cup_override = self.get_parameter("cup_profile").value
+        if cup_override and start_gripper in self._grippers:
+            self._grippers[start_gripper]["cup_profile"] = cup_override
+
         # Step 1: Launch MoveIt for the gripper configuration
         self._update_feedback(
             feedback, goal_handle, 0, task_count, "Initializing MoveIt"
@@ -555,8 +597,15 @@ class MTCOrchestratorServer(Node):
         # Publish running state before starting task execution
         self._publish_state("RUNNING")
 
-        # Group tasks into batches for optimized execution
-        batches = group_into_batches(tasks, enabled=self._enable_batching)
+        # Group tasks into batches for optimized execution.
+        # Disable batching when ePick is attached — the vacuum watchdog needs
+        # step boundaries between every move to detect dropped objects.
+        batching_enabled = self._enable_batching and start_gripper != "epick"
+        if self._enable_batching and not batching_enabled:
+            self.get_logger().info(
+                "Batching disabled for ePick — vacuum watchdog needs per-step boundaries"
+            )
+        batches = group_into_batches(tasks, enabled=batching_enabled)
         self.get_logger().info(
             f"Grouped {task_count} tasks into {len(batches)} batches"
         )
@@ -570,6 +619,9 @@ class MTCOrchestratorServer(Node):
 
             # Check for cancellation at batch boundary
             if goal_handle.is_cancel_requested:
+                self.get_logger().warn(
+                    f"Task cancelled after step {completed_tasks}/{task_count}"
+                )
                 result.error_message = "Task was canceled"
                 result.completed_steps = completed_tasks
                 goal_handle.canceled()
@@ -582,11 +634,32 @@ class MTCOrchestratorServer(Node):
 
                 # Check if cancelled DURING pause
                 if goal_handle.is_cancel_requested:
+                    self.get_logger().warn(
+                        f"Task cancelled while paused at step {completed_tasks}/{task_count}"
+                    )
                     result.error_message = "Task was cancelled while paused"
                     result.completed_steps = completed_tasks
                     goal_handle.canceled()
                     self._publish_state("IDLE")
                     return result
+
+            # Check if vacuum was lost since last step
+            if self._check_vacuum_lost():
+                result.error_message = f"Step {completed_tasks + 1} aborted: {self._last_error}"
+                result.completed_steps = completed_tasks
+                goal_handle.abort()
+                self._publish_state("IDLE")
+                return result
+
+            # Check if MoveIt subprocess is still alive before dispatching
+            if not self._moveit_manager.is_moveit_alive():
+                exit_info = self._moveit_manager.get_moveit_exit_info()
+                result.error_message = f"MoveIt crashed before step {completed_tasks + 1}: {exit_info}"
+                self.get_logger().error(result.error_message)
+                result.completed_steps = completed_tasks
+                goal_handle.abort()
+                self._publish_state("IDLE")
+                return result
 
             if batch_type == "batched":
                 # Execute batch of batchable tasks as single MTC Task
@@ -612,6 +685,7 @@ class MTCOrchestratorServer(Node):
                     self._publish_state("IDLE")
                     return result
 
+                self._update_vacuum_state(batch_tasks)
                 completed_tasks += batch_size
 
             else:
@@ -637,13 +711,29 @@ class MTCOrchestratorServer(Node):
                     self._publish_state("IDLE")
                     return result
 
+                self._update_vacuum_state([task])
                 completed_tasks += 1
 
             result.completed_steps = completed_tasks
 
+        # Final vacuum check — catch drops during the last step
+        if self._check_vacuum_lost():
+            result.error_message = f"Final step aborted: {self._last_error}"
+            result.completed_steps = completed_tasks
+            goal_handle.abort()
+            self._publish_state("IDLE")
+            return result
+
         # Success
         result.success = True
         result.total_steps = task_count
+
+        # Propagate detected pose from detect_only vision_moveto
+        if self._last_detected_position is not None:
+            result.detected_position = self._last_detected_position
+        if self._last_detected_orientation is not None:
+            result.detected_orientation = self._last_detected_orientation
+
         self._update_feedback(
             feedback, goal_handle, task_count, task_count, ""
         )
@@ -689,6 +779,70 @@ class MTCOrchestratorServer(Node):
             script["tasks"],
             json.dumps(script.get("poses", {})),
         )
+
+    # ------------------------------------------------------------------
+    # Vacuum monitoring (ePick grasp verification)
+    # ------------------------------------------------------------------
+
+    def _on_epick_status(self, msg):
+        """Callback for /object_detection_status — fires continuously while ePick is active."""
+        self._epick_status = int(msg.status)
+        if self._vacuum_armed and self._epick_status == 3:  # NO_OBJECT_DETECTED
+            self._vacuum_lost = True
+            self.get_logger().warn(
+                "VACUUM_LOST: object detection status changed to NO_OBJECT_DETECTED "
+                "while vacuum is active"
+            )
+
+    def _update_vacuum_state(self, executed_tasks: List[Dict[str, Any]]):
+        """Update vacuum monitor after tasks execute.
+
+        Scans the executed tasks for vacuum on/off actions and arms/disarms
+        the background monitor accordingly.
+        """
+        if self._current_gripper != "epick" or not _EPICK_MSGS_AVAILABLE:
+            return
+
+        grasp_state = self._grippers.get("epick", {}).get("states", {}).get("grasp", "vacuum_on")
+        release_state = self._grippers.get("epick", {}).get("states", {}).get("release", "vacuum_off")
+
+        for task in executed_tasks:
+            if task.get("task_type") != "end_effector":
+                continue
+            action = task.get("end_effector_action", "")
+            if action == grasp_state:
+                # Arm the monitor — vacuum was just turned on
+                self._vacuum_lost = False
+                self._vacuum_armed = True
+                self.get_logger().info("Vacuum monitor ARMED (vacuum_on detected)")
+                # Immediate check: did we get a seal?
+                if self._epick_status == 3:
+                    self._vacuum_lost = True
+                    self.get_logger().warn(
+                        "VACUUM_LOST: no seal detected immediately after vacuum_on"
+                    )
+            elif action == release_state:
+                # Disarm — vacuum intentionally turned off
+                self._vacuum_armed = False
+                self._vacuum_lost = False
+                self.get_logger().info("Vacuum monitor DISARMED (vacuum_off detected)")
+
+    def _check_vacuum_lost(self) -> bool:
+        """Check if vacuum was lost since last armed.
+
+        Returns True if vacuum lost (caller should abort), False if OK.
+        Sets self._last_error on failure.
+        """
+        if not self._vacuum_armed or not self._vacuum_lost:
+            return False
+        self._last_error = (
+            "VACUUM_LOST: object dropped — ePick reports NO_OBJECT_DETECTED "
+            "while vacuum was active. Send vacuum_off then vacuum_on to retry."
+        )
+        self.get_logger().error(self._last_error)
+        # Disarm so we don't keep firing
+        self._vacuum_armed = False
+        return True
 
     def _execute_step(
         self, task_type: str, step: Dict[str, Any], poses_json: str
@@ -775,6 +929,7 @@ class MTCOrchestratorServer(Node):
             time.sleep(0.01)
 
         result = result_future.result()
+        self._last_result = result.result
         if not result.result.success:
             # Capture the real error_message from the action server
             self._last_error = getattr(result.result, 'error_message', '') or f"{name} failed (no details)"
@@ -816,12 +971,91 @@ class MTCOrchestratorServer(Node):
             self._toolexchange_client, goal, "tool_exchange", self._timeouts["tool_exchange"]
         )
 
+    # Gripper name → IK tip frame mapping
+    _GRIPPER_IK_FRAMES = {
+        "epick": "epick_tip",
+        "hande": "robotiq_hande_end",
+        "pipettor": "pipette_tip_link",
+        "2fg7": "2fg7_tip",
+        "none": "flange",
+    }
+
+    def _gripper_ik_frame(self) -> str:
+        """Return the IK frame for the currently attached gripper."""
+        return self._GRIPPER_IK_FRAMES.get(self._current_gripper, "flange")
+
+    def _set_tool_voltage_via_io(self, voltage: int) -> bool:
+        """Set tool voltage via UR driver's set_io service.
+
+        Unlike the raw socket approach, this doesn't stop the external_control
+        program — safe to call while the robot is ready for trajectories.
+        """
+        from ur_msgs.srv import SetIO
+        client = self.create_client(
+            SetIO, "/io_and_status_controller/set_io",
+            callback_group=self._callback_group
+        )
+        if not client.wait_for_service(timeout_sec=3.0):
+            self.get_logger().error("set_io service not available")
+            self.destroy_client(client)
+            return False
+
+        request = SetIO.Request()
+        request.fun = 4   # FUN_SET_TOOL_VOLTAGE
+        request.pin = 0
+        request.state = float(voltage)
+
+        future = client.call_async(request)
+        start = time.time()
+        while not future.done() and time.time() - start < 5.0:
+            time.sleep(0.05)
+
+        self.destroy_client(client)
+        if future.done() and future.result().success:
+            self.get_logger().info(f"Tool voltage set to {voltage}V via set_io")
+            return True
+        self.get_logger().error(f"Failed to set tool voltage to {voltage}V")
+        return False
+
+    def _reset_vision_tf(self):
+        """Call the vision server's TF reset service after tool exchange.
+
+        Clears stale static transforms from the old URDF so
+        _detect_current_gripper picks up the correct IK frame.
+        """
+        if not self._vision_reset_tf_client.wait_for_service(timeout_sec=3.0):
+            self.get_logger().warn(
+                "Vision TF reset service not available — "
+                "vision server may detect wrong gripper frame"
+            )
+            return
+        future = self._vision_reset_tf_client.call_async(Trigger.Request())
+        # Poll for result (can't use spin in callback context)
+        start = time.time()
+        while not future.done() and time.time() - start < 5.0:
+            time.sleep(0.05)
+        if future.done() and future.result().success:
+            self.get_logger().info("Vision server TF buffer reset")
+        else:
+            self.get_logger().warn("Vision TF reset did not complete")
+
     def _handle_tool_exchange(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Handle tool exchange with gripper state tracking and MoveIt restart.
 
         Like the C++ version, this restarts MoveIt with the new gripper config
         after a tool exchange operation completes.
         """
+        operation = step.get("operation", "")
+
+        # For dock: turn off tool voltage BEFORE the motion so the
+        # Quick Changer releases (de-energizes the lock).
+        # Uses the UR driver's set_io service (doesn't stop external_control,
+        # unlike the raw socket approach via secondary interface).
+        if operation == "dock" and not self._use_fake_hardware:
+            self.get_logger().info("Setting tool voltage to 0V for dock (QC release)")
+            self._set_tool_voltage_via_io(0)
+            time.sleep(0.5)  # Wait for QC to release
+
         # Execute the physical exchange motion
         if not self._call_toolexchange(step, poses_json):
             # _last_error already set by _send_and_wait
@@ -860,6 +1094,18 @@ class MTCOrchestratorServer(Node):
                 self.get_logger().error(self._last_error)
                 return False
 
+            # Reset vision server TF buffer so it picks up the new URDF frames
+            self._reset_vision_tf()
+
+            # Restore tool voltage for the new gripper (dock sets it to 0V)
+            if operation == "load" and not self._use_fake_hardware:
+                tool_voltage = self._grippers.get(new_gripper, {}).get("tool_voltage", 0)
+                if tool_voltage > 0:
+                    self.get_logger().info(
+                        f"Restoring tool voltage to {tool_voltage}V for {new_gripper}"
+                    )
+                    self._set_tool_voltage_via_io(tool_voltage)
+
         return True
 
     def _call_vision_moveto(self, step: Dict[str, Any], poses_json: str) -> bool:
@@ -888,7 +1134,15 @@ class MTCOrchestratorServer(Node):
         goal.timeout = float(step.get("timeout", 10.0))
         goal.poses_json = poses_json
         goal.detection_type = step.get("detection_type", "marker")
-        goal.z_offset = float(step.get("z_offset", 0.0))
+        goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
+        goal.detect_only = bool(step.get("detect_only", False))
+        goal.offset_direction = step.get("offset_direction", "")
+        goal.offset_distance = float(step.get("offset_distance", 0.0))
+        goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
+        goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
+        goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
+        # Pass current gripper's IK frame to avoid stale TF auto-detection
+        goal.ik_frame = self._gripper_ik_frame()
 
         # Handle multi-position scan mode
         # Task JSON: "scan_positions": ["sample_scan_1", "sample_scan_2", "sample_scan_3"]
@@ -917,9 +1171,22 @@ class MTCOrchestratorServer(Node):
                     f"Multi-position mode: {valid_positions} scan positions configured"
                 )
 
-        return self._send_and_wait(
+        success = self._send_and_wait(
             self._vision_client, goal, "vision_moveto", self._timeouts["vision_moveto"]
         )
+
+        # For detect_only, store detected pose for use by subsequent steps
+        if success and goal.detect_only and self._last_result is not None:
+            pos = list(self._last_result.detected_position)
+            ori = list(self._last_result.detected_orientation)
+            if len(pos) == 3:
+                self._last_detected_position = pos
+                self._last_detected_orientation = ori if len(ori) == 4 else None
+                self.get_logger().info(
+                    f"Stored detected pose: [{pos[0]:.4f}, {pos[1]:.4f}, {pos[2]:.4f}]"
+                )
+
+        return success
 
     def _call_vision_scan(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the VisionScan action server to batch-scan all markers.
@@ -986,7 +1253,7 @@ class MTCOrchestratorServer(Node):
         Vision-guided pick with hardcoded place:
         - Pick: Detects marker/circle, grasps at detected location
         - Place: Uses predefined joint poses from poses_json
-        - settle_time: Seconds to wait before capture for robot to settle (default: 10.0)
+        - settle_time: Seconds to wait before capture for robot to settle (default: 5.0)
         """
         # Wait for robot vibrations to settle BEFORE calling vision action
         # This happens in orchestrator, completely outside MTC and action server
@@ -1005,7 +1272,7 @@ class MTCOrchestratorServer(Node):
         # Vision detection config
         goal.detection_type = step.get("detection_type", "marker")
         goal.tag_id = int(step.get("tag_id", 0))
-        goal.z_offset = float(step.get("z_offset", 0.02))
+        goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
 
         # Pose keys (references into poses_json)
         goal.sample_approach = step.get("sample_approach", "")
@@ -1018,6 +1285,7 @@ class MTCOrchestratorServer(Node):
 
         # Pose definitions
         goal.poses_json = poses_json
+        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
 
         return self._send_and_wait(
             self._vision_pickplace_client, goal, "vision_pick_place",

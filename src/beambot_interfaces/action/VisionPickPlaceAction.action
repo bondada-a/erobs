@@ -19,6 +19,7 @@ string gripper_states_json     # JSON dict: {"grasp": "hande_closed", "release":
 
 # Pose definitions
 string poses_json              # JSON with joint poses: {"sample_approach": [...], ...}
+string constraints_json        # Optional: JSON path constraints (empty = none)
 ---
 # Result
 bool success

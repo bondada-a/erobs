@@ -6,6 +6,7 @@ float64 distance            # Distance in meters
 float64[] cartesian_target  # [x,y,z] or [x,y,z,roll,pitch,yaw] — meters + degrees
 string frame_id             # Reference frame for cartesian_target (default: "base_link")
 string poses_json           # Pose definitions from task
+string constraints_json     # Optional: JSON path constraints (empty = none)
 ---
 # Result
 bool success

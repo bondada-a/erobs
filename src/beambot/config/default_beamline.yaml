@@ -20,6 +20,7 @@ grippers:
   hande:
     moveit_package: "ur_zivid_hande_moveit_config"
     tool_voltage: 24
+    dock_number: 3
     gripper_group: "hande_gripper"
     states:
       grasp: "hande_closed"
@@ -28,14 +29,28 @@ grippers:
   epick:
     moveit_package: "ur_zivid_epick_moveit_config"
     tool_voltage: 24
+    dock_number: 4
     gripper_group: "epick_gripper"
+    cup_profile: "3mm_dia"
+    z_offset: 0.0
     states:
       grasp: "vacuum_on"
       release: "vacuum_off"
 
+  2fg7:
+    moveit_package: "ur_zivid_2fg7_moveit_config"
+    tool_voltage: 24
+    tool_baud_rate: 1000000
+    tool_parity: 2                 # Even parity (0=none, 1=odd, 2=even)
+    gripper_group: "2fg7_gripper"
+    states:
+      grasp: "2fg7_closed"
+      release: "2fg7_open"
+
   pipettor:
     moveit_package: "ur_zivid_pipettor_moveit_config"
     tool_voltage: 24
+    dock_number: 2
     gripper_group: ""              # Pipettor has no gripper group
     states: {}                     # No states
 
@@ -57,3 +72,79 @@ camera:
   type: "zivid"
   frame: "zivid_optical_frame"
   marker_dictionary: "aruco4x4_50"
+
+# Legacy tip rack config (kept for backward compatibility during transition)
+tip_rack:
+  marker_id: 10
+  marker_dictionary: "aruco4x4_50"
+  scan_pose: "pipettor_scan"
+  offset_marker_x: 0.0
+  offset_marker_y: -0.058
+  approach_forward: 0.050
+  press_forward: 0.023
+  retreat_backward: 0.150
+  grid_rows: 8
+  grid_cols: 12
+  grid_pitch: 0.009
+  row_direction: "marker_-y"
+  col_direction: "marker_-x"
+
+# Generic vision target configurations
+# Each target defines: marker detection → offset/grid positioning → approach/retreat
+# Two modes:
+#   offset: detect marker → move directly to marker-frame offset position (single move)
+#   grid:   detect marker → move to marker → relative moves for grid element + approach/retreat
+vision_targets:
+  tip_rack:
+    mode: grid
+    marker_id: 10
+    scan_pose: "pipettor_scan"
+    start_gripper: "pipettor"
+    # Offset from marker center to first element (A1) in marker local frame (meters)
+    marker_offset: {x: 0.0, y: -0.058}
+    grid:
+      rows: 8                    # A-H
+      cols: 12                   # 1-12
+      pitch: 0.009               # 9mm between wells
+      row_direction: "up"        # flange direction toward A1 row (marker -Y)
+      col_direction: "left"      # flange direction toward A1 col (marker -X)
+    # Sequential moves after vision alignment (flange frame)
+    # "column_offset" and "row_offset" are replaced by the builder with computed values
+    moves:
+      - {direction: "forward", distance: 0.050}    # approach toward rack surface
+      - column_offset                               # computed col offset
+      - row_offset                                   # computed row offset
+      - {direction: "forward", distance: 0.023}    # press to seat tip
+      - {direction: "backward", distance: 0.150}   # retreat clear of rack
+
+  vial_rack:
+    mode: grid
+    marker_id: 25
+    scan_pose: "vial_scan"
+    start_gripper: "pipettor"
+    grid:
+      rows: 2                    # A-B
+      cols: 5                    # 1-5
+      col_pitch: 0.022           # 22mm between columns (A1→A2)
+      row_pitch: 0.044           # 44mm between rows (A→B)
+      col_offset: 0.003          # A1 offset from tag: 3mm right
+      row_offset: 0.080          # A1 offset from tag: 80mm up
+      col_direction: "right"     # flange direction toward A1 col
+      col_increasing: "right"   # columns increase going right (same as A1)
+      row_direction: "up"        # flange direction toward A1 row
+      row_increasing: "down"    # rows increase going down (opposite of A1)
+    moves:
+      - {direction: "backward", distance: 0.020}   # clearance before lateral moves
+      - column_offset                               # computed col offset
+      - row_offset                                   # computed row offset
+      - {direction: "forward", distance: 0.065}    # insert into vial
+      - {direction: "backward", distance: 0.065}   # retreat from vial
+
+  sample:
+    mode: offset
+    marker_id: 0                 # Override with tag_id parameter per sample
+    scan_pose: "sample_scan_1"
+    start_gripper: "epick"
+    marker_offset: {x: 0.020, y: 0.0, z: 0.0}   # 20mm in marker +X (right of tag)
+    z_offset: 0.0
+

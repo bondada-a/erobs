@@ -99,8 +99,88 @@ All xacro files support the `use_fake_hardware` argument (default: `false`):
 
 This parameter is passed through to both the UR robot and end effectors (Hand-E, ePick).
 
-### TODO
-- Add custom suction cup to the ePick gripper (pen_vacuum)
+## Kinematic Chain Reference
+
+All gripper configurations share the same base chain from flange to tool block. Values below are **physical measurements** (verified 2026-03-13).
+
+### Shared Chain: flange → tool_block
+
+```
+flange / tool0       (same physical point — robot bolt face)
+    │  Z +5.0mm      (zivid_arm_mount_joint — mounting plate thickness)
+    ▼
+zivid_arm_mount      (Zivid on-arm mount, STL origin inside body)
+    │  Z +51.0mm     (tool_block_joint — measured from arm mount origin to tool block origin)
+    ▼
+tool_block           (tool exchanger block, STL origin at geometric center)
+```
+
+After `tool_block`, each gripper branches with its own offset along the **stacking direction** (tool_block's -Y axis due to the -90° X rotation at tool_block_joint):
+
+| Gripper | Offset (tool_block -Y) | Target Frame |
+|---------|----------------------|--------------|
+| ePick   | 32.35mm | `epick_base_link` |
+| Hand-E  | 32.35mm | `robotiq_hande_coupler` |
+| Pipettor | — (verify) | — |
+
+### ePick Chain: epick_base_link → epick_tip
+
+Custom suction cup with extension nozzle (not the default ePick cup).
+
+```
+epick_base_link              (invisible frame at mounting face)
+    │  Z +51.15mm            (body_length/2 = 102.3/2)
+    ▼
+epick_body                   (center of 102.3mm cylinder)
+    │  Z +69.65mm            ((body + extension) / 2 = (102.3 + 37) / 2)
+    ▼
+epick_extension              (center of 37mm × ø2mm nozzle)
+    │  Z +19.5mm             ((extension + cup) / 2 = (37 + 2) / 2)
+    ▼
+epick_suction_cup            (center of 2mm × ø7mm cup)
+    │  Z +1.0mm              (cup_height / 2)
+    ▼
+epick_tip                    (outermost contact point — used as IK frame)
+    │  Z +0.0mm              (tcp_stroke_compensation, currently 0)
+    ▼
+epick_tcp                    (= epick_tip when no stroke compensation)
+```
+
+**Total epick_base_link → epick_tip: 141.3mm**
+
+### Key Frames for Software
+
+| Frame | Used By | Purpose |
+|-------|---------|---------|
+| `flange` | MoveIt arm group tip_link | ROS-Industrial convention, Z+ outward |
+| `tool0` | Zivid hand-eye calibration | UR convention (X+ left, Y+ up, Z+ forward) |
+| `epick_tip` | MoveIt IK frame, vision stages | Places gripper tip at target position |
+| `epick_tcp` | Available for stroke tuning | Currently same as `epick_tip` |
+| `robotiq_hande_end` | MoveIt IK frame (Hand-E) | Hand-E fingertip frame |
+
+### Axis Conventions
+
+Due to rotations in the chain, local axes don't always point where you'd expect:
+
+- **tool_block's -Y axis** = stacking direction (away from robot, toward gripper)
+- **epick_base_link's Z axis** = stacking direction (back to normal after the rotation)
+- **Direction vectors in motion planning** are in the `flange` frame (see `base_stages.py`)
+
+### Regenerating Baked URDFs
+
+The `.urdf` files are pre-baked from xacro for packages that include them directly. After changing any xacro in the chain, rebuild dependent packages and regenerate:
+
+```bash
+# Rebuild xacro source packages
+colcon build --packages-select epick_config epick_description ur5e_robot_description
+source install/setup.bash
+
+# Regenerate baked URDF
+xacro src/custom-ur-descriptions/ur5e_robot_description/urdf/ur_with_zivid_epick.xacro \
+  name:=ur5e robot_ip:=0.0.0.0 script_filename:="" \
+  output_recipe_filename:="" input_recipe_filename:="" \
+  > src/custom-ur-descriptions/ur5e_robot_description/urdf/ur_with_zivid_epick.urdf
+```
 
 ## Usage
 

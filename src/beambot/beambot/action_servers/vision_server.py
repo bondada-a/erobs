@@ -8,6 +8,7 @@ populated by vision_scan is available to vision_moveto.
 
 import yaml
 from rclpy.action import ActionServer
+from std_srvs.srv import Trigger
 
 from ament_index_python.packages import get_package_share_directory
 
@@ -44,6 +45,12 @@ class VisionActionServer(BaseActionServer):
         )
         self.get_logger().info("VisionScan action server started: beambot_vision_scan")
 
+        # Service to reset TF buffer after tool exchange (URDF change)
+        self._reset_tf_service = self.create_service(
+            Trigger, "beambot_vision_reset_tf", self._reset_tf_callback
+        )
+        self.get_logger().info("TF reset service: beambot_vision_reset_tf")
+
     def initialize_stages(self):
         """Create VisionStages instance with camera config from beamline config."""
         # Load camera config from beamline config file
@@ -71,6 +78,35 @@ class VisionActionServer(BaseActionServer):
             camera_frame=camera_config.get("frame"),
             marker_dictionary=camera_config.get("marker_dictionary"),
         )
+
+    def _execute(self, goal_handle):
+        """Execute VisionMoveToAction with detect_only support."""
+        goal = goal_handle.request
+        error = self._stages.run(goal)
+
+        result = VisionMoveToAction.Result()
+        if error is not None:
+            result.success = False
+            result.error_message = error
+        else:
+            result.success = True
+            # Populate detected pose if detect_only was used
+            if goal.detect_only and self._stages.last_detected_pose is not None:
+                pose = self._stages.last_detected_pose.pose
+                result.detected_position = [pose.position.x, pose.position.y, pose.position.z]
+                result.detected_orientation = [
+                    pose.orientation.x, pose.orientation.y,
+                    pose.orientation.z, pose.orientation.w
+                ]
+
+        return result
+
+    def _reset_tf_callback(self, request, response):
+        """Handle TF reset service call (after tool exchange)."""
+        self._stages.reset_tf()
+        response.success = True
+        response.message = "TF buffer cleared and listener re-created"
+        return response
 
     def _execute_scan(self, goal_handle):
         """Execute VisionScanAction - batch scan all markers from multiple positions.

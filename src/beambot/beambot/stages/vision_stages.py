@@ -25,17 +25,11 @@ from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from shape_msgs.msg import SolidPrimitive
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
-from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix
-from moveit_msgs.srv import GetPositionIK
-from control_msgs.action import FollowJointTrajectory
-from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
-from sensor_msgs.msg import JointState
-from rclpy.action import ActionClient
-from rclpy.duration import Duration
+from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix, euler_from_quaternion
 
 from beambot.camera import get_camera
 from beambot.camera.zivid import DetectionResult
-from beambot.stages.base_stages import BaseStages
+from beambot.stages.base_stages import BaseStages, DEFAULT_JOINT_NAMES, DIRECTION_VECTORS
 
 
 @dataclass
@@ -63,7 +57,7 @@ class VisionStages(BaseStages):
     DETECTION_CONTOUR = "contour"
 
     # Retry configuration defaults
-    DEFAULT_RETRY_COUNT = 10  # Number of retries after first attempt
+    DEFAULT_RETRY_COUNT = 3  # Number of retries after first attempt
     DEFAULT_RETRY_DELAY = 0.5  # Seconds between retries
 
     # Default camera settings (used if not specified)
@@ -138,26 +132,6 @@ class VisionStages(BaseStages):
             GetPlanningScene, "/get_planning_scene"
         )
 
-        # IK service client (for IK + trajectory approach)
-        self._ik_client = rclpy_node.create_client(GetPositionIK, '/compute_ik')
-
-        # Trajectory action client (for IK + trajectory approach)
-        self._traj_client = ActionClient(
-            rclpy_node, FollowJointTrajectory,
-            '/scaled_joint_trajectory_controller/follow_joint_trajectory'
-        )
-
-        # Joint state tracking
-        self._current_joints = None
-        self._joint_sub = rclpy_node.create_subscription(
-            JointState, '/joint_states', self._joint_state_cb, 10
-        )
-
-        # Joint names for trajectory
-        self._arm_joints = [
-            'shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
-            'wrist_1_joint', 'wrist_2_joint', 'wrist_3_joint'
-        ]
 
         # Parameters
         self._publish_marker_frames = True
@@ -179,6 +153,20 @@ class VisionStages(BaseStages):
             f"{'auto-detect' if not ik_frame else ik_frame}, "
             f"settle_time: {self._settle_time:.2f}s)"
         )
+
+    def reset_tf(self):
+        """Reset the TF buffer and re-subscribe to /tf_static.
+
+        Call after a tool exchange when robot_state_publisher restarts with
+        a new URDF. Clears stale static transforms from the old gripper
+        and re-subscribes to pick up the new publisher's frames.
+        """
+        self.logger.info("Resetting TF buffer (URDF changed)")
+        self._tf_buffer.clear()
+        # Recreate listener to trigger TRANSIENT_LOCAL re-delivery
+        # from the new robot_state_publisher
+        self._tf_listener = TransformListener(self._tf_buffer, self.rclpy_node)
+        self.logger.info("TF buffer cleared, listener re-created")
 
     def _load_vision_objects_config(self):
         """Load vision objects configuration from JSON file."""
@@ -331,10 +319,13 @@ class VisionStages(BaseStages):
                 - z_offset: Override z_offset (0 = use gripper default)
                 - scan_positions_flat: Flattened joint poses for multi-position mode
                 - num_scan_positions: Number of scan positions (0 = single-position)
+                - detect_only: If true, detect and return position without moving
 
         Returns:
             None if successful, error string describing failure otherwise
         """
+        # Clear any previous detect_only result
+        self.last_detected_pose = None
         # Optional: Wait for robot to settle BEFORE any detection
         # This ensures vibrations from the previous motion have damped out
         if self._settle_time > 0:
@@ -366,6 +357,21 @@ class VisionStages(BaseStages):
         # Get z_offset override (0 or missing means use gripper default)
         z_offset_override = getattr(goal, 'z_offset', 0.0)
 
+        # Check detect_only flag
+        detect_only = getattr(goal, 'detect_only', False)
+
+        # Parse offset parameters
+        offset_direction = getattr(goal, 'offset_direction', '') or ''
+        offset_distance = getattr(goal, 'offset_distance', 0.0)
+
+        # Parse marker-frame offset parameters
+        marker_offset_x = getattr(goal, 'marker_offset_x', 0.0)
+        marker_offset_y = getattr(goal, 'marker_offset_y', 0.0)
+        marker_offset_z = getattr(goal, 'marker_offset_z', 0.0)
+
+        # IK frame override from orchestrator (avoids stale TF auto-detection)
+        goal_ik_frame = getattr(goal, 'ik_frame', '') or ''
+
         # Route to appropriate detection method
         if detection_type == self.DETECTION_CIRCLE:
             self.logger.info("Using circle detection")
@@ -393,10 +399,8 @@ class VisionStages(BaseStages):
                     f"Using cached pose for tag {goal.tag_id}: "
                     f"[{pos.x*1000:.2f}, {pos.y*1000:.2f}, {pos.z*1000:.2f}] mm"
                 )
-                return self._move_to_pose(cached_pose, z_offset_override=z_offset_override)
-
-            # Not cached - check for multi-position mode
-            if scan_positions is not None:
+                target_pose = cached_pose
+            elif scan_positions is not None:
                 # Multi-position averaging mode
                 target_pose = self.detect_tag_multiposition(
                     tag_id=goal.tag_id,
@@ -418,7 +422,30 @@ class VisionStages(BaseStages):
                         f"(timeout: {goal.timeout}s, retries: {self._retry_count})"
                     )
 
-        return self._move_to_pose(target_pose, z_offset_override=z_offset_override)
+        # Compute the full approach pose (marker offset, z_offset, orientation)
+        approach, active_ik_frame = self._compute_approach_pose(
+            target_pose, z_offset_override,
+            marker_offset_x=marker_offset_x,
+            marker_offset_y=marker_offset_y,
+            marker_offset_z=marker_offset_z,
+            ik_frame_override=goal_ik_frame,
+        )
+
+        # Apply directional offset in flange frame if specified
+        if offset_direction and offset_distance > 0:
+            approach = self._apply_flange_offset(approach, offset_direction, offset_distance)
+
+        # If detect_only, return the pose without moving
+        if detect_only:
+            self.last_detected_pose = approach
+            pos = approach.pose.position
+            self.logger.info(
+                f"Detect-only: returning approach pose [{pos.x:.4f}, {pos.y:.4f}, {pos.z:.4f}] "
+                f"in {approach.header.frame_id}"
+            )
+            return None
+
+        return self._move_to_approach(approach, ik_frame=active_ik_frame)
 
     def detect_and_transform_tag(
         self,
@@ -698,19 +725,17 @@ class VisionStages(BaseStages):
     def _move_to_joint_pose(
         self,
         joint_positions: List[float],
-        duration: float = 2.0
     ) -> bool:
-        """Move to joint configuration using direct trajectory (no MTC overhead).
+        """Move to joint configuration using MTC with Pilz PTP.
 
-        Used for multi-position scanning where we need fast, lightweight moves
-        between scan positions.
+        Used for multi-position scanning moves between scan positions.
+        Goes through full MoveIt planning pipeline for collision checking.
 
         Args:
             joint_positions: 6-element list of joint angles in radians
-            duration: Trajectory duration in seconds
 
         Returns:
-            True if trajectory executed successfully, False otherwise
+            True if move succeeded, False otherwise
         """
         if len(joint_positions) != 6:
             self.logger.error(
@@ -722,7 +747,21 @@ class VisionStages(BaseStages):
             f"Moving to joint pose: [{', '.join(f'{j:.3f}' for j in joint_positions)}]"
         )
 
-        return self._execute_trajectory(joint_positions, duration)
+        task = self.create_task_template("Scan Position Move")
+        planner = self.make_pilz_planner("PTP")
+
+        stage = stages.MoveTo("move to scan position", planner)
+        stage.group = self.arm_group
+        self._set_ik_frame(stage)
+        joint_dict = dict(zip(DEFAULT_JOINT_NAMES, joint_positions))
+        stage.setGoal(joint_dict)
+        task.add(stage)
+
+        error = self.load_plan_execute(task)
+        if error:
+            self.logger.error(f"Scan position move failed: {error}")
+            return False
+        return True
 
     def _average_poses(self, poses: List[PoseStamped]) -> Optional[PoseStamped]:
         """Average multiple poses (position + quaternion orientation).
@@ -981,87 +1020,234 @@ class VisionStages(BaseStages):
         tf.transform.rotation = pose.pose.orientation
         self._tf_broadcaster.sendTransform(tf)
 
-    # Sample offset from tag center in tag's local frame (meters)
-    # Set to (0, 0) if sample is directly on the tag
-    SAMPLE_OFFSET_X = 0.02   # X offset in tag frame (20mm to the right)
-    SAMPLE_OFFSET_Y = 0.0    # Y offset in tag frame
+    # Default marker-frame offset (meters). Used when no marker_offset_x/y/z
+    # are provided in the goal. Set to 0 — all offsets should come from config.
+    SAMPLE_OFFSET_X = 0.0
+    SAMPLE_OFFSET_Y = 0.0
 
-    # Use IK + trajectory instead of MTC Cartesian planner
-    USE_IK_TRAJECTORY = True
-    IK_TRAJECTORY_DURATION = 2.0  # seconds
+    # Default z_offsets per gripper tip frame
+    _Z_OFFSETS = {
+        "epick_tip": 0.0,
+        "robotiq_hande_end": -0.02,
+        "pipette_tip_link": 0.0,
+        "flange": 0.0,
+    }
 
-    def _joint_state_cb(self, msg):
-        """Callback to track current joint state."""
-        self._current_joints = msg
+    @classmethod
+    def _z_offset_for_frame(cls, ik_frame: str) -> float:
+        """Return default z_offset for a given IK frame name."""
+        return cls._Z_OFFSETS.get(ik_frame, 0.0)
 
-    def _compute_ik(self, pose: PoseStamped, ik_frame: str):
-        """Compute IK for pose, returns joint positions or None."""
-        if self._current_joints is None:
-            self.logger.error("No joint states available for IK")
-            return None
+    def _compute_approach_pose(
+        self,
+        target: PoseStamped,
+        z_offset_override: float = 0.0,
+        marker_offset_x: float = 0.0,
+        marker_offset_y: float = 0.0,
+        marker_offset_z: float = 0.0,
+        ik_frame_override: str = "",
+    ) -> Tuple[PoseStamped, str]:
+        """Compute the final approach pose from a detected target.
 
-        request = GetPositionIK.Request()
-        request.ik_request.group_name = "ur_arm"
-        request.ik_request.robot_state.joint_state = self._current_joints
-        request.ik_request.pose_stamped = pose
-        request.ik_request.pose_stamped.header.stamp = self.rclpy_node.get_clock().now().to_msg()
-        request.ik_request.timeout = Duration(seconds=5.0).to_msg()
-        request.ik_request.avoid_collisions = True
-        request.ik_request.ik_link_name = ik_frame
+        Applies marker-frame XYZ offset, marker-aligned yaw, z_offset, and
+        gripper tip frame detection — everything needed to turn a raw detection
+        into an actual robot goal.
 
-        future = self._ik_client.call_async(request)
-        rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=10.0)
+        Args:
+            target: Raw detected pose in base_link
+            z_offset_override: Override z_offset (0 = use gripper default)
+            marker_offset_x: Offset in marker local X (meters). 0 = use class default.
+            marker_offset_y: Offset in marker local Y (meters). 0 = use class default.
+            marker_offset_z: Offset in marker local Z (meters). 0 = none.
+            ik_frame_override: Explicit IK frame from orchestrator (e.g. "pipette_tip_link").
+                Empty = auto-detect from TF. Bypasses TF-based detection which can
+                return stale frames after tool exchange.
 
-        if not future.done():
-            self.logger.error("IK service call timed out")
-            return None
+        Returns:
+            Tuple of (approach PoseStamped, active_ik_frame)
+        """
+        # Determine IK frame: explicit override > constructor arg > auto-detect
+        if ik_frame_override:
+            active_ik_frame = ik_frame_override
+            active_z_offset = self._z_offset_for_frame(active_ik_frame)
+            self.logger.info(
+                f"Using orchestrator IK frame: {active_ik_frame} "
+                f"(z_offset: {active_z_offset:.3f})"
+            )
+        elif self.ik_frame and self.ik_frame != "flange":
+            active_ik_frame = self.ik_frame
+            active_z_offset = self._z_offset_for_frame(active_ik_frame)
+        else:
+            detection = self._detect_current_gripper()
+            active_ik_frame = detection.ik_frame
+            active_z_offset = detection.z_offset
+            self.logger.info(
+                f"Auto-detected: {active_ik_frame} (z_offset: {active_z_offset:.3f})"
+            )
 
-        result = future.result()
-        if result.error_code.val != 1:
-            self.logger.error(f"IK failed with error code: {result.error_code.val}")
-            return None
+        # Use override if provided (non-zero)
+        if z_offset_override != 0.0:
+            self.logger.info(f"Using z_offset override: {z_offset_override:.3f}")
+            active_z_offset = z_offset_override
 
-        joint_positions = []
-        for name in self._arm_joints:
-            if name in result.solution.joint_state.name:
-                idx = result.solution.joint_state.name.index(name)
-                joint_positions.append(result.solution.joint_state.position[idx])
-            else:
-                self.logger.error(f"Joint {name} not found in IK solution")
-                return None
+        # Determine marker-frame offset: use provided values if any are non-zero,
+        # otherwise fall back to class defaults (SAMPLE_OFFSET_X/Y)
+        if marker_offset_x != 0.0 or marker_offset_y != 0.0 or marker_offset_z != 0.0:
+            offset_x = marker_offset_x
+            offset_y = marker_offset_y
+            offset_z = marker_offset_z
+        else:
+            offset_x = self.SAMPLE_OFFSET_X
+            offset_y = self.SAMPLE_OFFSET_Y
+            offset_z = 0.0
 
-        return joint_positions
+        # Apply marker-frame offset → rotate to base_link world frame
+        if offset_x != 0.0 or offset_y != 0.0 or offset_z != 0.0:
+            q = [
+                target.pose.orientation.x,
+                target.pose.orientation.y,
+                target.pose.orientation.z,
+                target.pose.orientation.w
+            ]
+            rot_matrix = quaternion_matrix(q)[:3, :3]
+            local_offset = np.array([offset_x, offset_y, offset_z])
+            world_offset = rot_matrix @ local_offset
+            self.logger.info(
+                f"Marker offset: [{offset_x:.3f}, {offset_y:.3f}, {offset_z:.3f}] → "
+                f"world [{world_offset[0]:.3f}, {world_offset[1]:.3f}, {world_offset[2]:.3f}]"
+            )
+        else:
+            world_offset = np.array([0.0, 0.0, 0.0])
 
-    def _execute_trajectory(self, joint_positions, duration=None):
-        """Send joint trajectory to controller."""
-        if duration is None:
-            duration = self.IK_TRAJECTORY_DURATION
+        # Compute approach pose: marker offset + z_offset + orientation
+        approach = PoseStamped()
+        approach.header = target.header
+        approach.pose.position.x = target.pose.position.x + world_offset[0]
+        approach.pose.position.y = target.pose.position.y + world_offset[1]
+        approach.pose.position.z = target.pose.position.z + world_offset[2] + active_z_offset
 
-        trajectory = JointTrajectory()
-        trajectory.joint_names = self._arm_joints
+        # Straight-down orientation with marker-aligned yaw
+        # 1. Compute yaw from the original marker orientation + 180° Z rotation
+        #    (this produces a yaw consistent with the robot's wrist angle)
+        # 2. Combine with fixed roll=180°, pitch=0 for stable flat approach
+        #    (avoids bimodal Z errors from using marker roll/pitch directly)
+        q_marker = [
+            target.pose.orientation.x,
+            target.pose.orientation.y,
+            target.pose.orientation.z,
+            target.pose.orientation.w
+        ]
+        q_z180 = quaternion_from_euler(0, 0, math.pi)
+        q_rotated = quaternion_multiply(q_marker, q_z180)
+        _, _, approach_yaw = euler_from_quaternion(q_rotated)
+        q_approach = quaternion_from_euler(math.pi, 0, approach_yaw)
+        approach.pose.orientation.x = q_approach[0]
+        approach.pose.orientation.y = q_approach[1]
+        approach.pose.orientation.z = q_approach[2]
+        approach.pose.orientation.w = q_approach[3]
 
-        point = JointTrajectoryPoint()
-        point.positions = joint_positions
-        point.velocities = [0.0] * 6
-        point.time_from_start = Duration(seconds=duration).to_msg()
-        trajectory.points.append(point)
+        self.logger.info(
+            f"Approach pose: [{approach.pose.position.x:.3f}, "
+            f"{approach.pose.position.y:.3f}, {approach.pose.position.z:.3f}] "
+            f"yaw={math.degrees(approach_yaw):.1f}°, z_offset={active_z_offset:.3f}"
+        )
 
-        goal = FollowJointTrajectory.Goal()
-        goal.trajectory = trajectory
+        return approach, active_ik_frame
 
-        future = self._traj_client.send_goal_async(goal)
-        rclpy.spin_until_future_complete(self.rclpy_node, future)
+    def _apply_flange_offset(
+        self,
+        pose: PoseStamped,
+        direction: str,
+        distance: float
+    ) -> PoseStamped:
+        """Apply a directional offset in the flange frame to a base_link pose.
 
-        goal_handle = future.result()
-        if not goal_handle.accepted:
-            self.logger.error("Trajectory goal rejected")
-            return False
+        Looks up the current flange TF to get the flange-to-base rotation,
+        then transforms the direction vector from flange frame to base_link
+        and applies it as a position offset.
 
-        result_future = goal_handle.get_result_async()
-        rclpy.spin_until_future_complete(self.rclpy_node, result_future)
+        Args:
+            pose: Input pose in base_link frame (modified in place)
+            direction: Direction name from DIRECTION_VECTORS (e.g. "right")
+            distance: Offset distance in meters
 
-        result = result_future.result()
-        return result.result.error_code == 0
+        Returns:
+            The pose with offset applied
+        """
+        if direction not in DIRECTION_VECTORS:
+            self.logger.warn(
+                f"Unknown offset direction '{direction}', skipping. "
+                f"Valid: {list(DIRECTION_VECTORS.keys())}"
+            )
+            return pose
+
+        # Get the flange orientation in base_link from TF
+        try:
+            tf = self._tf_buffer.lookup_transform(
+                "base_link", "flange",
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=2.0)
+            )
+        except TransformException as e:
+            self.logger.error(f"Failed to look up flange TF for offset: {e}")
+            return pose
+
+        # Build rotation matrix from flange quaternion
+        q = [
+            tf.transform.rotation.x,
+            tf.transform.rotation.y,
+            tf.transform.rotation.z,
+            tf.transform.rotation.w
+        ]
+        rot = quaternion_matrix(q)[:3, :3]
+
+        # Transform direction vector from flange frame to base_link
+        flange_vec = np.array(DIRECTION_VECTORS[direction])
+        base_vec = rot @ flange_vec
+
+        # Apply offset
+        pose.pose.position.x += base_vec[0] * distance
+        pose.pose.position.y += base_vec[1] * distance
+        pose.pose.position.z += base_vec[2] * distance
+
+        self.logger.info(
+            f"Applied offset: {distance*1000:.1f}mm {direction} "
+            f"(flange {flange_vec} → base [{base_vec[0]:.3f}, {base_vec[1]:.3f}, {base_vec[2]:.3f}])"
+        )
+
+        return pose
+
+    def _move_to_approach(
+        self, approach: PoseStamped, ik_frame: str = ""
+    ) -> 'Optional[str]':
+        """Execute MoveIt move to a pre-computed approach pose.
+
+        Args:
+            approach: Fully computed approach pose in base_link (with offsets,
+                      orientation, and z_offset already applied)
+            ik_frame: IK frame to use (e.g. "epick_tip"). If empty,
+                      auto-detects from TF.
+
+        Returns:
+            None if successful, error string describing failure otherwise
+        """
+        if not ik_frame:
+            detection = self._detect_current_gripper()
+            ik_frame = detection.ik_frame
+
+        # Use MTC with Pilz LIN for collision-free straight-line approach
+        task = self.create_task_template("Vision Move")
+        planner = self.make_pilz_planner("LIN")
+
+        stage = stages.MoveTo("move to tag", planner)
+        stage.group = self.arm_group
+        ik_frame_pose = PoseStamped()
+        ik_frame_pose.header.frame_id = ik_frame
+        stage.ik_frame = ik_frame_pose
+        stage.setGoal(approach)
+        task.add(stage)
+
+        return self.load_plan_execute(task)
 
     def _move_to_pose(
         self,
@@ -1071,113 +1257,17 @@ class VisionStages(BaseStages):
         """Move robot to the target pose with orientation adjustment.
 
         Applies sample XY offset, 180° Z rotation, and z_offset for proper approach.
+        Used by vision_pick_place_stages.py.
 
         Args:
-            target: Target pose in base_link
+            target: Raw detected pose in base_link
             z_offset_override: Override z_offset (0 = use gripper default)
 
         Returns:
             None if successful, error string describing failure otherwise
         """
-        # Auto-detect gripper if ik_frame not set
-        if not self.ik_frame or self.ik_frame == "flange":
-            detection = self._detect_current_gripper()
-            active_ik_frame = detection.ik_frame
-            active_z_offset = detection.z_offset
-            self.logger.info(
-                f"Auto-detected: {active_ik_frame} (z_offset: {active_z_offset:.3f})"
-            )
-        else:
-            active_ik_frame = self.ik_frame
-            # Default z_offset based on gripper type
-            if "epick" in active_ik_frame:
-                active_z_offset = 0.1
-            else:
-                active_z_offset = -0.02
-
-        # Use override if provided (non-zero)
-        if z_offset_override != 0.0:
-            self.logger.info(f"Using z_offset override: {z_offset_override:.3f}")
-            active_z_offset = z_offset_override
-
-        # Apply sample XY offset in tag's local frame
-        if self.SAMPLE_OFFSET_X != 0.0 or self.SAMPLE_OFFSET_Y != 0.0:
-            q = [
-                target.pose.orientation.x,
-                target.pose.orientation.y,
-                target.pose.orientation.z,
-                target.pose.orientation.w
-            ]
-            rot_matrix = quaternion_matrix(q)[:3, :3]
-            local_offset = np.array([self.SAMPLE_OFFSET_X, self.SAMPLE_OFFSET_Y, 0.0])
-            world_offset = rot_matrix @ local_offset
-            self.logger.info(
-                f"Sample offset: [{self.SAMPLE_OFFSET_X:.3f}, {self.SAMPLE_OFFSET_Y:.3f}] → "
-                f"world [{world_offset[0]:.3f}, {world_offset[1]:.3f}]"
-            )
-        else:
-            world_offset = np.array([0.0, 0.0, 0.0])
-
-        # Compute approach pose: XY offset + 180° Z rotation + z_offset
-        approach = PoseStamped()
-        approach.header = target.header
-        approach.pose.position.x = target.pose.position.x + world_offset[0]
-        approach.pose.position.y = target.pose.position.y + world_offset[1]
-        approach.pose.position.z = target.pose.position.z + active_z_offset
-
-        # Apply 180° rotation around Z axis
-        q_orig = [
-            target.pose.orientation.x,
-            target.pose.orientation.y,
-            target.pose.orientation.z,
-            target.pose.orientation.w
-        ]
-        q_rot = quaternion_from_euler(0, 0, math.pi)
-        q_final = quaternion_multiply(q_orig, q_rot)
-
-        approach.pose.orientation.x = q_final[0]
-        approach.pose.orientation.y = q_final[1]
-        approach.pose.orientation.z = q_final[2]
-        approach.pose.orientation.w = q_final[3]
-
-        self.logger.info(
-            f"Moving to [{approach.pose.position.x:.3f}, "
-            f"{approach.pose.position.y:.3f}, {approach.pose.position.z:.3f}] "
-            f"with 180° Z-rot, z_offset={active_z_offset:.3f}"
-        )
-
-        # Use IK + trajectory approach (like send_pose_goal.py)
-        if self.USE_IK_TRAJECTORY:
-            self.logger.info("Using IK + trajectory approach")
-
-            # Compute IK
-            joint_solution = self._compute_ik(approach, active_ik_frame)
-            if joint_solution is None:
-                return (
-                    f"NO_IK_SOLUTION: IK failed for vision move to "
-                    f"[{approach.pose.position.x:.3f}, {approach.pose.position.y:.3f}, "
-                    f"{approach.pose.position.z:.3f}] (ik_frame: {active_ik_frame})"
-                )
-
-            # Execute trajectory
-            success = self._execute_trajectory(joint_solution)
-            if not success:
-                return "EXECUTION_FAILED: Trajectory execution failed for vision move"
-            return None
-
-        # Fallback to MTC Cartesian planner if USE_IK_TRAJECTORY is False
-        task = self.create_task_template("Vision Move")
-        cartesian = self.make_cartesian_planner()
-
-        stage = stages.MoveTo("move to tag", cartesian)
-        stage.group = self.arm_group
-        ik_frame_pose = PoseStamped()
-        ik_frame_pose.header.frame_id = active_ik_frame
-        stage.ik_frame = ik_frame_pose
-        stage.setGoal(approach)
-        task.add(stage)
-
-        return self.load_plan_execute(task)
+        approach, active_ik_frame = self._compute_approach_pose(target, z_offset_override)
+        return self._move_to_approach(approach, ik_frame=active_ik_frame)
 
     def _detect_current_gripper(self) -> GripperDetection:
         """Auto-detect the current gripper by checking TF frames.
@@ -1191,8 +1281,7 @@ class VisionStages(BaseStages):
             rclpy.time.Time(),
             timeout=rclpy.duration.Duration(seconds=1.0)
         ):
-            # z_offset: ePick suction cup height above sample surface
-            return GripperDetection("epick_tip", 0.023)
+            return GripperDetection("epick_tip", 0.003)
 
         # Check for Hand-E gripper
         if self._tf_buffer.can_transform(
@@ -1201,6 +1290,14 @@ class VisionStages(BaseStages):
             timeout=rclpy.duration.Duration(seconds=1.0)
         ):
             return GripperDetection("robotiq_hande_end", -0.02)
+
+        # Check for Pipettor
+        if self._tf_buffer.can_transform(
+            "base", "pipette_tip_link",
+            rclpy.time.Time(),
+            timeout=rclpy.duration.Duration(seconds=1.0)
+        ):
+            return GripperDetection("pipette_tip_link", 0.0)
 
         # Default to flange
         self.logger.info("No gripper detected, using flange")

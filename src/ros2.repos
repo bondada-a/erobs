@@ -1,20 +1,9 @@
 # List of repositories to use within your workspace
 # See https://github.com/dirk-thomas/vcstool
-############
-# Example:
-############
 repositories:
-  # zed-ros2-wrapper:
-  #   type: git
-  #   url: https://github.com/stereolabs/zed-ros2-wrapper.git
-  #   version: master
-  # apriltag_ros:
-  #   type: git
-  #   url: https://github.com/christianrauch/apriltag_ros.git   
-  #   version: master
   moveit_task_constructor:
     type: git
     url: https://github.com/ros-planning/moveit_task_constructor.git
     version: jazzy
-  
-  
+
+
