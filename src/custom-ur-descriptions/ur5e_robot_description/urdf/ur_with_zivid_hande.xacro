@@ -8,6 +8,7 @@
 
   <!-- import main macros -->
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
+  <xacro:include filename="$(find ur_robot_driver)/urdf/ur.ros2_control.xacro"/>
   <xacro:include filename="$(find ur5e_robot_description)/urdf/zivid_camera_mount.xacro"/>
   <xacro:include filename="$(find ur5e_robot_description)/urdf/tool_block.xacro"/>
   <xacro:include filename="$(find robotiq_hande_description)/urdf/robotiq_hande_gripper.xacro"/>
@@ -52,10 +53,6 @@
 
   <!-- Simulation parameters -->
   <xacro:arg name="mock_sensor_commands" default="false" />
-  <xacro:arg name="sim_gazebo" default="false" />
-  <xacro:arg name="sim_ignition" default="false" />
-  <xacro:arg name="simulation_controllers" default="" />
-
   <xacro:arg name="mock_hardware" default="true" />
 
   <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
@@ -65,7 +62,7 @@
   <!-- create link fixed to the "map" -->
   <link name="map" />
 
-  <!-- UR arm -->
+  <!-- Kinematic model (Jazzy: no hardware params here) -->
   <xacro:ur_robot
     name="$(arg name)"
     tf_prefix="$(arg tf_prefix)"
@@ -77,9 +74,21 @@
     safety_limits="$(arg safety_limits)"
     safety_pos_margin="$(arg safety_pos_margin)"
     safety_k_position="$(arg safety_k_position)"
+    >
+    <origin xyz="0 0 0" rpy="0 0 0" />
+  </xacro:ur_robot>
+
+  <!-- ros2_control hardware interface (Jazzy: separate from kinematic macro) -->
+  <xacro:ur_ros2_control
+    name="$(arg name)"
+    tf_prefix="$(arg tf_prefix)"
+    kinematics_parameters_file="$(arg kinematics_params)"
+    robot_ip="$(arg robot_ip)"
+    script_filename="$(arg script_filename)"
+    input_recipe_filename="$(arg input_recipe_filename)"
+    output_recipe_filename="$(arg output_recipe_filename)"
+    use_mock_hardware="$(arg mock_hardware)"
     mock_sensor_commands="$(arg mock_sensor_commands)"
-    sim_gazebo="$(arg sim_gazebo)"
-    sim_ignition="$(arg sim_ignition)"
     headless_mode="$(arg headless_mode)"
     initial_positions="${xacro.load_yaml(initial_positions_file)}"
     use_tool_communication="$(arg use_tool_communication)"
@@ -91,19 +100,13 @@
     tool_tx_idle_chars="$(arg tool_tx_idle_chars)"
     tool_device_name="$(arg tool_device_name)"
     tool_tcp_port="$(arg tool_tcp_port)"
-    robot_ip="$(arg robot_ip)"
-    script_filename="$(arg script_filename)"
-    output_recipe_filename="$(arg output_recipe_filename)"
-    input_recipe_filename="$(arg input_recipe_filename)"
     reverse_ip="$(arg reverse_ip)"
     script_command_port="$(arg script_command_port)"
     reverse_port="$(arg reverse_port)"
     script_sender_port="$(arg script_sender_port)"
     trajectory_port="$(arg trajectory_port)"
     robot_receive_timeout="$(arg robot_receive_timeout)"
-    >
-    <origin xyz="0 0 0" rpy="0 0 0" />
-  </xacro:ur_robot>
+  />
 
   <!-- Modular Zivid: Arm Mount + Camera (with calibrated camera position) -->
   <!-- Using tool0 instead of flange - Zivid calibration uses tool0 frame -->
