@@ -41,14 +41,8 @@ from controller_manager_msgs.srv import ListControllers, SwitchController
 from std_srvs.srv import Trigger
 from std_msgs.msg import String
 
-# ePick vacuum feedback (optional — only when epick_msgs is built)
-try:
-    from epick_msgs.msg import ObjectDetectionStatus
-    _EPICK_MSGS_AVAILABLE = True
-except ImportError:
-    _EPICK_MSGS_AVAILABLE = False
-
 from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
+from beambot.core.vacuum_monitor import VacuumMonitor
 from beambot.stages.move_to_stages import MoveToStages
 from beambot.stages.end_effector_stages import EndEffectorStages
 from beambot.batch_planner import group_into_batches
@@ -81,7 +75,7 @@ class MTCOrchestratorServer(Node):
 
         self._executing = False
         self._lock = threading.Lock()
-        self._current_gripper = "none"
+        self._current_gripper = "unknown"
         self._last_error = ""  # Error from last failed action/batch
         self._last_result = None  # Full result from last _send_and_wait
         self._last_detected_position = None  # [x, y, z] from detect_only vision
@@ -197,10 +191,8 @@ class MTCOrchestratorServer(Node):
         )
 
         # Controllers that must be active for robot motion
-        self._required_controllers = [
-            "scaled_joint_trajectory_controller",
-            "gripper_action_controller",
-        ]
+        self._base_controllers = ["scaled_joint_trajectory_controller"]
+        self._required_controllers = list(self._base_controllers)
 
         # Pause/Resume services
         self._pause_service = self.create_service(
@@ -225,16 +217,7 @@ class MTCOrchestratorServer(Node):
         self._publish_gripper(self._current_gripper)
 
         # Vacuum monitoring (ePick grasp verification)
-        self._vacuum_armed = False
-        self._vacuum_lost = False
-        self._epick_status: 'int | None' = None
-        self._epick_sub = None
-        if _EPICK_MSGS_AVAILABLE:
-            self._epick_sub = self.create_subscription(
-                ObjectDetectionStatus, '/object_detection_status',
-                self._on_epick_status, 10,
-                callback_group=self._callback_group,
-            )
+        self._vacuum = VacuumMonitor(self, self._grippers, self._callback_group)
 
         self.get_logger().info("MTC Orchestrator (Python) started on 'beambot_execution'")
         self.get_logger().info("Pause/Resume services available: beambot/pause, beambot/resume")
@@ -314,6 +297,15 @@ class MTCOrchestratorServer(Node):
         msg = String()
         msg.data = gripper
         self._gripper_publisher.publish(msg)
+
+    def _update_required_controllers(self):
+        """Update required controllers list based on current gripper."""
+        gripper_controller = self._grippers.get(
+            self._current_gripper, {}
+        ).get("controller_name", "")
+        self._required_controllers = list(self._base_controllers)
+        if gripper_controller:
+            self._required_controllers.append(gripper_controller)
 
     def _handle_pause(
         self,
@@ -556,8 +548,7 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Executing orchestration goal")
 
         # Reset state for new goal
-        self._vacuum_armed = False
-        self._vacuum_lost = False
+        self._vacuum.reset()
         self._last_detected_position = None
         self._last_detected_orientation = None
 
@@ -577,6 +568,7 @@ class MTCOrchestratorServer(Node):
         # Initialize gripper state
         self._current_gripper = start_gripper
         self._publish_gripper(start_gripper)
+        self._update_required_controllers()
 
         # Apply cup_profile override if parameter was changed via MCP
         cup_override = self.get_parameter("cup_profile").value
@@ -644,8 +636,9 @@ class MTCOrchestratorServer(Node):
                     return result
 
             # Check if vacuum was lost since last step
-            if self._check_vacuum_lost():
-                result.error_message = f"Step {completed_tasks + 1} aborted: {self._last_error}"
+            vacuum_error = self._vacuum.check_lost()
+            if vacuum_error:
+                result.error_message = f"Step {completed_tasks + 1} aborted: {vacuum_error}"
                 result.completed_steps = completed_tasks
                 goal_handle.abort()
                 self._publish_state("IDLE")
@@ -685,7 +678,7 @@ class MTCOrchestratorServer(Node):
                     self._publish_state("IDLE")
                     return result
 
-                self._update_vacuum_state(batch_tasks)
+                self._vacuum.update_after_tasks(batch_tasks, self._current_gripper)
                 completed_tasks += batch_size
 
             else:
@@ -711,14 +704,15 @@ class MTCOrchestratorServer(Node):
                     self._publish_state("IDLE")
                     return result
 
-                self._update_vacuum_state([task])
+                self._vacuum.update_after_tasks([task], self._current_gripper)
                 completed_tasks += 1
 
             result.completed_steps = completed_tasks
 
         # Final vacuum check — catch drops during the last step
-        if self._check_vacuum_lost():
-            result.error_message = f"Final step aborted: {self._last_error}"
+        vacuum_error = self._vacuum.check_lost()
+        if vacuum_error:
+            result.error_message = f"Final step aborted: {vacuum_error}"
             result.completed_steps = completed_tasks
             goal_handle.abort()
             self._publish_state("IDLE")
@@ -781,69 +775,6 @@ class MTCOrchestratorServer(Node):
         )
 
     # ------------------------------------------------------------------
-    # Vacuum monitoring (ePick grasp verification)
-    # ------------------------------------------------------------------
-
-    def _on_epick_status(self, msg):
-        """Callback for /object_detection_status — fires continuously while ePick is active."""
-        self._epick_status = int(msg.status)
-        if self._vacuum_armed and self._epick_status == 3:  # NO_OBJECT_DETECTED
-            self._vacuum_lost = True
-            self.get_logger().warn(
-                "VACUUM_LOST: object detection status changed to NO_OBJECT_DETECTED "
-                "while vacuum is active"
-            )
-
-    def _update_vacuum_state(self, executed_tasks: List[Dict[str, Any]]):
-        """Update vacuum monitor after tasks execute.
-
-        Scans the executed tasks for vacuum on/off actions and arms/disarms
-        the background monitor accordingly.
-        """
-        if self._current_gripper != "epick" or not _EPICK_MSGS_AVAILABLE:
-            return
-
-        grasp_state = self._grippers.get("epick", {}).get("states", {}).get("grasp", "vacuum_on")
-        release_state = self._grippers.get("epick", {}).get("states", {}).get("release", "vacuum_off")
-
-        for task in executed_tasks:
-            if task.get("task_type") != "end_effector":
-                continue
-            action = task.get("end_effector_action", "")
-            if action == grasp_state:
-                # Arm the monitor — vacuum was just turned on
-                self._vacuum_lost = False
-                self._vacuum_armed = True
-                self.get_logger().info("Vacuum monitor ARMED (vacuum_on detected)")
-                # Immediate check: did we get a seal?
-                if self._epick_status == 3:
-                    self._vacuum_lost = True
-                    self.get_logger().warn(
-                        "VACUUM_LOST: no seal detected immediately after vacuum_on"
-                    )
-            elif action == release_state:
-                # Disarm — vacuum intentionally turned off
-                self._vacuum_armed = False
-                self._vacuum_lost = False
-                self.get_logger().info("Vacuum monitor DISARMED (vacuum_off detected)")
-
-    def _check_vacuum_lost(self) -> bool:
-        """Check if vacuum was lost since last armed.
-
-        Returns True if vacuum lost (caller should abort), False if OK.
-        Sets self._last_error on failure.
-        """
-        if not self._vacuum_armed or not self._vacuum_lost:
-            return False
-        self._last_error = (
-            "VACUUM_LOST: object dropped — ePick reports NO_OBJECT_DETECTED "
-            "while vacuum was active. Send vacuum_off then vacuum_on to retry."
-        )
-        self.get_logger().error(self._last_error)
-        # Disarm so we don't keep firing
-        self._vacuum_armed = False
-        return True
-
     def _execute_step(
         self, task_type: str, step: Dict[str, Any], poses_json: str
     ) -> bool:
@@ -1085,6 +1016,7 @@ class MTCOrchestratorServer(Node):
             )
             self._current_gripper = new_gripper
             self._publish_gripper(new_gripper)
+            self._update_required_controllers()
 
             if not self._moveit_manager.launch_moveit_with_gripper(new_gripper):
                 self._last_error = (

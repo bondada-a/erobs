@@ -69,12 +69,7 @@ except ImportError:
     _ZIVID_MARKER_AVAILABLE = False
 from cv_bridge import CvBridge
 
-# ePick vacuum feedback (optional — only available when epick_msgs is built)
-try:
-    from epick_msgs.msg import ObjectDetectionStatus
-    _EPICK_MSGS_AVAILABLE = True
-except ImportError:
-    _EPICK_MSGS_AVAILABLE = False
+from epick_msgs.msg import ObjectDetectionStatus
 
 logger = logging.getLogger("beambot-mcp")
 
@@ -365,14 +360,12 @@ class ROS2BridgeNode(Node):
             callback_group=self._cb_group,
         )
 
-        # ePick vacuum object detection status (only if epick_msgs is available)
-        self._epick_status_sub = None
-        if _EPICK_MSGS_AVAILABLE:
-            self._epick_status_sub = self.create_subscription(
-                ObjectDetectionStatus, EPICK_STATUS_TOPIC,
-                self._on_epick_status, 10,
-                callback_group=self._cb_group,
-            )
+        # ePick vacuum object detection status
+        self._epick_status_sub = self.create_subscription(
+            ObjectDetectionStatus, EPICK_STATUS_TOPIC,
+            self._on_epick_status, 10,
+            callback_group=self._cb_group,
+        )
 
         # Robot state (updated by callbacks, None = no data received yet)
         self.joint_names: Optional[List[str]] = None
@@ -816,12 +809,6 @@ async def get_vacuum_status() -> str:
     """
     node = bridge.node
     gripper = node.current_gripper or "unknown"
-
-    if not _EPICK_MSGS_AVAILABLE:
-        return json.dumps({
-            "available": False,
-            "error": "epick_msgs not installed — rebuild workspace with epick packages",
-        })
 
     if node.epick_status is None:
         return json.dumps({
