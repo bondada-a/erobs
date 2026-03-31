@@ -10,7 +10,7 @@
                                  suction_cup_radius:=0.0035
                                  extension_length:=0.018
                                  extension_radius:=0.006
-                                 use_fake_hardware:=false
+                                 use_mock_hardware:=false
                                  usb_port:=/tmp/ttyUR">
     <xacro:epick_single_suction_cup
       parent="${parent}"
@@ -21,7 +21,7 @@
       suction_cup_radius="${suction_cup_radius}"
       extension_length="${extension_length}"
       extension_radius="${extension_radius}"
-      use_fake_hardware="${use_fake_hardware}"
+      use_mock_hardware="${use_mock_hardware}"
       usb_port="${usb_port}"/>
   </xacro:macro>
 </robot>

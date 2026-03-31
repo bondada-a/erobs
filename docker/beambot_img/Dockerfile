@@ -1,4 +1,4 @@
-FROM osrf/ros:humble-desktop-full
+FROM osrf/ros:jazzy-desktop-full
 
 ENV DISPLAY=:1
 
@@ -20,7 +20,7 @@ RUN apt-get autoremove -y \
         && apt-get clean -y \
         && rm -rf /var/lib/apt/lists/*
 
-# Pin numpy<2 for ROS2 Humble compatibility (cv_bridge, tf_transformations compiled against NumPy 1.x)
+# Pin numpy<2 for cv_bridge compatibility (cv_bridge compiled against NumPy 1.x)
 RUN pip3 install 'numpy<2' rosdep && \
         rosdep update
 
@@ -34,7 +34,7 @@ RUN chmod +x /root/start-vnc.sh
 
 # Cache-bust arg: use --build-arg CACHEBUST=$(date +%s) to force fresh clone
 ARG CACHEBUST=1
-RUN git clone https://github.com/bondada-a/erobs.git -b humble-experimental
+RUN git clone https://github.com/bondada-a/erobs.git -b jazzy_dev
 
 WORKDIR /root/ws/erobs/
 RUN /bin/bash -c "set -e && \
@@ -46,9 +46,9 @@ RUN /bin/bash -c "set -e && \
 
 WORKDIR /root/ws/
 # Build interface packages first so other packages can find them
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select pipette_driver"
+RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && cd erobs && colcon build --packages-select pipette_driver"
 # Build remaining packages (skip epick_moveit_studio - requires MoveIt Studio)
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip epick_moveit_studio"
+RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip epick_moveit_studio"
 
 
 ENV UR_TYPE="ur5e"

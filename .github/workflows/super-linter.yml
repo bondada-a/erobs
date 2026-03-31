@@ -27,7 +27,7 @@ jobs:
           # Set 'ACTIONS_RUNNER_DEBUG: true' for debug output in linter console
           ACTIONS_RUNNER_DEBUG: false
           VALIDATE_ALL_CODEBASE: false
-          DEFAULT_BRANCH: humble
+          DEFAULT_BRANCH: jazzy_dev
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_MARKDOWN: true
           VALIDATE_YAML: true

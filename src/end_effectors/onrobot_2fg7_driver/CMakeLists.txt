@@ -3,14 +3,9 @@ project(onrobot_2fg7_driver)
 
 find_package(ament_cmake REQUIRED)
 find_package(ament_cmake_python REQUIRED)
-find_package(rclpy REQUIRED)
 
-# Install Python modules
-install(
-  DIRECTORY onrobot_2fg7_driver/
-  DESTINATION lib/python3.10/site-packages/${PROJECT_NAME}
-  PATTERN "*.py"
-)
+# Install Python package (version-independent path)
+ament_python_install_package(${PROJECT_NAME})
 
 # Install Python executables
 install(PROGRAMS
@@ -19,8 +14,8 @@ install(PROGRAMS
   RENAME onrobot_2fg7_driver_node
 )
 
-# Install config and launch
-install(DIRECTORY config launch
+# Install launch files
+install(DIRECTORY launch
   DESTINATION share/${PROJECT_NAME}
 )
 

@@ -123,30 +123,30 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          robotiq_hande_coupler:
+          2fg7_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          robotiq_hande_end:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          robotiq_hande_left_finger:
+          2fg7_body:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          robotiq_hande_link:
+          2fg7_left_finger:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          robotiq_hande_right_finger:
+          2fg7_right_finger:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
+          2fg7_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           shoulder_link:
             Alpha: 1
             Show Axes: false
@@ -199,7 +199,7 @@ Visualization Manager:
         Goal State Color: 250; 128; 0
         Interactive Marker Size: 0
         Joint Violation Color: 255; 0; 255
-        Planning Group: hande_gripper
+        Planning Group: 2fg7_gripper
         Query Goal State: true
         Query Start State: false
         Show Workspace: false
@@ -252,30 +252,30 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          robotiq_hande_coupler:
+          2fg7_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          robotiq_hande_end:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          robotiq_hande_left_finger:
+          2fg7_body:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          robotiq_hande_link:
+          2fg7_left_finger:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          robotiq_hande_right_finger:
+          2fg7_right_finger:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
+          2fg7_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           shoulder_link:
             Alpha: 1
             Show Axes: false
@@ -359,30 +359,30 @@ Visualization Manager:
             Alpha: 1
             Show Axes: false
             Show Trail: false
-          robotiq_hande_coupler:
+          2fg7_base_link:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          robotiq_hande_end:
-            Alpha: 1
-            Show Axes: false
-            Show Trail: false
-          robotiq_hande_left_finger:
+          2fg7_body:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          robotiq_hande_link:
+          2fg7_left_finger:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
-          robotiq_hande_right_finger:
+          2fg7_right_finger:
             Alpha: 1
             Show Axes: false
             Show Trail: false
             Value: true
+          2fg7_tip:
+            Alpha: 1
+            Show Axes: false
+            Show Trail: false
           shoulder_link:
             Alpha: 1
             Show Axes: false

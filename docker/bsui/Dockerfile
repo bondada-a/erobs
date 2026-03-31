@@ -1,5 +1,5 @@
 # Minimal working example for running BSUI on a beamline srv
-FROM osrf/ros:humble-desktop-full
+FROM osrf/ros:jazzy-desktop-full
 RUN apt-get update && apt-get install -y \
   build-essential \
   cmake \
@@ -16,7 +16,7 @@ RUN apt-get update && apt-get install -y \
   python3-colcon-common-extensions \
   ros-dev-tools
 
-# Pin numpy<2 for ROS2 Humble compatibility (cv_bridge, tf_transformations compiled against NumPy 1.x)
+# Pin numpy<2 for cv_bridge compatibility (cv_bridge compiled against NumPy 1.x)
 RUN pip3 install 'numpy<2' rosdep && \
   rosdep update
 
@@ -49,7 +49,7 @@ WORKDIR /root/ws
 
 # Cache-bust arg: use --build-arg CACHEBUST=$(date +%s) to force fresh clone
 ARG CACHEBUST=1
-RUN git clone https://github.com/bondada-a/erobs.git -b humble-experimental
+RUN git clone https://github.com/bondada-a/erobs.git -b jazzy_dev
 
 WORKDIR /root/ws/erobs/
 # Import all repos including vision and end_effectors
@@ -63,9 +63,9 @@ RUN /bin/bash -c "set -e && \
 
 WORKDIR /root/ws/
 # Build interface packages first so other packages can find them
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
+RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
 # Build remaining packages (skip zivid_camera since no Zivid SDK in this container)
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio zivid_camera zivid_samples"
+RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper epick_moveit_studio zivid_camera zivid_samples"
 
 # Install Conda AFTER ROS builds to avoid Python environment conflicts
 RUN wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh && \
@@ -82,7 +82,7 @@ RUN apt-get autoremove -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Bluesky environment variables
-ENV BS_ENV="/nsls2/conda/envs/2025-2.2-py310-tiled"
+ENV BS_ENV="/nsls2/conda/envs/2025-2.2-py312-tiled"
 ENV BS_PROFILE="collection"
 
 # Start a shell session with BSUI when we run the container

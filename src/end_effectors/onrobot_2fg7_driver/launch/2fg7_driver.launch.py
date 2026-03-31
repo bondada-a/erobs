@@ -9,7 +9,7 @@ def generate_launch_description():
         DeclareLaunchArgument('serial_port', default_value='/tmp/ttyUR'),
         DeclareLaunchArgument('slave_id', default_value='65'),
         DeclareLaunchArgument('baudrate', default_value='1000000'),
-        DeclareLaunchArgument('use_fake_hardware', default_value='false'),
+        DeclareLaunchArgument('use_mock_hardware', default_value='false'),
 
         Node(
             package='onrobot_2fg7_driver',
@@ -19,7 +19,7 @@ def generate_launch_description():
                 'serial_port': LaunchConfiguration('serial_port'),
                 'slave_id': LaunchConfiguration('slave_id'),
                 'baudrate': LaunchConfiguration('baudrate'),
-                'use_fake_hardware': LaunchConfiguration('use_fake_hardware'),
+                'use_mock_hardware': LaunchConfiguration('use_mock_hardware'),
             }],
             output='screen',
         ),

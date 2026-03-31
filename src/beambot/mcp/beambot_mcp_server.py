@@ -563,7 +563,7 @@ class ROS2BridgeNode(Node):
 
         result = future.result()
         if not result.success or not result.detection_result.detected_markers:
-            self.get_logger().warn(f"Marker {marker_id} not detected: {result.message}")
+            self.get_logger().warning(f"Marker {marker_id} not detected: {result.message}")
             return None
 
         marker = result.detection_result.detected_markers[0]

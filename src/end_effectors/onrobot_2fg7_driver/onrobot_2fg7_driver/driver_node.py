@@ -60,7 +60,7 @@ class OnRobot2FG7DriverNode(Node):
         self.declare_parameter('default_force_n', 40)
         self.declare_parameter('default_speed_pct', 100)
         self.declare_parameter('publish_rate_hz', 10.0)
-        self.declare_parameter('use_fake_hardware', False)
+        self.declare_parameter('use_mock_hardware', False)
 
         self.serial_port = self.get_parameter('serial_port').value
         self.slave_id = self.get_parameter('slave_id').value
@@ -68,7 +68,7 @@ class OnRobot2FG7DriverNode(Node):
         self.default_force = self.get_parameter('default_force_n').value
         self.default_speed = self.get_parameter('default_speed_pct').value
         self.publish_rate = self.get_parameter('publish_rate_hz').value
-        self.use_fake_hardware = self.get_parameter('use_fake_hardware').value
+        self.use_mock_hardware = self.get_parameter('use_mock_hardware').value
 
         # Joint names (must match URDF)
         self.left_joint = '2fg7_left_finger_joint'
@@ -80,10 +80,10 @@ class OnRobot2FG7DriverNode(Node):
 
         # Initialize Modbus client
         self.gripper = None
-        if not self.use_fake_hardware:
+        if not self.use_mock_hardware:
             self._connect_gripper()
         else:
-            self.get_logger().info('Running in FAKE HARDWARE mode')
+            self.get_logger().info('Running in MOCK HARDWARE mode')
 
         # Callback group for concurrent action handling
         cb_group = ReentrantCallbackGroup()
@@ -128,11 +128,11 @@ class OnRobot2FG7DriverNode(Node):
                         f'Connected to 2FG7 gripper (width: {status.external_width_mm:.1f}mm)')
                     return
                 else:
-                    self.get_logger().warn(
+                    self.get_logger().warning(
                         f'Connected but no status response (attempt {attempt+1}/{max_retries})')
                     self.gripper.disconnect()
             else:
-                self.get_logger().warn(
+                self.get_logger().warning(
                     f'Connection failed (attempt {attempt+1}/{max_retries}), retrying in {retry_delay}s...')
 
             self.gripper = None
@@ -147,7 +147,7 @@ class OnRobot2FG7DriverNode(Node):
             width_mm = self._current_width_mm
 
         # Update from hardware periodically
-        if self.gripper and not self.use_fake_hardware:
+        if self.gripper and not self.use_mock_hardware:
             status = self.gripper.read_status()
             if status:
                 with self._lock:
@@ -190,7 +190,7 @@ class OnRobot2FG7DriverNode(Node):
 
         result = GripperCommand.Result()
 
-        if self.use_fake_hardware:
+        if self.use_mock_hardware:
             time.sleep(0.5)
             with self._lock:
                 self._current_width_mm = target_width_mm
@@ -268,7 +268,7 @@ class OnRobot2FG7DriverNode(Node):
             )
             goal_handle.succeed()
         else:
-            self.get_logger().warn(
+            self.get_logger().warning(
                 f'Grip may not have reached target: '
                 f'current={self._current_width_mm:.1f}mm, target={target_width_mm:.1f}mm'
             )

@@ -11,14 +11,8 @@ Register map (reverse-engineered from OnRobot ToolDaemon binary):
 Width values are in 1/10 mm (e.g., 300 = 30.0mm).
 """
 
-import pymodbus
 from dataclasses import dataclass
-
-PYMODBUS_V3 = int(pymodbus.__version__.split('.')[0]) >= 3
-if PYMODBUS_V3:
-    from pymodbus.client import ModbusSerialClient
-else:
-    from pymodbus.client.sync import ModbusSerialClient
+from pymodbus.client import ModbusSerialClient
 
 # Modbus register addresses
 REG_COMMAND = 0x0000
@@ -52,10 +46,9 @@ class OnRobot2FG7Client:
                  baudrate=DEFAULT_BAUD, timeout=0.5, logger=None):
         self.slave_id = slave_id
         self.logger = logger
-        self._kw = {}  # pymodbus version-dependent keyword arg
+        self._kw = {'slave': slave_id}
 
         self.client = ModbusSerialClient(
-            method='rtu',
             port=port,
             baudrate=baudrate,
             parity='N',  # Our side is always N (virtual PTY); UR hardware handles Even
@@ -65,10 +58,7 @@ class OnRobot2FG7Client:
         )
 
     def connect(self) -> bool:
-        if not self.client.connect():
-            return False
-        self._kw = {'slave': self.slave_id} if PYMODBUS_V3 else {'unit': self.slave_id}
-        return True
+        return self.client.connect()
 
     def disconnect(self):
         self.client.close()

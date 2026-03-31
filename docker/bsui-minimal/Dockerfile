@@ -7,7 +7,7 @@
 #   - EPICS base
 #   - Miniconda 
 
-FROM osrf/ros:humble-desktop-full
+FROM osrf/ros:jazzy-desktop-full
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -18,11 +18,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     python3-colcon-common-extensions \
     python3-rosdep \
-    ros-humble-rclpy \
-    ros-humble-rosidl-default-generators \
-    ros-humble-rosidl-default-runtime \
-    ros-humble-geometry-msgs \
-    ros-humble-std-msgs \
+    ros-jazzy-rclpy \
+    ros-jazzy-rosidl-default-generators \
+    ros-jazzy-rosidl-default-runtime \
+    ros-jazzy-geometry-msgs \
+    ros-jazzy-std-msgs \
     python3-pip \
     python3-setuptools \
     fontconfig \
@@ -55,7 +55,7 @@ WORKDIR /ros2_ws
 RUN /bin/bash -c "\
     rosdep init || true && \
     rosdep update && \
-    source /opt/ros/humble/setup.bash && \
+    source /opt/ros/jazzy/setup.bash && \
     colcon build --packages-select beambot_interfaces"
 
 COPY src/bluesky_ros /ros2_ws/src/bluesky_ros
@@ -82,7 +82,7 @@ RUN chmod +x /bin/bsui
 RUN mkdir -p /root/.ipython
 
 # Bluesky environment variables (can be overridden at runtime)
-ENV BS_ENV="/nsls2/conda/envs/2025-2.2-py310-tiled"
+ENV BS_ENV="/nsls2/conda/envs/2025-2.2-py312-tiled"
 ENV BS_PROFILE="collection"
 
 WORKDIR /ros2_ws
@@ -91,7 +91,7 @@ RUN apt-get autoremove -y && \
     apt-get clean -y && \
     rm -rf /var/lib/apt/lists/*
 
-CMD ["/bin/bash", "-c", "source /opt/ros/humble/setup.bash && source /ros2_ws/install/setup.bash && bsui"]
+CMD ["/bin/bash", "-c", "source /opt/ros/jazzy/setup.bash && source /ros2_ws/install/setup.bash && bsui"]
 
 
 

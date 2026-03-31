@@ -619,7 +619,7 @@ class MTCOrchestratorServer(Node):
 
             # Check for cancellation at batch boundary
             if goal_handle.is_cancel_requested:
-                self.get_logger().warn(
+                self.get_logger().warning(
                     f"Task cancelled after step {completed_tasks}/{task_count}"
                 )
                 result.error_message = "Task was canceled"
@@ -634,7 +634,7 @@ class MTCOrchestratorServer(Node):
 
                 # Check if cancelled DURING pause
                 if goal_handle.is_cancel_requested:
-                    self.get_logger().warn(
+                    self.get_logger().warning(
                         f"Task cancelled while paused at step {completed_tasks}/{task_count}"
                     )
                     result.error_message = "Task was cancelled while paused"
@@ -789,7 +789,7 @@ class MTCOrchestratorServer(Node):
         self._epick_status = int(msg.status)
         if self._vacuum_armed and self._epick_status == 3:  # NO_OBJECT_DETECTED
             self._vacuum_lost = True
-            self.get_logger().warn(
+            self.get_logger().warning(
                 "VACUUM_LOST: object detection status changed to NO_OBJECT_DETECTED "
                 "while vacuum is active"
             )
@@ -818,7 +818,7 @@ class MTCOrchestratorServer(Node):
                 # Immediate check: did we get a seal?
                 if self._epick_status == 3:
                     self._vacuum_lost = True
-                    self.get_logger().warn(
+                    self.get_logger().warning(
                         "VACUUM_LOST: no seal detected immediately after vacuum_on"
                     )
             elif action == release_state:
@@ -1024,7 +1024,7 @@ class MTCOrchestratorServer(Node):
         _detect_current_gripper picks up the correct IK frame.
         """
         if not self._vision_reset_tf_client.wait_for_service(timeout_sec=3.0):
-            self.get_logger().warn(
+            self.get_logger().warning(
                 "Vision TF reset service not available — "
                 "vision server may detect wrong gripper frame"
             )
@@ -1037,7 +1037,7 @@ class MTCOrchestratorServer(Node):
         if future.done() and future.result().success:
             self.get_logger().info("Vision server TF buffer reset")
         else:
-            self.get_logger().warn("Vision TF reset did not complete")
+            self.get_logger().warning("Vision TF reset did not complete")
 
     def _handle_tool_exchange(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Handle tool exchange with gripper state tracking and MoveIt restart.

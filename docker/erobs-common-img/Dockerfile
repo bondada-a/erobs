@@ -1,4 +1,4 @@
-FROM osrf/ros:humble-desktop-full
+FROM osrf/ros:jazzy-desktop-full
 
 # Set display
 ENV DISPLAY=:1
@@ -33,12 +33,12 @@ RUN apt-get install -y \
     ocl-icd-opencl-dev \
     clinfo
 
-# Step 3: Install Zivid SDK 2.17.2 for Ubuntu 22.04 (all packages)
+# Step 3: Install Zivid SDK 2.17.2 for Ubuntu 24.04 Noble (Jazzy base)
 RUN mkdir -p /tmp/zivid && cd /tmp/zivid && \
-    wget -q https://downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u22/amd64/zivid_2.17.2+440b2367-1_amd64.deb && \
-    wget -q https://downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u22/amd64/zivid-studio_2.17.2+440b2367-1_amd64.deb && \
-    wget -q https://downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u22/amd64/zivid-tools_2.17.2+440b2367-1_amd64.deb && \
-    wget -q https://downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u22/amd64/zivid-genicam_2.17.2+440b2367-1_amd64.deb && \
+    wget -q https://downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u24/amd64/zivid_2.17.2+440b2367-1_amd64.deb && \
+    wget -q https://downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u24/amd64/zivid-studio_2.17.2+440b2367-1_amd64.deb && \
+    wget -q https://downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u24/amd64/zivid-tools_2.17.2+440b2367-1_amd64.deb && \
+    wget -q https://downloads.zivid.com/sdk/releases/2.17.2+440b2367-1/u24/amd64/zivid-genicam_2.17.2+440b2367-1_amd64.deb && \
     apt-get update && apt-get install -y /tmp/zivid/*.deb && \
     rm -rf /tmp/zivid
 
@@ -50,7 +50,7 @@ RUN mkdir -p /etc/OpenCL/vendors && \
 RUN apt-get autoremove -y \
         && apt-get clean -y \
         && rm -rf /var/lib/apt/lists/*
-# Pin numpy<2 for ROS2 Humble compatibility (cv_bridge, tf_transformations compiled against NumPy 1.x)
+# Pin numpy<2 for cv_bridge compatibility (cv_bridge compiled against NumPy 1.x)
 RUN pip3 install 'numpy<2' rosdep && \
         rosdep update
 
@@ -64,7 +64,7 @@ RUN chmod +x /root/start-vnc.sh
 
 # Cache-bust arg: use --build-arg CACHEBUST=$(date +%s) to force fresh clone
 ARG CACHEBUST=1
-RUN git clone https://github.com/bondada-a/erobs.git -b humble-experimental
+RUN git clone https://github.com/bondada-a/erobs.git -b jazzy_dev
 
 WORKDIR /root/ws/erobs/
 RUN /bin/bash -c "set -e && \
@@ -77,9 +77,9 @@ RUN /bin/bash -c "set -e && \
 
 WORKDIR /root/ws/
 # Build interface packages first so other packages can find them
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
+RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
 # Build remaining packages
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper zed_debug epick_moveit_studio"
+RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper zed_debug epick_moveit_studio"
 
 ENV ROBOT_IP=10.69.26.90
 ENV REVERSE_IP=10.69.26.42

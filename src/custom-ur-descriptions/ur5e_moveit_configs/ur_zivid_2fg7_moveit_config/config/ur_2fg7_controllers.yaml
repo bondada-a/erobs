@@ -3,7 +3,7 @@
     ros__parameters:
       # hardware_components_initial_state:
       #   unconfigured:
-      #     - "robotiq_hande_gripper"
+      #     - "onrobot_2fg7_gripper"
 
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster

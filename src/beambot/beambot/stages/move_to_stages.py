@@ -72,7 +72,7 @@ class MoveToStages(BaseStages):
             _, _, yaw = euler_from_quaternion(q)
             return yaw
         except Exception as e:
-            self.logger.warn(f"Failed to get current yaw from {frame}: {e}, defaulting to 0")
+            self.logger.warning(f"Failed to get current yaw from {frame}: {e}, defaulting to 0")
             return 0.0
 
     def _detect_gripper_ik_frame(self) -> str:

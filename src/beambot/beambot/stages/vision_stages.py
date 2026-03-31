@@ -1175,7 +1175,7 @@ class VisionStages(BaseStages):
             The pose with offset applied
         """
         if direction not in DIRECTION_VECTORS:
-            self.logger.warn(
+            self.logger.warning(
                 f"Unknown offset direction '{direction}', skipping. "
                 f"Valid: {list(DIRECTION_VECTORS.keys())}"
             )

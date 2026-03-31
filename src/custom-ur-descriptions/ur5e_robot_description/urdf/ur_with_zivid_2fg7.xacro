@@ -21,7 +21,6 @@
   <xacro:arg name="kinematics_params" default="$(find ur_description)/config/$(arg ur_type)/default_kinematics.yaml"/>
   <xacro:arg name="physical_params" default="$(find ur_description)/config/$(arg ur_type)/physical_parameters.yaml"/>
   <xacro:arg name="visual_params" default="$(find ur_description)/config/$(arg ur_type)/visual_parameters.yaml"/>
-  <xacro:arg name="transmission_hw_interface" default=""/>
   <xacro:arg name="safety_limits" default="false"/>
   <xacro:arg name="safety_pos_margin" default="0.15"/>
   <xacro:arg name="safety_k_position" default="20"/>
@@ -38,7 +37,7 @@
   <xacro:arg name="script_sender_port" default="50002"/>
   <xacro:arg name="trajectory_port" default="50003"/>
   <!-- Keep-alive: number of 20ms cycles without response before disconnect (10 = 200ms timeout) -->
-  <xacro:arg name="keep_alive_count" default="10"/>
+  <xacro:arg name="robot_receive_timeout" default="0.2"/>
 
   <!-- tool communication related parameters (2FG7 defaults: 1Mbps, Even parity) -->
   <xacro:arg name="use_tool_communication" default="true" />
@@ -52,8 +51,7 @@
   <xacro:arg name="tool_tcp_port" default="54321" />
 
   <!-- Simulation parameters -->
-  <xacro:arg name="use_fake_hardware" default="false" />
-  <xacro:arg name="fake_sensor_commands" default="false" />
+  <xacro:arg name="mock_sensor_commands" default="false" />
   <xacro:arg name="sim_gazebo" default="false" />
   <xacro:arg name="sim_ignition" default="false" />
   <xacro:arg name="simulation_controllers" default="" />
@@ -76,12 +74,10 @@
     kinematics_parameters_file="$(arg kinematics_params)"
     physical_parameters_file="$(arg physical_params)"
     visual_parameters_file="$(arg visual_params)"
-    transmission_hw_interface="$(arg transmission_hw_interface)"
     safety_limits="$(arg safety_limits)"
     safety_pos_margin="$(arg safety_pos_margin)"
     safety_k_position="$(arg safety_k_position)"
-    use_fake_hardware="$(arg use_fake_hardware)"
-    fake_sensor_commands="$(arg fake_sensor_commands)"
+    mock_sensor_commands="$(arg mock_sensor_commands)"
     sim_gazebo="$(arg sim_gazebo)"
     sim_ignition="$(arg sim_ignition)"
     headless_mode="$(arg headless_mode)"
@@ -104,7 +100,7 @@
     reverse_port="$(arg reverse_port)"
     script_sender_port="$(arg script_sender_port)"
     trajectory_port="$(arg trajectory_port)"
-    keep_alive_count="$(arg keep_alive_count)"
+    robot_receive_timeout="$(arg robot_receive_timeout)"
     >
     <origin xyz="0 0 0" rpy="0 0 0" />
   </xacro:ur_robot>
