@@ -39,10 +39,6 @@ class MoveToStages(BaseStages):
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self.rclpy_node)
 
-    def _ensure_tf(self):
-        """No-op kept for backward compatibility."""
-        pass
-
     def _get_current_yaw(self, frame: str = "flange") -> float:
         """Get the current yaw of a robot frame in base_link.
 
@@ -56,7 +52,6 @@ class MoveToStages(BaseStages):
         Returns:
             Current yaw in radians, or 0.0 if TF lookup fails.
         """
-        self._ensure_tf()
         try:
             t = self._tf_buffer.lookup_transform(
                 "base_link", frame,
@@ -85,7 +80,6 @@ class MoveToStages(BaseStages):
         Returns:
             Frame name for IK (e.g., "epick_tip", "robotiq_hande_end", or "flange")
         """
-        self._ensure_tf()
         for frame in _GRIPPER_TIP_FRAMES:
             try:
                 if self._tf_buffer.can_transform(
