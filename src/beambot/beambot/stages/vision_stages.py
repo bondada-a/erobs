@@ -1275,29 +1275,14 @@ class VisionStages(BaseStages):
         Returns:
             GripperDetection with ik_frame and z_offset
         """
-        # Check for ePick gripper
-        if self._tf_buffer.can_transform(
-            "base", "epick_tip",
-            rclpy.time.Time(),
-            timeout=rclpy.duration.Duration(seconds=1.0)
-        ):
-            return GripperDetection("epick_tip", 0.003)
-
-        # Check for Hand-E gripper
-        if self._tf_buffer.can_transform(
-            "base", "robotiq_hande_end",
-            rclpy.time.Time(),
-            timeout=rclpy.duration.Duration(seconds=1.0)
-        ):
-            return GripperDetection("robotiq_hande_end", -0.02)
-
-        # Check for Pipettor
-        if self._tf_buffer.can_transform(
-            "base", "pipette_tip_link",
-            rclpy.time.Time(),
-            timeout=rclpy.duration.Duration(seconds=1.0)
-        ):
-            return GripperDetection("pipette_tip_link", 0.0)
+        # Check for known gripper tip frames in TF
+        for frame in ("epick_tip", "robotiq_hande_end", "pipette_tip_link"):
+            if self._tf_buffer.can_transform(
+                "base_link", frame,
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=1.0)
+            ):
+                return GripperDetection(frame, self._z_offset_for_frame(frame))
 
         # Default to flange
         self.logger.info("No gripper detected, using flange")

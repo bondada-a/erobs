@@ -234,6 +234,7 @@ class MoveItLifecycleManager:
         max_attempts = int(timeout_sec / poll_interval)
 
         for attempt in range(max_attempts):
+            client = None
             try:
                 # Create fresh client each attempt (avoids stale connections)
                 # Use callback group for proper threading with MultiThreadedExecutor
