@@ -102,10 +102,19 @@ DEFAULT_IK_FRAME = "flange"
 # node end up with the same name, causing the shared /rosout publisher to be
 # unregistered when either node is destroyed — silently breaking all /rosout
 # logging for the process.
+#
+# ROSOUT FIX: Disable rosout on the MTC rclcpp node entirely. On Humble,
+# rcl's rosout hashmap has no reference counting — when MTC's internal nodes
+# (Introspection, executor) are destroyed, they unregister the rosout publisher
+# for ALL same-named nodes, silently breaking /rosout logging for the rclpy
+# action server. With enable_rosout=False, the MTC node never touches the
+# hashmap, keeping the rclpy node's /rosout publisher intact. MoveIt C++
+# internal logs still go to stdout/stderr via rcutils.
 rclcpp.init()
 _options = rclcpp.NodeOptions()
 _options.automatically_declare_parameters_from_overrides = True
 _options.allow_undeclared_parameters = True
+_options.enable_rosout = False
 _options.arguments = [
     "--ros-args",
     "-r", "__node:=beambot_mtc",
@@ -301,7 +310,11 @@ class BaseStages:
         Returns:
             Configured MTC Task with robot model loaded and CurrentState added
         """
+        # Disable MTC introspection to prevent per-task Introspection nodes
+        # from being created/destroyed, which can poison rcl's rosout hashmap
+        # on Humble (no reference counting — see enable_rosout comment above).
         task = core.Task()
+        task.enableIntrospection(False)
         task.name = name
         task.loadRobotModel(self._mtc_node)
 
@@ -499,6 +512,21 @@ class BaseStages:
             self.logger.info(
                 f"Found {len(task.solutions)} solution(s), executing: {task.name}"
             )
+
+            # Log planned end-state joint angles for debugging IK issues
+            try:
+                sol = task.solutions[0]
+                sol_msg = sol.toMsg()
+                for i, sub in enumerate(sol_msg.sub_trajectory):
+                    traj = sub.trajectory.joint_trajectory
+                    if traj.joint_names and traj.points:
+                        import math
+                        last_pt = traj.points[-1]
+                        pairs = [(n, math.degrees(p)) for n, p in zip(traj.joint_names, last_pt.positions)]
+                        joint_str = ', '.join(f'{n}={v:.2f}' for n, v in pairs)
+                        self.logger.info(f"Planned [{i}]: {joint_str}")
+            except Exception as e:
+                self.logger.warn(f"Could not extract planned joints: {e}")
 
             # Execute returns MoveItErrorCodes
             result = task.execute(task.solutions[0])

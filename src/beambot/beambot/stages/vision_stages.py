@@ -1247,7 +1247,59 @@ class VisionStages(BaseStages):
         stage.setGoal(approach)
         task.add(stage)
 
-        return self.load_plan_execute(task)
+        error = self.load_plan_execute(task)
+
+        # Diagnostic: log actual vs planned position after execution.
+        # Uses /joint_states subscription (one-shot) to get actual joint angles,
+        # then computes flange Z via TF (arm chain updates from joint_states
+        # faster than the full epick_tip chain).
+        if error is None and ik_frame:
+            try:
+                # Get actual joint positions via one-shot subscription
+                from sensor_msgs.msg import JointState
+                js_msg = [None]
+                def _on_js(msg):
+                    js_msg[0] = msg
+                js_sub = self.rclpy_node.create_subscription(
+                    JointState, '/joint_states', _on_js, 10)
+                for _ in range(20):
+                    rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
+                    if js_msg[0] is not None:
+                        break
+                self.rclpy_node.destroy_subscription(js_sub)
+
+                if js_msg[0] is not None:
+                    # Log actual joint angles (degrees) for rosbag analysis
+                    import math
+                    joints_deg = [math.degrees(p) for p in js_msg[0].position]
+                    joint_str = ', '.join(f'{j:.2f}' for j in joints_deg)
+                    self.logger.info(f"Post-move joints (deg): [{joint_str}]")
+
+                # Also get flange position from TF (arm chain, updates quickly)
+                for _ in range(10):
+                    rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
+                flange_tf = self._tf_buffer.lookup_transform(
+                    "base_link", "flange",
+                    rclpy.time.Time(),
+                    timeout=rclpy.duration.Duration(seconds=2.0)
+                )
+                fz = flange_tf.transform.translation.z * 1000  # mm
+                p = approach.pose.position
+                # Grip chain is 212.65mm along flange X which maps to -Z
+                # when robot points down. Tip Z ≈ flange Z - 212.65mm
+                tip_z_est = fz - 212.65
+                planned_z = p.z * 1000
+                delta_z = tip_z_est - planned_z
+                self.logger.info(
+                    f"Post-move check: flange_z={fz:.1f}mm, "
+                    f"tip_z_est={tip_z_est:.1f}mm, "
+                    f"planned_z={planned_z:.1f}mm, "
+                    f"delta_z={delta_z:.1f}mm"
+                )
+            except (TransformException, Exception) as e:
+                self.logger.warn(f"Post-move diagnostic failed: {e}")
+
+        return error
 
     def _move_to_pose(
         self,
