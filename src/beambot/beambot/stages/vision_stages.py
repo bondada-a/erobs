@@ -1147,9 +1147,9 @@ class VisionStages(BaseStages):
         approach.pose.orientation.w = q_approach[3]
 
         self.logger.info(
-            f"Approach pose: [{approach.pose.position.x:.3f}, "
-            f"{approach.pose.position.y:.3f}, {approach.pose.position.z:.3f}] "
-            f"yaw={math.degrees(approach_yaw):.1f}°, z_offset={active_z_offset:.3f}"
+            f"Approach pose: [{approach.pose.position.x:.6f}, "
+            f"{approach.pose.position.y:.6f}, {approach.pose.position.z:.6f}] "
+            f"yaw={math.degrees(approach_yaw):.4f}°, z_offset={active_z_offset:.3f}"
         )
 
         return approach, active_ik_frame
