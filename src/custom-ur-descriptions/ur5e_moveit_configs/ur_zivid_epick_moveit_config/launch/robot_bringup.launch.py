@@ -119,14 +119,12 @@ def generate_launch_description():
     )
 
 
-    # Publish TF
-    robot_state_publisher = Node(
-        package="robot_state_publisher",
-        executable="robot_state_publisher",
-        name="robot_state_publisher",
-        output="both",
-        parameters=[moveit_config.robot_description],
-    )
+    # NOTE: robot_state_publisher is NOT started here.
+    # The UR driver's ur_control.launch.py starts its own RSP unconditionally.
+    # Starting a second RSP causes duplicate /tf publications with subtly different
+    # kinematic models, producing ~1mm position jitter (#51).
+    # The UR driver's RSP uses the xacro defaults from ur_with_zivid_epick.xacro,
+    # which MUST match the physically attached cup profile.
 
     epick_controller_spawner = Node(
     package="controller_manager",
@@ -182,7 +180,6 @@ def generate_launch_description():
         delayed_ur_control_launch,  # Then start ur_control after delay
         run_move_group_node,
         rviz_node,
-        robot_state_publisher,
         epick_controller_spawner,
         epick_status_controller_spawner,
         set_payload,  # Set UR payload
