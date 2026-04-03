@@ -20,7 +20,7 @@ from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from moveit.task_constructor import stages
 from moveit_msgs.msg import CollisionObject, PlanningScene
-from moveit_msgs.srv import GetPlanningScene
+from moveit_msgs.srv import GetPlanningScene, GetPositionIK
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from shape_msgs.msg import SolidPrimitive
 from tf2_geometry_msgs import do_transform_pose_stamped
@@ -1217,6 +1217,78 @@ class VisionStages(BaseStages):
 
         return pose
 
+    def _compute_deterministic_ik(
+        self, approach: PoseStamped, ik_frame: str
+    ) -> Optional[Dict[str, float]]:
+        """Compute IK via /compute_ik service for a deterministic joint goal.
+
+        Uses a snapshot of the current joint positions as the seed. Since
+        /compute_ik runs a single KDL attempt without random re-seeding
+        (timeout is passed explicitly), the result is deterministic for a
+        given seed+target pair.
+
+        Returns:
+            Joint dict {name: radians} for the arm group, or None on failure.
+        """
+        from sensor_msgs.msg import JointState as JointStateMsg
+
+        # Snapshot current joints as seed (robot is stationary at scan position)
+        js_holder = [None]
+        js_sub = self.rclpy_node.create_subscription(
+            JointStateMsg, '/joint_states', lambda m: js_holder.__setitem__(0, m), 10)
+        for _ in range(20):
+            rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
+            if js_holder[0]:
+                break
+        self.rclpy_node.destroy_subscription(js_sub)
+
+        if not js_holder[0]:
+            self.logger.warn("No joint_states for IK seed")
+            return None
+
+        # Quantize joints to 0.01° to remove micro-variation between runs.
+        # This ensures the same scan position always produces the same seed.
+        quantized = []
+        for p in js_holder[0].position:
+            deg = math.degrees(p)
+            deg_q = round(deg, 2)  # round to 0.01°
+            quantized.append(math.radians(deg_q))
+
+        try:
+            ik_client = self.rclpy_node.create_client(GetPositionIK, '/compute_ik')
+            if not ik_client.wait_for_service(timeout_sec=2.0):
+                self.logger.warn("/compute_ik service not available")
+                return None
+
+            req = GetPositionIK.Request()
+            req.ik_request.group_name = self.arm_group
+            req.ik_request.ik_link_name = ik_frame
+            req.ik_request.robot_state.joint_state.name = list(js_holder[0].name)
+            req.ik_request.robot_state.joint_state.position = quantized
+            req.ik_request.pose_stamped = approach
+            req.ik_request.timeout.sec = 1
+
+            future = ik_client.call_async(req)
+            rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=5.0)
+            self.rclpy_node.destroy_client(ik_client)
+
+            result = future.result()
+            if result and result.error_code.val == 1:  # SUCCESS
+                joint_goal = {}
+                for name, pos in zip(result.solution.joint_state.name,
+                                     result.solution.joint_state.position):
+                    if name in DEFAULT_JOINT_NAMES:
+                        joint_goal[name] = pos
+                if len(joint_goal) == 6:
+                    return joint_goal
+
+            self.logger.warn(f"compute_ik failed: error_code={result.error_code.val if result else 'None'}")
+            return None
+
+        except Exception as e:
+            self.logger.warn(f"Deterministic IK error: {e}")
+            return None
+
     def _move_to_approach(
         self, approach: PoseStamped, ik_frame: str = ""
     ) -> 'Optional[str]':
@@ -1235,17 +1307,33 @@ class VisionStages(BaseStages):
             detection = self._detect_current_gripper()
             ik_frame = detection.ik_frame
 
-        # Use MTC with Pilz LIN for collision-free straight-line approach
-        task = self.create_task_template("Vision Move")
-        planner = self.make_pilz_planner("LIN")
-
-        stage = stages.MoveTo("move to tag", planner)
-        stage.group = self.arm_group
-        ik_frame_pose = PoseStamped()
-        ik_frame_pose.header.frame_id = ik_frame
-        stage.ik_frame = ik_frame_pose
-        stage.setGoal(approach)
-        task.add(stage)
+        # Pre-compute IK for deterministic joint goal.
+        # KDL's IK has non-deterministic random re-seeding that causes ~1mm
+        # bimodal jitter when called through Pilz's trajectory generation.
+        # By computing IK once via /compute_ik (which is deterministic for a
+        # given seed) and sending the result as a joint goal, we bypass the
+        # non-determinism entirely. (#51)
+        joint_goal = self._compute_deterministic_ik(approach, ik_frame)
+        if joint_goal is None:
+            self.logger.warn("Deterministic IK failed, falling back to Cartesian goal")
+            # Fallback: use original Cartesian goal (may have ~1mm jitter)
+            task = self.create_task_template("Vision Move")
+            planner = self.make_pilz_planner("LIN")
+            stage = stages.MoveTo("move to tag", planner)
+            stage.group = self.arm_group
+            ik_frame_pose = PoseStamped()
+            ik_frame_pose.header.frame_id = ik_frame
+            stage.ik_frame = ik_frame_pose
+            stage.setGoal(approach)
+            task.add(stage)
+        else:
+            task = self.create_task_template("Vision Move")
+            planner = self.make_pilz_planner("PTP")
+            stage = stages.MoveTo("move to tag", planner)
+            stage.group = self.arm_group
+            self._set_ik_frame(stage)
+            stage.setGoal(joint_goal)
+            task.add(stage)
 
         error = self.load_plan_execute(task)
 
