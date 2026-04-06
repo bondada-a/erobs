@@ -192,9 +192,9 @@ class MoveToStages(BaseStages):
 
             if use_fallback:
                 # Fallback chain: PTP with deterministic IK → Pilz LIN → CartesianPath
-                fb = core.Fallbacks("move_to_cartesian")
+                fb = core.Fallbacks("move_to_target")
                 if joint_goal is not None:
-                    ptp_stage = stages.MoveTo("move_to_cartesian [PTP]", self.make_pilz_planner("PTP"))
+                    ptp_stage = stages.MoveTo("move_to_target [deterministic IK]", self.make_pilz_planner("PTP"))
                     ptp_stage.group = self.arm_group
                     self._set_ik_frame(ptp_stage)
                     ptp_stage.setGoal(joint_goal)
@@ -205,7 +205,7 @@ class MoveToStages(BaseStages):
                     (self.make_cartesian_planner, "CartesianPath"),
                 ]:
                     move_stage = stages.MoveTo(
-                        f"move_to_cartesian [{suffix}]", planner_fn()
+                        f"move_to_target [{suffix}]", planner_fn()
                     )
                     move_stage.group = self.arm_group
                     ik_frame_pose = PoseStamped()
@@ -218,7 +218,7 @@ class MoveToStages(BaseStages):
             else:
                 if joint_goal is not None and planner is None:
                     # Deterministic IK succeeded — use PTP with joint goal
-                    move_stage = stages.MoveTo("move_to_cartesian", self.make_pilz_planner("PTP"))
+                    move_stage = stages.MoveTo("move_to_target", self.make_pilz_planner("PTP"))
                     move_stage.group = self.arm_group
                     self._set_ik_frame(move_stage)
                     move_stage.setGoal(joint_goal)
@@ -228,7 +228,7 @@ class MoveToStages(BaseStages):
                     # Fallback: use specified or default Cartesian planner
                     if planner is None:
                         planner = self.make_cartesian_planner()
-                    move_stage = stages.MoveTo("move_to_cartesian", planner)
+                    move_stage = stages.MoveTo("move_to_target", planner)
                     move_stage.group = self.arm_group
                     ik_frame_pose = PoseStamped()
                     ik_frame_pose.header.frame_id = active_ik_frame
