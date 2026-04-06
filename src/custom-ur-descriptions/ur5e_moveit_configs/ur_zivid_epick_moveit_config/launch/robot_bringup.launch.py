@@ -20,11 +20,15 @@ def generate_launch_description():
     controllers_file = DeclareLaunchArgument('controllers_file', default_value=os.path.join(get_package_share_directory("ur_zivid_epick_moveit_config"), "config", "ur_epick_controllers.yaml"))
 
 
-    # Suction cup dimensions (passed from orchestrator via cup profile, defaults match 7mm_dia)
-    extension_length = DeclareLaunchArgument('extension_length', default_value='0.018')
-    extension_radius = DeclareLaunchArgument('extension_radius', default_value='0.006')
-    suction_cup_height = DeclareLaunchArgument('suction_cup_height', default_value='0.006')
-    suction_cup_radius = DeclareLaunchArgument('suction_cup_radius', default_value='0.0035')
+    # Suction cup dimensions (passed from orchestrator via cup profile).
+    # IMPORTANT: Defaults MUST match the xacro defaults in ur_with_zivid_epick.xacro
+    # AND the physically attached cup. Both must be the same profile to prevent
+    # conflicting URDFs between move_group and the UR driver's RSP (#51).
+    # Current physical cup: 3mm_dia
+    extension_length = DeclareLaunchArgument('extension_length', default_value='0.013')
+    extension_radius = DeclareLaunchArgument('extension_radius', default_value='0.004')
+    suction_cup_height = DeclareLaunchArgument('suction_cup_height', default_value='0.003')
+    suction_cup_radius = DeclareLaunchArgument('suction_cup_radius', default_value='0.0015')
 
     xacro_args = {
         "name": LaunchConfiguration("ur_type"),
