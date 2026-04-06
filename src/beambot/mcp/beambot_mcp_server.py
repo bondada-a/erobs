@@ -1575,43 +1575,39 @@ def _detect_sample_in_roi(
 
 @mcp.tool()
 async def detect_sample(
-    tag_id: int,
+    tag_id: int = -1,
     camera: str = "zivid",
     strategy: str = "farthest_edge",
     edge_inset_mm: float = 4.0,
+    roi_center_px: list = None,
+    roi_size_px: list = None,
     save_path: str = "/tmp/sample_detection.jpg",
 ) -> str:
-    """Detect a sample near an ArUco tag and return its 3D pickup point.
+    """Detect a sample and return its 3D pickup point.
 
     IMPORTANT: Call capture_image(mode='3d') first! This uses the most recent
     capture data for both image analysis and 3D position lookup.
 
-    Pipeline:
-    1. Detect ArUco tag in the captured image (pixel corners)
-    2. Crop a fixed ROI at 26mm right of the tag
-    3. Run contour detection in the ROI to find the sample shape
-    4. Fit a rectangle to the sample, compute pickup point on the edge
-    5. Look up 3D position from point cloud at the pickup pixel
-    6. Transform to base_link
-
-    The pickup point is offset from the sample center based on strategy,
-    so the X-ray beam can hit the center while the suction cup grips the edge.
+    Two modes:
+    - Tag-based (default): Detect ArUco tag, crop ROI relative to tag, find sample
+    - Fixed ROI: Use pixel coordinates directly (for locations without tags,
+      e.g., spincoater). Set tag_id=-1 and provide roi_center_px + roi_size_px.
 
     Args:
-        tag_id: ArUco marker ID near the sample
+        tag_id: ArUco marker ID near the sample. Set to -1 for fixed ROI mode.
         camera: Camera to use ("zivid" or "zed"). Default "zivid".
         strategy: Where to grip — "center", "farthest_edge" (default),
             "nearest_edge", "farthest_corner", "nearest_corner".
-            "farthest_edge" = midpoint of edge farthest from tag, inset by edge_inset_mm.
         edge_inset_mm: How far inward from edge toward center (mm). Default 4.0.
-            Only used for edge/corner strategies.
+        roi_center_px: [x, y] pixel center for fixed ROI mode. Required when tag_id=-1.
+        roi_size_px: [width, height] in pixels for fixed ROI mode. Default [200, 200].
         save_path: Where to save annotated detection image.
 
     Returns:
         JSON with:
-        - pickup_base_xyz: [x, y, z] pickup point in base_link (use as cartesian_target)
+        - pickup_base_xyz: [x, y, z] pickup point in base_link
         - center_base_xyz: [x, y, z] sample center in base_link
-        - offset_from_center_mm: distance from center to pickup (add to placement offset)
+        - offset_from_center_mm: distance from center to pickup
         - sample_size_mm: [width, height] of detected sample
         - sample_angle: rotation angle
     """
@@ -1629,38 +1625,113 @@ async def detect_sample(
                      f"Call capture_image(camera='{camera}', mode='3d') first."
         })
 
-    # Step 1: Detect ArUco markers in the image
-    # Convert RGB to BGR for OpenCV ArUco detection
     bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-    markers = _detect_aruco_markers(rgb, marker_ids=[tag_id])
+    use_fixed_roi = (tag_id < 0 and roi_center_px is not None)
 
-    if markers is None:
-        return json.dumps({
-            "error": f"Tag {tag_id} not detected in image. "
-                     "Ensure the tag is visible from the current position."
-        })
+    if use_fixed_roi:
+        # Fixed ROI mode — use pixel coordinates directly
+        if roi_size_px is None:
+            roi_size_px = [200, 200]
+        cx, cy = int(roi_center_px[0]), int(roi_center_px[1])
+        rw, rh = int(roi_size_px[0]), int(roi_size_px[1])
+        h, w = bgr.shape[:2]
+        roi_x1 = max(0, cx - rw // 2)
+        roi_y1 = max(0, cy - rh // 2)
+        roi_x2 = min(w, cx + rw // 2)
+        roi_y2 = min(h, cy + rh // 2)
 
-    # Extract corners for target tag
-    tag_cx, tag_cy, tag_mid, tag_corners_list = markers[0]
-    tag_corners = np.array(tag_corners_list)  # Shape (4, 2)
+        roi = bgr[roi_y1:roi_y2, roi_x1:roi_x2]
+        if roi.size == 0:
+            return json.dumps({"error": "Fixed ROI is empty or out of bounds."})
 
-    # Compute pixel scale from marker size (20mm printed)
-    side_lengths = [np.linalg.norm(tag_corners[(i+1)%4] - tag_corners[i]) for i in range(4)]
-    MARKER_SIZE_MM = 14.9  # Measured physical marker size (black square)
-    px_per_mm = np.mean(side_lengths) / MARKER_SIZE_MM
+        # Contour detection in ROI
+        roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
+        blurred = cv2.GaussianBlur(roi_gray, (5, 5), 0)
+        edges = cv2.Canny(blurred, 50, 150)
+        kernel = np.ones((3, 3), np.uint8)
+        edges = cv2.dilate(edges, kernel, iterations=1)
+        contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
-    # Step 2-4: Detect sample in ROI
-    detection = _detect_sample_in_roi(
-        bgr, tag_corners, px_per_mm,
-        strategy=strategy,
-        edge_inset_mm=edge_inset_mm,
-    )
+        valid = []
+        for c in contours:
+            area = cv2.contourArea(c)
+            if area < 100 or area > 50000:
+                continue
+            rect = cv2.minAreaRect(c)
+            rw_c, rh_c = rect[1]
+            if rw_c == 0 or rh_c == 0:
+                continue
+            if max(rw_c, rh_c) / min(rw_c, rh_c) > 3.0:
+                continue
+            valid.append((area, c))
 
-    if detection is None:
-        return json.dumps({
-            "error": f"No sample contour found near tag {tag_id}. "
-                     "Check that a sample is placed in the expected ROI area."
-        })
+        if not valid:
+            return json.dumps({
+                "error": "No sample contour found in fixed ROI. "
+                         "Check that a sample is visible in the ROI area."
+            })
+
+        valid.sort(key=lambda x: x[0], reverse=True)
+        sample_contour = valid[0][1]
+        rect = cv2.minAreaRect(sample_contour)
+        rect_center_roi = rect[0]
+        rect_size = rect[1]
+        rect_angle = rect[2]
+
+        # Convert to full image coordinates
+        center_full = np.array([rect_center_roi[0] + roi_x1, rect_center_roi[1] + roi_y1])
+
+        # For fixed ROI, pickup = center (no tag to compute "farthest from")
+        # unless strategy is "center", in which case it's exactly center
+        pickup_full = center_full.copy()
+
+        # Estimate px_per_mm from known camera height (~350mm at scan positions → ~6.5 px/mm)
+        # This is approximate; exact value depends on distance to surface
+        px_per_mm = 6.5
+
+        detection = {
+            "pickup_px": (int(pickup_full[0]), int(pickup_full[1])),
+            "center_px": (int(center_full[0]), int(center_full[1])),
+            "sample_size_mm": (round(rect_size[0] / px_per_mm, 1),
+                               round(rect_size[1] / px_per_mm, 1)),
+            "sample_angle": round(rect_angle, 1),
+            "sample_area_px": int(cv2.contourArea(sample_contour)),
+            "offset_from_center_mm": 0.0,
+            "roi": (roi_x1, roi_y1, roi_x2, roi_y2),
+            "strategy": strategy,
+            "edge_inset_mm": edge_inset_mm,
+        }
+        tag_cx, tag_cy = cx, cy  # Use ROI center as reference
+        tag_corners = None
+
+    else:
+        # Tag-based mode — detect ArUco marker and compute ROI relative to it
+        markers = _detect_aruco_markers(rgb, marker_ids=[tag_id])
+
+        if markers is None:
+            return json.dumps({
+                "error": f"Tag {tag_id} not detected in image. "
+                         "Ensure the tag is visible from the current position."
+            })
+
+        tag_cx, tag_cy, tag_mid, tag_corners_list = markers[0]
+        tag_corners = np.array(tag_corners_list)  # Shape (4, 2)
+
+        side_lengths = [np.linalg.norm(tag_corners[(i+1)%4] - tag_corners[i]) for i in range(4)]
+        MARKER_SIZE_MM = 14.9
+        px_per_mm = np.mean(side_lengths) / MARKER_SIZE_MM
+
+        detection = _detect_sample_in_roi(
+            bgr, tag_corners, px_per_mm,
+            strategy=strategy,
+            edge_inset_mm=edge_inset_mm,
+        )
+
+        if detection is None:
+            return json.dumps({
+                "error": f"No sample contour found near tag {tag_id}. "
+                         "Check that a sample is placed in the expected ROI area."
+            })
 
     pickup_px = detection["pickup_px"]
     center_px = detection["center_px"]
@@ -1701,33 +1772,33 @@ async def detect_sample(
 
     # Annotate image
     annotated = bgr.copy()
-    # ROI box (yellow)
     rx1, ry1, rx2, ry2 = detection["roi"]
     cv2.rectangle(annotated, (rx1, ry1), (rx2, ry2), (0, 255, 255), 2)
-    # Tag (blue)
-    cv2.polylines(annotated, [tag_corners.astype(int)], True, (255, 0, 0), 2)
-    # Sample center (cyan)
+    if tag_corners is not None:
+        cv2.polylines(annotated, [tag_corners.astype(int)], True, (255, 0, 0), 2)
     cv2.circle(annotated, center_px, 5, (255, 255, 0), -1)
-    # Pickup point (red)
     cv2.circle(annotated, pickup_px, 8, (0, 0, 255), -1)
     cv2.circle(annotated, pickup_px, 12, (0, 0, 255), 2)
-    cv2.putText(annotated, f"tag{tag_id} {strategy}",
+    label = f"fixed_roi {strategy}" if use_fixed_roi else f"tag{tag_id} {strategy}"
+    cv2.putText(annotated, label,
                 (pickup_px[0] + 15, pickup_px[1] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
     cv2.imwrite(save_path, annotated)
 
-    # Compute marker-frame offset for use with vision_moveto
-    # Project pixel offset from tag to pickup onto marker axes
-    top_left, top_right = tag_corners[0], tag_corners[1]
-    bottom_left = tag_corners[3]
-    marker_x_dir = top_right - top_left
-    marker_x_dir = marker_x_dir / np.linalg.norm(marker_x_dir)
-    marker_y_dir = bottom_left - top_left
-    marker_y_dir = marker_y_dir / np.linalg.norm(marker_y_dir)
-    tag_center_px = np.array([tag_cx, tag_cy], dtype=float)
-    offset_px = np.array(pickup_px, dtype=float) - tag_center_px
-    marker_offset_x_m = np.dot(offset_px, marker_x_dir) / px_per_mm / 1000.0
-    marker_offset_y_m = np.dot(offset_px, marker_y_dir) / px_per_mm / 1000.0
+    # Compute marker-frame offsets (only for tag-based mode)
+    marker_offset_x_m = 0.0
+    marker_offset_y_m = 0.0
+    if tag_corners is not None:
+        top_left, top_right = tag_corners[0], tag_corners[1]
+        bottom_left = tag_corners[3]
+        marker_x_dir = top_right - top_left
+        marker_x_dir = marker_x_dir / np.linalg.norm(marker_x_dir)
+        marker_y_dir = bottom_left - top_left
+        marker_y_dir = marker_y_dir / np.linalg.norm(marker_y_dir)
+        tag_center_px = np.array([tag_cx, tag_cy], dtype=float)
+        offset_px = np.array(pickup_px, dtype=float) - tag_center_px
+        marker_offset_x_m = np.dot(offset_px, marker_x_dir) / px_per_mm / 1000.0
+        marker_offset_y_m = np.dot(offset_px, marker_y_dir) / px_per_mm / 1000.0
 
     result = {
         "pickup_base_xyz": [round(v, 6) for v in pickup_base] if pickup_base else None,
@@ -1742,6 +1813,136 @@ async def detect_sample(
         "strategy": strategy,
         "edge_inset_mm": edge_inset_mm,
         "tag_id": tag_id,
+        "roi_mode": "fixed" if use_fixed_roi else "tag",
+        "annotated_image_path": save_path,
+    }
+
+    return json.dumps(result)
+
+
+# YOLO model singleton (loaded on first use)
+_yolo_model = None
+
+
+def _get_yolo_model():
+    """Load YOLO model on first call, cache for subsequent calls."""
+    global _yolo_model
+    if _yolo_model is None:
+        from ultralytics import YOLO
+        import os
+        model_path = os.path.join(
+            os.path.dirname(os.path.dirname(__file__)),
+            "models", "sample_detector.pt"
+        )
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(
+                f"YOLO model not found at {model_path}. "
+                "Train with scripts/collect_training_data.py + ultralytics."
+            )
+        _yolo_model = YOLO(model_path)
+        logger.info(f"YOLO model loaded from {model_path}")
+    return _yolo_model
+
+
+@mcp.tool()
+async def detect_sample_yolo(
+    camera: str = "zivid",
+    confidence: float = 0.5,
+    save_path: str = "/tmp/sample_detection_yolo.jpg",
+) -> str:
+    """Detect a sample using YOLO object detection and return its 3D position.
+
+    IMPORTANT: Call capture_image(mode='3d') first!
+
+    Uses a fine-tuned YOLOv8 model to detect samples in the camera image.
+    Unlike detect_sample (which uses ArUco tags + contour detection), this
+    works without markers — suitable for the spincoater and other locations
+    where tag placement isn't practical.
+
+    Args:
+        camera: Camera to use ("zivid" or "zed"). Default "zivid".
+        confidence: Minimum detection confidence (0-1). Default 0.5.
+        save_path: Where to save annotated detection image.
+
+    Returns:
+        JSON with:
+        - pickup_base_xyz: [x, y, z] detection center in base_link
+        - detection_pixel: [x, y] center pixel in image
+        - confidence: detection confidence score
+        - bbox: [x1, y1, x2, y2] bounding box in pixels
+        - bbox_size_px: [width, height] of detection in pixels
+    """
+    node = bridge.node
+
+    try:
+        rgb, cloud, stamp, camera_frame = _resolve_camera_state(node, camera)
+    except ValueError as e:
+        return json.dumps({"error": str(e)})
+
+    if rgb is None or cloud is None:
+        return json.dumps({
+            "error": f"No image/point cloud from {camera}. "
+                     f"Call capture_image(camera='{camera}', mode='3d') first."
+        })
+
+    # Load model
+    try:
+        model = _get_yolo_model()
+    except FileNotFoundError as e:
+        return json.dumps({"error": str(e)})
+
+    # Run inference on BGR image
+    bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+    results = model(bgr, conf=confidence, verbose=False)
+
+    detections = []
+    for r in results:
+        if r.boxes is None or len(r.boxes) == 0:
+            continue
+        for box in r.boxes:
+            x1, y1, x2, y2 = box.xyxy[0].tolist()
+            conf = box.conf[0].item()
+            cx = int((x1 + x2) / 2)
+            cy = int((y1 + y2) / 2)
+            detections.append({
+                "cx": cx, "cy": cy, "conf": conf,
+                "x1": int(x1), "y1": int(y1),
+                "x2": int(x2), "y2": int(y2),
+            })
+
+    if not detections:
+        # Save annotated image even on failure (for debugging)
+        if results:
+            annotated = results[0].plot()
+            cv2.imwrite(save_path, annotated)
+        return json.dumps({
+            "error": "No sample detected by YOLO model. "
+                     "Ensure a sample is visible in the camera view.",
+            "annotated_image_path": save_path,
+        })
+
+    # Use highest confidence detection
+    best = max(detections, key=lambda d: d["conf"])
+    cx, cy = best["cx"], best["cy"]
+
+    # 3D lookup from point cloud
+    pickup_xyz = get_3d_position(cloud, cx, cy, search_radius=20)
+    pickup_base = None
+    if pickup_xyz is not None:
+        pickup_base = await _transform_point_to_base(node, pickup_xyz, camera_frame, stamp)
+
+    # Save annotated image
+    if results:
+        annotated = results[0].plot()
+        cv2.imwrite(save_path, annotated)
+
+    result = {
+        "pickup_base_xyz": [round(v, 6) for v in pickup_base] if pickup_base else None,
+        "detection_pixel": [cx, cy],
+        "confidence": round(best["conf"], 3),
+        "bbox": [best["x1"], best["y1"], best["x2"], best["y2"]],
+        "bbox_size_px": [best["x2"] - best["x1"], best["y2"] - best["y1"]],
+        "num_detections": len(detections),
         "annotated_image_path": save_path,
     }
 
