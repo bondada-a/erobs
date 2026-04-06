@@ -1,0 +1,40 @@
+# Goal — Unified pick operation (replaces pick_and_place + vision_pick_place pick half)
+#
+# Two modes:
+#   use_vision=false: Hardcoded joint poses (approach → target → close → retreat)
+#   use_vision=true:  Vision-guided (detect marker → deterministic IK → close → retreat)
+
+bool use_vision                 # true = vision-guided, false = hardcoded poses
+
+# Vision fields (used when use_vision=true)
+string detection_type           # "marker" (default), "circle", "contour"
+int32 tag_id                    # ArUco marker ID
+int32 sample_index              # For contour detection (1-indexed, default: 1)
+float64 z_offset                # Height offset (0 = gripper default from config)
+string scan_pose                # Pose key for scan/retreat position
+float64 marker_offset_x         # Marker-frame X offset (meters)
+float64 marker_offset_y         # Marker-frame Y offset (meters)
+float64 marker_offset_z         # Marker-frame Z offset (meters)
+string offset_direction         # Flange-frame direction (e.g. "right", "forward")
+float64 offset_distance         # Distance for offset_direction (meters)
+string ik_frame                 # IK frame override (empty = auto-detect)
+
+# Hardcoded fields (used when use_vision=false)
+string approach_pose            # Pose key for approach position
+string target_pose              # Pose key for grasp target
+
+# Common (populated by orchestrator from beamline config)
+string gripper_group            # MoveIt group name: "hande_gripper", "epick_gripper", ""
+string gripper_states_json      # JSON dict: {"grasp": "vacuum_on", "release": "vacuum_off"}
+string poses_json               # Pose definitions from task
+string constraints_json         # Optional: JSON path constraints (empty = none)
+---
+# Result
+bool success
+string error_message
+bool vacuum_ok                  # true if ePick reports object detected (or non-ePick gripper)
+float64[] detected_position     # [x,y,z] in base_link (vision mode only)
+float64[] detected_orientation  # [x,y,z,w] quaternion (vision mode only)
+---
+# Feedback
+string current_stage

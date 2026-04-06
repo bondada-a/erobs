@@ -30,11 +30,11 @@ from beambot_interfaces.action import (
     MTCExecution,
     MoveToAction,
     EndEffectorAction,
-    PickPlaceAction,
+    PickSampleAction,
+    PlaceSampleAction,
     ToolExchangeAction,
     VisionMoveToAction,
     VisionScanAction,
-    VisionPickPlaceAction,
     PipettorAction,
 )
 from controller_manager_msgs.srv import ListControllers, SwitchController
@@ -62,11 +62,11 @@ class MTCOrchestratorServer(Node):
     DEFAULT_TIMEOUTS = {
         "moveto": 120.0,
         "end_effector": 30.0,
-        "pick_and_place": 180.0,
         "tool_exchange": 180.0,
         "vision_moveto": 60.0,
         "vision_scan": 180.0,  # Batch scan: 3 positions × 3 scans
-        "vision_pick_place": 180.0,
+        "pick_sample": 180.0,
+        "place_sample": 180.0,
         "pipettor": 60.0,
     }
 
@@ -147,10 +147,6 @@ class MTCOrchestratorServer(Node):
             self, EndEffectorAction, "beambot_endeffector",
             callback_group=self._callback_group
         )
-        self._pickplace_client = ActionClient(
-            self, PickPlaceAction, "beambot_pickplace",
-            callback_group=self._callback_group
-        )
         self._toolexchange_client = ActionClient(
             self, ToolExchangeAction, "beambot_toolexchange",
             callback_group=self._callback_group
@@ -163,8 +159,12 @@ class MTCOrchestratorServer(Node):
             self, VisionScanAction, "beambot_vision_scan",
             callback_group=self._callback_group
         )
-        self._vision_pickplace_client = ActionClient(
-            self, VisionPickPlaceAction, "beambot_vision_pickplace",
+        self._pick_sample_client = ActionClient(
+            self, PickSampleAction, "beambot_pick_sample",
+            callback_group=self._callback_group
+        )
+        self._place_sample_client = ActionClient(
+            self, PlaceSampleAction, "beambot_place_sample",
             callback_group=self._callback_group
         )
         self._pipettor_client = ActionClient(
@@ -509,25 +509,6 @@ class MTCOrchestratorServer(Node):
         goal.end_effector_action = step.get("end_effector_action", "")
         return goal
 
-    def _create_pickplace_goal(
-        self, step: Dict[str, Any], poses_json: str
-    ) -> PickPlaceAction.Goal:
-        """Create a PickPlaceAction.Goal from task dict."""
-        # Use current gripper if not specified in task
-        gripper_type = step.get("gripper", self._current_gripper)
-        gripper_config = self._grippers.get(gripper_type, {})
-
-        goal = PickPlaceAction.Goal()
-        goal.gripper_group = gripper_config.get("gripper_group", "")
-        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
-        goal.pick_approach = step.get("pick_approach", "")
-        goal.pick_target = step.get("pick_target", "")
-        goal.place_approach = step.get("place_approach", "")
-        goal.place_target = step.get("place_target", "")
-        goal.poses_json = poses_json
-        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
-        return goal
-
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute the orchestration goal."""
         with self._lock:
@@ -791,16 +772,16 @@ class MTCOrchestratorServer(Node):
             return self._call_moveto(step, poses_json)
         elif task_type == "end_effector":
             return self._call_endeffector(step, poses_json)
-        elif task_type == "pick_and_place":
-            return self._call_pickplace(step, poses_json)
         elif task_type == "tool_exchange":
             return self._handle_tool_exchange(step, poses_json)
         elif task_type == "vision_moveto":
             return self._call_vision_moveto(step, poses_json)
         elif task_type == "vision_scan":
             return self._call_vision_scan(step, poses_json)
-        elif task_type == "vision_pick_place":
-            return self._call_vision_pickplace(step, poses_json)
+        elif task_type == "pick_sample":
+            return self._call_pick_sample(step, poses_json)
+        elif task_type == "place_sample":
+            return self._call_place_sample(step, poses_json)
         elif task_type == "pipettor":
             return self._call_pipettor(step, poses_json)
         else:
@@ -879,13 +860,6 @@ class MTCOrchestratorServer(Node):
         goal = self._create_endeffector_goal(step)
         return self._send_and_wait(
             self._endeffector_client, goal, "end_effector", self._timeouts["end_effector"]
-        )
-
-    def _call_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
-        """Call the PickPlace action server."""
-        goal = self._create_pickplace_goal(step, poses_json)
-        return self._send_and_wait(
-            self._pickplace_client, goal, "pick_place", self._timeouts["pick_and_place"]
         )
 
     def _call_toolexchange(self, step: Dict[str, Any], poses_json: str) -> bool:
@@ -1179,50 +1153,104 @@ class MTCOrchestratorServer(Node):
             self._timeouts["vision_scan"]
         )
 
-    def _call_vision_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
-        """Call the VisionPickPlace action server.
-
-        Vision-guided pick with hardcoded place:
-        - Pick: Detects marker/circle, grasps at detected location
-        - Place: Uses predefined joint poses from poses_json
-        - settle_time: Seconds to wait before capture for robot to settle (default: 5.0)
-        """
-        # Wait for robot vibrations to settle BEFORE calling vision action
-        # This happens in orchestrator, completely outside MTC and action server
-        settle_time = float(step.get("settle_time", 5.0))  # Default 5s
-        if settle_time > 0:
-            self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle before vision capture...")
+    def _call_pick_sample(self, step: Dict[str, Any], poses_json: str) -> bool:
+        """Call the PickSample action server."""
+        # Wait for robot to settle before vision capture
+        settle_time = float(step.get("settle_time", 1.0))
+        if settle_time > 0 and step.get("use_vision", True):
+            self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
             time.sleep(settle_time)
-            self.get_logger().info("Settle complete, starting vision action")
 
-        # Use current gripper if not specified in task
         gripper_type = step.get("gripper", self._current_gripper)
         gripper_config = self._grippers.get(gripper_type, {})
 
-        goal = VisionPickPlaceAction.Goal()
-
-        # Vision detection config
+        goal = PickSampleAction.Goal()
+        goal.use_vision = step.get("use_vision", True)
         goal.detection_type = step.get("detection_type", "marker")
         goal.tag_id = int(step.get("tag_id", 0))
+        goal.sample_index = int(step.get("sample_index", 1))
         goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
-
-        # Pose keys (references into poses_json)
-        goal.sample_approach = step.get("sample_approach", "")
-        goal.place_approach = step.get("place_approach", "")
-        goal.place_target = step.get("place_target", "")
-
-        # Gripper config
+        goal.scan_pose = step.get("scan_pose", "")
+        goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
+        goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
+        goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
+        goal.offset_direction = step.get("offset_direction", "")
+        goal.offset_distance = float(step.get("offset_distance", 0.0))
+        goal.ik_frame = self._gripper_ik_frame()
+        goal.approach_pose = step.get("approach_pose", "")
+        goal.target_pose = step.get("target_pose", "")
         goal.gripper_group = gripper_config.get("gripper_group", "")
         goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
-
-        # Pose definitions
         goal.poses_json = poses_json
         goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
 
-        return self._send_and_wait(
-            self._vision_pickplace_client, goal, "vision_pick_place",
-            self._timeouts["vision_pick_place"]
+        success = self._send_and_wait(
+            self._pick_sample_client, goal, "pick_sample",
+            self._timeouts["pick_sample"]
         )
+
+        # Store detected position for subsequent steps
+        if success and self._last_result is not None:
+            pos = list(getattr(self._last_result, 'detected_position', []))
+            ori = list(getattr(self._last_result, 'detected_orientation', []))
+            if len(pos) == 3:
+                self._last_detected_position = pos
+                self._last_detected_orientation = ori if len(ori) == 4 else None
+
+            # Check vacuum status from result
+            vacuum_ok = getattr(self._last_result, 'vacuum_ok', True)
+            if not vacuum_ok:
+                self._last_error = (
+                    "VACUUM_LOST: ePick reports NO_OBJECT_DETECTED after pick. "
+                    "Send vacuum_off then vacuum_on to retry."
+                )
+                self.get_logger().error(self._last_error)
+                return False
+
+        return success
+
+    def _call_place_sample(self, step: Dict[str, Any], poses_json: str) -> bool:
+        """Call the PlaceSample action server."""
+        settle_time = float(step.get("settle_time", 1.0))
+        if settle_time > 0 and step.get("use_vision", True):
+            self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
+            time.sleep(settle_time)
+
+        gripper_type = step.get("gripper", self._current_gripper)
+        gripper_config = self._grippers.get(gripper_type, {})
+
+        goal = PlaceSampleAction.Goal()
+        goal.use_vision = step.get("use_vision", True)
+        goal.detection_type = step.get("detection_type", "marker")
+        goal.tag_id = int(step.get("tag_id", 0))
+        goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
+        goal.scan_pose = step.get("scan_pose", "")
+        goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
+        goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
+        goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
+        goal.offset_direction = step.get("offset_direction", "")
+        goal.offset_distance = float(step.get("offset_distance", 0.0))
+        goal.ik_frame = self._gripper_ik_frame()
+        goal.approach_pose = step.get("approach_pose", "")
+        goal.target_pose = step.get("target_pose", "")
+        goal.gripper_group = gripper_config.get("gripper_group", "")
+        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
+        goal.poses_json = poses_json
+        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
+
+        success = self._send_and_wait(
+            self._place_sample_client, goal, "place_sample",
+            self._timeouts["place_sample"]
+        )
+
+        if success and self._last_result is not None:
+            pos = list(getattr(self._last_result, 'detected_position', []))
+            ori = list(getattr(self._last_result, 'detected_orientation', []))
+            if len(pos) == 3:
+                self._last_detected_position = pos
+                self._last_detected_orientation = ori if len(ori) == 4 else None
+
+        return success
 
     def _call_pipettor(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the Pipettor action server."""

@@ -115,16 +115,6 @@ def generate_launch_description():
         arguments=ompl_args,
     )
 
-    # PickPlace action server
-    pick_place_server = Node(
-        package='beambot',
-        executable='pick_place_server.py',
-        name='beambot_pickplace_server',
-        output='screen',
-        parameters=action_server_parameters,
-        arguments=ompl_args,
-    )
-
     # ToolExchange action server
     tool_exchange_server = Node(
         package='beambot',
@@ -148,11 +138,11 @@ def generate_launch_description():
         condition=IfCondition(enable_vision),
     )
 
-    # Vision PickPlace action server (conditional)
-    vision_pick_place_server = Node(
+    # Sample action server (pick_sample + place_sample, conditional)
+    sample_server = Node(
         package='beambot',
-        executable='vision_pick_place_server.py',
-        name='beambot_vision_pickplace_server',
+        executable='sample_server.py',
+        name='beambot_sample_server',
         output='screen',
         parameters=action_server_parameters + [
             {'beamline_config': beamline_config_path}
@@ -220,11 +210,10 @@ def generate_launch_description():
         # Core servers (always launched)
         move_to_server,
         end_effector_server,
-        pick_place_server,
         tool_exchange_server,
         # Vision servers (conditional)
         vision_server,
-        vision_pick_place_server,
+        sample_server,
         # Zivid camera (conditional - provides /capture_and_detect_markers service)
         zivid_camera,
         # Pipettor server (conditional)

@@ -423,7 +423,7 @@ class VisionStages(BaseStages):
                     )
 
         # Compute the full approach pose (marker offset, z_offset, orientation)
-        approach, active_ik_frame = self._compute_approach_pose(
+        approach, active_ik_frame = self.compute_approach_pose(
             target_pose, z_offset_override,
             marker_offset_x=marker_offset_x,
             marker_offset_y=marker_offset_y,
@@ -1038,7 +1038,7 @@ class VisionStages(BaseStages):
         """Return default z_offset for a given IK frame name."""
         return cls._Z_OFFSETS.get(ik_frame, 0.0)
 
-    def _compute_approach_pose(
+    def compute_approach_pose(
         self,
         target: PoseStamped,
         z_offset_override: float = 0.0,
@@ -1217,7 +1217,7 @@ class VisionStages(BaseStages):
 
         return pose
 
-    def _compute_deterministic_ik(
+    def compute_deterministic_ik(
         self, approach: PoseStamped, ik_frame: str
     ) -> Optional[Dict[str, float]]:
         """Compute IK via /compute_ik service for a deterministic joint goal.
@@ -1313,7 +1313,7 @@ class VisionStages(BaseStages):
         # By computing IK once via /compute_ik (which is deterministic for a
         # given seed) and sending the result as a joint goal, we bypass the
         # non-determinism entirely. (#51)
-        joint_goal = self._compute_deterministic_ik(approach, ik_frame)
+        joint_goal = self.compute_deterministic_ik(approach, ik_frame)
         if joint_goal is None:
             self.logger.warn("Deterministic IK failed, falling back to Cartesian goal")
             # Fallback: use original Cartesian goal (may have ~1mm jitter)
@@ -1397,7 +1397,6 @@ class VisionStages(BaseStages):
         """Move robot to the target pose with orientation adjustment.
 
         Applies sample XY offset, 180° Z rotation, and z_offset for proper approach.
-        Used by vision_pick_place_stages.py.
 
         Args:
             target: Raw detected pose in base_link
@@ -1406,7 +1405,7 @@ class VisionStages(BaseStages):
         Returns:
             None if successful, error string describing failure otherwise
         """
-        approach, active_ik_frame = self._compute_approach_pose(target, z_offset_override)
+        approach, active_ik_frame = self.compute_approach_pose(target, z_offset_override)
         return self._move_to_approach(approach, ik_frame=active_ik_frame)
 
     def _detect_current_gripper(self) -> GripperDetection:

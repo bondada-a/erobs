@@ -51,25 +51,42 @@ class TestValidTaskScripts:
         assert script["tasks"][0]["task_type"] == "moveto"
         assert len(script["poses"]["home"]) == 6
 
-    def test_pick_and_place(self):
+    def test_pick_sample(self):
         script = json.loads(_make_script(
             tasks=[{
-                "task_type": "pick_and_place",
-                "pick_approach": "pa",
-                "pick_target": "pt",
-                "place_approach": "pla",
-                "place_target": "plt",
+                "task_type": "pick_sample",
+                "use_vision": True,
+                "tag_id": 0,
+                "scan_pose": "sample_scan_1",
+                "marker_offset_x": 0.02,
+                "z_offset": -0.001,
             }],
             poses={
-                "pa": [10, 20, 30, 40, 50, 60],
-                "pt": [11, 21, 31, 41, 51, 61],
-                "pla": [12, 22, 32, 42, 52, 62],
-                "plt": [13, 23, 33, 43, 53, 63],
+                "sample_scan_1": [13.38, -112.45, -65.22, -90.98, -267.33, -166.94],
             },
         ))
         task = script["tasks"][0]
-        assert task["pick_approach"] == "pa"
-        assert "pa" in script["poses"]
+        assert task["use_vision"] is True
+        assert task["tag_id"] == 0
+        assert "sample_scan_1" in script["poses"]
+
+    def test_place_sample(self):
+        script = json.loads(_make_script(
+            tasks=[{
+                "task_type": "place_sample",
+                "use_vision": True,
+                "tag_id": 30,
+                "scan_pose": "hotplate_scan",
+                "offset_direction": "right",
+                "offset_distance": 0.0533,
+            }],
+            poses={
+                "hotplate_scan": [57.16, -95.22, -65.36, -109.43, -269.82, -214.47],
+            },
+        ))
+        task = script["tasks"][0]
+        assert task["offset_direction"] == "right"
+        assert "hotplate_scan" in script["poses"]
 
     def test_vision_moveto(self):
         script = json.loads(_make_script(

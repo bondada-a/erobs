@@ -11,7 +11,7 @@ All tasks are sent as a JSON string to `/beambot_execution`. The top-level struc
   "start_gripper": "hande",
   "tasks": [
     {"task_type": "moveto", "target": "home"},
-    {"task_type": "pick_and_place", "gripper": "hande", ...},
+    {"task_type": "pick_sample", "use_vision": true, "tag_id": 5, "scan_pose": "scan_1"},
     {"task_type": "vision_moveto", "tag_id": 5}
   ],
   "poses": {"home": [0, -90, 90, -90, -90, 0]}
@@ -19,18 +19,40 @@ All tasks are sent as a JSON string to `/beambot_execution`. The top-level struc
 ```
 Note: Joint poses are in **degrees**, converted to radians internally.
 
-### pick_and_place Task Format
+### pick_sample Task Format
+Unified pick operation — supports hardcoded poses or vision-guided pickup.
 ```json
-{
-  "task_type": "pick_and_place",
-  "gripper": "hande",            // Optional - defaults to current gripper
-  "pick_approach": "pickup_approach",
-  "pick_target": "pickup",
-  "place_approach": "place_approach",
-  "place_target": "place"
-}
+// Vision-guided pick (detect marker, move with deterministic IK)
+{"task_type": "pick_sample", "use_vision": true, "tag_id": 0,
+ "scan_pose": "sample_scan_1", "z_offset": -0.001,
+ "marker_offset_x": 0.02, "marker_offset_y": 0.001}
+
+// Hardcoded pick (joint poses)
+{"task_type": "pick_sample", "use_vision": false,
+ "approach_pose": "pickup_approach", "target_pose": "pickup"}
 ```
-Executes 9-stage sequence: open -> approach -> pick -> close -> retreat -> approach -> place -> open -> retreat
+- `use_vision`: `true` = detect marker then move, `false` = use joint poses directly
+- Vision fields: `tag_id`, `scan_pose`, `z_offset`, `marker_offset_x/y/z`, `offset_direction`, `offset_distance`, `detection_type` ("marker"/"circle"/"contour")
+- Hardcoded fields: `approach_pose`, `target_pose`
+- Executes: open → scan → [detect] → approach (deterministic IK) → close → retreat → vacuum check
+- Result includes `vacuum_ok` (ePick seal status) and `detected_position`
+- For contour-based pickup: use MCP `detect_sample` first to get `marker_offset_x/y`, then pass them here
+
+### place_sample Task Format
+Unified place operation — supports hardcoded poses or vision-guided placement.
+```json
+// Vision-guided place
+{"task_type": "place_sample", "use_vision": true, "tag_id": 30,
+ "scan_pose": "hotplate_scan", "offset_direction": "right",
+ "offset_distance": 0.0533, "z_offset": -0.001}
+
+// Hardcoded place
+{"task_type": "place_sample", "use_vision": false,
+ "approach_pose": "place_approach", "target_pose": "place"}
+```
+- Same field structure as `pick_sample` but opens gripper instead of closing
+- Does NOT open gripper before scanning (holding object)
+- Executes: scan → [detect] → approach (deterministic IK) → open → retreat
 
 ### tool_exchange Task Format
 ```json
@@ -58,34 +80,19 @@ Executes 9-stage sequence: open -> approach -> pick -> close -> retreat -> appro
 - Requires `start_gripper: "pipettor"` and pipettor physically attached
 
 ### Gripper Auto-Detection
-Tasks that need gripper info (`end_effector`, `pick_and_place`, `vision_pick_place`) default to the currently attached gripper if not specified. The orchestrator tracks `start_gripper` and updates it after `tool_exchange` operations.
+Tasks that need gripper info (`end_effector`, `pick_sample`, `place_sample`) default to the currently attached gripper if not specified. The orchestrator tracks `start_gripper` and updates it after `tool_exchange` operations.
 
 **Simplified JSON** (uses current gripper):
 ```json
 {"task_type": "end_effector", "end_effector_action": "close"}
-{"task_type": "pick_and_place", "pick_approach": "...", ...}
+{"task_type": "pick_sample", "use_vision": true, "tag_id": 0, "scan_pose": "scan_1"}
 ```
 
 **Explicit override** (when you need a specific gripper):
 ```json
 {"task_type": "end_effector", "end_effector_type": "epick", "end_effector_action": "close"}
-{"task_type": "pick_and_place", "gripper": "epick", ...}
+{"task_type": "pick_sample", "gripper": "epick", "use_vision": true, ...}
 ```
-
-### vision_pick_place Task Format
-Hybrid operation: vision-guided pick + hardcoded place positions.
-```json
-{
-  "task_type": "vision_pick_place",
-  "detection_type": "marker",        // "marker" or "circle"
-  "tag_id": 5,                       // ArUco marker ID (for marker detection)
-  "z_offset": 0.0,                   // Optional: height above detected point (default: from beamline config z_offset)
-  "sample_approach": "scan_position", // Joint pose key - robot scans from here
-  "place_approach": "place_approach", // Joint pose key
-  "place_target": "place"             // Joint pose key
-}
-```
-Executes: open -> sample_approach -> [detect] -> grasp -> close -> retreat -> place_approach -> place -> open -> retreat
 
 ### vision_moveto Task Format
 Vision-guided movement to a detected marker with optional offsets.
@@ -111,11 +118,11 @@ Vision-guided movement to a detected marker with optional offsets.
 For precise off-center sample pickup (e.g., X-ray beam needs the center clear):
 1. Move to `sample_scan_1`
 2. `capture_image(mode="3d")` — captures image + point cloud
-3. `detect_sample(tag_id=0)` — returns `pickup_base_xyz` and `offset_from_center_mm`
-4. Move to `pickup_base_xyz` using `cartesian_target`
-5. Vacuum on, retreat
-6. When placing on hotplate: add `offset_from_center_mm` to the base 51.2mm offset
-   (e.g., 51.2 + 5.4 = 56.6mm right of tag 30) so the sample center aligns with the hotplate center
+3. `detect_sample(tag_id=0)` — returns `marker_offset_x/y` and `offset_from_center_mm`
+4. `pick_sample` with `marker_offset_x/y` from detect_sample — single action goal handles detect → approach → vacuum → retreat
+5. When placing on hotplate: add `offset_from_center_mm` to the base 51.2mm offset
+   (e.g., 51.2 + 2.5 = 53.7mm right of tag 30) so the sample center aligns with the hotplate center
+6. `place_sample` with `offset_direction="right"`, `offset_distance=0.0537` — single action goal
 
 ### Vision Target Framework
 Config-driven vision targets are defined in `default_beamline.yaml` under `vision_targets`. Use the `vision_target` MCP tool to build task JSON from config. Two modes:
@@ -149,7 +156,7 @@ Any task step can include a `constraints` key to apply MoveIt path constraints d
 - `orientation` is `[roll, pitch, yaw]` (converted to quaternion internally)
 - `tolerance` is `[x_axis, y_axis, z_axis]` tolerance in degrees
 - Constraints apply to all arm movement stages in that task step (not gripper stages)
-- Supported on `moveto`, `pick_and_place`, and `vision_pick_place` task types
+- Supported on `moveto`, `pick_sample`, and `place_sample` task types
 - **Note**: OMPL handles path constraints via constraint-aware sampling. Tight tolerances may cause slow or failed planning -- prefer loose tolerances (10-30 degrees) when possible.
 
 ---
@@ -165,11 +172,11 @@ The [ros-mcp-server](https://github.com/robotmcp/ros-mcp-server) bridges LLM to 
 | `/beambot_execution` | `beambot_interfaces/action/MTCExecution` | **Primary entry point** -- JSON task dispatch |
 | `/beambot_moveto` | `beambot_interfaces/action/MoveToAction` | Joint/Cartesian/relative moves |
 | `/beambot_endeffector` | `beambot_interfaces/action/EndEffectorAction` | Open/close grippers |
-| `/beambot_pickplace` | `beambot_interfaces/action/PickPlaceAction` | 9-stage pick-and-place |
+| `/beambot_pick_sample` | `beambot_interfaces/action/PickSampleAction` | Unified pick (vision or hardcoded) |
+| `/beambot_place_sample` | `beambot_interfaces/action/PlaceSampleAction` | Unified place (vision or hardcoded) |
 | `/beambot_toolexchange` | `beambot_interfaces/action/ToolExchangeAction` | Dock/load grippers |
 | `/beambot_vision_moveto` | `beambot_interfaces/action/VisionMoveToAction` | Vision-guided movement |
 | `/beambot_vision_scan` | `beambot_interfaces/action/VisionScanAction` | Batch marker scanning |
-| `/beambot_vision_pickplace` | `beambot_interfaces/action/VisionPickPlaceAction` | Vision pick + hardcoded place |
 | `/beambot_pipettor` | `beambot_interfaces/action/PipettorAction` | Liquid handling |
 
 ### MCP Startup -- Nothing Is Running Initially
