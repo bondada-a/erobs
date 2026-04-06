@@ -1,0 +1,8 @@
+# Training artifacts (reproducible from Roboflow + ultralytics)
+train/
+valid/
+runs/
+*.pt
+*.cache
+README.roboflow.txt
+data.yaml
