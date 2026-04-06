@@ -186,9 +186,20 @@ class MoveToStages(BaseStages):
             pose.pose.orientation.z = q[2]
             pose.pose.orientation.w = q[3]
 
+            # Pre-compute deterministic IK to avoid KDL jitter (#55).
+            # Same pattern as vision_moveto and pick_sample/place_sample.
+            joint_goal = self.compute_deterministic_ik(pose, active_ik_frame)
+
             if use_fallback:
-                # Fallback chain: Pilz LIN → CartesianPath
+                # Fallback chain: PTP with deterministic IK → Pilz LIN → CartesianPath
                 fb = core.Fallbacks("move_to_cartesian")
+                if joint_goal is not None:
+                    ptp_stage = stages.MoveTo("move_to_cartesian [PTP]", self.make_pilz_planner("PTP"))
+                    ptp_stage.group = self.arm_group
+                    self._set_ik_frame(ptp_stage)
+                    ptp_stage.setGoal(joint_goal)
+                    apply_constraints(ptp_stage, constraints)
+                    fb.add(ptp_stage)
                 for planner_fn, suffix in [
                     (lambda: self.make_pilz_planner("LIN"), "Pilz LIN"),
                     (self.make_cartesian_planner, "CartesianPath"),
@@ -205,18 +216,26 @@ class MoveToStages(BaseStages):
                     fb.add(move_stage)
                 task.add(fb)
             else:
-                # Default to Cartesian planner for Cartesian targets
-                if planner is None:
-                    planner = self.make_cartesian_planner()
-
-                move_stage = stages.MoveTo("move_to_cartesian", planner)
-                move_stage.group = self.arm_group
-                ik_frame_pose = PoseStamped()
-                ik_frame_pose.header.frame_id = active_ik_frame
-                move_stage.ik_frame = ik_frame_pose
-                move_stage.setGoal(pose)
-                apply_constraints(move_stage, constraints)
-                task.add(move_stage)
+                if joint_goal is not None and planner is None:
+                    # Deterministic IK succeeded — use PTP with joint goal
+                    move_stage = stages.MoveTo("move_to_cartesian", self.make_pilz_planner("PTP"))
+                    move_stage.group = self.arm_group
+                    self._set_ik_frame(move_stage)
+                    move_stage.setGoal(joint_goal)
+                    apply_constraints(move_stage, constraints)
+                    task.add(move_stage)
+                else:
+                    # Fallback: use specified or default Cartesian planner
+                    if planner is None:
+                        planner = self.make_cartesian_planner()
+                    move_stage = stages.MoveTo("move_to_cartesian", planner)
+                    move_stage.group = self.arm_group
+                    ik_frame_pose = PoseStamped()
+                    ik_frame_pose.header.frame_id = active_ik_frame
+                    move_stage.ik_frame = ik_frame_pose
+                    move_stage.setGoal(pose)
+                    apply_constraints(move_stage, constraints)
+                    task.add(move_stage)
             self.logger.info(
                 f"Planning Cartesian move to "
                 f"[{pose.pose.position.x:.3f}, {pose.pose.position.y:.3f}, "

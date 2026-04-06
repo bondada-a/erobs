@@ -1217,77 +1217,7 @@ class VisionStages(BaseStages):
 
         return pose
 
-    def compute_deterministic_ik(
-        self, approach: PoseStamped, ik_frame: str
-    ) -> Optional[Dict[str, float]]:
-        """Compute IK via /compute_ik service for a deterministic joint goal.
-
-        Uses a snapshot of the current joint positions as the seed. Since
-        /compute_ik runs a single KDL attempt without random re-seeding
-        (timeout is passed explicitly), the result is deterministic for a
-        given seed+target pair.
-
-        Returns:
-            Joint dict {name: radians} for the arm group, or None on failure.
-        """
-        from sensor_msgs.msg import JointState as JointStateMsg
-
-        # Snapshot current joints as seed (robot is stationary at scan position)
-        js_holder = [None]
-        js_sub = self.rclpy_node.create_subscription(
-            JointStateMsg, '/joint_states', lambda m: js_holder.__setitem__(0, m), 10)
-        for _ in range(20):
-            rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
-            if js_holder[0]:
-                break
-        self.rclpy_node.destroy_subscription(js_sub)
-
-        if not js_holder[0]:
-            self.logger.warn("No joint_states for IK seed")
-            return None
-
-        # Quantize joints to 0.01° to remove micro-variation between runs.
-        # This ensures the same scan position always produces the same seed.
-        quantized = []
-        for p in js_holder[0].position:
-            deg = math.degrees(p)
-            deg_q = round(deg, 2)  # round to 0.01°
-            quantized.append(math.radians(deg_q))
-
-        try:
-            ik_client = self.rclpy_node.create_client(GetPositionIK, '/compute_ik')
-            if not ik_client.wait_for_service(timeout_sec=2.0):
-                self.logger.warn("/compute_ik service not available")
-                return None
-
-            req = GetPositionIK.Request()
-            req.ik_request.group_name = self.arm_group
-            req.ik_request.ik_link_name = ik_frame
-            req.ik_request.robot_state.joint_state.name = list(js_holder[0].name)
-            req.ik_request.robot_state.joint_state.position = quantized
-            req.ik_request.pose_stamped = approach
-            req.ik_request.timeout.sec = 1
-
-            future = ik_client.call_async(req)
-            rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=5.0)
-            self.rclpy_node.destroy_client(ik_client)
-
-            result = future.result()
-            if result and result.error_code.val == 1:  # SUCCESS
-                joint_goal = {}
-                for name, pos in zip(result.solution.joint_state.name,
-                                     result.solution.joint_state.position):
-                    if name in DEFAULT_JOINT_NAMES:
-                        joint_goal[name] = pos
-                if len(joint_goal) == 6:
-                    return joint_goal
-
-            self.logger.warn(f"compute_ik failed: error_code={result.error_code.val if result else 'None'}")
-            return None
-
-        except Exception as e:
-            self.logger.warn(f"Deterministic IK error: {e}")
-            return None
+    # compute_deterministic_ik() is inherited from BaseStages (#55)
 
     def _move_to_approach(
         self, approach: PoseStamped, ik_frame: str = ""
