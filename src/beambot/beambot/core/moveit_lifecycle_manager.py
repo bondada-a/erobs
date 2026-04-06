@@ -422,6 +422,13 @@ class MoveItLifecycleManager:
         Returns:
             True if successful, False on failure
         """
+        _ALLOWED_VOLTAGES = {0, 12, 24}
+        if int(voltage) not in _ALLOWED_VOLTAGES:
+            self._logger.error(
+                f"Invalid tool voltage {voltage}. Allowed: {_ALLOWED_VOLTAGES}"
+            )
+            return False
+
         if not self._robot_ip:
             self._logger.error("Robot IP not set")
             return False
@@ -433,7 +440,7 @@ class MoveItLifecycleManager:
             self._logger.info(f"Connecting to {self._robot_ip}:{self.UR_SECONDARY_PORT}")
             sock.connect((self._robot_ip, self.UR_SECONDARY_PORT))
 
-            cmd = f"set_tool_voltage({voltage})\n"
+            cmd = f"set_tool_voltage({int(voltage)})\n"
             sock.sendall(cmd.encode())
 
             sock.close()

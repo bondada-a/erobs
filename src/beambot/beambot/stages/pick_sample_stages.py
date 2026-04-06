@@ -12,13 +12,13 @@ Includes vacuum status check after pick for ePick gripper.
 
 import json
 import rclpy
-from typing import Any, Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 
 from beambot.stages.base_stages import (
-    BaseStages, joints_from_degrees, parse_constraints, apply_constraints,
+    BaseStages, parse_constraints, apply_constraints,
 )
 from beambot.stages.vision_stages import VisionStages
 
@@ -64,9 +64,12 @@ class PickSampleStages(BaseStages):
         except json.JSONDecodeError as e:
             return f"Invalid gripper_states_json: {e}"
 
-        constraints = parse_constraints(
-            json.loads(goal.constraints_json) if goal.constraints_json else None
-        )
+        try:
+            constraints = parse_constraints(
+                json.loads(goal.constraints_json) if goal.constraints_json else None
+            )
+        except json.JSONDecodeError as e:
+            return f"Invalid constraints_json: {e}"
 
         if goal.use_vision:
             error = self._run_vision(goal, poses, gripper_states, constraints)

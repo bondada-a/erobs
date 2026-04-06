@@ -17,6 +17,7 @@ Detailed field reference for all beambot action interfaces. This document is the
 7. [vision_moveto](#7-vision_moveto)
 8. [vision_scan](#8-vision_scan)
 9. [pipettor](#9-pipettor)
+
 10. [Gripper Configuration](#10-gripper-configuration)
 11. [Timeouts](#11-timeouts)
 12. [Common Gotchas](#12-common-gotchas)
@@ -290,7 +291,7 @@ Single task: approach_pose → target_pose → open → retreat to approach_pose
 
 ---
 
-## 5. tool_exchange
+## 6. tool_exchange
 
 Dock (detach) or load (attach) a gripper from/to the magnetic tool changer.
 
@@ -341,7 +342,7 @@ Dock (detach) or load (attach) a gripper from/to the magnetic tool changer.
 
 ---
 
-## 6. vision_moveto
+## 7. vision_moveto
 
 Move to a vision-detected target (ArUco marker, circle, or contour).
 
@@ -414,7 +415,7 @@ This reduces noise from single-capture detection errors.
 
 ---
 
-## 7. vision_scan
+## 8. vision_scan
 
 Batch-scan all visible markers from multiple positions and cache their poses.
 
@@ -466,6 +467,7 @@ Use `vision_scan` **before** a series of `vision_moveto` calls when:
 ---
 
 ## 9. pipettor
+
 
 Control the custom pipettor tool for liquid handling.
 

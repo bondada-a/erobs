@@ -71,6 +71,12 @@ ros2 bag record \
     /beambot_vision_moveto/_action/feedback \
     /beambot_moveto/_action/send_goal \
     /beambot_moveto/_action/get_result \
+    /beambot_pick_sample/_action/send_goal \
+    /beambot_pick_sample/_action/get_result \
+    /beambot_pick_sample/_action/feedback \
+    /beambot_place_sample/_action/send_goal \
+    /beambot_place_sample/_action/get_result \
+    /beambot_place_sample/_action/feedback \
     -o "$BAG_DIR/$BAG_NAME" \
     --max-cache-size 0 \
     --include-hidden-topics \

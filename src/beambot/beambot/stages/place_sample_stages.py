@@ -11,13 +11,13 @@ Key difference from pick: Task 1 does NOT open gripper (holding object).
 """
 
 import json
-from typing import Any, Dict, Optional, Tuple
+from typing import Dict, Optional
 
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 
 from beambot.stages.base_stages import (
-    BaseStages, joints_from_degrees, parse_constraints, apply_constraints,
+    BaseStages, parse_constraints, apply_constraints,
 )
 from beambot.stages.vision_stages import VisionStages
 
@@ -61,9 +61,12 @@ class PlaceSampleStages(BaseStages):
         except json.JSONDecodeError as e:
             return f"Invalid gripper_states_json: {e}"
 
-        constraints = parse_constraints(
-            json.loads(goal.constraints_json) if goal.constraints_json else None
-        )
+        try:
+            constraints = parse_constraints(
+                json.loads(goal.constraints_json) if goal.constraints_json else None
+            )
+        except json.JSONDecodeError as e:
+            return f"Invalid constraints_json: {e}"
 
         if goal.use_vision:
             error = self._run_vision(goal, poses, gripper_states, constraints)
@@ -101,7 +104,9 @@ class PlaceSampleStages(BaseStages):
 
         # Runtime: detect target
         detection_type = goal.detection_type or "marker"
-        if detection_type == "circle":
+        if detection_type == "contour":
+            return "Contour detection not supported for place operations. Use marker or circle."
+        elif detection_type == "circle":
             target_pose = self._vision.detect_and_transform_circle(timeout=10.0)
         else:
             target_pose = self._vision.detect_and_transform_tag(goal.tag_id, timeout=10.0)

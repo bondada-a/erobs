@@ -3,10 +3,9 @@
 This launch file starts all the beambot action servers:
 - beambot_moveto: MoveTo operations
 - beambot_endeffector: Gripper operations
-- beambot_pickplace: Pick and place sequences
 - beambot_toolexchange: Tool exchange operations
 - beambot_vision_moveto: Vision-guided moves
-- beambot_vision_pickplace: Vision-guided pick/place
+- beambot_sample: Pick and place sample operations (vision or hardcoded)
 - beambot_pipettor: Pipettor operations
 - beambot_orchestrator: Central coordinator
 

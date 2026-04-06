@@ -1028,7 +1028,7 @@ class MTCOrchestratorServer(Node):
         """
         # Wait for robot vibrations to settle BEFORE calling vision action
         # This happens in orchestrator, completely outside MTC and action server
-        settle_time = float(step.get("settle_time", 1.0))  # Default 1s
+        settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
         if settle_time > 0:
             self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle before vision capture...")
             time.sleep(settle_time)
@@ -1156,7 +1156,7 @@ class MTCOrchestratorServer(Node):
     def _call_pick_sample(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the PickSample action server."""
         # Wait for robot to settle before vision capture
-        settle_time = float(step.get("settle_time", 1.0))
+        settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
         if settle_time > 0 and step.get("use_vision", True):
             self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
             time.sleep(settle_time)
@@ -1207,11 +1207,18 @@ class MTCOrchestratorServer(Node):
                 self.get_logger().error(self._last_error)
                 return False
 
+            # Arm background vacuum monitor for transport (pick_sample turns
+            # vacuum on internally, but VacuumMonitor only tracks end_effector
+            # tasks — so we arm it explicitly here)
+            if vacuum_ok and self._current_gripper == "epick":
+                self._vacuum.armed = True
+                self._vacuum.lost = False
+
         return success
 
     def _call_place_sample(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the PlaceSample action server."""
-        settle_time = float(step.get("settle_time", 1.0))
+        settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
         if settle_time > 0 and step.get("use_vision", True):
             self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
             time.sleep(settle_time)
@@ -1249,6 +1256,11 @@ class MTCOrchestratorServer(Node):
             if len(pos) == 3:
                 self._last_detected_position = pos
                 self._last_detected_orientation = ori if len(ori) == 4 else None
+
+        # Disarm vacuum monitor (place_sample turns vacuum off internally)
+        if success and self._current_gripper == "epick":
+            self._vacuum.armed = False
+            self._vacuum.lost = False
 
         return success
 
