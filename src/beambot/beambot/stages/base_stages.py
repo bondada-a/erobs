@@ -310,11 +310,13 @@ class BaseStages:
         Returns:
             Configured MTC Task with robot model loaded and CurrentState added
         """
-        # Disable MTC introspection to prevent per-task Introspection nodes
-        # from being created/destroyed, which can poison rcl's rosout hashmap
-        # on Humble (no reference counting — see enable_rosout comment above).
+        # MTC introspection publishes solutions to RViz's Motion Planning Tasks
+        # panel. Creates/destroys Introspection nodes that poison rcl's rosout
+        # hashmap on Humble (unfixed rcl bug since 2019, ros2/rcl#984). Effect:
+        # MTC C++ internal logs break after first task, but our rclpy-based logs
+        # (detection, IK, vacuum) are unaffected. Re-enabled for RViz visualization.
         task = core.Task()
-        task.enableIntrospection(False)
+        task.enableIntrospection(True)
         task.name = name
         task.loadRobotModel(self._mtc_node)
 
