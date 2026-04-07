@@ -47,9 +47,3 @@ gh issue close <number> --reason completed
 
 ---
 
-## 🔄 Update Log
-
-| Date | Agent | What Changed |
-|------|-------|-------------|
-| 2026-03-13 | Roc (OpenClaw) | Migrated tasks to GitHub Issues. STATUS.md now points to issues for task tracking, retains decisions/context only. |
-| 2026-03-10 | Roc (OpenClaw) | Created STATUS.md. Updated with actual git state — fallbacks/constraints done, OMPL tuning dropped. Added hardware audit subtasks. |
