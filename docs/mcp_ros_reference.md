@@ -538,12 +538,15 @@ Gripper behavior is defined in the beamline config (`config/default_beamline.yam
 
 ### Available Grippers
 
-| Name | MoveIt Package | MoveIt Group | Grasp State | Release State |
-|------|---------------|--------------|-------------|---------------|
-| `none` | `ur_standalone_moveit_config` | (none) | — | — |
-| `hande` | `ur_zivid_hande_moveit_config` | `hande_gripper` | `hande_closed` | `hande_open` |
-| `epick` | `ur_zivid_epick_moveit_config` | `epick_gripper` | `vacuum_on` | `vacuum_off` |
-| `pipettor` | `ur_zivid_pipettor_moveit_config` | (none) | — | — |
+| Name | Gripper Arg | MoveIt Group | Grasp State | Release State |
+|------|------------|--------------|-------------|---------------|
+| `none` | `gripper:=none` | (none) | — | — |
+| `hande` | `gripper:=hande` | `hande_gripper` | `hande_closed` | `hande_open` |
+| `epick` | `gripper:=epick` | `epick_gripper` | `vacuum_on` | `vacuum_off` |
+| `2fg7` | `gripper:=2fg7` | `2fg7_gripper` | `2fg7_closed` | `2fg7_open` |
+| `pipettor` | `gripper:=pipettor` | (none) | — | — |
+
+All grippers use `ur5e_moveit_config` with the `gripper:=` launch argument.
 
 ### Gripper Auto-Resolution
 

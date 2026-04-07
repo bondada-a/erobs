@@ -152,10 +152,12 @@ class MoveItLifecycleManager:
 
         # Launch MoveIt subprocess
         try:
+            gripper_arg = config.get("gripper_arg", gripper)  # Fallback to gripper name
             cmd = [
                 "ros2", "launch", config["moveit_package"], "robot_bringup.launch.py",
                 f"robot_ip:={self._robot_ip}",
                 f"use_fake_hardware:={'true' if self._use_fake_hardware else 'false'}",
+                f"gripper:={gripper_arg}",
             ]
 
             # Add suction cup dimensions if cup_profile is specified (ePick)

@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<!-- Pipettor (static end effector — no movable joints, no gripper group) -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+    <!-- No gripper group (pipettor is static), no end_effector -->
+
+    <!-- Camera and tool block collision rules -->
+    <disable_collisions link1="tool_block" link2="zivid_arm_mount" reason="Adjacent"/>
+    <disable_collisions link1="tool_block" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="zivid_arm_mount" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="zivid_arm_mount" link2="flange" reason="Adjacent"/>
+    <disable_collisions link1="zivid_base_link" link2="zivid_arm_mount" reason="Adjacent"/>
+    <disable_collisions link1="zivid_base_link" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="zivid_base_link" link2="tool_block" reason="Never"/>
+
+    <!-- Pipettor collision rules -->
+    <disable_collisions link1="pipette_base_link" link2="tool_block" reason="Adjacent"/>
+    <disable_collisions link1="pipette_body_link" link2="tool_block" reason="Never"/>
+    <disable_collisions link1="pipette_body_link" link2="pipette_base_link" reason="Adjacent"/>
+    <disable_collisions link1="pipette_base_link" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="pipette_body_link" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="pipette_base_link" link2="zivid_arm_mount" reason="Never"/>
+    <disable_collisions link1="pipette_body_link" link2="zivid_arm_mount" reason="Never"/>
+    <disable_collisions link1="pipette_base_link" link2="zivid_base_link" reason="Never"/>
+    <disable_collisions link1="pipette_body_link" link2="zivid_base_link" reason="Never"/>
+</robot>

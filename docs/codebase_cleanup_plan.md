@@ -162,12 +162,12 @@
 ## 4. HIGH: Configuration Bugs
 
 ### 4.1 2FG7 `initial_positions.yaml` Uses Wrong Joint Name
-- **File:** `ur_zivid_2fg7_moveit_config/config/initial_positions.yaml`
+- **File:** `ur5e_moveit_config/config/2fg7/initial_positions.yaml`
 - **Bug:** References `robotiq_hande_left_finger_joint: 0.0` — this is the Hand-E joint name!
 - **Fix:** Change to `2fg7_left_finger_joint: 0.0`
 
 ### 4.2 2FG7 `joint_limits.yaml` Missing Gripper Joints
-- **File:** `ur_zivid_2fg7_moveit_config/config/joint_limits.yaml`
+- **File:** `ur5e_moveit_config/config/2fg7/joint_limits.yaml`
 - **Bug:** Contains only arm joints (49 lines). Missing entries for `2fg7_left_finger_joint` and `2fg7_right_finger_joint`.
 - **Fix:** Add joint limit entries matching the URDF constraints.
 
