@@ -126,9 +126,7 @@ def launch_setup(context, *args, **kwargs):
 
     # Gripper-specific xacro args
     if gripper == "epick":
-        for arg in ["extension_length", "extension_radius",
-                     "suction_cup_height", "suction_cup_radius"]:
-            xacro_args[arg] = LaunchConfiguration(arg).perform(context)
+        xacro_args["cup_profile"] = LaunchConfiguration("cup_profile").perform(context)
     elif gripper == "hande":
         xacro_args["socat_ip_address"] = robot_ip
 
@@ -340,22 +338,11 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "use_fake_hardware", default_value="false",
         ),
-        # ePick cup profile args (only used when gripper:=epick)
+        # ePick cup profile (only used when gripper:=epick).
+        # Profile name resolves to dimensions via suction_cups.yaml in the xacro.
         DeclareLaunchArgument(
-            "extension_length", default_value="0.013",
-            description="ePick suction cup extension length (m)",
-        ),
-        DeclareLaunchArgument(
-            "extension_radius", default_value="0.004",
-            description="ePick suction cup extension radius (m)",
-        ),
-        DeclareLaunchArgument(
-            "suction_cup_height", default_value="0.003",
-            description="ePick suction cup height (m)",
-        ),
-        DeclareLaunchArgument(
-            "suction_cup_radius", default_value="0.0015",
-            description="ePick suction cup radius (m)",
+            "cup_profile", default_value="3mm_dia",
+            description="ePick suction cup profile name (from suction_cups.yaml)",
         ),
         # ── OpaqueFunction resolves gripper then builds all nodes ───────
         OpaqueFunction(function=launch_setup),

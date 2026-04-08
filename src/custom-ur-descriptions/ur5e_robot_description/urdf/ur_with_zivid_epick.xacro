@@ -120,26 +120,25 @@
   <!-- Tool block attached to the Zivid arm mount (not the camera) -->
   <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.049" rpy="-1.5708 0 3.14159"/>
 
-  <!-- Suction cup dimensions (passed from launch file via cup profile).
-       IMPORTANT: These defaults are used by the UR driver's robot_state_publisher
-       (which doesn't receive cup profile args from the orchestrator). They MUST
-       match the physically attached cup. When changing cups, update both this file
-       AND default_beamline.yaml grippers.epick.cup_profile.
-       See: epick_config/config/suction_cups.yaml for available profiles. -->
-  <!-- Current physical cup: 3mm_dia -->
-  <xacro:arg name="extension_length" default="0.013"/>
-  <xacro:arg name="extension_radius" default="0.004"/>
-  <xacro:arg name="suction_cup_height" default="0.003"/>
-  <xacro:arg name="suction_cup_radius" default="0.0015"/>
+  <!-- Suction cup profile: dimensions loaded from suction_cups.yaml (single source of truth).
+       The cup_profile default MUST match the physically attached cup — the UR driver's
+       robot_state_publisher uses this default (it can't receive args from the orchestrator).
+       When changing cups, update this default AND default_beamline.yaml grippers.epick.cup_profile.
+       Available profiles: see epick_config/config/suction_cups.yaml -->
+  <xacro:property name="cups_yaml_path" value="$(find epick_config)/config/suction_cups.yaml"/>
+  <xacro:property name="cups_config" value="${xacro.load_yaml(cups_yaml_path)}"/>
+  <xacro:arg name="cup_profile" default="3mm_dia"/>
+  <xacro:property name="cup_profile_name" value="$(arg cup_profile)"/>
+  <xacro:property name="cup" value="${cups_config['cups'][cup_profile_name]}"/>
 
   <!-- Epick Gripper -->
   <xacro:epick_overlay use_fake_hardware="$(arg use_fake_hardware)" parent="tool_block"
                   origin_xyz="0 -0.03235 0"
                   origin_rpy="-1.5708 0 3.1416"
-                  extension_length="$(arg extension_length)"
-                  extension_radius="$(arg extension_radius)"
-                  suction_cup_height="$(arg suction_cup_height)"
-                  suction_cup_radius="$(arg suction_cup_radius)"/>
+                  extension_length="${cup['extension_length']}"
+                  extension_radius="${cup['extension_radius']}"
+                  suction_cup_height="${cup['suction_cup_height']}"
+                  suction_cup_radius="${cup['suction_cup_radius']}"/>
 </robot>
 
 

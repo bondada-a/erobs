@@ -236,7 +236,7 @@ The ePick gripper supports swappable suction cups. Cup dimensions are defined in
 
 **Changing cup profile via MCP** (no rebuild needed):
 ```
-set_cup_profile(name="7mm_dia")
+set_cup_profile(name="3mm_dia")
 ```
 This sets the `cup_profile` ROS parameter on the orchestrator. Takes effect on the **next MoveIt launch** for ePick (next goal with `start_gripper="epick"`, or after tool exchange to ePick).
 
@@ -245,7 +245,7 @@ This sets the `cup_profile` ROS parameter on the orchestrator. Takes effect on t
 - `7mm_dia` -- 7mm diameter cup with short extension (18mm extension, 6mm cup)
 - `default` -- stock ePick suction cup (no extension, 20mm cup)
 
-**Default**: Set in `default_beamline.yaml` under `grippers.epick.cup_profile`. Currently `"7mm_dia"`. The MCP `set_cup_profile` tool overrides this for the current session.
+**Default**: Set in `default_beamline.yaml` under `grippers.epick.cup_profile`. Currently `"3mm_dia"`. The MCP `set_cup_profile` tool overrides this for the current session.
 
 **Adding a new cup**: Add an entry to `suction_cups.yaml` with `extension_length`, `extension_radius`, `suction_cup_height`, `suction_cup_radius` (all in meters), then `colcon build --packages-select epick_config`.
 

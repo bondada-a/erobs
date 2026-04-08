@@ -84,10 +84,13 @@ class MoveItLifecycleManager:
         """Z offset for the active suction cup profile (meters)."""
         return self._cup_z_offset
 
-    def _resolve_cup_profile(self, gripper_config: dict) -> Optional[dict]:
-        """Resolve suction cup dimensions from the cup profile in gripper config.
+    def _resolve_cup_profile(self, gripper_config: dict) -> Optional[str]:
+        """Validate cup profile and return the profile name.
 
-        Returns dict of cup dimensions, or None if no cup_profile specified.
+        Dimensions are resolved by xacro from suction_cups.yaml (single source of truth).
+        This method validates the profile exists and logs its description.
+
+        Returns profile name string, or None if no cup_profile specified.
         """
         profile_name = gripper_config.get("cup_profile")
         if not profile_name:
@@ -112,10 +115,10 @@ class MoveItLifecycleManager:
             self._logger.info(
                 f"Cup profile '{profile_name}': {profile.get('description', '')}"
             )
-            return profile
+            return profile_name
 
         except Exception as e:
-            self._logger.error(f"Failed to load cup profile '{profile_name}': {e}")
+            self._logger.error(f"Failed to validate cup profile '{profile_name}': {e}")
             return None
 
     def launch_moveit_with_gripper(self, gripper: str) -> bool:
@@ -160,12 +163,10 @@ class MoveItLifecycleManager:
                 f"gripper:={gripper_arg}",
             ]
 
-            # Add suction cup dimensions if cup_profile is specified (ePick)
-            cup_dims = self._resolve_cup_profile(config)
-            if cup_dims:
-                for key, value in cup_dims.items():
-                    if key != "description":
-                        cmd.append(f"{key}:={value}")
+            # Add cup profile name if specified (ePick) — xacro resolves dimensions
+            cup_profile = self._resolve_cup_profile(config)
+            if cup_profile:
+                cmd.append(f"cup_profile:={cup_profile}")
 
             # z_offset lives in the gripper config (shared chain error, not per-cup)
             self._cup_z_offset = float(config.get("z_offset", 0.0))
