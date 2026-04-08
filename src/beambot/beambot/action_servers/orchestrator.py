@@ -30,25 +30,19 @@ from beambot_interfaces.action import (
     MTCExecution,
     MoveToAction,
     EndEffectorAction,
-    PickPlaceAction,
+    PickSampleAction,
+    PlaceSampleAction,
     ToolExchangeAction,
     VisionMoveToAction,
     VisionScanAction,
-    VisionPickPlaceAction,
     PipettorAction,
 )
 from controller_manager_msgs.srv import ListControllers, SwitchController
 from std_srvs.srv import Trigger
 from std_msgs.msg import String
 
-# ePick vacuum feedback (optional — only when epick_msgs is built)
-try:
-    from epick_msgs.msg import ObjectDetectionStatus
-    _EPICK_MSGS_AVAILABLE = True
-except ImportError:
-    _EPICK_MSGS_AVAILABLE = False
-
 from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
+from beambot.core.vacuum_monitor import VacuumMonitor
 from beambot.stages.move_to_stages import MoveToStages
 from beambot.stages.end_effector_stages import EndEffectorStages
 from beambot.batch_planner import group_into_batches
@@ -68,11 +62,11 @@ class MTCOrchestratorServer(Node):
     DEFAULT_TIMEOUTS = {
         "moveto": 120.0,
         "end_effector": 30.0,
-        "pick_and_place": 180.0,
         "tool_exchange": 180.0,
         "vision_moveto": 60.0,
         "vision_scan": 180.0,  # Batch scan: 3 positions × 3 scans
-        "vision_pick_place": 180.0,
+        "pick_sample": 180.0,
+        "place_sample": 180.0,
         "pipettor": 60.0,
     }
 
@@ -81,7 +75,7 @@ class MTCOrchestratorServer(Node):
 
         self._executing = False
         self._lock = threading.Lock()
-        self._current_gripper = "none"
+        self._current_gripper = "unknown"
         self._last_error = ""  # Error from last failed action/batch
         self._last_result = None  # Full result from last _send_and_wait
         self._last_detected_position = None  # [x, y, z] from detect_only vision
@@ -153,10 +147,6 @@ class MTCOrchestratorServer(Node):
             self, EndEffectorAction, "beambot_endeffector",
             callback_group=self._callback_group
         )
-        self._pickplace_client = ActionClient(
-            self, PickPlaceAction, "beambot_pickplace",
-            callback_group=self._callback_group
-        )
         self._toolexchange_client = ActionClient(
             self, ToolExchangeAction, "beambot_toolexchange",
             callback_group=self._callback_group
@@ -169,8 +159,12 @@ class MTCOrchestratorServer(Node):
             self, VisionScanAction, "beambot_vision_scan",
             callback_group=self._callback_group
         )
-        self._vision_pickplace_client = ActionClient(
-            self, VisionPickPlaceAction, "beambot_vision_pickplace",
+        self._pick_sample_client = ActionClient(
+            self, PickSampleAction, "beambot_pick_sample",
+            callback_group=self._callback_group
+        )
+        self._place_sample_client = ActionClient(
+            self, PlaceSampleAction, "beambot_place_sample",
             callback_group=self._callback_group
         )
         self._pipettor_client = ActionClient(
@@ -197,10 +191,8 @@ class MTCOrchestratorServer(Node):
         )
 
         # Controllers that must be active for robot motion
-        self._required_controllers = [
-            "scaled_joint_trajectory_controller",
-            "gripper_action_controller",
-        ]
+        self._base_controllers = ["scaled_joint_trajectory_controller"]
+        self._required_controllers = list(self._base_controllers)
 
         # Pause/Resume services
         self._pause_service = self.create_service(
@@ -225,16 +217,7 @@ class MTCOrchestratorServer(Node):
         self._publish_gripper(self._current_gripper)
 
         # Vacuum monitoring (ePick grasp verification)
-        self._vacuum_armed = False
-        self._vacuum_lost = False
-        self._epick_status: 'int | None' = None
-        self._epick_sub = None
-        if _EPICK_MSGS_AVAILABLE:
-            self._epick_sub = self.create_subscription(
-                ObjectDetectionStatus, '/object_detection_status',
-                self._on_epick_status, 10,
-                callback_group=self._callback_group,
-            )
+        self._vacuum = VacuumMonitor(self, self._grippers, self._callback_group)
 
         self.get_logger().info("MTC Orchestrator (Python) started on 'beambot_execution'")
         self.get_logger().info("Pause/Resume services available: beambot/pause, beambot/resume")
@@ -314,6 +297,15 @@ class MTCOrchestratorServer(Node):
         msg = String()
         msg.data = gripper
         self._gripper_publisher.publish(msg)
+
+    def _update_required_controllers(self):
+        """Update required controllers list based on current gripper."""
+        gripper_controller = self._grippers.get(
+            self._current_gripper, {}
+        ).get("controller_name", "")
+        self._required_controllers = list(self._base_controllers)
+        if gripper_controller:
+            self._required_controllers.append(gripper_controller)
 
     def _handle_pause(
         self,
@@ -517,25 +509,6 @@ class MTCOrchestratorServer(Node):
         goal.end_effector_action = step.get("end_effector_action", "")
         return goal
 
-    def _create_pickplace_goal(
-        self, step: Dict[str, Any], poses_json: str
-    ) -> PickPlaceAction.Goal:
-        """Create a PickPlaceAction.Goal from task dict."""
-        # Use current gripper if not specified in task
-        gripper_type = step.get("gripper", self._current_gripper)
-        gripper_config = self._grippers.get(gripper_type, {})
-
-        goal = PickPlaceAction.Goal()
-        goal.gripper_group = gripper_config.get("gripper_group", "")
-        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
-        goal.pick_approach = step.get("pick_approach", "")
-        goal.pick_target = step.get("pick_target", "")
-        goal.place_approach = step.get("place_approach", "")
-        goal.place_target = step.get("place_target", "")
-        goal.poses_json = poses_json
-        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
-        return goal
-
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute the orchestration goal."""
         with self._lock:
@@ -556,8 +529,7 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Executing orchestration goal")
 
         # Reset state for new goal
-        self._vacuum_armed = False
-        self._vacuum_lost = False
+        self._vacuum.reset()
         self._last_detected_position = None
         self._last_detected_orientation = None
 
@@ -577,6 +549,7 @@ class MTCOrchestratorServer(Node):
         # Initialize gripper state
         self._current_gripper = start_gripper
         self._publish_gripper(start_gripper)
+        self._update_required_controllers()
 
         # Apply cup_profile override if parameter was changed via MCP
         cup_override = self.get_parameter("cup_profile").value
@@ -644,8 +617,9 @@ class MTCOrchestratorServer(Node):
                     return result
 
             # Check if vacuum was lost since last step
-            if self._check_vacuum_lost():
-                result.error_message = f"Step {completed_tasks + 1} aborted: {self._last_error}"
+            vacuum_error = self._vacuum.check_lost()
+            if vacuum_error:
+                result.error_message = f"Step {completed_tasks + 1} aborted: {vacuum_error}"
                 result.completed_steps = completed_tasks
                 goal_handle.abort()
                 self._publish_state("IDLE")
@@ -685,7 +659,7 @@ class MTCOrchestratorServer(Node):
                     self._publish_state("IDLE")
                     return result
 
-                self._update_vacuum_state(batch_tasks)
+                self._vacuum.update_after_tasks(batch_tasks, self._current_gripper)
                 completed_tasks += batch_size
 
             else:
@@ -711,14 +685,15 @@ class MTCOrchestratorServer(Node):
                     self._publish_state("IDLE")
                     return result
 
-                self._update_vacuum_state([task])
+                self._vacuum.update_after_tasks([task], self._current_gripper)
                 completed_tasks += 1
 
             result.completed_steps = completed_tasks
 
         # Final vacuum check — catch drops during the last step
-        if self._check_vacuum_lost():
-            result.error_message = f"Final step aborted: {self._last_error}"
+        vacuum_error = self._vacuum.check_lost()
+        if vacuum_error:
+            result.error_message = f"Final step aborted: {vacuum_error}"
             result.completed_steps = completed_tasks
             goal_handle.abort()
             self._publish_state("IDLE")
@@ -781,69 +756,6 @@ class MTCOrchestratorServer(Node):
         )
 
     # ------------------------------------------------------------------
-    # Vacuum monitoring (ePick grasp verification)
-    # ------------------------------------------------------------------
-
-    def _on_epick_status(self, msg):
-        """Callback for /object_detection_status — fires continuously while ePick is active."""
-        self._epick_status = int(msg.status)
-        if self._vacuum_armed and self._epick_status == 3:  # NO_OBJECT_DETECTED
-            self._vacuum_lost = True
-            self.get_logger().warning(
-                "VACUUM_LOST: object detection status changed to NO_OBJECT_DETECTED "
-                "while vacuum is active"
-            )
-
-    def _update_vacuum_state(self, executed_tasks: List[Dict[str, Any]]):
-        """Update vacuum monitor after tasks execute.
-
-        Scans the executed tasks for vacuum on/off actions and arms/disarms
-        the background monitor accordingly.
-        """
-        if self._current_gripper != "epick" or not _EPICK_MSGS_AVAILABLE:
-            return
-
-        grasp_state = self._grippers.get("epick", {}).get("states", {}).get("grasp", "vacuum_on")
-        release_state = self._grippers.get("epick", {}).get("states", {}).get("release", "vacuum_off")
-
-        for task in executed_tasks:
-            if task.get("task_type") != "end_effector":
-                continue
-            action = task.get("end_effector_action", "")
-            if action == grasp_state:
-                # Arm the monitor — vacuum was just turned on
-                self._vacuum_lost = False
-                self._vacuum_armed = True
-                self.get_logger().info("Vacuum monitor ARMED (vacuum_on detected)")
-                # Immediate check: did we get a seal?
-                if self._epick_status == 3:
-                    self._vacuum_lost = True
-                    self.get_logger().warning(
-                        "VACUUM_LOST: no seal detected immediately after vacuum_on"
-                    )
-            elif action == release_state:
-                # Disarm — vacuum intentionally turned off
-                self._vacuum_armed = False
-                self._vacuum_lost = False
-                self.get_logger().info("Vacuum monitor DISARMED (vacuum_off detected)")
-
-    def _check_vacuum_lost(self) -> bool:
-        """Check if vacuum was lost since last armed.
-
-        Returns True if vacuum lost (caller should abort), False if OK.
-        Sets self._last_error on failure.
-        """
-        if not self._vacuum_armed or not self._vacuum_lost:
-            return False
-        self._last_error = (
-            "VACUUM_LOST: object dropped — ePick reports NO_OBJECT_DETECTED "
-            "while vacuum was active. Send vacuum_off then vacuum_on to retry."
-        )
-        self.get_logger().error(self._last_error)
-        # Disarm so we don't keep firing
-        self._vacuum_armed = False
-        return True
-
     def _execute_step(
         self, task_type: str, step: Dict[str, Any], poses_json: str
     ) -> bool:
@@ -860,16 +772,16 @@ class MTCOrchestratorServer(Node):
             return self._call_moveto(step, poses_json)
         elif task_type == "end_effector":
             return self._call_endeffector(step, poses_json)
-        elif task_type == "pick_and_place":
-            return self._call_pickplace(step, poses_json)
         elif task_type == "tool_exchange":
             return self._handle_tool_exchange(step, poses_json)
         elif task_type == "vision_moveto":
             return self._call_vision_moveto(step, poses_json)
         elif task_type == "vision_scan":
             return self._call_vision_scan(step, poses_json)
-        elif task_type == "vision_pick_place":
-            return self._call_vision_pickplace(step, poses_json)
+        elif task_type == "pick_sample":
+            return self._call_pick_sample(step, poses_json)
+        elif task_type == "place_sample":
+            return self._call_place_sample(step, poses_json)
         elif task_type == "pipettor":
             return self._call_pipettor(step, poses_json)
         else:
@@ -948,13 +860,6 @@ class MTCOrchestratorServer(Node):
         goal = self._create_endeffector_goal(step)
         return self._send_and_wait(
             self._endeffector_client, goal, "end_effector", self._timeouts["end_effector"]
-        )
-
-    def _call_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
-        """Call the PickPlace action server."""
-        goal = self._create_pickplace_goal(step, poses_json)
-        return self._send_and_wait(
-            self._pickplace_client, goal, "pick_place", self._timeouts["pick_and_place"]
         )
 
     def _call_toolexchange(self, step: Dict[str, Any], poses_json: str) -> bool:
@@ -1085,6 +990,7 @@ class MTCOrchestratorServer(Node):
             )
             self._current_gripper = new_gripper
             self._publish_gripper(new_gripper)
+            self._update_required_controllers()
 
             if not self._moveit_manager.launch_moveit_with_gripper(new_gripper):
                 self._last_error = (
@@ -1122,7 +1028,7 @@ class MTCOrchestratorServer(Node):
         """
         # Wait for robot vibrations to settle BEFORE calling vision action
         # This happens in orchestrator, completely outside MTC and action server
-        settle_time = float(step.get("settle_time", 1.0))  # Default 1s
+        settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
         if settle_time > 0:
             self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle before vision capture...")
             time.sleep(settle_time)
@@ -1247,50 +1153,116 @@ class MTCOrchestratorServer(Node):
             self._timeouts["vision_scan"]
         )
 
-    def _call_vision_pickplace(self, step: Dict[str, Any], poses_json: str) -> bool:
-        """Call the VisionPickPlace action server.
-
-        Vision-guided pick with hardcoded place:
-        - Pick: Detects marker/circle, grasps at detected location
-        - Place: Uses predefined joint poses from poses_json
-        - settle_time: Seconds to wait before capture for robot to settle (default: 5.0)
-        """
-        # Wait for robot vibrations to settle BEFORE calling vision action
-        # This happens in orchestrator, completely outside MTC and action server
-        settle_time = float(step.get("settle_time", 5.0))  # Default 5s
-        if settle_time > 0:
-            self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle before vision capture...")
+    def _call_pick_sample(self, step: Dict[str, Any], poses_json: str) -> bool:
+        """Call the PickSample action server."""
+        # Wait for robot to settle before vision capture
+        settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
+        if settle_time > 0 and step.get("use_vision", True):
+            self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
             time.sleep(settle_time)
-            self.get_logger().info("Settle complete, starting vision action")
 
-        # Use current gripper if not specified in task
         gripper_type = step.get("gripper", self._current_gripper)
         gripper_config = self._grippers.get(gripper_type, {})
 
-        goal = VisionPickPlaceAction.Goal()
-
-        # Vision detection config
+        goal = PickSampleAction.Goal()
+        goal.use_vision = step.get("use_vision", True)
         goal.detection_type = step.get("detection_type", "marker")
         goal.tag_id = int(step.get("tag_id", 0))
+        goal.sample_index = int(step.get("sample_index", 1))
         goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
-
-        # Pose keys (references into poses_json)
-        goal.sample_approach = step.get("sample_approach", "")
-        goal.place_approach = step.get("place_approach", "")
-        goal.place_target = step.get("place_target", "")
-
-        # Gripper config
+        goal.scan_pose = step.get("scan_pose", "")
+        goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
+        goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
+        goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
+        goal.offset_direction = step.get("offset_direction", "")
+        goal.offset_distance = float(step.get("offset_distance", 0.0))
+        goal.ik_frame = self._gripper_ik_frame()
+        goal.approach_pose = step.get("approach_pose", "")
+        goal.target_pose = step.get("target_pose", "")
         goal.gripper_group = gripper_config.get("gripper_group", "")
         goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
-
-        # Pose definitions
         goal.poses_json = poses_json
         goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
 
-        return self._send_and_wait(
-            self._vision_pickplace_client, goal, "vision_pick_place",
-            self._timeouts["vision_pick_place"]
+        success = self._send_and_wait(
+            self._pick_sample_client, goal, "pick_sample",
+            self._timeouts["pick_sample"]
         )
+
+        # Store detected position for subsequent steps
+        if success and self._last_result is not None:
+            pos = list(getattr(self._last_result, 'detected_position', []))
+            ori = list(getattr(self._last_result, 'detected_orientation', []))
+            if len(pos) == 3:
+                self._last_detected_position = pos
+                self._last_detected_orientation = ori if len(ori) == 4 else None
+
+            # Check vacuum status from result
+            vacuum_ok = getattr(self._last_result, 'vacuum_ok', True)
+            if not vacuum_ok:
+                self._last_error = (
+                    "VACUUM_LOST: ePick reports NO_OBJECT_DETECTED after pick. "
+                    "Send vacuum_off then vacuum_on to retry."
+                )
+                self.get_logger().error(self._last_error)
+                return False
+
+            # Arm background vacuum monitor for transport (pick_sample turns
+            # vacuum on internally, but VacuumMonitor only tracks end_effector
+            # tasks — so we arm it explicitly here)
+            if vacuum_ok and self._current_gripper == "epick":
+                self._vacuum.armed = True
+                self._vacuum.lost = False
+
+        return success
+
+    def _call_place_sample(self, step: Dict[str, Any], poses_json: str) -> bool:
+        """Call the PlaceSample action server."""
+        settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
+        if settle_time > 0 and step.get("use_vision", True):
+            self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
+            time.sleep(settle_time)
+
+        gripper_type = step.get("gripper", self._current_gripper)
+        gripper_config = self._grippers.get(gripper_type, {})
+
+        goal = PlaceSampleAction.Goal()
+        goal.use_vision = step.get("use_vision", True)
+        goal.detection_type = step.get("detection_type", "marker")
+        goal.tag_id = int(step.get("tag_id", 0))
+        goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
+        goal.scan_pose = step.get("scan_pose", "")
+        goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
+        goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
+        goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
+        goal.offset_direction = step.get("offset_direction", "")
+        goal.offset_distance = float(step.get("offset_distance", 0.0))
+        goal.ik_frame = self._gripper_ik_frame()
+        goal.approach_pose = step.get("approach_pose", "")
+        goal.target_pose = step.get("target_pose", "")
+        goal.gripper_group = gripper_config.get("gripper_group", "")
+        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
+        goal.poses_json = poses_json
+        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
+
+        success = self._send_and_wait(
+            self._place_sample_client, goal, "place_sample",
+            self._timeouts["place_sample"]
+        )
+
+        if success and self._last_result is not None:
+            pos = list(getattr(self._last_result, 'detected_position', []))
+            ori = list(getattr(self._last_result, 'detected_orientation', []))
+            if len(pos) == 3:
+                self._last_detected_position = pos
+                self._last_detected_orientation = ori if len(ori) == 4 else None
+
+        # Disarm vacuum monitor (place_sample turns vacuum off internally)
+        if success and self._current_gripper == "epick":
+            self._vacuum.armed = False
+            self._vacuum.lost = False
+
+        return success
 
     def _call_pipettor(self, step: Dict[str, Any], poses_json: str) -> bool:
         """Call the Pipettor action server."""

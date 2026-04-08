@@ -38,10 +38,10 @@ class TestGroupIntoBatchesBasic:
         result = group_into_batches([_task("tool_exchange")])
         assert _types(result) == [("single", ["tool_exchange"])]
 
-    def test_single_pick_and_place(self):
-        """pick_and_place is not in BATCHABLE_TYPES — executes as single."""
-        result = group_into_batches([_task("pick_and_place")])
-        assert _types(result) == [("single", ["pick_and_place"])]
+    def test_single_pick_sample(self):
+        """pick_sample is a batch breaker — executes as single."""
+        result = group_into_batches([_task("pick_sample")])
+        assert _types(result) == [("single", ["pick_sample"])]
 
 
 # ---------------------------------------------------------------------------
@@ -113,7 +113,7 @@ class TestRealWorldSequences:
         assert result[0][0] == "batched"
         assert len(result[0][1]) == 9
 
-    def test_vision_pick_place_workflow(self):
+    def test_vision_pick_sample_workflow(self):
         """Move → scan → vision pick → move home."""
         tasks = [
             _task("moveto", target="scan_position"),

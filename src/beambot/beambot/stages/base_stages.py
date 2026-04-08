@@ -16,6 +16,7 @@ from std_msgs.msg import Header
 from moveit_msgs.msg import (
     Constraints, JointConstraint, OrientationConstraint, MoveItErrorCodes,
 )
+from moveit_msgs.srv import GetPositionIK
 from tf_transformations import quaternion_from_euler
 
 
@@ -102,10 +103,19 @@ DEFAULT_IK_FRAME = "flange"
 # node end up with the same name, causing the shared /rosout publisher to be
 # unregistered when either node is destroyed — silently breaking all /rosout
 # logging for the process.
+#
+# ROSOUT FIX: Disable rosout on the MTC rclcpp node entirely. On Humble,
+# rcl's rosout hashmap has no reference counting — when MTC's internal nodes
+# (Introspection, executor) are destroyed, they unregister the rosout publisher
+# for ALL same-named nodes, silently breaking /rosout logging for the rclpy
+# action server. With enable_rosout=False, the MTC node never touches the
+# hashmap, keeping the rclpy node's /rosout publisher intact. MoveIt C++
+# internal logs still go to stdout/stderr via rcutils.
 rclcpp.init()
 _options = rclcpp.NodeOptions()
 _options.automatically_declare_parameters_from_overrides = True
 _options.allow_undeclared_parameters = True
+_options.enable_rosout = False
 _options.arguments = [
     "--ros-args",
     "-r", "__node:=beambot_mtc",
@@ -301,7 +311,13 @@ class BaseStages:
         Returns:
             Configured MTC Task with robot model loaded and CurrentState added
         """
+        # MTC introspection publishes solutions to RViz's Motion Planning Tasks
+        # panel. Creates/destroys Introspection nodes that poison rcl's rosout
+        # hashmap on Humble (unfixed rcl bug since 2019, ros2/rcl#984). Effect:
+        # MTC C++ internal logs break after first task, but our rclpy-based logs
+        # (detection, IK, vacuum) are unaffected. Re-enabled for RViz visualization.
         task = core.Task()
+        task.enableIntrospection(True)
         task.name = name
         task.loadRobotModel(self._mtc_node)
 
@@ -500,6 +516,21 @@ class BaseStages:
                 f"Found {len(task.solutions)} solution(s), executing: {task.name}"
             )
 
+            # Log planned end-state joint angles for debugging IK issues
+            try:
+                sol = task.solutions[0]
+                sol_msg = sol.toMsg()
+                for i, sub in enumerate(sol_msg.sub_trajectory):
+                    traj = sub.trajectory.joint_trajectory
+                    if traj.joint_names and traj.points:
+                        import math
+                        last_pt = traj.points[-1]
+                        pairs = [(n, math.degrees(p)) for n, p in zip(traj.joint_names, last_pt.positions)]
+                        joint_str = ', '.join(f'{n}={v:.2f}' for n, v in pairs)
+                        self.logger.info(f"Planned [{i}]: {joint_str}")
+            except Exception as e:
+                self.logger.warn(f"Could not extract planned joints: {e}")
+
             # Execute returns MoveItErrorCodes
             result = task.execute(task.solutions[0])
 
@@ -641,4 +672,74 @@ class BaseStages:
         stage.group = gripper_group
         stage.setGoal(state_name)
         return stage
+
+    def compute_deterministic_ik(
+        self, approach: PoseStamped, ik_frame: str
+    ) -> Optional[Dict[str, float]]:
+        """Compute IK via /compute_ik service for a deterministic joint goal.
+
+        Uses a snapshot of the current joint positions as the seed, quantized
+        to 0.01° for reproducibility. Since /compute_ik runs a single KDL
+        attempt without random re-seeding, the result is deterministic for a
+        given seed+target pair. (#51)
+
+        Returns:
+            Joint dict {name: radians} for the arm group, or None on failure.
+        """
+        import rclpy
+        from sensor_msgs.msg import JointState as JointStateMsg
+
+        js_holder = [None]
+        js_sub = self.rclpy_node.create_subscription(
+            JointStateMsg, '/joint_states', lambda m: js_holder.__setitem__(0, m), 10)
+        for _ in range(20):
+            rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
+            if js_holder[0]:
+                break
+        self.rclpy_node.destroy_subscription(js_sub)
+
+        if not js_holder[0]:
+            self.logger.warn("No joint_states for IK seed")
+            return None
+
+        quantized = []
+        for p in js_holder[0].position:
+            deg = math.degrees(p)
+            deg_q = round(deg, 2)
+            quantized.append(math.radians(deg_q))
+
+        try:
+            ik_client = self.rclpy_node.create_client(GetPositionIK, '/compute_ik')
+            if not ik_client.wait_for_service(timeout_sec=2.0):
+                self.logger.warn("/compute_ik service not available")
+                return None
+
+            req = GetPositionIK.Request()
+            req.ik_request.group_name = self.arm_group
+            req.ik_request.ik_link_name = ik_frame
+            req.ik_request.robot_state.joint_state.name = list(js_holder[0].name)
+            req.ik_request.robot_state.joint_state.position = quantized
+            req.ik_request.pose_stamped = approach
+            req.ik_request.timeout.sec = 1
+
+            future = ik_client.call_async(req)
+            rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=5.0)
+            self.rclpy_node.destroy_client(ik_client)
+
+            result = future.result()
+            if result and result.error_code.val == 1:  # SUCCESS
+                joint_goal = {}
+                for name, pos in zip(result.solution.joint_state.name,
+                                     result.solution.joint_state.position):
+                    if name in DEFAULT_JOINT_NAMES:
+                        joint_goal[name] = pos
+                if len(joint_goal) == 6:
+                    return joint_goal
+
+            self.logger.warn(f"compute_ik failed: error_code={result.error_code.val if result else 'None'}")
+            return None
+
+        except Exception as e:
+            self.logger.warn(f"Deterministic IK error: {e}")
+            return None
 

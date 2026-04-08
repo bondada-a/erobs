@@ -28,10 +28,9 @@ install(PROGRAMS
   # Action servers (consolidated - main() is in each server file)
   beambot/action_servers/move_to_server.py
   beambot/action_servers/end_effector_server.py
-  beambot/action_servers/pick_place_server.py
+  beambot/action_servers/sample_server.py
   beambot/action_servers/tool_exchange_server.py
   beambot/action_servers/vision_server.py
-  beambot/action_servers/vision_pick_place_server.py
   beambot/action_servers/pipettor_server.py
   beambot/action_servers/orchestrator.py
   # Utility nodes

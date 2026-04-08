@@ -84,10 +84,13 @@ class MoveItLifecycleManager:
         """Z offset for the active suction cup profile (meters)."""
         return self._cup_z_offset
 
-    def _resolve_cup_profile(self, gripper_config: dict) -> Optional[dict]:
-        """Resolve suction cup dimensions from the cup profile in gripper config.
+    def _resolve_cup_profile(self, gripper_config: dict) -> Optional[str]:
+        """Validate cup profile and return the profile name.
 
-        Returns dict of cup dimensions, or None if no cup_profile specified.
+        Dimensions are resolved by xacro from suction_cups.yaml (single source of truth).
+        This method validates the profile exists and logs its description.
+
+        Returns profile name string, or None if no cup_profile specified.
         """
         profile_name = gripper_config.get("cup_profile")
         if not profile_name:
@@ -112,10 +115,10 @@ class MoveItLifecycleManager:
             self._logger.info(
                 f"Cup profile '{profile_name}': {profile.get('description', '')}"
             )
-            return profile
+            return profile_name
 
         except Exception as e:
-            self._logger.error(f"Failed to load cup profile '{profile_name}': {e}")
+            self._logger.error(f"Failed to validate cup profile '{profile_name}': {e}")
             return None
 
     def launch_moveit_with_gripper(self, gripper: str) -> bool:
@@ -152,18 +155,18 @@ class MoveItLifecycleManager:
 
         # Launch MoveIt subprocess
         try:
+            gripper_arg = config.get("gripper_arg", gripper)  # Fallback to gripper name
             cmd = [
                 "ros2", "launch", config["moveit_package"], "robot_bringup.launch.py",
                 f"robot_ip:={self._robot_ip}",
                 f"use_fake_hardware:={'true' if self._use_fake_hardware else 'false'}",
+                f"gripper:={gripper_arg}",
             ]
 
-            # Add suction cup dimensions if cup_profile is specified (ePick)
-            cup_dims = self._resolve_cup_profile(config)
-            if cup_dims:
-                for key, value in cup_dims.items():
-                    if key != "description":
-                        cmd.append(f"{key}:={value}")
+            # Add cup profile name if specified (ePick) — xacro resolves dimensions
+            cup_profile = self._resolve_cup_profile(config)
+            if cup_profile:
+                cmd.append(f"cup_profile:={cup_profile}")
 
             # z_offset lives in the gripper config (shared chain error, not per-cup)
             self._cup_z_offset = float(config.get("z_offset", 0.0))
@@ -234,6 +237,7 @@ class MoveItLifecycleManager:
         max_attempts = int(timeout_sec / poll_interval)
 
         for attempt in range(max_attempts):
+            client = None
             try:
                 # Create fresh client each attempt (avoids stale connections)
                 # Use callback group for proper threading with MultiThreadedExecutor
@@ -421,6 +425,13 @@ class MoveItLifecycleManager:
         Returns:
             True if successful, False on failure
         """
+        _ALLOWED_VOLTAGES = {0, 12, 24}
+        if int(voltage) not in _ALLOWED_VOLTAGES:
+            self._logger.error(
+                f"Invalid tool voltage {voltage}. Allowed: {_ALLOWED_VOLTAGES}"
+            )
+            return False
+
         if not self._robot_ip:
             self._logger.error("Robot IP not set")
             return False
@@ -432,7 +443,7 @@ class MoveItLifecycleManager:
             self._logger.info(f"Connecting to {self._robot_ip}:{self.UR_SECONDARY_PORT}")
             sock.connect((self._robot_ip, self.UR_SECONDARY_PORT))
 
-            cmd = f"set_tool_voltage({voltage})\n"
+            cmd = f"set_tool_voltage({int(voltage)})\n"
             sock.sendall(cmd.encode())
 
             sock.close()

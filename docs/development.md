@@ -23,9 +23,9 @@ Ophyd Device (ROS2 Action Client wrapper)
 MTCOrchestratorActionServer  ←────────────────  beambot-mcp-server / ros-mcp-server
          ↓
 Specialized Action Servers (8 types)
-    ├── move_to, pick_place, end_effector
-    ├── tool_exchange, vision_moveto, vision_scan
-    └── vision_pick_place, pipettor
+    ├── move_to, end_effector, tool_exchange
+    ├── vision_moveto, vision_scan
+    └── pick_sample, place_sample, pipettor
          ↓
 MoveIt Task Constructor (motion planning)
          ↓
@@ -122,23 +122,16 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 
 ## Design Decisions
 
-### PickPlaceAction Execution Mode
+### PickSample / PlaceSample Architecture (issue #47)
 
-**Decision**: Use single MTC task (all 9 stages together) as default instead of split tasks.
+**Decision**: Replace `pick_and_place` + `vision_pick_place` with unified `pick_sample` + `place_sample` actions (2026-04-06).
 
-**Context**: MTC has no native delay/wait stage. When gripper closes, the next motion can start before the gripper physically completes. We implemented two modes:
-
-1. `run()` - **DEFAULT**: All 9 stages in one MTC task
-   - Fastest execution, smoothest trajectory
-   - Gripper may still be closing when arm starts moving
-   - **Works fine in practice** - tested and grip/release complete in time
-
-2. `run_with_gripper_settle()` - Split into 3 MTC tasks
-   - Task 1: open → approach → pick → close
-   - Task 2: retreat → approach → place → open
-   - Task 3: retreat
-   - Planning time between tasks provides natural delay for gripper
-   - Use if gripper timing becomes an issue
+**Context**: The old `pick_and_place` was redundant with the batch planner, and `vision_pick_place` had the KDL jitter bug (#51) and no vacuum check. The new actions:
+- Use `use_vision` flag to unify hardcoded and vision modes in one action
+- Use deterministic IK (#51) to eliminate jitter in vision mode
+- Include vacuum status check after pick (retreat-then-check pattern)
+- Run as a dual action server (`sample_server.py`) following the `vision_server.py` pattern
+- Support contour detection via MCP's `detect_sample` → `marker_offset_x/y` parameters
 
 **To switch**: In `pick_place_server.py`, change `self._stages.run()` to `self._stages.run_with_gripper_settle()`
 

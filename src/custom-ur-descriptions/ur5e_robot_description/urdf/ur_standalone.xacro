@@ -51,7 +51,7 @@
    <xacro:arg name="mock_sensor_commands" default="false" />
 
    <!-- initial position for simulations -->
-   <xacro:arg name="initial_positions_file" default="$(find ur_standalone_moveit_config)/config/initial_positions.yaml"/>
+   <xacro:arg name="initial_positions_file" default="$(find ur5e_moveit_config)/config/none/initial_positions.yaml"/>
    <xacro:property name="initial_positions_file" default="$(arg initial_positions_file)"/>
 
    <!-- create link fixed to the "map" -->

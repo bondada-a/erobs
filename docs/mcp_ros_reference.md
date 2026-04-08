@@ -11,12 +11,13 @@ Detailed field reference for all beambot action interfaces. This document is the
 1. [Task JSON Structure](#1-task-json-structure)
 2. [moveto](#2-moveto)
 3. [end_effector](#3-end_effector)
-4. [pick_and_place](#4-pick_and_place)
-5. [tool_exchange](#5-tool_exchange)
-6. [vision_moveto](#6-vision_moveto)
-7. [vision_scan](#7-vision_scan)
-8. [vision_pick_place](#8-vision_pick_place)
+4. [pick_sample](#4-pick_sample)
+5. [place_sample](#5-place_sample)
+6. [tool_exchange](#6-tool_exchange)
+7. [vision_moveto](#7-vision_moveto)
+8. [vision_scan](#8-vision_scan)
 9. [pipettor](#9-pipettor)
+
 10. [Gripper Configuration](#10-gripper-configuration)
 11. [Timeouts](#11-timeouts)
 12. [Common Gotchas](#12-common-gotchas)
@@ -176,59 +177,121 @@ The orchestrator resolves the gripper type → looks up `gripper_group` from bea
 
 ---
 
-## 4. pick_and_place
+## 4. pick_sample
 
-Execute a complete 9-stage pick-and-place sequence in a single MTC task.
+Unified pick operation — supports hardcoded joint poses or vision-guided pickup with deterministic IK.
 
-**Action**: `/beambot_pickplace` (`beambot_interfaces/action/PickPlaceAction`)
+**Action**: `/beambot_pick_sample` (`beambot_interfaces/action/PickSampleAction`)
 **Timeout**: 180s
 
 ### Task JSON Fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `task_type` | string | — | Must be `"pick_and_place"` |
-| `pick_approach` | string | `""` | Pose key — approach pose before grasp |
-| `pick_target` | string | `""` | Pose key — grasp position |
-| `place_approach` | string | `""` | Pose key — approach pose before place |
-| `place_target` | string | `""` | Pose key — place position |
+| `task_type` | string | — | Must be `"pick_sample"` |
+| `use_vision` | bool | `true` | `true` = vision-guided, `false` = hardcoded poses |
+| `detection_type` | string | `"marker"` | `"marker"`, `"circle"`, or `"contour"` (vision mode) |
+| `tag_id` | int | `0` | ArUco marker ID (vision mode) |
+| `sample_index` | int | `1` | Sample number for contour detection (1-indexed) |
+| `z_offset` | float | config default | Height offset from detected point (meters) |
+| `scan_pose` | string | `""` | Pose key — scan/retreat position (vision mode) |
+| `marker_offset_x` | float | `0.0` | Marker-frame X offset (meters) |
+| `marker_offset_y` | float | `0.0` | Marker-frame Y offset (meters) |
+| `marker_offset_z` | float | `0.0` | Marker-frame Z offset (meters) |
+| `offset_direction` | string | `""` | Flange-frame direction (e.g. `"right"`) |
+| `offset_distance` | float | `0.0` | Distance for offset_direction (meters) |
+| `approach_pose` | string | `""` | Pose key — approach position (hardcoded mode) |
+| `target_pose` | string | `""` | Pose key — grasp target (hardcoded mode) |
 | `gripper` | string | current gripper | Gripper override |
+| `settle_time` | float | `1.0` | Seconds to wait for robot to settle (vision mode) |
 
-### 9-Stage Sequence
+### Execution Sequence (vision mode)
 
 ```
-1. open gripper
-2. move to pick_approach (joint)
-3. move to pick_target (cartesian)
-4. close gripper (grasp)
-5. retreat to pick_approach (cartesian)
-6. move to place_approach (joint)
-7. move to place_target (cartesian)
-8. open gripper (release)
-9. retreat to place_approach (cartesian)
+Task 1:  open gripper → move to scan_pose
+         [settle_time wait → detect marker → compute approach → deterministic IK]
+Task 2:  move to approach (PTP) → close gripper → retreat to scan_pose
+         [check vacuum status]
 ```
 
-### Example
+### Execution Sequence (hardcoded mode)
+
+```
+Single task: open → approach_pose → target_pose → close → retreat to approach_pose
+             [check vacuum status]
+```
+
+### Result Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `vacuum_ok` | bool | `true` if ePick reports object detected (or non-ePick gripper) |
+| `detected_position` | float[3] | `[x,y,z]` in base_link (vision mode only) |
+| `detected_orientation` | float[4] | `[x,y,z,w]` quaternion (vision mode only) |
+
+### Examples
 
 ```json
-{
-  "task_type": "pick_and_place",
-  "pick_approach": "vacuum_pickup_approach",
-  "pick_target": "vacuum_pickup",
-  "place_approach": "vacuum_place_approach",
-  "place_target": "vacuum_place"
-}
+// Vision pick with marker offsets (from MCP detect_sample)
+{"task_type": "pick_sample", "use_vision": true, "tag_id": 0,
+ "scan_pose": "sample_scan_1", "marker_offset_x": 0.02159,
+ "marker_offset_y": 0.00121, "z_offset": -0.001}
+
+// Vision pick at tag center
+{"task_type": "pick_sample", "use_vision": true, "tag_id": 30,
+ "scan_pose": "hotplate_scan", "offset_direction": "right",
+ "offset_distance": 0.0537, "z_offset": -0.001}
+
+// Hardcoded pick (joint poses)
+{"task_type": "pick_sample", "use_vision": false,
+ "approach_pose": "pickup_approach", "target_pose": "pickup"}
 ```
-
-All four pose keys must exist in the `poses` object.
-
-### How It Works
-
-The orchestrator resolves the gripper → injects `gripper_group` and `gripper_states_json` (e.g., `{"grasp": "hande_closed", "release": "hande_open"}`) from beamline config. The action server builds all 9 MTC stages in one task for smooth trajectory execution.
 
 ---
 
-## 5. tool_exchange
+## 5. place_sample
+
+Unified place operation — supports hardcoded joint poses or vision-guided placement with deterministic IK.
+
+**Action**: `/beambot_place_sample` (`beambot_interfaces/action/PlaceSampleAction`)
+**Timeout**: 180s
+
+### Task JSON Fields
+
+Same fields as `pick_sample` except:
+- No `sample_index` (contour detection not used for placement)
+- No `vacuum_ok` in result
+
+### Execution Sequence (vision mode)
+
+```
+Task 1:  move to scan_pose (NO gripper open — holding object)
+         [settle_time wait → detect marker → compute approach → deterministic IK]
+Task 2:  move to approach (PTP) → open gripper → retreat to scan_pose
+```
+
+### Execution Sequence (hardcoded mode)
+
+```
+Single task: approach_pose → target_pose → open → retreat to approach_pose
+```
+
+### Examples
+
+```json
+// Vision place on hotplate
+{"task_type": "place_sample", "use_vision": true, "tag_id": 30,
+ "scan_pose": "hotplate_scan", "offset_direction": "right",
+ "offset_distance": 0.0533, "z_offset": -0.001}
+
+// Hardcoded place
+{"task_type": "place_sample", "use_vision": false,
+ "approach_pose": "place_approach", "target_pose": "place"}
+```
+
+---
+
+## 6. tool_exchange
 
 Dock (detach) or load (attach) a gripper from/to the magnetic tool changer.
 
@@ -279,7 +342,7 @@ Dock (detach) or load (attach) a gripper from/to the magnetic tool changer.
 
 ---
 
-## 6. vision_moveto
+## 7. vision_moveto
 
 Move to a vision-detected target (ArUco marker, circle, or contour).
 
@@ -352,7 +415,7 @@ This reduces noise from single-capture detection errors.
 
 ---
 
-## 7. vision_scan
+## 8. vision_scan
 
 Batch-scan all visible markers from multiple positions and cache their poses.
 
@@ -403,66 +466,8 @@ Use `vision_scan` **before** a series of `vision_moveto` calls when:
 
 ---
 
-## 8. vision_pick_place
-
-Vision-guided pick with hardcoded place positions. Combines vision detection for the pick with pre-taught joint poses for the place.
-
-**Action**: `/beambot_vision_pickplace` (`beambot_interfaces/action/VisionPickPlaceAction`)
-**Timeout**: 180s
-
-### Task JSON Fields
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `task_type` | string | — | Must be `"vision_pick_place"` |
-| `detection_type` | string | `"marker"` | `"marker"` or `"circle"` |
-| `tag_id` | int | `0` | ArUco marker ID (for marker detection) |
-| `z_offset` | float | `0.02` | Height above detected point for grasp (meters) |
-| `sample_approach` | string | `""` | Pose key — scan/approach/retreat position |
-| `place_approach` | string | `""` | Pose key — approach before placing |
-| `place_target` | string | `""` | Pose key — place position |
-| `gripper` | string | current gripper | Gripper override |
-| `settle_time` | float | `5.0` | Seconds to wait for robot to settle before capture |
-
-### Example
-
-```json
-{
-  "task_type": "vision_pick_place",
-  "detection_type": "marker",
-  "tag_id": 5,
-  "sample_approach": "sample_approach",
-  "place_approach": "place_approach",
-  "place_target": "place"
-}
-```
-
-### Execution Sequence
-
-```
-1. open gripper
-2. move to sample_approach (joint)
-3. [settle_time wait]
-4. Zivid capture + detect target
-5. move to detected position + z_offset (cartesian)
-6. close gripper (grasp)
-7. retreat to sample_approach (cartesian)
-8. move to place_approach (joint)
-9. move to place_target (cartesian)
-10. open gripper (release)
-11. retreat to place_approach (cartesian)
-```
-
-### When to Use
-
-Use this instead of `pick_and_place` when:
-- The **pick location varies** (sample on a table, position not exact)
-- The **place location is fixed** (always the same holder/hotplate)
-- You need vision for the pick but not the place
-
----
-
 ## 9. pipettor
+
 
 Control the custom pipettor tool for liquid handling.
 
@@ -533,16 +538,19 @@ Gripper behavior is defined in the beamline config (`config/default_beamline.yam
 
 ### Available Grippers
 
-| Name | MoveIt Package | MoveIt Group | Grasp State | Release State |
-|------|---------------|--------------|-------------|---------------|
-| `none` | `ur_standalone_moveit_config` | (none) | — | — |
-| `hande` | `ur_zivid_hande_moveit_config` | `hande_gripper` | `hande_closed` | `hande_open` |
-| `epick` | `ur_zivid_epick_moveit_config` | `epick_gripper` | `vacuum_on` | `vacuum_off` |
-| `pipettor` | `ur_zivid_pipettor_moveit_config` | (none) | — | — |
+| Name | Gripper Arg | MoveIt Group | Grasp State | Release State |
+|------|------------|--------------|-------------|---------------|
+| `none` | `gripper:=none` | (none) | — | — |
+| `hande` | `gripper:=hande` | `hande_gripper` | `hande_closed` | `hande_open` |
+| `epick` | `gripper:=epick` | `epick_gripper` | `vacuum_on` | `vacuum_off` |
+| `2fg7` | `gripper:=2fg7` | `2fg7_gripper` | `2fg7_closed` | `2fg7_open` |
+| `pipettor` | `gripper:=pipettor` | (none) | — | — |
+
+All grippers use `ur5e_moveit_config` with the `gripper:=` launch argument.
 
 ### Gripper Auto-Resolution
 
-Tasks that need gripper info (`end_effector`, `pick_and_place`, `vision_pick_place`) automatically use the current gripper if not specified. The orchestrator:
+Tasks that need gripper info (`end_effector`, `pick_sample`, `place_sample`) automatically use the current gripper if not specified. The orchestrator:
 1. Starts with `start_gripper` from the task JSON
 2. Updates after each `tool_exchange` operation
 3. Injects `gripper_group` and `gripper_states_json` into action goals
@@ -576,11 +584,11 @@ Default timeouts (configurable via ROS parameters `timeout.<action_type>`):
 |-------------|----------------|---------------|
 | `moveto` | 120s | `timeout.moveto` |
 | `end_effector` | 30s | `timeout.end_effector` |
-| `pick_and_place` | 180s | `timeout.pick_and_place` |
+| `pick_sample` | 180s | `timeout.pick_sample` |
+| `place_sample` | 180s | `timeout.place_sample` |
 | `tool_exchange` | 180s | `timeout.tool_exchange` |
 | `vision_moveto` | 60s | `timeout.vision_moveto` |
 | `vision_scan` | 180s | `timeout.vision_scan` |
-| `vision_pick_place` | 180s | `timeout.vision_pick_place` |
 | `pipettor` | 60s | `timeout.pipettor` |
 
 Override at launch:
@@ -621,7 +629,7 @@ Relative move directions (`forward`, `backward`, etc.) are in the flange coordin
 The Zivid camera publishes one point cloud per trigger. MCP's `subscribe_once` has a QoS timing race and will miss the message. Use the orchestrator's vision tasks, or the `beambot-mcp-server`'s `capture_image` tool which handles subscription timing correctly.
 
 ### settle_time Matters for Vision Accuracy
-Robot vibrations after a move take ~0.5–2s to dampen. The `settle_time` field (default 1.0s for `vision_moveto`, 5.0s for `vision_pick_place`) adds a wait before Zivid capture. Reduce for speed, increase for accuracy.
+Robot vibrations after a move take ~0.5–2s to dampen. The `settle_time` field (default 1.0s for `vision_moveto`, `pick_sample`, `place_sample`) adds a wait before Zivid capture. Reduce for speed, increase for accuracy.
 
 ### Vision Scan Before Vision MoveTo
 For best accuracy with multiple samples, run `vision_scan` first to batch-detect and cache all marker poses, then use `vision_moveto` which will use cached poses instead of re-detecting.

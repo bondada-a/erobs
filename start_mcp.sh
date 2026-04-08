@@ -48,7 +48,7 @@ ros2 launch beambot beambot_bringup.launch.py "$@" 2>&1 | tee "$BEAMBOT_LOG" &
 BEAMBOT_PID=$!
 
 # Start rosbag recording for experiment data
-BAG_DIR="$SCRIPT_DIR/recorded_bags/beamline_experiments"
+BAG_DIR="$SCRIPT_DIR/recorded_bags/testing_2026-04-02"
 mkdir -p "$BAG_DIR"
 BAG_NAME="experiment_$(date +%Y-%m-%d_%H-%M-%S)"
 echo "Starting rosbag recording: $BAG_DIR/$BAG_NAME"
@@ -64,8 +64,22 @@ ros2 bag record \
     /beambot/execution_state \
     /object_detection_status \
     /rosout \
+    /beambot_execution/_action/send_goal \
+    /beambot_execution/_action/get_result \
+    /beambot_vision_moveto/_action/send_goal \
+    /beambot_vision_moveto/_action/get_result \
+    /beambot_vision_moveto/_action/feedback \
+    /beambot_moveto/_action/send_goal \
+    /beambot_moveto/_action/get_result \
+    /beambot_pick_sample/_action/send_goal \
+    /beambot_pick_sample/_action/get_result \
+    /beambot_pick_sample/_action/feedback \
+    /beambot_place_sample/_action/send_goal \
+    /beambot_place_sample/_action/get_result \
+    /beambot_place_sample/_action/feedback \
     -o "$BAG_DIR/$BAG_NAME" \
     --max-cache-size 0 \
+    --include-hidden-topics \
     &
 ROSBAG_PID=$!
 

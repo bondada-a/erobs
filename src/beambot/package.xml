@@ -30,6 +30,9 @@
   <!-- Vision -->
   <depend>zivid_interfaces</depend>
 
+  <!-- End effector feedback -->
+  <exec_depend>epick_msgs</exec_depend>
+
   <!-- Messages -->
   <depend>geometry_msgs</depend>
   <depend>shape_msgs</depend>

@@ -56,7 +56,7 @@
   <xacro:arg name="mock_hardware" default="true" />
 
   <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
-  <xacro:arg name="initial_positions_file" default="$(find ur_zivid_epick_moveit_config)/config/initial_positions.yaml"/>
+  <xacro:arg name="initial_positions_file" default="$(find ur5e_moveit_config)/config/epick/initial_positions.yaml"/>
   <xacro:property name="initial_positions_file" default="$(arg initial_positions_file)"/>
 
   <!-- create link fixed to the "map" -->
@@ -117,12 +117,27 @@
     zivid_model="ZIVID_2_PLUS_MR60"/>
 
   <!-- Tool block attached to the Zivid arm mount (not the camera) -->
-  <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.055" rpy="-1.5708 0 3.14159"/>
+  <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.049" rpy="-1.5708 0 3.14159"/>
+
+  <!-- Suction cup profile: dimensions loaded from suction_cups.yaml (single source of truth).
+       The cup_profile default MUST match the physically attached cup — the UR driver's
+       robot_state_publisher uses this default (it can't receive args from the orchestrator).
+       When changing cups, update this default AND default_beamline.yaml grippers.epick.cup_profile.
+       Available profiles: see epick_config/config/suction_cups.yaml -->
+  <xacro:property name="cups_yaml_path" value="$(find epick_config)/config/suction_cups.yaml"/>
+  <xacro:property name="cups_config" value="${xacro.load_yaml(cups_yaml_path)}"/>
+  <xacro:arg name="cup_profile" default="3mm_dia"/>
+  <xacro:property name="cup_profile_name" value="$(arg cup_profile)"/>
+  <xacro:property name="cup" value="${cups_config['cups'][cup_profile_name]}"/>
 
   <!-- Epick Gripper -->
-  <xacro:epick_overlay use_mock_hardware="false" parent="tool_block"
-                  origin_xyz="0 -0.02 0"
-                  origin_rpy="-1.5708 0 3.1416"/>
+  <xacro:epick_overlay use_mock_hardware="$(arg mock_hardware)" parent="tool_block"
+                  origin_xyz="0 -0.03235 0"
+                  origin_rpy="-1.5708 0 3.1416"
+                  extension_length="${cup['extension_length']}"
+                  extension_radius="${cup['extension_radius']}"
+                  suction_cup_height="${cup['suction_cup_height']}"
+                  suction_cup_radius="${cup['suction_cup_radius']}"/>
 </robot>
 
 

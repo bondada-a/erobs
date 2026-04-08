@@ -11,15 +11,14 @@ from typing import Dict, Any, List, Tuple
 
 # Task types that can be batched into a single MTC Task.
 # These support the add_to_task() pattern for stage composition.
-# Note: pick_and_place excluded -- it already batches 10 stages internally.
 BATCHABLE_TYPES = {"moveto", "end_effector"}
 
 # Task types that break batching (require runtime decisions or special handling).
 # - tool_exchange: Changes robot kinematics (requires MoveIt restart)
-# - vision_moveto/vision_pick_place: Require runtime marker detection
+# - vision_moveto/pick_sample/place_sample: Require runtime marker detection
 # - vision_scan: Batch scans all markers (robot moves during execution)
 # - pipettor: Uses separate action server (not MTC-based)
-BATCH_BREAKERS = {"tool_exchange", "vision_moveto", "vision_scan", "vision_pick_place", "pipettor"}
+BATCH_BREAKERS = {"tool_exchange", "vision_moveto", "vision_scan", "pick_sample", "place_sample", "pipettor"}
 
 
 def group_into_batches(

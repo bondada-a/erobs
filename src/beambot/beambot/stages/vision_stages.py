@@ -20,7 +20,7 @@ from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from moveit.task_constructor import stages
 from moveit_msgs.msg import CollisionObject, PlanningScene
-from moveit_msgs.srv import GetPlanningScene
+from moveit_msgs.srv import GetPlanningScene, GetPositionIK
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from shape_msgs.msg import SolidPrimitive
 from tf2_geometry_msgs import do_transform_pose_stamped
@@ -423,7 +423,7 @@ class VisionStages(BaseStages):
                     )
 
         # Compute the full approach pose (marker offset, z_offset, orientation)
-        approach, active_ik_frame = self._compute_approach_pose(
+        approach, active_ik_frame = self.compute_approach_pose(
             target_pose, z_offset_override,
             marker_offset_x=marker_offset_x,
             marker_offset_y=marker_offset_y,
@@ -1038,7 +1038,7 @@ class VisionStages(BaseStages):
         """Return default z_offset for a given IK frame name."""
         return cls._Z_OFFSETS.get(ik_frame, 0.0)
 
-    def _compute_approach_pose(
+    def compute_approach_pose(
         self,
         target: PoseStamped,
         z_offset_override: float = 0.0,
@@ -1147,9 +1147,9 @@ class VisionStages(BaseStages):
         approach.pose.orientation.w = q_approach[3]
 
         self.logger.info(
-            f"Approach pose: [{approach.pose.position.x:.3f}, "
-            f"{approach.pose.position.y:.3f}, {approach.pose.position.z:.3f}] "
-            f"yaw={math.degrees(approach_yaw):.1f}°, z_offset={active_z_offset:.3f}"
+            f"Approach pose: [{approach.pose.position.x:.6f}, "
+            f"{approach.pose.position.y:.6f}, {approach.pose.position.z:.6f}] "
+            f"yaw={math.degrees(approach_yaw):.4f}°, z_offset={active_z_offset:.3f}"
         )
 
         return approach, active_ik_frame
@@ -1217,6 +1217,8 @@ class VisionStages(BaseStages):
 
         return pose
 
+    # compute_deterministic_ik() is inherited from BaseStages (#55)
+
     def _move_to_approach(
         self, approach: PoseStamped, ik_frame: str = ""
     ) -> 'Optional[str]':
@@ -1235,19 +1237,87 @@ class VisionStages(BaseStages):
             detection = self._detect_current_gripper()
             ik_frame = detection.ik_frame
 
-        # Use MTC with Pilz LIN for collision-free straight-line approach
-        task = self.create_task_template("Vision Move")
-        planner = self.make_pilz_planner("LIN")
+        # Pre-compute IK for deterministic joint goal.
+        # KDL's IK has non-deterministic random re-seeding that causes ~1mm
+        # bimodal jitter when called through Pilz's trajectory generation.
+        # By computing IK once via /compute_ik (which is deterministic for a
+        # given seed) and sending the result as a joint goal, we bypass the
+        # non-determinism entirely. (#51)
+        joint_goal = self.compute_deterministic_ik(approach, ik_frame)
+        if joint_goal is None:
+            self.logger.warn("Deterministic IK failed, falling back to Cartesian goal")
+            # Fallback: use original Cartesian goal (may have ~1mm jitter)
+            task = self.create_task_template("Vision Move")
+            planner = self.make_pilz_planner("LIN")
+            stage = stages.MoveTo("move to tag", planner)
+            stage.group = self.arm_group
+            ik_frame_pose = PoseStamped()
+            ik_frame_pose.header.frame_id = ik_frame
+            stage.ik_frame = ik_frame_pose
+            stage.setGoal(approach)
+            task.add(stage)
+        else:
+            task = self.create_task_template("Vision Move")
+            planner = self.make_pilz_planner("PTP")
+            stage = stages.MoveTo("move to tag", planner)
+            stage.group = self.arm_group
+            self._set_ik_frame(stage)
+            stage.setGoal(joint_goal)
+            task.add(stage)
 
-        stage = stages.MoveTo("move to tag", planner)
-        stage.group = self.arm_group
-        ik_frame_pose = PoseStamped()
-        ik_frame_pose.header.frame_id = ik_frame
-        stage.ik_frame = ik_frame_pose
-        stage.setGoal(approach)
-        task.add(stage)
+        error = self.load_plan_execute(task)
 
-        return self.load_plan_execute(task)
+        # Diagnostic: log actual vs planned position after execution.
+        # Uses /joint_states subscription (one-shot) to get actual joint angles,
+        # then computes flange Z via TF (arm chain updates from joint_states
+        # faster than the full epick_tip chain).
+        if error is None and ik_frame:
+            try:
+                # Get actual joint positions via one-shot subscription
+                from sensor_msgs.msg import JointState
+                js_msg = [None]
+                def _on_js(msg):
+                    js_msg[0] = msg
+                js_sub = self.rclpy_node.create_subscription(
+                    JointState, '/joint_states', _on_js, 10)
+                for _ in range(20):
+                    rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
+                    if js_msg[0] is not None:
+                        break
+                self.rclpy_node.destroy_subscription(js_sub)
+
+                if js_msg[0] is not None:
+                    # Log actual joint angles (degrees) for rosbag analysis
+                    import math
+                    joints_deg = [math.degrees(p) for p in js_msg[0].position]
+                    joint_str = ', '.join(f'{j:.2f}' for j in joints_deg)
+                    self.logger.info(f"Post-move joints (deg): [{joint_str}]")
+
+                # Also get flange position from TF (arm chain, updates quickly)
+                for _ in range(10):
+                    rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
+                flange_tf = self._tf_buffer.lookup_transform(
+                    "base_link", "flange",
+                    rclpy.time.Time(),
+                    timeout=rclpy.duration.Duration(seconds=2.0)
+                )
+                fz = flange_tf.transform.translation.z * 1000  # mm
+                p = approach.pose.position
+                # Grip chain is 212.65mm along flange X which maps to -Z
+                # when robot points down. Tip Z ≈ flange Z - 212.65mm
+                tip_z_est = fz - 212.65
+                planned_z = p.z * 1000
+                delta_z = tip_z_est - planned_z
+                self.logger.info(
+                    f"Post-move check: flange_z={fz:.1f}mm, "
+                    f"tip_z_est={tip_z_est:.1f}mm, "
+                    f"planned_z={planned_z:.1f}mm, "
+                    f"delta_z={delta_z:.1f}mm"
+                )
+            except (TransformException, Exception) as e:
+                self.logger.warn(f"Post-move diagnostic failed: {e}")
+
+        return error
 
     def _move_to_pose(
         self,
@@ -1257,7 +1327,6 @@ class VisionStages(BaseStages):
         """Move robot to the target pose with orientation adjustment.
 
         Applies sample XY offset, 180° Z rotation, and z_offset for proper approach.
-        Used by vision_pick_place_stages.py.
 
         Args:
             target: Raw detected pose in base_link
@@ -1266,7 +1335,7 @@ class VisionStages(BaseStages):
         Returns:
             None if successful, error string describing failure otherwise
         """
-        approach, active_ik_frame = self._compute_approach_pose(target, z_offset_override)
+        approach, active_ik_frame = self.compute_approach_pose(target, z_offset_override)
         return self._move_to_approach(approach, ik_frame=active_ik_frame)
 
     def _detect_current_gripper(self) -> GripperDetection:
@@ -1275,29 +1344,14 @@ class VisionStages(BaseStages):
         Returns:
             GripperDetection with ik_frame and z_offset
         """
-        # Check for ePick gripper
-        if self._tf_buffer.can_transform(
-            "base", "epick_tip",
-            rclpy.time.Time(),
-            timeout=rclpy.duration.Duration(seconds=1.0)
-        ):
-            return GripperDetection("epick_tip", 0.003)
-
-        # Check for Hand-E gripper
-        if self._tf_buffer.can_transform(
-            "base", "robotiq_hande_end",
-            rclpy.time.Time(),
-            timeout=rclpy.duration.Duration(seconds=1.0)
-        ):
-            return GripperDetection("robotiq_hande_end", -0.02)
-
-        # Check for Pipettor
-        if self._tf_buffer.can_transform(
-            "base", "pipette_tip_link",
-            rclpy.time.Time(),
-            timeout=rclpy.duration.Duration(seconds=1.0)
-        ):
-            return GripperDetection("pipette_tip_link", 0.0)
+        # Check for known gripper tip frames in TF
+        for frame in ("epick_tip", "robotiq_hande_end", "pipette_tip_link"):
+            if self._tf_buffer.can_transform(
+                "base_link", frame,
+                rclpy.time.Time(),
+                timeout=rclpy.duration.Duration(seconds=1.0)
+            ):
+                return GripperDetection(frame, self._z_offset_for_frame(frame))
 
         # Default to flange
         self.logger.info("No gripper detected, using flange")

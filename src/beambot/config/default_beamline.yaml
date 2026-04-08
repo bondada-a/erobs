@@ -12,25 +12,31 @@ robot:
 
 grippers:
   none:
-    moveit_package: "ur_standalone_moveit_config"
+    moveit_package: "ur5e_moveit_config"
+    gripper_arg: "none"            # Passed as gripper:= to launch file
     tool_voltage: 0
     gripper_group: ""              # No gripper group
+    controller_name: ""            # No gripper controller
     states: {}                     # No states
 
   hande:
-    moveit_package: "ur_zivid_hande_moveit_config"
+    moveit_package: "ur5e_moveit_config"
+    gripper_arg: "hande"
     tool_voltage: 24
     dock_number: 3
     gripper_group: "hande_gripper"
+    controller_name: "gripper_action_controller"
     states:
       grasp: "hande_closed"
       release: "hande_open"
 
   epick:
-    moveit_package: "ur_zivid_epick_moveit_config"
+    moveit_package: "ur5e_moveit_config"
+    gripper_arg: "epick"
     tool_voltage: 24
     dock_number: 4
     gripper_group: "epick_gripper"
+    controller_name: "epick_gripper_action_controller"
     cup_profile: "3mm_dia"
     z_offset: 0.0
     states:
@@ -38,20 +44,24 @@ grippers:
       release: "vacuum_off"
 
   2fg7:
-    moveit_package: "ur_zivid_2fg7_moveit_config"
+    moveit_package: "ur5e_moveit_config"
+    gripper_arg: "2fg7"
     tool_voltage: 24
     tool_baud_rate: 1000000
     tool_parity: 2                 # Even parity (0=none, 1=odd, 2=even)
     gripper_group: "2fg7_gripper"
+    controller_name: "gripper_action_controller"
     states:
       grasp: "2fg7_closed"
       release: "2fg7_open"
 
   pipettor:
-    moveit_package: "ur_zivid_pipettor_moveit_config"
+    moveit_package: "ur5e_moveit_config"
+    gripper_arg: "pipettor"
     tool_voltage: 24
     dock_number: 2
     gripper_group: ""              # Pipettor has no gripper group
+    controller_name: ""            # External driver, no ros2_control
     states: {}                     # No states
 
 # Vision camera configuration

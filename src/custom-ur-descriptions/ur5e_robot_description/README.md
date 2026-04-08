@@ -194,18 +194,14 @@ source install/setup.bash
 ### Viewing in RViz (after creating moveit_config)
 
 ```bash
-# Launch with specific configuration
-ros2 launch ur_standalone_moveit_config robot_bringup.launch.py
-ros2 launch ur_zivid_hande_moveit_config robot_bringup.launch.py
-ros2 launch ur_zivid_epick_moveit_config robot_bringup.launch.py
-ros2 launch ur_zivid_pipettor_moveit_config robot_bringup.launch.py
+# Launch with specific gripper configuration
+ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=none          # standalone
+ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=epick         # ePick vacuum
+ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=hande         # Hand-E
+ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=pipettor      # pipettor
+ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=2fg7          # OnRobot 2FG7
 ```
 
 ### Integration with MoveIt
 
-This package is designed to work with the corresponding MoveIt configuration packages:
-
-- `ur_standalone_moveit_config`
-- `ur_zivid_hande_moveit_config`
-- `ur_zivid_epick_moveit_config`
-- `ur_zivid_pipettor_moveit_config`
+This package is designed to work with the unified MoveIt configuration package `ur5e_moveit_config`, which supports all grippers via the `gripper:=` launch argument.

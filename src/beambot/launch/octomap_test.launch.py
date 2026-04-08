@@ -26,10 +26,19 @@ Data flow:
 """
 
 from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 
 
 def generate_launch_description():
+    # Launch argument: path to saved octomap (empty = start fresh)
+    declare_octomap_path = DeclareLaunchArgument(
+        'octomap_path',
+        default_value='',
+        description='Path to saved .bt octomap file. Empty = start with empty map.'
+    )
+
     # Voxel downsampling relay - reduces ~5M points to ~10k for octomap
     pointcloud_relay = Node(
         package='beambot',
@@ -63,6 +72,7 @@ def generate_launch_description():
             'base_frame_id': 'base_link',
             'latch': False,  # Don't latch (we want fresh data)
             'transform_tolerance': 5.0,  # TF timing slack for Zivid capture
+            'octomap_path': LaunchConfiguration('octomap_path'),
             # Visualization settings
             'use_height_map': True,  # Color by height (red=low, blue=high)
             'publish_free_space': False,  # Don't show free space (green) voxels
@@ -90,6 +100,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        declare_octomap_path,
         pointcloud_relay,
         octomap_server,
         octomap_to_planning_scene,

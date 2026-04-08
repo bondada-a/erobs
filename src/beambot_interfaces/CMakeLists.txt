@@ -14,10 +14,10 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "action/MTCExecution.action"
   "action/MoveToAction.action"
   "action/EndEffectorAction.action"
-  "action/PickPlaceAction.action"
+  "action/PickSampleAction.action"
+  "action/PlaceSampleAction.action"
   "action/ToolExchangeAction.action"
   "action/VisionMoveToAction.action"
-  "action/VisionPickPlaceAction.action"
   "action/VisionScanAction.action"
   "action/PipettorAction.action"
   DEPENDENCIES geometry_msgs std_msgs

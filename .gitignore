@@ -122,3 +122,11 @@ frames_*.gv
 *.db3
 src/moveit_task_constructor/
 yolov8n.pt
+
+# OMC / Claude Code state
+.claude/*.backup*
+state/
+**/.omc/
+
+# Training data (large files)
+src/beambot/data/spincoater_training/
