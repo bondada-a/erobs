@@ -529,7 +529,7 @@ class BaseStages:
                         joint_str = ', '.join(f'{n}={v:.2f}' for n, v in pairs)
                         self.logger.info(f"Planned [{i}]: {joint_str}")
             except Exception as e:
-                self.logger.warn(f"Could not extract planned joints: {e}")
+                self.logger.warning(f"Could not extract planned joints: {e}")
 
             # Execute returns MoveItErrorCodes
             result = task.execute(task.solutions[0])
@@ -699,7 +699,7 @@ class BaseStages:
         self.rclpy_node.destroy_subscription(js_sub)
 
         if not js_holder[0]:
-            self.logger.warn("No joint_states for IK seed")
+            self.logger.warning("No joint_states for IK seed")
             return None
 
         quantized = []
@@ -711,7 +711,7 @@ class BaseStages:
         try:
             ik_client = self.rclpy_node.create_client(GetPositionIK, '/compute_ik')
             if not ik_client.wait_for_service(timeout_sec=2.0):
-                self.logger.warn("/compute_ik service not available")
+                self.logger.warning("/compute_ik service not available")
                 return None
 
             req = GetPositionIK.Request()
@@ -736,10 +736,10 @@ class BaseStages:
                 if len(joint_goal) == 6:
                     return joint_goal
 
-            self.logger.warn(f"compute_ik failed: error_code={result.error_code.val if result else 'None'}")
+            self.logger.warning(f"compute_ik failed: error_code={result.error_code.val if result else 'None'}")
             return None
 
         except Exception as e:
-            self.logger.warn(f"Deterministic IK error: {e}")
+            self.logger.warning(f"Deterministic IK error: {e}")
             return None
 

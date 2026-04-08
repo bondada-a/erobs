@@ -1245,7 +1245,7 @@ class VisionStages(BaseStages):
         # non-determinism entirely. (#51)
         joint_goal = self.compute_deterministic_ik(approach, ik_frame)
         if joint_goal is None:
-            self.logger.warn("Deterministic IK failed, falling back to Cartesian goal")
+            self.logger.warning("Deterministic IK failed, falling back to Cartesian goal")
             # Fallback: use original Cartesian goal (may have ~1mm jitter)
             task = self.create_task_template("Vision Move")
             planner = self.make_pilz_planner("LIN")
@@ -1315,7 +1315,7 @@ class VisionStages(BaseStages):
                     f"delta_z={delta_z:.1f}mm"
                 )
             except (TransformException, Exception) as e:
-                self.logger.warn(f"Post-move diagnostic failed: {e}")
+                self.logger.warning(f"Post-move diagnostic failed: {e}")
 
         return error
 

@@ -2,7 +2,7 @@
 
 Usage:
     ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=epick
-    ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=hande use_fake_hardware:=true
+    ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=hande use_mock_hardware:=true
 
 Supported grippers: none, epick, hande, 2fg7, pipettor
 
@@ -105,7 +105,7 @@ def launch_setup(context, *args, **kwargs):
     gripper = LaunchConfiguration("gripper").perform(context)
     robot_ip = LaunchConfiguration("robot_ip").perform(context)
     ur_type = LaunchConfiguration("ur_type").perform(context)
-    use_fake_hardware = LaunchConfiguration("use_fake_hardware").perform(context)
+    use_mock_hardware = LaunchConfiguration("use_mock_hardware").perform(context)
 
     if gripper not in GRIPPER_CONFIGS:
         raise ValueError(
@@ -134,7 +134,7 @@ def launch_setup(context, *args, **kwargs):
     ur_launch_args = {
         "ur_type": ur_type,
         "robot_ip": robot_ip,
-        "use_fake_hardware": use_fake_hardware,
+        "use_mock_hardware": use_mock_hardware,
         "launch_rviz": "false",
         "description_package": "ur_description",
         "description_file": os.path.join(desc_share, "urdf", config["urdf"]),
@@ -297,7 +297,7 @@ def launch_setup(context, *args, **kwargs):
                         "serial_port": "/tmp/ttyUR",
                         "slave_id": 65,
                         "baudrate": 1000000,
-                        "use_fake_hardware": use_fake_hardware,
+                        "use_fake_hardware": use_mock_hardware,
                     }],
                 ),
             ],
@@ -313,7 +313,7 @@ def launch_setup(context, *args, **kwargs):
                     output="screen",
                     parameters=[
                         {"serial_port": "/tmp/ttyUR"},
-                        {"use_fake_hardware": use_fake_hardware},
+                        {"use_fake_hardware": use_mock_hardware},
                     ],
                 ),
             ],
@@ -336,7 +336,7 @@ def generate_launch_description():
             "ur_type", default_value="ur5e",
         ),
         DeclareLaunchArgument(
-            "use_fake_hardware", default_value="false",
+            "use_mock_hardware", default_value="false",
         ),
         # ePick cup profile (only used when gripper:=epick).
         # Profile name resolves to dimensions via suction_cups.yaml in the xacro.

@@ -291,7 +291,7 @@ class PickSampleStages(BaseStages):
         NO_OBJECT = 3
         detected = msg_holder[0].status != NO_OBJECT
         if not detected:
-            self.logger.warn(
+            self.logger.warning(
                 "VACUUM_LOST: ePick reports NO_OBJECT_DETECTED after pick"
             )
         return detected

@@ -45,7 +45,7 @@ class VacuumMonitor:
         self.status = int(msg.status)
         if self.armed and self.status == _NO_OBJECT:
             self.lost = True
-            self._logger.warn(
+            self._logger.warning(
                 "VACUUM_LOST: object detection status changed to NO_OBJECT_DETECTED "
                 "while vacuum is active"
             )
@@ -70,7 +70,7 @@ class VacuumMonitor:
                 self._logger.info("Vacuum monitor ARMED (vacuum_on detected)")
                 if self.status == _NO_OBJECT:
                     self.lost = True
-                    self._logger.warn(
+                    self._logger.warning(
                         "VACUUM_LOST: no seal detected immediately after vacuum_on"
                     )
             elif action == release_state:

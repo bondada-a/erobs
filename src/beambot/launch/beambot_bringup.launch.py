@@ -13,7 +13,7 @@ Usage:
     ros2 launch beambot beambot_bringup.launch.py
     ros2 launch beambot beambot_bringup.launch.py enable_vision:=false
     ros2 launch beambot beambot_bringup.launch.py beamline_config:=config/ur3e_beamline.yaml
-    ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true
+    ros2 launch beambot beambot_bringup.launch.py use_mock_hardware:=true
 """
 
 from launch import LaunchDescription
@@ -55,8 +55,8 @@ def generate_launch_description():
         description='Enable pipettor server'
     )
 
-    declare_use_fake_hardware = DeclareLaunchArgument(
-        'use_fake_hardware',
+    declare_use_mock_hardware = DeclareLaunchArgument(
+        'use_mock_hardware',
         default_value='false',
         description='Use fake hardware (simulation mode, no real robot)'
     )
@@ -69,7 +69,7 @@ def generate_launch_description():
 
     enable_vision = LaunchConfiguration('enable_vision')
     enable_pipettor = LaunchConfiguration('enable_pipettor')
-    use_fake_hardware = LaunchConfiguration('use_fake_hardware')
+    use_mock_hardware = LaunchConfiguration('use_mock_hardware')
     enable_batching = LaunchConfiguration('enable_batching')
 
     # Resolve beamline config path (relative to beambot package)
@@ -193,7 +193,7 @@ def generate_launch_description():
         output='screen',
         parameters=action_server_parameters + [
             {'beamline_config': beamline_config_path},
-            {'use_fake_hardware': use_fake_hardware},
+            {'use_mock_hardware': use_mock_hardware},
             {'enable_batching': enable_batching},
         ],
         arguments=ompl_args,
@@ -204,7 +204,7 @@ def generate_launch_description():
         declare_beamline_config,
         declare_enable_vision,
         declare_enable_pipettor,
-        declare_use_fake_hardware,
+        declare_use_mock_hardware,
         declare_enable_batching,
         # Core servers (always launched)
         move_to_server,

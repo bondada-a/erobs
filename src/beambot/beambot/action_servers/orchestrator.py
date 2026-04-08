@@ -89,12 +89,12 @@ class MTCOrchestratorServer(Node):
 
         # Load beamline configuration (single source of truth)
         self.declare_parameter("beamline_config", "config/default_beamline.yaml")
-        self.declare_parameter("use_fake_hardware", False)
+        self.declare_parameter("use_mock_hardware", False)
         self.declare_parameter("enable_batching", True)
         self.declare_parameter("cup_profile", "")  # Override cup profile (empty = use beamline config default)
 
         config_file = self.get_parameter("beamline_config").value
-        self._use_fake_hardware = self.get_parameter("use_fake_hardware").value
+        self._use_mock_hardware = self.get_parameter("use_mock_hardware").value
         self._enable_batching = self.get_parameter("enable_batching").value
 
         with open(config_file, 'r') as f:
@@ -104,7 +104,7 @@ class MTCOrchestratorServer(Node):
         self._robot_ip = config["robot"]["ip"]  # Single source: config file
         self._arm_group = config.get("robot", {}).get("arm_group", "ur_manipulator")  # For batched execution
         self.get_logger().info(f"Loaded beamline: {config['beamline']} (robot: {self._robot_ip})")
-        if self._use_fake_hardware:
+        if self._use_mock_hardware:
             self.get_logger().info("Using FAKE HARDWARE (simulation mode)")
         if not self._enable_batching:
             self.get_logger().info("Batching DISABLED - each task executes via action server")
@@ -124,7 +124,7 @@ class MTCOrchestratorServer(Node):
         # MoveIt lifecycle manager - launches MoveIt based on gripper config
         self._moveit_manager = MoveItLifecycleManager(
             self, self._grippers, self._robot_ip, self._callback_group,
-            use_fake_hardware=self._use_fake_hardware
+            use_mock_hardware=self._use_mock_hardware
         )
 
         # Create action server
@@ -956,7 +956,7 @@ class MTCOrchestratorServer(Node):
         # Quick Changer releases (de-energizes the lock).
         # Uses the UR driver's set_io service (doesn't stop external_control,
         # unlike the raw socket approach via secondary interface).
-        if operation == "dock" and not self._use_fake_hardware:
+        if operation == "dock" and not self._use_mock_hardware:
             self.get_logger().info("Setting tool voltage to 0V for dock (QC release)")
             self._set_tool_voltage_via_io(0)
             time.sleep(0.5)  # Wait for QC to release
@@ -1004,7 +1004,7 @@ class MTCOrchestratorServer(Node):
             self._reset_vision_tf()
 
             # Restore tool voltage for the new gripper (dock sets it to 0V)
-            if operation == "load" and not self._use_fake_hardware:
+            if operation == "load" and not self._use_mock_hardware:
                 tool_voltage = self._grippers.get(new_gripper, {}).get("tool_voltage", 0)
                 if tool_voltage > 0:
                     self.get_logger().info(
