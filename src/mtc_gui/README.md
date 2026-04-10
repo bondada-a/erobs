@@ -1,73 +1,38 @@
-# MTC GUI Package
+# MTC GUI
 
-A dedicated package for the MoveIt Task Constructor (MTC) graphical user interface components.
+PyQt5-based GUI for creating and executing robot tasks via the beambot orchestrator.
 
-## Overview
+## Modules
 
-This package contains all the GUI-related code for the MTC pipeline, providing a clean separation of concerns and better organization of the codebase.
-
-## Components
-
-### Core GUI Client
-- **`mtc_gui_client.py`** - Main GUI application for creating and executing MTC tasks
-- **`pose_editor.py`** - Dialog for editing individual robot poses
-- **`poses_manager.py`** - Dialog for managing collections of robot poses
-- **`test_gui_components.py`** - Test script for GUI components
-
-### Launch Files
-- **`mtc_gui_client.launch.py`** - Launch file for starting the GUI client
-
-## Features
-
-- **Visual Task Builder** - Create robot task sequences through a graphical interface
-- **Pose Management** - Edit and manage robot poses with a visual editor
-- **Real-time Execution** - Monitor task execution with live feedback
-- **Configuration Validation** - Validate task configurations before execution
-- **JSON Import/Export** - Load and save task configurations
-
-## Dependencies
-
-- `beambot` - Core MTC functionality
-- `rclpy` - ROS2 Python client library
-- `python3-tkinter` - GUI framework
+| File | Purpose |
+|------|---------|
+| `main.py` | Entry point, dark theme setup |
+| `main_window.py` | QMainWindow — task tree, toolbar, splitter layout |
+| `ros2_bridge.py` | ROS2 node with pyqtSignal bridge for thread-safe updates |
+| `task_forms.py` | 8 task type dialogs (moveto, pick/place sample, tool exchange, etc.) |
+| `camera_panel.py` | Camera display with ArUco marker and contour overlays |
+| `chat_panel.py` | LLM chat panel with message bubbles |
+| `agent_bridge.py` | Async bridge connecting RobotAgent to Qt event loop |
+| `pose_dialogs.py` | Pose editor, manager, and save dialogs |
 
 ## Usage
 
-### Launch the GUI
 ```bash
+# Via launch file
 ros2 launch mtc_gui mtc_gui_client.launch.py
+
+# Direct
+ros2 run mtc_gui mtc_gui_client
 ```
 
-### Run GUI directly
-```bash
-ros2 run mtc_gui mtc_gui_client.py
-```
+## Dependencies
 
-### Test components
-```bash
-ros2 run mtc_gui test_gui_components.py
-```
-
-## Architecture
-
-The GUI package is designed to be independent of the core MTC functionality:
-
-1. **Separation of Concerns** - GUI logic is separate from MTC execution logic
-2. **Modular Design** - Each component (pose editor, poses manager) is self-contained
-3. **Clean Interface** - Communicates with MTC pipeline through well-defined interfaces
-4. **Easy Testing** - Components can be tested independently
+- `python3-pyqt5`
+- `rclpy`
+- `beambot` (action servers, agent)
 
 ## Building
 
 ```bash
 colcon build --packages-select mtc_gui
 ```
-
-## Integration
-
-This package integrates with the `beambot` package by:
-- Using the MTC action server for task execution
-- Calling MTC executables for task processing
-- Sharing configuration formats (JSON)
-- Providing a user-friendly interface to MTC capabilities
-
