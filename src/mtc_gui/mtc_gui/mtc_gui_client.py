@@ -131,7 +131,7 @@ class MTCGUIClient:
         ttk.Label(config_frame, text="Start Gripper:").grid(row=0, column=2, sticky="w", padx=(20, 10))
         self.start_gripper_var = tk.StringVar(value="epick")
         gripper_combo = ttk.Combobox(config_frame, textvariable=self.start_gripper_var,
-                                    values=["epick", "hande", "pipettor", "none"], width=10)
+                                    values=["epick", "hande", "2fg7", "pipettor", "none"], width=10)
         gripper_combo.grid(row=0, column=3, sticky="w")
         
         # Test Connection Button
@@ -163,19 +163,25 @@ class MTCGUIClient:
         toolbar_row1 = ttk.Frame(toolbar)
         toolbar_row1.pack(fill="x", pady=(0, 5))
         ttk.Button(toolbar_row1, text="Add MoveTo", command=lambda: self.add_task_step("moveto")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar_row1, text="Add Pick&Place", command=lambda: self.add_task_step("pick_and_place")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row1, text="Add Pick", command=lambda: self.add_task_step("pick_sample")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row1, text="Add Place", command=lambda: self.add_task_step("place_sample")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar_row1, text="Add Tool Exchange", command=lambda: self.add_task_step("tool_exchange")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar_row1, text="Add End Effector", command=lambda: self.add_task_step("end_effector")).pack(side="left", padx=(0, 5))
 
         # Second row of buttons
         toolbar_row2 = ttk.Frame(toolbar)
-        toolbar_row2.pack(fill="x")
+        toolbar_row2.pack(fill="x", pady=(0, 5))
         ttk.Button(toolbar_row2, text="Add Vision MoveTo", command=lambda: self.add_task_step("vision_moveto")).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row2, text="Add Vision Scan", command=lambda: self.add_task_step("vision_scan")).pack(side="left", padx=(0, 5))
         ttk.Button(toolbar_row2, text="Add Pipettor", command=lambda: self.add_task_step("pipettor")).pack(side="left", padx=(0, 5))
-        ttk.Button(toolbar_row2, text="Remove Step", command=self.remove_task_step).pack(side="left", padx=(20, 0))
-        ttk.Button(toolbar_row2, text="Clear All", command=self.clear_all_tasks).pack(side="left", padx=(5, 0))
-        ttk.Button(toolbar_row2, text="↑ Move Up", command=self.move_task_up).pack(side="left", padx=(20, 0))
-        ttk.Button(toolbar_row2, text="↓ Move Down", command=self.move_task_down).pack(side="left", padx=(5, 0))
+
+        # Third row - editing controls
+        toolbar_row3 = ttk.Frame(toolbar)
+        toolbar_row3.pack(fill="x")
+        ttk.Button(toolbar_row3, text="Remove Step", command=self.remove_task_step).pack(side="left", padx=(0, 5))
+        ttk.Button(toolbar_row3, text="Clear All", command=self.clear_all_tasks).pack(side="left", padx=(5, 0))
+        ttk.Button(toolbar_row3, text="↑ Move Up", command=self.move_task_up).pack(side="left", padx=(20, 0))
+        ttk.Button(toolbar_row3, text="↓ Move Down", command=self.move_task_down).pack(side="left", padx=(5, 0))
         
         # Task sequence tree
         self.task_tree = ttk.Treeview(editor_frame, columns=("Action", "Details"), show="tree headings")
@@ -342,14 +348,30 @@ class MTCGUIClient:
                 "target": "moveit_home",
                 "planning_type": "joint"
             }
-        elif action_type == "pick_and_place":
+        elif action_type == "pick_sample":
             step = {
-                "task_type": "pick_and_place",
-                "gripper": "epick",
-                "pick_approach": "pickup_approach",
-                "pick_target": "pickup",
-                "place_approach": "place_approach",
-                "place_target": "place"
+                "task_type": "pick_sample",
+                "use_vision": True,
+                "detection_type": "marker",
+                "tag_id": 0,
+                "scan_pose": "",
+                "z_offset": 0.0,
+            }
+        elif action_type == "place_sample":
+            step = {
+                "task_type": "place_sample",
+                "use_vision": True,
+                "detection_type": "marker",
+                "tag_id": 0,
+                "scan_pose": "",
+                "z_offset": 0.0,
+            }
+        elif action_type == "vision_scan":
+            step = {
+                "task_type": "vision_scan",
+                "scan_positions": [],
+                "scans_per_position": 3,
+                "timeout": 10.0,
             }
         elif action_type == "tool_exchange":
             step = {
@@ -505,11 +527,15 @@ class MTCGUIClient:
         dialog = tk.Toplevel(self.root)
         dialog.title(f"Edit Step {step_index + 1}")
 
-        # Larger dialog for pipettor due to LED controls
+        # Dialog sizes per task type
         if step["task_type"] == "pipettor":
             dialog.geometry("550x900")
-        elif step["task_type"] == "vision_moveto":
-            dialog.geometry("500x700")  # Taller for detection type options
+        elif step["task_type"] in ("vision_moveto", "pick_sample", "place_sample"):
+            dialog.geometry("550x950")
+        elif step["task_type"] == "vision_scan":
+            dialog.geometry("500x500")
+        elif step["task_type"] == "moveto":
+            dialog.geometry("500x750")
         else:
             dialog.geometry("500x600")
 
@@ -522,8 +548,12 @@ class MTCGUIClient:
         # Create form fields based on step type
         if step["task_type"] == "moveto":
             self.create_moveto_edit_form(dialog, step, step_index)
-        elif step["task_type"] == "pick_and_place":
-            self.create_pickplace_edit_form(dialog, step, step_index)
+        elif step["task_type"] == "pick_sample":
+            self.create_sample_edit_form(dialog, step, step_index, mode="pick")
+        elif step["task_type"] == "place_sample":
+            self.create_sample_edit_form(dialog, step, step_index, mode="place")
+        elif step["task_type"] == "vision_scan":
+            self.create_vision_scan_edit_form(dialog, step, step_index)
         elif step["task_type"] == "tool_exchange":
             self.create_toolexchange_edit_form(dialog, step, step_index)
         elif step["task_type"] == "end_effector":
@@ -576,6 +606,47 @@ class MTCGUIClient:
         ttk.Label(dialog, text="Note: If direction is set, target is ignored",
                 font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
 
+        # Cartesian Target (optional)
+        ttk.Separator(dialog, orient='horizontal').pack(fill='x', padx=20, pady=10)
+        ttk.Label(dialog, text="Cartesian Target (Optional)", font=("Arial", 10, "bold")).pack(pady=5)
+
+        cart_frame = ttk.Frame(dialog)
+        cart_frame.pack(padx=20, fill="x")
+
+        existing_cart = step.get("cartesian_target", [])
+
+        pos_row = ttk.Frame(cart_frame)
+        pos_row.pack(fill="x", pady=(0, 5))
+        ttk.Label(pos_row, text="X:").pack(side="left")
+        cart_x_var = tk.StringVar(value=str(existing_cart[0]) if len(existing_cart) >= 1 else "")
+        ttk.Entry(pos_row, textvariable=cart_x_var, width=8).pack(side="left", padx=(0, 5))
+        ttk.Label(pos_row, text="Y:").pack(side="left")
+        cart_y_var = tk.StringVar(value=str(existing_cart[1]) if len(existing_cart) >= 2 else "")
+        ttk.Entry(pos_row, textvariable=cart_y_var, width=8).pack(side="left", padx=(0, 5))
+        ttk.Label(pos_row, text="Z:").pack(side="left")
+        cart_z_var = tk.StringVar(value=str(existing_cart[2]) if len(existing_cart) >= 3 else "")
+        ttk.Entry(pos_row, textvariable=cart_z_var, width=8).pack(side="left")
+
+        rot_row = ttk.Frame(cart_frame)
+        rot_row.pack(fill="x", pady=(0, 5))
+        ttk.Label(rot_row, text="R:").pack(side="left")
+        cart_r_var = tk.StringVar(value=str(existing_cart[3]) if len(existing_cart) >= 4 else "")
+        ttk.Entry(rot_row, textvariable=cart_r_var, width=8).pack(side="left", padx=(0, 5))
+        ttk.Label(rot_row, text="P:").pack(side="left")
+        cart_p_var = tk.StringVar(value=str(existing_cart[4]) if len(existing_cart) >= 5 else "")
+        ttk.Entry(rot_row, textvariable=cart_p_var, width=8).pack(side="left", padx=(0, 5))
+        ttk.Label(rot_row, text="Y:").pack(side="left")
+        cart_yaw_var = tk.StringVar(value=str(existing_cart[5]) if len(existing_cart) >= 6 else "")
+        ttk.Entry(rot_row, textvariable=cart_yaw_var, width=8).pack(side="left")
+
+        ttk.Label(cart_frame, text="Frame:").pack(anchor="w")
+        frame_id_var = tk.StringVar(value=step.get("frame_id", "base_link"))
+        ttk.Combobox(cart_frame, textvariable=frame_id_var,
+                     values=["base_link", "flange"], width=15).pack(anchor="w", pady=(0, 5))
+
+        ttk.Label(dialog, text="Position in meters, orientation in degrees.\nLeave empty to use named target. XYZ only = straight-down.",
+                font=("Arial", 8), foreground="gray").pack(padx=20, pady=(0, 10))
+
         def save_changes():
             step["target"] = target_var.get()
             step["planning_type"] = planning_var.get()
@@ -588,9 +659,25 @@ class MTCGUIClient:
                 except ValueError:
                     step["distance"] = 0.0
             else:
-                # Remove relative move fields if direction is empty
                 step.pop("direction", None)
                 step.pop("distance", None)
+
+            # Handle optional Cartesian target
+            cart_values = []
+            for v in [cart_x_var, cart_y_var, cart_z_var]:
+                val = v.get().strip()
+                if val:
+                    cart_values.append(float(val))
+            if len(cart_values) == 3:
+                for v in [cart_r_var, cart_p_var, cart_yaw_var]:
+                    val = v.get().strip()
+                    if val:
+                        cart_values.append(float(val))
+                step["cartesian_target"] = cart_values
+                step["frame_id"] = frame_id_var.get()
+            else:
+                step.pop("cartesian_target", None)
+                step.pop("frame_id", None)
 
             self.update_task_tree()
             dialog.destroy()
@@ -598,50 +685,194 @@ class MTCGUIClient:
 
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
-    def create_pickplace_edit_form(self, dialog, step, step_index):
-        """Create edit form for pick and place steps"""
-        ttk.Label(dialog, text="Pick & Place Configuration", font=("Arial", 12, "bold")).pack(pady=10)
+    def create_sample_edit_form(self, dialog, step, step_index, mode="pick"):
+        """Create edit form for pick_sample/place_sample steps."""
+        title = "Pick Sample" if mode == "pick" else "Place Sample"
+        ttk.Label(dialog, text=f"{title} Configuration", font=("Arial", 12, "bold")).pack(pady=10)
 
-        # Gripper
-        ttk.Label(dialog, text="Gripper:").pack(anchor="w", padx=20)
-        gripper_var = tk.StringVar(value=step.get("gripper", "epick"))
-        gripper_combo = ttk.Combobox(dialog, textvariable=gripper_var,
-                                    values=["epick", "hande"], width=30)
-        gripper_combo.pack(padx=20, pady=(0, 10))
+        # Scrollable content
+        canvas = tk.Canvas(dialog)
+        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
+        scroll_frame = ttk.Frame(canvas)
+        scroll_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True, padx=(10, 0))
+        scrollbar.pack(side="right", fill="y")
+        # Mousewheel scrolling
+        canvas.bind_all("<MouseWheel>", lambda e: canvas.yview_scroll(int(-1*(e.delta/120)), "units"))
 
-        # Pick approach pose
-        ttk.Label(dialog, text="Pick Approach Pose:").pack(anchor="w", padx=20)
-        pick_approach_var = tk.StringVar(value=step.get("pick_approach", ""))
-        pick_approach_entry = ttk.Entry(dialog, textvariable=pick_approach_var, width=30)
-        pick_approach_entry.pack(padx=20, pady=(0, 10))
+        # Use Vision checkbox
+        use_vision_var = tk.BooleanVar(value=step.get("use_vision", True))
+        ttk.Checkbutton(scroll_frame, text="Use Vision (detect target before moving)",
+                        variable=use_vision_var).pack(anchor="w", padx=20, pady=(10, 10))
 
-        # Pick target pose
-        ttk.Label(dialog, text="Pick Target Pose:").pack(anchor="w", padx=20)
-        pick_target_var = tk.StringVar(value=step.get("pick_target", ""))
-        pick_target_entry = ttk.Entry(dialog, textvariable=pick_target_var, width=30)
-        pick_target_entry.pack(padx=20, pady=(0, 10))
+        # === Vision Mode Frame ===
+        vision_frame = ttk.LabelFrame(scroll_frame, text="Vision Mode", padding="10")
+        vision_frame.pack(padx=20, pady=(0, 10), fill="x")
 
-        # Place approach pose
-        ttk.Label(dialog, text="Place Approach Pose:").pack(anchor="w", padx=20)
-        place_approach_var = tk.StringVar(value=step.get("place_approach", ""))
-        place_approach_entry = ttk.Entry(dialog, textvariable=place_approach_var, width=30)
-        place_approach_entry.pack(padx=20, pady=(0, 10))
+        ttk.Label(vision_frame, text="Detection Type:").pack(anchor="w")
+        detection_type_var = tk.StringVar(value=step.get("detection_type", "marker"))
+        ttk.Combobox(vision_frame, textvariable=detection_type_var,
+                     values=["marker", "circle", "contour"], width=25,
+                     state="readonly").pack(pady=(0, 5))
 
-        # Place target pose
-        ttk.Label(dialog, text="Place Target Pose:").pack(anchor="w", padx=20)
-        place_target_var = tk.StringVar(value=step.get("place_target", ""))
-        place_target_entry = ttk.Entry(dialog, textvariable=place_target_var, width=30)
-        place_target_entry.pack(padx=20, pady=(0, 20))
+        ttk.Label(vision_frame, text="Tag ID:").pack(anchor="w")
+        tag_id_var = tk.StringVar(value=str(step.get("tag_id", 0)))
+        ttk.Entry(vision_frame, textvariable=tag_id_var, width=25).pack(pady=(0, 5))
+
+        sample_index_var = tk.StringVar(value=str(step.get("sample_index", 1)))
+        if mode == "pick":
+            ttk.Label(vision_frame, text="Sample Index (for contour):").pack(anchor="w")
+            ttk.Entry(vision_frame, textvariable=sample_index_var, width=25).pack(pady=(0, 5))
+
+        ttk.Label(vision_frame, text="Scan Pose (named pose):").pack(anchor="w")
+        scan_pose_var = tk.StringVar(value=step.get("scan_pose", ""))
+        ttk.Entry(vision_frame, textvariable=scan_pose_var, width=25).pack(pady=(0, 5))
+
+        ttk.Label(vision_frame, text="Z Offset (meters, 0=default):").pack(anchor="w")
+        z_offset_var = tk.StringVar(value=str(step.get("z_offset", 0.0)))
+        ttk.Entry(vision_frame, textvariable=z_offset_var, width=25).pack(pady=(0, 5))
+
+        # Marker Offsets
+        offsets_lf = ttk.LabelFrame(vision_frame, text="Marker Offsets (meters)", padding="5")
+        offsets_lf.pack(fill="x", pady=(5, 5))
+        off_row = ttk.Frame(offsets_lf)
+        off_row.pack(fill="x")
+        ttk.Label(off_row, text="X:").pack(side="left")
+        marker_ox_var = tk.StringVar(value=str(step.get("marker_offset_x", 0.0)))
+        ttk.Entry(off_row, textvariable=marker_ox_var, width=7).pack(side="left", padx=(0, 5))
+        ttk.Label(off_row, text="Y:").pack(side="left")
+        marker_oy_var = tk.StringVar(value=str(step.get("marker_offset_y", 0.0)))
+        ttk.Entry(off_row, textvariable=marker_oy_var, width=7).pack(side="left", padx=(0, 5))
+        ttk.Label(off_row, text="Z:").pack(side="left")
+        marker_oz_var = tk.StringVar(value=str(step.get("marker_offset_z", 0.0)))
+        ttk.Entry(off_row, textvariable=marker_oz_var, width=7).pack(side="left")
+
+        # Flange-frame offset
+        flange_lf = ttk.LabelFrame(vision_frame, text="Flange Offset", padding="5")
+        flange_lf.pack(fill="x", pady=(5, 0))
+        ttk.Label(flange_lf, text="Direction:").pack(anchor="w")
+        offset_dir_var = tk.StringVar(value=step.get("offset_direction", ""))
+        ttk.Combobox(flange_lf, textvariable=offset_dir_var,
+                     values=["", "forward", "backward", "left", "right", "up", "down"],
+                     width=23).pack(pady=(0, 5))
+        ttk.Label(flange_lf, text="Distance (m):").pack(anchor="w")
+        offset_dist_var = tk.StringVar(value=str(step.get("offset_distance", 0.0)))
+        ttk.Entry(flange_lf, textvariable=offset_dist_var, width=25).pack(pady=(0, 5))
+
+        # === Hardcoded Mode Frame ===
+        hardcoded_frame = ttk.LabelFrame(scroll_frame, text="Hardcoded Mode", padding="10")
+        hardcoded_frame.pack(padx=20, pady=(0, 10), fill="x")
+
+        ttk.Label(hardcoded_frame, text="Approach Pose:").pack(anchor="w")
+        approach_var = tk.StringVar(value=step.get("approach_pose", ""))
+        ttk.Entry(hardcoded_frame, textvariable=approach_var, width=25).pack(pady=(0, 5))
+        ttk.Label(hardcoded_frame, text="Target Pose:").pack(anchor="w")
+        target_var = tk.StringVar(value=step.get("target_pose", ""))
+        ttk.Entry(hardcoded_frame, textvariable=target_var, width=25).pack(pady=(0, 5))
+
+        # Toggle visibility
+        def toggle_vision(*args):
+            if use_vision_var.get():
+                vision_frame.pack(padx=20, pady=(0, 10), fill="x", before=hardcoded_frame)
+                hardcoded_frame.pack_forget()
+            else:
+                hardcoded_frame.pack(padx=20, pady=(0, 10), fill="x")
+                vision_frame.pack_forget()
+
+        use_vision_var.trace("w", toggle_vision)
+        if not use_vision_var.get():
+            vision_frame.pack_forget()
+        else:
+            hardcoded_frame.pack_forget()
+
+        # Save button (in scroll_frame so it scrolls with content)
+        def save_changes():
+            try:
+                step["use_vision"] = use_vision_var.get()
+                if step["use_vision"]:
+                    step["detection_type"] = detection_type_var.get()
+                    step["tag_id"] = int(tag_id_var.get())
+                    if mode == "pick":
+                        step["sample_index"] = int(sample_index_var.get())
+                    step["scan_pose"] = scan_pose_var.get()
+                    step["z_offset"] = float(z_offset_var.get())
+                    mx = float(marker_ox_var.get())
+                    my = float(marker_oy_var.get())
+                    mz = float(marker_oz_var.get())
+                    if mx != 0.0: step["marker_offset_x"] = mx
+                    else: step.pop("marker_offset_x", None)
+                    if my != 0.0: step["marker_offset_y"] = my
+                    else: step.pop("marker_offset_y", None)
+                    if mz != 0.0: step["marker_offset_z"] = mz
+                    else: step.pop("marker_offset_z", None)
+                    od = offset_dir_var.get()
+                    if od:
+                        step["offset_direction"] = od
+                        step["offset_distance"] = float(offset_dist_var.get())
+                    else:
+                        step.pop("offset_direction", None)
+                        step.pop("offset_distance", None)
+                    step.pop("approach_pose", None)
+                    step.pop("target_pose", None)
+                else:
+                    step["approach_pose"] = approach_var.get()
+                    step["target_pose"] = target_var.get()
+                    for key in ("detection_type", "tag_id", "sample_index", "scan_pose",
+                                "z_offset", "marker_offset_x", "marker_offset_y",
+                                "marker_offset_z", "offset_direction", "offset_distance"):
+                        step.pop(key, None)
+                self.update_task_tree()
+                canvas.unbind_all("<MouseWheel>")
+                dialog.destroy()
+                self.log_message(f"Updated step {step_index + 1}")
+            except ValueError:
+                messagebox.showerror("Invalid Input", "Check numeric fields (tag_id, z_offset, offsets)")
+
+        ttk.Button(scroll_frame, text="Save", command=save_changes).pack(pady=10)
+
+    def create_vision_scan_edit_form(self, dialog, step, step_index):
+        """Create edit form for vision_scan steps."""
+        ttk.Label(dialog, text="Vision Scan Configuration", font=("Arial", 12, "bold")).pack(pady=10)
+        ttk.Label(dialog, text="Scans markers from multiple positions and caches averaged poses.",
+                  font=("Arial", 9), foreground="gray").pack(padx=20, pady=(0, 10))
+
+        ttk.Label(dialog, text="Scan Positions (pose names, one per line):").pack(anchor="w", padx=20)
+        positions_text = scrolledtext.ScrolledText(dialog, width=35, height=6)
+        positions_text.pack(padx=20, pady=(0, 10))
+        existing = step.get("scan_positions", [])
+        if existing:
+            positions_text.insert("1.0", "\n".join(existing))
+
+        ttk.Label(dialog, text="Scans Per Position:").pack(anchor="w", padx=20)
+        spp_var = tk.StringVar(value=str(step.get("scans_per_position", 3)))
+        ttk.Entry(dialog, textvariable=spp_var, width=30).pack(padx=20, pady=(0, 10))
+
+        ttk.Label(dialog, text="Timeout (seconds):").pack(anchor="w", padx=20)
+        timeout_var = tk.StringVar(value=str(step.get("timeout", 10.0)))
+        ttk.Entry(dialog, textvariable=timeout_var, width=30).pack(padx=20, pady=(0, 10))
+
+        info_frame = ttk.LabelFrame(dialog, text="Info", padding="10")
+        info_frame.pack(padx=20, pady=(10, 10), fill="x")
+        ttk.Label(info_frame, text="Moves to each position, captures multiple images,\n"
+                  "detects ALL visible ArUco markers, and caches\n"
+                  "averaged poses. Subsequent vision_moveto tasks\n"
+                  "can use the cache for faster detection.",
+                  justify="left", font=("Arial", 8)).pack()
 
         def save_changes():
-            step["gripper"] = gripper_var.get()
-            step["pick_approach"] = pick_approach_var.get()
-            step["pick_target"] = pick_target_var.get()
-            step["place_approach"] = place_approach_var.get()
-            step["place_target"] = place_target_var.get()
-            self.update_task_tree()
-            dialog.destroy()
-            self.log_message(f"Updated step {step_index + 1}")
+            try:
+                raw = positions_text.get("1.0", "end-1c")
+                positions = [p.strip() for p in raw.split("\n") if p.strip()]
+                step["scan_positions"] = positions
+                step["scans_per_position"] = int(spp_var.get())
+                step["timeout"] = float(timeout_var.get())
+                self.update_task_tree()
+                dialog.destroy()
+                self.log_message(f"Updated step {step_index + 1}")
+            except ValueError:
+                messagebox.showerror("Invalid Input", "Scans per position must be integer, timeout must be number")
 
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
@@ -660,7 +891,7 @@ class MTCGUIClient:
         ttk.Label(dialog, text="Gripper:").pack(anchor="w", padx=20)
         gripper_var = tk.StringVar(value=step.get("gripper", "hande"))
         gripper_combo = ttk.Combobox(dialog, textvariable=gripper_var,
-                                    values=["epick", "hande", "pipettor", "none"], width=30)
+                                    values=["epick", "hande", "2fg7", "pipettor", "none"], width=30)
         gripper_combo.pack(padx=20, pady=(0, 10))
 
         # Dock number
@@ -711,7 +942,7 @@ class MTCGUIClient:
         ttk.Label(dialog, text="End Effector Type:").pack(anchor="w", padx=20)
         type_var = tk.StringVar(value=step.get("end_effector_type", "epick"))
         type_combo = ttk.Combobox(dialog, textvariable=type_var,
-                                 values=["epick", "hande"], width=30)
+                                 values=["epick", "hande", "2fg7"], width=30)
         type_combo.pack(padx=20, pady=(0, 10))
 
         # Action
@@ -825,19 +1056,37 @@ class MTCGUIClient:
         timeout_entry = ttk.Entry(common_frame, textvariable=timeout_var, width=25)
         timeout_entry.pack(pady=(0, 5))
 
-        # Information box
-        info_frame = ttk.LabelFrame(dialog, text="Info", padding="10")
-        info_frame.pack(padx=20, pady=(10, 20), fill="x")
+        # Detect Only checkbox
+        detect_only_var = tk.BooleanVar(value=step.get("detect_only", False))
+        ttk.Checkbutton(common_frame, text="Detect only (return position without moving)",
+                        variable=detect_only_var).pack(anchor="w", pady=(5, 5))
 
-        info_text = ("Vision MoveTo will:\n"
-                    "1. Capture 3D point cloud using Zivid camera\n"
-                    "2. Detect object (marker, circle, or contour)\n"
-                    "3. Transform pose to robot base frame\n"
-                    "4. Move gripper to detected position\n\n"
-                    "• Circle: Hough Transform for wafers/discs\n"
-                    "• Contour: Edge detection for any shape")
-        ttk.Label(info_frame, text=info_text, justify="left",
-                 font=("Arial", 8)).pack()
+        # Marker Offsets
+        offsets_lf = ttk.LabelFrame(common_frame, text="Marker Offsets (meters)", padding="5")
+        offsets_lf.pack(fill="x", pady=(5, 5))
+        off_row = ttk.Frame(offsets_lf)
+        off_row.pack(fill="x")
+        ttk.Label(off_row, text="X:").pack(side="left")
+        vm_ox_var = tk.StringVar(value=str(step.get("marker_offset_x", 0.0)))
+        ttk.Entry(off_row, textvariable=vm_ox_var, width=7).pack(side="left", padx=(0, 5))
+        ttk.Label(off_row, text="Y:").pack(side="left")
+        vm_oy_var = tk.StringVar(value=str(step.get("marker_offset_y", 0.0)))
+        ttk.Entry(off_row, textvariable=vm_oy_var, width=7).pack(side="left", padx=(0, 5))
+        ttk.Label(off_row, text="Z:").pack(side="left")
+        vm_oz_var = tk.StringVar(value=str(step.get("marker_offset_z", 0.0)))
+        ttk.Entry(off_row, textvariable=vm_oz_var, width=7).pack(side="left")
+
+        # Flange-frame offset
+        flange_lf = ttk.LabelFrame(common_frame, text="Flange Offset", padding="5")
+        flange_lf.pack(fill="x", pady=(5, 0))
+        ttk.Label(flange_lf, text="Direction:").pack(anchor="w")
+        vm_dir_var = tk.StringVar(value=step.get("offset_direction", ""))
+        ttk.Combobox(flange_lf, textvariable=vm_dir_var,
+                     values=["", "forward", "backward", "left", "right", "up", "down"],
+                     width=23).pack(pady=(0, 5))
+        ttk.Label(flange_lf, text="Distance (m):").pack(anchor="w")
+        vm_dist_var = tk.StringVar(value=str(step.get("offset_distance", 0.0)))
+        ttk.Entry(flange_lf, textvariable=vm_dist_var, width=25).pack()
 
         def save_changes():
             try:
@@ -847,12 +1096,29 @@ class MTCGUIClient:
                 step["timeout"] = float(timeout_var.get())
                 step["z_offset"] = float(z_offset_var.get())
                 step["marker_dictionary"] = marker_dict_var.get()
+                step["detect_only"] = detect_only_var.get()
+                # Marker offsets
+                mx = float(vm_ox_var.get()); my = float(vm_oy_var.get()); mz = float(vm_oz_var.get())
+                if mx != 0.0: step["marker_offset_x"] = mx
+                else: step.pop("marker_offset_x", None)
+                if my != 0.0: step["marker_offset_y"] = my
+                else: step.pop("marker_offset_y", None)
+                if mz != 0.0: step["marker_offset_z"] = mz
+                else: step.pop("marker_offset_z", None)
+                # Flange offset
+                od = vm_dir_var.get()
+                if od:
+                    step["offset_direction"] = od
+                    step["offset_distance"] = float(vm_dist_var.get())
+                else:
+                    step.pop("offset_direction", None)
+                    step.pop("offset_distance", None)
                 self.update_task_tree()
                 dialog.destroy()
                 self.log_message(f"Updated step {step_index + 1}")
             except ValueError:
                 messagebox.showerror("Invalid Input",
-                                   "Marker ID and Sample Index must be integers, timeout and z_offset must be numbers")
+                                   "Check numeric fields (IDs must be integers, offsets must be numbers)")
 
         ttk.Button(dialog, text="Save", command=save_changes).pack(pady=10)
 
@@ -1029,11 +1295,24 @@ class MTCGUIClient:
                     details = f"Relative move {direction} {distance}m"
                 else:
                     details = f"Move to {target}"
-            elif action == "pick_and_place":
-                pick_target = step.get('pick_target', '?')
-                place_target = step.get('place_target', '?')
-                gripper = step.get('gripper', 'unknown')
-                details = f"Pick from {pick_target} to {place_target} ({gripper})"
+            elif action == "pick_sample":
+                if step.get("use_vision", True):
+                    det = step.get("detection_type", "marker")
+                    tag = step.get("tag_id", 0)
+                    details = f"Vision pick ({det}, tag {tag})"
+                else:
+                    details = f"Hardcoded pick -> {step.get('target_pose', '?')}"
+            elif action == "place_sample":
+                if step.get("use_vision", True):
+                    det = step.get("detection_type", "marker")
+                    tag = step.get("tag_id", 0)
+                    details = f"Vision place ({det}, tag {tag})"
+                else:
+                    details = f"Hardcoded place -> {step.get('target_pose', '?')}"
+            elif action == "vision_scan":
+                n = len(step.get("scan_positions", []))
+                spp = step.get("scans_per_position", 3)
+                details = f"Scan from {n} positions ({spp}x each)"
             elif action == "tool_exchange":
                 operation = step.get('operation', '?')
                 gripper = step.get('gripper', '?')
@@ -1046,21 +1325,18 @@ class MTCGUIClient:
             elif action == "vision_moveto":
                 detection_type = step.get('detection_type', 'marker')
                 tag_id = step.get('tag_id', 0)
-                timeout = step.get('timeout', 10.0)
-                z_offset = step.get('z_offset', 0.0)
-                sample_index = step.get('sample_index', 1)
+                detect_only = step.get('detect_only', False)
+                prefix = "[detect only] " if detect_only else ""
                 if detection_type == "circle":
-                    details = f"Detect circle/wafer"
-                    if z_offset != 0.0:
-                        details += f" (z_offset: {z_offset}m)"
+                    details = f"{prefix}Detect circle/wafer"
                 elif detection_type == "contour":
-                    details = f"Detect contour → Sample #{sample_index}"
-                    if z_offset != 0.0:
-                        details += f" (z_offset: {z_offset}m)"
+                    sample_index = step.get('sample_index', 1)
+                    details = f"{prefix}Detect contour -> Sample #{sample_index}"
                 else:
-                    marker_dict = step.get('marker_dictionary', 'aruco4x4_50')
-                    details = f"Detect ArUco {tag_id} ({marker_dict})"
-                details += f" timeout: {timeout}s"
+                    details = f"{prefix}Detect ArUco {tag_id}"
+                od = step.get('offset_direction', '')
+                if od:
+                    details += f" +{od} {step.get('offset_distance', 0)}m"
             elif action == "pipettor":
                 operation = step.get('operation', 'SUCK')
                 volume_pct = step.get('volume_pct', 0.0)
@@ -1125,20 +1401,15 @@ class MTCGUIClient:
                     # Only check if it's not a named state and not a relative move
                     if target not in known_named_states:
                         referenced_poses.add(target)
-            elif step["task_type"] == "pick_and_place":
-                # Add all 4 explicit pose fields
-                pick_approach = step.get("pick_approach")
-                pick_target = step.get("pick_target")
-                place_approach = step.get("place_approach")
-                place_target = step.get("place_target")
-                if pick_approach:
-                    referenced_poses.add(pick_approach)
-                if pick_target:
-                    referenced_poses.add(pick_target)
-                if place_approach:
-                    referenced_poses.add(place_approach)
-                if place_target:
-                    referenced_poses.add(place_target)
+            elif step["task_type"] in ("pick_sample", "place_sample"):
+                for key in ("scan_pose", "approach_pose", "target_pose"):
+                    pose = step.get(key)
+                    if pose:
+                        referenced_poses.add(pose)
+            elif step["task_type"] == "vision_scan":
+                for pose in step.get("scan_positions", []):
+                    if pose:
+                        referenced_poses.add(pose)
             elif step["task_type"] == "tool_exchange":
                 # Use singular approach_pose
                 approach_pose = step.get("approach_pose")
