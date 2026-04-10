@@ -5,6 +5,10 @@ recorded_bags/
 site
 erobs.code-workspace
 
+# Environment files (may accumulate secrets)
+.env
+.env.*
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
