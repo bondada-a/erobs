@@ -574,7 +574,7 @@ class VisionStages(BaseStages):
 
                 # Optional: broadcast TF frame for RViz
                 if self._publish_marker_frames:
-                    self._broadcast_marker_tf(tag_id, pose_base)
+                    self._broadcast_detection_tf(f"aruco_{tag_id}", pose_base)
 
                 # Add collision object if configured
                 self._add_collision_object_for_tag(tag_id, pose_base)
@@ -635,20 +635,21 @@ class VisionStages(BaseStages):
 
         # Broadcast TF frame for RViz visualization
         if self._publish_marker_frames:
-            self._broadcast_circle_tf(pose_base)
+            self._broadcast_detection_tf("detected_circle", pose_base)
 
         return pose_base
 
-    def _broadcast_circle_tf(self, pose: PoseStamped):
-        """Broadcast detected circle pose as TF frame for RViz.
+    def _broadcast_detection_tf(self, frame_name: str, pose: PoseStamped):
+        """Broadcast a detected pose as a TF frame for RViz visualization.
 
         Args:
+            frame_name: Name for the TF frame (e.g. "aruco_5", "detected_circle")
             pose: Pose in base_link frame
         """
         tf = TransformStamped()
         tf.header.stamp = self.rclpy_node.get_clock().now().to_msg()
         tf.header.frame_id = "base_link"
-        tf.child_frame_id = "detected_circle"
+        tf.child_frame_id = frame_name
         tf.transform.translation.x = pose.pose.position.x
         tf.transform.translation.y = pose.pose.position.y
         tf.transform.translation.z = pose.pose.position.z
@@ -718,7 +719,7 @@ class VisionStages(BaseStages):
 
         # Broadcast TF frame for RViz visualization
         if self._publish_marker_frames:
-            self._broadcast_detected_object_tf(pose_base, f"detected_sample_{sample_index}")
+            self._broadcast_detection_tf(f"detected_sample_{sample_index}", pose_base)
 
         return pose_base
 
@@ -915,23 +916,6 @@ class VisionStages(BaseStages):
 
         return averaged_pose
 
-    def _broadcast_detected_object_tf(self, pose: PoseStamped, frame_name: str):
-        """Broadcast detected object pose as TF frame for RViz.
-
-        Args:
-            pose: Pose in base_link frame
-            frame_name: Name for the TF frame (e.g., "detected_contour")
-        """
-        tf = TransformStamped()
-        tf.header.stamp = self.rclpy_node.get_clock().now().to_msg()
-        tf.header.frame_id = "base_link"
-        tf.child_frame_id = frame_name
-        tf.transform.translation.x = pose.pose.position.x
-        tf.transform.translation.y = pose.pose.position.y
-        tf.transform.translation.z = pose.pose.position.z
-        tf.transform.rotation = pose.pose.orientation
-        self._tf_broadcaster.sendTransform(tf)
-
     def _transform_to_base_link(
         self,
         pose_camera: Pose,
@@ -1003,28 +987,6 @@ class VisionStages(BaseStages):
             self.logger.error(f"TF failed: {e}")
             return None
 
-    def _broadcast_marker_tf(self, marker_id: int, pose: PoseStamped):
-        """Broadcast marker pose as TF frame for RViz visualization.
-
-        Args:
-            marker_id: Marker ID (used in frame name)
-            pose: Pose in base_link frame
-        """
-        tf = TransformStamped()
-        tf.header.stamp = self.rclpy_node.get_clock().now().to_msg()
-        tf.header.frame_id = "base_link"
-        tf.child_frame_id = f"aruco_{marker_id}"
-        tf.transform.translation.x = pose.pose.position.x
-        tf.transform.translation.y = pose.pose.position.y
-        tf.transform.translation.z = pose.pose.position.z
-        tf.transform.rotation = pose.pose.orientation
-        self._tf_broadcaster.sendTransform(tf)
-
-    # Default marker-frame offset (meters). Used when no marker_offset_x/y/z
-    # are provided in the goal. Set to 0 — all offsets should come from config.
-    SAMPLE_OFFSET_X = 0.0
-    SAMPLE_OFFSET_Y = 0.0
-
     # Default z_offsets per gripper tip frame
     _Z_OFFSETS = {
         "epick_tip": 0.0,
@@ -1090,19 +1052,8 @@ class VisionStages(BaseStages):
             self.logger.info(f"Using z_offset override: {z_offset_override:.3f}")
             active_z_offset = z_offset_override
 
-        # Determine marker-frame offset: use provided values if any are non-zero,
-        # otherwise fall back to class defaults (SAMPLE_OFFSET_X/Y)
-        if marker_offset_x != 0.0 or marker_offset_y != 0.0 or marker_offset_z != 0.0:
-            offset_x = marker_offset_x
-            offset_y = marker_offset_y
-            offset_z = marker_offset_z
-        else:
-            offset_x = self.SAMPLE_OFFSET_X
-            offset_y = self.SAMPLE_OFFSET_Y
-            offset_z = 0.0
-
         # Apply marker-frame offset → rotate to base_link world frame
-        if offset_x != 0.0 or offset_y != 0.0 or offset_z != 0.0:
+        if marker_offset_x != 0.0 or marker_offset_y != 0.0 or marker_offset_z != 0.0:
             q = [
                 target.pose.orientation.x,
                 target.pose.orientation.y,
@@ -1110,10 +1061,10 @@ class VisionStages(BaseStages):
                 target.pose.orientation.w
             ]
             rot_matrix = quaternion_matrix(q)[:3, :3]
-            local_offset = np.array([offset_x, offset_y, offset_z])
+            local_offset = np.array([marker_offset_x, marker_offset_y, marker_offset_z])
             world_offset = rot_matrix @ local_offset
             self.logger.info(
-                f"Marker offset: [{offset_x:.3f}, {offset_y:.3f}, {offset_z:.3f}] → "
+                f"Marker offset: [{marker_offset_x:.3f}, {marker_offset_y:.3f}, {marker_offset_z:.3f}] → "
                 f"world [{world_offset[0]:.3f}, {world_offset[1]:.3f}, {world_offset[2]:.3f}]"
             )
         else:
@@ -1265,78 +1216,7 @@ class VisionStages(BaseStages):
             stage.setGoal(joint_goal)
             task.add(stage)
 
-        error = self.load_plan_execute(task)
-
-        # Diagnostic: log actual vs planned position after execution.
-        # Uses /joint_states subscription (one-shot) to get actual joint angles,
-        # then computes flange Z via TF (arm chain updates from joint_states
-        # faster than the full epick_tip chain).
-        if error is None and ik_frame:
-            try:
-                # Get actual joint positions via one-shot subscription
-                from sensor_msgs.msg import JointState
-                js_msg = [None]
-                def _on_js(msg):
-                    js_msg[0] = msg
-                js_sub = self.rclpy_node.create_subscription(
-                    JointState, '/joint_states', _on_js, 10)
-                for _ in range(20):
-                    rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
-                    if js_msg[0] is not None:
-                        break
-                self.rclpy_node.destroy_subscription(js_sub)
-
-                if js_msg[0] is not None:
-                    # Log actual joint angles (degrees) for rosbag analysis
-                    import math
-                    joints_deg = [math.degrees(p) for p in js_msg[0].position]
-                    joint_str = ', '.join(f'{j:.2f}' for j in joints_deg)
-                    self.logger.info(f"Post-move joints (deg): [{joint_str}]")
-
-                # Also get flange position from TF (arm chain, updates quickly)
-                for _ in range(10):
-                    rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
-                flange_tf = self._tf_buffer.lookup_transform(
-                    "base_link", "flange",
-                    rclpy.time.Time(),
-                    timeout=rclpy.duration.Duration(seconds=2.0)
-                )
-                fz = flange_tf.transform.translation.z * 1000  # mm
-                p = approach.pose.position
-                # Grip chain is 212.65mm along flange X which maps to -Z
-                # when robot points down. Tip Z ≈ flange Z - 212.65mm
-                tip_z_est = fz - 212.65
-                planned_z = p.z * 1000
-                delta_z = tip_z_est - planned_z
-                self.logger.info(
-                    f"Post-move check: flange_z={fz:.1f}mm, "
-                    f"tip_z_est={tip_z_est:.1f}mm, "
-                    f"planned_z={planned_z:.1f}mm, "
-                    f"delta_z={delta_z:.1f}mm"
-                )
-            except (TransformException, Exception) as e:
-                self.logger.warn(f"Post-move diagnostic failed: {e}")
-
-        return error
-
-    def _move_to_pose(
-        self,
-        target: PoseStamped,
-        z_offset_override: float = 0.0
-    ) -> 'Optional[str]':
-        """Move robot to the target pose with orientation adjustment.
-
-        Applies sample XY offset, 180° Z rotation, and z_offset for proper approach.
-
-        Args:
-            target: Raw detected pose in base_link
-            z_offset_override: Override z_offset (0 = use gripper default)
-
-        Returns:
-            None if successful, error string describing failure otherwise
-        """
-        approach, active_ik_frame = self.compute_approach_pose(target, z_offset_override)
-        return self._move_to_approach(approach, ik_frame=active_ik_frame)
+        return self.load_plan_execute(task)
 
     def _detect_current_gripper(self) -> GripperDetection:
         """Auto-detect the current gripper by checking TF frames.
