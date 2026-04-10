@@ -21,7 +21,7 @@ setup(
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [
-            'mtc_gui_client = mtc_gui.mtc_gui_client:main',
+            'mtc_gui_client = mtc_gui.main:main',
         ],
     },
 )
