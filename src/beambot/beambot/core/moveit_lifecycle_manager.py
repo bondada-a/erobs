@@ -275,10 +275,11 @@ class MoveItLifecycleManager:
 
             except Exception as e:
                 self._logger.debug(f"Poll attempt {attempt + 1} failed: {e}")
-                try:
-                    self._node.destroy_client(client)
-                except Exception:
-                    pass
+                if client is not None:
+                    try:
+                        self._node.destroy_client(client)
+                    except Exception:
+                        pass
 
             time.sleep(poll_interval)
 
@@ -469,12 +470,12 @@ class MoveItLifecycleManager:
         Returns:
             True if successful, False on failure
         """
+        client = None
         try:
             client = self._node.create_client(Trigger, "/dashboard_client/play")
 
             if not client.wait_for_service(timeout_sec=5.0):
                 self._logger.error("Dashboard play service not available")
-                self._node.destroy_client(client)
                 return False
 
             self._logger.info("Calling /dashboard_client/play...")
@@ -486,10 +487,12 @@ class MoveItLifecycleManager:
             # Brief delay to let robot process the command
             time.sleep(1.0)
 
-            self._node.destroy_client(client)
             self._logger.info("External control program restart requested")
             return True
 
         except Exception as e:
             self._logger.error(f"Failed to restart external_control: {e}")
             return False
+        finally:
+            if client is not None:
+                self._node.destroy_client(client)

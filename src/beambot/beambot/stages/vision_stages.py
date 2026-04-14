@@ -66,8 +66,7 @@ class VisionStages(BaseStages):
     DEFAULT_MARKER_DICTIONARY = "aruco4x4_50"
 
     # Settle time: wait before capture for robot vibration to dampen
-    # Set to 0.3-0.5s for high-accuracy applications if needed
-    DEFAULT_SETTLE_TIME = 0.0  # Disabled for now - testing TF timestamp fix
+    DEFAULT_SETTLE_TIME = 0.3
 
     def __init__(
         self,
