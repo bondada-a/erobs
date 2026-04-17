@@ -297,7 +297,7 @@ def launch_setup(context, *args, **kwargs):
                         "serial_port": "/tmp/ttyUR",
                         "slave_id": 65,
                         "baudrate": 1000000,
-                        "use_fake_hardware": use_fake_hardware,
+                        "use_fake_hardware": use_fake_hardware == "true",
                     }],
                 ),
             ],
@@ -313,7 +313,7 @@ def launch_setup(context, *args, **kwargs):
                     output="screen",
                     parameters=[
                         {"serial_port": "/tmp/ttyUR"},
-                        {"use_fake_hardware": use_fake_hardware},
+                        {"use_fake_hardware": use_fake_hardware == "true"},
                     ],
                 ),
             ],

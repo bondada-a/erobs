@@ -60,6 +60,7 @@ class MoveItLifecycleManager:
         self._moveit_process: Optional[subprocess.Popen] = None
         self._current_gripper: str = ""
         self._cup_z_offset: float = 0.0
+        self._current_voltage: Optional[int] = None
 
         # Ensure MoveIt is killed when orchestrator exits
         atexit.register(self.kill_current_process)
@@ -83,6 +84,10 @@ class MoveItLifecycleManager:
     def cup_z_offset(self) -> float:
         """Z offset for the active suction cup profile (meters)."""
         return self._cup_z_offset
+
+    def notify_voltage_change(self, voltage: int):
+        """Update cached voltage state when orchestrator sets voltage via set_io."""
+        self._current_voltage = voltage
 
     def _resolve_cup_profile(self, gripper_config: dict) -> Optional[str]:
         """Validate cup profile and return the profile name.
@@ -141,17 +146,25 @@ class MoveItLifecycleManager:
         config = self._grippers[gripper]  # Validated by orchestrator before calling
         self._logger.info(f"Launching MoveIt for {gripper} ({config['moveit_package']})")
 
-        # Set tool voltage (must happen BEFORE MoveIt launches)
-        # Skip for fake hardware - no real robot to configure
+        # Set tool voltage (must happen BEFORE MoveIt launches so
+        # ur_ros2_control_node can activate gripper Modbus at the correct voltage).
+        # Skip entirely for fake hardware.
+        voltage_changed = False
         if not self._use_fake_hardware:
-            if not self._set_tool_voltage(config["tool_voltage"]):
-                self._logger.error("Failed to set tool voltage")
-                return False
-
-            # Wait for gripper to power up after voltage change.
-            # Without this delay, Hand-E activation fails with Modbus errors
-            # because the gripper hardware isn't ready when ros2_control tries to initialize it.
-            time.sleep(2.0)
+            desired_voltage = int(config["tool_voltage"])
+            if self._current_voltage != desired_voltage:
+                if not self._set_tool_voltage(desired_voltage):
+                    self._logger.error("Failed to set tool voltage")
+                    return False
+                self._current_voltage = desired_voltage
+                voltage_changed = True
+                # Wait for gripper hardware to power up after voltage change.
+                # Without this delay, Hand-E/ePick activation fails with Modbus errors.
+                time.sleep(2.0)
+            else:
+                self._logger.info(
+                    f"Tool voltage already at {desired_voltage}V, skipping"
+                )
 
         # Launch MoveIt subprocess
         try:
@@ -188,8 +201,9 @@ class MoveItLifecycleManager:
             self.kill_current_process()
             return False
 
-        # Restart external_control program (voltage command stops it)
-        # Skip for fake hardware - no real robot to control
+        # Always restart external_control after a fresh MoveIt launch.
+        # Killing the old MoveIt terminates ur_ros2_control_node, which drops
+        # the external_control connection — even if voltage didn't change.
         if not self._use_fake_hardware:
             if not self._restart_external_control():
                 self._logger.error("Failed to restart external_control")
