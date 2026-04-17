@@ -62,6 +62,16 @@ class MoveItLifecycleManager:
         self._cup_z_offset: float = 0.0
         self._current_voltage: Optional[int] = None
 
+        # Persistent joint state subscription for hardware verification.
+        # Created once to avoid create/destroy races with MultiThreadedExecutor.
+        self._joint_positions: dict = {}
+        if not use_fake_hardware:
+            from sensor_msgs.msg import JointState
+            self._node.create_subscription(
+                JointState, "/joint_states", self._joint_state_cb, 10,
+                callback_group=self._callback_group,
+            )
+
         # Ensure MoveIt is killed when orchestrator exits
         atexit.register(self.kill_current_process)
 
@@ -88,6 +98,12 @@ class MoveItLifecycleManager:
     def notify_voltage_change(self, voltage: int):
         """Update cached voltage state when orchestrator sets voltage via set_io."""
         self._current_voltage = voltage
+
+    def _joint_state_cb(self, msg):
+        """Cache arm joint positions from /joint_states."""
+        for name, pos in zip(msg.name, msg.position):
+            if name in self._ARM_JOINTS:
+                self._joint_positions[name] = pos
 
     def _resolve_cup_profile(self, gripper_config: dict) -> Optional[str]:
         """Validate cup profile and return the profile name.
@@ -331,50 +347,28 @@ class MoveItLifecycleManager:
 
         When the hardware interface crashes, MoveGroup stays alive but
         joint_state_broadcaster is dead — no messages on /joint_states.
-        This catches that silent failure and reports it clearly.
+        Uses the persistent _joint_positions dict (updated by _joint_state_cb)
+        to avoid create/destroy subscription races with MultiThreadedExecutor.
         """
-        from sensor_msgs.msg import JointState
-
         self._logger.info("Verifying hardware interface connection...")
-        received = {}
+        self._joint_positions.clear()
 
-        def _cb(msg):
-            for name, pos in zip(msg.name, msg.position):
-                if name in self._ARM_JOINTS:
-                    received[name] = pos
-
-        sub = self._node.create_subscription(
-            JointState, "/joint_states", _cb, 10,
-            callback_group=self._callback_group,
-        )
-
-        result = False
         deadline = time.time() + timeout_sec
         while time.time() < deadline:
-            if len(received) == 6 and sum(abs(v) for v in received.values()) > 0.01:
+            if (len(self._joint_positions) == 6 and
+                    sum(abs(v) for v in self._joint_positions.values()) > 0.01):
                 self._logger.info("Hardware connected (joint states verified)")
-                result = True
-                break
+                return True
             time.sleep(0.1)
 
-        if not result:
-            if not received:
-                self._logger.error("No joint states received — hardware interface is dead")
-            else:
-                self._logger.error(
-                    f"Joint states suspect (got {len(received)}/6 joints, "
-                    f"sum(abs)={sum(abs(v) for v in received.values()):.4f})"
-                )
-
-        # Brief pause before destroying subscription so the executor
-        # finishes processing any in-flight callbacks.
-        time.sleep(0.2)
-        try:
-            self._node.destroy_subscription(sub)
-        except Exception:
-            pass
-
-        return result
+        if not self._joint_positions:
+            self._logger.error("No joint states received — hardware interface is dead")
+        else:
+            self._logger.error(
+                f"Joint states suspect (got {len(self._joint_positions)}/6 joints, "
+                f"sum(abs)={sum(abs(v) for v in self._joint_positions.values()):.4f})"
+            )
+        return False
 
     def _load_collision_obstacles(self) -> bool:
         """Load collision obstacles into the planning scene.
