@@ -29,6 +29,9 @@
       forward_position_controller:
         type: position_controllers/JointGroupPositionController
 
+      forward_effort_controller:
+        type: effort_controllers/JointGroupEffortController
+
       force_mode_controller:
         type: ur_controllers/ForceModeController
 
@@ -178,6 +181,17 @@
         - $(var tf_prefix)wrist_1_joint
         - $(var tf_prefix)wrist_2_joint
         - $(var tf_prefix)wrist_3_joint
+
+  forward_effort_controller:
+    ros__parameters:
+      joints:
+        - $(var tf_prefix)shoulder_pan_joint
+        - $(var tf_prefix)shoulder_lift_joint
+        - $(var tf_prefix)elbow_joint
+        - $(var tf_prefix)wrist_1_joint
+        - $(var tf_prefix)wrist_2_joint
+        - $(var tf_prefix)wrist_3_joint
+      interface_name: effort
 
   force_mode_controller:
     ros__parameters:

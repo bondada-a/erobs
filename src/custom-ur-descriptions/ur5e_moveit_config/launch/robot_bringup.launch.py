@@ -143,6 +143,9 @@ def launch_setup(context, *args, **kwargs):
             desc_share, "config", "ur5e_calibration.yaml"),
         "use_tool_communication": config["use_tool_communication"],
         "tool_voltage": config["tool_voltage"],
+        # Jazzy: hardware loads async, so spawners need longer timeout to avoid
+        # retry cycles while controller_manager is busy initializing.
+        "controller_spawner_timeout": "30",
     }
     # RS485 params (2fg7 needs 1Mbps/Even)
     ur_launch_args.update(config["tool_comm_params"])
@@ -202,6 +205,8 @@ def launch_setup(context, *args, **kwargs):
             moveit_config.robot_description_kinematics,
             moveit_config.to_dict(),
             move_group_capabilities,
+            # Wait for joint_states before declaring ready (controllers load async in Jazzy)
+            {"planning_scene_monitor_options.wait_for_initial_state_timeout": 30.0},
         ],
     )
 
