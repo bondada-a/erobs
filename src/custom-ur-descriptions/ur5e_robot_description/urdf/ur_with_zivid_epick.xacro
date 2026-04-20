@@ -53,7 +53,7 @@
 
   <!-- Simulation parameters -->
   <xacro:arg name="mock_sensor_commands" default="false" />
-  <xacro:arg name="mock_hardware" default="true" />
+  <xacro:arg name="use_mock_hardware" default="false" />
 
   <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
   <xacro:arg name="initial_positions_file" default="$(find ur5e_moveit_config)/config/epick/initial_positions.yaml"/>
@@ -87,7 +87,7 @@
     script_filename="$(arg script_filename)"
     input_recipe_filename="$(arg input_recipe_filename)"
     output_recipe_filename="$(arg output_recipe_filename)"
-    use_mock_hardware="$(arg mock_hardware)"
+    use_mock_hardware="$(arg use_mock_hardware)"
     mock_sensor_commands="$(arg mock_sensor_commands)"
     headless_mode="$(arg headless_mode)"
     initial_positions="${xacro.load_yaml(initial_positions_file)}"
@@ -131,7 +131,7 @@
   <xacro:property name="cup" value="${cups_config['cups'][cup_profile_name]}"/>
 
   <!-- Epick Gripper -->
-  <xacro:epick_overlay use_mock_hardware="$(arg mock_hardware)" parent="tool_block"
+  <xacro:epick_overlay use_mock_hardware="$(arg use_mock_hardware)" parent="tool_block"
                   origin_xyz="0 -0.03235 0"
                   origin_rpy="-1.5708 0 3.1416"
                   extension_length="${cup['extension_length']}"

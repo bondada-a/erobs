@@ -53,7 +53,7 @@
 
   <!-- Simulation parameters -->
   <xacro:arg name="mock_sensor_commands" default="false" />
-  <xacro:arg name="mock_hardware" default="true" />
+  <xacro:arg name="use_mock_hardware" default="false" />
 
   <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
   <xacro:arg name="initial_positions_file" default="$(find ur5e_moveit_config)/config/pipettor/initial_positions.yaml"/>
@@ -87,7 +87,7 @@
     script_filename="$(arg script_filename)"
     input_recipe_filename="$(arg input_recipe_filename)"
     output_recipe_filename="$(arg output_recipe_filename)"
-    use_mock_hardware="$(arg mock_hardware)"
+    use_mock_hardware="$(arg use_mock_hardware)"
     mock_sensor_commands="$(arg mock_sensor_commands)"
     headless_mode="$(arg headless_mode)"
     initial_positions="${xacro.load_yaml(initial_positions_file)}"
