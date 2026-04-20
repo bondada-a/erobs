@@ -60,6 +60,17 @@ class MoveItLifecycleManager:
         self._moveit_process: Optional[subprocess.Popen] = None
         self._current_gripper: str = ""
         self._cup_z_offset: float = 0.0
+        self._current_voltage: Optional[int] = None
+
+        # Persistent joint state subscription for hardware verification.
+        # Created once to avoid create/destroy races with MultiThreadedExecutor.
+        self._joint_positions: dict = {}
+        if not use_mock_hardware:
+            from sensor_msgs.msg import JointState
+            self._node.create_subscription(
+                JointState, "/joint_states", self._joint_state_cb, 10,
+                callback_group=self._callback_group,
+            )
 
         # Ensure MoveIt is killed when orchestrator exits
         atexit.register(self.kill_current_process)
@@ -83,6 +94,16 @@ class MoveItLifecycleManager:
     def cup_z_offset(self) -> float:
         """Z offset for the active suction cup profile (meters)."""
         return self._cup_z_offset
+
+    def notify_voltage_change(self, voltage: int):
+        """Update cached voltage state when orchestrator sets voltage via set_io."""
+        self._current_voltage = voltage
+
+    def _joint_state_cb(self, msg):
+        """Cache arm joint positions from /joint_states."""
+        for name, pos in zip(msg.name, msg.position):
+            if name in self._ARM_JOINTS:
+                self._joint_positions[name] = pos
 
     def _resolve_cup_profile(self, gripper_config: dict) -> Optional[str]:
         """Validate cup profile and return the profile name.
@@ -121,13 +142,21 @@ class MoveItLifecycleManager:
             self._logger.error(f"Failed to validate cup profile '{profile_name}': {e}")
             return None
 
+    _ARM_JOINTS = [
+        "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
+        "wrist_1_joint", "wrist_2_joint", "wrist_3_joint",
+    ]
+
     def launch_moveit_with_gripper(self, gripper: str) -> bool:
         """Launch MoveIt with configuration for the specified gripper.
 
-        Sequence: set voltage → launch MoveIt → wait ready → load obstacles → restart external_control
+        Launches MoveIt, verifies the hardware interface is connected via
+        /joint_states, and retries once on failure. This catches the case where
+        ur_ros2_control_node crashes silently (e.g. stale TCP sockets to the
+        robot) but the ros2 launch parent stays alive with zero joint states.
 
         Returns:
-            True if MoveIt is ready, False on failure
+            True if MoveIt is ready with verified hardware, False on failure
         """
         # Check existing MoveIt process
         if self._moveit_process:
@@ -138,24 +167,45 @@ class MoveItLifecycleManager:
             self._logger.info(f"Switching gripper: {self._current_gripper} → {gripper}")
             self.kill_current_process()
 
-        config = self._grippers[gripper]  # Validated by orchestrator before calling
+        max_attempts = 1 if self._use_mock_hardware else 2
+        for attempt in range(1, max_attempts + 1):
+            if self._attempt_launch(gripper):
+                return True
+            self._logger.error(
+                f"Launch failed (attempt {attempt}/{max_attempts})"
+            )
+            self.kill_current_process()
+
+        return False
+
+    def _attempt_launch(self, gripper: str) -> bool:
+        """Single launch attempt: voltage → MoveIt → verify hardware.
+
+        Returns True if MoveIt is up and hardware interface is connected.
+        """
+        config = self._grippers[gripper]
         self._logger.info(f"Launching MoveIt for {gripper} ({config['moveit_package']})")
 
-        # Set tool voltage (must happen BEFORE MoveIt launches)
-        # Skip for fake hardware - no real robot to configure
+        # Set tool voltage (must happen BEFORE MoveIt launches so
+        # ur_ros2_control_node can activate gripper Modbus at the correct voltage).
         if not self._use_mock_hardware:
-            if not self._set_tool_voltage(config["tool_voltage"]):
-                self._logger.error("Failed to set tool voltage")
-                return False
-
-            # Wait for gripper to power up after voltage change.
-            # Without this delay, Hand-E activation fails with Modbus errors
-            # because the gripper hardware isn't ready when ros2_control tries to initialize it.
-            time.sleep(2.0)
+            desired_voltage = int(config["tool_voltage"])
+            if self._current_voltage != desired_voltage:
+                if not self._set_tool_voltage(desired_voltage):
+                    self._logger.error("Failed to set tool voltage")
+                    return False
+                self._current_voltage = desired_voltage
+                # Wait for gripper hardware to power up after voltage change.
+                # Without this delay, Hand-E/ePick activation fails with Modbus errors.
+                time.sleep(2.0)
+            else:
+                self._logger.info(
+                    f"Tool voltage already at {desired_voltage}V, skipping"
+                )
 
         # Launch MoveIt subprocess
         try:
-            gripper_arg = config.get("gripper_arg", gripper)  # Fallback to gripper name
+            gripper_arg = config.get("gripper_arg", gripper)
             cmd = [
                 "ros2", "launch", config["moveit_package"], "robot_bringup.launch.py",
                 f"robot_ip:={self._robot_ip}",
@@ -163,12 +213,10 @@ class MoveItLifecycleManager:
                 f"gripper:={gripper_arg}",
             ]
 
-            # Add cup profile name if specified (ePick) — xacro resolves dimensions
             cup_profile = self._resolve_cup_profile(config)
             if cup_profile:
                 cmd.append(f"cup_profile:={cup_profile}")
 
-            # z_offset lives in the gripper config (shared chain error, not per-cup)
             self._cup_z_offset = float(config.get("z_offset", 0.0))
             self._logger.info(f"Executing: {' '.join(cmd)}")
             self._moveit_process = subprocess.Popen(cmd, start_new_session=True)
@@ -179,21 +227,28 @@ class MoveItLifecycleManager:
         # Wait for MoveIt to be ready
         if not self._wait_for_moveit_ready(timeout_sec=45.0):
             self._logger.error("MoveIt not ready within timeout")
-            self.kill_current_process()
             return False
 
         # Load collision obstacles
         if not self._load_collision_obstacles():
             self._logger.error("Failed to load collision obstacles")
-            self.kill_current_process()
             return False
 
-        # Restart external_control program (voltage command stops it)
-        # Skip for fake hardware - no real robot to control
+        # Always restart external_control after a fresh MoveIt launch.
+        # Killing the old MoveIt terminates ur_ros2_control_node, which drops
+        # the external_control connection — even if voltage didn't change.
         if not self._use_mock_hardware:
             if not self._restart_external_control():
                 self._logger.error("Failed to restart external_control")
-                self.kill_current_process()
+                return False
+
+            # Verify the hardware interface is actually connected by checking
+            # that /joint_states contains real arm joint positions (not zeros).
+            if not self._verify_hardware_connected():
+                self._logger.error(
+                    "Hardware interface not connected — "
+                    "ur_ros2_control_node may have crashed"
+                )
                 return False
 
         self._current_gripper = gripper
@@ -275,14 +330,43 @@ class MoveItLifecycleManager:
 
             except Exception as e:
                 self._logger.debug(f"Poll attempt {attempt + 1} failed: {e}")
-                try:
-                    self._node.destroy_client(client)
-                except Exception:
-                    pass
+                if client is not None:
+                    try:
+                        self._node.destroy_client(client)
+                    except Exception:
+                        pass
 
             time.sleep(poll_interval)
 
         self._logger.error("MoveIt not ready within timeout")
+        return False
+
+    def _verify_hardware_connected(self, timeout_sec: float = 10.0) -> bool:
+        """Verify ur_ros2_control_node is alive by checking /joint_states.
+
+        When the hardware interface crashes, MoveGroup stays alive but
+        joint_state_broadcaster is dead — no messages on /joint_states.
+        Uses the persistent _joint_positions dict (updated by _joint_state_cb)
+        to avoid create/destroy subscription races with MultiThreadedExecutor.
+        """
+        self._logger.info("Verifying hardware interface connection...")
+        self._joint_positions.clear()
+
+        deadline = time.time() + timeout_sec
+        while time.time() < deadline:
+            if (len(self._joint_positions) == 6 and
+                    sum(abs(v) for v in self._joint_positions.values()) > 0.01):
+                self._logger.info("Hardware connected (joint states verified)")
+                return True
+            time.sleep(0.1)
+
+        if not self._joint_positions:
+            self._logger.error("No joint states received — hardware interface is dead")
+        else:
+            self._logger.error(
+                f"Joint states suspect (got {len(self._joint_positions)}/6 joints, "
+                f"sum(abs)={sum(abs(v) for v in self._joint_positions.values()):.4f})"
+            )
         return False
 
     def _load_collision_obstacles(self) -> bool:
@@ -469,12 +553,12 @@ class MoveItLifecycleManager:
         Returns:
             True if successful, False on failure
         """
+        client = None
         try:
             client = self._node.create_client(Trigger, "/dashboard_client/play")
 
             if not client.wait_for_service(timeout_sec=5.0):
                 self._logger.error("Dashboard play service not available")
-                self._node.destroy_client(client)
                 return False
 
             self._logger.info("Calling /dashboard_client/play...")
@@ -486,10 +570,12 @@ class MoveItLifecycleManager:
             # Brief delay to let robot process the command
             time.sleep(1.0)
 
-            self._node.destroy_client(client)
             self._logger.info("External control program restart requested")
             return True
 
         except Exception as e:
             self._logger.error(f"Failed to restart external_control: {e}")
             return False
+        finally:
+            if client is not None:
+                self._node.destroy_client(client)

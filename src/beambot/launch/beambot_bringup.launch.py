@@ -12,7 +12,6 @@ This launch file starts all the beambot action servers:
 Usage:
     ros2 launch beambot beambot_bringup.launch.py
     ros2 launch beambot beambot_bringup.launch.py enable_vision:=false
-    ros2 launch beambot beambot_bringup.launch.py beamline_config:=config/ur3e_beamline.yaml
     ros2 launch beambot beambot_bringup.launch.py use_mock_hardware:=true
 """
 

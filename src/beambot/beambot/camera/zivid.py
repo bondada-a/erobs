@@ -10,6 +10,7 @@ Interface contract:
     - detect_contours(node, timeout, params) -> List[Pose]
 """
 
+import time
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
 
@@ -101,6 +102,11 @@ def detect_markers(
     if not client.wait_for_service(timeout_sec=2.0):
         logger.error(f"Zivid service '{SERVICE_NAME}' not available")
         return DetectionResult(markers=[], capture_stamp=None)
+
+    # Settle: wait for robot vibration to dampen before capturing timestamp
+    if settle_time > 0:
+        logger.debug(f"Settling for {settle_time:.2f}s before capture...")
+        time.sleep(settle_time)
 
     # TIMESTAMP FIX: Capture timestamp BEFORE calling Zivid service
     pre_capture_stamp = node.get_clock().now().to_msg()

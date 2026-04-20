@@ -111,14 +111,13 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 | Stage implementations | `beambot/beambot/stages/` |
 | Detection algorithms | `beambot/beambot/detection/` |
 | MCP server (beambot) | `beambot/mcp/beambot_mcp_server.py` |
-| Gripper configs | `beambot/config/grippers.yaml` |
-| Beamline configs | `beambot/config/*.yaml` |
+| Beamline configs | `beambot/config/default_beamline.yaml` |
 | Pose registry | `cms/poses.yaml` |
 | MoveIt configs | `custom-ur-descriptions/ur5e_moveit_configs/` |
 | Launch files | `beambot/launch/` |
-| MCP architecture design | `docs/mcp_architecture_design.md` |
 | MCP detailed reference | `docs/mcp_ros_reference.md` |
 | Isaac Sim integration | `docs/isaac_sim_integration.md` |
+| Hardware capabilities | `docs/hardware_capabilities.md` |
 
 ## Design Decisions
 
@@ -138,6 +137,11 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 ## Current Work
 
 See [GitHub Issues](https://github.com/bondada-a/erobs/issues) for active tasks and priorities. Decisions and context in [`STATUS.md`](../STATUS.md).
+
+## Known Issues
+
+### UR Driver Connection in Docker/VM Environments
+When sending robot goals from containers over a VM, the UR driver loses connection intermittently due to network latency/jitter. The keepalive mechanism times out before packets arrive. Increased `keep_alive_count` to 10 (200ms timeout) in URDF xacro files — preliminary testing suggests this helps but not fully validated. See [ur_robot_driver#941](https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/941).
 
 ## References
 

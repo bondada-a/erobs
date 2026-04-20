@@ -2299,15 +2299,6 @@ def _load_vision_targets() -> Dict:
     return _load_beamline_config().get("vision_targets", {})
 
 
-def _load_grippers_config() -> Dict:
-    """Load gripper configs (including dock_number) from default_beamline.yaml."""
-    return _load_beamline_config().get("grippers", {})
-
-
-def _load_tip_rack_config() -> Optional[Dict]:
-    """Load legacy tip rack config from default_beamline.yaml."""
-    return _load_beamline_config().get("tip_rack")
-
 
 def _build_vision_target_tasks(
     target_name: str,

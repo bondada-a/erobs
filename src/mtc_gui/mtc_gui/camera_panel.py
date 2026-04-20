@@ -1,0 +1,163 @@
+"""Camera view panel: live image display, ArUco detection overlay, contour detection."""
+
+import cv2
+import numpy as np
+
+from PyQt5.QtWidgets import (
+    QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QTextEdit,
+)
+from PyQt5.QtGui import QImage, QPixmap
+from PyQt5.QtCore import Qt
+
+
+class CameraPanel(QWidget):
+    """Camera display with detection controls."""
+
+    def __init__(self, ros2_bridge, parent=None):
+        super().__init__(parent)
+        self.ros2 = ros2_bridge
+        self.current_image = None
+        self.current_detections = []
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(0, 0, 0, 0)
+
+        # Buttons
+        btn_row = QHBoxLayout()
+        capture_btn = QPushButton("Capture")
+        capture_btn.clicked.connect(self.ros2.trigger_capture)
+        btn_row.addWidget(capture_btn)
+
+        detect_btn = QPushButton("Detect Markers")
+        detect_btn.clicked.connect(self.ros2.trigger_marker_detection)
+        btn_row.addWidget(detect_btn)
+
+        contour_btn = QPushButton("Detect Contours")
+        contour_btn.clicked.connect(self._detect_contours)
+        btn_row.addWidget(contour_btn)
+
+        self.status_label = QLabel("No camera feed")
+        self.status_label.setStyleSheet("color: gray;")
+        btn_row.addWidget(self.status_label)
+        btn_row.addStretch()
+        layout.addLayout(btn_row)
+
+        # Image display
+        self.image_label = QLabel("No image")
+        self.image_label.setAlignment(Qt.AlignCenter)
+        self.image_label.setMinimumSize(400, 300)
+        self.image_label.setStyleSheet("background-color: black; color: white;")
+        layout.addWidget(self.image_label, stretch=1)
+
+        # Detection info
+        self.detection_info = QTextEdit()
+        self.detection_info.setReadOnly(True)
+        self.detection_info.setMaximumHeight(120)
+        self.detection_info.setPlainText("No detections yet")
+        layout.addWidget(self.detection_info)
+
+        # Connect signals
+        self.ros2.image_received.connect(self.on_image)
+        self.ros2.detection_received.connect(self.on_detection)
+
+    def on_image(self, cv_image):
+        """Handle incoming camera image (called via signal on UI thread)."""
+        self.current_image = cv_image
+        self._display_image(cv_image)
+        self.status_label.setText("Image received")
+        self.status_label.setStyleSheet("color: green;")
+
+    def on_detection(self, markers):
+        """Handle ArUco marker detection results."""
+        self.current_detections = markers
+        if not markers:
+            self.status_label.setText("No markers detected")
+            self.status_label.setStyleSheet("color: orange;")
+            self.detection_info.setPlainText("No markers detected")
+            return
+
+        # Draw overlays on current image
+        if self.current_image is not None:
+            display = self.current_image.copy()
+            for marker in markers:
+                corners = marker.corners_in_pixel_coordinates
+                if len(corners) == 4:
+                    pts = np.array([[int(c.x), int(c.y)] for c in corners], np.int32)
+                    cv2.polylines(display, [pts.reshape(-1, 1, 2)], True, (0, 255, 0), 3)
+                    cx = int(sum(c.x for c in corners) / 4)
+                    cy = int(sum(c.y for c in corners) / 4)
+                    text = f"ID: {marker.id}"
+                    font = cv2.FONT_HERSHEY_SIMPLEX
+                    (tw, th), _ = cv2.getTextSize(text, font, 1.5, 3)
+                    cv2.rectangle(display, (cx - 10, cy - th - 10), (cx + tw + 10, cy + 10), (0, 255, 0), -1)
+                    cv2.putText(display, text, (cx, cy), font, 1.5, (0, 0, 0), 3)
+            self._display_image(display)
+
+        self.status_label.setText(f"{len(markers)} marker(s) detected")
+        self.status_label.setStyleSheet("color: green;")
+
+        # Update info panel
+        lines = [f"Detected {len(markers)} ArUco marker(s):\n"]
+        for m in markers:
+            pos = m.pose.position
+            lines.append(f"ID {m.id}: ({pos.x:.3f}, {pos.y:.3f}, {pos.z:.3f}) m")
+        self.detection_info.setPlainText("\n".join(lines))
+
+    def _detect_contours(self):
+        """Run contour detection on current image."""
+        if self.current_image is None:
+            self.status_label.setText("No image — capture first")
+            self.status_label.setStyleSheet("color: orange;")
+            return
+        try:
+            from beambot.camera.zivid import ContourDetectionParams, _detect_contours_in_image
+
+            params = ContourDetectionParams(
+                min_area=500, max_area=50000, blur_kernel=5,
+                canny_low=50, canny_high=150, row_tolerance=50,
+            )
+            rgb = cv2.cvtColor(self.current_image, cv2.COLOR_BGR2RGB)
+            contours = _detect_contours_in_image(rgb, params)
+
+            if not contours:
+                self.status_label.setText("No contours detected")
+                self.status_label.setStyleSheet("color: orange;")
+                self.detection_info.setPlainText("No contours detected.")
+                return
+
+            display = self.current_image.copy()
+            lines = [f"Found {len(contours)} contour(s):\n"]
+            for i, (cx, cy, area, _) in enumerate(contours):
+                num = i + 1
+                cv2.circle(display, (cx, cy), 15, (0, 255, 0), 3)
+                cv2.circle(display, (cx, cy), 5, (0, 255, 0), -1)
+                label = f"#{num}"
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                (tw, th), bl = cv2.getTextSize(label, font, 1.2, 3)
+                lx, ly = cx - tw // 2, cy - 25
+                cv2.rectangle(display, (lx - 5, ly - th - 5), (lx + tw + 5, ly + bl + 5), (0, 200, 0), -1)
+                cv2.putText(display, label, (lx, ly), font, 1.2, (0, 0, 0), 3)
+                lines.append(f"Sample #{num}: pixel({cx}, {cy}), area={area}px^2")
+
+            self._display_image(display)
+            self.status_label.setText(f"{len(contours)} contour(s)")
+            self.status_label.setStyleSheet("color: green;")
+            self.detection_info.setPlainText("\n".join(lines))
+
+        except ImportError:
+            self.status_label.setText("Camera module not available")
+            self.status_label.setStyleSheet("color: red;")
+        except Exception as e:
+            self.status_label.setText("Detection error")
+            self.status_label.setStyleSheet("color: red;")
+            self.ros2.log.emit(f"Contour detection error: {e}")
+
+    def _display_image(self, cv_image):
+        """Convert OpenCV image to QPixmap and display."""
+        h, w, ch = cv_image.shape
+        rgb = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
+        qimg = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
+        pixmap = QPixmap.fromImage(qimg).scaled(
+            self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+        )
+        self.image_label.setPixmap(pixmap)
