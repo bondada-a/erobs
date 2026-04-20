@@ -32,8 +32,9 @@ def generate_launch_description():
     # Without these, PipelinePlanner falls back to CHOMP instead of OMPL.
     ompl_args = [
         '--ros-args',
-        '-p', 'ompl.planning_plugin:=ompl_interface/OMPLPlanner',
-        '-p', 'ompl.request_adapters:=default_planner_request_adapters/AddTimeOptimalParameterization',
+        '-p', "ompl.planning_plugins:=['ompl_interface/OMPLPlanner']",
+        '-p', "ompl.request_adapters:=['default_planning_request_adapters/ResolveConstraintFrames','default_planning_request_adapters/ValidateWorkspaceBounds','default_planning_request_adapters/CheckStartStateBounds','default_planning_request_adapters/CheckStartStateCollision']",
+        '-p', "ompl.response_adapters:=['default_planning_response_adapters/AddTimeOptimalParameterization','default_planning_response_adapters/ValidateSolution','default_planning_response_adapters/DisplayMotionPath']",
     ]
 
     # Declare launch arguments

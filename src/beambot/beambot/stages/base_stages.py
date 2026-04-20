@@ -120,10 +120,10 @@ _options.arguments = [
     "--ros-args",
     "-r", "__node:=beambot_mtc",
     # OMPL planning pipeline
-    "-p", "ompl.planning_plugin:=ompl_interface/OMPLPlanner",
+    "-p", "ompl.planning_plugins:=['ompl_interface/OMPLPlanner']",
     "-p", "ompl.start_state_max_bounds_error:=0.1",
     # Pilz industrial motion planner pipeline
-    "-p", "pilz_industrial_motion_planner.planning_plugin:=pilz_industrial_motion_planner/CommandPlanner",
+    "-p", "pilz_industrial_motion_planner.planning_plugins:=['pilz_industrial_motion_planner/CommandPlanner']",
     # Pilz cartesian limits (must match pilz_cartesian_limits.yaml in MoveIt configs)
     "-p", "robot_description_planning.cartesian_limits.max_trans_vel:=1.0",
     "-p", "robot_description_planning.cartesian_limits.max_trans_acc:=2.25",
