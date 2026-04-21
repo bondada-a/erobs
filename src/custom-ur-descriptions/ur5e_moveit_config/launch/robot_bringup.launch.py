@@ -332,6 +332,7 @@ def generate_launch_description():
         # ── Arguments ───────────────────────────────────────────────────
         DeclareLaunchArgument(
             "gripper", default_value="none",
+            choices=list(GRIPPER_CONFIGS.keys()),
             description="Gripper type: none, epick, hande, 2fg7, pipettor",
         ),
         DeclareLaunchArgument(

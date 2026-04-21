@@ -13,7 +13,6 @@ Usage:
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -33,14 +32,14 @@ class YoloDetectionParams:
     model_path: str = DEFAULT_MODEL   # Model weights file or Ultralytics model name
     confidence: float = 0.25          # Min confidence threshold (0-1)
     iou_threshold: float = 0.45       # NMS IoU threshold
-    classes: Optional[List[int]] = None  # Filter to specific class IDs (None = all)
+    classes: list[int] | None = None  # Filter to specific class IDs (None = all)
     max_detections: int = 50          # Max number of detections to return
     device: str = ""                  # "" = auto (CUDA if available), "cpu", "cuda:0"
 
 
 # Type alias for a single detection result
 # (class_name, confidence, center_x, center_y, x1, y1, x2, y2)
-YoloDetection = Tuple[str, float, int, int, int, int, int, int]
+YoloDetection = tuple[str, float, int, int, int, int, int, int]
 
 
 class YoloDetector:
@@ -90,8 +89,8 @@ class YoloDetector:
     def detect(
         self,
         image: np.ndarray,
-        params: Optional[YoloDetectionParams] = None,
-    ) -> List[YoloDetection]:
+        params: YoloDetectionParams | None = None,
+    ) -> list[YoloDetection]:
         """Run YOLO detection on an image.
 
         Args:
@@ -149,7 +148,7 @@ class YoloDetector:
     def annotate(
         self,
         image: np.ndarray,
-        detections: List[YoloDetection],
+        detections: list[YoloDetection],
     ) -> np.ndarray:
         """Draw YOLO detection results on an image.
 
@@ -196,7 +195,7 @@ class YoloDetector:
 
 
 # Module-level singleton for reuse across calls
-_detector: Optional[YoloDetector] = None
+_detector: YoloDetector | None = None
 
 
 def get_detector(model_path: str = DEFAULT_MODEL) -> YoloDetector:

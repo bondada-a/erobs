@@ -7,7 +7,7 @@ Tasks that require runtime decisions (vision, tool exchange, pipettor) are
 batch breakers and always execute individually via their action servers.
 """
 
-from typing import Dict, Any, List, Tuple
+from typing import Any
 
 # Task types that can be batched into a single MTC Task.
 # These support the add_to_task() pattern for stage composition.
@@ -22,9 +22,9 @@ BATCH_BREAKERS = {"tool_exchange", "vision_moveto", "vision_scan", "pick_sample"
 
 
 def group_into_batches(
-    tasks: List[Dict[str, Any]],
+    tasks: list[dict[str, Any]],
     enabled: bool = True,
-) -> List[Tuple[str, List[Dict[str, Any]]]]:
+) -> list[tuple[str, list[dict[str, Any]]]]:
     """Group consecutive batchable tasks into batches.
 
     Simple tasks (moveto, end_effector) are grouped together.
@@ -45,7 +45,7 @@ def group_into_batches(
         return [("single", [task]) for task in tasks]
 
     batches = []
-    current_batch: List[Dict[str, Any]] = []
+    current_batch: list[dict[str, Any]] = []
     current_type = None
 
     for task in tasks:

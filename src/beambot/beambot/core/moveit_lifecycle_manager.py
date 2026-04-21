@@ -18,7 +18,6 @@ import socket
 import subprocess
 import time
 import traceback
-from typing import Optional
 
 import rclpy
 import yaml
@@ -57,10 +56,10 @@ class MoveItLifecycleManager:
         self._callback_group = callback_group
         self._use_mock_hardware = use_mock_hardware
 
-        self._moveit_process: Optional[subprocess.Popen] = None
+        self._moveit_process: subprocess.Popen | None = None
         self._current_gripper: str = ""
         self._cup_z_offset: float = 0.0
-        self._current_voltage: Optional[int] = None
+        self._current_voltage: int | None = None
 
         # Persistent joint state subscription for hardware verification.
         # Created once to avoid create/destroy races with MultiThreadedExecutor.
@@ -105,7 +104,7 @@ class MoveItLifecycleManager:
             if name in self._ARM_JOINTS:
                 self._joint_positions[name] = pos
 
-    def _resolve_cup_profile(self, gripper_config: dict) -> Optional[str]:
+    def _resolve_cup_profile(self, gripper_config: dict) -> str | None:
         """Validate cup profile and return the profile name.
 
         Dimensions are resolved by xacro from suction_cups.yaml (single source of truth).

@@ -2,7 +2,6 @@
 
 import math
 import struct
-from typing import List, Optional, Tuple
 
 import cv2
 import numpy as np
@@ -13,7 +12,7 @@ from beambot.detection.params import CircleDetectionParams, ContourDetectionPara
 def detect_hough_circles(
     rgb_image: np.ndarray,
     params: CircleDetectionParams,
-) -> Optional[List[Tuple[int, int, int]]]:
+) -> list[tuple[int, int, int]] | None:
     """Detect circles in image using Hough Transform.
 
     Args:
@@ -42,9 +41,9 @@ def detect_hough_circles(
 
 
 def sort_contours_reading_order(
-    contours_info: List[Tuple[int, int, int, int]],
+    contours_info: list[tuple[int, int, int, int]],
     row_tolerance: int = 50,
-) -> List[Tuple[int, int, int, int]]:
+) -> list[tuple[int, int, int, int]]:
     """Sort contours in reading order: left-to-right, top-to-bottom.
 
     Groups objects into rows based on Y-coordinate proximity,
@@ -61,7 +60,7 @@ def sort_contours_reading_order(
         return contours_info
 
     sorted_by_y = sorted(contours_info, key=lambda d: d[1])
-    rows: List[List] = []
+    rows: list[List] = []
     current_row = [sorted_by_y[0]]
     current_row_y = sorted_by_y[0][1]
 
@@ -85,7 +84,7 @@ def detect_contours_in_image(
     rgb_image: np.ndarray,
     params: ContourDetectionParams,
     logger=None,
-) -> Optional[List[Tuple[int, int, int, int]]]:
+) -> list[tuple[int, int, int, int]] | None:
     """Detect contours in image, filter by area, and sort in reading order.
 
     Objects are sorted left-to-right, top-to-bottom (reading order) so that
@@ -141,7 +140,7 @@ def get_3d_position(
     cx: int,
     cy: int,
     search_radius: int = 10,
-) -> Optional[Tuple[float, float, float]]:
+) -> tuple[float, float, float] | None:
     """Get 3D position from organized point cloud at pixel (cx, cy).
 
     The point cloud is organized (same dimensions as image), so we can
@@ -193,7 +192,7 @@ def get_3d_position_averaged(
     cy: int,
     search_radius: int = 10,
     min_points: int = 3,
-) -> Optional[Tuple[float, float, float]]:
+) -> tuple[float, float, float] | None:
     """Get averaged 3D position from organized point cloud at pixel (cx, cy).
 
     Unlike get_3d_position which returns the FIRST valid nearby pixel's XYZ,

@@ -10,7 +10,7 @@ from beambot.stages.base_stages import BaseStages
 class EndEffectorStages(BaseStages):
     """Handles gripper open/close operations."""
 
-    def add_to_task(self, task: core.Task, goal, planner=None) -> 'Optional[str]':
+    def add_to_task(self, task: core.Task, goal, planner=None) -> str | None:
         """Add EndEffector stages to an existing MTC task.
 
         This method adds stages without creating or executing the task,
@@ -53,7 +53,7 @@ class EndEffectorStages(BaseStages):
         )
         return None
 
-    def run(self, goal) -> 'Optional[str]':
+    def run(self, goal) -> str | None:
         """Execute EndEffector action.
 
         Args:

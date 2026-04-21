@@ -11,7 +11,6 @@ Key difference from pick: Task 1 does NOT open gripper (holding object).
 """
 
 import json
-from typing import Dict, Optional
 
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
@@ -41,10 +40,10 @@ class PlaceSampleStages(BaseStages):
             camera_frame=camera_frame,
             marker_dictionary=marker_dictionary,
         )
-        self.last_detected_pose: Optional[PoseStamped] = None
+        self.last_detected_pose: PoseStamped | None = None
         self.logger.info("PlaceSampleStages initialized")
 
-    def run(self, goal) -> Optional[str]:
+    def run(self, goal) -> str | None:
         """Execute place operation.
 
         Returns:
@@ -81,7 +80,7 @@ class PlaceSampleStages(BaseStages):
 
     def _run_vision(
         self, goal, poses: Dict, gripper_states: Dict, constraints
-    ) -> Optional[str]:
+    ) -> str | None:
         """Vision-guided place: scan → detect → approach → open → retreat."""
         self.logger.info(
             f"Vision place: detection={goal.detection_type or 'marker'}, "
@@ -188,7 +187,7 @@ class PlaceSampleStages(BaseStages):
 
     def _run_hardcoded(
         self, goal, poses: Dict, gripper_states: Dict, constraints
-    ) -> Optional[str]:
+    ) -> str | None:
         """Hardcoded place: approach → target → open → retreat."""
         self.logger.info(
             f"Hardcoded place: approach={goal.approach_pose}, target={goal.target_pose}"

@@ -14,7 +14,7 @@ DOCK_SPACING_METERS = 0.1524
 class ToolExchangeStages(BaseStages):
     """Handles tool loading and docking operations at magnetic holders."""
 
-    def run(self, goal) -> 'Optional[str]':
+    def run(self, goal) -> str | None:
         """Execute ToolExchange action.
 
         Load sequence (attaching a tool):

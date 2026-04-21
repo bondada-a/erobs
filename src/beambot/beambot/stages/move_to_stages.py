@@ -94,7 +94,7 @@ class MoveToStages(BaseStages):
         self.logger.info("No gripper tip frame detected, using flange")
         return "flange"
 
-    def add_to_task(self, task: core.Task, goal, planner=None) -> 'Optional[str]':
+    def add_to_task(self, task: core.Task, goal, planner=None) -> str | None:
         """Add MoveTo stages to an existing MTC task.
 
         This method adds stages without creating or executing the task,
@@ -300,7 +300,7 @@ class MoveToStages(BaseStages):
             self.logger.error(error)
             return error
 
-    def run(self, goal) -> 'Optional[str]':
+    def run(self, goal) -> str | None:
         """Execute MoveTo action.
 
         Args:

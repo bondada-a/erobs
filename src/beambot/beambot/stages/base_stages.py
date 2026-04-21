@@ -7,7 +7,7 @@ Contains planner factories, direction vectors, and common utilities.
 import json
 import math
 import traceback
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import rclcpp
 from moveit.task_constructor import core, stages
@@ -22,7 +22,7 @@ from tf_transformations import quaternion_from_euler
 
 # MoveIt error code → human-readable name mapping
 # See: http://docs.ros.org/en/noetic/api/moveit_msgs/html/msg/MoveItErrorCodes.html
-MOVEIT_ERROR_NAMES: Dict[int, str] = {
+MOVEIT_ERROR_NAMES: dict[int, str] = {
     MoveItErrorCodes.SUCCESS: "SUCCESS",
     MoveItErrorCodes.FAILURE: "FAILURE",
     MoveItErrorCodes.PLANNING_FAILED: "PLANNING_FAILED",
@@ -56,7 +56,7 @@ MOVEIT_ERROR_NAMES: Dict[int, str] = {
 # - forward/backward (X): unchanged
 # - left/right (Y): swapped
 # - up/down (Z): swapped
-DIRECTION_VECTORS: Dict[str, Tuple[float, float, float]] = {
+DIRECTION_VECTORS: dict[str, tuple[float, float, float]] = {
     "forward":  ( 1.0,  0.0,  0.0), "x":  ( 1.0,  0.0,  0.0),
     "backward": (-1.0,  0.0,  0.0), "-x": (-1.0,  0.0,  0.0),
     "right":    ( 0.0, -1.0,  0.0), "y":  ( 0.0, -1.0,  0.0),
@@ -66,7 +66,7 @@ DIRECTION_VECTORS: Dict[str, Tuple[float, float, float]] = {
 }
 
 # UR5e default joint names (matches base_stages.cpp)
-DEFAULT_JOINT_NAMES: List[str] = [
+DEFAULT_JOINT_NAMES: list[str] = [
     "shoulder_pan_joint",
     "shoulder_lift_joint",
     "elbow_joint",
@@ -149,7 +149,7 @@ _options.arguments = [
 _mtc_node = rclcpp.Node("beambot_mtc", _options)
 
 
-def joints_from_degrees(degrees: List[float]) -> Dict[str, float]:
+def joints_from_degrees(degrees: list[float]) -> dict[str, float]:
     """Convert joint angles from degrees to radians dict.
 
     Args:
@@ -192,7 +192,7 @@ def create_wrist3_level_constraint() -> Constraints:
     return constraint
 
 
-def parse_constraints(constraints_dict: Optional[Dict[str, Any]]) -> Optional[Constraints]:
+def parse_constraints(constraints_dict: dict[str, Any] | None) -> Constraints | None:
     """Parse a constraints dict from task JSON into a Constraints msg.
 
     All angles (position, tolerances, orientation) are in degrees and
@@ -261,7 +261,7 @@ def parse_constraints(constraints_dict: Optional[Dict[str, Any]]) -> Optional[Co
     return constraints
 
 
-def apply_constraints(stage, constraints: Optional[Constraints]) -> None:
+def apply_constraints(stage, constraints: Constraints | None) -> None:
     """Apply path constraints to an MTC stage if constraints are provided.
 
     Args:
@@ -397,7 +397,7 @@ class BaseStages:
         direction: str,
         distance: float,
         planner=None,
-        constraints: Optional[Constraints] = None
+        constraints: Constraints | None = None
     ):
         """Create a MoveRelative stage (or Fallbacks container) for directional movement.
 
@@ -475,7 +475,7 @@ class BaseStages:
             fb.add(stage)
         return fb
 
-    def load_plan_execute(self, task: core.Task) -> Optional[str]:
+    def load_plan_execute(self, task: core.Task) -> str | None:
         """Initialize, plan, and execute the task.
 
         Matches C++ behavior:
@@ -552,7 +552,7 @@ class BaseStages:
             self.logger.error(traceback.format_exc())
             return f"Task exception for '{task.name}': {e}"
 
-    def parse_poses(self, poses_json: str) -> Optional[Dict[str, Any]]:
+    def parse_poses(self, poses_json: str) -> dict[str, Any] | None:
         """Parse poses JSON string.
 
         Args:
@@ -570,8 +570,8 @@ class BaseStages:
             return None
 
     def get_joint_pose(
-        self, poses: Dict[str, Any], pose_key: str
-    ) -> Optional[List[float]]:
+        self, poses: dict[str, Any], pose_key: str
+    ) -> list[float] | None:
         """Get and validate a joint pose from the poses dictionary.
 
         Args:
@@ -599,9 +599,9 @@ class BaseStages:
         self,
         label: str,
         pose_key: str,
-        poses: Dict[str, Any],
+        poses: dict[str, Any],
         planner=None,
-        constraints: Optional[Constraints] = None
+        constraints: Constraints | None = None
     ):
         """Create a MoveTo stage (or Fallbacks container) for a named joint pose.
 
@@ -652,7 +652,7 @@ class BaseStages:
         planner,
         gripper_group: str,
         state_name: str
-    ) -> Optional[stages.MoveTo]:
+    ) -> stages.MoveTo | None:
         """Create a gripper stage for a specific state.
 
         Args:
@@ -675,7 +675,7 @@ class BaseStages:
 
     def compute_deterministic_ik(
         self, approach: PoseStamped, ik_frame: str
-    ) -> Optional[Dict[str, float]]:
+    ) -> dict[str, float] | None:
         """Compute IK via /compute_ik service for a deterministic joint goal.
 
         Uses a snapshot of the current joint positions as the seed, quantized

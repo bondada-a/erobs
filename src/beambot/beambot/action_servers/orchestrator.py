@@ -15,7 +15,7 @@ import json
 import math
 import threading
 import time
-from typing import Dict, Any, List
+from typing import Any
 
 import yaml
 import rclpy
@@ -422,7 +422,7 @@ class MTCOrchestratorServer(Node):
 
     def _execute_batch(
         self,
-        batch_tasks: List[Dict[str, Any]],
+        batch_tasks: list[dict[str, Any]],
         poses_json: str
     ) -> bool:
         """Execute a batch of tasks as a single MTC Task.
@@ -484,7 +484,7 @@ class MTCOrchestratorServer(Node):
         return True
 
     def _create_moveto_goal(
-        self, step: Dict[str, Any], poses_json: str
+        self, step: dict[str, Any], poses_json: str
     ) -> MoveToAction.Goal:
         """Create a MoveToAction.Goal from task dict."""
         goal = MoveToAction.Goal()
@@ -498,7 +498,7 @@ class MTCOrchestratorServer(Node):
         goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
         return goal
 
-    def _create_endeffector_goal(self, step: Dict[str, Any]) -> EndEffectorAction.Goal:
+    def _create_endeffector_goal(self, step: dict[str, Any]) -> EndEffectorAction.Goal:
         """Create an EndEffectorAction.Goal from task dict."""
         # Use current gripper if not specified in task
         gripper_type = step.get("end_effector_type", self._current_gripper)
@@ -757,7 +757,7 @@ class MTCOrchestratorServer(Node):
 
     # ------------------------------------------------------------------
     def _execute_step(
-        self, task_type: str, step: Dict[str, Any], poses_json: str
+        self, task_type: str, step: dict[str, Any], poses_json: str
     ) -> bool:
         """Execute a single step by dispatching to the appropriate action server."""
         # Ensure controllers are active before executing (handles socket drop recovery)
@@ -848,21 +848,21 @@ class MTCOrchestratorServer(Node):
             self.get_logger().error(f"{name} failed: {self._last_error}")
         return result.result.success
 
-    def _call_moveto(self, step: Dict[str, Any], poses_json: str) -> bool:
+    def _call_moveto(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the MoveTo action server."""
         goal = self._create_moveto_goal(step, poses_json)
         return self._send_and_wait(
             self._moveto_client, goal, "moveto", self._timeouts["moveto"]
         )
 
-    def _call_endeffector(self, step: Dict[str, Any], poses_json: str) -> bool:
+    def _call_endeffector(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the EndEffector action server."""
         goal = self._create_endeffector_goal(step)
         return self._send_and_wait(
             self._endeffector_client, goal, "end_effector", self._timeouts["end_effector"]
         )
 
-    def _call_toolexchange(self, step: Dict[str, Any], poses_json: str) -> bool:
+    def _call_toolexchange(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the ToolExchange action server."""
         goal = ToolExchangeAction.Goal()
         goal.operation = step.get("operation", "")
@@ -944,7 +944,7 @@ class MTCOrchestratorServer(Node):
         else:
             self.get_logger().warning("Vision TF reset did not complete")
 
-    def _handle_tool_exchange(self, step: Dict[str, Any], poses_json: str) -> bool:
+    def _handle_tool_exchange(self, step: dict[str, Any], poses_json: str) -> bool:
         """Handle tool exchange with gripper state tracking and MoveIt restart.
 
         Like the C++ version, this restarts MoveIt with the new gripper config
@@ -1006,7 +1006,7 @@ class MTCOrchestratorServer(Node):
 
         return True
 
-    def _call_vision_moveto(self, step: Dict[str, Any], poses_json: str) -> bool:
+    def _call_vision_moveto(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the VisionMoveTo action server.
 
         Supports:
@@ -1086,7 +1086,7 @@ class MTCOrchestratorServer(Node):
 
         return success
 
-    def _call_vision_scan(self, step: Dict[str, Any], poses_json: str) -> bool:
+    def _call_vision_scan(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the VisionScan action server to batch-scan all markers.
 
         Scans from multiple positions, detects ALL visible markers at each
@@ -1145,7 +1145,7 @@ class MTCOrchestratorServer(Node):
             self._timeouts["vision_scan"]
         )
 
-    def _call_pick_sample(self, step: Dict[str, Any], poses_json: str) -> bool:
+    def _call_pick_sample(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the PickSample action server."""
         # Wait for robot to settle before vision capture
         settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
@@ -1208,7 +1208,7 @@ class MTCOrchestratorServer(Node):
 
         return success
 
-    def _call_place_sample(self, step: Dict[str, Any], poses_json: str) -> bool:
+    def _call_place_sample(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the PlaceSample action server."""
         settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
         if settle_time > 0 and step.get("use_vision", True):
@@ -1256,7 +1256,7 @@ class MTCOrchestratorServer(Node):
 
         return success
 
-    def _call_pipettor(self, step: Dict[str, Any], poses_json: str) -> bool:
+    def _call_pipettor(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the Pipettor action server."""
         from std_msgs.msg import ColorRGBA
 

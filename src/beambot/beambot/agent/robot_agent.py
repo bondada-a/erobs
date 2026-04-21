@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 from contextlib import AsyncExitStack
 
@@ -9,6 +10,8 @@ from mcp.client.session import ClientSession
 from mcp.client.stdio import stdio_client, StdioServerParameters
 
 from .system_prompt import load_system_prompt
+
+logger = logging.getLogger(__name__)
 
 
 def _create_client():
@@ -60,9 +63,12 @@ class RobotAgent:
             try:
                 await self._connect_server(name, server_cfg)
             except Exception as e:
-                print(f"Warning: failed to connect to MCP server '{name}': {e}")
+                logger.warning(f"Failed to connect to MCP server '{name}': {e}")
 
-        print(f"Connected: {len(self.tools)} tools from {len(set(self.tool_to_session.values()))} server(s)")
+        logger.info(
+            f"Connected: {len(self.tools)} tools from "
+            f"{len(set(self.tool_to_session.values()))} server(s)"
+        )
 
     async def _connect_server(self, name, server_cfg):
         """Connect to a single MCP server and register its tools."""
@@ -89,7 +95,7 @@ class RobotAgent:
             })
             self.tool_to_session[tool.name] = session
 
-        print(f"  {name}: {len(result.tools)} tools")
+        logger.info(f"  {name}: {len(result.tools)} tools")
 
     async def chat(self, user_message: str, on_tool_call=None, on_text=None) -> str:
         """Send message, execute tool calls in a loop, return final text.

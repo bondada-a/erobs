@@ -6,7 +6,7 @@ while armed, and flags the drop so the orchestrator can abort before
 the next motion step.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from rclpy.node import Node
 from epick_msgs.msg import ObjectDetectionStatus
@@ -19,7 +19,7 @@ _NO_OBJECT = 3
 class VacuumMonitor:
     """Monitors ePick vacuum grasp and detects object drops."""
 
-    def __init__(self, node: Node, grippers_config: Dict[str, Any], callback_group=None):
+    def __init__(self, node: Node, grippers_config: dict[str, Any], callback_group=None):
         self._node = node
         self._logger = node.get_logger()
         self._grippers = grippers_config
@@ -51,7 +51,7 @@ class VacuumMonitor:
             )
 
     def update_after_tasks(
-        self, executed_tasks: List[Dict[str, Any]], current_gripper: str
+        self, executed_tasks: list[dict[str, Any]], current_gripper: str
     ):
         """Arm/disarm monitor based on vacuum_on/off actions in executed tasks."""
         if current_gripper != "epick":
@@ -78,7 +78,7 @@ class VacuumMonitor:
                 self.lost = False
                 self._logger.info("Vacuum monitor DISARMED (vacuum_off detected)")
 
-    def check_lost(self) -> Optional[str]:
+    def check_lost(self) -> str | None:
         """Check if vacuum was lost. Returns error string if lost, None if OK."""
         if not self.armed or not self.lost:
             return None

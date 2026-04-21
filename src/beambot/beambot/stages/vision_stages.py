@@ -12,7 +12,6 @@ import json
 import math
 import time
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import rclpy
@@ -136,7 +135,7 @@ class VisionStages(BaseStages):
         self._publish_marker_frames = True
 
         # Object database (loaded from config)
-        self._object_database: Dict[int, ObjectInfo] = {}
+        self._object_database: dict[int, ObjectInfo] = {}
 
         # Load vision objects config
         self._load_vision_objects_config()
@@ -144,7 +143,7 @@ class VisionStages(BaseStages):
         # Cache for multi-position scan results
         # Populated by scan_all_tags(), used by run() for fast lookup
         # {tag_id: PoseStamped} - averaged poses from vision_scan
-        self._tag_pose_cache: Dict[int, PoseStamped] = {}
+        self._tag_pose_cache: dict[int, PoseStamped] = {}
 
         self.logger.info(
             f"VisionStages initialized (camera: {self._camera_type}, "
@@ -206,13 +205,13 @@ class VisionStages(BaseStages):
         self._tag_pose_cache.clear()
         self.logger.info(f"Tag pose cache cleared ({count} entries)")
 
-    def get_cached_pose(self, tag_id: int) -> Optional[PoseStamped]:
+    def get_cached_pose(self, tag_id: int) -> PoseStamped | None:
         """Get cached pose for tag, or None if not cached."""
         return self._tag_pose_cache.get(tag_id)
 
     def scan_all_tags(
         self,
-        scan_positions: List[List[float]],
+        scan_positions: list[list[float]],
         scans_per_position: int = 3,
         timeout: float = 10.0,
         settle_time: float = 0.3
@@ -236,7 +235,7 @@ class VisionStages(BaseStages):
         self._tag_pose_cache.clear()
 
         # Collect all detections: {tag_id: [PoseStamped, ...]}
-        all_detections: Dict[int, List[PoseStamped]] = {}
+        all_detections: dict[int, list[PoseStamped]] = {}
 
         total_scans = len(scan_positions) * scans_per_position
         self.logger.info(
@@ -307,7 +306,7 @@ class VisionStages(BaseStages):
         )
         return len(self._tag_pose_cache)
 
-    def run(self, goal) -> 'Optional[str]':
+    def run(self, goal) -> 'str | None':
         """Execute VisionMoveTo action.
 
         Args:
@@ -450,7 +449,7 @@ class VisionStages(BaseStages):
         self,
         tag_id: int,
         timeout: float = 45.0
-    ) -> Optional[PoseStamped]:
+    ) -> PoseStamped | None:
         """Detect an ArUco marker and transform to base_link frame.
 
         Includes retry logic for transient detection failures.
@@ -498,7 +497,7 @@ class VisionStages(BaseStages):
         self,
         tag_id: int,
         timeout: float
-    ) -> Optional[DetectionResult]:
+    ) -> DetectionResult | None:
         """Execute a single detection attempt using camera module.
 
         Args:
@@ -530,7 +529,7 @@ class VisionStages(BaseStages):
         self,
         tag_id: int,
         detection_result: DetectionResult
-    ) -> Optional[PoseStamped]:
+    ) -> PoseStamped | None:
         """Process detection result and transform to base_link.
 
         Uses the capture timestamp from the detection result for TF lookup
@@ -589,7 +588,7 @@ class VisionStages(BaseStages):
     def detect_and_transform_circle(
         self,
         timeout: float = 45.0
-    ) -> Optional[PoseStamped]:
+    ) -> PoseStamped | None:
         """Detect circular objects and transform to base_link frame.
 
         Uses Hough circle detection to find circular objects (wafers, etc.)
@@ -659,7 +658,7 @@ class VisionStages(BaseStages):
         self,
         sample_index: int = 1,
         timeout: float = 45.0
-    ) -> Optional[PoseStamped]:
+    ) -> PoseStamped | None:
         """Detect objects using contour detection and transform to base_link frame.
 
         Uses edge detection + contour finding to detect ANY shaped object
@@ -724,7 +723,7 @@ class VisionStages(BaseStages):
 
     def _move_to_joint_pose(
         self,
-        joint_positions: List[float],
+        joint_positions: list[float],
     ) -> bool:
         """Move to joint configuration using MTC with Pilz PTP.
 
@@ -763,7 +762,7 @@ class VisionStages(BaseStages):
             return False
         return True
 
-    def _average_poses(self, poses: List[PoseStamped]) -> Optional[PoseStamped]:
+    def _average_poses(self, poses: list[PoseStamped]) -> PoseStamped | None:
         """Average multiple poses (position + quaternion orientation).
 
         For positions: simple arithmetic mean.
@@ -827,10 +826,10 @@ class VisionStages(BaseStages):
     def detect_tag_multiposition(
         self,
         tag_id: int,
-        scan_positions: List[List[float]],
+        scan_positions: list[list[float]],
         timeout: float = 45.0,
         settle_time: float = 0.3
-    ) -> Optional[PoseStamped]:
+    ) -> PoseStamped | None:
         """Detect tag from multiple positions and average results.
 
         Moves robot to each scan position, captures and detects the marker,
@@ -919,7 +918,7 @@ class VisionStages(BaseStages):
         self,
         pose_camera: Pose,
         capture_stamp=None
-    ) -> Optional[PoseStamped]:
+    ) -> PoseStamped | None:
         """Transform a pose from camera frame to base_link.
 
         IMPORTANT: Uses capture_stamp for TF lookup to ensure the transform
@@ -1007,7 +1006,7 @@ class VisionStages(BaseStages):
         marker_offset_y: float = 0.0,
         marker_offset_z: float = 0.0,
         ik_frame_override: str = "",
-    ) -> Tuple[PoseStamped, str]:
+    ) -> tuple[PoseStamped, str]:
         """Compute the final approach pose from a detected target.
 
         Applies marker-frame XYZ offset, marker-aligned yaw, z_offset, and
@@ -1171,7 +1170,7 @@ class VisionStages(BaseStages):
 
     def _move_to_approach(
         self, approach: PoseStamped, ik_frame: str = ""
-    ) -> 'Optional[str]':
+    ) -> 'str | None':
         """Execute MoveIt move to a pre-computed approach pose.
 
         Args:

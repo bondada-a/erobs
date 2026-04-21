@@ -18,7 +18,6 @@ import os
 import subprocess as _sp
 import sys
 import tkinter as tk
-from typing import Dict, Optional, Tuple
 
 from PIL import Image, ImageDraw, ImageTk
 
@@ -63,7 +62,7 @@ class PointSelector:
     def __init__(
         self,
         image_path: str,
-        initial_point: Optional[Tuple[int, int]] = None,
+        initial_point: tuple[int, int] | None = None,
         title: str = "Point Selector",
     ):
         self.pil_image = Image.open(image_path)
@@ -71,7 +70,7 @@ class PointSelector:
         self.title = title
         # Point in original image coordinates
         self.current_point = initial_point
-        self.result: Optional[Dict] = None
+        self.result: Dict | None = None
 
         # Compute display scale to fit window
         self.scale = min(

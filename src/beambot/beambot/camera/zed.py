@@ -6,8 +6,8 @@ This module subscribes to ZED ROS2 topics and grabs the latest frame.
 Interface contract (matches beambot camera abstraction):
     - create_client(node) -> None (no service client needed — streaming)
     - detect_markers(client, node, ...) -> DetectionResult
-    - detect_circles(node, ...) -> List[Pose]
-    - detect_contours(node, ...) -> List[Pose]
+    - detect_circles(node, ...) -> list[Pose]
+    - detect_contours(node, ...) -> list[Pose]
 
 ZED 2i default topics (namespace: /zed/zed_node, SDK 5.2.1+):
     - /zed/zed_node/rgb/color/rect/image  (sensor_msgs/Image, bgra8)
@@ -16,7 +16,6 @@ ZED 2i default topics (namespace: /zed/zed_node, SDK 5.2.1+):
 """
 
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
 
 import rclpy
 from builtin_interfaces.msg import Time as TimeMsg
@@ -38,8 +37,8 @@ from beambot.detection import (
 @dataclass
 class DetectionResult:
     """Result of detection with capture timestamp."""
-    markers: List[Tuple[int, Pose]]
-    capture_stamp: Optional[TimeMsg]
+    markers: list[tuple[int, Pose]]
+    capture_stamp: TimeMsg | None
 
 
 # Default topic names (with zed2i default namespace)
@@ -67,7 +66,7 @@ def _grab_latest(
     node: Node,
     timeout: float = 5.0,
     need_cloud: bool = True,
-) -> Tuple[Optional[Image], Optional[PointCloud2]]:
+) -> tuple[Image | None, PointCloud2 | None]:
     """Subscribe to ZED topics and grab the latest frame.
 
     Since ZED streams at ~15fps, we just need to wait for the next message.
@@ -80,8 +79,8 @@ def _grab_latest(
     Returns:
         (image_msg, cloud_msg) tuple. cloud_msg may be None if not needed.
     """
-    received_image: List[Optional[Image]] = [None]
-    received_cloud: List[Optional[PointCloud2]] = [None]
+    received_image: list[Image | None] = [None]
+    received_cloud: list[PointCloud2 | None] = [None]
 
     def on_image(msg: Image):
         received_image[0] = msg
@@ -112,7 +111,7 @@ def _grab_latest(
 def detect_markers(
     client,
     node: Node,
-    marker_ids: Optional[List[int]] = None,
+    marker_ids: list[int] | None = None,
     dictionary: str = "aruco4x4_50",
     timeout: float = 10.0,
     settle_time: float = 0.0,
@@ -201,7 +200,7 @@ def detect_circles(
     node: Node,
     timeout: float = 10.0,
     params: CircleDetectionParams = None,
-) -> List[Pose]:
+) -> list[Pose]:
     """Detect circular objects using the ZED camera.
 
     Grabs latest frame, runs Hough circle detection, returns 3D poses.
@@ -250,7 +249,7 @@ def detect_contours(
     node: Node,
     timeout: float = 10.0,
     params: ContourDetectionParams = None,
-) -> List[Pose]:
+) -> list[Pose]:
     """Detect objects of any shape using contour detection on ZED image."""
     if params is None:
         params = ContourDetectionParams()

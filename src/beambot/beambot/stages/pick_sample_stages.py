@@ -12,7 +12,6 @@ Includes vacuum status check after pick for ePick gripper.
 
 import json
 import rclpy
-from typing import Dict, Optional
 
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
@@ -43,10 +42,10 @@ class PickSampleStages(BaseStages):
             marker_dictionary=marker_dictionary,
         )
         self.vacuum_ok: bool = True
-        self.last_detected_pose: Optional[PoseStamped] = None
+        self.last_detected_pose: PoseStamped | None = None
         self.logger.info("PickSampleStages initialized")
 
-    def run(self, goal) -> Optional[str]:
+    def run(self, goal) -> str | None:
         """Execute pick operation.
 
         Returns:
@@ -85,7 +84,7 @@ class PickSampleStages(BaseStages):
 
     def _run_vision(
         self, goal, poses: Dict, gripper_states: Dict, constraints
-    ) -> Optional[str]:
+    ) -> str | None:
         """Vision-guided pick: scan → detect → approach → close → retreat."""
         self.logger.info(
             f"Vision pick: detection={goal.detection_type or 'marker'}, "
@@ -203,7 +202,7 @@ class PickSampleStages(BaseStages):
 
     def _run_hardcoded(
         self, goal, poses: Dict, gripper_states: Dict, constraints
-    ) -> Optional[str]:
+    ) -> str | None:
         """Hardcoded pick: open → approach → target → close → retreat."""
         self.logger.info(
             f"Hardcoded pick: approach={goal.approach_pose}, target={goal.target_pose}"

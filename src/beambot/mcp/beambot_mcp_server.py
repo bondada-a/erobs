@@ -25,7 +25,7 @@ import re
 import sys
 import threading
 import time
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any
 
 import cv2
 import yaml
@@ -128,7 +128,7 @@ DEFAULT_IMAGE_PATH = "/tmp/beambot_capture.jpg"
 DEFAULT_ANNOTATED_PATH = "/tmp/beambot_detection.jpg"
 
 
-def _detect_display() -> Tuple[str, str]:
+def _detect_display() -> tuple[str, str]:
     """Detect DISPLAY and XAUTHORITY for GUI subprocess.
 
     Claude Code strips DISPLAY from MCP server environments. We detect
@@ -174,7 +174,7 @@ def _detect_hsv_color(
     sat_min: int = 80,
     val_min: int = 80,
     min_area: int = 200,
-) -> Optional[List[Tuple[int, int, int]]]:
+) -> list[tuple[int, int, int]] | None:
     """Detect objects by HSV color range. Returns list of (cx, cy, area)."""
     hsv = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
     lower = np.array([hue_low, sat_min, val_min])
@@ -204,9 +204,9 @@ def _detect_hsv_color(
 
 def _detect_aruco_markers(
     rgb_image: np.ndarray,
-    marker_ids: Optional[List[int]] = None,
+    marker_ids: list[int] | None = None,
     dictionary_name: str = "DICT_4X4_50",
-) -> Optional[List[Tuple[int, int, int, List]]]:
+) -> list[tuple[int, int, int, List]] | None:
     """Detect ArUco markers in image. Returns list of (cx, cy, marker_id, corners)."""
     # Map string name to OpenCV constant
     aruco_dicts = {
@@ -246,7 +246,7 @@ def _detect_aruco_markers(
 
 def _annotate_image(
     rgb_image: np.ndarray,
-    detections: List[Dict[str, Any]],
+    detections: list[dict[str, Any]],
     method: str,
 ) -> np.ndarray:
     """Draw detection results on image. Returns annotated BGR image for saving."""
@@ -368,22 +368,22 @@ class ROS2BridgeNode(Node):
         )
 
         # Robot state (updated by callbacks, None = no data received yet)
-        self.joint_names: Optional[List[str]] = None
-        self.joint_positions: Optional[List[float]] = None
-        self.current_gripper: Optional[str] = None
-        self.execution_state: Optional[str] = None
-        self.epick_status: Optional[int] = None  # Raw status int from ObjectDetectionStatus
+        self.joint_names: list[str] | None = None
+        self.joint_positions: list[float] | None = None
+        self.current_gripper: str | None = None
+        self.execution_state: str | None = None
+        self.epick_status: int | None = None  # Raw status int from ObjectDetectionStatus
 
         # Zivid state
-        self.last_rgb: Optional[np.ndarray] = None
-        self.last_cloud: Optional[PointCloud2] = None
-        self.last_image_msg: Optional[Image] = None
+        self.last_rgb: np.ndarray | None = None
+        self.last_cloud: PointCloud2 | None = None
+        self.last_image_msg: Image | None = None
         self.capture_stamp = None  # Pre-capture timestamp for TF accuracy
 
         # ZED state (continuously updated by streaming callbacks)
-        self.zed_rgb: Optional[np.ndarray] = None
-        self.zed_cloud: Optional[PointCloud2] = None
-        self.zed_image_msg: Optional[Image] = None
+        self.zed_rgb: np.ndarray | None = None
+        self.zed_cloud: PointCloud2 | None = None
+        self.zed_image_msg: Image | None = None
         self.zed_stamp = None
 
         # Synchronization events (for blocking Zivid capture)
@@ -515,7 +515,7 @@ class ROS2BridgeNode(Node):
         return True
 
     def detect_marker(self, marker_id: int, dictionary: str = "aruco4x4_50",
-                      timeout: float = 30.0) -> Optional[Dict]:
+                      timeout: float = 30.0) -> Dict | None:
         """Detect an ArUco marker using Zivid native detection and transform to base_link.
 
         Returns dict with 'position' [x,y,z], 'orientation' [x,y,z,w], or None on failure.
@@ -639,9 +639,9 @@ class ROS2Bridge:
     """
 
     def __init__(self):
-        self._node: Optional[ROS2BridgeNode] = None
-        self._executor: Optional[MultiThreadedExecutor] = None
-        self._thread: Optional[threading.Thread] = None
+        self._node: ROS2BridgeNode | None = None
+        self._executor: MultiThreadedExecutor | None = None
+        self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._initialized = False
 
@@ -693,7 +693,7 @@ class ROS2Bridge:
 def _resolve_camera_state(
     node: ROS2BridgeNode,
     camera: str,
-) -> Tuple[Optional[np.ndarray], Optional[PointCloud2], Optional[Any], str]:
+) -> tuple[np.ndarray | None, PointCloud2 | None, Any | None, str]:
     """Resolve camera name to (rgb, cloud, stamp, frame) from node state."""
     if camera == "zivid":
         return node.last_rgb, node.last_cloud, node.capture_stamp, ZIVID_FRAME
@@ -1294,10 +1294,10 @@ async def detect_objects(
 
 async def _transform_point_to_base(
     node: ROS2BridgeNode,
-    camera_xyz: Tuple[float, float, float],
+    camera_xyz: tuple[float, float, float],
     camera_frame: str,
     capture_stamp=None,
-) -> Optional[Tuple[float, float, float]]:
+) -> tuple[float, float, float] | None:
     """Transform a 3D point from camera frame to base_link using TF.
 
     Tries capture_stamp first for accuracy (matches robot pose at capture time),
@@ -1351,7 +1351,7 @@ async def _confirm_point_via_gui(
     pixel_x: int,
     pixel_y: int,
     timeout: float = 120.0,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Launch the point selector GUI as a subprocess and wait for the result.
 
     Returns:
@@ -1428,7 +1428,7 @@ def _detect_sample_in_roi(
     min_area: int = 100,
     max_area: int = 15000,
     max_aspect_ratio: float = 3.0,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Detect a sample contour in a fixed ROI relative to an ArUco marker.
 
     Pure OpenCV — no ROS dependencies. Reusable from scripts and MCP tools.

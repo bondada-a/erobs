@@ -46,7 +46,7 @@ class PipettorStages:
 
         self.logger.info("PipettorStages initialized")
 
-    def run(self, goal) -> 'Optional[str]':
+    def run(self, goal) -> str | None:
         """Execute Pipettor action.
 
         Args:
@@ -83,7 +83,7 @@ class PipettorStages:
         operation: str,
         volume_pct: float,
         led_color: ColorRGBA
-    ) -> 'Optional[str]':
+    ) -> str | None:
         """Execute the pipettor action.
 
         Args:

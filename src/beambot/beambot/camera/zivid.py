@@ -5,14 +5,13 @@ exposing a simple interface that matches the beambot camera abstraction.
 
 Interface contract:
     - create_client(node) -> ServiceClient
-    - detect_markers(client, node, marker_ids, dictionary, timeout) -> List[Tuple[int, Pose]]
-    - detect_circles(node, timeout, params) -> List[Pose]
-    - detect_contours(node, timeout, params) -> List[Pose]
+    - detect_markers(client, node, marker_ids, dictionary, timeout) -> list[tuple[int, Pose]]
+    - detect_circles(node, timeout, params) -> list[Pose]
+    - detect_contours(node, timeout, params) -> list[Pose]
 """
 
 import time
 from dataclasses import dataclass
-from typing import List, Optional, Tuple
 
 import rclpy
 from builtin_interfaces.msg import Time as TimeMsg
@@ -42,8 +41,8 @@ class DetectionResult:
     This should be used for TF lookups to ensure the transform matches
     the robot pose at capture time, not at processing time.
     """
-    markers: List[Tuple[int, Pose]]  # List of (marker_id, pose) tuples
-    capture_stamp: Optional[TimeMsg]  # Timestamp when image was captured
+    markers: list[tuple[int, Pose]]  # List of (marker_id, pose) tuples
+    capture_stamp: TimeMsg | None  # Timestamp when image was captured
 
 
 # Zivid service endpoint
@@ -69,7 +68,7 @@ def create_client(node: Node):
 def detect_markers(
     client,
     node: Node,
-    marker_ids: Optional[List[int]] = None,
+    marker_ids: list[int] | None = None,
     dictionary: str = "aruco4x4_50",
     timeout: float = 45.0,
     settle_time: float = 0.0
@@ -183,7 +182,7 @@ def _capture_image_and_cloud(
     node: Node,
     timeout: float = 45.0,
     label: str = "detection",
-) -> Optional[tuple]:
+) -> tuple | None:
     """Trigger a Zivid capture and wait for RGB image + point cloud.
 
     Handles the full subscription lifecycle: create temporary subscriptions,
@@ -204,8 +203,8 @@ def _capture_image_and_cloud(
     bridge = CvBridge()
 
     # Storage for received data (using list for mutability in closure)
-    received_image: List[Optional[Image]] = [None]
-    received_cloud: List[Optional[PointCloud2]] = [None]
+    received_image: list[Image | None] = [None]
+    received_cloud: list[PointCloud2 | None] = [None]
 
     def on_image(msg: Image):
         received_image[0] = msg
@@ -311,7 +310,7 @@ def detect_circles(
     node: Node,
     timeout: float = 45.0,
     params: CircleDetectionParams = None
-) -> List[Pose]:
+) -> list[Pose]:
     """Detect circular objects using the Zivid camera.
 
     Captures an image and point cloud, runs Hough circle detection,
@@ -374,7 +373,7 @@ def detect_contours(
     node: Node,
     timeout: float = 45.0,
     params: ContourDetectionParams = None
-) -> List[Pose]:
+) -> list[Pose]:
     """Detect objects of ANY shape using contour detection.
 
     Captures an image and point cloud, runs edge detection + contour finding,
