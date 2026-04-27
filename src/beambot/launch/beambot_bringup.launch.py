@@ -13,6 +13,7 @@ Usage:
     ros2 launch beambot beambot_bringup.launch.py
     ros2 launch beambot beambot_bringup.launch.py enable_vision:=false
     ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true
+    ros2 launch beambot beambot_bringup.launch.py enable_octomap:=true
 """
 
 from launch import LaunchDescription
@@ -66,10 +67,17 @@ def generate_launch_description():
         description='Enable MTC stage batching (false = each task via action server)'
     )
 
+    declare_enable_octomap = DeclareLaunchArgument(
+        'enable_octomap',
+        default_value='false',
+        description='Enable Zivid point cloud octomap for obstacle avoidance'
+    )
+
     enable_vision = LaunchConfiguration('enable_vision')
     enable_pipettor = LaunchConfiguration('enable_pipettor')
     use_fake_hardware = LaunchConfiguration('use_fake_hardware')
     enable_batching = LaunchConfiguration('enable_batching')
+    enable_octomap = LaunchConfiguration('enable_octomap')
 
     # Resolve beamline config path (relative to beambot package)
     beamline_config_path = PathJoinSubstitution([
@@ -182,6 +190,57 @@ def generate_launch_description():
         condition=IfCondition(enable_pipettor),
     )
 
+    # Octomap pipeline: downsample → octomap_server → planning scene bridge
+    pointcloud_relay = Node(
+        package='beambot',
+        executable='pointcloud_relay.py',
+        name='pointcloud_relay',
+        parameters=[{
+            'input_topic': '/points/xyz',
+            'output_topic': '/points/xyz_relayed',
+            'enable_downsampling': True,
+            'voxel_size': 0.01,
+        }],
+        output='screen',
+        condition=IfCondition(enable_octomap),
+    )
+
+    octomap_server = Node(
+        package='octomap_server',
+        executable='octomap_server_node',
+        name='octomap_server',
+        parameters=[{
+            'resolution': 0.01,
+            'frame_id': 'base_link',
+            'sensor_model.max_range': 2.0,
+            'sensor_model.hit': 0.7,
+            'sensor_model.miss': 0.4,
+            'filter_ground': False,
+            'base_frame_id': 'base_link',
+            'latch': False,
+            'transform_tolerance': 5.0,
+            'use_height_map': True,
+            'publish_free_space': False,
+        }],
+        remappings=[('cloud_in', '/points/xyz_relayed')],
+        output='screen',
+        condition=IfCondition(enable_octomap),
+    )
+
+    octomap_bridge = Node(
+        package='beambot',
+        executable='octomap_to_planning_scene.py',
+        name='octomap_to_planning_scene',
+        parameters=[{
+            'octomap_topic': '/octomap_binary',
+            'planning_scene_topic': '/planning_scene',
+            'min_update_interval': 0.5,
+            'log_updates': True,
+        }],
+        output='screen',
+        condition=IfCondition(enable_octomap),
+    )
+
     # Orchestrator - manages MoveIt lifecycle and task coordination
     # Now includes action_server_parameters and ompl_args because batching
     # executes MTC stages directly in this process (not via action servers)
@@ -205,6 +264,7 @@ def generate_launch_description():
         declare_enable_pipettor,
         declare_use_fake_hardware,
         declare_enable_batching,
+        declare_enable_octomap,
         # Core servers (always launched)
         move_to_server,
         end_effector_server,
@@ -214,6 +274,10 @@ def generate_launch_description():
         sample_server,
         # Zivid camera (conditional - provides /capture_and_detect_markers service)
         zivid_camera,
+        # Octomap pipeline (conditional - point cloud obstacle avoidance)
+        pointcloud_relay,
+        octomap_server,
+        octomap_bridge,
         # Pipettor server (conditional)
         pipettor_server,
         # Orchestrator (always launched)

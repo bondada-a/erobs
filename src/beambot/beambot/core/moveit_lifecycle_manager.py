@@ -24,7 +24,10 @@ import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Pose
-from moveit_msgs.msg import CollisionObject, PlanningScene
+from moveit_msgs.msg import (
+    AllowedCollisionEntry, AllowedCollisionMatrix,
+    CollisionObject, PlanningScene,
+)
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from shape_msgs.msg import SolidPrimitive
@@ -234,6 +237,11 @@ class MoveItLifecycleManager:
             self._logger.error("Failed to load collision obstacles")
             return False
 
+        # Allow gripper tip links to penetrate octomap voxels.
+        # Without this, pick/place targets on surfaces seen by the camera
+        # are rejected as GOAL_IN_COLLISION with the octomap.
+        self._setup_octomap_acm(gripper)
+
         # Always restart external_control after a fresh MoveIt launch.
         # Killing the old MoveIt terminates ur_ros2_control_node, which drops
         # the external_control connection — even if voltage didn't change.
@@ -369,6 +377,103 @@ class MoveItLifecycleManager:
                 f"sum(abs)={sum(abs(v) for v in self._joint_positions.values()):.4f})"
             )
         return False
+
+    _GRIPPER_TIP_LINKS = {
+        "epick": ["epick_tip", "epick_suction_cup"],
+        "hande": ["robotiq_hande_end"],
+        "pipettor": ["pipette_tip_link"],
+        "2fg7": ["2fg7_tip", "2fg7_left_finger", "2fg7_right_finger"],
+    }
+
+    def _setup_octomap_acm(self, gripper: str):
+        """Allow gripper tip links to collide with the octomap.
+
+        Fetches the current ACM from MoveIt (which includes all SRDF
+        disable_collisions entries), adds octomap ↔ tip pairs, and
+        publishes the full modified ACM. MoveIt replaces the entire ACM
+        when a PlanningScene diff contains a non-empty one, so we must
+        preserve existing entries.
+        """
+        tip_links = self._GRIPPER_TIP_LINKS.get(gripper, [])
+        if not tip_links:
+            return
+
+        from moveit_msgs.srv import GetPlanningScene
+        from moveit_msgs.msg import PlanningSceneComponents
+
+        client = None
+        try:
+            client = self._node.create_client(
+                GetPlanningScene, "/get_planning_scene",
+                callback_group=self._callback_group,
+            )
+            if not client.wait_for_service(timeout_sec=5.0):
+                self._logger.error("GetPlanningScene not available for ACM update")
+                return
+
+            request = GetPlanningScene.Request()
+            request.components.components = (
+                PlanningSceneComponents.ALLOWED_COLLISION_MATRIX
+            )
+
+            future = client.call_async(request)
+            start = time.time()
+            while not future.done() and (time.time() - start) < 5.0:
+                time.sleep(0.05)
+
+            if not future.done() or future.result() is None:
+                self._logger.error("Failed to fetch current ACM from MoveIt")
+                return
+
+            current_acm = future.result().scene.allowed_collision_matrix
+        except Exception as e:
+            self._logger.error(f"Failed to fetch ACM: {e}")
+            return
+        finally:
+            if client is not None:
+                self._node.destroy_client(client)
+
+        names = list(current_acm.entry_names)
+        name_to_idx = {n: i for i, n in enumerate(names)}
+        matrix = [list(entry.enabled) for entry in current_acm.entry_values]
+
+        OCTOMAP_ID = "<octomap>"
+        for link_name in [OCTOMAP_ID] + tip_links:
+            if link_name not in name_to_idx:
+                name_to_idx[link_name] = len(names)
+                names.append(link_name)
+                for row in matrix:
+                    row.append(False)
+                matrix.append([False] * len(names))
+
+        octomap_idx = name_to_idx[OCTOMAP_ID]
+        for tip in tip_links:
+            tip_idx = name_to_idx[tip]
+            matrix[octomap_idx][tip_idx] = True
+            matrix[tip_idx][octomap_idx] = True
+
+        acm = AllowedCollisionMatrix()
+        acm.entry_names = names
+        acm.entry_values = [
+            AllowedCollisionEntry(enabled=row) for row in matrix
+        ]
+
+        scene = PlanningScene()
+        scene.is_diff = True
+        scene.allowed_collision_matrix = acm
+
+        scene_pub = self._node.create_publisher(
+            PlanningScene, "/planning_scene",
+            QoSProfile(depth=5, durability=DurabilityPolicy.VOLATILE,
+                       reliability=ReliabilityPolicy.RELIABLE),
+        )
+        time.sleep(0.1)
+        scene_pub.publish(scene)
+        self._node.destroy_publisher(scene_pub)
+
+        self._logger.info(
+            f"Octomap ACM: {tip_links} allowed to collide with '{OCTOMAP_ID}'"
+        )
 
     def _load_collision_obstacles(self) -> bool:
         """Load collision obstacles into the planning scene.

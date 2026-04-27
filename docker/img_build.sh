@@ -22,6 +22,18 @@ build_beambot_img() {
     echo "✓ beambot_img pushed to $REGISTRY/beambot_img:latest"
 }
 
+build_beambot_img_v2() {
+    echo "=========================================="
+    echo "Building beambot_img_v2 (ROS/robotics)..."
+    echo "=========================================="
+    docker build --no-cache -f docker/erobs-common-img/Dockerfile -t beambot_img_v2 .
+    docker tag beambot_img_v2 "$REGISTRY/beambot_img_v2:latest"
+    echo ""
+    echo "Pushing beambot_img_v2 to GHCR..."
+    docker push "$REGISTRY/beambot_img_v2:latest"
+    echo "✓ beambot_img_v2 pushed to $REGISTRY/beambot_img_v2:latest"
+}
+
 build_beambot_bsui() {
     echo "=========================================="
     echo "Building beambot_bsui (Bluesky - full)..."
@@ -50,6 +62,9 @@ case "${1:-all}" in
     beambot_img)
         build_beambot_img
         ;;
+    beambot_img_v2)
+        build_beambot_img_v2
+        ;;
     beambot_bsui)
         build_beambot_bsui
         ;;
@@ -58,13 +73,15 @@ case "${1:-all}" in
         ;;
     all)
         build_beambot_img
+        build_beambot_img_v2
         build_beambot_bsui
         build_beambot_bsui_minimal
         ;;
     *)
-        echo "Usage: $0 [beambot_img|beambot_bsui|beambot_bsui_minimal|all]"
+        echo "Usage: $0 [beambot_img|beambot_img_v2|beambot_bsui|beambot_bsui_minimal|all]"
         echo ""
-        echo "  beambot_img          - Build ROS/robotics image (erobs-common-img)"
+        echo "  beambot_img          - Build ROS/robotics image (erobs-common-img, legacy)"
+        echo "  beambot_img_v2       - Build ROS/robotics image (erobs-common-img, latest)"
         echo "  beambot_bsui         - Build Bluesky image (full, ~5GB)"
         echo "  beambot_bsui_minimal - Build Bluesky image (lightweight, ~1.5GB)"
         echo "  all                  - Build all images (default)"
