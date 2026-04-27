@@ -79,7 +79,7 @@ WORKDIR /root/ws/
 # Build interface packages first so other packages can find them
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build --packages-select zivid_interfaces pipette_driver"
 # Build remaining packages
-RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper zed_debug epick_moveit_studio"
+RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper zed_debug epick_moveit_studio onrobot_2fg7_driver onrobot_2fg7_description"
 
 ENV ROBOT_IP=10.69.26.90
 ENV REVERSE_IP=10.69.26.42
