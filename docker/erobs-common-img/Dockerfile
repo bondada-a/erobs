@@ -16,9 +16,11 @@ RUN apt-get update && apt-get install -y \
     iputils-ping \
     netcat-openbsd \
     iproute2 \
+    nano \
     python3-pip \
     ros-${ROS_DISTRO}-rclpy \
     ros-${ROS_DISTRO}-ur \
+    ros-${ROS_DISTRO}-rosbridge-server \
     python3-colcon-common-extensions \
     x11vnc \
     xvfb \
@@ -70,7 +72,8 @@ WORKDIR /root/ws/erobs/
 RUN /bin/bash -c "set -e && \
     vcs import < src/ros2.repos src && \
     vcs import < src/end_effectors/end_effectors.repos src/end_effectors && \
-    vcs import < src/vision/vision.repos src/vision && \
+    vcs import --skip-existing < src/vision/vision.repos src/vision || true && \
+    rm -rf src/vision/zed-ros2-wrapper && \
     apt-get update && \
     rosdep update && \
     rosdep install --from-paths src --ignore-src -y --skip-keys 'moveit_studio_behavior_interface pytest ament_python pipette_driver zivid_interfaces'"
@@ -81,7 +84,11 @@ RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && colcon build 
 # Build remaining packages
 RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source install/setup.bash && colcon build --packages-skip zed_components zed_ros2 zed_wrapper zed_debug epick_moveit_studio onrobot_2fg7_driver onrobot_2fg7_description"
 
-ENV ROBOT_IP=10.69.26.90
+# Install Claude Code CLI
+RUN curl -fsSL https://claude.ai/install.sh | bash
+ENV PATH="/root/.claude/local/bin:${PATH}"
+
+ENV ROBOT_IP=10.68.82.41
 ENV REVERSE_IP=10.69.26.42
 ENV UR_TYPE="ur5e"
 ENV LAUNCH_RVIZ="false"
