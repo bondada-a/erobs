@@ -72,7 +72,7 @@ WORKDIR /root/ws/erobs/
 RUN /bin/bash -c "set -e && \
     vcs import < src/ros2.repos src && \
     vcs import < src/end_effectors/end_effectors.repos src/end_effectors && \
-    vcs import --skip-existing < src/vision/vision.repos src/vision || true && \
+    vcs import < src/vision/vision.repos src/vision && \
     rm -rf src/vision/zed-ros2-wrapper && \
     apt-get update && \
     rosdep update && \
