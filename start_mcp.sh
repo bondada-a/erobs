@@ -44,7 +44,7 @@ done
 BEAMBOT_LOG="/tmp/beambot_launch.log"
 > "$BEAMBOT_LOG"  # Truncate on start
 echo "Starting beambot..."
-ros2 launch beambot beambot_bringup.launch.py enable_vision:=false "$@" 2>&1 | tee "$BEAMBOT_LOG" &
+ros2 launch beambot beambot_bringup.launch.py "$@" 2>&1 | tee "$BEAMBOT_LOG" &
 BEAMBOT_PID=$!
 
 # Start rosbag recording for experiment data
