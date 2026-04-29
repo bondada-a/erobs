@@ -88,6 +88,11 @@ RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source instal
 RUN curl -fsSL https://claude.ai/install.sh | bash
 ENV PATH="/root/.claude/local/bin:${PATH}"
 
+# Pre-configure Zivid network camera
+RUN mkdir -p /root/.config/Zivid/API && \
+    printf '__version__: 1\nCameras:\n  NetworkCameras:\n    - NetworkCamera:\n        Host: 10.68.81.52\n' \
+    > /root/.config/Zivid/API/Cameras.yml
+
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 ENV ROS_DISCOVERY_SERVER="10.68.82.42:11811"
 ENV ROS_DOMAIN_ID=0
