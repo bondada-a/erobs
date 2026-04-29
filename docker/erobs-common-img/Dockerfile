@@ -88,13 +88,18 @@ RUN /bin/bash -c "source /opt/ros/humble/setup.bash && cd erobs && source instal
 RUN curl -fsSL https://claude.ai/install.sh | bash
 ENV PATH="/root/.claude/local/bin:${PATH}"
 
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+ENV ROS_DISCOVERY_SERVER="10.68.82.42:11811"
+ENV ROS_DOMAIN_ID=0
 ENV ROBOT_IP=10.68.82.41
-ENV REVERSE_IP=10.69.26.42
 ENV UR_TYPE="ur5e"
 ENV LAUNCH_RVIZ="false"
 
 # VNC viewer
 EXPOSE 5901
+
+# Source workspace in all shells (docker exec, interactive, etc.)
+RUN echo "source /root/ws/erobs/install/setup.bash" >> /root/.bashrc
 
 # Auto-start VNC server and source ROS workspace
 CMD ["/bin/bash", "-c", "source /root/ws/erobs/install/setup.bash && /root/start-vnc.sh && exec /bin/bash"]
