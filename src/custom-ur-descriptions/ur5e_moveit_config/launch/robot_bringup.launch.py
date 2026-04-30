@@ -16,8 +16,7 @@ publications with subtly different kinematic models (#51).
 """
 
 from moveit_configs_utils import MoveItConfigsBuilder
-from launch.substitutions import PathJoinSubstitution, LaunchConfiguration
-from launch_ros.substitutions import FindPackageShare
+from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch.actions import (
     DeclareLaunchArgument,
@@ -151,12 +150,12 @@ def launch_setup(context, *args, **kwargs):
     ur_launch_args.update(config["tool_comm_params"])
 
     ur_control_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource([
-            PathJoinSubstitution([
-                FindPackageShare("ur_robot_driver"),
-                "launch", "ur_control.launch.py"
-            ])
-        ]),
+        PythonLaunchDescriptionSource(
+            os.path.join(
+                get_package_share_directory("ur_robot_driver"),
+                "launch", "ur_control.launch.py",
+            )
+        ),
         launch_arguments=ur_launch_args.items(),
     )
 
