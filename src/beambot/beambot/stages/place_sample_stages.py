@@ -79,7 +79,7 @@ class PlaceSampleStages(BaseStages):
         return None
 
     def _run_vision(
-        self, goal, poses: Dict, gripper_states: Dict, constraints
+        self, goal, poses: dict, gripper_states: dict, constraints
     ) -> str | None:
         """Vision-guided place: scan → detect → approach → open → retreat."""
         self.logger.info(
@@ -186,7 +186,7 @@ class PlaceSampleStages(BaseStages):
         return None
 
     def _run_hardcoded(
-        self, goal, poses: Dict, gripper_states: Dict, constraints
+        self, goal, poses: dict, gripper_states: dict, constraints
     ) -> str | None:
         """Hardcoded place: approach → target → open → retreat."""
         self.logger.info(

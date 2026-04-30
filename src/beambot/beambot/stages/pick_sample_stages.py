@@ -83,7 +83,7 @@ class PickSampleStages(BaseStages):
         return None
 
     def _run_vision(
-        self, goal, poses: Dict, gripper_states: Dict, constraints
+        self, goal, poses: dict, gripper_states: dict, constraints
     ) -> str | None:
         """Vision-guided pick: scan → detect → approach → close → retreat."""
         self.logger.info(
@@ -201,7 +201,7 @@ class PickSampleStages(BaseStages):
         return None
 
     def _run_hardcoded(
-        self, goal, poses: Dict, gripper_states: Dict, constraints
+        self, goal, poses: dict, gripper_states: dict, constraints
     ) -> str | None:
         """Hardcoded pick: open → approach → target → close → retreat."""
         self.logger.info(
