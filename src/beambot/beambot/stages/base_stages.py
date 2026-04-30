@@ -361,8 +361,11 @@ class BaseStages:
         Args:
             mode: "LIN" (straight-line Cartesian) or "PTP" (point-to-point joint)
         """
-        planner = core.PipelinePlanner(self._mtc_node, "pilz_industrial_motion_planner")
-        planner.planner = mode
+        # Jazzy MTC dropped the mutable .planner attribute; planner_id is now a
+        # constructor kwarg.
+        planner = core.PipelinePlanner(
+            self._mtc_node, "pilz_industrial_motion_planner", planner_id=mode
+        )
         planner.max_velocity_scaling_factor = VELOCITY_SCALING
         planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
         return planner

@@ -26,14 +26,22 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     """Generate launch description for beambot servers."""
 
-    # OMPL parameters for PipelinePlanner
+    # OMPL + Pilz pipeline parameters for PipelinePlanner
     # Required because Python's rclcpp.Node binding lacks declare_parameter().
     # Without these, PipelinePlanner falls back to CHOMP instead of OMPL.
+    #
+    # The Pilz response_adapters (ValidateSolution in particular) are critical:
+    # on Jazzy, missing adapter config means Pilz PTP returns collision-containing
+    # trajectories as valid solutions. MTC's Fallbacks container then treats the
+    # first (unchecked) solution as success without ever trying OMPL.
     ompl_args = [
         '--ros-args',
         '-p', "ompl.planning_plugins:=['ompl_interface/OMPLPlanner']",
         '-p', "ompl.request_adapters:=['default_planning_request_adapters/ResolveConstraintFrames','default_planning_request_adapters/ValidateWorkspaceBounds','default_planning_request_adapters/CheckStartStateBounds','default_planning_request_adapters/CheckStartStateCollision']",
         '-p', "ompl.response_adapters:=['default_planning_response_adapters/AddTimeOptimalParameterization','default_planning_response_adapters/ValidateSolution','default_planning_response_adapters/DisplayMotionPath']",
+        '-p', "pilz_industrial_motion_planner.planning_plugins:=['pilz_industrial_motion_planner/CommandPlanner']",
+        '-p', "pilz_industrial_motion_planner.request_adapters:=['default_planning_request_adapters/ResolveConstraintFrames','default_planning_request_adapters/ValidateWorkspaceBounds','default_planning_request_adapters/CheckStartStateBounds','default_planning_request_adapters/CheckStartStateCollision']",
+        '-p', "pilz_industrial_motion_planner.response_adapters:=['default_planning_response_adapters/ValidateSolution','default_planning_response_adapters/DisplayMotionPath']",
     ]
 
     # Declare launch arguments
