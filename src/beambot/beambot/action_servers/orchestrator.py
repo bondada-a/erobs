@@ -38,6 +38,7 @@ from beambot_interfaces.action import (
     PipettorAction,
 )
 from controller_manager_msgs.srv import ListControllers, SwitchController
+from controller_manager_msgs.msg import ControllerManagerActivity
 from std_srvs.srv import Trigger
 from std_msgs.msg import String
 
@@ -194,6 +195,19 @@ class MTCOrchestratorServer(Node):
         self._base_controllers = ["scaled_joint_trajectory_controller"]
         self._required_controllers = list(self._base_controllers)
 
+        # Cached controller states from /controller_manager/activity (Jazzy ros2_control 4.x+).
+        # Populated by the latest ControllerManagerActivity message; used as the
+        # fast path in _ensure_controllers_active so we don't call list_controllers
+        # before every motion.
+        self._controller_states: dict[str, str] = {}
+        self.create_subscription(
+            ControllerManagerActivity,
+            "/controller_manager/activity",
+            self._controller_activity_cb,
+            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
+            callback_group=self._callback_group,
+        )
+
         # Pause/Resume services
         self._pause_service = self.create_service(
             Trigger, 'beambot/pause', self._pause_callback,
@@ -348,21 +362,52 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Execution resumed")
         self._publish_state("RUNNING")
 
+    def _controller_activity_cb(self, msg: ControllerManagerActivity) -> None:
+        """Cache controller states from the latched /controller_manager/activity topic.
+
+        ros2_control 4.x+ (Jazzy) publishes this on every state transition with
+        TRANSIENT_LOCAL durability, so our subscription gets the latest value on
+        connect. The primary-state id (3 = ACTIVE, 2 = INACTIVE, ...) is mapped
+        to the lowercase string used by /controller_manager/list_controllers so
+        the cache and the fallback path agree.
+        """
+        _STATE_ID_TO_NAME = {
+            0: "unknown", 1: "unconfigured", 2: "inactive",
+            3: "active", 4: "finalized",
+        }
+        self._controller_states = {
+            c.name: _STATE_ID_TO_NAME.get(c.state.id, f"state_{c.state.id}")
+            for c in msg.controllers
+        }
+
     def _ensure_controllers_active(self) -> bool:
         """Check if required controllers are active and restart them if needed.
+
+        Fast path: consult the cached state from /controller_manager/activity.
+        If all required controllers are active in the cache, we're done — no
+        service round-trip. Fall back to list_controllers only when the cache
+        is empty (pre-activity-topic or the first message hasn't arrived yet)
+        or when any required controller is missing/inactive in the cache.
 
         This handles the case where the UR driver's controller_stopper stops
         controllers after a connection drop but doesn't restart them.
 
         Returns:
-            True if all required controllers are active, False on failure
+            True if all required controllers are active, False on failure.
         """
-        # Check if service is available
+        # Fast path: if the cache has every required controller and they're
+        # all active, skip the service call entirely.
+        if self._controller_states and all(
+            self._controller_states.get(name) == "active"
+            for name in self._required_controllers
+        ):
+            return True
+
+        # Fallback: cache is stale/empty or something is inactive — query CM.
         if not self._list_controllers_client.wait_for_service(timeout_sec=2.0):
             self.get_logger().warning("Controller manager service not available")
             return True  # Proceed anyway, let MoveIt handle the error
 
-        # List controllers
         list_request = ListControllers.Request()
         future = self._list_controllers_client.call_async(list_request)
 
