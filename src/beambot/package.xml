@@ -33,6 +33,10 @@
   <!-- End effector feedback -->
   <exec_depend>epick_msgs</exec_depend>
 
+  <!-- MCP bridge: start_mcp.sh launches rosbridge_websocket on :9090 so
+       ros-mcp-server can talk to the ROS graph. -->
+  <exec_depend>rosbridge_server</exec_depend>
+
   <!-- Messages -->
   <depend>geometry_msgs</depend>
   <depend>shape_msgs</depend>
