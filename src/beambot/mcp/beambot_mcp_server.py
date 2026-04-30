@@ -206,7 +206,7 @@ def _detect_aruco_markers(
     rgb_image: np.ndarray,
     marker_ids: list[int] | None = None,
     dictionary_name: str = "DICT_4X4_50",
-) -> list[tuple[int, int, int, List]] | None:
+) -> list[tuple[int, int, int, list]] | None:
     """Detect ArUco markers in image. Returns list of (cx, cy, marker_id, corners)."""
     # Map string name to OpenCV constant
     aruco_dicts = {
@@ -515,7 +515,7 @@ class ROS2BridgeNode(Node):
         return True
 
     def detect_marker(self, marker_id: int, dictionary: str = "aruco4x4_50",
-                      timeout: float = 30.0) -> Dict | None:
+                      timeout: float = 30.0) -> dict | None:
         """Detect an ArUco marker using Zivid native detection and transform to base_link.
 
         Returns dict with 'position' [x,y,z], 'orientation' [x,y,z,w], or None on failure.
@@ -2280,7 +2280,7 @@ _DIRECTION_OPPOSITES = {
 }
 
 
-def _load_beamline_config() -> Dict:
+def _load_beamline_config() -> dict:
     """Load the full beamline config from default_beamline.yaml."""
     try:
         from ament_index_python.packages import get_package_share_directory
@@ -2294,7 +2294,7 @@ def _load_beamline_config() -> Dict:
         return {}
 
 
-def _load_vision_targets() -> Dict:
+def _load_vision_targets() -> dict:
     """Load vision target configs from default_beamline.yaml."""
     return _load_beamline_config().get("vision_targets", {})
 
@@ -2306,7 +2306,7 @@ def _build_vision_target_tasks(
     row: int = -1,
     col: int = -1,
     tag_id: int = -1,
-) -> Dict:
+) -> dict:
     """Build task JSON for a vision target from config.
 
     For offset mode: moveto scan_pose → vision_moveto with marker-frame offsets.
