@@ -121,6 +121,7 @@ def launch_setup(context, *args, **kwargs):
         "name": ur_type,
         "ur_type": ur_type,
         "tf_prefix": "",
+        "robot_ip": robot_ip,
     }
 
     # Gripper-specific xacro args
