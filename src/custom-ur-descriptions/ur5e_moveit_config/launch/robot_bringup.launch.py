@@ -184,7 +184,7 @@ def launch_setup(context, *args, **kwargs):
         )
         .robot_description_kinematics(file_path="config/kinematics.yaml")
         .planning_scene_monitor(
-            publish_robot_description=True,
+            publish_robot_description=False,
             publish_robot_description_semantic=True,
         )
         .planning_pipelines(
