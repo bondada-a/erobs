@@ -6,10 +6,15 @@ Contains planner factories, direction vectors, and common utilities.
 
 import json
 import math
+import os
+import re
+import sys
 import traceback
 from typing import Any
 
 import rclcpp
+import yaml
+from ament_index_python.packages import get_package_share_directory
 from moveit.task_constructor import core, stages
 from geometry_msgs.msg import PoseStamped, Vector3, Vector3Stamped
 from std_msgs.msg import Header
@@ -111,6 +116,77 @@ DEFAULT_IK_FRAME = "flange"
 # action server. With enable_rosout=False, the MTC node never touches the
 # hashmap, keeping the rclpy node's /rosout publisher intact. MoveIt C++
 # internal logs still go to stdout/stderr via rcutils.
+def _load_joint_accel_limits() -> dict[str, float]:
+    """Collect max_acceleration for every joint declared under any gripper's
+    joint_limits.yaml in ur5e_moveit_config/config/<gripper>/.
+
+    The active gripper isn't known at module-import time (beambot_mtc is built
+    before the orchestrator picks a gripper), so we load the union across all
+    configs. This is safe because:
+      - Arm joints are shared across all grippers with identical limits.
+      - Gripper-specific joints are disjoint (only declared in that gripper).
+    TOTG only consults the limits of joints actually in a trajectory, so the
+    extra entries are inert.
+
+    If two configs ever declare different max_acceleration values for the same
+    joint, a WARN is printed — that's the trip-wire indicating this union
+    approach has stopped being valid and beambot_mtc should become
+    gripper-aware (load only the active gripper's yaml instead).
+    """
+    # ROS 2 parameter names must match [a-zA-Z_][a-zA-Z0-9_]*. Joints violating
+    # that (e.g. 2fg7_* starting with a digit) can't be expressed as -p args
+    # and are skipped with a warning. The URDF still defines their limits for
+    # move_group's own config path; only beambot_mtc's in-process planning
+    # loses them, and TOTG falls back to conservative defaults.
+    ros_param_name = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
+    cfg_root = os.path.join(
+        get_package_share_directory("ur5e_moveit_config"), "config"
+    )
+    limits: dict[str, float] = {}
+    for entry in sorted(os.listdir(cfg_root)):
+        path = os.path.join(cfg_root, entry, "joint_limits.yaml")
+        if not os.path.isfile(path):
+            continue
+        with open(path) as f:
+            data = yaml.safe_load(f) or {}
+        for joint, spec in (data.get("joint_limits") or {}).items():
+            if not spec.get("has_acceleration_limits"):
+                continue
+            if "max_acceleration" not in spec:
+                continue
+            if not ros_param_name.fullmatch(joint):
+                print(
+                    f"[beambot_mtc] WARN: joint '{joint}' in "
+                    f"{entry}/joint_limits.yaml is not a valid ROS 2 "
+                    f"parameter name; skipping (TOTG will use defaults).",
+                    file=sys.stderr,
+                )
+                continue
+            value = float(spec["max_acceleration"])
+            existing = limits.get(joint)
+            if existing is not None and existing != value:
+                print(
+                    f"[beambot_mtc] WARN: max_acceleration for '{joint}' "
+                    f"differs across gripper configs ({existing} vs {value} "
+                    f"in {entry}/joint_limits.yaml); using first-seen "
+                    f"({existing}). Time to make beambot_mtc gripper-aware.",
+                    file=sys.stderr,
+                )
+                continue
+            limits[joint] = value
+    return limits
+
+
+def _build_joint_limit_args(limits: dict[str, float]) -> list[str]:
+    args: list[str] = []
+    for joint, accel in limits.items():
+        args += [
+            "-p", f"robot_description_planning.joint_limits.{joint}.has_acceleration_limits:=true",
+            "-p", f"robot_description_planning.joint_limits.{joint}.max_acceleration:={accel}",
+        ]
+    return args
+
+
 rclcpp.init()
 _options = rclcpp.NodeOptions()
 _options.automatically_declare_parameters_from_overrides = True
@@ -131,20 +207,9 @@ _options.arguments = [
     "-p", "robot_description_planning.cartesian_limits.max_rot_vel:=1.57",
     "-p", "robot_description_planning.cartesian_limits.max_rot_acc:=3.15",
     "-p", "robot_description_planning.cartesian_limits.max_rot_dec:=-5.0",
-    # Pilz PTP joint acceleration limits (UR5e: 5.0 rad/s² conservative, actual ~10-15)
-    # NOTE: Must match values in ur5e_moveit_configs/*/config/joint_limits.yaml
-    "-p", "robot_description_planning.joint_limits.shoulder_pan_joint.has_acceleration_limits:=true",
-    "-p", "robot_description_planning.joint_limits.shoulder_pan_joint.max_acceleration:=5.0",
-    "-p", "robot_description_planning.joint_limits.shoulder_lift_joint.has_acceleration_limits:=true",
-    "-p", "robot_description_planning.joint_limits.shoulder_lift_joint.max_acceleration:=5.0",
-    "-p", "robot_description_planning.joint_limits.elbow_joint.has_acceleration_limits:=true",
-    "-p", "robot_description_planning.joint_limits.elbow_joint.max_acceleration:=5.0",
-    "-p", "robot_description_planning.joint_limits.wrist_1_joint.has_acceleration_limits:=true",
-    "-p", "robot_description_planning.joint_limits.wrist_1_joint.max_acceleration:=5.0",
-    "-p", "robot_description_planning.joint_limits.wrist_2_joint.has_acceleration_limits:=true",
-    "-p", "robot_description_planning.joint_limits.wrist_2_joint.max_acceleration:=5.0",
-    "-p", "robot_description_planning.joint_limits.wrist_3_joint.has_acceleration_limits:=true",
-    "-p", "robot_description_planning.joint_limits.wrist_3_joint.max_acceleration:=5.0",
+    # Pilz PTP / TOTG joint acceleration limits — union across all gripper
+    # joint_limits.yaml files under ur5e_moveit_config/config/<gripper>/.
+    *_build_joint_limit_args(_load_joint_accel_limits()),
 ]
 _mtc_node = rclcpp.Node("beambot_mtc", _options)
 

@@ -50,8 +50,14 @@ GRIPPER_CONFIGS = {
         "controllers": "epick/ur_epick_controllers.yaml",
         "moveit_controllers": "epick/moveit_controllers.yaml",
         "tool_voltage": "24",
-        "use_tool_communication": "false",  # Manual tool_communication node with delay
-        "tool_comm_params": {},
+        "use_tool_communication": "true",
+        "tool_comm_params": {
+            "tool_baud_rate": "115200",
+            "tool_parity": "0",
+            "tool_stop_bits": "1",
+            "tool_rx_idle_chars": "1.5",
+            "tool_tx_idle_chars": "3.5",
+        },
         "payload_mass": 2.150,
         "payload_cog": {"x": 0.018, "y": -0.015, "z": -0.036},
     },
@@ -105,6 +111,7 @@ def launch_setup(context, *args, **kwargs):
     robot_ip = LaunchConfiguration("robot_ip").perform(context)
     ur_type = LaunchConfiguration("ur_type").perform(context)
     use_mock_hardware = LaunchConfiguration("use_mock_hardware").perform(context)
+    tf_prefix = LaunchConfiguration("tf_prefix").perform(context)
 
     if gripper not in GRIPPER_CONFIGS:
         raise ValueError(
@@ -120,7 +127,7 @@ def launch_setup(context, *args, **kwargs):
     xacro_args = {
         "name": ur_type,
         "ur_type": ur_type,
-        "tf_prefix": "",
+        "tf_prefix": tf_prefix,
         "robot_ip": robot_ip,
     }
 
@@ -134,6 +141,7 @@ def launch_setup(context, *args, **kwargs):
     ur_launch_args = {
         "ur_type": ur_type,
         "robot_ip": robot_ip,
+        "tf_prefix": tf_prefix,
         "use_mock_hardware": use_mock_hardware,
         "launch_rviz": "false",
         "description_package": "ur_description",
@@ -246,25 +254,7 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # ── Build launch actions list ───────────────────────────────────────
-    actions = []
-
-    # ePick special case: manual tool_communication node + delayed ur_control
-    if gripper == "epick":
-        tool_communication = Node(
-            package="ur_robot_driver",
-            executable="tool_communication.py",
-            name="tool_communication_node",
-            output="screen",
-            parameters=[{"robot_ip": robot_ip}],
-        )
-        delayed_ur_control = TimerAction(
-            period=1.5,  # Wait for tool_communication to create /tmp/ttyUR via socat
-            actions=[ur_control_launch],
-        )
-        actions.append(tool_communication)
-        actions.append(delayed_ur_control)
-    else:
-        actions.append(ur_control_launch)
+    actions = [ur_control_launch]
 
     # Common nodes
     actions.append(run_move_group_node)
@@ -343,6 +333,10 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "use_mock_hardware", default_value="false",
+        ),
+        DeclareLaunchArgument(
+            "tf_prefix", default_value="",
+            description="Joint/link name prefix; must match controllers' $(var tf_prefix).",
         ),
         # ePick cup profile (only used when gripper:=epick).
         # Profile name resolves to dimensions via suction_cups.yaml in the xacro.

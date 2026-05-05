@@ -18,6 +18,10 @@
   <depend>rclpy</depend>
   <exec_depend>python3-yaml</exec_depend>
 
+  <!-- Joint acceleration limits are loaded at runtime from
+       ur5e_moveit_config/config/<gripper>/joint_limits.yaml. -->
+  <exec_depend>ur5e_moveit_config</exec_depend>
+
   <!-- MoveIt and MTC -->
   <depend>moveit_task_constructor_core</depend>
   <depend>moveit_ros_planning_interface</depend>

@@ -688,14 +688,15 @@ class MTCOrchestratorServer(Node):
                     f"batch[{batch_size}]: {batch_desc}"
                 )
 
-                # Ensure controllers are active before batch execution
-                if not self._ensure_controllers_active():
-                    self.get_logger().error("Failed to ensure controllers are active")
-                    result.error_message = "Controller activation failed"
-                    result.completed_steps = completed_tasks
-                    goal_handle.abort()
-                    self._publish_state("IDLE")
-                    return result
+                # Controller activation is handled by ur_control.launch.py's
+                # controller_manager/spawner and by the UR driver's
+                # controller_stopper_node (which restarts controllers it stopped
+                # on a connection drop). Calling _ensure_controllers_active here
+                # races with the spawner during initial launch and caused the
+                # parallel_gripper_action_controller activation to fail with
+                # "already active". See TODO: remove _ensure_controllers_active
+                # entirely once we've stress-tested connection-drop recovery on
+                # Jazzy.
 
                 if not self._execute_batch(batch_tasks, poses_json):
                     result.error_message = f"Batch failed at step {completed_tasks + 1}: {self._last_error}"
@@ -805,11 +806,9 @@ class MTCOrchestratorServer(Node):
         self, task_type: str, step: dict[str, Any], poses_json: str
     ) -> bool:
         """Execute a single step by dispatching to the appropriate action server."""
-        # Ensure controllers are active before executing (handles socket drop recovery)
-        if not self._ensure_controllers_active():
-            self._last_error = "Controller activation failed before step execution"
-            self.get_logger().error(self._last_error)
-            return False
+        # Controller activation is handled by ur_control.launch.py's spawner and
+        # by the UR driver's controller_stopper_node (see comment in
+        # _execute_script for why _ensure_controllers_active is disabled).
 
         self.get_logger().info(f"Executing step: {task_type}")
 
