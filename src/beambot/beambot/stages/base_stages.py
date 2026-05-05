@@ -7,7 +7,6 @@ Contains planner factories, direction vectors, and common utilities.
 import json
 import math
 import os
-import re
 import sys
 import time
 import traceback
@@ -134,12 +133,6 @@ def _load_joint_accel_limits() -> dict[str, float]:
     approach has stopped being valid and beambot_mtc should become
     gripper-aware (load only the active gripper's yaml instead).
     """
-    # ROS 2 parameter names must match [a-zA-Z_][a-zA-Z0-9_]*. Joints violating
-    # that (e.g. 2fg7_* starting with a digit) can't be expressed as -p args
-    # and are skipped with a warning. The URDF still defines their limits for
-    # move_group's own config path; only beambot_mtc's in-process planning
-    # loses them, and TOTG falls back to conservative defaults.
-    ros_param_name = re.compile(r"[a-zA-Z_][a-zA-Z0-9_]*")
     cfg_root = os.path.join(
         get_package_share_directory("ur5e_moveit_config"), "config"
     )
@@ -154,14 +147,6 @@ def _load_joint_accel_limits() -> dict[str, float]:
             if not spec.get("has_acceleration_limits"):
                 continue
             if "max_acceleration" not in spec:
-                continue
-            if not ros_param_name.fullmatch(joint):
-                print(
-                    f"[beambot_mtc] WARN: joint '{joint}' in "
-                    f"{entry}/joint_limits.yaml is not a valid ROS 2 "
-                    f"parameter name; skipping (TOTG will use defaults).",
-                    file=sys.stderr,
-                )
                 continue
             value = float(spec["max_acceleration"])
             existing = limits.get(joint)

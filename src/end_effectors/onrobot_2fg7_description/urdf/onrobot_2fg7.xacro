@@ -99,7 +99,7 @@
     </link>
 
     <!-- Left finger (prismatic, moves in +X direction) -->
-    <joint name="${prefix}2fg7_left_finger_joint" type="prismatic">
+    <joint name="${prefix}twofg7_left_finger_joint" type="prismatic">
       <origin xyz="${finger_base_offset} 0 ${body_height}" rpy="0 0 0"/>
       <parent link="${prefix}2fg7_body"/>
       <child link="${prefix}2fg7_left_finger"/>
@@ -131,13 +131,13 @@
     </link>
 
     <!-- Right finger (mimic of left, moves in -X direction) -->
-    <joint name="${prefix}2fg7_right_finger_joint" type="prismatic">
+    <joint name="${prefix}twofg7_right_finger_joint" type="prismatic">
       <origin xyz="${-finger_base_offset} 0 ${body_height}" rpy="0 0 0"/>
       <parent link="${prefix}2fg7_body"/>
       <child link="${prefix}2fg7_right_finger"/>
       <axis xyz="-1 0 0"/>
       <limit effort="140" lower="${grip_pos_min}" upper="${grip_pos_max}" velocity="0.450"/>
-      <mimic joint="${prefix}2fg7_left_finger_joint" multiplier="1" offset="0"/>
+      <mimic joint="${prefix}twofg7_left_finger_joint" multiplier="1" offset="0"/>
     </joint>
 
     <link name="${prefix}2fg7_right_finger">

@@ -7,15 +7,15 @@
         <link name="2fg7_left_finger"/>
         <link name="2fg7_right_finger"/>
         <link name="2fg7_tip"/>
-        <joint name="2fg7_left_finger_joint"/>
-        <joint name="2fg7_right_finger_joint"/>
+        <joint name="twofg7_left_finger_joint"/>
+        <joint name="twofg7_right_finger_joint"/>
     </group>
 
     <group_state name="2fg7_open" group="2fg7_gripper">
-        <joint name="2fg7_left_finger_joint" value="0.035"/>
+        <joint name="twofg7_left_finger_joint" value="0.035"/>
     </group_state>
     <group_state name="2fg7_closed" group="2fg7_gripper">
-        <joint name="2fg7_left_finger_joint" value="0"/>
+        <joint name="twofg7_left_finger_joint" value="0"/>
     </group_state>
 
     <end_effector name="2fg7_gripper" parent_link="flange" group="2fg7_gripper"/>

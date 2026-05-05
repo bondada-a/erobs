@@ -21,6 +21,6 @@ moveit_simple_controller_manager:
   gripper_action_controller:
     type: GripperCommand
     joints:
-      - 2fg7_left_finger_joint
+      - twofg7_left_finger_joint
     action_ns: gripper_cmd
     default: true

@@ -15,14 +15,14 @@ joint_limits:
     max_acceleration: 5.0
     has_deceleration_limits: true
     max_deceleration: -5.0
-  2fg7_left_finger_joint:
+  twofg7_left_finger_joint:
     has_velocity_limits: true
     max_velocity: 0.14999999999999999
     has_acceleration_limits: true
     max_acceleration: 5.0
     has_deceleration_limits: true
     max_deceleration: -5.0
-  2fg7_right_finger_joint:
+  twofg7_right_finger_joint:
     has_velocity_limits: true
     max_velocity: 0.14999999999999999
     has_acceleration_limits: true

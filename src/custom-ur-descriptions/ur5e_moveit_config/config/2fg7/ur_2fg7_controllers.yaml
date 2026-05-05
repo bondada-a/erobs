@@ -214,7 +214,7 @@
   gripper_action_controller:
       ros__parameters:
         action_monitor_rate: 20.0 # Hz
-        joint: $(var tf_prefix)2fg7_left_finger_joint
+        joint: $(var tf_prefix)twofg7_left_finger_joint
         max_effort: 0.0 # N
         goal_tolerance: 0.02 # m
         allow_stalling: true

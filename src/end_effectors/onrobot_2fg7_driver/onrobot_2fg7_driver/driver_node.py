@@ -71,8 +71,8 @@ class OnRobot2FG7DriverNode(Node):
         self.use_mock_hardware = self.get_parameter('use_mock_hardware').value
 
         # Joint names (must match URDF)
-        self.left_joint = '2fg7_left_finger_joint'
-        self.right_joint = '2fg7_right_finger_joint'
+        self.left_joint = 'twofg7_left_finger_joint'
+        self.right_joint = 'twofg7_right_finger_joint'
 
         # Current state
         self._current_width_mm = 60.0  # Assume open
