@@ -9,6 +9,7 @@ import math
 import os
 import re
 import sys
+import time
 import traceback
 from typing import Any
 
@@ -791,7 +792,14 @@ class BaseStages:
             req.ik_request.timeout.sec = 1
 
             future = ik_client.call_async(req)
-            rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=5.0)
+            # Poll instead of spin_until_future_complete: this runs inside an
+            # action callback on a node whose MultiThreadedExecutor is already
+            # spinning — re-entering it raises "Executor is already spinning".
+            start_time = time.time()
+            while not future.done():
+                if time.time() - start_time > 5.0:
+                    break
+                time.sleep(0.01)
             self.rclpy_node.destroy_client(ik_client)
 
             result = future.result()

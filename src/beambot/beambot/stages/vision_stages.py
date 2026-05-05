@@ -1333,7 +1333,13 @@ class VisionStages(BaseStages):
                 request.components.WORLD_OBJECT_NAMES
             )
             future = self._get_scene_client.call_async(request)
-            rclpy.spin_until_future_complete(self.rclpy_node, future, timeout_sec=2.0)
+            # Poll instead of spin_until_future_complete: runs inside an action
+            # callback on a node whose MultiThreadedExecutor is already spinning.
+            start_time = time.time()
+            while not future.done():
+                if time.time() - start_time > 2.0:
+                    break
+                time.sleep(0.01)
 
             if future.done() and future.result() is not None:
                 known_names = [
