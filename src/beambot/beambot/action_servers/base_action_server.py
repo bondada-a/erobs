@@ -5,6 +5,7 @@ and standard error handling for all MTC action servers.
 """
 
 import threading
+import traceback
 
 import rclpy
 from rclpy.action import ActionServer, GoalResponse
@@ -75,7 +76,13 @@ class BaseActionServer(Node):
             return result
 
         except Exception as e:
-            self.get_logger().error(f"Exception during execution: {e}")
+            # rclpy loggers don't support exc_info=, so format the traceback
+            # manually. Without this, every action-server error loses its stack
+            # trace and only the str(e) line hits the logs — making bugs below
+            # the action callback (stage code, MTC, MoveIt) effectively invisible.
+            self.get_logger().error(
+                f"Exception during execution: {e}\n{traceback.format_exc()}"
+            )
             goal_handle.abort()
             return self._action_type.Result(success=False, error_message=str(e))
 
