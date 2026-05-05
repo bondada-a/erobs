@@ -7,9 +7,10 @@ and standard error handling for all MTC action servers.
 import threading
 
 import rclpy
-from rclpy.node import Node
 from rclpy.action import ActionServer, GoalResponse
 from rclpy.action.server import ServerGoalHandle
+from rclpy.executors import MultiThreadedExecutor
+from rclpy.node import Node
 
 
 class BaseActionServer(Node):
@@ -94,12 +95,21 @@ class BaseActionServer(Node):
 
 
 def run_server(server_class, args=None):
-    """Run an action server with standard ROS 2 lifecycle."""
+    """Run an action server with standard ROS 2 lifecycle.
+
+    Uses MultiThreadedExecutor so that callbacks (e.g. goal/result responses from
+    downstream action clients used inside an action callback) can run concurrently
+    with the blocking action handler. A single-threaded spin deadlocks any stage
+    that polls a future while holding the executor.
+    """
     rclpy.init(args=args)
     node = server_class()
 
+    executor = MultiThreadedExecutor()
+    executor.add_node(node)
+
     try:
-        rclpy.spin(node)
+        executor.spin()
     except KeyboardInterrupt:
         node.get_logger().info("Shutting down...")
     finally:
