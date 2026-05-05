@@ -28,7 +28,9 @@ from tf_transformations import quaternion_multiply, quaternion_from_euler, quate
 
 from beambot.camera import get_camera
 from beambot.camera.zivid import DetectionResult
-from beambot.stages.base_stages import BaseStages, DEFAULT_JOINT_NAMES, DIRECTION_VECTORS
+from beambot.stages.base_stages import (
+    BaseStages, DEFAULT_JOINT_NAMES, DIRECTION_VECTORS, wait_for_future,
+)
 
 
 @dataclass
@@ -1333,13 +1335,7 @@ class VisionStages(BaseStages):
                 request.components.WORLD_OBJECT_NAMES
             )
             future = self._get_scene_client.call_async(request)
-            # Poll instead of spin_until_future_complete: runs inside an action
-            # callback on a node whose MultiThreadedExecutor is already spinning.
-            start_time = time.time()
-            while not future.done():
-                if time.time() - start_time > 2.0:
-                    break
-                time.sleep(0.01)
+            wait_for_future(future, timeout=2.0)
 
             if future.done() and future.result() is not None:
                 known_names = [

@@ -71,6 +71,8 @@ from cv_bridge import CvBridge
 
 from epick_msgs.msg import ObjectDetectionStatus
 
+from beambot.stages.base_stages import wait_for_future
+
 logger = logging.getLogger("beambot-mcp")
 
 # ---------------------------------------------------------------------------
@@ -404,18 +406,15 @@ class ROS2BridgeNode(Node):
         request = CancelGoal.Request()
         # Empty goal_info = cancel all goals
         future = self._cancel_client.call_async(request)
-        start = time.time()
-        while not future.done() and time.time() - start < 5.0:
-            time.sleep(0.05)
-        if future.done():
-            result = future.result()
-            if result is not None:
-                n = len(result.goals_canceling)
-                if n > 0:
-                    return f"Cancel accepted — {n} goal(s) being cancelled"
-                return "No active goals to cancel"
-            return "Cancel sent but no response received"
-        return "Cancel request timed out"
+        if not wait_for_future(future, timeout=5.0, poll_interval=0.05):
+            return "Cancel request timed out"
+        result = future.result()
+        if result is not None:
+            n = len(result.goals_canceling)
+            if n > 0:
+                return f"Cancel accepted — {n} goal(s) being cancelled"
+            return "No active goals to cancel"
+        return "Cancel sent but no response received"
 
     def _on_zivid_image(self, msg: Image):
         self.last_image_msg = msg
@@ -477,12 +476,11 @@ class ROS2BridgeNode(Node):
         request = Trigger.Request()
         future = self._capture_client.call_async(request)
 
-        # Wait for service response
+        # Deadline is shared with the image/cloud event.wait() calls below so
+        # the total capture budget stays bounded — keep it as a wall-clock
+        # reference and compute the per-step remaining as needed.
         deadline = time.monotonic() + timeout
-        while not future.done() and time.monotonic() < deadline:
-            time.sleep(0.05)
-
-        if not future.done():
+        if not wait_for_future(future, timeout=timeout, poll_interval=0.05):
             self.get_logger().error("Capture service call timed out")
             self._waiting_for_capture = False
             return False
@@ -546,11 +544,7 @@ class ROS2BridgeNode(Node):
 
         self.get_logger().info(f"Calling marker detection for ID {marker_id}...")
         future = self._marker_detect_client.call_async(request)
-        deadline = time.monotonic() + timeout
-        while not future.done() and time.monotonic() < deadline:
-            time.sleep(0.05)
-
-        if not future.done():
+        if not wait_for_future(future, timeout=timeout, poll_interval=0.05):
             self.get_logger().error("Marker detection timed out")
             return None
 

@@ -47,6 +47,7 @@ from beambot.core.vacuum_monitor import VacuumMonitor
 from beambot.stages.move_to_stages import MoveToStages
 from beambot.stages.end_effector_stages import EndEffectorStages
 from beambot.batch_planner import group_into_batches
+from beambot.stages.base_stages import wait_for_future
 
 
 class MTCOrchestratorServer(Node):
@@ -411,13 +412,9 @@ class MTCOrchestratorServer(Node):
         list_request = ListControllers.Request()
         future = self._list_controllers_client.call_async(list_request)
 
-        # Wait for response (polling to avoid executor conflicts)
-        start_time = time.time()
-        while not future.done():
-            if time.time() - start_time > 5.0:
-                self.get_logger().warning("Timeout listing controllers")
-                return True  # Proceed anyway
-            time.sleep(0.01)
+        if not wait_for_future(future, timeout=5.0):
+            self.get_logger().warning("Timeout listing controllers")
+            return True  # Proceed anyway
 
         list_response = future.result()
         if list_response is None:
@@ -448,12 +445,9 @@ class MTCOrchestratorServer(Node):
 
         future = self._switch_controller_client.call_async(switch_request)
 
-        start_time = time.time()
-        while not future.done():
-            if time.time() - start_time > 5.0:
-                self.get_logger().error("Timeout activating controllers")
-                return False
-            time.sleep(0.01)
+        if not wait_for_future(future, timeout=5.0):
+            self.get_logger().error("Timeout activating controllers")
+            return False
 
         switch_response = future.result()
         if switch_response is None or not switch_response.ok:
@@ -855,15 +849,10 @@ class MTCOrchestratorServer(Node):
 
         # Send goal and wait for acceptance
         send_future = client.send_goal_async(goal)
-
-        # Wait for goal acceptance (10s timeout) - poll instead of spin
-        start_time = time.time()
-        while not send_future.done():
-            if time.time() - start_time > 10.0:
-                self._last_error = f"TIMEOUT: {name} goal acceptance timed out (10s)"
-                self.get_logger().error(self._last_error)
-                return False
-            time.sleep(0.01)
+        if not wait_for_future(send_future, timeout=10.0):
+            self._last_error = f"TIMEOUT: {name} goal acceptance timed out (10s)"
+            self.get_logger().error(self._last_error)
+            return False
 
         goal_handle = send_future.result()
 
@@ -872,17 +861,13 @@ class MTCOrchestratorServer(Node):
             self.get_logger().error(self._last_error)
             return False
 
-        # Wait for result with timeout - poll instead of spin
+        # Wait for result with caller-provided timeout
         result_future = goal_handle.get_result_async()
-
-        start_time = time.time()
-        while not result_future.done():
-            if time.time() - start_time > timeout:
-                self._last_error = f"TIMEOUT: {name} timed out after {timeout}s"
-                self.get_logger().error(self._last_error)
-                goal_handle.cancel_goal_async()
-                return False
-            time.sleep(0.01)
+        if not wait_for_future(result_future, timeout=timeout):
+            self._last_error = f"TIMEOUT: {name} timed out after {timeout}s"
+            self.get_logger().error(self._last_error)
+            goal_handle.cancel_goal_async()
+            return False
 
         result = result_future.result()
         self._last_result = result.result
@@ -955,12 +940,10 @@ class MTCOrchestratorServer(Node):
         request.state = float(voltage)
 
         future = client.call_async(request)
-        start = time.time()
-        while not future.done() and time.time() - start < 5.0:
-            time.sleep(0.05)
+        done = wait_for_future(future, timeout=5.0, poll_interval=0.05)
 
         self.destroy_client(client)
-        if future.done() and future.result().success:
+        if done and future.result().success:
             self.get_logger().info(f"Tool voltage set to {voltage}V via set_io")
             return True
         self.get_logger().error(f"Failed to set tool voltage to {voltage}V")
@@ -979,11 +962,8 @@ class MTCOrchestratorServer(Node):
             )
             return
         future = self._vision_reset_tf_client.call_async(Trigger.Request())
-        # Poll for result (can't use spin in callback context)
-        start = time.time()
-        while not future.done() and time.time() - start < 5.0:
-            time.sleep(0.05)
-        if future.done() and future.result().success:
+        done = wait_for_future(future, timeout=5.0, poll_interval=0.05)
+        if done and future.result().success:
             self.get_logger().info("Vision server TF buffer reset")
         else:
             self.get_logger().warning("Vision TF reset did not complete")

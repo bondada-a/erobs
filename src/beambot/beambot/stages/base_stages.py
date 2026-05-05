@@ -88,6 +88,31 @@ ACCELERATION_SCALING = 0.2
 DEFAULT_ARM_GROUP = "ur_arm"
 DEFAULT_IK_FRAME = "flange"
 
+
+def wait_for_future(future, timeout: float, poll_interval: float = 0.01) -> bool:
+    """Poll ``future.done()`` until complete or timeout, without spinning.
+
+    Returns True iff the future completed within the timeout.
+
+    Used everywhere a stage or action-callback calls a ROS service or action
+    client. We can't use ``rclpy.spin_until_future_complete`` here: this code
+    runs inside a callback on a node whose MultiThreadedExecutor is already
+    spinning elsewhere, and re-entering the executor raises "Executor is
+    already spinning". The executor is what actually delivers the response to
+    the future; this function just waits for that to happen.
+
+    Uses time.monotonic() so wall-clock jumps (NTP, manual time changes) don't
+    skew the timeout. Caller retrieves the value via ``future.result()`` and
+    does its own logging/cleanup — this helper intentionally returns only a
+    boolean to keep call sites explicit about their error handling.
+    """
+    deadline = time.monotonic() + timeout
+    while not future.done():
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(poll_interval)
+    return True
+
 # Module-level rclcpp node initialization for MTC operations.
 # MTC requires rclcpp.Node (C++ backed via pybind11), not rclpy.Node, because
 # MTC's C++ code expects rclcpp::Node::SharedPtr. This is independent of rclpy.
@@ -777,14 +802,7 @@ class BaseStages:
             req.ik_request.timeout.sec = 1
 
             future = ik_client.call_async(req)
-            # Poll instead of spin_until_future_complete: this runs inside an
-            # action callback on a node whose MultiThreadedExecutor is already
-            # spinning — re-entering it raises "Executor is already spinning".
-            start_time = time.time()
-            while not future.done():
-                if time.time() - start_time > 5.0:
-                    break
-                time.sleep(0.01)
+            wait_for_future(future, timeout=5.0)
             self.rclpy_node.destroy_client(ik_client)
 
             result = future.result()

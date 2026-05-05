@@ -10,14 +10,14 @@ Note: Unlike other MTC stages, pipettor operations don't move the robot.
 We directly call the pipettor action server instead of using MTC.
 """
 
-import time
-
 from action_msgs.msg import GoalStatus
 from rclpy.action import ActionClient
 from rclpy.node import Node
 from std_msgs.msg import ColorRGBA
 
 from pipette_driver.action import PipettorOperation
+
+from beambot.stages.base_stages import wait_for_future
 
 
 class PipettorStages:
@@ -105,31 +105,19 @@ class PipettorStages:
         action_goal.volume_pct = volume_pct
         action_goal.led_color = led_color
 
-        # Send goal. We poll on future.done() rather than spin_until_future_complete
-        # because this stage runs inside an action callback on a node whose executor
-        # is already spinning — re-entering it raises "Executor is already spinning".
         send_goal_future = self._action_client.send_goal_async(action_goal)
-
-        start_time = time.time()
-        while not send_goal_future.done():
-            if time.time() - start_time > 5.0:
-                return f"Pipettor goal send timeout for operation '{operation}'"
-            time.sleep(0.01)
+        if not wait_for_future(send_goal_future, timeout=5.0):
+            return f"Pipettor goal send timeout for operation '{operation}'"
 
         goal_handle = send_goal_future.result()
         if not goal_handle.accepted:
             return f"Pipettor goal rejected for operation '{operation}'"
 
-        # Wait for result (same polling rationale as above)
         result_future = goal_handle.get_result_async()
-
-        start_time = time.time()
-        while not result_future.done():
-            if time.time() - start_time > self.DEFAULT_TIMEOUT:
-                self.logger.error("Pipettor operation timeout")
-                goal_handle.cancel_goal_async()
-                return f"TIMEOUT: Pipettor operation '{operation}' timed out after {self.DEFAULT_TIMEOUT}s"
-            time.sleep(0.01)
+        if not wait_for_future(result_future, timeout=self.DEFAULT_TIMEOUT):
+            self.logger.error("Pipettor operation timeout")
+            goal_handle.cancel_goal_async()
+            return f"TIMEOUT: Pipettor operation '{operation}' timed out after {self.DEFAULT_TIMEOUT}s"
 
         result = result_future.result()
         if result.status != GoalStatus.STATUS_SUCCEEDED:
