@@ -17,8 +17,24 @@ source "$SCRIPT_DIR/install/setup.bash" 2>/dev/null || {
     exit 1
 }
 
-# Cleanup on exit — defined later after all PIDs are known
-trap 'cleanup' EXIT INT TERM
+# Cleanup on exit. PIDs are populated as children are spawned below; guard
+# against re-entry so a second Ctrl-C while wait is unwinding doesn't confuse
+# bash's variable-scope stack (pop_var_context warning).
+_cleanup_ran=0
+cleanup() {
+    (( _cleanup_ran )) && return
+    _cleanup_ran=1
+    echo ""
+    echo "Shutting down..."
+    [[ -n "$ROSBAG_PID" ]] && kill -INT "$ROSBAG_PID" 2>/dev/null && echo "Stopping rosbag..."
+    [[ -n "$ROSBRIDGE_PID" ]] && kill "$ROSBRIDGE_PID" 2>/dev/null
+    [[ -n "$BEAMBOT_PID" ]] && kill "$BEAMBOT_PID" 2>/dev/null
+    wait 2>/dev/null
+    echo "Done."
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # Start rosbridge in background
 echo "Starting rosbridge on port 9090..."
@@ -53,6 +69,7 @@ mkdir -p "$BAG_DIR"
 BAG_NAME="experiment_$(date +%Y-%m-%d_%H-%M-%S)"
 echo "Starting rosbag recording: $BAG_DIR/$BAG_NAME"
 ros2 bag record \
+    --topics \
     /joint_states \
     /tf \
     /tf_static \
@@ -82,17 +99,6 @@ ros2 bag record \
     --include-hidden-topics \
     &
 ROSBAG_PID=$!
-
-# Update cleanup to also kill rosbag
-cleanup() {
-    echo ""
-    echo "Shutting down..."
-    [[ -n "$ROSBAG_PID" ]] && kill -INT "$ROSBAG_PID" 2>/dev/null && echo "Stopping rosbag..."
-    [[ -n "$ROSBRIDGE_PID" ]] && kill "$ROSBRIDGE_PID" 2>/dev/null
-    [[ -n "$BEAMBOT_PID" ]] && kill "$BEAMBOT_PID" 2>/dev/null
-    wait 2>/dev/null
-    echo "Done."
-}
 
 echo ""
 echo "=== MCP Ready ==="
