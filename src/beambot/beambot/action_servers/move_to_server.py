@@ -23,9 +23,8 @@ class MoveToActionServer(BaseActionServer):
             action_type=MoveToAction,
         )
 
-    def initialize_stages(self):
-        """Create MoveToStages instance."""
-        self._stages = MoveToStages(self)
+    def create_stages(self):
+        return MoveToStages(self)
 
 
 def main(args=None):

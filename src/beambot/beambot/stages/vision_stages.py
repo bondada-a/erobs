@@ -26,8 +26,7 @@ from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
 from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix, euler_from_quaternion
 
-from beambot.camera import get_camera
-from beambot.camera.zivid import DetectionResult
+from beambot.camera import DetectionResult, get_camera
 from beambot.stages.base_stages import (
     BaseStages, DEFAULT_JOINT_NAMES, DIRECTION_VECTORS, wait_for_future,
 )

@@ -918,6 +918,10 @@ class MTCOrchestratorServer(Node):
         """Return the IK frame for the currently attached gripper."""
         return self._GRIPPER_IK_FRAMES.get(self._current_gripper, "flange")
 
+    def _gripper_z_offset(self) -> float:
+        """Default Z offset for the currently attached gripper (meters)."""
+        return float(self._grippers.get(self._current_gripper, {}).get("z_offset", 0.0))
+
     def _set_tool_voltage_via_io(self, voltage: int) -> bool:
         """Set tool voltage via UR driver's set_io service.
 
@@ -1056,7 +1060,7 @@ class MTCOrchestratorServer(Node):
         goal.timeout = float(step.get("timeout", 10.0))
         goal.poses_json = poses_json
         goal.detection_type = step.get("detection_type", "marker")
-        goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
+        goal.z_offset = float(step.get("z_offset", self._gripper_z_offset()))
         goal.detect_only = bool(step.get("detect_only", False))
         goal.offset_direction = step.get("offset_direction", "")
         goal.offset_distance = float(step.get("offset_distance", 0.0))
@@ -1185,7 +1189,7 @@ class MTCOrchestratorServer(Node):
         goal.detection_type = step.get("detection_type", "marker")
         goal.tag_id = int(step.get("tag_id", 0))
         goal.sample_index = int(step.get("sample_index", 1))
-        goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
+        goal.z_offset = float(step.get("z_offset", self._gripper_z_offset()))
         goal.scan_pose = step.get("scan_pose", "")
         goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
         goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
@@ -1246,7 +1250,7 @@ class MTCOrchestratorServer(Node):
         goal.use_vision = step.get("use_vision", True)
         goal.detection_type = step.get("detection_type", "marker")
         goal.tag_id = int(step.get("tag_id", 0))
-        goal.z_offset = float(step.get("z_offset", self._moveit_manager.cup_z_offset))
+        goal.z_offset = float(step.get("z_offset", self._gripper_z_offset()))
         goal.scan_pose = step.get("scan_pose", "")
         goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
         goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))

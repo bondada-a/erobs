@@ -25,11 +25,28 @@ Usage:
     objects = camera.detect_contours(node)
 """
 
+from dataclasses import dataclass
 from importlib import import_module
 from typing import TYPE_CHECKING
 
+from builtin_interfaces.msg import Time as TimeMsg
+from geometry_msgs.msg import Pose
+
 if TYPE_CHECKING:
     from types import ModuleType
+
+
+@dataclass
+class DetectionResult:
+    """Result of marker detection with capture timestamp.
+
+    Shared across camera backends. The capture_stamp represents when the
+    frame was captured (used for TF lookups at capture time rather than
+    processing time).
+    """
+    markers: list[tuple[int, Pose]]
+    capture_stamp: TimeMsg | None
+
 
 # Registry of supported camera types
 _CAMERA_MODULES = {
@@ -49,6 +66,8 @@ def get_camera(camera_type: str) -> "ModuleType":
 
     Raises:
         ValueError: If camera_type is not supported
+        ImportError: If the camera backend's dependencies are not installed
+            (e.g. zivid_interfaces missing on a beamline without Zivid).
     """
     if camera_type not in _CAMERA_MODULES:
         supported = ", ".join(_CAMERA_MODULES.keys())
@@ -57,4 +76,11 @@ def get_camera(camera_type: str) -> "ModuleType":
             f"Supported types: {supported}"
         )
 
-    return import_module(_CAMERA_MODULES[camera_type])
+    try:
+        return import_module(_CAMERA_MODULES[camera_type])
+    except ImportError as e:
+        raise ImportError(
+            f"Camera backend '{camera_type}' is not available: {e}. "
+            f"Install the required packages or select a different camera "
+            f"in the beamline config."
+        ) from e

@@ -31,8 +31,9 @@
   <depend>tf2_geometry_msgs</depend>
   <exec_depend>tf_transformations</exec_depend>
 
-  <!-- Vision -->
-  <depend>zivid_interfaces</depend>
+  <!-- Vision: Zivid is optional — only required on beamlines that select
+       camera: zivid in default_beamline.yaml. The zivid import in
+       beambot.camera.zivid is lazy-loaded through get_camera(). -->
 
   <!-- End effector feedback -->
   <exec_depend>epick_msgs</exec_depend>

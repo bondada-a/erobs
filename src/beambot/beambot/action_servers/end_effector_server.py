@@ -20,9 +20,8 @@ class EndEffectorActionServer(BaseActionServer):
             action_type=EndEffectorAction,
         )
 
-    def initialize_stages(self):
-        """Create EndEffectorStages instance."""
-        self._stages = EndEffectorStages(self)
+    def create_stages(self):
+        return EndEffectorStages(self)
 
 
 def main(args=None):

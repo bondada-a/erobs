@@ -1,7 +1,8 @@
-"""Core MTC utilities - Python equivalent of base_stages.hpp/cpp.
+"""Core MTC utilities shared by every stage subclass.
 
-Provides the BaseStages class which all stage implementations inherit from.
-Contains planner factories, direction vectors, and common utilities.
+Provides the BaseStages class plus planner factories, direction vectors,
+task planning/execution helpers, and the module-level rclcpp node that
+MTC's C++ backend requires.
 """
 
 import json
@@ -13,15 +14,17 @@ import traceback
 from typing import Any
 
 import rclcpp
+import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
-from moveit.task_constructor import core, stages
 from geometry_msgs.msg import PoseStamped, Vector3, Vector3Stamped
-from std_msgs.msg import Header
+from moveit.task_constructor import core, stages
 from moveit_msgs.msg import (
-    Constraints, JointConstraint, OrientationConstraint, MoveItErrorCodes,
+    Constraints, JointConstraint, MoveItErrorCodes, OrientationConstraint,
 )
 from moveit_msgs.srv import GetPositionIK
+from sensor_msgs.msg import JointState
+from std_msgs.msg import Header
 from tf_transformations import quaternion_from_euler
 
 
@@ -70,7 +73,7 @@ DIRECTION_VECTORS: dict[str, tuple[float, float, float]] = {
     "down":     ( 0.0,  0.0, -1.0), "-z": ( 0.0,  0.0, -1.0),
 }
 
-# UR5e default joint names (matches base_stages.cpp)
+# UR5e default joint names
 DEFAULT_JOINT_NAMES: list[str] = [
     "shoulder_pan_joint",
     "shoulder_lift_joint",
@@ -80,11 +83,11 @@ DEFAULT_JOINT_NAMES: list[str] = [
     "wrist_3_joint"
 ]
 
-# Hardcoded scaling factors (matching C++ at 20%)
+# Global velocity/acceleration scaling (20% of joint limits)
 VELOCITY_SCALING = 0.2
 ACCELERATION_SCALING = 0.2
 
-# Default group/frame names matching C++ (base_stages.cpp)
+# Default MoveIt planning group and IK frame
 DEFAULT_ARM_GROUP = "ur_arm"
 DEFAULT_IK_FRAME = "flange"
 
@@ -404,14 +407,12 @@ class BaseStages:
     def make_pipeline_planner(self) -> core.PipelinePlanner:
         """Create OMPL pipeline planner with standard configuration.
 
-        Matches C++ behavior: PipelinePlanner(node_, "ompl")
-
         Returns:
             Configured PipelinePlanner using OMPL with RRTConnect (default)
         """
-        # Specify "ompl" pipeline explicitly (matches C++)
-        # Note: Don't set planner.planner to avoid "Cannot find planning configuration"
-        # warning - OMPL defaults to RRTConnect anyway
+        # Don't set planner.planner_id — OMPL defaults to RRTConnect, and
+        # setting it explicitly triggers "Cannot find planning configuration"
+        # warnings unless the config lists the named planner.
         planner = core.PipelinePlanner(self._mtc_node, "ompl")
         planner.goal_joint_tolerance = 1e-4
         planner.max_velocity_scaling_factor = VELOCITY_SCALING
@@ -458,10 +459,7 @@ class BaseStages:
         return planner
 
     def _set_ik_frame(self, stage) -> None:
-        """Set the ik_frame property on a stage.
-
-        This is required for IK calculations in MTC stages.
-        Matches C++: stage->properties().configureInitFrom(PARENT, {"ik_frame"})
+        """Set the ik_frame property on a stage (required for MTC IK).
 
         Args:
             stage: MTC stage (MoveTo, MoveRelative, etc.)
@@ -557,10 +555,9 @@ class BaseStages:
     def load_plan_execute(self, task: core.Task) -> str | None:
         """Initialize, plan, and execute the task.
 
-        Matches C++ behavior:
-        1. init() - Initialize all stages
-        2. plan() - Find solution(s)
-        3. execute() - Execute and check result
+        Runs init() -> plan() -> execute(), logs the planned end-state joint
+        angles, and returns None on success or a structured error string
+        (PLANNING_FAILED, EXECUTION_FAILED: <MoveItErrorName>, etc.).
 
         Args:
             task: Configured MTC task
@@ -602,7 +599,6 @@ class BaseStages:
                 for i, sub in enumerate(sol_msg.sub_trajectory):
                     traj = sub.trajectory.joint_trajectory
                     if traj.joint_names and traj.points:
-                        import math
                         last_pt = traj.points[-1]
                         pairs = [(n, math.degrees(p)) for n, p in zip(traj.joint_names, last_pt.positions)]
                         joint_str = ', '.join(f'{n}={v:.2f}' for n, v in pairs)
@@ -765,12 +761,9 @@ class BaseStages:
         Returns:
             Joint dict {name: radians} for the arm group, or None on failure.
         """
-        import rclpy
-        from sensor_msgs.msg import JointState as JointStateMsg
-
         js_holder = [None]
         js_sub = self.rclpy_node.create_subscription(
-            JointStateMsg, '/joint_states', lambda m: js_holder.__setitem__(0, m), 10)
+            JointState, '/joint_states', lambda m: js_holder.__setitem__(0, m), 10)
         for _ in range(20):
             rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
             if js_holder[0]:
@@ -802,7 +795,10 @@ class BaseStages:
             req.ik_request.timeout.sec = 1
 
             future = ik_client.call_async(req)
-            wait_for_future(future, timeout=5.0)
+            if not wait_for_future(future, timeout=5.0):
+                self.logger.warning("/compute_ik timed out")
+                self.rclpy_node.destroy_client(ik_client)
+                return None
             self.rclpy_node.destroy_client(ik_client)
 
             result = future.result()

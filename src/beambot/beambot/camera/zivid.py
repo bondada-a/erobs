@@ -11,10 +11,8 @@ Interface contract:
 """
 
 import time
-from dataclasses import dataclass
 
 import rclpy
-from builtin_interfaces.msg import Time as TimeMsg
 from cv_bridge import CvBridge
 from geometry_msgs.msg import Pose
 from rclpy.node import Node
@@ -23,6 +21,7 @@ from sensor_msgs.msg import Image, PointCloud2
 
 from zivid_interfaces.srv import CaptureAndDetectMarkers
 
+from beambot.camera import DetectionResult
 from beambot.detection import (
     CircleDetectionParams,
     ContourDetectionParams,
@@ -30,19 +29,6 @@ from beambot.detection import (
     detect_contours_in_image,
     get_3d_position,
 )
-
-
-@dataclass
-class DetectionResult:
-    """Result of marker detection with capture timestamp.
-
-    The capture_stamp is the timestamp from the point cloud message header,
-    representing when the Zivid camera actually captured the image.
-    This should be used for TF lookups to ensure the transform matches
-    the robot pose at capture time, not at processing time.
-    """
-    markers: list[tuple[int, Pose]]  # List of (marker_id, pose) tuples
-    capture_stamp: TimeMsg | None  # Timestamp when image was captured
 
 
 # Zivid service endpoint

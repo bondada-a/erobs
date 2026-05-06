@@ -22,9 +22,8 @@ class ToolExchangeActionServer(BaseActionServer):
             action_type=ToolExchangeAction,
         )
 
-    def initialize_stages(self):
-        """Create ToolExchangeStages instance."""
-        self._stages = ToolExchangeStages(self)
+    def create_stages(self):
+        return ToolExchangeStages(self)
 
 
 def main(args=None):

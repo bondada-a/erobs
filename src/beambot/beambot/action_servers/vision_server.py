@@ -51,9 +51,8 @@ class VisionActionServer(BaseActionServer):
         )
         self.get_logger().info("TF reset service: beambot_vision_reset_tf")
 
-    def initialize_stages(self):
-        """Create VisionStages instance with camera config from beamline config."""
-        # Load camera config from beamline config file
+    def create_stages(self):
+        """Build VisionStages with camera config from beamline config."""
         self.declare_parameter(
             "beamline_config",
             get_package_share_directory("beambot") + "/config/default_beamline.yaml"
@@ -72,7 +71,7 @@ class VisionActionServer(BaseActionServer):
         except Exception as e:
             self.get_logger().warning(f"Failed to load camera config: {e}, using defaults")
 
-        self._stages = VisionStages(
+        return VisionStages(
             self,
             camera_type=camera_config.get("type"),
             camera_frame=camera_config.get("frame"),

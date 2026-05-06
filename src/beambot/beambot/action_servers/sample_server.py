@@ -43,8 +43,13 @@ class SampleActionServer(BaseActionServer):
         )
         self.get_logger().info("PlaceSample action server started: beambot_place_sample")
 
-    def initialize_stages(self):
-        """Create PickSampleStages and PlaceSampleStages with camera config."""
+    def create_stages(self):
+        """Build PickSampleStages (returned) and PlaceSampleStages (side effect).
+
+        Both stages share the same camera config. The base class owns
+        self._stages; the place-side lives on self._place_stages, set here
+        because place shares the same config load.
+        """
         self.declare_parameter(
             "beamline_config",
             get_package_share_directory("beambot") + "/config/default_beamline.yaml"
@@ -69,8 +74,8 @@ class SampleActionServer(BaseActionServer):
             marker_dictionary=camera_config.get("marker_dictionary"),
         )
 
-        self._stages = PickSampleStages(self, **cam_kwargs)
         self._place_stages = PlaceSampleStages(self, **cam_kwargs)
+        return PickSampleStages(self, **cam_kwargs)
 
     def _execute(self, goal_handle):
         """Execute PickSampleAction."""

@@ -15,16 +15,14 @@ ZED 2i default topics (namespace: /zed/zed_node, SDK 5.2.1+):
     - /zed/zed_node/depth/depth_registered  (sensor_msgs/Image, 32FC1)
 """
 
-from dataclasses import dataclass
-
 import rclpy
-from builtin_interfaces.msg import Time as TimeMsg
 from cv_bridge import CvBridge
 from geometry_msgs.msg import Pose
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from sensor_msgs.msg import Image, PointCloud2
 
+from beambot.camera import DetectionResult
 from beambot.detection import (
     CircleDetectionParams,
     ContourDetectionParams,
@@ -32,13 +30,6 @@ from beambot.detection import (
     detect_contours_in_image,
     get_3d_position,
 )
-
-
-@dataclass
-class DetectionResult:
-    """Result of detection with capture timestamp."""
-    markers: list[tuple[int, Pose]]
-    capture_stamp: TimeMsg | None
 
 
 # Default topic names (with zed2i default namespace)

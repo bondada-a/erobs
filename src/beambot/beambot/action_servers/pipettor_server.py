@@ -24,9 +24,8 @@ class PipettorActionServer(BaseActionServer):
             action_type=PipettorAction,
         )
 
-    def initialize_stages(self):
-        """Create PipettorStages instance."""
-        self._stages = PipettorStages(self)
+    def create_stages(self):
+        return PipettorStages(self)
 
 
 def main(args=None):
