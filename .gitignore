@@ -132,5 +132,15 @@ yolov8n.pt
 state/
 **/.omc/
 
+# Ruflo (claude-flow) — per-dev, not shared. Each dev runs `ruflo init` to opt in.
+.claude-flow/
+.claude/settings.json
+.claude/agents/
+.claude/commands/
+.claude/helpers/
+# Keep .claude/skills/omc-reference/ tracked (pre-existing); ignore ruflo-installed skills.
+.claude/skills/*/
+!.claude/skills/omc-reference/
+
 # Training data (large files)
 src/beambot/data/spincoater_training/
