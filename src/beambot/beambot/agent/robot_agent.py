@@ -9,9 +9,19 @@ from contextlib import AsyncExitStack
 from mcp.client.session import ClientSession
 from mcp.client.stdio import stdio_client, StdioServerParameters
 
-from .system_prompt import load_system_prompt
-
 logger = logging.getLogger(__name__)
+
+# Path to the shared robot-operation prompt. Colocated with this module so the
+# same file drives the CLI, the GUI chat panel (via RobotAgent), and the
+# .claude/skills/robot-operation skill (which cats it into Claude Code's context).
+# Read fresh on every RobotAgent() construction so prompt edits take effect on
+# the next chat without restarting the host process.
+_PROMPT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "robot_operation.md")
+
+
+def _load_system_prompt() -> str:
+    with open(_PROMPT_PATH) as f:
+        return f.read()
 
 
 def _create_client():
@@ -41,7 +51,7 @@ class RobotAgent:
     def __init__(self, model=None, mcp_config_path=None):
         self.client, default_model = _create_client()
         self.model = model or default_model
-        self.system_prompt = load_system_prompt()
+        self.system_prompt = _load_system_prompt()
         self.tools = []              # Anthropic API tool format
         self.tool_to_session = {}    # tool_name -> ClientSession
         self.messages = []           # conversation history

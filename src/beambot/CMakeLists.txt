@@ -12,6 +12,14 @@ find_package(ament_cmake_python REQUIRED)
 # Install Python package
 ament_python_install_package(beambot)
 
+# Install robot_operation.md next to the beambot.agent module.
+# RobotAgent loads it via _PROMPT_PATH (os.path.dirname(__file__) + "robot_operation.md"),
+# and the file also backs the .claude/skills/robot-operation skill (which cats it from
+# src/). Both paths need it, so ship the install copy alongside the Python files.
+install(FILES beambot/agent/robot_operation.md
+  DESTINATION ${PYTHON_INSTALL_DIR}/beambot/agent
+)
+
 # Install launch files
 install(DIRECTORY launch/
   DESTINATION share/${PROJECT_NAME}/launch

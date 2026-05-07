@@ -134,13 +134,18 @@ state/
 
 # Ruflo (claude-flow) — per-dev, not shared. Each dev runs `ruflo init` to opt in.
 .claude-flow/
+.swarm/
 .claude/settings.json
+.claude/memory.db
 .claude/agents/
 .claude/commands/
 .claude/helpers/
-# Keep .claude/skills/omc-reference/ tracked (pre-existing); ignore ruflo-installed skills.
+# Keep .claude/skills/omc-reference/ tracked (pre-existing) and robot-operation/
+# (project-owned skill pointing at src/beambot/beambot/agent/robot_operation.md);
+# ignore ruflo-installed skills.
 .claude/skills/*/
 !.claude/skills/omc-reference/
+!.claude/skills/robot-operation/
 
 # Training data (large files)
 src/beambot/data/spincoater_training/
