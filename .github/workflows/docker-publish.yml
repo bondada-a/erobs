@@ -6,12 +6,13 @@ on:
       image:
         description: 'Which image to build'
         required: true
-        default: 'both'
+        default: 'erobs-jazzy'
         type: choice
         options:
-          - both
+          - all
           - beambot_img
           - beambot_bsui
+          - erobs-jazzy
       tag:
         description: 'Image tag (default: latest)'
         required: false
@@ -23,7 +24,7 @@ env:
 
 jobs:
   build-beambot-img:
-    if: ${{ github.event.inputs.image == 'both' || github.event.inputs.image == 'beambot_img' }}
+    if: ${{ github.event.inputs.image == 'all' || github.event.inputs.image == 'beambot_img' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -65,7 +66,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   build-beambot-bsui:
-    if: ${{ github.event.inputs.image == 'both' || github.event.inputs.image == 'beambot_bsui' }}
+    if: ${{ github.event.inputs.image == 'all' || github.event.inputs.image == 'beambot_bsui' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -101,6 +102,48 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/beambot_bsui:${{ github.event.inputs.tag }}
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/beambot_bsui:${{ github.sha }}
+          build-args: |
+            CACHEBUST=${{ github.run_id }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-erobs-jazzy:
+    if: ${{ github.event.inputs.image == 'all' || github.event.inputs.image == 'erobs-jazzy' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          df -h
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push erobs-jazzy
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/jazzy/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/erobs-jazzy:${{ github.event.inputs.tag }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/erobs-jazzy:${{ github.sha }}
           build-args: |
             CACHEBUST=${{ github.run_id }}
           cache-from: type=gha

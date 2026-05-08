@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     cmake \
     git \
+    nano \
     net-tools \
     iputils-ping \
     netcat-openbsd \
@@ -24,6 +25,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-rclpy \
     ros-${ROS_DISTRO}-ur \
     ros-${ROS_DISTRO}-moveit \
+    ros-${ROS_DISTRO}-rosbridge-server \
     x11vnc \
     xvfb \
     gnupg2 \
@@ -37,6 +39,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
+
+# Pin numpy<2 for cv_bridge / tf_transformations compatibility (compiled against NumPy 1.x)
+RUN pip3 install --break-system-packages 'numpy<2' rosdep && \
+    rosdep update
 
 # Install Zivid SDK 2.17.2 for Ubuntu 24.04 (Noble)
 RUN mkdir -p /tmp/zivid && cd /tmp/zivid && \
@@ -67,7 +73,8 @@ WORKDIR /root/ws/erobs/
 RUN /bin/bash -c "set -e && \
     vcs import < src/ros2.repos src && \
     vcs import < src/end_effectors/end_effectors.repos src/end_effectors && \
-    vcs import < src/vision/vision.repos src/vision"
+    vcs import < src/vision/vision.repos src/vision && \
+    rm -rf src/vision/zed-ros2-wrapper"
 
 # Install ROS dependencies via rosdep
 RUN /bin/bash -c "apt-get update && \
@@ -89,14 +96,31 @@ RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
     colcon build --packages-skip \
       zed_components zed_ros2 zed_wrapper zed_debug \
       epick_moveit_studio \
-      epick_driver epick_description epick_controllers epick_hardware_tests epick_moveit_plugin"
+      epick_driver epick_description epick_controllers epick_hardware_tests epick_moveit_plugin \
+      onrobot_2fg7_driver onrobot_2fg7_description"
 
-ENV ROBOT_IP=10.69.26.90
-ENV REVERSE_IP=10.69.26.42
+# Install Claude Code CLI
+RUN curl -fsSL https://claude.ai/install.sh | bash
+ENV PATH="/root/.claude/local/bin:${PATH}"
+
+# Pre-configure Zivid network camera
+RUN mkdir -p /root/.config/Zivid/API && \
+    printf '__version__: 1\nCameras:\n  NetworkCameras:\n    - NetworkCamera:\n        Host: 10.68.81.25\n' \
+    > /root/.config/Zivid/API/Cameras.yml
+
+# DDS / discovery server configuration (FastRTPS with discovery server on VM)
+ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+ENV ROS_DISCOVERY_SERVER="10.68.82.42:11811"
+ENV ROS_DOMAIN_ID=0
+
+ENV ROBOT_IP=10.68.82.41
 ENV UR_TYPE="ur5e"
 ENV LAUNCH_RVIZ="false"
 
 # VNC viewer port
 EXPOSE 5901
+
+# Source workspace in all shells (docker exec, interactive, etc.)
+RUN echo "source /root/ws/erobs/install/setup.bash" >> /root/.bashrc
 
 CMD ["/bin/bash", "-c", "source /root/ws/erobs/install/setup.bash && /root/start-vnc.sh && exec /bin/bash"]
