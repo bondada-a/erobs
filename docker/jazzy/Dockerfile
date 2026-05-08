@@ -25,6 +25,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ros-${ROS_DISTRO}-rclpy \
     ros-${ROS_DISTRO}-ur \
     ros-${ROS_DISTRO}-moveit \
+    ros-${ROS_DISTRO}-moveit-task-constructor-core \
+    ros-${ROS_DISTRO}-moveit-task-constructor-msgs \
+    ros-${ROS_DISTRO}-moveit-task-constructor-capabilities \
+    ros-${ROS_DISTRO}-moveit-task-constructor-visualization \
     ros-${ROS_DISTRO}-rosbridge-server \
     x11vnc \
     xvfb \

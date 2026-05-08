@@ -1,9 +1,10 @@
 # List of repositories to use within your workspace
 # See https://github.com/dirk-thomas/vcstool
-repositories:
-  moveit_task_constructor:
-    type: git
-    url: https://github.com/ros-planning/moveit_task_constructor.git
-    version: jazzy
+#
+# moveit_task_constructor is now installed via apt on Jazzy
+# (ros-jazzy-moveit-task-constructor-{core,msgs,capabilities,visualization})
+# so it no longer needs a source checkout. Add a repositories: block below
+# if you need to pin a development fork.
+repositories: {}
 
 
