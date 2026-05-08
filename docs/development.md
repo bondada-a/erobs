@@ -1,150 +1,271 @@
 # EROBS Development Reference
 
-> Operational MCP reference (task JSON, error handling, gotchas) is in the project root `CLAUDE.md`.
-> This document covers architecture, development setup, and current work items.
+> **Operating the robot** (task JSON, error taxonomy, MCP gotchas) is in
+> [`src/beambot/beambot/agent/robot_operation.md`](../src/beambot/beambot/agent/robot_operation.md),
+> loaded on demand via the `robot-operation` skill. Don't duplicate that
+> content here — this doc is for *building* the stack, not driving it.
 >
-> For current task priorities, see [GitHub Issues](https://github.com/bondada-a/erobs/issues).
-> Use `gh issue list --label P0` to see critical tasks. Close issues when done, open new ones when you find work.
-> Decisions and architectural context are in [`STATUS.md`](../STATUS.md).
+> For the quick orientation a new Claude Code session needs, see
+> [`CLAUDE.md`](../CLAUDE.md). This file is the deeper developer reference
+> behind the same content: architecture, build, calibration history, known
+> issues.
 
 ## Overview
 
-Autonomous robotic sample handling system for synchrotron beamlines at NSLS-II. Integrates ROS2 robotics with Bluesky experiment orchestration to enable **self-driving beamlines** that can run 24/7 without human intervention.
+Robotic sample-handling stack for NSLS-II beamlines. A ROS 2 / MoveIt
+Task Constructor pipeline drives a UR5e with swappable end effectors,
+controlled through a JSON task interface that can be driven by the GUI,
+by an LLM over MCP, or (eventually) by Bluesky.
 
-**Goal**: Make this framework beamline-agnostic so any beamline can use UR robots for their sample manipulation needs.
+Currently deployed at **CMS**. The `default_beamline.yaml` config layer
+and the per-gripper MoveIt configs are designed for reuse across UR-arm
+beamlines, but no second site is live today.
 
 ## Architecture
 
 ```
-Bluesky RunEngine (experiment orchestration)
-         ↓
-Ophyd Device (ROS2 Action Client wrapper)
-         ↓                                    Claude (LLM via MCP)
-MTCOrchestratorActionServer  ←────────────────  beambot-mcp-server / ros-mcp-server
-         ↓
-Specialized Action Servers (8 types)
-    ├── move_to, end_effector, tool_exchange
-    ├── vision_moveto, vision_scan
-    └── pick_sample, place_sample, pipettor
-         ↓
-MoveIt Task Constructor (motion planning)
-         ↓
-UR5e Robot + Grippers
+┌─────────────────────────────────────────────────────────────┐
+│  ENTRY POINTS (four interfaces, all speak MTCExecution JSON) │
+├─────────────────────────────────────────────────────────────┤
+│  mtc_gui (PyQt5)      Claude Code + MCP    beambot.agent    │
+│  — primary manual     — LLM-assisted       — experimental    │
+│                                                              │
+│  Bluesky / Ophyd — planned, currently broken                 │
+└────────────────────────────┬────────────────────────────────┘
+                             │ full_json string
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ORCHESTRATOR   /beambot_execution  (action server)          │
+│  — task parsing, batching, pause/resume                      │
+│  — MoveIt lifecycle (relaunch per gripper)                   │
+│  — vacuum watchdog (ePick)                                   │
+└────────────────────────────┬────────────────────────────────┘
+                             │ per-task goals
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│  ACTION SERVERS  (8, one per task type)                      │
+│  move_to, end_effector, tool_exchange, pipettor              │
+│  vision_moveto, vision_scan, pick_sample, place_sample       │
+└────────────────────────────┬────────────────────────────────┘
+                             │ MTC stages
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│  MoveIt Task Constructor + MoveIt 2                          │
+│   planners: Pilz LIN / PTP, OMPL, CartesianPath              │
+└────────────────────────────┬────────────────────────────────┘
+                             │ trajectories
+                             ▼
+┌─────────────────────────────────────────────────────────────┐
+│  HARDWARE                                                    │
+│  UR5e · Zivid 2+ (active) · ZED (present, broken)            │
+│  Grippers: hande / epick / 2fg7 / pipettor / none            │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Deployment**: Host machine running ROS2 natively with one of two control interfaces:
-- **beambot bringup** (`beambot_bringup.launch.py`): MTC pipeline servers, MoveIt, Zivid SDK, action servers
-- **MCP interface** (`start_mcp.sh`): rosbridge + beambot bringup for LLM-driven control via `beambot-mcp-server`
-- **GUI interface** (`mtc_gui_client`): Manual task execution via Qt GUI
-- **bsui** (separate container): Bluesky/experiment orchestration, sends JSON task goals via ROS2 DDS
+**Task types**: 8 in `src/beambot_interfaces/action/` — `MoveTo`,
+`EndEffector`, `ToolExchange`, `VisionMoveTo`, `VisionScan`,
+`PickSample`, `PlaceSample`, `Pipettor`. `MTCExecution` is the
+orchestrator action that composes them.
 
-## Key Packages
+## Packages
 
-| Package | Purpose |
-|---------|---------|
-| **beambot** | Python action servers, orchestrator, detection algorithms, MCP server |
-| **beambot_interfaces** | Action definitions (8 actions) |
-| **mtc_gui** | GUI client for task execution |
-| **custom-ur-descriptions** | MoveIt configs per gripper type |
-| **vision** | Camera drivers + ROS2 nodes (Zivid 3D eye-in-hand, ZED stereo external) |
-| **end_effectors** | Gripper drivers (Hand-E, ePick, pipettor) |
-| **bluesky_ros** | Bluesky-ROS integration (Ophyd devices) |
-| **cms** | CMS beamline task JSONs and pose registry (`poses.yaml`) |
+| Package | What it is |
+|---|---|
+| **beambot** | Orchestrator + per-task action servers + MTC stages + detection + MCP server + experimental agent module |
+| **beambot_interfaces** | 9 `.action` definitions (8 task types + `MTCExecution`) |
+| **mtc_gui** | PyQt5 operator cockpit — primary manual interface. Entry: `ros2 run mtc_gui mtc_gui_client` |
+| **custom-ur-descriptions** | UR5e URDF + one MoveIt config that branches per gripper via SRDF xacro |
+| **vision** | `vcs import`ed — `zivid-ros` driver. Listed in `vision.repos` but ZED is broken / not launched |
+| **end_effectors** | `vcs import`ed — Hand-E, ePick, pipettor, 2FG7 drivers plus `epick_config` site overlay |
+| **bluesky_ros** | Ophyd wrapper for `/beambot_execution`. **Currently broken** — not synced with PickSample / PlaceSample split. Tracked for eventual revival |
+| **cms** | CMS beamline assets: `poses.yaml`, `beamtime_poses.yaml`, `experiments.md`, `tasks/*.json` |
+| **demos** | `hello_orchestrator_py` tutorial package |
+
+`src/end_effectors/{serial,robotiq_hande_*,ros2_epick_gripper,pipettor,onrobot_2fg7_*}`
+and `src/vision/zivid-ros` are `vcs import`ed (see `*.repos` files) and
+gitignored at this repo level. Fix upstream, then bump the ref.
 
 ## Hardware
 
-- **Robot**: UR5e 6-DOF arm
-- **Cameras**: Zivid 2+ 3D (eye-in-hand, single-shot), ZED (external, streaming)
-- **Grippers** (swappable): Robotiq Hand-E, Robotiq ePick, Pipettor
+- **Robot**: Universal Robots UR5e (6-DOF). Fixed 20 % velocity /
+  acceleration scaling; see the `hardware_capabilities` review for why
+  that's intentional.
+- **Primary camera**: Zivid 2+ 3D, eye-in-hand, single-shot. ArUco +
+  contour detection drives vision-guided picks.
+- **Secondary camera**: ZED stereo. Hardware mounted, driver not
+  launched by us, subscriptions in `beambot_mcp_server.py` are
+  effectively dead. Don't build on it until the driver is stabilised.
+- **Grippers** (swappable via `tool_exchange`): Robotiq **Hand-E**
+  (mechanical), Robotiq **ePick** (vacuum), OnRobot **2FG7**, custom
+  **pipettor**. Each has an SRDF xacro + MoveIt config folder.
 
 ### Hand-Eye Calibration History
 
-The Zivid camera is mounted on the robot arm (eye-in-hand). The transform `tool0 → zivid_optical_frame` is stored in `ur5e_robot_description/urdf/zivid_camera_mount.xacro`.
+Zivid is mounted on the arm; the transform `tool0 → zivid_optical_frame`
+lives in `ur5e_robot_description/urdf/zivid_camera_mount.xacro`.
+Re-run calibration when the robot moves, the mount is disturbed, or
+vision accuracy degrades.
 
-**Re-run calibration when**: Robot is moved to a different location, camera mount is disturbed, or vision accuracy degrades.
-
-| Date | xyz (meters) | rpy (radians) | Notes |
-|------|--------------|---------------|-------|
-| **2026-03-27** | 0.05635 0.10228 0.06025 | -0.03622 0.05218 3.13437 | Current. Beamline recalibration, 12 poses (pose 4 outlier excluded). Residuals: rot < 0.33°, trans < 1.53mm |
-| 2026-03-25 | 0.05475 0.10491 0.06013 | -0.03489 0.05317 3.13637 | Recalibration after URDF chain changes. Residuals: rot < 0.15°, trans < 1.0mm |
-| 2026-01-15 | 0.05675 0.10322 0.05489 | -0.00615 0.04362 3.13541 | Residuals: rot < 0.22°, trans < 0.47mm |
-| 2026-01-13 | 0.05646 0.10182 0.05680 | -0.03542 0.04745 3.13222 | After robot moved to new room |
+| Date | xyz (m) | rpy (rad) | Notes |
+|---|---|---|---|
+| **2026-03-27** | 0.05635 0.10228 0.06025 | -0.03622 0.05218 3.13437 | Current. Beamline recalibration, 12 poses (pose 4 excluded). Residuals: rot < 0.33°, trans < 1.53 mm |
+| 2026-03-25 | 0.05475 0.10491 0.06013 | -0.03489 0.05317 3.13637 | After URDF chain changes. Residuals: rot < 0.15°, trans < 1.0 mm |
+| 2026-01-15 | 0.05675 0.10322 0.05489 | -0.00615 0.04362 3.13541 | Residuals: rot < 0.22°, trans < 0.47 mm |
+| 2026-01-13 | 0.05646 0.10182 0.05680 | -0.03542 0.04745 3.13222 | Robot moved to new room |
 | 2025-12-17 | 0.05659 0.10548 0.05660 | -0.01432 0.04829 3.13430 | Original location |
-| 2025-10-09 | 0.02803 0.07664 0.0 | 0.53964 -1.53712 -2.13794 | Initial calibration (different mount?) |
+| 2025-10-09 | 0.02803 0.07664 0.0 | 0.53964 -1.53712 -2.13794 | Initial calibration (likely different mount) |
 
-**Calibration tool**: `zivid-python-samples/source/applications/advanced/hand_eye_calibration/hand_eye_gui.py` or Zivid Studio → Tools → Hand-Eye Calibration
+Tool: Zivid Studio → Tools → Hand-Eye Calibration, or
+`zivid-python-samples/.../hand_eye_calibration/hand_eye_gui.py`.
 
-## Build & Launch
-### Build
+## Build, launch, test
+
+Host: Ubuntu 24.04 with ROS 2 **Jazzy**. The active branch is
+`jazzy_dev`; `humble-dev` is kept as a legacy archive for any deployment
+still on Humble.
+
 ```bash
-colcon build --packages-skip epick_moveit_studio && source install/setup.bash
-```
-### Option A: Launch Framework+GUI for Manual 
-```bash
-ros2 launch beambot beambot_bringup.launch.py
-ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true  # simulation
-ros2 run mtc_gui mtc_gui_client  # GUI
-```
-### Option B: Launch Framework+Rosbridge for MCP based control
-```bash
-./start_mcp.sh  # Launches rosbridge (port 9090) + beambot bringup for LLM control via MCP
+# 1. Source ROS 2 (robot machine)
+source /opt/ros/jazzy/setup.bash
+
+# 2. Import vcs subtrees (first time only, or on ref bumps)
+vcs import src           < src/ros2.repos
+vcs import src/end_effectors < src/end_effectors/end_effectors.repos
+vcs import src/vision    < src/vision/vision.repos
+
+# 3. Build (skip epick_moveit_studio — incompatible with Jazzy ros2_control)
+colcon build --packages-skip epick_moveit_studio
+source install/setup.bash
+
+# 4. Launch
+ros2 launch beambot beambot_bringup.launch.py                             # real hardware
+ros2 launch beambot beambot_bringup.launch.py use_mock_hardware:=true     # simulation
+ros2 launch beambot beambot_bringup.launch.py enable_vision:=false        # skip Zivid
+ros2 launch beambot beambot_bringup.launch.py enable_pipettor:=false      # skip pipettor
+ros2 run mtc_gui mtc_gui_client                                           # operator GUI
+
+# 5. MCP stack (rosbridge + bringup + rosbag recording)
+./start_mcp.sh
 ```
 
-Note: Always `source install/setup.bash` after building. Vision requires Zivid camera connected and calibrated.
+### Tests and lint
+
+```bash
+./test.sh                   # colcon test --merge-install + colcon test-result --verbose
+pre-commit run --all-files  # ruff + ament linters
+ruff check --fix && ruff format
+```
+
+Unit tests live in `src/beambot/test/test_*.py` (orchestrator parsing,
+batch planner, algorithms, base_stages). No hardware-in-the-loop tests
+in the repo.
+
+CI on push / PR to `main`, `humble`, `jazzy_dev`:
+`ros.yaml` (ament C++ + lint), `ruff.yml`, `super-linter.yml`. Docker
+publish is `workflow_dispatch` only.
 
 ## Debugging
 
 ```bash
-ros2 action list                          # Check action servers
-ros2 run tf2_tools view_frames            # TF tree (vision issues)
-ros2 topic echo /joint_states             # Joint states
-ros2 service call /beambot/pause std_srvs/srv/Trigger  # Pause execution
-ros2 topic echo /beambot/execution_state  # Monitor state
+ros2 action list                              # check action servers registered
+ros2 run tf2_tools view_frames                # dump TF tree (vision)
+ros2 topic echo /joint_states                 # joint states
+ros2 topic echo /beambot/current_gripper      # what the orchestrator thinks is attached
+ros2 topic echo /beambot/execution_state      # IDLE / EXECUTING / PAUSED
+ros2 service call /beambot/pause std_srvs/srv/Trigger
+ros2 service call /beambot/resume std_srvs/srv/Trigger
+tail -f /tmp/beambot_launch.log               # written by start_mcp.sh for get_recent_logs
 ```
 
-## File Locations
+## File locations
 
 | What | Where |
-|------|-------|
-| Action definitions | `beambot_interfaces/action/` |
-| Action servers | `beambot/beambot/action_servers/` |
-| Stage implementations | `beambot/beambot/stages/` |
-| Detection algorithms | `beambot/beambot/detection/` |
-| MCP server (beambot) | `beambot/mcp/beambot_mcp_server.py` |
-| Beamline configs | `beambot/config/default_beamline.yaml` |
-| Pose registry | `cms/poses.yaml` |
-| MoveIt configs | `custom-ur-descriptions/ur5e_moveit_configs/` |
-| Launch files | `beambot/launch/` |
-| MCP detailed reference | `docs/mcp_ros_reference.md` |
-| Isaac Sim integration | `docs/isaac_sim_integration.md` |
-| Hardware capabilities | `docs/hardware_capabilities.md` |
+|---|---|
+| Action definitions | `src/beambot_interfaces/action/` |
+| Orchestrator | `src/beambot/beambot/action_servers/orchestrator.py` |
+| Action servers | `src/beambot/beambot/action_servers/` |
+| MTC stage implementations | `src/beambot/beambot/stages/` |
+| MoveIt lifecycle + vacuum watchdog | `src/beambot/beambot/core/` |
+| Detection (OpenCV + YOLO) | `src/beambot/beambot/detection/` |
+| Camera drivers | `src/beambot/beambot/camera/` (zivid active; zed broken) |
+| Experimental agent module | `src/beambot/beambot/agent/` |
+| Agent system prompt | `src/beambot/beambot/agent/robot_operation.md` |
+| MCP server (beambot) | `src/beambot/mcp/beambot_mcp_server.py` |
+| Beamline config | `src/beambot/config/default_beamline.yaml` |
+| Pose registry | `src/cms/poses.yaml` (path hardcoded in MCP server) |
+| MoveIt configs (per gripper) | `src/custom-ur-descriptions/ur5e_moveit_config/config/` |
+| SRDF xacros (per gripper) | `src/custom-ur-descriptions/ur5e_moveit_config/srdf/` |
+| Launch files | `src/beambot/launch/` |
+| Per-action field reference | [`src/beambot/beambot/agent/robot_operation.md`](../src/beambot/beambot/agent/robot_operation.md) (authoritative — also powers the `robot-operation` skill) |
+| Hardware capabilities audit | [`docs/hardware_capabilities.md`](./hardware_capabilities.md) |
+| Isaac Sim integration notes | [`docs/isaac_sim_integration.md`](./isaac_sim_integration.md) |
 
-## Design Decisions
+## Design decisions
 
-### PickSample / PlaceSample Architecture (issue #47)
+### Orchestrator owns MoveIt lifecycle
 
-**Decision**: Replace `pick_and_place` + `vision_pick_place` with unified `pick_sample` + `place_sample` actions (2026-04-06).
+`core/moveit_lifecycle_manager.py` kills and relaunches `move_group` on
+every `tool_exchange`. This also cycles `ur_ros2_control_node`, which is
+how per-tool voltage + Modbus activation works cleanly. No free /
+upstream alternative exists today (verified 2026-05; see the
+`moveit_tool_changing` memory for the full research). Don't migrate to
+AttachURDF or unified-config patterns without a strong trigger.
 
-**Context**: The old `pick_and_place` was redundant with the batch planner, and `vision_pick_place` had the KDL jitter bug (#51) and no vacuum check. The new actions:
-- Use `use_vision` flag to unify hardcoded and vision modes in one action
-- Use deterministic IK (#51) to eliminate jitter in vision mode
-- Include vacuum status check after pick (retreat-then-check pattern)
-- Run as a dual action server (`sample_server.py`) following the `vision_server.py` pattern
-- Support contour detection via MCP's `detect_sample` → `marker_offset_x/y` parameters
+### Unified PickSample / PlaceSample (issue #47, 2026-04-06)
 
-**To switch**: In `pick_place_server.py`, change `self._stages.run()` to `self._stages.run_with_gripper_settle()`
+Replaced `pick_and_place` + `vision_pick_place` with unified
+`pick_sample` + `place_sample` actions. The new actions:
+- use a `use_vision` flag to unify hardcoded and vision modes in one
+  action definition;
+- use deterministic IK (#51) to eliminate KDL jitter in vision mode;
+- include a vacuum-status check after pick (retreat-then-check);
+- run inside a single dual action server (`sample_server.py`),
+  following the `vision_server.py` pattern;
+- support contour detection via the MCP `detect_sample` tool, which
+  returns `marker_offset_x / y` that get passed back into the same
+  `pick_sample` goal — not a separate MCP step.
 
-## Current Work
+### ePick batching disabled
 
-See [GitHub Issues](https://github.com/bondada-a/erobs/issues) for active tasks and priorities. Decisions and context in [`STATUS.md`](../STATUS.md).
+`orchestrator.py` hard-codes
+`batching_enabled = self._enable_batching and start_gripper != "epick"`.
+When ePick is active the vacuum watchdog must run between every step,
+so batching collapses them in a way that hides drops. Do not refactor
+this to an opt-out config without explicit sign-off.
 
-## Known Issues
+### Detection lives in `beambot.detection`
 
-### UR Driver Connection in Docker/VM Environments
-When sending robot goals from containers over a VM, the UR driver loses connection intermittently due to network latency/jitter. The keepalive mechanism times out before packets arrive. Increased `keep_alive_count` to 10 (200ms timeout) in URDF xacro files — preliminary testing suggests this helps but not fully validated. See [ur_robot_driver#941](https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/941).
+Single source of truth. The old duplication between `camera/zivid.py`
+and the MCP server was resolved. `detect_hough_circles`,
+`detect_contours_in_image`, `get_3d_position`, and the
+`*DetectionParams` dataclasses all live in `beambot/detection/` — do
+not re-inline.
+
+## Known issues
+
+### UR driver reverse-interface timeouts under network jitter
+
+UR goals from containers over a VM have intermittently lost the
+reverse-interface connection. On Jazzy, the relevant xacro arg is
+`robot_receive_timeout` (the Humble-era `keep_alive_count` was renamed
+in the Jazzy migration). See
+[ur_robot_driver#941](https://github.com/UniversalRobots/Universal_Robots_ROS2_Driver/issues/941).
+
+### Bluesky-ROS integration broken
+
+`src/bluesky_ros/mtc_ophyd_device.py` is out of date with the PickSample
+/ PlaceSample split and the current `MTCExecution` fields. Running
+Bluesky end-to-end today will fail. Tracked for eventual revival; not
+in scope without explicit work.
+
+### ZED camera broken
+
+Hardware mounted, driver not launched by `beambot_bringup.launch.py`,
+subscriptions in the MCP server are effectively dead. Use Zivid for
+anything that requires 3D in production.
 
 ## References
 
-- [Digital Discovery Paper (2025)](https://doi.org/10.1039/d5dd00036j) - Full architecture
-- [ICRA 2024 Paper](https://doi.org/10.1109/ICRA57147.2024.10611706) - Bluesky-ROS integration
+- [Digital Discovery Paper (2025)](https://doi.org/10.1039/d5dd00036j) — full architecture overview
+- [ICRA 2024 Paper](https://doi.org/10.1109/ICRA57147.2024.10611706) — Bluesky-ROS integration
 - [MoveIt Task Constructor](https://moveit.picknik.ai/main/doc/concepts/moveit_task_constructor.html)

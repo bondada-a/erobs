@@ -11,8 +11,9 @@ duplicate ops content here.
 
 - **Dev** (edit Python/C++/launch/config, run tests, review PRs, update
   docs): you're in the right place. Read this file, use `docs/development.md`
-  for architecture + setup, use `docs/mcp_ros_reference.md` for deep action
-  field reference.
+  for architecture + setup. For action field details, read the `.action`
+  files in `src/beambot_interfaces/action/` and the corresponding `_call_*`
+  methods in `orchestrator.py` — those are authoritative.
 - **Ops** (send `/beambot_execution` goals, author task JSON, diagnose a
   robot-side error): invoke the `robot-operation` skill. Its content lives
   at `src/beambot/beambot/agent/robot_operation.md` — don't load it by
@@ -44,7 +45,7 @@ the live-robot step to the ops skill.
 | `src/end_effectors/`, `src/vision/` | `vcs import`ed subtrees — gitignored. Edits here don't commit at this repo level |
 | `.claude/skills/robot-operation/SKILL.md` | Skill that pulls `src/beambot/beambot/agent/robot_operation.md` into context when a robot-ops prompt matches. The source file is the single truth |
 | `docs/development.md` | Architecture overview, calibration history, known issues |
-| `docs/mcp_ros_reference.md` | Per-action field reference |
+| `docs/archive/` | Historical audits, legacy plans, and the retired `mcp_ros_reference.md` (content now lives in `robot_operation.md`) |
 | `docs/robot_operation.md` | **Does not exist.** The ops reference lives at `src/beambot/beambot/agent/robot_operation.md` |
 
 ## Build, test, lint
@@ -155,6 +156,5 @@ conventions.
 ## Further reading
 
 - [`docs/development.md`](./docs/development.md) — full architecture, calibration history, known issues
-- [`docs/mcp_ros_reference.md`](./docs/mcp_ros_reference.md) — per-task-type action field reference (authoritative)
 - [`src/beambot/beambot/agent/robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md) — robot-operation reference (consumed by the skill + agent CLI + GUI chat; don't read directly unless you're editing it)
-- [`docs/archive/`](./docs/archive) — historical diagrams, PDFs, prior-design notes
+- [`docs/archive/`](./docs/archive) — historical diagrams, PDFs, prior-design notes, retired audits

@@ -24,8 +24,9 @@ authored manually, driven by an LLM over MCP, or — eventually — orchestrated
   central orchestrator that tracks gripper state, manages MoveIt lifecycle across tool
   swaps, and batches consecutive simple tasks
 - **JSON task format** dispatched through `/beambot_execution` — see
-  [`docs/mcp_ros_reference.md`](./docs/mcp_ros_reference.md) for the schema and
-  [`CLAUDE.md`](./CLAUDE.md) for the operator-facing quick reference
+  [`src/beambot/beambot/agent/robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md)
+  for the authoritative schema, error taxonomy, and MCP tool reference (also
+  loaded by the `robot-operation` Claude Code skill)
 
 ## How to interact
 
@@ -107,11 +108,13 @@ architecture, calibration history, and troubleshooting guide.
 
 ## Further reading
 
-- [`CLAUDE.md`](./CLAUDE.md) — operator quick reference consumed by Claude Code (task
-  JSON, error taxonomy, MCP gotchas)
-- [`docs/development.md`](./docs/development.md) — architecture, build, calibration,
-  known issues
-- [`docs/mcp_ros_reference.md`](./docs/mcp_ros_reference.md) — per-task field reference
+- [`CLAUDE.md`](./CLAUDE.md) — development brief auto-loaded by Claude Code
+  (repo layout, build/test commands, invariants)
+- [`docs/development.md`](./docs/development.md) — architecture, build, calibration
+  history, known issues
+- [`src/beambot/beambot/agent/robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md)
+  — authoritative robot-operation reference: task JSON schema, MCP tool inventory,
+  error taxonomy, gotchas (also loaded by the `robot-operation` skill)
 - [`src/cms/experiments.md`](./src/cms/experiments.md) — active experiment protocols
 - [`docs/archive/`](./docs/archive) — historical diagrams, PDFs, and prior-design notes
 
