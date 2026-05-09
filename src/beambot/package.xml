@@ -42,6 +42,12 @@
        ros-mcp-server can talk to the ROS graph. -->
   <exec_depend>rosbridge_server</exec_depend>
 
+  <!-- ros2_tracing: opt-in via enable_tracing:=true in the bringup launch.
+       tracetools_launch provides the Trace action; tracetools_analysis
+       provides the offline report scripts (ros2 run tracetools_analysis auto). -->
+  <exec_depend>tracetools_launch</exec_depend>
+  <exec_depend>tracetools_analysis</exec_depend>
+
   <!-- Messages -->
   <depend>geometry_msgs</depend>
   <depend>shape_msgs</depend>

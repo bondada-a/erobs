@@ -21,6 +21,7 @@ from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
+from tracetools_launch.action import Trace
 
 
 def generate_launch_description():
@@ -75,10 +76,39 @@ def generate_launch_description():
         description='Enable MTC stage batching (false = each task via action server)'
     )
 
+    declare_enable_tracing = DeclareLaunchArgument(
+        'enable_tracing',
+        default_value='false',
+        description='Enable ros2_tracing (LTTng). Writes CTF trace to '
+                    '~/.ros/tracing/<trace_session_name>-<timestamp>/. '
+                    'Analyze with: ros2 run tracetools_analysis auto <path>'
+    )
+
+    declare_trace_session_name = DeclareLaunchArgument(
+        'trace_session_name',
+        default_value='beambot',
+        description='LTTng session name (timestamp is appended automatically)'
+    )
+
     enable_vision = LaunchConfiguration('enable_vision')
     enable_pipettor = LaunchConfiguration('enable_pipettor')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
     enable_batching = LaunchConfiguration('enable_batching')
+    enable_tracing = LaunchConfiguration('enable_tracing')
+    trace_session_name = LaunchConfiguration('trace_session_name')
+
+    # ros2_tracing: opt-in via enable_tracing:=true. Instruments every rclcpp
+    # callback, publish, take, and executor event across all nodes launched
+    # after this action. Default events_ust set (see Trace() defaults) covers
+    # callback_start/end + publish + subscribe which is what perf reports need.
+    # events_kernel=[] because we don't have lttng-modules installed; userspace
+    # tracing alone gives per-callback timings without kernel-level jitter data.
+    trace_action = Trace(
+        session_name=trace_session_name,
+        append_timestamp=True,
+        events_kernel=[],
+        condition=IfCondition(enable_tracing),
+    )
 
     # Resolve beamline config path (relative to beambot package)
     beamline_config_path = PathJoinSubstitution([
@@ -214,6 +244,11 @@ def generate_launch_description():
         declare_enable_pipettor,
         declare_use_mock_hardware,
         declare_enable_batching,
+        declare_enable_tracing,
+        declare_trace_session_name,
+        # Tracing (conditional - must come BEFORE any Node so tracepoints
+        # in those processes are captured from process start)
+        trace_action,
         # Core servers (always launched)
         move_to_server,
         end_effector_server,

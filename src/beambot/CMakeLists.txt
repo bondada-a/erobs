@@ -46,6 +46,9 @@ install(PROGRAMS
   beambot/octomap_to_planning_scene.py
   # Client utilities
   scripts/beambot_client.py
+  # Perf / tracing utilities (ros2_tracing wrapper + report)
+  scripts/perf_trace_run.sh
+  scripts/perf_trace_summarize.py
   # Test/debug scripts
   scripts/test_wafer_detection.py
   scripts/test_contour_detection.py
