@@ -1,6 +1,8 @@
 #!/bin/bash
-# Build and push beambot Docker images to GHCR
-# Usage: ./img_build.sh [beambot_img|beambot_bsui|beambot_bsui_minimal|all]
+# Build and push beambot reference Docker images to GHCR.
+# For the production ROS image (erobs-jazzy), use the docker-publish.yml
+# workflow in GitHub Actions.
+# Usage: ./img_build.sh [beambot_bsui|beambot_bsui_minimal|all]
 
 set -e
 
@@ -9,18 +11,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(dirname "$SCRIPT_DIR")"
 
 cd "$REPO_ROOT"
-
-build_beambot_img() {
-    echo "=========================================="
-    echo "Building beambot_img (ROS/robotics)..."
-    echo "=========================================="
-    docker build --no-cache -f docker/erobs-common-img/Dockerfile -t beambot_img .
-    docker tag beambot_img "$REGISTRY/beambot_img:latest"
-    echo ""
-    echo "Pushing beambot_img to GHCR..."
-    docker push "$REGISTRY/beambot_img:latest"
-    echo "✓ beambot_img pushed to $REGISTRY/beambot_img:latest"
-}
 
 build_beambot_bsui() {
     echo "=========================================="
@@ -47,9 +37,6 @@ build_beambot_bsui_minimal() {
 }
 
 case "${1:-all}" in
-    beambot_img)
-        build_beambot_img
-        ;;
     beambot_bsui)
         build_beambot_bsui
         ;;
@@ -57,17 +44,18 @@ case "${1:-all}" in
         build_beambot_bsui_minimal
         ;;
     all)
-        build_beambot_img
         build_beambot_bsui
         build_beambot_bsui_minimal
         ;;
     *)
-        echo "Usage: $0 [beambot_img|beambot_bsui|beambot_bsui_minimal|all]"
+        echo "Usage: $0 [beambot_bsui|beambot_bsui_minimal|all]"
         echo ""
-        echo "  beambot_img          - Build ROS/robotics image (erobs-common-img)"
         echo "  beambot_bsui         - Build Bluesky image (full, ~5GB)"
         echo "  beambot_bsui_minimal - Build Bluesky image (lightweight, ~1.5GB)"
         echo "  all                  - Build all images (default)"
+        echo ""
+        echo "For erobs-jazzy (production ROS image), use the GitHub Actions"
+        echo "workflow 'Build and Push Docker Images to GHCR'."
         exit 1
         ;;
 esac

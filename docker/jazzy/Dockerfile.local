@@ -59,7 +59,7 @@ WORKDIR /root/ws/erobs
 COPY . /root/ws/erobs/
 
 # Copy VNC startup script
-RUN cp docker/erobs-common-img/start-vnc.sh /root/start-vnc.sh && \
+RUN cp docker/jazzy/start-vnc.sh /root/start-vnc.sh && \
     chmod +x /root/start-vnc.sh
 
 # Import external repos

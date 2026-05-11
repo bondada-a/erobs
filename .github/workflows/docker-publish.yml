@@ -1,16 +1,23 @@
 name: Build and Push Docker Images to GHCR
 
+# Image status (as of 2026-05):
+#   erobs-jazzy   — current production ROS stack (docker/jazzy/Dockerfile)
+#   beambot_bsui  — Bluesky reference image (docker/bsui/Dockerfile).
+#                   Not current deployment path; rebuild only when needed.
+# The `all` option intentionally fans out ONLY to erobs-jazzy so routine
+# rebuilds don't republish reference images. To rebuild beambot_bsui,
+# select it explicitly from the dropdown.
+
 on:
   workflow_dispatch:
     inputs:
       image:
-        description: 'Which image to build'
+        description: 'Which image to build (all = erobs-jazzy only; beambot_bsui is on-demand/reference)'
         required: true
         default: 'erobs-jazzy'
         type: choice
         options:
           - all
-          - beambot_img
           - beambot_bsui
           - erobs-jazzy
       tag:
@@ -23,50 +30,9 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  build-beambot-img:
-    if: ${{ github.event.inputs.image == 'all' || github.event.inputs.image == 'beambot_img' }}
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Free up disk space
-        run: |
-          sudo rm -rf /usr/share/dotnet
-          sudo rm -rf /opt/ghc
-          sudo rm -rf /usr/local/share/boost
-          df -h
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Build and push beambot_img
-        uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: docker/erobs-common-img/Dockerfile
-          push: true
-          tags: |
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/beambot_img:${{ github.event.inputs.tag }}
-            ${{ env.REGISTRY }}/${{ github.repository_owner }}/beambot_img:${{ github.sha }}
-          build-args: |
-            CACHEBUST=${{ github.run_id }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
   build-beambot-bsui:
-    if: ${{ github.event.inputs.image == 'all' || github.event.inputs.image == 'beambot_bsui' }}
+    # Reference image (Bluesky PoC) — only rebuild on explicit selection.
+    if: ${{ github.event.inputs.image == 'beambot_bsui' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
