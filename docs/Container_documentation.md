@@ -2,6 +2,14 @@
 
 Documentation on deploying and testing the EROBS (Extensible Robotic Beamline Scientist) container infrastructure.
 
+> **Status (2026-05):**
+> - `erobs-jazzy` is the current production ROS image.
+> - `beambot_bsui_minimal` is a **reference** Bluesky client. The
+>   `bluesky_ros` Ophyd wrapper it depends on is currently bit-rotted —
+>   the container builds but the end-to-end Bluesky → ROS path needs
+>   repair before the examples below are expected to work. Other
+>   approaches for sending client commands are also being explored.
+
 ## Architecture Overview
 
 EROBS uses a two-container architecture for separating concerns:
@@ -28,7 +36,7 @@ EROBS uses a two-container architecture for separating concerns:
 │                                   │ (MTCExecution Action)              │
 │                                   ▼                                    │
 │  ┌─────────────────────────────────────────────────────────────────┐   │
-│  │                    beambot_img Container                         │   │
+│  │                    erobs-jazzy Container                        │   │
 │  │  ┌─────────────────────────────────────────────────────────┐    │   │
 │  │  │  MTCOrchestratorActionServer                            │    │   │
 │  │  │  - Parses JSON task goals                               │    │   │
@@ -65,37 +73,44 @@ EROBS uses a two-container architecture for separating concerns:
 
 ## Container Images
 
-### beambot_img (Full ROS Stack)
+### erobs-jazzy (Full ROS Stack)
 
 **Purpose**: Runs the complete robotics stack - motion planning, action servers, hardware drivers.
 
-**Registry**: `ghcr.io/bondada-a/beambot_img:latest`
+**Registry**: `ghcr.io/bondada-a/erobs-jazzy:latest`
 
 **Contains**:
-- ROS2 Humble (full desktop)
+- ROS 2 Jazzy (full desktop, Ubuntu 24.04 base)
 - MoveIt 2 + MoveIt Task Constructor
 - UR robot driver
-- Zivid camera SDK and ROS2 driver
+- Zivid camera SDK and ROS 2 driver
 - Gripper drivers (Robotiq Hand-E, ePick, Pipettor)
 - All beambot action servers
+- rosbridge server
 - VNC server for RViz visualization
+- Claude Code CLI
+
+**Dockerfile**: [`docker/jazzy/Dockerfile`](../docker/jazzy/Dockerfile)
+
 ---
 
-### beambot_bsui_minimal (Bluesky Client)
+### beambot_bsui_minimal (Bluesky Client — reference)
 
-**Purpose**: Lightweight container for Bluesky ↔ ROS2 communication. Only contains what's needed to send action goals.
+**Purpose**: Lightweight container for Bluesky ↔ ROS 2 communication. Only contains what's needed to send action goals.
 
 **Registry**: `ghcr.io/bondada-a/beambot_bsui_minimal:latest`
 
 **Contains**:
-- ROS2 Humble (ros-core only)
-- `rclpy` (ROS2 Python client)
+- ROS 2 Jazzy (ros-core only)
+- `rclpy` (ROS 2 Python client)
 - `beambot_interfaces` (action message definitions)
 - `bluesky_ros` (Ophyd device wrapper)
 - Pre-saved task JSONs (`cms/tasks/`)
 - Bluesky, Ophyd, nslsii
 - EPICS base
 - Miniconda
+
+**Dockerfile**: [`docker/bsui-minimal/Dockerfile`](../docker/bsui-minimal/Dockerfile)
 
 ---
 
@@ -105,7 +120,7 @@ EROBS uses a two-container architecture for separating concerns:
 
 ```bash
 # Pull from GitHub Container Registry
-docker pull ghcr.io/bondada-a/beambot_img:latest
+docker pull ghcr.io/bondada-a/erobs-jazzy:latest
 docker pull ghcr.io/bondada-a/beambot_bsui_minimal:latest
 ```
 
@@ -117,7 +132,7 @@ docker pull ghcr.io/bondada-a/beambot_bsui_minimal:latest
 
 ## Running the Containers
 
-### beambot_img (ROS Stack)
+### erobs-jazzy (ROS Stack)
 
 #### Simulation Mode (No Hardware)
 
@@ -132,7 +147,7 @@ docker run -it --rm \
     -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --name beambot_ros \
-    beambot_img \
+    erobs-jazzy \
     /bin/bash -c "source /root/ws/erobs/install/setup.bash && \
                   ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true enable_vision:=false"
 ```
@@ -271,7 +286,7 @@ xhost +local:docker
 
 docker run -it --rm --network host --ipc=host --pid=host \
     -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
-    --name beambot_ros beambot_img \
+    --name beambot_ros erobs-jazzy \
     /bin/bash -c "source /root/ws/erobs/install/setup.bash && \
                   ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true"
 ```
@@ -310,4 +325,4 @@ RE(bps.abs_set(robot, '/ros2_ws/src/cms/tasks/beamtime/hotplate_to_spincoat.json
 ---
 
 - **Repository**: https://github.com/bondada-a/erobs
-- **Branch**: `humble-experimental`
+- **Branch**: `jazzy_dev`

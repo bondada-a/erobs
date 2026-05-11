@@ -5,7 +5,7 @@ Lightweight Bluesky-ROS2 client container for EROBS.
 ## Quick Start
 
 ```bash
-# For ROS2 communication with beambot_img container
+# For ROS2 communication with the erobs-jazzy container
 docker run -it --rm \
     --network host \
     --ipc=host \

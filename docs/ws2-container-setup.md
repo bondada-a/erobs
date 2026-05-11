@@ -21,7 +21,7 @@ docker run -it --rm \
     -e DISPLAY=$DISPLAY \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     --name beambot_ros \
-    beambot_img \
+    erobs-jazzy \
     /bin/bash -c "source /root/ws/erobs/install/setup.bash && \
                   ros2 launch beambot beambot_bringup.launch.py use_fake_hardware:=true enable_vision:=false"
 
