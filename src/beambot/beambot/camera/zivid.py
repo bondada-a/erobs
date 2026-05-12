@@ -253,24 +253,34 @@ def _capture_image_and_cloud(
 
         # Wait for FRESH data to arrive via subscriptions.
         # Point cloud (~40MB) takes 3-4s longer to transmit than image (~10MB).
+        # Use wall-clock time because spin_once returns immediately when other
+        # callbacks (e.g. joint_states at 500Hz) are pending.
         logger.info("Waiting for image and point cloud data...")
-        max_wait_iterations = 200  # Up to 20 seconds
-        for i in range(max_wait_iterations):
+        max_wait = 20.0
+        start_wait = time.time()
+        last_log = start_wait
+        while time.time() - start_wait < max_wait:
             rclpy.spin_once(node, timeout_sec=0.1)
 
-            if (i + 1) % 10 == 0:
+            now = time.time()
+            if now - last_log >= 2.0:
+                elapsed = now - start_wait
                 img_status = "✓" if received_image[0] else "waiting"
                 cloud_status = "✓" if received_cloud[0] else "waiting"
-                logger.info(f"  {(i+1)*0.1:.1f}s - image: {img_status}, cloud: {cloud_status}")
+                logger.info(f"  {elapsed:.1f}s - image: {img_status}, cloud: {cloud_status}")
+                last_log = now
 
             if received_image[0] is not None and received_cloud[0] is not None:
-                logger.info(f"Both image and point cloud received after {(i+1)*0.1:.1f}s")
+                elapsed = time.time() - start_wait
+                logger.info(f"Both image and point cloud received after {elapsed:.1f}s")
                 break
 
         if received_image[0] is None or received_cloud[0] is None:
+            elapsed = time.time() - start_wait
             img_status = "received" if received_image[0] else "MISSING"
             cloud_status = "received" if received_cloud[0] else "MISSING"
-            logger.error(f"Timeout waiting for data (image: {img_status}, cloud: {cloud_status})")
+            logger.error(f"Timeout after {elapsed:.1f}s waiting for data "
+                         f"(image: {img_status}, cloud: {cloud_status})")
             logger.error("Point cloud transmission may be slow - try increasing timeout")
             return None
 
