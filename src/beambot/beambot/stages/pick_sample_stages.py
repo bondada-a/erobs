@@ -11,7 +11,7 @@ Includes vacuum status check after pick for ePick gripper.
 """
 
 import json
-import rclpy
+import threading
 
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
@@ -269,19 +269,16 @@ class PickSampleStages(BaseStages):
             return True
 
         msg_holder = [None]
+        event = threading.Event()
 
         def _on_status(msg):
             msg_holder[0] = msg
+            event.set()
 
         sub = self.rclpy_node.create_subscription(
             ObjectDetectionStatus, '/object_detection_status', _on_status, 10,
         )
-
-        for _ in range(20):  # 20 × 50ms = 1s
-            rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
-            if msg_holder[0] is not None:
-                break
-
+        event.wait(timeout=1.0)
         self.rclpy_node.destroy_subscription(sub)
 
         if msg_holder[0] is None:

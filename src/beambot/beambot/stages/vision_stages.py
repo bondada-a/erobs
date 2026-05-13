@@ -329,9 +329,7 @@ class VisionStages(BaseStages):
         # This ensures vibrations from the previous motion have damped out
         if self._settle_time > 0:
             self.logger.info(f"Waiting {self._settle_time:.2f}s for robot to settle...")
-            settle_iterations = int(self._settle_time / 0.05)  # 50ms intervals
-            for _ in range(settle_iterations):
-                rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
+            time.sleep(self._settle_time)
             self.logger.info("Settle complete, starting detection")
 
         # Parse scan positions if provided (multi-position averaging mode)

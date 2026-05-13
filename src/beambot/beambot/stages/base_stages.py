@@ -9,6 +9,7 @@ import json
 import math
 import os
 import sys
+import threading
 import time
 import traceback
 from typing import Any
@@ -762,12 +763,14 @@ class BaseStages:
             Joint dict {name: radians} for the arm group, or None on failure.
         """
         js_holder = [None]
-        js_sub = self.rclpy_node.create_subscription(
-            JointState, '/joint_states', lambda m: js_holder.__setitem__(0, m), 10)
-        for _ in range(20):
-            rclpy.spin_once(self.rclpy_node, timeout_sec=0.05)
-            if js_holder[0]:
-                break
+        js_event = threading.Event()
+
+        def _on_js(msg):
+            js_holder[0] = msg
+            js_event.set()
+
+        js_sub = self.rclpy_node.create_subscription(JointState, '/joint_states', _on_js, 10)
+        js_event.wait(timeout=1.0)
         self.rclpy_node.destroy_subscription(js_sub)
 
         if not js_holder[0]:
