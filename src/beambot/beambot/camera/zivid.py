@@ -12,7 +12,6 @@ Interface contract:
 
 import time
 
-import rclpy
 from cv_bridge import CvBridge
 from geometry_msgs.msg import Pose
 from rclpy.node import Node
@@ -29,6 +28,16 @@ from beambot.detection import (
     detect_contours_in_image,
     get_3d_position,
 )
+
+
+def _wait_for_future(future, timeout: float, poll_interval: float = 0.01) -> bool:
+    """Poll future.done() without spinning. Returns True if completed."""
+    deadline = time.monotonic() + timeout
+    while not future.done():
+        if time.monotonic() >= deadline:
+            return False
+        time.sleep(poll_interval)
+    return True
 
 
 # Zivid service endpoint
@@ -121,9 +130,7 @@ def detect_markers(
     request.marker_dictionary = dictionary
 
     future = client.call_async(request)
-    rclpy.spin_until_future_complete(node, future, timeout_sec=timeout)
-
-    if not future.done():
+    if not _wait_for_future(future, timeout):
         logger.warning("Zivid detection service timeout")
         return DetectionResult(markers=[], capture_stamp=None)
 
@@ -217,7 +224,7 @@ def _capture_image_and_cloud(
         # Wait for subscriptions to discover the publisher (up to 2s)
         logger.info("Waiting for subscriptions to connect...")
         for i in range(20):
-            rclpy.spin_once(node, timeout_sec=0.1)
+            time.sleep(0.1)
             if received_image[0] is not None or received_cloud[0] is not None:
                 logger.info(f"Subscriptions connected after {(i+1)*0.1:.1f}s")
                 break
@@ -236,11 +243,7 @@ def _capture_image_and_cloud(
         future = marker_client.call_async(request)
         logger.info(f"Service call sent, waiting up to {timeout}s for response...")
 
-        # spin_until_future_complete processes BOTH the service call
-        # AND our subscription callbacks.
-        rclpy.spin_until_future_complete(node, future, timeout_sec=timeout)
-
-        if not future.done():
+        if not _wait_for_future(future, timeout):
             logger.error(f"Zivid capture timed out after {timeout}s")
             return None
 
@@ -253,14 +256,14 @@ def _capture_image_and_cloud(
 
         # Wait for FRESH data to arrive via subscriptions.
         # Point cloud (~40MB) takes 3-4s longer to transmit than image (~10MB).
-        # Use wall-clock time because spin_once returns immediately when other
-        # callbacks (e.g. joint_states at 500Hz) are pending.
+        # The MultiThreadedExecutor delivers subscription callbacks on its own
+        # threads — we just poll the holders.
         logger.info("Waiting for image and point cloud data...")
         max_wait = 20.0
         start_wait = time.time()
         last_log = start_wait
         while time.time() - start_wait < max_wait:
-            rclpy.spin_once(node, timeout_sec=0.1)
+            time.sleep(0.1)
 
             now = time.time()
             if now - last_log >= 2.0:
