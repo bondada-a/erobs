@@ -20,13 +20,18 @@ from sensor_msgs.msg import Image, PointCloud2
 
 from zivid_interfaces.srv import CaptureAndDetectMarkers
 
+import numpy as np
+
 from beambot.camera import DetectionResult
 from beambot.detection import (
     CircleDetectionParams,
     ContourDetectionParams,
+    SampleRoiDetectionParams,
     detect_hough_circles,
     detect_contours_in_image,
+    detect_sample_in_roi,
     get_3d_position,
+    get_3d_position_averaged,
 )
 
 
@@ -429,5 +434,207 @@ def detect_contours(
         poses.append(pose)
 
     return poses
+
+
+# ============================================================================
+# Sample ROI Detection (ArUco-anchored)
+# ============================================================================
+
+
+def detect_sample_roi(
+    node: Node,
+    tag_id: int,
+    strategy: str = "farthest_edge",
+    edge_inset_mm: float = 4.0,
+    dictionary: str = "aruco4x4_50",
+    timeout: float = 45.0,
+    params: SampleRoiDetectionParams | None = None,
+) -> tuple[Pose, object] | None:
+    """Detect a sample in an ROI anchored to an ArUco tag and return 3D pickup pose.
+
+    Self-contained: triggers a Zivid capture, detects the specified ArUco tag
+    (extracting pixel corners from the service response), subscribes to
+    image + point cloud topics, runs ROI-based sample detection, and looks up
+    the 3D pickup position from the point cloud.
+
+    Args:
+        node: ROS2 node for subscriptions and service calls
+        tag_id: ArUco marker ID that anchors the ROI
+        strategy: Pickup strategy — "center", "farthest_edge", "nearest_edge",
+                  "farthest_corner", "nearest_corner"
+        edge_inset_mm: Distance inward from edge toward center (mm)
+        dictionary: ArUco dictionary name (default: "aruco4x4_50")
+        timeout: Capture/detection timeout in seconds
+        params: ROI geometry parameters (uses defaults if None)
+
+    Returns:
+        (pickup_pose_in_camera_frame, capture_stamp) on success, or None.
+        The pose is in the Zivid optical frame (same as image/cloud).
+    """
+    if params is None:
+        params = SampleRoiDetectionParams()
+
+    logger = node.get_logger()
+    bridge = CvBridge()
+
+    # Storage for received data
+    received_image: list[Image | None] = [None]
+    received_cloud: list[PointCloud2 | None] = [None]
+
+    def on_image(msg: Image):
+        received_image[0] = msg
+
+    def on_cloud(msg: PointCloud2):
+        received_cloud[0] = msg
+
+    image_sub = None
+    cloud_sub = None
+    marker_client = None
+
+    try:
+        image_sub = node.create_subscription(Image, IMAGE_TOPIC, on_image, _ZIVID_QOS)
+        cloud_sub = node.create_subscription(PointCloud2, CLOUD_TOPIC, on_cloud, _ZIVID_QOS)
+        marker_client = node.create_client(CaptureAndDetectMarkers, SERVICE_NAME)
+
+        if not marker_client.wait_for_service(timeout_sec=2.0):
+            logger.error(f"Zivid service '{SERVICE_NAME}' not available")
+            return None
+
+        # Wait for subscriptions to discover the publisher
+        for i in range(20):
+            time.sleep(0.1)
+            if received_image[0] is not None or received_cloud[0] is not None:
+                break
+
+        # Clear stale data
+        received_image[0] = None
+        received_cloud[0] = None
+
+        # Capture timestamp BEFORE service call (for accurate TF lookup)
+        pre_capture_stamp = node.get_clock().now().to_msg()
+
+        # Trigger capture with the actual tag_id
+        request = CaptureAndDetectMarkers.Request()
+        request.marker_ids = [tag_id]
+        request.marker_dictionary = dictionary
+
+        logger.info(f"Triggering Zivid capture for sample_roi detection (tag {tag_id})...")
+        future = marker_client.call_async(request)
+
+        if not _wait_for_future(future, timeout):
+            logger.error(f"Zivid service timeout after {timeout}s")
+            return None
+
+        result = future.result()
+        if not result.success:
+            logger.warning(f"Zivid detection failed: {result.message}")
+            return None
+
+        # Find the requested marker in results
+        target_marker = None
+        for marker in result.detection_result.detected_markers:
+            if marker.id == tag_id:
+                target_marker = marker
+                break
+
+        if target_marker is None:
+            logger.warning(f"Tag {tag_id} not detected in image")
+            return None
+
+        # Extract pixel corners from MarkerShape message
+        marker_corners = np.array([
+            [p.x, p.y]
+            for p in target_marker.corners_in_pixel_coordinates
+        ])
+
+        # Compute px_per_mm from marker corner side lengths
+        side_lengths = [
+            np.linalg.norm(marker_corners[(i + 1) % 4] - marker_corners[i])
+            for i in range(4)
+        ]
+        px_per_mm = np.mean(side_lengths) / params.marker_size_mm
+
+        # Wait for image + cloud from topics
+        logger.info("Waiting for image and point cloud data...")
+        max_wait = 20.0
+        start_wait = time.time()
+        while time.time() - start_wait < max_wait:
+            time.sleep(0.1)
+            if received_image[0] is not None and received_cloud[0] is not None:
+                break
+
+        if received_image[0] is None or received_cloud[0] is None:
+            img_status = "received" if received_image[0] else "MISSING"
+            cloud_status = "received" if received_cloud[0] else "MISSING"
+            logger.error(
+                f"Timeout waiting for data (image: {img_status}, cloud: {cloud_status})"
+            )
+            return None
+
+        rgb_image = bridge.imgmsg_to_cv2(received_image[0], desired_encoding='rgb8')
+        cloud = received_cloud[0]
+
+        # Run ROI-based sample detection
+        bgr = np.ascontiguousarray(rgb_image[:, :, ::-1])
+        detection = detect_sample_in_roi(
+            bgr, marker_corners, px_per_mm,
+            strategy=strategy,
+            edge_inset_mm=edge_inset_mm,
+            params=params,
+        )
+
+        if detection is None:
+            logger.warning(f"No sample found in ROI near tag {tag_id}")
+            return None
+
+        pickup_px = detection["pickup_px"]
+        logger.info(
+            f"Sample detected: pickup=({pickup_px[0]}, {pickup_px[1]}), "
+            f"size={detection['sample_size_mm']}mm, strategy={strategy}"
+        )
+
+        # Get 3D position at pickup pixel (wide search for dark surfaces)
+        pickup_xyz = get_3d_position_averaged(
+            cloud, pickup_px[0], pickup_px[1], search_radius=20
+        )
+
+        # Tag Z fallback: dark samples lack depth — use tag center's Z
+        if pickup_xyz is None:
+            tag_cx = int(marker_corners[:, 0].mean())
+            tag_cy = int(marker_corners[:, 1].mean())
+            tag_xyz = get_3d_position(cloud, tag_cx, tag_cy, search_radius=10)
+            if tag_xyz is None:
+                logger.error(f"No valid depth at tag center ({tag_cx}, {tag_cy})")
+                return None
+
+            pickup_xyz_xy = get_3d_position(
+                cloud, pickup_px[0], pickup_px[1], search_radius=30
+            )
+            if pickup_xyz_xy is None:
+                logger.error("No valid depth near pickup pixel")
+                return None
+            pickup_xyz = (pickup_xyz_xy[0], pickup_xyz_xy[1], tag_xyz[2])
+            logger.info(f"Used tag Z fallback: z={tag_xyz[2]:.4f}m")
+
+        pose = Pose()
+        pose.position.x = pickup_xyz[0]
+        pose.position.y = pickup_xyz[1]
+        pose.position.z = pickup_xyz[2]
+        pose.orientation.w = 1.0
+
+        logger.info(
+            f"Sample ROI pickup pose: ({pose.position.x:.4f}, "
+            f"{pose.position.y:.4f}, {pose.position.z:.4f}) m in camera frame"
+        )
+
+        return (pose, pre_capture_stamp)
+
+    finally:
+        if image_sub is not None:
+            node.destroy_subscription(image_sub)
+        if cloud_sub is not None:
+            node.destroy_subscription(cloud_sub)
+        if marker_client is not None:
+            node.destroy_client(marker_client)
 
 

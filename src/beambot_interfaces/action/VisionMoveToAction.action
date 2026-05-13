@@ -4,7 +4,7 @@ int32 sample_index          # Sample number to select (for contour detection, 1-
                             # Objects are sorted left-to-right, top-to-bottom (reading order)
 float64 timeout             # Detection timeout in seconds (default: 5.0)
 string poses_json           # Pose definitions from task (unused for vision)
-string detection_type       # Detection method: "marker" (default), "circle", "contour"
+string detection_type       # Detection method: "marker" (default), "circle", "contour", "sample_roi"
 float64 z_offset            # Z offset for approach (0 = use gripper default)
 float64[] scan_positions_flat  # Multi-position mode: Flattened joint poses [j1..j6, j1..j6, ...]
 int32 num_scan_positions       # Number of scan positions (0 = single-position mode)
@@ -18,6 +18,11 @@ float64 marker_offset_z     # Offset from marker in marker local Z (meters). 0 =
 string ik_frame             # IK frame override (e.g. "pipette_tip_link", "epick_tip").
                             # Empty = auto-detect from TF. Set by orchestrator after tool exchange
                             # to avoid stale TF auto-detection.
+string strategy             # Pickup strategy for sample_roi: "center", "farthest_edge" (default),
+                            # "nearest_edge", "farthest_corner", "nearest_corner".
+                            # Only used when detection_type="sample_roi".
+float64 edge_inset_mm       # Distance inward from edge toward center (mm). Default: 4.0.
+                            # Only used when detection_type="sample_roi".
 ---
 # Result
 bool success

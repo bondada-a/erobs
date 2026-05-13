@@ -37,6 +37,7 @@ from beambot.detection import (
     ContourDetectionParams,
     detect_hough_circles,
     detect_contours_in_image,
+    detect_sample_in_roi,
     get_3d_position,
     get_3d_position_averaged,
     YoloDetectionParams,
@@ -1409,162 +1410,8 @@ async def _confirm_point_via_gui(
     return result
 
 
-def _detect_sample_in_roi(
-    rgb_image: np.ndarray,
-    marker_corners: np.ndarray,
-    px_per_mm: float,
-    roi_offset_x_mm: float = 19.3,
-    roi_offset_y_mm: float = 0.3,
-    roi_width_mm: float = 22.1,
-    roi_height_mm: float = 21.8,
-    edge_inset_mm: float = 4.0,
-    strategy: str = "farthest_edge",
-    min_area: int = 100,
-    max_area: int = 15000,
-    max_aspect_ratio: float = 3.0,
-) -> dict[str, Any] | None:
-    """Detect a sample contour in a fixed ROI relative to an ArUco marker.
-
-    Pure OpenCV — no ROS dependencies. Reusable from scripts and MCP tools.
-
-    Args:
-        rgb_image: Full image (BGR or RGB)
-        marker_corners: Shape (4, 2) — tag corner pixels [TL, TR, BR, BL]
-        px_per_mm: Pixel-to-mm scale
-        roi_offset_x_mm: ROI center offset in marker +X direction (mm)
-        roi_offset_y_mm: ROI center offset in marker +Y direction (mm)
-        roi_width_mm: ROI width in mm
-        roi_height_mm: ROI height in mm
-        edge_inset_mm: Distance to move inward from edge toward center (mm)
-        strategy: Pickup strategy — "center", "farthest_edge", "nearest_edge",
-                  "farthest_corner", "nearest_corner"
-        min_area: Min contour area (px²)
-        max_area: Max contour area (px²)
-        max_aspect_ratio: Max width/height ratio for valid sample
-
-    Returns:
-        Dict with pickup_px, center_px, sample_size_mm, angle, offset_from_center_mm,
-        or None if no sample found.
-    """
-    # Marker axes in pixel space
-    top_left, top_right = marker_corners[0], marker_corners[1]
-    bottom_left = marker_corners[3]
-    marker_x = top_right - top_left
-    marker_x = marker_x / np.linalg.norm(marker_x)
-    marker_y = bottom_left - top_left
-    marker_y = marker_y / np.linalg.norm(marker_y)
-    tag_center = marker_corners.mean(axis=0)
-
-    # ROI center in pixel space
-    roi_center = (tag_center
-                  + marker_x * (roi_offset_x_mm * px_per_mm)
-                  + marker_y * (roi_offset_y_mm * px_per_mm))
-
-    half_w = (roi_width_mm * px_per_mm) / 2
-    half_h = (roi_height_mm * px_per_mm) / 2
-
-    h, w = rgb_image.shape[:2]
-    roi_x1 = max(0, int(roi_center[0] - half_w))
-    roi_y1 = max(0, int(roi_center[1] - half_h))
-    roi_x2 = min(w, int(roi_center[0] + half_w))
-    roi_y2 = min(h, int(roi_center[1] + half_h))
-
-    roi = rgb_image[roi_y1:roi_y2, roi_x1:roi_x2]
-    if roi.size == 0:
-        return None
-
-    # Convert to grayscale
-    if len(roi.shape) == 3:
-        roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
-    else:
-        roi_gray = roi
-
-    # Edge detection + contour finding
-    blurred = cv2.GaussianBlur(roi_gray, (5, 5), 0)
-    edges = cv2.Canny(blurred, 50, 150)
-    kernel = np.ones((3, 3), np.uint8)
-    edges = cv2.dilate(edges, kernel, iterations=1)
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-
-    # Filter by area and aspect ratio
-    valid = []
-    for c in contours:
-        area = cv2.contourArea(c)
-        if area < min_area or area > max_area:
-            continue
-        rect = cv2.minAreaRect(c)
-        rw, rh = rect[1]
-        if rw == 0 or rh == 0:
-            continue
-        if max(rw, rh) / min(rw, rh) > max_aspect_ratio:
-            continue
-        valid.append((area, c))
-
-    if not valid:
-        return None
-
-    # Select largest contour
-    valid.sort(key=lambda x: x[0], reverse=True)
-    sample_contour = valid[0][1]
-
-    # Fit rectangle
-    rect = cv2.minAreaRect(sample_contour)
-    rect_center_roi = rect[0]
-    rect_size = rect[1]
-    rect_angle = rect[2]
-    rect_corners_roi = cv2.boxPoints(rect)
-
-    # Convert to full image coordinates
-    rect_center_full = np.array([rect_center_roi[0] + roi_x1,
-                                  rect_center_roi[1] + roi_y1])
-    rect_corners_full = rect_corners_roi + np.array([roi_x1, roi_y1])
-
-    # Compute pickup point based on strategy
-    tag_pt = tag_center
-    center_pt = rect_center_full.copy()
-    edge_inset_px = edge_inset_mm * px_per_mm
-
-    if strategy == "center":
-        pickup = center_pt.copy()
-    elif "corner" in strategy:
-        distances = [np.linalg.norm(c - tag_pt) for c in rect_corners_full]
-        idx = np.argmax(distances) if "farthest" in strategy else np.argmin(distances)
-        pickup = rect_corners_full[idx].copy()
-        if edge_inset_px > 0:
-            toward = center_pt - pickup
-            norm = np.linalg.norm(toward)
-            if norm > 0:
-                pickup = pickup + toward / norm * edge_inset_px
-    elif "edge" in strategy:
-        midpoints = []
-        for i in range(4):
-            midpoints.append((rect_corners_full[i] + rect_corners_full[(i + 1) % 4]) / 2)
-        distances = [np.linalg.norm(m - tag_pt) for m in midpoints]
-        idx = np.argmax(distances) if "farthest" in strategy else np.argmin(distances)
-        pickup = midpoints[idx].copy()
-        if edge_inset_px > 0:
-            toward = center_pt - pickup
-            norm = np.linalg.norm(toward)
-            if norm > 0:
-                pickup = pickup + toward / norm * edge_inset_px
-    else:
-        pickup = center_pt.copy()
-
-    # Compute offset from center to pickup point in mm
-    offset_from_center_mm = np.linalg.norm(pickup - center_pt) / px_per_mm
-
-    return {
-        "pickup_px": (int(pickup[0]), int(pickup[1])),
-        "center_px": (int(center_pt[0]), int(center_pt[1])),
-        "sample_size_mm": (round(rect_size[0] / px_per_mm, 1),
-                           round(rect_size[1] / px_per_mm, 1)),
-        "sample_angle": round(rect_angle, 1),
-        "sample_area_px": int(cv2.contourArea(sample_contour)),
-        "offset_from_center_mm": round(offset_from_center_mm, 1),
-        "roi": (roi_x1, roi_y1, roi_x2, roi_y2),
-        "strategy": strategy,
-        "edge_inset_mm": edge_inset_mm,
-    }
+    # _detect_sample_in_roi has been moved to beambot.detection.algorithms
+    # and is imported as detect_sample_in_roi at the top of this file.
 
 
 @mcp.tool()
@@ -1715,7 +1562,7 @@ async def detect_sample(
         MARKER_SIZE_MM = 14.9
         px_per_mm = np.mean(side_lengths) / MARKER_SIZE_MM
 
-        detection = _detect_sample_in_roi(
+        detection = detect_sample_in_roi(
             bgr, tag_corners, px_per_mm,
             strategy=strategy,
             edge_inset_mm=edge_inset_mm,

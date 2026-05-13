@@ -7,7 +7,7 @@
 bool use_vision                 # true = vision-guided, false = hardcoded poses
 
 # Vision fields (used when use_vision=true)
-string detection_type           # "marker" (default), "circle", "contour"
+string detection_type           # "marker" (default), "circle", "contour", "sample_roi"
 int32 tag_id                    # ArUco marker ID
 int32 sample_index              # For contour detection (1-indexed, default: 1)
 float64 z_offset                # Height offset (0 = gripper default from config)
@@ -18,6 +18,8 @@ float64 marker_offset_z         # Marker-frame Z offset (meters)
 string offset_direction         # Flange-frame direction (e.g. "right", "forward")
 float64 offset_distance         # Distance for offset_direction (meters)
 string ik_frame                 # IK frame override (empty = auto-detect)
+string strategy                 # Pickup strategy for sample_roi (default: "farthest_edge")
+float64 edge_inset_mm           # Inset from edge (mm) for sample_roi (default: 4.0)
 
 # Hardcoded fields (used when use_vision=false)
 string approach_pose            # Pose key for approach position

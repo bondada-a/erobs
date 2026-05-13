@@ -122,6 +122,15 @@ class PickSampleStages(BaseStages):
             target_pose = self._vision.detect_and_transform_contour(
                 sample_index=sample_index, timeout=10.0,
             )
+        elif detection_type == "sample_roi":
+            strategy = getattr(goal, 'strategy', '') or 'farthest_edge'
+            edge_inset_mm = getattr(goal, 'edge_inset_mm', 0.0) or 4.0
+            target_pose = self._vision.detect_and_transform_sample_roi(
+                tag_id=goal.tag_id,
+                strategy=strategy,
+                edge_inset_mm=edge_inset_mm,
+                timeout=10.0,
+            )
         else:
             target_pose = self._vision.detect_and_transform_tag(goal.tag_id, timeout=10.0)
 

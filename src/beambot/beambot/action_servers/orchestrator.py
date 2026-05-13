@@ -1069,6 +1069,9 @@ class MTCOrchestratorServer(Node):
         goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
         # Pass current gripper's IK frame to avoid stale TF auto-detection
         goal.ik_frame = self._gripper_ik_frame()
+        # sample_roi detection parameters (only consumed when detection_type="sample_roi")
+        goal.strategy = step.get("strategy", "")
+        goal.edge_inset_mm = float(step.get("edge_inset_mm", 0.0))
 
         # Handle multi-position scan mode
         # Task JSON: "scan_positions": ["sample_scan_1", "sample_scan_2", "sample_scan_3"]
@@ -1197,6 +1200,8 @@ class MTCOrchestratorServer(Node):
         goal.offset_direction = step.get("offset_direction", "")
         goal.offset_distance = float(step.get("offset_distance", 0.0))
         goal.ik_frame = self._gripper_ik_frame()
+        goal.strategy = step.get("strategy", "")
+        goal.edge_inset_mm = float(step.get("edge_inset_mm", 0.0))
         goal.approach_pose = step.get("approach_pose", "")
         goal.target_pose = step.get("target_pose", "")
         goal.gripper_group = gripper_config.get("gripper_group", "")

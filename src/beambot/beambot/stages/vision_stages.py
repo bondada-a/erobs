@@ -55,6 +55,7 @@ class VisionStages(BaseStages):
     DETECTION_MARKER = "marker"
     DETECTION_CIRCLE = "circle"
     DETECTION_CONTOUR = "contour"
+    DETECTION_SAMPLE_ROI = "sample_roi"
 
     # Retry configuration defaults
     DEFAULT_RETRY_COUNT = 3  # Number of retries after first attempt
@@ -387,6 +388,23 @@ class VisionStages(BaseStages):
             )
             if target_pose is None:
                 return f"DETECTION_FAILED: Contour detection failed for sample #{sample_index}"
+        elif detection_type == self.DETECTION_SAMPLE_ROI:
+            strategy = getattr(goal, 'strategy', '') or 'farthest_edge'
+            edge_inset_mm = getattr(goal, 'edge_inset_mm', 0.0) or 4.0
+            self.logger.info(
+                f"Using sample_roi detection (tag {goal.tag_id}, "
+                f"strategy={strategy}, inset={edge_inset_mm}mm)"
+            )
+            target_pose = self.detect_and_transform_sample_roi(
+                tag_id=goal.tag_id,
+                strategy=strategy,
+                edge_inset_mm=edge_inset_mm,
+                timeout=goal.timeout,
+            )
+            if target_pose is None:
+                return (
+                    f"DETECTION_FAILED: sample_roi detection failed for tag {goal.tag_id}"
+                )
         else:
             # Marker detection - check cache first (populated by vision_scan task)
             cached_pose = self.get_cached_pose(goal.tag_id)
@@ -719,6 +737,81 @@ class VisionStages(BaseStages):
             self._broadcast_detection_tf(f"detected_sample_{sample_index}", pose_base)
 
         return pose_base
+
+    def detect_and_transform_sample_roi(
+        self,
+        tag_id: int,
+        strategy: str = "farthest_edge",
+        edge_inset_mm: float = 4.0,
+        timeout: float = 45.0,
+    ) -> PoseStamped | None:
+        """Detect a sample in an ROI anchored to an ArUco tag.
+
+        Uses the tag's pixel corners to define an ROI, detects the sample
+        contour within that ROI, and returns a 3D pickup pose in base_link.
+        Includes retry logic for transient failures.
+
+        Args:
+            tag_id: ArUco marker ID that anchors the sample ROI
+            strategy: Pickup strategy — "center", "farthest_edge", etc.
+            edge_inset_mm: Distance inward from edge toward center (mm)
+            timeout: Detection timeout in seconds (per attempt)
+
+        Returns:
+            PoseStamped in base_link frame, or None if detection failed
+        """
+        total_attempts = 1 + self._retry_count
+
+        for attempt in range(total_attempts):
+            if attempt > 0:
+                self.logger.info(
+                    f"Retry {attempt}/{self._retry_count} for sample_roi tag {tag_id} "
+                    f"(waiting {self._retry_delay}s...)"
+                )
+                time.sleep(self._retry_delay)
+
+            result = self._camera.detect_sample_roi(
+                self.rclpy_node,
+                tag_id=tag_id,
+                strategy=strategy,
+                edge_inset_mm=edge_inset_mm,
+                dictionary=self._marker_dictionary,
+                timeout=timeout,
+            )
+
+            if result is None:
+                continue
+
+            pickup_pose, capture_stamp = result
+
+            self.logger.info(
+                f"Sample ROI: pickup at [{pickup_pose.position.x:.4f}, "
+                f"{pickup_pose.position.y:.4f}, {pickup_pose.position.z:.4f}] "
+                f"in camera frame"
+            )
+
+            pose_base = self._transform_to_base_link(
+                pickup_pose, capture_stamp=capture_stamp
+            )
+            if pose_base is None:
+                continue
+
+            self.logger.info(
+                f"Transformed to base_link: [{pose_base.pose.position.x:.4f}, "
+                f"{pose_base.pose.position.y:.4f}, {pose_base.pose.position.z:.4f}]"
+            )
+
+            if self._publish_marker_frames:
+                self._broadcast_detection_tf(f"sample_roi_tag{tag_id}", pose_base)
+
+            if attempt > 0:
+                self.logger.info(f"sample_roi detection succeeded on retry {attempt}")
+            return pose_base
+
+        self.logger.error(
+            f"Failed sample_roi detection for tag {tag_id} after {total_attempts} attempts"
+        )
+        return None
 
     def _move_to_joint_pose(
         self,

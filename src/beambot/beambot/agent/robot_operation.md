@@ -172,10 +172,15 @@ currently attached one.
 ### 3.3 `pick_sample` — unified pick
 
 ```json
-// Vision-guided
+// Vision-guided (marker offset)
 {"task_type": "pick_sample", "use_vision": true, "tag_id": 0,
  "scan_pose": "sample_scan_1", "marker_offset_x": 0.02, "marker_offset_y": 0.001,
  "z_offset": -0.001}
+
+// Vision-guided (sample_roi — detects sample contour in ROI near tag)
+{"task_type": "pick_sample", "use_vision": true, "detection_type": "sample_roi",
+ "tag_id": 5, "scan_pose": "sample_scan", "strategy": "farthest_edge",
+ "edge_inset_mm": 4.0, "z_offset": -0.001}
 
 // Hardcoded
 {"task_type": "pick_sample", "use_vision": false,
@@ -186,9 +191,11 @@ currently attached one.
   → close → retreat → vacuum check`.
 - `use_vision: false` → `open → approach → target → close → retreat`.
 - `tag_id` — ArUco marker ID.
-- `detection_type` — `"marker"` (default), `"circle"`, `"contour"`. For
-  `"contour"`, `sample_index` (1-indexed) selects among multiple contours
-  sorted left-to-right, top-to-bottom.
+- `detection_type` — `"marker"` (default), `"circle"`, `"contour"`,
+  `"sample_roi"`. For `"contour"`, `sample_index` (1-indexed) selects among
+  multiple contours sorted left-to-right, top-to-bottom. For `"sample_roi"`,
+  uses ArUco tag-anchored ROI detection with configurable pickup strategy:
+  `strategy` (default `"farthest_edge"`) and `edge_inset_mm` (default `4.0`).
 - `scan_pose` — pose key. Also used as the retreat target.
 - `z_offset` — meters; `0` = gripper default from config. Negative = closer.
 - `marker_offset_x/y/z` — offset in the **marker's local frame** (meters).
