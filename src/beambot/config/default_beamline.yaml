@@ -3,6 +3,7 @@
 # Use this as a template for creating beamline-specific configs
 
 beamline: "default"
+poses_file: "src/cms/poses.yaml"    # Relative to workspace root
 
 robot:
   model: "ur5e"

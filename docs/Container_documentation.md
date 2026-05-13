@@ -239,7 +239,7 @@ string current_gripper
 }
 ```
 
-**Note**: Joint poses are in **degrees**, converted to radians internally.
+**Note**: Joint poses are in **degrees**, converted to radians internally. The `"poses"` dict is optional — the orchestrator auto-resolves named poses (e.g. `"home"`, `"pickup_approach"`) from the beamline's pose registry (`poses_file` in `default_beamline.yaml`) when they are not supplied inline.
 
 
 ## Using from Bluesky

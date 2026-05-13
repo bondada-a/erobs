@@ -13,6 +13,7 @@ overhead (~1.5s per task saved).
 
 import json
 import math
+import os
 import threading
 import time
 from typing import Any
@@ -94,13 +95,27 @@ class MTCOrchestratorServer(Node):
         self.declare_parameter("use_mock_hardware", False)
         self.declare_parameter("enable_batching", True)
         self.declare_parameter("cup_profile", "")  # Override cup profile (empty = use beamline config default)
-
         config_file = self.get_parameter("beamline_config").value
         self._use_mock_hardware = self.get_parameter("use_mock_hardware").value
         self._enable_batching = self.get_parameter("enable_batching").value
 
         with open(config_file, 'r') as f:
             config = yaml.safe_load(f)
+
+        # Resolve poses_file relative to workspace root (parent of src/ and install/)
+        poses_rel = config.get("poses_file", "")
+        self._poses_file = ""
+        if poses_rel:
+            config_dir = os.path.dirname(os.path.realpath(config_file))
+            candidate = config_dir
+            for _ in range(10):
+                if os.path.isdir(os.path.join(candidate, "src")):
+                    self._poses_file = os.path.join(candidate, poses_rel)
+                    break
+                parent = os.path.dirname(candidate)
+                if parent == candidate:
+                    break
+                candidate = parent
 
         self._grippers = config["grippers"]  # Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group, states}
         self._robot_ip = config["robot"]["ip"]  # Single source: config file
@@ -758,6 +773,17 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Orchestration goal completed successfully")
         return result
 
+    def _load_poses_registry(self) -> dict:
+        """Read the poses YAML registry file. Returns empty dict on failure."""
+        if not os.path.exists(self._poses_file):
+            return {}
+        try:
+            with open(self._poses_file, "r") as f:
+                return yaml.safe_load(f) or {}
+        except Exception as e:
+            self.get_logger().warning(f"Failed to read poses registry: {e}")
+            return {}
+
     def _parse_goal(self, goal: MTCExecution.Goal, result: MTCExecution.Result):
         """Parse and validate the goal JSON.
 
@@ -789,10 +815,38 @@ class MTCOrchestratorServer(Node):
             result.error_message = f"Unknown gripper: {start_gripper} (available: {', '.join(self._grippers.keys())})"
             return None
 
+        # Auto-resolve named poses from the registry when not supplied in the goal
+        poses = script.get("poses", {})
+        pose_keys_needed = set()
+        for task in script["tasks"]:
+            target = task.get("target", "")
+            if target and target not in poses:
+                pose_keys_needed.add(target)
+            for key in task.get("scan_positions", []):
+                if key not in poses:
+                    pose_keys_needed.add(key)
+            for field in ("scan_pose", "approach_pose", "target_pose"):
+                val = task.get(field)
+                if val and val not in poses:
+                    pose_keys_needed.add(val)
+
+        if pose_keys_needed:
+            registry = self._load_poses_registry()
+            resolved = 0
+            for key in pose_keys_needed:
+                if key in registry:
+                    poses[key] = registry[key]
+                    resolved += 1
+            if resolved:
+                self.get_logger().info(
+                    f"Auto-resolved {resolved} pose(s) from registry: "
+                    f"{[k for k in pose_keys_needed if k in registry]}"
+                )
+
         return (
             start_gripper,
             script["tasks"],
-            json.dumps(script.get("poses", {})),
+            json.dumps(poses),
         )
 
     # ------------------------------------------------------------------

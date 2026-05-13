@@ -95,7 +95,7 @@ Send this JSON as a serialized string in the `full_json` field of an
 |---|---|---|
 | `start_gripper` | yes | Key in `default_beamline.yaml`'s `grippers` block |
 | `tasks` | yes | Ordered array of task steps |
-| `poses` | no | Name → `[j1…j6]` in degrees. Omit or `{}` if you only do relative / SRDF / cartesian moves |
+| `poses` | no | Name → `[j1…j6]` in degrees. The orchestrator **auto-resolves** any named pose (`target`, `scan_pose`, `approach_pose`, `target_pose`, `scan_positions`) from the beamline's `poses_file` registry when not supplied here. You can omit `"poses"` entirely for named-pose moves. Only supply it to override a registry value or use an ad-hoc pose not in the registry |
 
 Send via MCP:
 ```
@@ -424,7 +424,7 @@ Two MCP servers are wired: `beambot` (project-specific) and `ros-mcp-server`
 | `stop_robot` | Cancel active `/beambot_execution` goals. Finishes current motion step first. |
 | `get_robot_state` | System running? gripper? joints? vacuum? **Call first every session.** |
 | `get_vacuum_status` | ePick `ObjectDetectionStatus` (`status`, `object_detected`). |
-| `get_saved_poses(filter="")` | Read `src/cms/poses.yaml`, optional substring filter. |
+| `get_saved_poses(filter="")` | Read the pose registry (configured in `default_beamline.yaml` → `poses_file`), optional substring filter. Useful to discover available pose names; you do **not** need to call this before sending a move — the orchestrator auto-resolves named poses. |
 | `save_pose(name, joints_deg=None, description="")` | Save pose; omit joints to save current position. |
 | `delete_pose(name)` | Remove a pose. |
 | `set_cup_profile(name)` | ePick cup swap. Takes effect on next MoveIt launch for ePick (§10). |

@@ -35,12 +35,12 @@ the live-robot step to the ops skill.
 | `src/beambot/beambot/camera/` | Camera drivers — `zivid.py` (active), `zed.py` (broken, don't trust) |
 | `src/beambot/beambot/agent/` | **Experimental** direct Claude API + MCP loop. Reused by the GUI chat panel. Not production |
 | `src/beambot/mcp/beambot_mcp_server.py` | FastMCP server exposing ops tools (vision, pose registry, robot state). Entry for the `beambot` MCP server in `.mcp.json` |
-| `src/beambot/config/default_beamline.yaml` | Single config source: gripper list, MoveIt packages, tool voltages, dock numbers, vision targets, camera frames |
+| `src/beambot/config/default_beamline.yaml` | Single config source: gripper list, MoveIt packages, tool voltages, dock numbers, vision targets, camera frames, `poses_file` path |
 | `src/beambot/launch/beambot_bringup.launch.py` | Launches all action servers + Zivid + orchestrator. Takes `enable_vision`, `enable_pipettor`, `use_mock_hardware`, `enable_batching` |
 | `src/beambot_interfaces/action/` | 9 `.action` definitions. When adding fields, update the corresponding `_create_*_goal` / `_call_*` method in `orchestrator.py` |
 | `src/mtc_gui/` | PyQt5 operator cockpit (primary manual interface). `main_window.py` is the entry; task dialogs in `task_forms.py`; chat panel in `chat_panel.py` + `agent_bridge.py` (wires RobotAgent into Qt) |
 | `src/custom-ur-descriptions/ur5e_moveit_config/` | URDF / SRDF / MoveIt configs. SRDF has a separate xacro per gripper (`hande.srdf.xacro`, `epick.srdf.xacro`, `2fg7.srdf.xacro`, `pipettor.srdf.xacro`, `none.srdf.xacro`) stitched by `ur.srdf.xacro` |
-| `src/cms/` | CMS beamline assets: `poses.yaml` (pose registry — path hardcoded in MCP server), `beamtime_poses.yaml`, `experiments.md` (session protocols), `tasks/` (JSON task sequences) |
+| `src/cms/` | CMS beamline assets: `poses.yaml` (pose registry — referenced by `poses_file` in `default_beamline.yaml`, auto-resolved by the orchestrator), `beamtime_poses.yaml`, `experiments.md` (session protocols), `tasks/` (JSON task sequences) |
 | `src/bluesky_ros/` | Ophyd wrapper for `/beambot_execution`. **Currently broken / not kept in sync with PickSample/PlaceSample split.** Don't assume it works |
 | `src/end_effectors/`, `src/vision/` | `vcs import`ed subtrees — gitignored. Edits here don't commit at this repo level |
 | `.claude/skills/robot-operation/SKILL.md` | Skill that pulls `src/beambot/beambot/agent/robot_operation.md` into context when a robot-ops prompt matches. The source file is the single truth |

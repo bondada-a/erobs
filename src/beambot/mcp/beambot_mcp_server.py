@@ -859,7 +859,9 @@ async def get_saved_poses(filter: str = "") -> str:
     """Get saved robot poses from the pose registry.
 
     Returns a JSON object mapping pose names to joint angle arrays (degrees).
-    These values can be used directly in task JSON "poses" dicts.
+    The orchestrator auto-resolves these names from the registry, so you do NOT
+    need to call this before sending a move. Use it to discover available poses
+    or verify joint values.
 
     Args:
         filter: Optional substring to filter pose names (case-insensitive).
