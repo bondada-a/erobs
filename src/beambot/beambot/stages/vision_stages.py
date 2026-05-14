@@ -53,8 +53,6 @@ class VisionStages(BaseStages):
 
     # Detection types
     DETECTION_MARKER = "marker"
-    DETECTION_CIRCLE = "circle"
-    DETECTION_CONTOUR = "contour"
     DETECTION_SAMPLE_ROI = "sample_roi"
 
     # Retry configuration defaults
@@ -315,7 +313,7 @@ class VisionStages(BaseStages):
             goal: VisionMoveToAction.Goal with:
                 - tag_id: Marker ID (for marker detection)
                 - timeout: Detection timeout
-                - detection_type: "marker" (default) or "circle"
+                - detection_type: "marker" (default) or "sample_roi"
                 - z_offset: Override z_offset (0 = use gripper default)
                 - scan_positions_flat: Flattened joint poses for multi-position mode
                 - num_scan_positions: Number of scan positions (0 = single-position)
@@ -371,24 +369,7 @@ class VisionStages(BaseStages):
         goal_ik_frame = getattr(goal, 'ik_frame', '') or ''
 
         # Route to appropriate detection method
-        if detection_type == self.DETECTION_CIRCLE:
-            self.logger.info("Using circle detection")
-            target_pose = self.detect_and_transform_circle(goal.timeout)
-            if target_pose is None:
-                return "DETECTION_FAILED: Circle/wafer detection failed (no circles found in image)"
-        elif detection_type == self.DETECTION_CONTOUR:
-            # Get sample_index (default to 1 if not specified or 0)
-            sample_index = getattr(goal, 'sample_index', 1)
-            if sample_index <= 0:
-                sample_index = 1
-            self.logger.info(f"Using contour detection (any shape), sample #{sample_index}")
-            target_pose = self.detect_and_transform_contour(
-                sample_index=sample_index,
-                timeout=goal.timeout
-            )
-            if target_pose is None:
-                return f"DETECTION_FAILED: Contour detection failed for sample #{sample_index}"
-        elif detection_type == self.DETECTION_SAMPLE_ROI:
+        if detection_type == self.DETECTION_SAMPLE_ROI:
             strategy = getattr(goal, 'strategy', '') or 'farthest_edge'
             edge_inset_mm = getattr(goal, 'edge_inset_mm', 0.0) or 4.0
             self.logger.info(
@@ -602,58 +583,6 @@ class VisionStages(BaseStages):
         )
         return None
 
-    def detect_and_transform_circle(
-        self,
-        timeout: float = 45.0
-    ) -> PoseStamped | None:
-        """Detect circular objects and transform to base_link frame.
-
-        Uses Hough circle detection to find circular objects (wafers, etc.)
-        and returns the 3D pose transformed to base_link.
-
-        Args:
-            timeout: Detection timeout in seconds
-
-        Returns:
-            PoseStamped in base_link frame, or None if detection failed
-        """
-        self.logger.info("Detecting circles...")
-
-        # Use camera module for circle detection
-        detected_poses = self._camera.detect_circles(
-            self.rclpy_node,
-            timeout=timeout
-        )
-
-        if not detected_poses:
-            self.logger.warning("No circles detected")
-            return None
-
-        # Take the first (strongest) detection
-        circle_pose = detected_poses[0]
-
-        self.logger.info(
-            f"Circle detected at [{circle_pose.position.x:.3f}, "
-            f"{circle_pose.position.y:.3f}, {circle_pose.position.z:.3f}] "
-            f"in camera frame"
-        )
-
-        # Transform to base_link
-        pose_base = self._transform_to_base_link(circle_pose)
-        if pose_base is None:
-            return None
-
-        self.logger.info(
-            f"Transformed to base_link: [{pose_base.pose.position.x:.3f}, "
-            f"{pose_base.pose.position.y:.3f}, {pose_base.pose.position.z:.3f}]"
-        )
-
-        # Broadcast TF frame for RViz visualization
-        if self._publish_marker_frames:
-            self._broadcast_detection_tf("detected_circle", pose_base)
-
-        return pose_base
-
     def _broadcast_detection_tf(self, frame_name: str, pose: PoseStamped):
         """Broadcast a detected pose as a TF frame for RViz visualization.
 
@@ -670,73 +599,6 @@ class VisionStages(BaseStages):
         tf.transform.translation.z = pose.pose.position.z
         tf.transform.rotation = pose.pose.orientation
         self._tf_broadcaster.sendTransform(tf)
-
-    def detect_and_transform_contour(
-        self,
-        sample_index: int = 1,
-        timeout: float = 45.0
-    ) -> PoseStamped | None:
-        """Detect objects using contour detection and transform to base_link frame.
-
-        Uses edge detection + contour finding to detect ANY shaped object
-        (circles, squares, triangles, irregular shapes). Filters by area.
-
-        Objects are sorted in reading order (left-to-right, top-to-bottom),
-        so sample_index=1 is the top-left object.
-
-        Args:
-            sample_index: 1-indexed sample number to select (default: 1 = first/top-left)
-            timeout: Detection timeout in seconds
-
-        Returns:
-            PoseStamped in base_link frame, or None if detection failed
-        """
-        self.logger.info(f"Detecting contours (any shape), selecting sample #{sample_index}...")
-
-        # Use camera module for contour detection
-        detected_poses = self._camera.detect_contours(
-            self.rclpy_node,
-            timeout=timeout
-        )
-
-        if not detected_poses:
-            self.logger.warning("No contours detected matching area criteria")
-            return None
-
-        self.logger.info(f"Found {len(detected_poses)} sample(s)")
-
-        # Validate sample_index (1-indexed)
-        if sample_index < 1 or sample_index > len(detected_poses):
-            self.logger.error(
-                f"Invalid sample_index={sample_index}, detected {len(detected_poses)} samples "
-                f"(valid range: 1-{len(detected_poses)})"
-            )
-            return None
-
-        # Select the requested sample (convert to 0-indexed)
-        contour_pose = detected_poses[sample_index - 1]
-
-        self.logger.info(
-            f"Sample #{sample_index} at [{contour_pose.position.x:.3f}, "
-            f"{contour_pose.position.y:.3f}, {contour_pose.position.z:.3f}] "
-            f"in camera frame"
-        )
-
-        # Transform to base_link
-        pose_base = self._transform_to_base_link(contour_pose)
-        if pose_base is None:
-            return None
-
-        self.logger.info(
-            f"Transformed to base_link: [{pose_base.pose.position.x:.3f}, "
-            f"{pose_base.pose.position.y:.3f}, {pose_base.pose.position.z:.3f}]"
-        )
-
-        # Broadcast TF frame for RViz visualization
-        if self._publish_marker_frames:
-            self._broadcast_detection_tf(f"detected_sample_{sample_index}", pose_base)
-
-        return pose_base
 
     def detect_and_transform_sample_roi(
         self,

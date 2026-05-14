@@ -81,10 +81,6 @@ def task_summary(step):
     elif t == "vision_moveto":
         prefix = "[detect only] " if step.get("detect_only") else ""
         det = step.get("detection_type", "marker")
-        if det == "circle":
-            return f"{prefix}Detect circle"
-        elif det == "contour":
-            return f"{prefix}Detect contour #{step.get('sample_index', 1)}"
         s = f"{prefix}Detect ArUco {step.get('tag_id', 0)}"
         od = step.get("offset_direction", "")
         if od:

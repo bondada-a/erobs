@@ -6,8 +6,6 @@ This module subscribes to ZED ROS2 topics and grabs the latest frame.
 Interface contract (matches beambot camera abstraction):
     - create_client(node) -> None (no service client needed — streaming)
     - detect_markers(client, node, ...) -> DetectionResult
-    - detect_circles(node, ...) -> list[Pose]
-    - detect_contours(node, ...) -> list[Pose]
 
 ZED 2i default topics (namespace: /zed/zed_node, SDK 5.2.1+):
     - /zed/zed_node/rgb/color/rect/image  (sensor_msgs/Image, bgra8)
@@ -23,13 +21,7 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPo
 from sensor_msgs.msg import Image, PointCloud2
 
 from beambot.camera import DetectionResult
-from beambot.detection import (
-    CircleDetectionParams,
-    ContourDetectionParams,
-    detect_hough_circles,
-    detect_contours_in_image,
-    get_3d_position,
-)
+from beambot.detection import get_3d_position
 
 
 # Default topic names (with zed2i default namespace)
@@ -185,98 +177,3 @@ def detect_markers(
         detected.append((mid, pose))
 
     return DetectionResult(markers=detected, capture_stamp=capture_stamp)
-
-
-def detect_circles(
-    node: Node,
-    timeout: float = 10.0,
-    params: CircleDetectionParams = None,
-) -> list[Pose]:
-    """Detect circular objects using the ZED camera.
-
-    Grabs latest frame, runs Hough circle detection, returns 3D poses.
-    """
-    if params is None:
-        params = CircleDetectionParams()
-
-    logger = node.get_logger()
-    bridge = CvBridge()
-
-    image_msg, cloud_msg = _grab_latest(node, timeout=timeout, need_cloud=True)
-
-    if image_msg is None:
-        logger.error("No image received from ZED")
-        return []
-
-    rgb_image = bridge.imgmsg_to_cv2(image_msg, desired_encoding='rgb8')
-    circles = detect_hough_circles(rgb_image, params)
-
-    if circles is None or len(circles) == 0:
-        logger.warning("No circles detected")
-        return []
-
-    logger.info(f"Detected {len(circles)} circle(s)")
-    poses = []
-    for cx, cy, radius in circles:
-        if cloud_msg is None:
-            continue
-        xyz = get_3d_position(cloud_msg, cx, cy, params.search_radius)
-        if xyz is None:
-            logger.warning(f"No valid depth at circle ({cx}, {cy})")
-            continue
-        x, y, z = xyz
-        logger.info(f"Circle at ({cx}, {cy}) r={radius}px -> ({x:.3f}, {y:.3f}, {z:.3f}) m")
-        pose = Pose()
-        pose.position.x = x
-        pose.position.y = y
-        pose.position.z = z
-        pose.orientation.w = 1.0
-        poses.append(pose)
-
-    return poses
-
-
-def detect_contours(
-    node: Node,
-    timeout: float = 10.0,
-    params: ContourDetectionParams = None,
-) -> list[Pose]:
-    """Detect objects of any shape using contour detection on ZED image."""
-    if params is None:
-        params = ContourDetectionParams()
-
-    logger = node.get_logger()
-    bridge = CvBridge()
-
-    image_msg, cloud_msg = _grab_latest(node, timeout=timeout, need_cloud=True)
-
-    if image_msg is None:
-        logger.error("No image received from ZED")
-        return []
-
-    rgb_image = bridge.imgmsg_to_cv2(image_msg, desired_encoding='rgb8')
-    contours_info = detect_contours_in_image(rgb_image, params, logger)
-
-    if contours_info is None or len(contours_info) == 0:
-        logger.warning("No contours detected matching area criteria")
-        return []
-
-    logger.info(f"Detected {len(contours_info)} object(s)")
-    poses = []
-    for i, (cx, cy, area, vertices) in enumerate(contours_info):
-        if cloud_msg is None:
-            continue
-        xyz = get_3d_position(cloud_msg, cx, cy, params.search_radius)
-        if xyz is None:
-            logger.warning(f"Sample #{i+1}: No valid depth at ({cx}, {cy})")
-            continue
-        x, y, z = xyz
-        logger.info(f"Sample #{i+1}: ({cx}, {cy}) area={area}px² -> ({x:.3f}, {y:.3f}, {z:.3f}) m")
-        pose = Pose()
-        pose.position.x = x
-        pose.position.y = y
-        pose.position.z = z
-        pose.orientation.w = 1.0
-        poses.append(pose)
-
-    return poses

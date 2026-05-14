@@ -5,8 +5,7 @@ Camera implementations are selected based on beamline configuration.
 
 Supported detection methods:
     - ArUco markers: detect_markers()
-    - Circles (Hough): detect_circles()
-    - Any shape (contour): detect_contours()
+    - Sample ROI (tag-anchored): detect_sample_roi()
 
 Usage:
     from beambot.camera import get_camera
@@ -17,12 +16,6 @@ Usage:
 
     # Detect ArUco markers
     markers = camera.detect_markers(client, node, marker_ids=[5, 10])
-
-    # Detect circles
-    circles = camera.detect_circles(node)
-
-    # Detect any shape by area
-    objects = camera.detect_contours(node)
 """
 
 from dataclasses import dataclass
