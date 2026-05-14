@@ -3,12 +3,14 @@
 import json
 import time
 
+from pathlib import Path
+
 from PyQt5.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
     QTreeWidget, QTreeWidgetItem, QToolBar, QAction, QLabel,
     QComboBox, QLineEdit, QTextEdit, QPushButton, QProgressBar,
     QMenuBar, QFileDialog, QMessageBox, QGroupBox, QFormLayout,
-    QHeaderView, QDialog,
+    QHeaderView, QDialog, QTabWidget,
 )
 from PyQt5.QtCore import Qt, pyqtSignal
 from PyQt5.QtGui import QFont
@@ -17,6 +19,7 @@ from action_msgs.msg import GoalStatus
 from .ros2_bridge import ROS2Bridge, ROS2_AVAILABLE
 from .camera_panel import CameraPanel
 from .pose_dialogs import PosesManagerDialog, SavePoseDialog
+from .poses_panel import PosesPanel
 from .chat_panel import ChatPanel
 from .agent_bridge import AgentBridge
 
@@ -117,6 +120,7 @@ class MTCMainWindow(QMainWindow):
         self._build_menu()
         self._build_central()
         self._connect_signals()
+        self._load_beamline_poses()
 
     # --- Menu ---
 
@@ -172,9 +176,12 @@ class MTCMainWindow(QMainWindow):
         self.main_splitter = QSplitter(Qt.Horizontal)
         layout.addWidget(self.main_splitter, stretch=1)
 
-        # Left panel
-        left = QWidget()
-        left_layout = QVBoxLayout(left)
+        # Left panel — tabbed (Tasks | Poses)
+        self.left_tabs = QTabWidget()
+
+        # --- Tasks tab ---
+        tasks_tab = QWidget()
+        left_layout = QVBoxLayout(tasks_tab)
         left_layout.setContentsMargins(0, 0, 0, 0)
 
         # Task toolbar
@@ -238,10 +245,16 @@ class MTCMainWindow(QMainWindow):
         self.status_log.setFont(QFont("Monospace", 9))
         left_layout.addWidget(self.status_log)
 
-        self.main_splitter.addWidget(left)
+        self.left_tabs.addTab(tasks_tab, "Tasks")
+
+        # --- Poses tab ---
+        self.poses_panel = PosesPanel()
+        self.poses_panel.poses_loaded.connect(self._on_poses_loaded)
+        self.left_tabs.addTab(self.poses_panel, "Poses")
+
+        self.main_splitter.addWidget(self.left_tabs)
 
         # Right panel — tabbed (Chat | Camera)
-        from PyQt5.QtWidgets import QTabWidget
         right_tabs = QTabWidget()
 
         # Chat panel (always available)
@@ -451,6 +464,27 @@ class MTCMainWindow(QMainWindow):
         ))
 
     # --- Pose Management ---
+
+    def _load_beamline_poses(self):
+        """Load poses from the beamline config's poses_file on startup."""
+        # Resolve workspace root (directory containing src/)
+        here = Path(__file__).resolve()
+        workspace_root = None
+        for parent in here.parents:
+            if (parent / "src" / "beambot").exists():
+                workspace_root = parent
+                break
+        if workspace_root is None:
+            return
+
+        config_path = workspace_root / "src" / "beambot" / "config" / "default_beamline.yaml"
+        if config_path.exists():
+            self.poses_panel.load_from_beamline_config(config_path)
+
+    def _on_poses_loaded(self, poses: dict):
+        """Merge beamline poses into the working config."""
+        self.config.setdefault("poses", {}).update(poses)
+        self._log(f"Loaded {len(poses)} poses from beamline config")
 
     def _manage_poses(self):
         dlg = PosesManagerDialog(self.config.get("poses", {}), self)
