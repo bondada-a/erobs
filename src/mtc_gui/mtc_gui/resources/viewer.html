@@ -38,6 +38,7 @@ canvas { display: block; }
 
     var robot = null;
     var demoAnimId = null;
+    var loadId = 0;
 
     // Scene
     var scene = new THREE.Scene();
@@ -106,14 +107,29 @@ canvas { display: block; }
         loadingEl.textContent = 'Fetching URDF...';
         errorEl.style.display = 'none';
 
+        // Dispose old robot completely
         if (robot) {
+            robot.traverse(function(child) {
+                if (child.geometry) child.geometry.dispose();
+                if (child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(function(m) { m.dispose(); });
+                    } else {
+                        child.material.dispose();
+                    }
+                }
+            });
             scene.remove(robot);
             robot = null;
         }
 
+        loadId++;
+        var thisLoadId = loadId;
+
         var xhr = new XMLHttpRequest();
         xhr.open('GET', urdfUrl, true);
         xhr.onload = function() {
+            if (thisLoadId !== loadId) return;
             if (xhr.status !== 200) {
                 loadingEl.style.display = 'none';
                 errorEl.style.display = 'block';
@@ -134,7 +150,9 @@ canvas { display: block; }
                     return 'http://127.0.0.1:' + meshPort + '/' + pkg;
                 };
 
-                robot = loader.parse(xhr.responseText);
+                var newRobot = loader.parse(xhr.responseText);
+                if (thisLoadId !== loadId) return;
+                robot = newRobot;
                 robot.rotation.x = -Math.PI / 2;
                 scene.add(robot);
 
@@ -160,6 +178,7 @@ canvas { display: block; }
             }
         };
         xhr.onerror = function() {
+            if (thisLoadId !== loadId) return;
             loadingEl.style.display = 'none';
             errorEl.style.display = 'block';
             errorEl.textContent = 'Network error fetching URDF';
