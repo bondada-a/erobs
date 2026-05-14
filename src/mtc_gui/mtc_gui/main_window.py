@@ -271,7 +271,7 @@ class MTCMainWindow(QMainWindow):
         self.agent_bridge.response_received.connect(self.chat_panel.append_assistant)
         self.agent_bridge.tool_called.connect(self.chat_panel.append_tool_call)
         self.agent_bridge.thinking_changed.connect(self.chat_panel.set_thinking)
-        self.agent_bridge.error_occurred.connect(lambda e: self.chat_panel.append_assistant(f"Error: {e}"))
+        self.agent_bridge.error_occurred.connect(self.chat_panel.append_error)
         self.agent_bridge.connected.connect(lambda n: self._log(f"Agent connected: {n} tools"))
         self.agent_bridge.connected.connect(
             lambda n: self.chat_panel.set_status(f"Connected ({n} tools)")

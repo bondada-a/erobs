@@ -28,6 +28,9 @@ _COLORS = {
     "tool_bg": "#1e1e2e",
     "tool_border": "#3d3d5c",
     "tool_text": "#a0a0c0",
+    "error_bg": "#3d1a1a",
+    "error_border": "#6b2b2b",
+    "error_text": "#f0a0a0",
     "timestamp": "#777777",
     "input_bg": "#2a2a2a",
     "input_border": "#444444",
@@ -223,6 +226,55 @@ class ToolCallBubble(QFrame):
             self._header.setStyleSheet(self._header.styleSheet())
         else:
             self._detail.hide()
+
+
+class ErrorBubble(QFrame):
+    """Red-tinted error message bubble."""
+
+    def __init__(self, text: str, parent=None):
+        super().__init__(parent)
+        self.setFrameShape(QFrame.NoFrame)
+        self.setStyleSheet("ErrorBubble { background: transparent; margin-right: 48px; }")
+
+        outer = QVBoxLayout(self)
+        outer.setContentsMargins(8, 2, 8, 2)
+        outer.setSpacing(2)
+
+        role_label = QLabel("Error")
+        role_label.setStyleSheet(f"""
+            color: {_COLORS["error_text"]};
+            font-size: 11px;
+            font-weight: bold;
+            padding: 0 4px;
+        """)
+        outer.addWidget(role_label)
+
+        bubble = QFrame()
+        bubble.setStyleSheet(f"""
+            QFrame {{
+                background-color: {_COLORS["error_bg"]};
+                border: 1px solid {_COLORS["error_border"]};
+                border-radius: 12px;
+                padding: 10px 14px;
+            }}
+        """)
+        bubble_layout = QVBoxLayout(bubble)
+        bubble_layout.setContentsMargins(0, 0, 0, 0)
+
+        msg_label = QLabel(text)
+        msg_label.setWordWrap(True)
+        msg_label.setTextFormat(Qt.PlainText)
+        msg_label.setStyleSheet(f"""
+            color: {_COLORS["error_text"]};
+            font-size: 13px;
+            background: transparent;
+            padding: 0;
+        """)
+        msg_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
+        msg_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        bubble_layout.addWidget(msg_label)
+
+        outer.addWidget(bubble)
 
 
 class ThinkingIndicator(QFrame):
@@ -455,6 +507,10 @@ class ChatPanel(QWidget):
 
     def append_tool_call(self, name: str, args_json: str, result: str) -> None:
         bubble = ToolCallBubble(name, args_json, result)
+        self._add_message_widget(bubble)
+
+    def append_error(self, text: str) -> None:
+        bubble = ErrorBubble(text)
         self._add_message_widget(bubble)
 
     def set_thinking(self, is_thinking: bool) -> None:
