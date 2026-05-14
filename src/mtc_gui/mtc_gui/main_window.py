@@ -277,6 +277,9 @@ class MTCMainWindow(QMainWindow):
         self.agent_bridge.thinking_changed.connect(self.chat_panel.set_thinking)
         self.agent_bridge.error_occurred.connect(lambda e: self.chat_panel.append_assistant(f"Error: {e}"))
         self.agent_bridge.connected.connect(lambda n: self._log(f"Agent connected: {n} tools"))
+        self.agent_bridge.connected.connect(
+            lambda n: self.chat_panel.set_status(f"Connected ({n} tools)")
+        )
 
         # Auto-connect agent on startup
         self.agent_bridge.connect_agent()
