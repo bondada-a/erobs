@@ -1,4 +1,4 @@
-"""Zivid camera wrapper for ArUco marker, circle, and contour detection.
+"""Zivid camera wrapper for ArUco marker and sample ROI detection.
 
 This module provides wrappers around the Zivid camera's services,
 exposing a simple interface that matches the beambot camera abstraction.
@@ -6,8 +6,7 @@ exposing a simple interface that matches the beambot camera abstraction.
 Interface contract:
     - create_client(node) -> ServiceClient
     - detect_markers(client, node, marker_ids, dictionary, timeout) -> list[tuple[int, Pose]]
-    - detect_circles(node, timeout, params) -> list[Pose]
-    - detect_contours(node, timeout, params) -> list[Pose]
+    - detect_sample_roi(node, tag_id, ...) -> dict | None
 """
 
 import time
@@ -24,11 +23,7 @@ import numpy as np
 
 from beambot.camera import DetectionResult
 from beambot.detection import (
-    CircleDetectionParams,
-    ContourDetectionParams,
     SampleRoiDetectionParams,
-    detect_hough_circles,
-    detect_contours_in_image,
     detect_sample_in_roi,
     get_3d_position,
     get_3d_position_averaged,
@@ -303,137 +298,6 @@ def _capture_image_and_cloud(
             node.destroy_subscription(cloud_sub)
         if marker_client is not None:
             node.destroy_client(marker_client)
-
-
-# ============================================================================
-# Circle Detection
-# ============================================================================
-
-
-def detect_circles(
-    node: Node,
-    timeout: float = 45.0,
-    params: CircleDetectionParams = None
-) -> list[Pose]:
-    """Detect circular objects using the Zivid camera.
-
-    Captures an image and point cloud, runs Hough circle detection,
-    and returns 3D poses for detected circles.
-
-    Args:
-        node: ROS2 node for subscriptions and service calls
-        timeout: Detection timeout in seconds
-        params: Circle detection parameters (uses defaults if None)
-
-    Returns:
-        List of Pose objects for detected circles (in camera optical frame).
-        The pose orientation is identity (flat surface facing camera).
-        Empty list if detection failed or no circles found.
-    """
-    if params is None:
-        params = CircleDetectionParams()
-
-    logger = node.get_logger()
-
-    result = _capture_image_and_cloud(node, timeout, label="circle detection")
-    if result is None:
-        return []
-
-    rgb_image, cloud = result
-
-    circles = detect_hough_circles(rgb_image, params)
-    if circles is None or len(circles) == 0:
-        logger.warning("No circles detected")
-        return []
-
-    logger.info(f"Detected {len(circles)} circle(s)")
-
-    poses = []
-    for cx, cy, radius in circles:
-        xyz = get_3d_position(cloud, cx, cy, params.search_radius)
-        if xyz is None:
-            logger.warning(f"No valid depth at circle ({cx}, {cy})")
-            continue
-
-        x, y, z = xyz
-        logger.info(f"Circle at ({cx}, {cy}) r={radius}px -> "
-                    f"({x:.3f}, {y:.3f}, {z:.3f}) m")
-
-        pose = Pose()
-        pose.position.x = x
-        pose.position.y = y
-        pose.position.z = z
-        pose.orientation.w = 1.0
-        poses.append(pose)
-
-    return poses
-
-
-# ============================================================================
-# Contour Detection (Any Shape)
-# ============================================================================
-
-def detect_contours(
-    node: Node,
-    timeout: float = 45.0,
-    params: ContourDetectionParams = None
-) -> list[Pose]:
-    """Detect objects of ANY shape using contour detection.
-
-    Captures an image and point cloud, runs edge detection + contour finding,
-    filters by area, and returns 3D poses for detected objects.
-
-    Unlike Hough circles, this works for squares, triangles, irregular shapes,
-    or any closed boundary that meets the area criteria.
-
-    Args:
-        node: ROS2 node for subscriptions and service calls
-        timeout: Detection timeout in seconds
-        params: Contour detection parameters (uses defaults if None)
-
-    Returns:
-        List of Pose objects for detected objects (in camera optical frame).
-        The pose orientation is identity (flat surface facing camera).
-        Empty list if detection failed or no objects found.
-    """
-    if params is None:
-        params = ContourDetectionParams()
-
-    logger = node.get_logger()
-
-    result = _capture_image_and_cloud(node, timeout, label="contour detection")
-    if result is None:
-        return []
-
-    rgb_image, cloud = result
-
-    contours_info = detect_contours_in_image(rgb_image, params, logger)
-    if contours_info is None or len(contours_info) == 0:
-        logger.warning("No contours detected matching area criteria")
-        return []
-
-    logger.info(f"Detected {len(contours_info)} object(s), sorted in reading order")
-
-    poses = []
-    for i, (cx, cy, area, vertices) in enumerate(contours_info):
-        sample_num = i + 1
-        xyz = get_3d_position(cloud, cx, cy, params.search_radius)
-        if xyz is None:
-            logger.warning(f"Sample #{sample_num}: No valid depth at ({cx}, {cy})")
-            continue
-
-        x, y, z = xyz
-        logger.info(f"Sample #{sample_num}: ({cx}, {cy}) area={area}px² -> "
-                    f"({x:.3f}, {y:.3f}, {z:.3f}) m")
-
-        pose = Pose()
-        pose.position.x = x
-        pose.position.y = y
-        pose.position.z = z
-        pose.orientation.w = 1.0
-        poses.append(pose)
-
-    return poses
 
 
 # ============================================================================

@@ -244,18 +244,13 @@ class SampleForm(BaseTaskForm):
         self.form.addRow(self.vision_group)
 
         self.det_type = QComboBox()
-        self.det_type.addItems(["marker", "circle", "contour"])
+        self.det_type.addItems(["marker", "sample_roi"])
         self.det_type.setCurrentText(self.step.get("detection_type", "marker"))
         vl.addRow("Detection Type:", self.det_type)
 
         self.tag_id = QSpinBox(); self.tag_id.setRange(0, 999)
         self.tag_id.setValue(int(self.step.get("tag_id", 0)))
         vl.addRow("Tag ID:", self.tag_id)
-
-        if self.mode == "pick":
-            self.sample_idx = QSpinBox(); self.sample_idx.setRange(1, 99)
-            self.sample_idx.setValue(int(self.step.get("sample_index", 1)))
-            vl.addRow("Sample Index:", self.sample_idx)
 
         self.scan_pose = QLineEdit(self.step.get("scan_pose", ""))
         vl.addRow("Scan Pose:", self.scan_pose)
@@ -302,8 +297,6 @@ class SampleForm(BaseTaskForm):
         if s["use_vision"]:
             s["detection_type"] = self.det_type.currentText()
             s["tag_id"] = self.tag_id.value()
-            if self.mode == "pick":
-                s["sample_index"] = self.sample_idx.value()
             s["scan_pose"] = self.scan_pose.text()
             s["z_offset"] = self.z_offset.value()
             for key, spin in self.marker_offsets.items():
@@ -410,7 +403,7 @@ class VisionMoveToForm(BaseTaskForm):
     def build_form(self):
         self.add_hint("Detect object using Zivid camera and move gripper to detected location.")
         self.det_type = self.add_combo("Detection Type:", "detection_type",
-                                       ["marker", "circle", "contour"])
+                                       ["marker", "sample_roi"])
 
         # Marker options
         marker_sec = self.add_section("ArUco Marker Options")
@@ -425,12 +418,6 @@ class VisionMoveToForm(BaseTaskForm):
         ])
         self.marker_dict.setCurrentText(self.step.get("marker_dictionary", "aruco4x4_50"))
         marker_sec.addRow("Dictionary:", self.marker_dict)
-
-        # Contour options
-        contour_sec = self.add_section("Contour Options")
-        self.sample_idx = QSpinBox(); self.sample_idx.setRange(1, 99)
-        self.sample_idx.setValue(int(self.step.get("sample_index", 1)))
-        contour_sec.addRow("Sample Index:", self.sample_idx)
 
         # Common options
         common = self.add_section("Common Options")
@@ -464,7 +451,6 @@ class VisionMoveToForm(BaseTaskForm):
         s = {**self.step}
         s["detection_type"] = self.det_type.currentText()
         s["tag_id"] = self.tag_id.value()
-        s["sample_index"] = self.sample_idx.value()
         s["marker_dictionary"] = self.marker_dict.currentText()
         s["z_offset"] = self.z_offset.value()
         s["timeout"] = self.timeout.value()

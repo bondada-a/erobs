@@ -33,13 +33,8 @@ import numpy as np
 from mcp.server.fastmcp import FastMCP
 
 from beambot.detection import (
-    CircleDetectionParams,
-    ContourDetectionParams,
-    detect_hough_circles,
-    detect_contours_in_image,
     detect_sample_in_roi,
     get_3d_position,
-    get_3d_position_averaged,
     YoloDetectionParams,
     get_yolo_detector,
 )
@@ -269,10 +264,7 @@ def _annotate_image(
 
         # Draw marker
         color = (0, 255, 0)
-        if method == "circle" and "radius" in det:
-            cv2.circle(annotated, (px, py), det["radius"], color, 2)
-        else:
-            cv2.circle(annotated, (px, py), 8, color, -1)
+        cv2.circle(annotated, (px, py), 8, color, -1)
         cv2.circle(annotated, (px, py), 3, (0, 0, 255), -1)  # Red center dot
 
         # Label above
@@ -1089,11 +1081,6 @@ async def detect_objects(
     sat_min: int = 80,
     val_min: int = 80,
     min_area: int = 200,
-    min_radius: int = 15,
-    max_radius: int = 100,
-    circle_param2: int = 25,
-    contour_min_area: int = 500,
-    contour_max_area: int = 50000,
     marker_ids: str = "",
     yolo_model: str = "yolov8n.pt",
     yolo_confidence: float = 0.25,
@@ -1110,15 +1097,13 @@ async def detect_objects(
         - "hsv_color": Find objects by color in HSV space. Good for colored balls,
           samples with distinctive hues. Tune hue_low/hue_high for your target color.
           Common ranges: blue=100-130, red=0-10 or 170-180, green=35-85, yellow=20-35.
-        - "circle": Hough circle detection. Good for round samples/wafers.
-        - "contour": Edge-based contour detection. Finds any shape.
         - "marker": ArUco marker detection (2D image-based, not Zivid native).
         - "yolo": Deep learning object detection (Ultralytics YOLOv8/v11). Most robust
           method — detects objects by class with bounding boxes. Works well regardless
           of lighting/contrast. Use yolo_model for custom weights, yolo_classes to filter.
 
     Args:
-        method: Detection method — "hsv_color", "circle", "contour", "marker", or "yolo".
+        method: Detection method — "hsv_color", "marker", or "yolo".
         camera: Which camera's data to use — "zivid" or "zed". Default "zivid".
             Must match the camera used in the preceding capture_image() call.
         hue_low: HSV hue lower bound (0-180). Only for hsv_color.
@@ -1126,11 +1111,6 @@ async def detect_objects(
         sat_min: Min saturation (0-255). Only for hsv_color.
         val_min: Min value/brightness (0-255). Only for hsv_color.
         min_area: Min object area in pixels for hsv_color.
-        min_radius: Min circle radius in pixels. Only for circle.
-        max_radius: Max circle radius in pixels. Only for circle.
-        circle_param2: Hough accumulator threshold (lower=more sensitive). Only for circle.
-        contour_min_area: Min contour area in pixels². Only for contour.
-        contour_max_area: Max contour area in pixels². Only for contour.
         marker_ids: Comma-separated ArUco marker IDs to find (empty=all). Only for marker.
         yolo_model: YOLO model weights — "yolov8n.pt" (nano/fast), "yolov8s.pt" (small),
             "yolov8m.pt" (medium), or path to custom fine-tuned weights. Only for yolo.
@@ -1165,27 +1145,6 @@ async def detect_objects(
         )
         if raw:
             raw_detections = [{"pixel_x": cx, "pixel_y": cy, "area": a} for cx, cy, a in raw]
-
-    elif method == "circle":
-        params = CircleDetectionParams(
-            min_radius=min_radius, max_radius=max_radius, param2=circle_param2,
-        )
-        raw = detect_hough_circles(rgb, params)
-        if raw:
-            raw_detections = [
-                {"pixel_x": cx, "pixel_y": cy, "radius": r} for cx, cy, r in raw
-            ]
-
-    elif method == "contour":
-        params = ContourDetectionParams(
-            min_area=contour_min_area, max_area=contour_max_area,
-        )
-        raw = detect_contours_in_image(rgb, params)
-        if raw:
-            raw_detections = [
-                {"pixel_x": cx, "pixel_y": cy, "area": a, "vertices": v}
-                for cx, cy, a, v in raw
-            ]
 
     elif method == "marker":
         ids_list = None
@@ -1238,7 +1197,7 @@ async def detect_objects(
             ]
 
     else:
-        return json.dumps({"error": f"Unknown method '{method}'. Use: hsv_color, circle, contour, marker, yolo"})
+        return json.dumps({"error": f"Unknown method '{method}'. Use: hsv_color, marker, yolo"})
 
     if not raw_detections:
         return json.dumps({

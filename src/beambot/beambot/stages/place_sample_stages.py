@@ -103,12 +103,7 @@ class PlaceSampleStages(BaseStages):
 
         # Runtime: detect target
         detection_type = goal.detection_type or "marker"
-        if detection_type == "contour":
-            return "Contour detection not supported for place operations. Use marker or circle."
-        elif detection_type == "circle":
-            target_pose = self._vision.detect_and_transform_circle(timeout=10.0)
-        else:
-            target_pose = self._vision.detect_and_transform_tag(goal.tag_id, timeout=10.0)
+        target_pose = self._vision.detect_and_transform_tag(goal.tag_id, timeout=10.0)
 
         if target_pose is None:
             return (

@@ -115,14 +115,7 @@ class PickSampleStages(BaseStages):
 
         # Runtime: detect target
         detection_type = goal.detection_type or "marker"
-        if detection_type == "circle":
-            target_pose = self._vision.detect_and_transform_circle(timeout=10.0)
-        elif detection_type == "contour":
-            sample_index = goal.sample_index if goal.sample_index > 0 else 1
-            target_pose = self._vision.detect_and_transform_contour(
-                sample_index=sample_index, timeout=10.0,
-            )
-        elif detection_type == "sample_roi":
+        if detection_type == "sample_roi":
             strategy = getattr(goal, 'strategy', '') or 'farthest_edge'
             edge_inset_mm = getattr(goal, 'edge_inset_mm', 0.0) or 4.0
             target_pose = self._vision.detect_and_transform_sample_roi(

@@ -1093,8 +1093,7 @@ class MTCOrchestratorServer(Node):
 
         Supports:
         - tag_id: ArUco marker ID (for marker detection)
-        - detection_type: "marker" (default), "circle", or "contour"
-        - sample_index: Sample number for contour detection (1-indexed)
+        - detection_type: "marker" (default) or "sample_roi"
         - z_offset: Override approach height
         - timeout: Detection timeout
         - settle_time: Seconds to wait before capture for robot to settle (default: 1.0)
