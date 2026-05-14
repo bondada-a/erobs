@@ -16,23 +16,13 @@ canvas { display: block; }
     max-width: 80%; text-align: center; display: none;
 }
 </style>
-<script type="importmap">
-{
-    "imports": {
-        "three": "./three.module.min.js",
-        "three/examples/jsm/controls/OrbitControls.js": "./OrbitControls.js",
-        "three/examples/jsm/loaders/STLLoader.js": "./STLLoader.js",
-        "three/examples/jsm/loaders/ColladaLoader.js": "./ColladaLoader.js"
-    }
-}
-</script>
 </head>
 <body>
 <div id="loading">Loading robot model...</div>
 <div id="error"></div>
 <script type="module">
-import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import * as THREE from './three.module.min.js';
+import { OrbitControls } from './OrbitControls.js';
 import { URDFLoader } from './URDFLoader.js';
 
 const JOINT_NAMES = [
@@ -172,7 +162,6 @@ window.resetView = function() {
 };
 
 window.setHomePose = function() {
-    // SRDF home: shoulder_lift=-90deg, wrist_3=-180deg, rest=0
     window.updateJoints([0, -90, 0, 0, 0, -180]);
 };
 
@@ -200,6 +189,9 @@ window.demoMode = function(enable) {
         demoStep();
     }
 };
+
+// Signal readiness to Python
+window._vizReady = true;
 </script>
 </body>
 </html>

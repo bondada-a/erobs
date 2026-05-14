@@ -1,4 +1,4 @@
-import { Euler, Object3D, Vector3, Quaternion, Matrix4 } from 'three';
+import { Euler, Object3D, Vector3, Quaternion, Matrix4 } from './three.module.min.js';
 
 const _tempAxis = new Vector3();
 const _tempEuler = new Euler();

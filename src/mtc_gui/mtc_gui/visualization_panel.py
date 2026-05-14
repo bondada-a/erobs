@@ -7,7 +7,7 @@ from pathlib import Path
 from functools import partial
 
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtCore import Qt, QUrl, QTimer
 
 try:
     from PyQt5.QtWebEngineWidgets import QWebEngineView
@@ -261,9 +261,22 @@ class VisualizationPanel(QWidget):
             self._status.setText("Failed to load viewer")
             return
 
-        self._page_ready = True
-        self._status.setText("Ready")
-        self._load_urdf(self._current_gripper)
+        self._status.setText("Waiting for JS...")
+        self._ready_poll = QTimer(self)
+        self._ready_poll.timeout.connect(self._check_ready)
+        self._ready_poll.start(100)
+
+    def _check_ready(self):
+        self.web_view.page().runJavaScript(
+            "window._vizReady === true", self._on_ready_result
+        )
+
+    def _on_ready_result(self, ready):
+        if ready:
+            self._ready_poll.stop()
+            self._page_ready = True
+            self._status.setText("Ready")
+            self._load_urdf(self._current_gripper)
 
     def _load_urdf(self, gripper):
         if not self._page_ready:
