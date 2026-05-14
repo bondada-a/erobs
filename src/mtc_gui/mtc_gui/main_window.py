@@ -1,16 +1,27 @@
-"""Main window: layout, menus, task tree, execution controls, status log."""
+"""Main window: layout, menus, step list, execution controls, status log."""
 
 import json
 import time
 
 from PyQt5.QtWidgets import (
-    QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QSplitter,
-    QTreeWidget, QTreeWidgetItem, QToolBar, QAction, QLabel,
-    QComboBox, QLineEdit, QTextEdit, QPushButton, QProgressBar,
-    QMenuBar, QFileDialog, QMessageBox, QGroupBox, QFormLayout,
-    QHeaderView, QDialog,
+    QMainWindow,
+    QWidget,
+    QVBoxLayout,
+    QHBoxLayout,
+    QSplitter,
+    QToolBar,
+    QLabel,
+    QComboBox,
+    QLineEdit,
+    QTextEdit,
+    QPushButton,
+    QProgressBar,
+    QFileDialog,
+    QMessageBox,
+    QGroupBox,
+    QDialog,
 )
-from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtCore import Qt
 from PyQt5.QtGui import QFont
 from action_msgs.msg import GoalStatus
 
@@ -19,33 +30,55 @@ from .camera_panel import CameraPanel
 from .pose_dialogs import PosesManagerDialog, SavePoseDialog
 from .chat_panel import ChatPanel
 from .agent_bridge import AgentBridge
+from .step_list_panel import StepListPanel
 
 # Default task step templates
 TASK_DEFAULTS = {
-    "moveto": {"task_type": "moveto", "target": "moveit_home", "planning_type": "joint"},
+    "moveto": {
+        "task_type": "moveto",
+        "target": "moveit_home",
+        "planning_type": "joint",
+    },
     "pick_sample": {
-        "task_type": "pick_sample", "use_vision": True,
-        "detection_type": "marker", "tag_id": 0, "scan_pose": "", "z_offset": 0.0,
+        "task_type": "pick_sample",
+        "use_vision": True,
+        "detection_type": "marker",
+        "tag_id": 0,
+        "scan_pose": "",
+        "z_offset": 0.0,
     },
     "place_sample": {
-        "task_type": "place_sample", "use_vision": True,
-        "detection_type": "marker", "tag_id": 0, "scan_pose": "", "z_offset": 0.0,
+        "task_type": "place_sample",
+        "use_vision": True,
+        "detection_type": "marker",
+        "tag_id": 0,
+        "scan_pose": "",
+        "z_offset": 0.0,
     },
     "vision_scan": {
-        "task_type": "vision_scan", "scan_positions": [],
-        "scans_per_position": 3, "timeout": 10.0,
+        "task_type": "vision_scan",
+        "scan_positions": [],
+        "scans_per_position": 3,
+        "timeout": 10.0,
     },
     "tool_exchange": {
-        "task_type": "tool_exchange", "operation": "load",
-        "gripper": "hande", "dock_number": 3, "approach_pose": "load_approach",
+        "task_type": "tool_exchange",
+        "operation": "load",
+        "gripper": "hande",
+        "dock_number": 3,
+        "approach_pose": "load_approach",
     },
     "end_effector": {
-        "task_type": "end_effector", "end_effector_type": "epick",
+        "task_type": "end_effector",
+        "end_effector_type": "epick",
         "end_effector_action": "vacuum_on",
     },
     "vision_moveto": {
-        "task_type": "vision_moveto", "detection_type": "marker",
-        "tag_id": 0, "timeout": 10.0, "z_offset": 0.0,
+        "task_type": "vision_moveto",
+        "detection_type": "marker",
+        "tag_id": 0,
+        "timeout": 10.0,
+        "z_offset": 0.0,
         "marker_dictionary": "aruco4x4_50",
     },
     "pipettor": {"task_type": "pipettor", "operation": "SUCK", "volume_pct": 0.5},
@@ -182,8 +215,9 @@ class MTCMainWindow(QMainWindow):
         left_layout.setContentsMargins(0, 0, 0, 0)
 
         # Task toolbar
-        task_toolbar = QToolBar()
-        task_toolbar.setMovable(False)
+        self.task_toolbar = QToolBar()
+        self.task_toolbar.setMovable(False)
+        task_toolbar = self.task_toolbar
         for label, task_type in [
             ("Add MoveTo", "moveto"),
             ("Add Pick", "pick_sample"),
@@ -203,15 +237,10 @@ class MTCMainWindow(QMainWindow):
         task_toolbar.addAction("Down", self._move_down)
         left_layout.addWidget(task_toolbar)
 
-        # Task tree
-        self.task_tree = QTreeWidget()
-        self.task_tree.setHeaderLabels(["#", "Type", "Details"])
-        self.task_tree.setColumnWidth(0, 40)
-        self.task_tree.setColumnWidth(1, 120)
-        self.task_tree.header().setStretchLastSection(True)
-        self.task_tree.setSelectionMode(QTreeWidget.ExtendedSelection)
-        self.task_tree.itemDoubleClicked.connect(self._edit_task)
-        left_layout.addWidget(self.task_tree, stretch=1)
+        # Step list panel (replaces old QTreeWidget)
+        self.step_list = StepListPanel()
+        self.step_list.item_double_clicked.connect(self._edit_task_by_index)
+        left_layout.addWidget(self.step_list, stretch=1)
 
         # Execution bar
         exec_box = QGroupBox("Execution")
@@ -246,6 +275,7 @@ class MTCMainWindow(QMainWindow):
 
         # Right panel — tabbed (Chat | Camera)
         from PyQt5.QtWidgets import QTabWidget
+
         right_tabs = QTabWidget()
 
         # Chat panel (always available)
@@ -275,8 +305,12 @@ class MTCMainWindow(QMainWindow):
         self.agent_bridge.response_received.connect(self.chat_panel.append_assistant)
         self.agent_bridge.tool_called.connect(self.chat_panel.append_tool_call)
         self.agent_bridge.thinking_changed.connect(self.chat_panel.set_thinking)
-        self.agent_bridge.error_occurred.connect(lambda e: self.chat_panel.append_assistant(f"Error: {e}"))
-        self.agent_bridge.connected.connect(lambda n: self._log(f"Agent connected: {n} tools"))
+        self.agent_bridge.error_occurred.connect(
+            lambda e: self.chat_panel.append_assistant(f"Error: {e}")
+        )
+        self.agent_bridge.connected.connect(
+            lambda n: self._log(f"Agent connected: {n} tools")
+        )
 
         # Auto-connect agent on startup
         self.agent_bridge.connect_agent()
@@ -285,14 +319,14 @@ class MTCMainWindow(QMainWindow):
 
     def _add_task(self, task_type):
         import copy
+
         step = copy.deepcopy(TASK_DEFAULTS.get(task_type, {"task_type": task_type}))
         self.config["tasks"].append(step)
         self._refresh_tree()
         self._log(f"Added {task_type}")
 
     def _remove_task(self):
-        indices = sorted([self.task_tree.indexOfTopLevelItem(item)
-                         for item in self.task_tree.selectedItems()], reverse=True)
+        indices = sorted(self.step_list.selected_indices(), reverse=True)
         if not indices:
             return
         for i in indices:
@@ -301,36 +335,36 @@ class MTCMainWindow(QMainWindow):
         self._refresh_tree()
 
     def _move_up(self):
-        items = self.task_tree.selectedItems()
-        if len(items) != 1:
+        indices = self.step_list.selected_indices()
+        if len(indices) != 1:
             return
-        idx = self.task_tree.indexOfTopLevelItem(items[0])
+        idx = indices[0]
         if idx <= 0:
             return
         tasks = self.config["tasks"]
         tasks[idx], tasks[idx - 1] = tasks[idx - 1], tasks[idx]
         self._refresh_tree()
-        self.task_tree.setCurrentItem(self.task_tree.topLevelItem(idx - 1))
+        self.step_list.set_current_row(idx - 1)
 
     def _move_down(self):
-        items = self.task_tree.selectedItems()
-        if len(items) != 1:
+        indices = self.step_list.selected_indices()
+        if len(indices) != 1:
             return
-        idx = self.task_tree.indexOfTopLevelItem(items[0])
+        idx = indices[0]
         tasks = self.config["tasks"]
         if idx >= len(tasks) - 1:
             return
         tasks[idx], tasks[idx + 1] = tasks[idx + 1], tasks[idx]
         self._refresh_tree()
-        self.task_tree.setCurrentItem(self.task_tree.topLevelItem(idx + 1))
+        self.step_list.set_current_row(idx + 1)
 
-    def _edit_task(self, item):
-        idx = self.task_tree.indexOfTopLevelItem(item)
+    def _edit_task_by_index(self, idx):
         if idx < 0 or idx >= len(self.config["tasks"]):
             return
         step = self.config["tasks"][idx]
 
         from .task_forms import open_task_form
+
         result = open_task_form(step, idx, self.config.get("poses", {}), self)
         if result is not None:
             self.config["tasks"][idx] = result
@@ -338,14 +372,7 @@ class MTCMainWindow(QMainWindow):
             self._log(f"Updated step {idx + 1}")
 
     def _refresh_tree(self):
-        self.task_tree.clear()
-        for i, step in enumerate(self.config["tasks"]):
-            item = QTreeWidgetItem([
-                str(i + 1),
-                step.get("task_type", "?"),
-                task_summary(step),
-            ])
-            self.task_tree.addTopLevelItem(item)
+        self.step_list.refresh(self.config["tasks"], task_summary)
 
     # --- Execution ---
 
@@ -357,42 +384,32 @@ class MTCMainWindow(QMainWindow):
         self.exec_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
         self.pause_btn.setEnabled(True)
+        self.task_toolbar.setEnabled(False)
         self.progress_bar.setValue(0)
+        self.step_list.start_execution(len(self.config["tasks"]))
         self.ros2.execute_task(json.dumps(self.config))
 
     def _on_feedback(self, progress, step, action, gripper, msg):
         self.progress_bar.setValue(int(progress))
+        self.step_list.update_step(step, progress, action)
         self._log(f"[{progress:.0f}%] Step {step}: {action} | {gripper} | {msg}")
-        # Highlight current step
-        for i in range(self.task_tree.topLevelItemCount()):
-            item = self.task_tree.topLevelItem(i)
-            if i == step - 1:
-                item.setBackground(0, Qt.darkCyan)
-                item.setBackground(1, Qt.darkCyan)
-                item.setBackground(2, Qt.darkCyan)
-            else:
-                item.setBackground(0, Qt.transparent)
-                item.setBackground(1, Qt.transparent)
-                item.setBackground(2, Qt.transparent)
 
     def _on_result(self, status, error_msg, completed, total):
         self.exec_btn.setEnabled(True)
         self.stop_btn.setEnabled(False)
         self.pause_btn.setEnabled(False)
         self.resume_btn.setEnabled(False)
-        # Clear step highlighting
-        for i in range(self.task_tree.topLevelItemCount()):
-            item = self.task_tree.topLevelItem(i)
-            item.setBackground(0, Qt.transparent)
-            item.setBackground(1, Qt.transparent)
-            item.setBackground(2, Qt.transparent)
+        self.task_toolbar.setEnabled(True)
 
         if status == GoalStatus.STATUS_SUCCEEDED:
             self.progress_bar.setValue(100)
+            self.step_list.finish_execution("success", completed)
             self._log(f"Task completed: {completed}/{total} steps")
         elif status == GoalStatus.STATUS_CANCELED:
+            self.step_list.finish_execution("cancelled", completed)
             self._log(f"Task cancelled: {error_msg}")
         else:
+            self.step_list.finish_execution("failed", completed)
             self._log(f"Task failed: {error_msg} ({completed}/{total} steps)")
 
     def _on_joint_state(self, pose):
@@ -401,7 +418,9 @@ class MTCMainWindow(QMainWindow):
     # --- JSON I/O ---
 
     def _load_json(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Load JSON", "", "JSON (*.json);;All (*)")
+        path, _ = QFileDialog.getOpenFileName(
+            self, "Load JSON", "", "JSON (*.json);;All (*)"
+        )
         if not path:
             return
         try:
@@ -418,7 +437,9 @@ class MTCMainWindow(QMainWindow):
             QMessageBox.critical(self, "Error", f"Failed to load: {e}")
 
     def _save_json(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Save JSON", "", "JSON (*.json);;All (*)")
+        path, _ = QFileDialog.getSaveFileName(
+            self, "Save JSON", "", "JSON (*.json);;All (*)"
+        )
         if not path:
             return
         try:
@@ -437,19 +458,25 @@ class MTCMainWindow(QMainWindow):
 
     def _toggle_dark_mode(self, enabled):
         from .main import toggle_dark_mode
+
         toggle_dark_mode(self._app(), enabled)
 
     def _app(self):
         from PyQt5.QtWidgets import QApplication
+
         return QApplication.instance()
 
     def _show_about(self):
-        QMessageBox.about(self, "About", (
-            "MTC GUI Client (PyQt5)\n\n"
-            "Task sequence builder for beambot orchestrator.\n"
-            "Communicates via ROS2 ActionClient.\n\n"
-            "Action server: beambot_execution"
-        ))
+        QMessageBox.about(
+            self,
+            "About",
+            (
+                "MTC GUI Client (PyQt5)\n\n"
+                "Task sequence builder for beambot orchestrator.\n"
+                "Communicates via ROS2 ActionClient.\n\n"
+                "Action server: beambot_execution"
+            ),
+        )
 
     # --- Pose Management ---
 
@@ -461,9 +488,13 @@ class MTCMainWindow(QMainWindow):
 
     def _save_current_pose(self):
         if self.current_robot_pose is None:
-            QMessageBox.warning(self, "No Pose", "No robot pose available. Is the robot connected?")
+            QMessageBox.warning(
+                self, "No Pose", "No robot pose available. Is the robot connected?"
+            )
             return
-        dlg = SavePoseDialog(self.current_robot_pose, self.config, self.current_json_file, self)
+        dlg = SavePoseDialog(
+            self.current_robot_pose, self.config, self.current_json_file, self
+        )
         if dlg.exec() == QDialog.Accepted and dlg.result is not None:
             r = dlg.result
             name = r["pose_name"]
