@@ -322,7 +322,7 @@ class MTCMainWindow(QMainWindow):
         # 3D visualization panel
         if WEBENGINE_AVAILABLE and hasattr(self, "viz_panel"):
             self.ros2.joint_state_received.connect(self.viz_panel._on_joint_state)
-            self.gripper_combo.currentTextChanged.connect(self.viz_panel.set_gripper)
+            self.ros2.gripper_changed.connect(self.viz_panel.set_gripper)
 
         # Chat panel ↔ Agent bridge
         self.chat_panel.message_submitted.connect(self._on_chat_message)

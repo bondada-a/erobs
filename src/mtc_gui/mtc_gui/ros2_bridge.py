@@ -15,6 +15,7 @@ try:
     from rclpy.node import Node
     from action_msgs.msg import GoalStatus
     from sensor_msgs.msg import Image as RosImage, JointState
+    from std_msgs.msg import String as RosString
     from std_srvs.srv import Trigger
     from cv_bridge import CvBridge
     from beambot_interfaces.action import MTCExecution
@@ -56,6 +57,7 @@ class ROS2Bridge(QObject):
     # Signals (emitted from ROS2 thread, received on Qt main thread)
     image_received = pyqtSignal(object)          # numpy array (BGR)
     joint_state_received = pyqtSignal(list)      # [6 floats] degrees
+    gripper_changed = pyqtSignal(str)            # current gripper name
     detection_received = pyqtSignal(list)        # MarkerShape list
     action_feedback_received = pyqtSignal(float, int, str, str, str)  # progress, step, action, gripper, msg
     action_result_received = pyqtSignal(int, str, int, int)  # status, error_msg, completed, total
@@ -90,6 +92,11 @@ class ROS2Bridge(QObject):
             # Subscriptions
             self.node.create_subscription(RosImage, "/color/image_color", self._on_image, 10)
             self.node.create_subscription(JointState, "/joint_states", self._on_joint_state, 10)
+            from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
+            latched_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                                     reliability=ReliabilityPolicy.RELIABLE)
+            self.node.create_subscription(
+                RosString, "/beambot/current_gripper", self._on_gripper, latched_qos)
 
             # Action client
             self._action_client = ActionClient(self.node, MTCExecution, "beambot_execution")
@@ -150,6 +157,9 @@ class ROS2Bridge(QObject):
                 self.joint_state_received.emit(pose_deg)
         except Exception as e:
             print(f"Joint state callback error: {e}")
+
+    def _on_gripper(self, msg):
+        self.gripper_changed.emit(msg.data)
 
     # --- Action client ---
 
