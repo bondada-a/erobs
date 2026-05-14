@@ -5,9 +5,10 @@ from pathlib import Path
 
 from PyQt5.QtWidgets import (
     QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem,
-    QLabel, QHBoxLayout, QPushButton,
+    QLabel, QHBoxLayout, QPushButton, QGroupBox, QFormLayout,
 )
 from PyQt5.QtCore import Qt, pyqtSignal
+from PyQt5.QtGui import QFont
 
 
 class PoseListItem(QListWidgetItem):
@@ -67,6 +68,22 @@ class PosesPanel(QWidget):
         self.pose_list.itemDoubleClicked.connect(self._on_double_click)
         self.pose_list.itemClicked.connect(self._on_click)
         layout.addWidget(self.pose_list, stretch=1)
+
+        # Detail panel — shows joint values on selection
+        detail_box = QGroupBox("Joint Values")
+        detail_box.setMaximumHeight(160)
+        detail_layout = QFormLayout(detail_box)
+        detail_layout.setContentsMargins(6, 6, 6, 6)
+        detail_layout.setSpacing(2)
+        self.joint_labels = []
+        joint_names = ["Shoulder Pan", "Shoulder Lift", "Elbow",
+                       "Wrist 1", "Wrist 2", "Wrist 3"]
+        for jname in joint_names:
+            lbl = QLabel("—")
+            lbl.setFont(QFont("Monospace", 9))
+            detail_layout.addRow(f"{jname}:", lbl)
+            self.joint_labels.append(lbl)
+        layout.addWidget(detail_box)
 
         # Source file label
         self.source_label = QLabel("")
@@ -157,6 +174,8 @@ class PosesPanel(QWidget):
         self._refresh_list()
 
     def _on_click(self, item: PoseListItem):
+        for lbl, val in zip(self.joint_labels, item.pose_values):
+            lbl.setText(f"{val:.2f}°")
         self.pose_selected.emit(item.pose_name, item.pose_values)
 
     def _on_double_click(self, item: PoseListItem):
