@@ -128,6 +128,7 @@ src/moveit_task_constructor/
 yolov8n.pt
 
 # OMC / Claude Code state
+.claude/worktrees/
 .claude/*.backup*
 state/
 **/.omc/
