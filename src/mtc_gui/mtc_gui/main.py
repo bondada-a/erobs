@@ -6,6 +6,12 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtGui import QPalette, QColor
 from PyQt5.QtCore import Qt
 
+# QtWebEngine must be imported before QApplication is created
+try:
+    from PyQt5 import QtWebEngineWidgets  # noqa: F401
+except ImportError:
+    pass
+
 from .ros2_bridge import ROS2Bridge, ROS2_AVAILABLE
 
 
