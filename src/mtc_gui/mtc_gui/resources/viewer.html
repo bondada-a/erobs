@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; background: #1e1e1e; }
+canvas { display: block; }
+#loading {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    color: #888; font-family: monospace; font-size: 14px;
+}
+#error {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    color: #e57373; font-family: monospace; font-size: 13px;
+    max-width: 80%; text-align: center; display: none;
+}
+</style>
+<script type="importmap">
+{
+    "imports": {
+        "three": "./three.module.min.js",
+        "three/examples/jsm/controls/OrbitControls.js": "./OrbitControls.js",
+        "three/examples/jsm/loaders/STLLoader.js": "./STLLoader.js",
+        "three/examples/jsm/loaders/ColladaLoader.js": "./ColladaLoader.js"
+    }
+}
+</script>
+</head>
+<body>
+<div id="loading">Loading robot model...</div>
+<div id="error"></div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { URDFLoader } from './URDFLoader.js';
+
+const JOINT_NAMES = [
+    'shoulder_pan_joint',
+    'shoulder_lift_joint',
+    'elbow_joint',
+    'wrist_1_joint',
+    'wrist_2_joint',
+    'wrist_3_joint'
+];
+
+let robot = null;
+let demoAnimId = null;
+
+// Scene
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1e1e1e);
+
+// Camera
+const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.01, 100);
+camera.position.set(1.2, 1.0, 1.2);
+camera.lookAt(0, 0.4, 0);
+
+// Renderer
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+document.body.appendChild(renderer.domElement);
+
+// Lights
+const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
+dirLight.position.set(3, 5, 3);
+dirLight.castShadow = true;
+scene.add(dirLight);
+
+const backLight = new THREE.DirectionalLight(0x8888ff, 0.4);
+backLight.position.set(-2, 3, -2);
+scene.add(backLight);
+
+const ambientLight = new THREE.AmbientLight(0x404040, 1.2);
+scene.add(ambientLight);
+
+// Ground grid
+const grid = new THREE.GridHelper(2, 20, 0x444444, 0x333333);
+grid.material.opacity = 0.5;
+grid.material.transparent = true;
+scene.add(grid);
+
+// Orbit controls
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.target.set(0, 0.4, 0);
+controls.enableDamping = true;
+controls.dampingFactor = 0.1;
+controls.update();
+
+// Animation loop
+function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+}
+animate();
+
+// Resize
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// --- Robot Loading ---
+
+window.loadRobot = function(urdfUrl, meshPort) {
+    const loadingEl = document.getElementById('loading');
+    const errorEl = document.getElementById('error');
+    loadingEl.style.display = 'block';
+    errorEl.style.display = 'none';
+
+    if (robot) {
+        scene.remove(robot);
+        robot = null;
+    }
+
+    const loader = new URDFLoader();
+    loader.packages = (pkg) => `http://127.0.0.1:${meshPort}/${pkg}/`;
+
+    loader.load(urdfUrl, (result) => {
+        robot = result;
+        robot.rotation.x = -Math.PI / 2;
+        scene.add(robot);
+        loadingEl.style.display = 'none';
+
+        // Set visual materials for STL meshes (which load without color)
+        robot.traverse((child) => {
+            if (child.isMesh && child.material) {
+                if (child.material.color && child.material.color.getHex() === 0xffffff) {
+                    child.material = new THREE.MeshPhongMaterial({
+                        color: 0xb0b0b0,
+                        specular: 0x222222,
+                        shininess: 30
+                    });
+                }
+                child.castShadow = true;
+                child.receiveShadow = true;
+            }
+        });
+    },
+    undefined,
+    (err) => {
+        loadingEl.style.display = 'none';
+        errorEl.style.display = 'block';
+        errorEl.textContent = 'Failed to load robot: ' + (err.message || err);
+        console.error('URDF load error:', err);
+    });
+};
+
+// --- Joint Updates ---
+
+window.updateJoints = function(degArray) {
+    if (!robot || !robot.joints) return;
+    for (let i = 0; i < JOINT_NAMES.length && i < degArray.length; i++) {
+        const joint = robot.joints[JOINT_NAMES[i]];
+        if (joint) {
+            joint.setJointValue(degArray[i] * Math.PI / 180.0);
+        }
+    }
+};
+
+// --- Utility ---
+
+window.resetView = function() {
+    camera.position.set(1.2, 1.0, 1.2);
+    controls.target.set(0, 0.4, 0);
+    controls.update();
+};
+
+window.setHomePose = function() {
+    // SRDF home: shoulder_lift=-90deg, wrist_3=-180deg, rest=0
+    window.updateJoints([0, -90, 0, 0, 0, -180]);
+};
+
+window.demoMode = function(enable) {
+    if (!enable && demoAnimId) {
+        cancelAnimationFrame(demoAnimId);
+        demoAnimId = null;
+        return;
+    }
+    if (enable && !demoAnimId) {
+        const startTime = performance.now();
+        function demoStep() {
+            const t = (performance.now() - startTime) / 1000.0;
+            const joints = [
+                30 * Math.sin(t * 0.5),
+                -90 + 20 * Math.sin(t * 0.7),
+                40 * Math.sin(t * 0.6),
+                30 * Math.sin(t * 0.8),
+                25 * Math.sin(t * 0.9),
+                -180 + 45 * Math.sin(t * 0.4)
+            ];
+            window.updateJoints(joints);
+            demoAnimId = requestAnimationFrame(demoStep);
+        }
+        demoStep();
+    }
+};
+</script>
+</body>
+</html>

@@ -23,6 +23,11 @@ from .poses_panel import PosesPanel
 from .chat_panel import ChatPanel
 from .agent_bridge import AgentBridge
 
+try:
+    from .visualization_panel import VisualizationPanel, WEBENGINE_AVAILABLE
+except ImportError:
+    WEBENGINE_AVAILABLE = False
+
 # Default task step templates
 TASK_DEFAULTS = {
     "moveto": {"task_type": "moveto", "target": "moveit_home", "planning_type": "joint"},
@@ -267,6 +272,11 @@ class MTCMainWindow(QMainWindow):
             self.camera = CameraPanel(self.ros2)
             right_tabs.addTab(self.camera, "Camera")
 
+        # 3D visualization panel
+        if WEBENGINE_AVAILABLE:
+            self.viz_panel = VisualizationPanel(self.ros2)
+            right_tabs.addTab(self.viz_panel, "3D View")
+
         self.main_splitter.addWidget(right_tabs)
         self.main_splitter.setStretchFactor(0, 3)
         self.main_splitter.setStretchFactor(1, 1)
@@ -278,6 +288,11 @@ class MTCMainWindow(QMainWindow):
         self.ros2.joint_state_received.connect(self._on_joint_state)
         self.ros2.action_feedback_received.connect(self._on_feedback)
         self.ros2.action_result_received.connect(self._on_result)
+
+        # 3D visualization panel
+        if WEBENGINE_AVAILABLE and hasattr(self, 'viz_panel'):
+            self.ros2.joint_state_received.connect(self.viz_panel._on_joint_state)
+            self.gripper_combo.currentTextChanged.connect(self.viz_panel.set_gripper)
 
         # Chat panel ↔ Agent bridge
         self.chat_panel.message_submitted.connect(self._on_chat_message)
