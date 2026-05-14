@@ -95,8 +95,13 @@ class StepRowWidget(QFrame):
         self._type_icon.setAlignment(Qt.AlignCenter)
         self._type_icon.setFont(QFont("Sans", 12))
         type_color = type_cfg["color"]
+        r, g, b = (
+            int(type_color[1:3], 16),
+            int(type_color[3:5], 16),
+            int(type_color[5:7], 16),
+        )
         self._type_icon.setStyleSheet(
-            f"color: {type_color}; background-color: {type_color}22;"
+            f"color: {type_color}; background-color: rgba({r}, {g}, {b}, 0.13);"
             f" border-radius: 14px;"
         )
         main_layout.addWidget(self._type_icon)
