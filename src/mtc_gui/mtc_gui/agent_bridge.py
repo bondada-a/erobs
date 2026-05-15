@@ -1,10 +1,10 @@
-"""Async RobotAgent <-> PyQt5 bridge via background asyncio event loop."""
+"""Async RobotAgent <-> PyQt6 bridge via background asyncio event loop."""
 
 import asyncio
 import json
 import threading
 
-from PyQt5.QtCore import QObject, pyqtSignal
+from PyQt6.QtCore import QObject, pyqtSignal
 
 
 class AgentBridge(QObject):

@@ -6,7 +6,7 @@ import threading
 import json
 import numpy as np
 
-from PyQt5.QtCore import QObject, QThread, pyqtSignal
+from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
 # ROS2 imports (optional — GUI works without ROS2 for UI development)
 try:

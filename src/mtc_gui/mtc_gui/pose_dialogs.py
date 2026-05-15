@@ -3,13 +3,12 @@
 import json
 import math
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QDialogButtonBox,
     QTreeWidget, QTreeWidgetItem, QLabel, QLineEdit, QDoubleSpinBox,
     QPushButton, QGroupBox, QRadioButton, QButtonGroup, QFileDialog,
     QMessageBox, QHeaderView,
 )
-from PyQt5.QtCore import Qt
 
 
 class PoseEditorDialog(QDialog):
@@ -57,7 +56,7 @@ class PoseEditorDialog(QDialog):
         layout.addWidget(preset_group)
 
         # Buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self._on_save)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -108,7 +107,7 @@ class PosesManagerDialog(QDialog):
         layout.addLayout(btn_row)
 
         # Dialog buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self._on_save)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)
@@ -124,9 +123,9 @@ class PosesManagerDialog(QDialog):
 
     def _add_pose(self):
         dlg = PoseEditorDialog("new_pose", [0.0] * 6, self)
-        if dlg.exec() == QDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             # Ask for name
-            from PyQt5.QtWidgets import QInputDialog
+            from PyQt6.QtWidgets import QInputDialog
             name, ok = QInputDialog.getText(self, "Pose Name", "Enter pose name:")
             if ok and name:
                 self.poses[name] = dlg.result
@@ -141,7 +140,7 @@ class PosesManagerDialog(QDialog):
         name = item.text(0)
         values = self.poses.get(name, [0.0] * 6)
         dlg = PoseEditorDialog(name, values, self)
-        if dlg.exec() == QDialog.Accepted:
+        if dlg.exec() == QDialog.DialogCode.Accepted:
             self.poses[name] = dlg.result
             self._refresh()
 
@@ -151,7 +150,7 @@ class PosesManagerDialog(QDialog):
             return
         name = items[0].text(0)
         reply = QMessageBox.question(self, "Delete", f"Delete pose '{name}'?")
-        if reply == QMessageBox.Yes:
+        if reply == QMessageBox.StandardButton.Yes:
             self.poses.pop(name, None)
             self._refresh()
 
@@ -229,7 +228,7 @@ class SavePoseDialog(QDialog):
         layout.addWidget(opts_group)
 
         # Buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self._on_save)
         buttons.rejected.connect(self.reject)
         layout.addWidget(buttons)

@@ -3,12 +3,12 @@
 import yaml
 from pathlib import Path
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem,
     QLabel, QHBoxLayout, QPushButton, QGroupBox, QFormLayout,
 )
-from PyQt5.QtCore import Qt, pyqtSignal
-from PyQt5.QtGui import QFont
+from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtGui import QFont
 
 
 class PoseListItem(QListWidgetItem):
@@ -20,7 +20,7 @@ class PoseListItem(QListWidgetItem):
         self.pose_values = values
         self.group = group
         self.setText(name)
-        self.setData(Qt.UserRole, {"name": name, "values": values, "group": group})
+        self.setData(Qt.ItemDataRole.UserRole, {"name": name, "values": values, "group": group})
         self.setToolTip(f"[{', '.join(f'{v:.2f}' for v in values)}]")
 
 

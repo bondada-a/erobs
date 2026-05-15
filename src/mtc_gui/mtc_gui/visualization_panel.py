@@ -6,11 +6,11 @@ from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from functools import partial
 
-from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
-from PyQt5.QtCore import Qt, QUrl, QTimer
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
+from PyQt6.QtCore import Qt, QUrl, QTimer
 
 try:
-    from PyQt5.QtWebEngineWidgets import QWebEngineView
+    from PyQt6.QtWebEngineWidgets import QWebEngineView
     WEBENGINE_AVAILABLE = True
 except ImportError:
     WEBENGINE_AVAILABLE = False
@@ -231,8 +231,8 @@ class VisualizationPanel(QWidget):
         layout.addLayout(toolbar)
 
         if not WEBENGINE_AVAILABLE:
-            fallback = QLabel("Install python3-pyqt5.qtwebengine for 3D visualization")
-            fallback.setAlignment(Qt.AlignCenter)
+            fallback = QLabel("Install python3-pyqt6.qtwebengine for 3D visualization")
+            fallback.setAlignment(Qt.AlignmentFlag.AlignCenter)
             fallback.setStyleSheet("color: #888; font-size: 13px;")
             layout.addWidget(fallback)
             return

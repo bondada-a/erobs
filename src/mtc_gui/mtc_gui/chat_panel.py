@@ -2,7 +2,7 @@
 
 import time
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
@@ -13,7 +13,7 @@ from PyQt5.QtWidgets import (
     QSizePolicy,
     QFrame,
 )
-from PyQt5.QtCore import pyqtSignal, Qt, QTimer
+from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QEvent
 
 
 # ---------------------------------------------------------------------------
@@ -84,7 +84,7 @@ class MessageBubble(QFrame):
 
     def __init__(self, text: str, role: str, timestamp: str = "", parent=None):
         super().__init__(parent)
-        self.setFrameShape(QFrame.NoFrame)
+        self.setFrameShape(QFrame.Shape.NoFrame)
 
         is_user = role == "user"
         bg = _COLORS["user_bg"] if is_user else _COLORS["assistant_bg"]
@@ -111,7 +111,9 @@ class MessageBubble(QFrame):
             font-weight: bold;
             padding: 0 4px;
         """)
-        role_label.setAlignment(Qt.AlignLeft if not is_user else Qt.AlignRight)
+        role_label.setAlignment(
+            Qt.AlignmentFlag.AlignLeft if not is_user else Qt.AlignmentFlag.AlignRight
+        )
         outer.addWidget(role_label)
 
         # Bubble container
@@ -130,7 +132,7 @@ class MessageBubble(QFrame):
         # Message text
         msg_label = QLabel(text)
         msg_label.setWordWrap(True)
-        msg_label.setTextFormat(Qt.PlainText)
+        msg_label.setTextFormat(Qt.TextFormat.PlainText)
         msg_label.setStyleSheet(f"""
             color: {fg};
             font-size: 13px;
@@ -138,8 +140,8 @@ class MessageBubble(QFrame):
             background: transparent;
             padding: 0;
         """)
-        msg_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        msg_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        msg_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        msg_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         bubble_layout.addWidget(msg_label)
 
         outer.addWidget(bubble)
@@ -152,7 +154,9 @@ class MessageBubble(QFrame):
                 font-size: 10px;
                 padding: 0 4px;
             """)
-            ts_label.setAlignment(Qt.AlignLeft if not is_user else Qt.AlignRight)
+            ts_label.setAlignment(
+                Qt.AlignmentFlag.AlignLeft if not is_user else Qt.AlignmentFlag.AlignRight
+            )
             outer.addWidget(ts_label)
 
 
@@ -161,7 +165,7 @@ class ToolCallBubble(QFrame):
 
     def __init__(self, name: str, args_json: str, result: str, parent=None):
         super().__init__(parent)
-        self.setFrameShape(QFrame.NoFrame)
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self._expanded = False
         self._args = args_json
         self._result = result
@@ -180,7 +184,7 @@ class ToolCallBubble(QFrame):
         # Collapsed header (clickable)
         self._header = QPushButton(f"  {name}()")
         self._header.setFlat(True)
-        self._header.setCursor(Qt.PointingHandCursor)
+        self._header.setCursor(Qt.CursorShape.PointingHandCursor)
         self._header.setStyleSheet(f"""
             QPushButton {{
                 color: {_COLORS["tool_text"]};
@@ -203,7 +207,7 @@ class ToolCallBubble(QFrame):
         # Expandable detail
         self._detail = QLabel()
         self._detail.setWordWrap(True)
-        self._detail.setTextFormat(Qt.PlainText)
+        self._detail.setTextFormat(Qt.TextFormat.PlainText)
         self._detail.setStyleSheet(f"""
             color: {_COLORS["tool_text"]};
             font-size: 11px;
@@ -233,7 +237,7 @@ class ErrorBubble(QFrame):
 
     def __init__(self, text: str, parent=None):
         super().__init__(parent)
-        self.setFrameShape(QFrame.NoFrame)
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet("ErrorBubble { background: transparent; margin-right: 48px; }")
 
         outer = QVBoxLayout(self)
@@ -263,15 +267,15 @@ class ErrorBubble(QFrame):
 
         msg_label = QLabel(text)
         msg_label.setWordWrap(True)
-        msg_label.setTextFormat(Qt.PlainText)
+        msg_label.setTextFormat(Qt.TextFormat.PlainText)
         msg_label.setStyleSheet(f"""
             color: {_COLORS["error_text"]};
             font-size: 13px;
             background: transparent;
             padding: 0;
         """)
-        msg_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Minimum)
-        msg_label.setTextInteractionFlags(Qt.TextSelectableByMouse)
+        msg_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        msg_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         bubble_layout.addWidget(msg_label)
 
         outer.addWidget(bubble)
@@ -282,12 +286,12 @@ class ThinkingIndicator(QFrame):
 
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setFrameShape(QFrame.NoFrame)
+        self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet("background: transparent; margin-right: 48px;")
 
         layout = QHBoxLayout(self)
         layout.setContentsMargins(16, 4, 16, 4)
-        layout.setAlignment(Qt.AlignLeft)
+        layout.setAlignment(Qt.AlignmentFlag.AlignLeft)
 
         self._dots = []
         for i in range(3):
@@ -375,8 +379,8 @@ class ChatPanel(QWidget):
         # --- Scrollable message area ---
         self._scroll = QScrollArea()
         self._scroll.setWidgetResizable(True)
-        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAlwaysOff)
-        self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self._scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self._scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
 
         self._messages_container = QWidget()
         self._messages_layout = QVBoxLayout(self._messages_container)
@@ -435,7 +439,7 @@ class ChatPanel(QWidget):
         btn_row.addStretch()
 
         clear_btn = QPushButton("Clear")
-        clear_btn.setCursor(Qt.PointingHandCursor)
+        clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         clear_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {_COLORS["clear_btn"]};
@@ -453,7 +457,7 @@ class ChatPanel(QWidget):
         btn_row.addWidget(clear_btn)
 
         send_btn = QPushButton("Send")
-        send_btn.setCursor(Qt.PointingHandCursor)
+        send_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         send_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {_COLORS["send_btn"]};
@@ -482,9 +486,9 @@ class ChatPanel(QWidget):
     # -- Event filter for Enter key handling --
 
     def eventFilter(self, obj, event):
-        if obj is self.input_field and event.type() == event.KeyPress:
-            if event.key() in (Qt.Key_Return, Qt.Key_Enter):
-                if event.modifiers() & Qt.ShiftModifier:
+        if obj is self.input_field and event.type() == QEvent.Type.KeyPress:
+            if event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter):
+                if event.modifiers() & Qt.KeyboardModifier.ShiftModifier:
                     return False  # allow newline
                 self._on_send()
                 return True

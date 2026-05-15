@@ -3,18 +3,19 @@
 import time
 from enum import Enum, auto
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QWidget,
     QVBoxLayout,
     QHBoxLayout,
+    QAbstractItemView,
     QListWidget,
     QListWidgetItem,
     QLabel,
     QProgressBar,
     QFrame,
 )
-from PyQt5.QtCore import Qt, QTimer, pyqtSignal, QSize
-from PyQt5.QtGui import QFont
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QSize
+from PyQt6.QtGui import QFont
 
 
 class StepState(Enum):
@@ -76,7 +77,7 @@ class StepRowWidget(QFrame):
         # Step number
         self._num_label = QLabel(f"{index + 1:02d}")
         self._num_label.setFixedWidth(28)
-        self._num_label.setAlignment(Qt.AlignCenter)
+        self._num_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._num_label.setFont(QFont("Monospace", 9))
         self._num_label.setStyleSheet("color: #888888; padding-left: 4px;")
         main_layout.addWidget(self._num_label)
@@ -84,7 +85,7 @@ class StepRowWidget(QFrame):
         # Status icon
         self._status_icon = QLabel("○")
         self._status_icon.setFixedWidth(22)
-        self._status_icon.setAlignment(Qt.AlignCenter)
+        self._status_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._status_icon.setFont(QFont("Sans", 11))
         self._status_icon.setStyleSheet("color: #888888;")
         main_layout.addWidget(self._status_icon)
@@ -92,7 +93,7 @@ class StepRowWidget(QFrame):
         # Type icon (colored circle background)
         self._type_icon = QLabel(type_cfg["icon"])
         self._type_icon.setFixedSize(28, 28)
-        self._type_icon.setAlignment(Qt.AlignCenter)
+        self._type_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._type_icon.setFont(QFont("Sans", 12))
         type_color = type_cfg["color"]
         r, g, b = (
@@ -114,7 +115,7 @@ class StepRowWidget(QFrame):
         title_col.setSpacing(1)
 
         self._title_label = QLabel(type_cfg["title"])
-        self._title_label.setFont(QFont("Sans", 10, QFont.Bold))
+        self._title_label.setFont(QFont("Sans", 10, QFont.Weight.Bold))
         self._title_label.setStyleSheet("color: #e0e0e0;")
         title_col.addWidget(self._title_label)
 
@@ -129,18 +130,18 @@ class StepRowWidget(QFrame):
         right_col = QVBoxLayout()
         right_col.setContentsMargins(0, 4, 0, 4)
         right_col.setSpacing(2)
-        right_col.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        right_col.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         self._timer_label = QLabel("")
         self._timer_label.setFont(QFont("Monospace", 9))
         self._timer_label.setStyleSheet("color: #e6a832;")
-        self._timer_label.setAlignment(Qt.AlignRight)
+        self._timer_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self._timer_label.hide()
         right_col.addWidget(self._timer_label)
 
         self._next_badge = QLabel("next")
-        self._next_badge.setFont(QFont("Sans", 8, QFont.Bold))
-        self._next_badge.setAlignment(Qt.AlignCenter)
+        self._next_badge.setFont(QFont("Sans", 8, QFont.Weight.Bold))
+        self._next_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._next_badge.setFixedSize(40, 18)
         self._next_badge.setStyleSheet(
             "color: #e6a832; background-color: #e6a83233;"
@@ -152,7 +153,7 @@ class StepRowWidget(QFrame):
         self._done_check = QLabel("✓")
         self._done_check.setFont(QFont("Sans", 11))
         self._done_check.setStyleSheet("color: #4caf5088;")
-        self._done_check.setAlignment(Qt.AlignRight)
+        self._done_check.setAlignment(Qt.AlignmentFlag.AlignRight)
         self._done_check.hide()
         right_col.addWidget(self._done_check)
 
@@ -235,7 +236,7 @@ class ExecutionToolbar(QFrame):
 
         # Step counter + task name
         self._step_label = QLabel("Step 0/0")
-        self._step_label.setFont(QFont("Sans", 9, QFont.Bold))
+        self._step_label.setFont(QFont("Sans", 9, QFont.Weight.Bold))
         self._step_label.setStyleSheet("color: #e0e0e0;")
         layout.addWidget(self._step_label)
 
@@ -262,7 +263,7 @@ class ExecutionToolbar(QFrame):
         self._elapsed_label = QLabel("00:00")
         self._elapsed_label.setFont(QFont("Monospace", 9))
         self._elapsed_label.setStyleSheet("color: #aaaaaa;")
-        self._elapsed_label.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        self._elapsed_label.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
         layout.addWidget(self._elapsed_label)
 
         self._start_time = None
@@ -342,10 +343,10 @@ class StepListPanel(QWidget):
 
         # Step list
         self._list_widget = QListWidget()
-        self._list_widget.setSelectionMode(QListWidget.ExtendedSelection)
+        self._list_widget.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self._list_widget.itemDoubleClicked.connect(self._on_double_click)
         self._list_widget.itemSelectionChanged.connect(self._on_selection_changed)
-        self._list_widget.setVerticalScrollMode(QListWidget.ScrollPerPixel)
+        self._list_widget.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self._list_widget.setStyleSheet(
             "QListWidget { background-color: #232323; border: none; outline: none; }"
             "QListWidget::item { border-bottom: 1px solid #2e2e2e; padding: 0; }"
@@ -368,7 +369,7 @@ class StepListPanel(QWidget):
 
             item = QListWidgetItem(self._list_widget)
             item.setSizeHint(QSize(0, _ROW_HEIGHT))
-            item.setFlags(item.flags() & ~Qt.ItemIsEditable)
+            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
             self._list_widget.setItemWidget(item, row_widget)
             self._step_rows.append(row_widget)
 

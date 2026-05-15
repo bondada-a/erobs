@@ -2,13 +2,12 @@
 
 import copy
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QDialogButtonBox, QScrollArea,
     QWidget, QLabel, QLineEdit, QComboBox, QCheckBox, QDoubleSpinBox,
     QSpinBox, QGroupBox, QHBoxLayout, QTextEdit, QSlider, QMessageBox,
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QColor
+from PyQt6.QtCore import Qt
 
 
 # --- Dispatch ---
@@ -21,7 +20,7 @@ def open_task_form(step, step_index, poses, parent=None):
         QMessageBox.warning(parent, "Unknown", f"No form for task type: {task_type}")
         return None
     dialog = form_cls(step, step_index, poses, parent)
-    if dialog.exec() == QDialog.Accepted:
+    if dialog.exec() == QDialog.DialogCode.Accepted:
         return dialog.result
     return None
 
@@ -59,7 +58,7 @@ class BaseTaskForm(QDialog):
         self.build_form()
 
         # Buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         buttons.accepted.connect(self._on_save)
         buttons.rejected.connect(self.reject)
         outer.addWidget(buttons)
@@ -288,7 +287,7 @@ class SampleForm(BaseTaskForm):
         def toggle(checked):
             self.vision_group.setVisible(checked)
             self.hardcoded_group.setVisible(not checked)
-        self.use_vision.stateChanged.connect(lambda state: toggle(state == Qt.Checked))
+        self.use_vision.stateChanged.connect(lambda state: toggle(state == Qt.CheckState.Checked.value))
         toggle(self.use_vision.isChecked())
 
     def collect_values(self):

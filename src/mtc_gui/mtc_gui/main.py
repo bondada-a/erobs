@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""MTC GUI Client — PyQt5 entry point."""
+"""MTC GUI Client — PyQt6 entry point."""
 
 import sys
-from PyQt5.QtWidgets import QApplication
-from PyQt5.QtGui import QPalette, QColor
-from PyQt5.QtCore import Qt
+from PyQt6.QtWidgets import QApplication
+from PyQt6.QtGui import QPalette, QColor
+from PyQt6.QtCore import Qt
 
 # QtWebEngine must be imported before QApplication is created
 try:
-    from PyQt5 import QtWebEngineWidgets  # noqa: F401
+    from PyQt6 import QtWebEngineWidgets  # noqa: F401
 except ImportError:
     pass
 
@@ -20,21 +20,21 @@ _dark_palette = None
 def apply_dark_theme(app):
     global _dark_palette
     p = QPalette()
-    p.setColor(QPalette.Window, QColor(53, 53, 53))
-    p.setColor(QPalette.WindowText, Qt.white)
-    p.setColor(QPalette.Base, QColor(35, 35, 35))
-    p.setColor(QPalette.AlternateBase, QColor(53, 53, 53))
-    p.setColor(QPalette.ToolTipBase, QColor(25, 25, 25))
-    p.setColor(QPalette.ToolTipText, Qt.white)
-    p.setColor(QPalette.Text, Qt.white)
-    p.setColor(QPalette.Button, QColor(53, 53, 53))
-    p.setColor(QPalette.ButtonText, Qt.white)
-    p.setColor(QPalette.BrightText, Qt.red)
-    p.setColor(QPalette.Link, QColor(42, 130, 218))
-    p.setColor(QPalette.Highlight, QColor(42, 130, 218))
-    p.setColor(QPalette.HighlightedText, QColor(35, 35, 35))
-    p.setColor(QPalette.Disabled, QPalette.Text, QColor(127, 127, 127))
-    p.setColor(QPalette.Disabled, QPalette.ButtonText, QColor(127, 127, 127))
+    p.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
+    p.setColor(QPalette.ColorRole.WindowText, QColor(Qt.GlobalColor.white))
+    p.setColor(QPalette.ColorRole.Base, QColor(35, 35, 35))
+    p.setColor(QPalette.ColorRole.AlternateBase, QColor(53, 53, 53))
+    p.setColor(QPalette.ColorRole.ToolTipBase, QColor(25, 25, 25))
+    p.setColor(QPalette.ColorRole.ToolTipText, QColor(Qt.GlobalColor.white))
+    p.setColor(QPalette.ColorRole.Text, QColor(Qt.GlobalColor.white))
+    p.setColor(QPalette.ColorRole.Button, QColor(53, 53, 53))
+    p.setColor(QPalette.ColorRole.ButtonText, QColor(Qt.GlobalColor.white))
+    p.setColor(QPalette.ColorRole.BrightText, QColor(Qt.GlobalColor.red))
+    p.setColor(QPalette.ColorRole.Link, QColor(42, 130, 218))
+    p.setColor(QPalette.ColorRole.Highlight, QColor(42, 130, 218))
+    p.setColor(QPalette.ColorRole.HighlightedText, QColor(35, 35, 35))
+    p.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.Text, QColor(127, 127, 127))
+    p.setColor(QPalette.ColorGroup.Disabled, QPalette.ColorRole.ButtonText, QColor(127, 127, 127))
     _dark_palette = p
     app.setPalette(p)
 
@@ -48,6 +48,8 @@ def toggle_dark_mode(app, enabled):
 
 
 def main():
+    # Required for QtWebEngine in Qt6 — must be set before QApplication is constructed
+    QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
     app = QApplication(sys.argv)
     apply_dark_theme(app)
 

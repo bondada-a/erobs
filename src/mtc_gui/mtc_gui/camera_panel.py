@@ -3,11 +3,11 @@
 import cv2
 import numpy as np
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel, QTextEdit,
 )
-from PyQt5.QtGui import QImage, QPixmap
-from PyQt5.QtCore import Qt
+from PyQt6.QtGui import QImage, QPixmap
+from PyQt6.QtCore import Qt
 
 
 class CameraPanel(QWidget):
@@ -40,7 +40,7 @@ class CameraPanel(QWidget):
 
         # Image display
         self.image_label = QLabel("No image")
-        self.image_label.setAlignment(Qt.AlignCenter)
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setMinimumSize(400, 300)
         self.image_label.setStyleSheet("background-color: black; color: white;")
         layout.addWidget(self.image_label, stretch=1)
@@ -103,8 +103,10 @@ class CameraPanel(QWidget):
         """Convert OpenCV image to QPixmap and display."""
         h, w, ch = cv_image.shape
         rgb = cv2.cvtColor(cv_image, cv2.COLOR_BGR2RGB)
-        qimg = QImage(rgb.data, w, h, ch * w, QImage.Format_RGB888)
+        qimg = QImage(rgb.data, w, h, ch * w, QImage.Format.Format_RGB888)
         pixmap = QPixmap.fromImage(qimg).scaled(
-            self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation
+            self.image_label.size(),
+            Qt.AspectRatioMode.KeepAspectRatio,
+            Qt.TransformationMode.SmoothTransformation,
         )
         self.image_label.setPixmap(pixmap)

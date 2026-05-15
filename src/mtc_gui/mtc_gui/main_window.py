@@ -5,7 +5,7 @@ import time
 
 from pathlib import Path
 
-from PyQt5.QtWidgets import (
+from PyQt6.QtWidgets import (
     QMainWindow,
     QWidget,
     QVBoxLayout,
@@ -24,8 +24,8 @@ from PyQt5.QtWidgets import (
     QDialog,
     QTabWidget,
 )
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 from action_msgs.msg import GoalStatus
 
 from .ros2_bridge import ROS2Bridge, ROS2_AVAILABLE
@@ -212,7 +212,7 @@ class MTCMainWindow(QMainWindow):
         layout.addWidget(config_box)
 
         # Main splitter (task editor left, camera right — camera added later)
-        self.main_splitter = QSplitter(Qt.Horizontal)
+        self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(self.main_splitter, stretch=1)
 
         # Left panel — tabbed (Tasks | Poses)
@@ -487,7 +487,7 @@ class MTCMainWindow(QMainWindow):
         toggle_dark_mode(self._app(), enabled)
 
     def _app(self):
-        from PyQt5.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication
 
         return QApplication.instance()
 
@@ -496,7 +496,7 @@ class MTCMainWindow(QMainWindow):
             self,
             "About",
             (
-                "MTC GUI Client (PyQt5)\n\n"
+                "MTC GUI Client (PyQt6)\n\n"
                 "Task sequence builder for beambot orchestrator.\n"
                 "Communicates via ROS2 ActionClient.\n\n"
                 "Action server: beambot_execution"
@@ -530,7 +530,7 @@ class MTCMainWindow(QMainWindow):
 
     def _manage_poses(self):
         dlg = PosesManagerDialog(self.config.get("poses", {}), self)
-        if dlg.exec() == QDialog.Accepted and dlg.result is not None:
+        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.result is not None:
             self.config["poses"] = dlg.result
             self._log(f"Updated poses ({len(dlg.result)} poses)")
 
@@ -543,7 +543,7 @@ class MTCMainWindow(QMainWindow):
         dlg = SavePoseDialog(
             self.current_robot_pose, self.config, self.current_json_file, self
         )
-        if dlg.exec() == QDialog.Accepted and dlg.result is not None:
+        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.result is not None:
             r = dlg.result
             name = r["pose_name"]
             values = r["pose_values"]
