@@ -468,6 +468,11 @@ class MTCMainWindow(QMainWindow):
         self.chat_panel.mode_change_requested.connect(self.agent_bridge.set_mode)
         self.agent_bridge.mode_changed.connect(self._on_agent_mode_changed)
 
+        # Render execution result as a chat bubble for the agent's surface
+        self.agent_bridge.execution_outcome.connect(
+            self.chat_panel.append_execution_outcome
+        )
+
         # Auto-connect agent on startup
         self.agent_bridge.connect_agent()
 

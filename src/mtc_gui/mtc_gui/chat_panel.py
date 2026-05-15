@@ -552,6 +552,19 @@ class ChatPanel(QWidget):
         bubble = ErrorBubble(text)
         self._add_message_widget(bubble)
 
+    def append_execution_outcome(
+        self, success: bool, error: str, completed: int, total: int
+    ) -> None:
+        """Render a colored summary bubble for an agent-initiated run."""
+        if success:
+            text = f"Execution succeeded — {completed}/{total} step(s) completed."
+            bubble = MessageBubble(text, "assistant", time.strftime("%H:%M"))
+        else:
+            tail = f" — {error}" if error else ""
+            text = f"Execution failed — {completed}/{total} step(s) completed{tail}."
+            bubble = ErrorBubble(text)
+        self._add_message_widget(bubble)
+
     def set_thinking(self, is_thinking: bool) -> None:
         if is_thinking:
             self._thinking.start()
