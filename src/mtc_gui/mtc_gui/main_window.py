@@ -384,7 +384,11 @@ class MTCMainWindow(QMainWindow):
         self.down_step_btn.clicked.connect(self._move_down)
         self.remove_step_btn = QPushButton("✕ Remove")
         self.remove_step_btn.clicked.connect(self._remove_task)
-        for b in (self.up_step_btn, self.down_step_btn, self.remove_step_btn):
+        self.clear_steps_btn = QPushButton("⌫ Clear")
+        self.clear_steps_btn.setToolTip("Remove all steps from the sequence")
+        self.clear_steps_btn.clicked.connect(self._clear_tasks)
+        for b in (self.up_step_btn, self.down_step_btn,
+                  self.remove_step_btn, self.clear_steps_btn):
             b.setFlat(True)
             step_ops.addWidget(b)
         step_ops.addStretch(1)
@@ -476,6 +480,23 @@ class MTCMainWindow(QMainWindow):
             if 0 <= i < len(self.config["tasks"]):
                 self.config["tasks"].pop(i)
         self._refresh_tree()
+
+    def _clear_tasks(self):
+        n = len(self.config["tasks"])
+        if n == 0:
+            return
+        reply = QMessageBox.question(
+            self,
+            "Clear sequence",
+            f"Remove all {n} step{'s' if n != 1 else ''} from the sequence?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            QMessageBox.StandardButton.Cancel,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        self.config["tasks"].clear()
+        self._refresh_tree()
+        self._log(f"Cleared {n} step{'s' if n != 1 else ''}")
 
     def _move_up(self):
         indices = self.step_list.selected_indices()
