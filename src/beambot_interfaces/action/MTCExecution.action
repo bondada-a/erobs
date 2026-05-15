@@ -1,5 +1,7 @@
 # Goal
 string full_json           # Complete task script JSON (poses, tasks, start_gripper)
+bool dry_run               # Plan-only preview: skip execute(), publish trajectory on /beambot/preview_trajectory.
+                           # v1 supports moveto + end_effector only — other task types are rejected.
 ---
 # Result
 bool success

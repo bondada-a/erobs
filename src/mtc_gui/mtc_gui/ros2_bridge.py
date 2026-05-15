@@ -18,6 +18,7 @@ try:
     from std_msgs.msg import String as RosString
     from std_srvs.srv import Trigger
     from cv_bridge import CvBridge
+    from moveit_msgs.msg import DisplayTrajectory
     from beambot_interfaces.action import MTCExecution
     ROS2_AVAILABLE = True
 except ImportError as e:
@@ -61,6 +62,7 @@ class ROS2Bridge(QObject):
     detection_received = pyqtSignal(list)        # MarkerShape list
     action_feedback_received = pyqtSignal(float, int, str, str, str)  # progress, step, action, gripper, msg
     action_result_received = pyqtSignal(int, str, int, int)  # status, error_msg, completed, total
+    preview_trajectory_received = pyqtSignal(list, list)  # joint_names, waypoints[(positions, t_from_start_sec)]
     log = pyqtSignal(str)                        # thread-safe logging
 
     def __init__(self, parent=None):
@@ -97,6 +99,15 @@ class ROS2Bridge(QObject):
                                      reliability=ReliabilityPolicy.RELIABLE)
             self.node.create_subscription(
                 RosString, "/beambot/current_gripper", self._on_gripper, latched_qos)
+
+            # Dry-run preview trajectory: latched so the GUI sees the latest
+            # preview even if it subscribes after the orchestrator publishes.
+            self.node.create_subscription(
+                DisplayTrajectory,
+                "/beambot/preview_trajectory",
+                self._on_preview_trajectory,
+                latched_qos,
+            )
 
             # Action client
             self._action_client = ActionClient(self.node, MTCExecution, "beambot_execution")
@@ -161,10 +172,52 @@ class ROS2Bridge(QObject):
     def _on_gripper(self, msg):
         self.gripper_changed.emit(msg.data)
 
+    def _on_preview_trajectory(self, msg):
+        """Forward a DisplayTrajectory to the viz panel as a flat waypoint list.
+
+        Each waypoint is (joint_names_for_that_point, positions, t_seconds).
+        Different MTC sub-trajectories may have different joint sets (arm-only
+        vs. gripper-only), so we keep names per-waypoint and let the panel
+        pick the joints it knows how to visualize. time_from_start in each
+        sub-trajectory restarts at zero, so we offset by a running total.
+        """
+        try:
+            waypoints = []  # list of (joint_names, positions, t_seconds)
+            cumulative = 0.0
+            for traj in msg.trajectory:
+                jt = traj.joint_trajectory
+                if not jt.joint_names or not jt.points:
+                    continue
+                names = list(jt.joint_names)
+                segment_end = 0.0
+                for pt in jt.points:
+                    t = pt.time_from_start.sec + pt.time_from_start.nanosec * 1e-9
+                    waypoints.append((names, list(pt.positions), cumulative + t))
+                    if t > segment_end:
+                        segment_end = t
+                cumulative += segment_end
+            if waypoints:
+                # First arg is unused now (kept for signal compatibility);
+                # per-waypoint joint_names live in waypoints[i][0].
+                self.preview_trajectory_received.emit([], waypoints)
+                self.log.emit(
+                    f"Preview trajectory: {len(waypoints)} waypoints, "
+                    f"{cumulative:.2f}s total"
+                )
+        except Exception as e:
+            print(f"Preview trajectory callback error: {e}")
+
     # --- Action client ---
 
-    def execute_task(self, config_json: str):
-        """Send task to orchestrator. Runs in background thread."""
+    def execute_task(self, config_json: str, dry_run: bool = False):
+        """Send task to orchestrator. Runs in background thread.
+
+        Args:
+            config_json: Full task script JSON.
+            dry_run: When True, request a plan-only preview from the
+                orchestrator (publishes a trajectory on
+                /beambot/preview_trajectory; no robot motion).
+        """
         self._stop_execution = False
 
         def _run():
@@ -180,7 +233,10 @@ class ROS2Bridge(QObject):
 
                 goal = MTCExecution.Goal()
                 goal.full_json = config_json
-                self.log.emit("Sending goal...")
+                goal.dry_run = dry_run
+                self.log.emit(
+                    "Sending dry-run preview goal..." if dry_run else "Sending goal..."
+                )
 
                 send_future = self._action_client.send_goal_async(
                     goal, feedback_callback=self._on_action_feedback

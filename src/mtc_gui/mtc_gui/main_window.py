@@ -12,6 +12,7 @@ from PyQt6.QtWidgets import (
     QHBoxLayout,
     QSplitter,
     QLabel,
+    QCheckBox,
     QComboBox,
     QLineEdit,
     QTextEdit,
@@ -157,6 +158,7 @@ class MTCMainWindow(QMainWindow):
         self.current_robot_pose = None
         # "human" or "agent" — tells _on_result whether to notify the bridge
         self._execution_initiator = "human"
+        self._last_goal_was_dry_run = False
 
         self.setWindowTitle("MTC GUI Client (beambot)")
         self.resize(1400, 900)
@@ -205,6 +207,10 @@ class MTCMainWindow(QMainWindow):
         config_layout.addWidget(QLabel("Start Gripper:"))
         self.gripper_combo = QComboBox()
         self.gripper_combo.addItems(["epick", "hande", "2fg7", "pipettor", "none"])
+        # Changing gripper invalidates any cached dry-run plan (different SRDF).
+        self.gripper_combo.currentTextChanged.connect(
+            lambda _: self._set_plan_cached(False)
+        )
         config_layout.addWidget(self.gripper_combo)
         test_btn = QPushButton("Test Server")
         test_btn.clicked.connect(self.ros2.test_server)
@@ -365,6 +371,21 @@ class MTCMainWindow(QMainWindow):
         self.stop_btn.clicked.connect(self.ros2.stop_execution)
         exec_layout.addWidget(self.stop_btn)
 
+        self.dry_run_check = QCheckBox("Dry Run")
+        self.dry_run_check.setToolTip(
+            "Plan-only preview: animate the planned motion in the 3D view "
+            "without moving the robot. v1 supports moveto + end_effector only.\n\n"
+            "After a successful Dry Run, Execute will replay the previewed "
+            "plan exactly — no re-planning."
+        )
+        exec_layout.addWidget(self.dry_run_check)
+
+        self.plan_cached_label = QLabel("")
+        self.plan_cached_label.setStyleSheet(
+            "color: #2e7d32; font-size: 11px; font-weight: bold;"
+        )
+        exec_layout.addWidget(self.plan_cached_label)
+
         exec_layout.addSpacing(8)
         self.progress_bar = QProgressBar()
         exec_layout.addWidget(self.progress_bar, stretch=1)
@@ -445,6 +466,9 @@ class MTCMainWindow(QMainWindow):
         if WEBENGINE_AVAILABLE and hasattr(self, "viz_panel"):
             self.ros2.joint_state_received.connect(self.viz_panel._on_joint_state)
             self.ros2.gripper_changed.connect(self.viz_panel.set_gripper)
+            self.ros2.preview_trajectory_received.connect(
+                self.viz_panel.play_trajectory
+            )
 
         # Chat panel ↔ Agent bridge
         self.chat_panel.message_submitted.connect(self._on_chat_message)
@@ -621,21 +645,74 @@ class MTCMainWindow(QMainWindow):
 
     def _refresh_tree(self):
         self.step_list.refresh(self.config["tasks"], task_summary)
+        # Any task list change invalidates the cached dry-run plan on the
+        # orchestrator (different goal JSON = different cache key). Mirror
+        # that on the client so the operator doesn't see "plan cached" for
+        # a task they just edited.
+        self._set_plan_cached(False)
+
+    _PLAN_CACHED_GREEN = "color: #2e7d32; font-size: 11px; font-weight: bold;"
+    _PLAN_CACHED_RED = "color: #c62828; font-size: 11px; font-weight: bold;"
+
+    def _set_plan_cached(self, cached: bool, reason: str = ""):
+        """Update the 'Plan cached' indicator next to the Dry Run checkbox."""
+        if cached:
+            self.plan_cached_label.setStyleSheet(self._PLAN_CACHED_GREEN)
+            self.plan_cached_label.setText(
+                "✓ Plan cached — Execute will replay preview"
+            )
+        elif reason:
+            self.plan_cached_label.setStyleSheet(self._PLAN_CACHED_RED)
+            self.plan_cached_label.setText(f"⚠ {reason}")
+            from PyQt6.QtCore import QTimer
+
+            QTimer.singleShot(8000, self._clear_plan_cache_warning)
+        else:
+            self.plan_cached_label.setText("")
+
+    def _clear_plan_cache_warning(self):
+        self.plan_cached_label.setText("")
+        self.plan_cached_label.setStyleSheet(self._PLAN_CACHED_GREEN)
 
     # --- Execution ---
+
+    # Task types previewable in v1 dry-run (must match orchestrator's
+    # DRY_RUN_SUPPORTED_TYPES). Mirrored client-side so the operator gets
+    # an immediate, friendly message instead of a goal rejection.
+    _DRY_RUN_SUPPORTED = {"moveto", "end_effector"}
 
     def _execute(self):
         if not self.config["tasks"]:
             QMessageBox.warning(self, "Warning", "No tasks defined")
             return
+
+        dry_run = self.dry_run_check.isChecked()
+        if dry_run:
+            unsupported = [
+                (i + 1, t.get("task_type", "?"))
+                for i, t in enumerate(self.config["tasks"])
+                if t.get("task_type", "") not in self._DRY_RUN_SUPPORTED
+            ]
+            if unsupported:
+                bad = "\n  - ".join(f"step {n}: {tt}" for n, tt in unsupported)
+                QMessageBox.warning(
+                    self,
+                    "Dry Run Unavailable",
+                    f"Dry-run preview only supports moveto + end_effector in v1.\n\n"
+                    f"Unsupported steps:\n  - {bad}\n\n"
+                    f"Uncheck 'Dry Run' to execute, or remove these steps to preview.",
+                )
+                return
+
         self.config["start_gripper"] = self.gripper_combo.currentText()
+        self._last_goal_was_dry_run = dry_run
         self.exec_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
-        self.pause_btn.setEnabled(True)
+        self.pause_btn.setEnabled(not dry_run)
         self.task_toolbar.setEnabled(False)
         self.progress_bar.setValue(0)
         self.step_list.start_execution(len(self.config["tasks"]))
-        self.ros2.execute_task(json.dumps(self.config))
+        self.ros2.execute_task(json.dumps(self.config), dry_run=dry_run)
 
     def _on_feedback(self, progress, step, action, gripper, msg):
         self.progress_bar.setValue(int(progress))
@@ -648,17 +725,47 @@ class MTCMainWindow(QMainWindow):
         self.pause_btn.setEnabled(False)
         self.resume_btn.setEnabled(False)
         self.task_toolbar.setEnabled(True)
+        was_dry_run = self._last_goal_was_dry_run
 
         if status == GoalStatus.STATUS_SUCCEEDED:
             self.progress_bar.setValue(100)
             self.step_list.finish_execution("success", completed)
-            self._log(f"Task completed: {completed}/{total} steps")
+            if was_dry_run:
+                self._log(
+                    f"Dry-run preview complete: {completed}/{total} steps planned"
+                )
+                # Plan is now cached on the orchestrator. Mirror that in the
+                # GUI so the operator knows Execute will replay the preview.
+                self._set_plan_cached(True)
+            else:
+                self._log(f"Task completed: {completed}/{total} steps")
+                # A successful execute drops the cache server-side; keep
+                # the GUI in sync.
+                self._set_plan_cached(False)
         elif status == GoalStatus.STATUS_CANCELED:
             self.step_list.finish_execution("cancelled", completed)
             self._log(f"Task cancelled: {error_msg}")
         else:
             self.step_list.finish_execution("failed", completed)
-            self._log(f"Task failed: {error_msg} ({completed}/{total} steps)")
+            # Friendly message for cached-plan invalidation refusals.
+            if error_msg.startswith("CACHE_"):
+                # Format: "CACHE_<REASON>: <human message>"
+                reason = (
+                    error_msg.split(":", 1)[1].strip()
+                    if ":" in error_msg
+                    else error_msg
+                )
+                self._log(f"Cached plan invalid: {reason}")
+                self._set_plan_cached(False, "Cached plan invalid — run Dry Run again")
+                QMessageBox.information(
+                    self,
+                    "Cached Plan Invalid",
+                    f"The previewed plan can no longer be executed:\n\n{reason}\n\n"
+                    "Click Dry Run to preview the plan from the current state, "
+                    "then Execute.",
+                )
+            else:
+                self._log(f"Task failed: {error_msg} ({completed}/{total} steps)")
 
         # Notify the agent bridge if this run was agent-initiated; resolves
         # the pending execute_queue future so the agent can continue.

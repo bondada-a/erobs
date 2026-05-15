@@ -21,7 +21,8 @@ from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import PoseStamped, Vector3, Vector3Stamped
 from moveit.task_constructor import core, stages
 from moveit_msgs.msg import (
-    Constraints, JointConstraint, MoveItErrorCodes, OrientationConstraint,
+    Constraints, DisplayTrajectory, JointConstraint, MoveItErrorCodes,
+    OrientationConstraint, RobotState, RobotTrajectory,
 )
 from moveit_msgs.srv import GetPositionIK
 from sensor_msgs.msg import JointState
@@ -381,6 +382,7 @@ class BaseStages:
         self.arm_group = arm_group if arm_group else DEFAULT_ARM_GROUP
         self.ik_frame = ik_frame if ik_frame else DEFAULT_IK_FRAME
         self.logger = rclpy_node.get_logger()
+        self._preview_pub = None  # Lazily created on first dry-run publish
 
     def create_task_template(self, name: str) -> core.Task:
         """Create a new MTC task with standard configuration.
@@ -553,21 +555,43 @@ class BaseStages:
             fb.add(stage)
         return fb
 
-    def load_plan_execute(self, task: core.Task) -> str | None:
-        """Initialize, plan, and execute the task.
+    def load_plan_execute(self, task: core.Task, dry_run: bool = False) -> str | None:
+        """Initialize, plan, and (optionally) execute the task.
 
         Runs init() -> plan() -> execute(), logs the planned end-state joint
         angles, and returns None on success or a structured error string
         (PLANNING_FAILED, EXECUTION_FAILED: <MoveItErrorName>, etc.).
 
+        For caching dry-run plans and replaying them on execute, callers
+        should use init_and_plan() + execute_solution() directly so the
+        same task object can be planned once and executed later.
+
         Args:
             task: Configured MTC task
+            dry_run: When True, skip task.execute() and instead publish the
+                planned trajectory on /beambot/preview_trajectory for the GUI
+                3D viewer to animate. Returns None on successful planning.
 
         Returns:
             None if successful, error string describing failure otherwise
         """
+        error = self.init_and_plan(task, dry_run=dry_run)
+        if error is not None or dry_run:
+            return error
+        return self.execute_solution(task)
+
+    def init_and_plan(self, task: core.Task, dry_run: bool = False) -> str | None:
+        """Initialize the task, plan, log + (if dry_run) publish a preview.
+
+        Splits the planning half out of load_plan_execute so the orchestrator
+        can cache `task` between a dry-run plan and a later execute call,
+        avoiding a re-plan that would change the trajectory under the
+        operator's feet.
+
+        Returns:
+            None on successful planning, error string otherwise
+        """
         try:
-            # Step 1: Initialize task
             self.logger.info(f"Initializing task: {task.name}")
             try:
                 task.init()
@@ -576,24 +600,25 @@ class BaseStages:
                 self.logger.error(error)
                 return error
 
-            # Step 2: Plan
             self.logger.info(f"Planning task: {task.name}")
             if not task.plan(max_solutions=1):
                 error = f"PLANNING_FAILED: No motion plan found for task '{task.name}'"
                 self.logger.error(error)
                 return error
 
-            # Step 3: Execute and check result
             if not task.solutions:
                 error = f"PLANNING_FAILED: No solutions found for task '{task.name}'"
                 self.logger.error(error)
                 return error
 
             self.logger.info(
-                f"Found {len(task.solutions)} solution(s), executing: {task.name}"
+                f"Found {len(task.solutions)} solution(s), "
+                f"{'previewing' if dry_run else 'ready to execute'}: {task.name}"
             )
 
-            # Log planned end-state joint angles for debugging IK issues
+            # Log planned end-state joint angles for debugging IK issues,
+            # and capture sol_msg for optional preview publishing.
+            sol_msg = None
             try:
                 sol = task.solutions[0]
                 sol_msg = sol.toMsg()
@@ -607,10 +632,34 @@ class BaseStages:
             except Exception as e:
                 self.logger.warning(f"Could not extract planned joints: {e}")
 
-            # Execute returns MoveItErrorCodes
-            result = task.execute(task.solutions[0])
+            if dry_run and sol_msg is not None:
+                self._publish_preview_trajectory(sol_msg, task.name)
+                self.logger.info(f"Dry-run preview complete: {task.name}")
 
-            # Check execution result (matching C++ behavior)
+            return None
+
+        except Exception as e:
+            self.logger.error(f"Task planning failed: {task.name} - {e}")
+            self.logger.error(traceback.format_exc())
+            return f"Task planning exception for '{task.name}': {e}"
+
+    def execute_solution(self, task: core.Task) -> str | None:
+        """Execute the first solution of a previously-planned task.
+
+        Pairs with init_and_plan(): assumes task.solutions is populated.
+        Used by the orchestrator to replay a cached dry-run plan without
+        re-planning (which would risk picking a different OMPL path).
+
+        Returns:
+            None on successful execution, error string otherwise
+        """
+        try:
+            if not task.solutions:
+                error = f"EXECUTION_FAILED: No cached solution for '{task.name}'"
+                self.logger.error(error)
+                return error
+
+            result = task.execute(task.solutions[0])
             if result.val != MoveItErrorCodes.SUCCESS:
                 error_name = MOVEIT_ERROR_NAMES.get(result.val, "UNKNOWN")
                 error = (
@@ -626,7 +675,62 @@ class BaseStages:
         except Exception as e:
             self.logger.error(f"Task execution failed: {task.name} - {e}")
             self.logger.error(traceback.format_exc())
-            return f"Task exception for '{task.name}': {e}"
+            return f"Task execution exception for '{task.name}': {e}"
+
+    def _publish_preview_trajectory(self, sol_msg, task_name: str) -> None:
+        """Publish a planned MTC solution as a DisplayTrajectory for previewing.
+
+        sol_msg is the SolutionMsg from sol.toMsg(); each entry of
+        sub_trajectory has a moveit_msgs/RobotTrajectory we can forward
+        directly. The first sub-trajectory's start point becomes the
+        DisplayTrajectory's start_state so receivers (RViz, GUI viewer)
+        anchor the animation correctly.
+        """
+        try:
+            from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
+            if self._preview_pub is None:
+                # TRANSIENT_LOCAL so the GUI sees the latest preview even if
+                # it subscribes after the orchestrator publishes.
+                qos = QoSProfile(
+                    depth=1,
+                    durability=DurabilityPolicy.TRANSIENT_LOCAL,
+                    reliability=ReliabilityPolicy.RELIABLE,
+                )
+                self._preview_pub = self.rclpy_node.create_publisher(
+                    DisplayTrajectory, "/beambot/preview_trajectory", qos
+                )
+
+            msg = DisplayTrajectory()
+            msg.model_id = ""
+
+            # Build start_state from the first sub-trajectory's first point.
+            start_state = RobotState()
+            for sub in sol_msg.sub_trajectory:
+                jt = sub.trajectory.joint_trajectory
+                if jt.joint_names and jt.points:
+                    js = JointState()
+                    js.name = list(jt.joint_names)
+                    js.position = list(jt.points[0].positions)
+                    start_state.joint_state = js
+                    break
+            msg.trajectory_start = start_state
+
+            # Append each sub-trajectory as its own RobotTrajectory entry.
+            # Forwarding sub.trajectory directly preserves time_from_start
+            # exactly as MTC's time-parameterization produced it.
+            for sub in sol_msg.sub_trajectory:
+                rt = RobotTrajectory()
+                rt.joint_trajectory = sub.trajectory.joint_trajectory
+                rt.multi_dof_joint_trajectory = sub.trajectory.multi_dof_joint_trajectory
+                msg.trajectory.append(rt)
+
+            self._preview_pub.publish(msg)
+            self.logger.info(
+                f"Published preview for '{task_name}' "
+                f"({len(msg.trajectory)} segment(s))"
+            )
+        except Exception as e:
+            self.logger.warning(f"Failed to publish preview trajectory: {e}")
 
     def parse_poses(self, poses_json: str) -> dict[str, Any] | None:
         """Parse poses JSON string.

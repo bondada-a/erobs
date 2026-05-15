@@ -11,6 +11,7 @@ grouped into a single MTC Task with multiple stages, reducing planning
 overhead (~1.5s per task saved).
 """
 
+import hashlib
 import json
 import math
 import os
@@ -40,6 +41,7 @@ from beambot_interfaces.action import (
 )
 from controller_manager_msgs.srv import ListControllers, SwitchController
 from controller_manager_msgs.msg import ControllerManagerActivity
+from sensor_msgs.msg import JointState
 from std_srvs.srv import Trigger
 from std_msgs.msg import String
 
@@ -59,6 +61,12 @@ class MTCOrchestratorServer(Node):
 
     Supports beamline-agnostic deployment via beamline configuration files.
     """
+
+    # Task types supported in dry_run (plan-only) mode. v1 only previews the
+    # task types the orchestrator already plans in-process via the batched
+    # path; everything else dispatches to a remote action server and is out of
+    # scope for plan-only previewing.
+    DRY_RUN_SUPPORTED_TYPES = {"moveto", "end_effector"}
 
     # Default timeouts for each action type (seconds)
     # Can be overridden via ROS parameters: timeout.moveto, timeout.end_effector, etc.
@@ -83,6 +91,20 @@ class MTCOrchestratorServer(Node):
         self._last_result = None  # Full result from last _send_and_wait
         self._last_detected_position = None  # [x, y, z] from detect_only vision
         self._last_detected_orientation = None  # [x, y, z, w] from detect_only vision
+
+        # Plan cache: populated on a successful dry-run; consumed by the next
+        # non-dry-run goal whose key matches. Lets the operator preview a
+        # plan and then execute exactly that plan instead of re-planning
+        # (which OMPL randomization would otherwise randomize).
+        # Keys: goal_key (sha256 of normalized goal JSON), gripper, joint_snapshot,
+        #       task (MTC core.Task with solutions populated), stage (BaseStages
+        #       instance — needed to call execute_solution).
+        self._plan_cache: dict | None = None
+        self._plan_cache_lock = threading.Lock()
+        self._latest_joint_state: dict[str, float] = {}  # joint_name -> position (rad)
+        # Set by _execute_batch in dry_run mode so _execute() can capture
+        # the freshly-planned MTC task into the plan cache.
+        self._last_planned_task = None
 
         # Pause/Resume state
         self._pause_requested = False
@@ -221,6 +243,16 @@ class MTCOrchestratorServer(Node):
             "/controller_manager/activity",
             self._controller_activity_cb,
             QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
+            callback_group=self._callback_group,
+        )
+
+        # Joint state subscription for dry-run plan-cache validation. We only
+        # need the latest snapshot, so depth=1 + sensor-style QoS is fine.
+        self.create_subscription(
+            JointState,
+            "/joint_states",
+            self._joint_state_cb,
+            10,
             callback_group=self._callback_group,
         )
 
@@ -396,6 +428,112 @@ class MTCOrchestratorServer(Node):
             for c in msg.controllers
         }
 
+    def _joint_state_cb(self, msg: JointState) -> None:
+        """Cache the latest joint positions for plan-cache validation.
+
+        Replaces the dict each tick so a missing-joints message (gripper-only
+        publisher, etc.) doesn't poison earlier readings. We only need a
+        roughly-current snapshot; staleness is bounded by ROS topic latency.
+        """
+        self._latest_joint_state = dict(zip(msg.name, msg.position))
+
+    # ---- Plan cache (dry-run -> execute reuse) -------------------------
+
+    # UR5e arm joints monitored for the "robot moved since plan" check.
+    _ARM_JOINTS_FOR_DRIFT = (
+        "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
+        "wrist_1_joint", "wrist_2_joint", "wrist_3_joint",
+    )
+    # Tolerance: 1 degree on any joint. Tight enough to catch an operator
+    # jog, loose enough to ignore controller-side noise on a stationary arm.
+    _CACHE_DRIFT_TOLERANCE_RAD = math.radians(1.0)
+
+    def _compute_plan_cache_key(self, full_json: str, gripper: str) -> str:
+        """Compute a stable key from goal JSON + gripper.
+
+        Re-serializing parsed JSON with sort_keys=True normalizes whitespace
+        and field ordering so byte-identical re-sends always hash the same.
+        Falls back to raw bytes if the JSON can't be parsed (cache will miss
+        more often, which is fine — invalidation is the safe direction).
+        """
+        try:
+            normalized = json.dumps(json.loads(full_json), sort_keys=True)
+        except json.JSONDecodeError:
+            normalized = full_json
+        h = hashlib.sha256()
+        h.update(normalized.encode("utf-8"))
+        h.update(b"|")
+        h.update(gripper.encode("utf-8"))
+        return h.hexdigest()
+
+    def _snapshot_arm_joints(self) -> dict[str, float] | None:
+        """Return current arm joint positions (rad), or None if unavailable.
+
+        Used both at plan-cache write time (snapshot) and validate time
+        (current). None means /joint_states isn't publishing — the caller
+        decides whether to refuse or skip the check.
+        """
+        if not self._latest_joint_state:
+            return None
+        snapshot = {}
+        for j in self._ARM_JOINTS_FOR_DRIFT:
+            if j not in self._latest_joint_state:
+                return None  # Partial data — treat as unavailable
+            snapshot[j] = self._latest_joint_state[j]
+        return snapshot
+
+    def _validate_plan_cache(
+        self, goal_key: str, current_gripper: str
+    ) -> tuple[bool, str]:
+        """Check if the cached plan is still safe to execute.
+
+        Returns:
+            (valid, reason). On valid=False, reason is a structured string
+            starting with CACHE_<REASON>: which the GUI parses to show a
+            friendly message.
+        """
+        with self._plan_cache_lock:
+            cache = self._plan_cache
+            if cache is None:
+                return False, "CACHE_MISS: No cached plan; planning fresh"
+            if cache["goal_key"] != goal_key:
+                return False, (
+                    "CACHE_KEY_MISMATCH: Cached plan was for a different task. "
+                    "Run Dry Run again to preview this task, then Execute."
+                )
+            if cache["gripper"] != current_gripper:
+                return False, (
+                    "CACHE_GRIPPER_CHANGED: Tool exchange happened since dry-run. "
+                    "Run Dry Run again to preview with the current gripper."
+                )
+
+            # Joint drift — only enforce if both snapshot and current state
+            # are available. If /joint_states isn't publishing now, MoveIt
+            # itself will fail at execute time with INVALID_ROBOT_STATE,
+            # which is a louder signal than a pre-emptive refusal here.
+            current = self._snapshot_arm_joints()
+            snapshot = cache.get("joint_snapshot")
+            if current is not None and snapshot is not None:
+                for j in self._ARM_JOINTS_FOR_DRIFT:
+                    delta = abs(current[j] - snapshot[j])
+                    if delta > self._CACHE_DRIFT_TOLERANCE_RAD:
+                        return False, (
+                            f"CACHE_ROBOT_MOVED: Robot has moved since dry-run "
+                            f"({j} drifted {math.degrees(delta):.1f}°). "
+                            "Run Dry Run again to preview from current state."
+                        )
+
+            return True, ""
+
+    def _clear_plan_cache(self, reason: str = "") -> None:
+        """Drop the cached plan. Call after execute, on tool_exchange, or
+        whenever cached MTC state should not be reused."""
+        with self._plan_cache_lock:
+            if self._plan_cache is not None:
+                if reason:
+                    self.get_logger().info(f"Plan cache cleared: {reason}")
+                self._plan_cache = None
+
     def _ensure_controllers_active(self) -> bool:
         """Check if required controllers are active and restart them if needed.
 
@@ -477,7 +615,9 @@ class MTCOrchestratorServer(Node):
     def _execute_batch(
         self,
         batch_tasks: list[dict[str, Any]],
-        poses_json: str
+        poses_json: str,
+        dry_run: bool = False,
+        cached_plan: dict | None = None,
     ) -> bool:
         """Execute a batch of tasks as a single MTC Task.
 
@@ -487,6 +627,13 @@ class MTCOrchestratorServer(Node):
         Args:
             batch_tasks: List of batchable task dictionaries
             poses_json: JSON string with pose definitions
+            dry_run: If True, plan only and publish the trajectory for the
+                GUI viewer; do not move the robot. On success, populates
+                self._plan_cache so a subsequent execute can replay the
+                same plan.
+            cached_plan: If provided, skip the build+plan step and execute
+                cached_plan["task"] directly. Used when an Execute goal hits
+                a valid cache populated by a prior dry-run.
 
         Returns:
             True if all tasks succeeded, False on any failure
@@ -497,12 +644,22 @@ class MTCOrchestratorServer(Node):
         # Log batch info
         task_types = [t.get("task_type", "?") for t in batch_tasks]
         self.get_logger().info(
-            f"Executing batch of {len(batch_tasks)} tasks: {task_types}"
+            f"{'Replaying cached plan for' if cached_plan else 'Executing'} "
+            f"batch of {len(batch_tasks)} tasks: {task_types}"
         )
 
         # Create stage instances (they share MTC node via module-level singleton)
         moveto_stage = MoveToStages(self, self._arm_group)
         endeffector_stage = EndEffectorStages(self, self._arm_group)
+
+        # Replay path: skip task construction and planning, run the cached
+        # solution directly.
+        if cached_plan is not None:
+            error = moveto_stage.execute_solution(cached_plan["task"])
+            if error is not None:
+                self._last_error = error
+                return False
+            return True
 
         # Create single MTC Task for the batch
         task = moveto_stage.create_task_template(f"Batch ({len(batch_tasks)} tasks)")
@@ -530,7 +687,21 @@ class MTCOrchestratorServer(Node):
                 self.get_logger().error(self._last_error)
                 return False
 
-        # Plan and execute the entire batch at once
+        if dry_run:
+            # Plan only — caller stashes (task, stage) into the plan cache
+            # so the next execute can replay this exact solution.
+            error = moveto_stage.init_and_plan(task, dry_run=True)
+            if error is not None:
+                self._last_error = error
+                return False
+            # Stash the planned task on the instance so _execute() can read
+            # it after the call returns. Using a private attribute since
+            # _execute_batch's bool return type is load-bearing for callers
+            # that don't care about caching.
+            self._last_planned_task = task
+            return True
+
+        # Normal path: plan + execute end-to-end
         error = moveto_stage.load_plan_execute(task)
         if error is not None:
             self._last_error = error
@@ -597,8 +768,49 @@ class MTCOrchestratorServer(Node):
             self._publish_state("IDLE")
             return result
 
-        start_gripper, tasks, poses_json = parsed
+        start_gripper, tasks, poses_json, dry_run = parsed
         task_count = len(tasks)
+        if dry_run:
+            self.get_logger().info(
+                f"DRY-RUN preview enabled — planning {task_count} step(s) "
+                f"without moving the robot"
+            )
+
+        # Compute the plan-cache key from the raw goal payload + gripper.
+        # On dry-run we'll write the cache; on execute we'll check it.
+        goal_key = self._compute_plan_cache_key(
+            goal_handle.request.full_json, start_gripper
+        )
+
+        # Cache validation for non-dry-run goals: if we have a cache and it
+        # matches the goal, we'll replay it; if we have a cache that DOESN'T
+        # match, refuse so the operator sees the staleness instead of
+        # silently executing a different (re-planned) trajectory.
+        cached_plan_for_replay: dict | None = None
+        if not dry_run:
+            with self._plan_cache_lock:
+                has_cache = self._plan_cache is not None
+            if has_cache:
+                valid, reason = self._validate_plan_cache(goal_key, start_gripper)
+                if valid:
+                    with self._plan_cache_lock:
+                        cached_plan_for_replay = self._plan_cache
+                    self.get_logger().info(
+                        "Plan cache hit — executing previewed plan without re-planning"
+                    )
+                elif not reason.startswith("CACHE_MISS"):
+                    # Stale cache that doesn't match this goal: refuse.
+                    # CACHE_MISS just means "no cache yet" → fall through and
+                    # plan fresh, preserving Execute-without-Dry-Run behavior.
+                    result.error_message = reason
+                    self._clear_plan_cache("stale on execute")
+                    goal_handle.abort()
+                    self._publish_state("IDLE")
+                    return result
+
+        # On a fresh dry-run, drop any prior cache before planning the new one.
+        if dry_run:
+            self._clear_plan_cache("new dry-run starting")
 
         # Initialize gripper state
         self._current_gripper = start_gripper
@@ -627,11 +839,17 @@ class MTCOrchestratorServer(Node):
         # Group tasks into batches for optimized execution.
         # Disable batching when ePick is attached — the vacuum watchdog needs
         # step boundaries between every move to detect dropped objects.
-        batching_enabled = self._enable_batching and start_gripper != "epick"
-        if self._enable_batching and not batching_enabled:
-            self.get_logger().info(
-                "Batching disabled for ePick — vacuum watchdog needs per-step boundaries"
-            )
+        # In dry_run, force batching on regardless of gripper: the vacuum
+        # watchdog is irrelevant when nothing executes, and one MTC task per
+        # batch lets the operator preview the whole sequence in one trajectory.
+        if dry_run:
+            batching_enabled = self._enable_batching
+        else:
+            batching_enabled = self._enable_batching and start_gripper != "epick"
+            if self._enable_batching and not batching_enabled:
+                self.get_logger().info(
+                    "Batching disabled for ePick — vacuum watchdog needs per-step boundaries"
+                )
         batches = group_into_batches(tasks, enabled=batching_enabled)
         self.get_logger().info(
             f"Grouped {task_count} tasks into {len(batches)} batches"
@@ -670,14 +888,16 @@ class MTCOrchestratorServer(Node):
                     self._publish_state("IDLE")
                     return result
 
-            # Check if vacuum was lost since last step
-            vacuum_error = self._vacuum.check_lost()
-            if vacuum_error:
-                result.error_message = f"Step {completed_tasks + 1} aborted: {vacuum_error}"
-                result.completed_steps = completed_tasks
-                goal_handle.abort()
-                self._publish_state("IDLE")
-                return result
+            # Check if vacuum was lost since last step (skip in dry_run — no
+            # physical execution, no chance of dropping)
+            if not dry_run:
+                vacuum_error = self._vacuum.check_lost()
+                if vacuum_error:
+                    result.error_message = f"Step {completed_tasks + 1} aborted: {vacuum_error}"
+                    result.completed_steps = completed_tasks
+                    goal_handle.abort()
+                    self._publish_state("IDLE")
+                    return result
 
             # Check if MoveIt subprocess is still alive before dispatching
             if not self._moveit_manager.is_moveit_alive():
@@ -707,14 +927,38 @@ class MTCOrchestratorServer(Node):
                 # entirely once we've stress-tested connection-drop recovery on
                 # Jazzy.
 
-                if not self._execute_batch(batch_tasks, poses_json):
+                self._last_planned_task = None
+                ok = self._execute_batch(
+                    batch_tasks, poses_json,
+                    dry_run=dry_run,
+                    cached_plan=cached_plan_for_replay,
+                )
+                if not ok:
                     result.error_message = f"Batch failed at step {completed_tasks + 1}: {self._last_error}"
                     result.completed_steps = completed_tasks
                     goal_handle.abort()
                     self._publish_state("IDLE")
                     return result
 
-                self._vacuum.update_after_tasks(batch_tasks, self._current_gripper)
+                # On a successful dry-run, stash the planned task so the
+                # next non-dry-run goal with the same key can replay it.
+                if dry_run and self._last_planned_task is not None:
+                    with self._plan_cache_lock:
+                        self._plan_cache = {
+                            "goal_key": goal_key,
+                            "task": self._last_planned_task,
+                            "gripper": self._current_gripper,
+                            "joint_snapshot": self._snapshot_arm_joints(),
+                        }
+                    self.get_logger().info("Plan cached for next execute")
+                    self._last_planned_task = None
+                # On a successful non-dry-run execute, drop the cache so the
+                # next goal plans fresh from the new robot state.
+                elif not dry_run:
+                    self._clear_plan_cache("after successful execute")
+
+                if not dry_run:
+                    self._vacuum.update_after_tasks(batch_tasks, self._current_gripper)
                 completed_tasks += batch_size
 
             else:
@@ -728,6 +972,38 @@ class MTCOrchestratorServer(Node):
                     goal_handle.abort()
                     self._publish_state("IDLE")
                     return result
+
+                # Dry-run safety net: the parser already rejects unsupported
+                # types, but if batching is disabled by parameter, even
+                # supported types fall through to this single-task path which
+                # would actually execute. Route them through _execute_batch
+                # instead so dry_run is honored. Note: caching with batching
+                # disabled is best-effort — if a goal contains multiple
+                # batches, we cache only the last one. In practice batching
+                # is on by default; this is a safety fallback.
+                if dry_run:
+                    self._update_feedback(
+                        feedback, goal_handle, completed_tasks + 1, task_count, task_type
+                    )
+                    self._last_planned_task = None
+                    if not self._execute_batch([task], poses_json, dry_run=True):
+                        result.error_message = f"{task_type} preview failed: {self._last_error}"
+                        result.completed_steps = completed_tasks
+                        goal_handle.abort()
+                        self._publish_state("IDLE")
+                        return result
+                    if self._last_planned_task is not None:
+                        with self._plan_cache_lock:
+                            self._plan_cache = {
+                                "goal_key": goal_key,
+                                "task": self._last_planned_task,
+                                "gripper": self._current_gripper,
+                                "joint_snapshot": self._snapshot_arm_joints(),
+                            }
+                        self._last_planned_task = None
+                    completed_tasks += 1
+                    result.completed_steps = completed_tasks
+                    continue
 
                 self._update_feedback(
                     feedback, goal_handle, completed_tasks + 1, task_count, task_type
@@ -745,14 +1021,16 @@ class MTCOrchestratorServer(Node):
 
             result.completed_steps = completed_tasks
 
-        # Final vacuum check — catch drops during the last step
-        vacuum_error = self._vacuum.check_lost()
-        if vacuum_error:
-            result.error_message = f"Final step aborted: {vacuum_error}"
-            result.completed_steps = completed_tasks
-            goal_handle.abort()
-            self._publish_state("IDLE")
-            return result
+        # Final vacuum check — catch drops during the last step (skipped in
+        # dry_run, where nothing was executed)
+        if not dry_run:
+            vacuum_error = self._vacuum.check_lost()
+            if vacuum_error:
+                result.error_message = f"Final step aborted: {vacuum_error}"
+                result.completed_steps = completed_tasks
+                goal_handle.abort()
+                self._publish_state("IDLE")
+                return result
 
         # Success
         result.success = True
@@ -788,7 +1066,7 @@ class MTCOrchestratorServer(Node):
         """Parse and validate the goal JSON.
 
         Returns:
-            (start_gripper, tasks, poses_json) if valid,
+            (start_gripper, tasks, poses_json, dry_run) if valid,
             None if invalid (result populated with error)
         """
         if not goal.full_json:
@@ -814,6 +1092,26 @@ class MTCOrchestratorServer(Node):
         if start_gripper not in self._grippers:
             result.error_message = f"Unknown gripper: {start_gripper} (available: {', '.join(self._grippers.keys())})"
             return None
+
+        # Dry-run validation: only moveto + end_effector are previewable in v1.
+        # Reject upfront so the operator gets a clear message instead of a
+        # half-finished preview.
+        dry_run = bool(getattr(goal, "dry_run", False))
+        if dry_run:
+            unsupported = [
+                (i, t.get("task_type", "?"))
+                for i, t in enumerate(script["tasks"])
+                if t.get("task_type", "") not in self.DRY_RUN_SUPPORTED_TYPES
+            ]
+            if unsupported:
+                bad = ", ".join(f"step {i + 1} ({t})" for i, t in unsupported)
+                allowed = ", ".join(sorted(self.DRY_RUN_SUPPORTED_TYPES))
+                result.error_message = (
+                    f"Dry-run not supported for: {bad}. "
+                    f"v1 supports only: {allowed}. "
+                    f"Run without dry_run (or with use_mock_hardware) for full task types."
+                )
+                return None
 
         # Auto-resolve named poses from the registry when not supplied in the goal
         poses = script.get("poses", {})
@@ -847,6 +1145,7 @@ class MTCOrchestratorServer(Node):
             start_gripper,
             script["tasks"],
             json.dumps(poses),
+            dry_run,
         )
 
     # ------------------------------------------------------------------
@@ -1074,6 +1373,10 @@ class MTCOrchestratorServer(Node):
             self._current_gripper = new_gripper
             self._publish_gripper(new_gripper)
             self._update_required_controllers()
+            # Any cached dry-run plan was for the previous gripper's SRDF /
+            # collision model — invalidate it so the next execute can't
+            # silently replay a plan against the wrong robot model.
+            self._clear_plan_cache("tool exchange")
 
             if not self._moveit_manager.launch_moveit_with_gripper(new_gripper):
                 self._last_error = (
