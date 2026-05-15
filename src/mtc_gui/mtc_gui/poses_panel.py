@@ -6,9 +6,12 @@ from pathlib import Path
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem,
     QLabel, QHBoxLayout, QPushButton, QGroupBox, QFormLayout,
+    QAbstractItemView,
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QMimeData
 from PyQt6.QtGui import QFont
+
+POSE_MIME_TYPE = "application/x-mtc-pose-name"
 
 
 class PoseListItem(QListWidgetItem):
@@ -24,10 +27,25 @@ class PoseListItem(QListWidgetItem):
         self.setToolTip(f"[{', '.join(f'{v:.2f}' for v in values)}]")
 
 
+class _PoseDragListWidget(QListWidget):
+    """QListWidget that exports the dragged pose's name as a custom MIME type."""
+
+    def mimeData(self, items):
+        md = QMimeData()
+        # We only ever drag a single pose at a time; take the first selected item.
+        if items:
+            it = items[0]
+            if isinstance(it, PoseListItem):
+                md.setData(POSE_MIME_TYPE, it.pose_name.encode("utf-8"))
+                md.setText(it.pose_name)  # plain-text fallback for other drop targets
+        return md
+
+
 class PosesPanel(QWidget):
     """Panel displaying poses loaded from the beamline poses YAML file."""
 
-    pose_selected = pyqtSignal(str, list)  # name, joint values
+    pose_clicked = pyqtSignal(str, list)  # name, joint values — single-click, info only
+    pose_activated = pyqtSignal(str, list)  # double-click — append as Move To
     poses_loaded = pyqtSignal(dict)  # full poses dict
 
     def __init__(self, parent=None):
@@ -62,9 +80,11 @@ class PosesPanel(QWidget):
         self.count_label.setStyleSheet("color: gray; font-size: 10px;")
         layout.addWidget(self.count_label)
 
-        # Pose list
-        self.pose_list = QListWidget()
+        # Pose list (drag-enabled so users can drop a pose onto the step list)
+        self.pose_list = _PoseDragListWidget()
         self.pose_list.setAlternatingRowColors(True)
+        self.pose_list.setDragEnabled(True)
+        self.pose_list.setDragDropMode(QAbstractItemView.DragDropMode.DragOnly)
         self.pose_list.itemDoubleClicked.connect(self._on_double_click)
         self.pose_list.itemClicked.connect(self._on_click)
         layout.addWidget(self.pose_list, stretch=1)
@@ -176,10 +196,10 @@ class PosesPanel(QWidget):
     def _on_click(self, item: PoseListItem):
         for lbl, val in zip(self.joint_labels, item.pose_values):
             lbl.setText(f"{val:.2f}°")
-        self.pose_selected.emit(item.pose_name, item.pose_values)
+        self.pose_clicked.emit(item.pose_name, item.pose_values)
 
     def _on_double_click(self, item: PoseListItem):
-        self.pose_selected.emit(item.pose_name, item.pose_values)
+        self.pose_activated.emit(item.pose_name, item.pose_values)
 
     def _reload(self):
         if self._poses_file:

@@ -17,6 +17,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal, QSize
 from PyQt6.QtGui import QFont
 
+from .poses_panel import POSE_MIME_TYPE
+
 
 class StepState(Enum):
     PENDING = auto()
@@ -308,6 +310,38 @@ class ExecutionToolbar(QFrame):
         self._elapsed_label.setText("00:00")
 
 
+class _DropTargetListWidget(QListWidget):
+    """QListWidget that accepts pose drops from PosesPanel."""
+
+    pose_dropped = pyqtSignal(str)  # pose name
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setAcceptDrops(True)
+
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasFormat(POSE_MIME_TYPE):
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        if event.mimeData().hasFormat(POSE_MIME_TYPE):
+            event.acceptProposedAction()
+        else:
+            super().dragMoveEvent(event)
+
+    def dropEvent(self, event):
+        md = event.mimeData()
+        if md.hasFormat(POSE_MIME_TYPE):
+            pose_name = bytes(md.data(POSE_MIME_TYPE)).decode("utf-8")
+            if pose_name:
+                self.pose_dropped.emit(pose_name)
+            event.acceptProposedAction()
+        else:
+            super().dropEvent(event)
+
+
 class StepListPanel(QWidget):
     """Full step list panel replacing the QTreeWidget.
 
@@ -316,6 +350,7 @@ class StepListPanel(QWidget):
 
     item_double_clicked = pyqtSignal(int)
     selection_changed = pyqtSignal(list)
+    pose_dropped = pyqtSignal(str)  # forwarded from inner list widget
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -341,12 +376,13 @@ class StepListPanel(QWidget):
         self._exec_toolbar.hide()
         layout.addWidget(self._exec_toolbar)
 
-        # Step list
-        self._list_widget = QListWidget()
+        # Step list (drop-enabled so users can drag a pose onto it)
+        self._list_widget = _DropTargetListWidget()
         self._list_widget.setSelectionMode(QAbstractItemView.SelectionMode.ExtendedSelection)
         self._list_widget.itemDoubleClicked.connect(self._on_double_click)
         self._list_widget.itemSelectionChanged.connect(self._on_selection_changed)
         self._list_widget.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
+        self._list_widget.pose_dropped.connect(self.pose_dropped)
         self._list_widget.setStyleSheet(
             "QListWidget { background-color: #232323; border: none; outline: none; }"
             "QListWidget::item { border-bottom: 1px solid #2e2e2e; padding: 0; }"

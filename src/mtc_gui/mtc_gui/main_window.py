@@ -262,7 +262,7 @@ class MTCMainWindow(QMainWindow):
             "QListWidget::item { padding: 6px 4px; border-radius: 4px; }"
             "QListWidget::item:hover { background-color: rgba(255,255,255,0.06); }"
         )
-        for label, task_type in [
+        palette_items = [
             ("Move To", "moveto"),
             ("Pick Sample", "pick_sample"),
             ("Place Sample", "place_sample"),
@@ -271,31 +271,23 @@ class MTCMainWindow(QMainWindow):
             ("Vision MoveTo", "vision_moveto"),
             ("Vision Scan", "vision_scan"),
             ("Pipettor", "pipettor"),
-        ]:
+        ]
+        item_height = 32
+        for label, task_type in palette_items:
             cfg = TASK_TYPE_CONFIG.get(task_type, {})
             icon = cfg.get("icon", "+")
             item = QListWidgetItem(f"  {icon}   {label}")
             item.setData(Qt.ItemDataRole.UserRole, task_type)
-            item.setSizeHint(QSize(0, 30))
+            item.setSizeHint(QSize(0, item_height))
             self.task_toolbar.addItem(item)
         self.task_toolbar.itemClicked.connect(
             lambda it: self._add_task(it.data(Qt.ItemDataRole.UserRole))
         )
+        # Pin the palette to exactly fit all items so nothing is hidden behind a scrollbar.
+        palette_h = item_height * len(palette_items) + 2 * self.task_toolbar.spacing() * len(palette_items) + 4
+        self.task_toolbar.setFixedHeight(palette_h)
+        self.task_toolbar.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         tasks_layout.addWidget(self.task_toolbar)
-
-        # Step reorder/remove controls (the old toolbar's last three actions)
-        step_ops = QHBoxLayout()
-        step_ops.setSpacing(4)
-        self.remove_step_btn = QPushButton("Remove")
-        self.remove_step_btn.clicked.connect(self._remove_task)
-        self.up_step_btn = QPushButton("Up")
-        self.up_step_btn.clicked.connect(self._move_up)
-        self.down_step_btn = QPushButton("Down")
-        self.down_step_btn.clicked.connect(self._move_down)
-        for b in (self.remove_step_btn, self.up_step_btn, self.down_step_btn):
-            b.setFlat(True)
-            step_ops.addWidget(b)
-        tasks_layout.addLayout(step_ops)
 
         templates_label = QLabel("TEMPLATES")
         templates_label.setFont(QFont("Sans", 8, QFont.Weight.Bold))
@@ -315,6 +307,10 @@ class MTCMainWindow(QMainWindow):
         # --- POSES tab ---
         self.poses_panel = PosesPanel()
         self.poses_panel.poses_loaded.connect(self._on_poses_loaded)
+        # Double-click a pose to append a Move To step targeting it.
+        self.poses_panel.pose_activated.connect(
+            lambda name, _values: self._add_moveto_for_pose(name)
+        )
         self.left_tabs.addTab(self.poses_panel, "Poses")
 
         # --- RUNS tab (placeholder) ---
@@ -369,10 +365,30 @@ class MTCMainWindow(QMainWindow):
         # Step list
         self.step_list = StepListPanel()
         self.step_list.item_double_clicked.connect(self._edit_task_by_index)
+        # Drop a pose onto the step list to append a Move To step targeting it.
+        self.step_list.pose_dropped.connect(self._add_moveto_for_pose)
         self.step_list.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
         center_layout.addWidget(self.step_list, stretch=1)
+
+        # Step reorder / remove controls — sit just under the step list
+        step_ops_bar = QFrame()
+        step_ops_bar.setFrameShape(QFrame.Shape.NoFrame)
+        step_ops = QHBoxLayout(step_ops_bar)
+        step_ops.setContentsMargins(4, 0, 4, 0)
+        step_ops.setSpacing(4)
+        self.up_step_btn = QPushButton("↑ Up")
+        self.up_step_btn.clicked.connect(self._move_up)
+        self.down_step_btn = QPushButton("↓ Down")
+        self.down_step_btn.clicked.connect(self._move_down)
+        self.remove_step_btn = QPushButton("✕ Remove")
+        self.remove_step_btn.clicked.connect(self._remove_task)
+        for b in (self.up_step_btn, self.down_step_btn, self.remove_step_btn):
+            b.setFlat(True)
+            step_ops.addWidget(b)
+        step_ops.addStretch(1)
+        center_layout.addWidget(step_ops_bar)
 
         # Status log (bottom)
         self.status_log = QTextEdit()
@@ -439,6 +455,18 @@ class MTCMainWindow(QMainWindow):
         self.config["tasks"].append(step)
         self._refresh_tree()
         self._log(f"Added {task_type}")
+
+    def _add_moveto_for_pose(self, pose_name: str):
+        """Append a Move To step targeting the named pose (joint planning)."""
+        if not pose_name:
+            return
+        import copy
+
+        step = copy.deepcopy(TASK_DEFAULTS["moveto"])
+        step["target"] = pose_name
+        self.config["tasks"].append(step)
+        self._refresh_tree()
+        self._log(f"Added Move To '{pose_name}'")
 
     def _remove_task(self):
         indices = sorted(self.step_list.selected_indices(), reverse=True)
