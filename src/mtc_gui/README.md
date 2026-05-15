@@ -1,6 +1,6 @@
 # MTC GUI
 
-PyQt5-based GUI for creating and executing robot tasks via the beambot orchestrator.
+PyQt6-based GUI for creating and executing robot tasks via the beambot orchestrator.
 
 ## Modules
 
@@ -27,7 +27,7 @@ ros2 run mtc_gui mtc_gui_client
 
 ## Dependencies
 
-- `python3-pyqt5`
+- `python3-pyqt6`, `python3-pyqt6.qtwebengine`
 - `rclpy`
 - `beambot` (action servers, agent)
 
