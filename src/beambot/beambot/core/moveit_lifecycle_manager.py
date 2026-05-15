@@ -146,9 +146,11 @@ class MoveItLifecycleManager:
         self._logger.info(f"Launching MoveIt for {gripper} ({config['moveit_package']})")
 
         # Set tool voltage BEFORE MoveIt launches so ur_ros2_control_node
-        # activates gripper Modbus at the correct voltage.
+        # activates gripper Modbus at the correct voltage. tool_voltage is
+        # optional in the YAML — passive/mechanical grippers without UR-IO
+        # tool control can omit it; we default to 0V (TOOL_OUTPUT_OFF).
         if not self._use_mock_hardware:
-            desired_voltage = int(config["tool_voltage"])
+            desired_voltage = int(config.get("tool_voltage", 0))
             if self._current_voltage == desired_voltage:
                 self._logger.info(f"Tool voltage already at {desired_voltage}V, skipping")
             elif not self._set_tool_voltage(desired_voltage):

@@ -184,13 +184,20 @@ class VisionStages(BaseStages):
         Reads `collision_objects:` from $BEAMBOT_BEAMLINE_CONFIG. When a vision
         detection sees one of these tags, the matching shape is added to the
         planning scene so MoveIt avoids it.
+
+        Errors per-entry instead of all-or-nothing — a typo in one entry
+        shouldn't silently disable collision avoidance for every object.
         """
         try:
             from beambot.config_loader import load_beamline_config
             config, _ = load_beamline_config()
-            objects = config.get("collision_objects") or {}
+        except Exception as e:
+            self.logger.error(f"Failed to load beamline YAML for collision_objects: {e}")
+            return
 
-            for tag_id, obj in objects.items():
+        objects = config.get("collision_objects") or {}
+        for tag_id, obj in objects.items():
+            try:
                 info = ObjectInfo(
                     name=obj["name"],
                     shape=obj["shape"],
@@ -198,10 +205,13 @@ class VisionStages(BaseStages):
                     tag_offset=obj["tag_offset"],
                 )
                 self._object_database[int(tag_id)] = info
+            except (KeyError, TypeError, ValueError) as e:
+                self.logger.error(
+                    f"collision_objects[{tag_id}]: skipped — {e}. "
+                    f"Required keys: name, shape, dimensions, tag_offset."
+                )
 
-            self.logger.info(f"Loaded {len(self._object_database)} vision objects")
-        except Exception as e:
-            self.logger.error(f"Failed to load collision_objects from beamline YAML: {e}")
+        self.logger.info(f"Loaded {len(self._object_database)} vision objects")
 
     # =========================================================================
     # Tag Pose Cache Methods

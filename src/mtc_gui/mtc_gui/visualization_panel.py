@@ -2,6 +2,7 @@
 
 import json
 import math
+import re
 import time
 import threading
 import yaml
@@ -37,14 +38,33 @@ def _load_arm_joints() -> list[str]:
 
 _ARM_JOINTS = _load_arm_joints()
 
-REQUIRED_PACKAGES = [
+
+# Always required for any UR-based viewer URDF: the bare arm description
+# (joint hierarchy) and the workspace's ur5e description (mounting + meshes).
+_BASE_PACKAGES = ["ur_description", "ur5e_robot_description"]
+
+# All description packages we know how to locate. The URDF parser below picks
+# the subset actually referenced by the active beamline's URDFs; entries here
+# that go unreferenced are simply skipped.
+_KNOWN_DESCRIPTION_PACKAGES = (
     "ur_description",
     "ur5e_robot_description",
     "zivid_description",
     "epick_description",
     "robotiq_hande_description",
     "pipette_description",
-]
+)
+
+_PACKAGE_REF_RE = re.compile(r"package://([^/\"'\s]+)/")
+
+
+def _packages_referenced_by_urdf(urdf_path: Path) -> set[str]:
+    """Return all `package://<name>/` refs found in the URDF text."""
+    try:
+        text = urdf_path.read_text()
+    except OSError:
+        return set()
+    return set(_PACKAGE_REF_RE.findall(text))
 
 
 def _find_workspace_roots():
@@ -68,13 +88,23 @@ def _find_workspace_roots():
     return roots
 
 
-def _resolve_packages():
-    """Build a dict mapping ROS package names to their share directories on disk."""
+def _resolve_packages(required: set[str] | None = None):
+    """Build a dict mapping ROS package names to their share directories on disk.
+
+    `required` is the set of description packages actually referenced by the
+    active beamline's URDFs (parsed from `package://...` lines). Defaults to
+    the full known list when None is passed (e.g. test paths) so behavior
+    matches the pre-config era.
+    """
+    if required is None:
+        required = set(_KNOWN_DESCRIPTION_PACKAGES)
+    required = set(required) | set(_BASE_PACKAGES)
+
     packages = {}
 
     try:
         from ament_index_python.packages import get_package_share_directory
-        for pkg in REQUIRED_PACKAGES:
+        for pkg in required:
             try:
                 packages[pkg] = get_package_share_directory(pkg)
             except Exception:
@@ -115,12 +145,10 @@ def _resolve_packages():
             ws / "src" / "end_effectors" / "pipettor" / "pipette_description",
         ])
 
-    search_paths = candidates_per_pkg
-
-    for pkg, candidates in search_paths.items():
+    for pkg in required:
         if pkg in packages:
             continue
-        for candidate in candidates:
+        for candidate in candidates_per_pkg.get(pkg, []):
             if candidate.is_dir():
                 packages[pkg] = str(candidate)
                 break
@@ -235,7 +263,11 @@ class VisualizationPanel(QWidget):
         if self._urdf_dir is None:
             self._urdf_dir = Path(__file__).resolve().parents[2] / "custom-ur-descriptions" / "ur5e_robot_description" / "urdf"
 
-        self._package_map = _resolve_packages()
+        # Limit description-package lookup to the packages actually referenced
+        # by the URDFs the active beamline's grippers declare. A beamline that
+        # doesn't use ePick won't trigger spurious "epick_description not
+        # found" log lines anymore.
+        self._package_map = _resolve_packages(self._referenced_packages())
         self._mesh_server = None
         self._setup_ui()
         self._start_server()
@@ -302,6 +334,35 @@ class VisualizationPanel(QWidget):
         self.web_view = QWebEngineView()
         self.web_view.setStyleSheet("background: #1e1e1e;")
         layout.addWidget(self.web_view, stretch=1)
+
+    def _referenced_packages(self) -> set[str]:
+        """Union of `package://` refs across every URDF this beamline can load.
+
+        Walks the URDF filenames declared in $BEAMBOT_BEAMLINE_CONFIG's
+        grippers.<name>.urdf_file fields, parses each one, and returns the
+        set of referenced description packages. Falls back to the full
+        known list on any read failure (so a misconfigured GUI still tries
+        to load every package, the original behavior).
+        """
+        try:
+            from beambot.config_loader import load_beamline_config
+            config, _ = load_beamline_config()
+        except Exception:
+            return set(_KNOWN_DESCRIPTION_PACKAGES)
+
+        urdf_files: set[str] = set()
+        for gconf in config.get("grippers", {}).values():
+            urdf_name = gconf.get("urdf_file")
+            if urdf_name:
+                urdf_files.add(urdf_name)
+
+        if not urdf_files or self._urdf_dir is None:
+            return set(_KNOWN_DESCRIPTION_PACKAGES)
+
+        referenced: set[str] = set()
+        for urdf_name in urdf_files:
+            referenced |= _packages_referenced_by_urdf(self._urdf_dir / urdf_name)
+        return referenced
 
     def _start_server(self):
         if not WEBENGINE_AVAILABLE:

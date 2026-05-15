@@ -45,57 +45,85 @@ try:
 except ImportError:
     WEBENGINE_AVAILABLE = False
 
-# Default task step templates
-TASK_DEFAULTS = {
-    "moveto": {
-        "task_type": "moveto",
-        "target": "moveit_home",
-        "planning_type": "joint",
-    },
-    "pick_sample": {
-        "task_type": "pick_sample",
-        "use_vision": True,
-        "detection_type": "marker",
-        "tag_id": 0,
-        "scan_pose": "",
-        "z_offset": 0.0,
-    },
-    "place_sample": {
-        "task_type": "place_sample",
-        "use_vision": True,
-        "detection_type": "marker",
-        "tag_id": 0,
-        "scan_pose": "",
-        "z_offset": 0.0,
-    },
-    "vision_scan": {
-        "task_type": "vision_scan",
-        "scan_positions": [],
-        "scans_per_position": 3,
-        "timeout": 10.0,
-    },
-    "tool_exchange": {
-        "task_type": "tool_exchange",
-        "operation": "load",
-        "gripper": "hande",
-        "dock_number": 3,
-        "approach_pose": "load_approach",
-    },
-    "end_effector": {
-        "task_type": "end_effector",
-        "end_effector_type": "epick",
-        "end_effector_action": "vacuum_on",
-    },
-    "vision_moveto": {
-        "task_type": "vision_moveto",
-        "detection_type": "marker",
-        "tag_id": 0,
-        "timeout": 10.0,
-        "z_offset": 0.0,
-        "marker_dictionary": "aruco4x4_50",
-    },
-    "pipettor": {"task_type": "pipettor", "operation": "SUCK", "volume_pct": 0.5},
-}
+# Default task step templates. The grippers and end-effector action used as
+# placeholders are picked from the active beamline YAML so a fresh task on a
+# non-CMS beamline doesn't preselect grippers/states that don't exist locally.
+def _build_task_defaults(beamline_config: dict) -> dict:
+    grippers = beamline_config.get("grippers", {}) if beamline_config else {}
+    swappable = [g for g in grippers if g != "none"] or list(grippers.keys())
+    actuated = [g for g, c in grippers.items() if c.get("states")]
+
+    default_tool_gripper = swappable[0] if swappable else ""
+    default_dock = (
+        grippers.get(default_tool_gripper, {}).get("dock_number", 0)
+        if default_tool_gripper else 0
+    )
+    default_ee_gripper = actuated[0] if actuated else ""
+    default_ee_action = (
+        grippers.get(default_ee_gripper, {}).get("states", {}).get("grasp", "")
+        if default_ee_gripper else ""
+    )
+    default_marker_dict = (
+        beamline_config.get("camera", {}).get("marker_dictionary", "aruco4x4_50")
+        if beamline_config else "aruco4x4_50"
+    )
+
+    return {
+        "moveto": {
+            "task_type": "moveto",
+            "target": "moveit_home",
+            "planning_type": "joint",
+        },
+        "pick_sample": {
+            "task_type": "pick_sample",
+            "use_vision": True,
+            "detection_type": "marker",
+            "tag_id": 0,
+            "scan_pose": "",
+            "z_offset": 0.0,
+        },
+        "place_sample": {
+            "task_type": "place_sample",
+            "use_vision": True,
+            "detection_type": "marker",
+            "tag_id": 0,
+            "scan_pose": "",
+            "z_offset": 0.0,
+        },
+        "vision_scan": {
+            "task_type": "vision_scan",
+            "scan_positions": [],
+            "scans_per_position": 3,
+            "timeout": 10.0,
+        },
+        "tool_exchange": {
+            "task_type": "tool_exchange",
+            "operation": "load",
+            "gripper": default_tool_gripper,
+            "dock_number": default_dock,
+            "approach_pose": "load_approach",
+        },
+        "end_effector": {
+            "task_type": "end_effector",
+            "end_effector_type": default_ee_gripper,
+            "end_effector_action": default_ee_action,
+        },
+        "vision_moveto": {
+            "task_type": "vision_moveto",
+            "detection_type": "marker",
+            "tag_id": 0,
+            "timeout": 10.0,
+            "z_offset": 0.0,
+            "marker_dictionary": default_marker_dict,
+        },
+        "pipettor": {"task_type": "pipettor", "operation": "SUCK", "volume_pct": 0.5},
+    }
+
+
+# Module-level fallback for code that imports TASK_DEFAULTS without a config
+# (test paths). Populated with empty strings — a live GUI overrides this with
+# _build_task_defaults(self._beamline_config) after the YAML is loaded.
+TASK_DEFAULTS = _build_task_defaults({})
 
 
 def task_summary(step):
@@ -147,13 +175,6 @@ class MTCMainWindow(QMainWindow):
     def __init__(self, ros2: ROS2Bridge):
         super().__init__()
         self.ros2 = ros2
-        self.config = {
-            "start_gripper": "epick",
-            "poses": {
-                "home": [0.0, -90.0, -90.0, -90.0, 90.0, 0.0],
-            },
-            "tasks": [],
-        }
         self.current_json_file = None
         self.current_robot_pose = None
         # "human" or "agent" — tells _on_result whether to notify the bridge
@@ -164,6 +185,27 @@ class MTCMainWindow(QMainWindow):
         # Soft-fail: GUI can still open as a JSON inspector when no robot is
         # configured; operator can type the IP into the QLineEdit by hand.
         self._beamline_config, self._beamline_config_path = self._load_beamline_yaml()
+
+        # Default start_gripper: prefer the no-gripper "none" entry if declared
+        # so a fresh task doesn't preselect a tool the operator hasn't loaded.
+        # Otherwise fall back to the first declared gripper, then to "" if no
+        # YAML is loaded (test/inspector mode).
+        grippers = self._beamline_config.get("grippers", {})
+        if "none" in grippers:
+            default_start_gripper = "none"
+        elif grippers:
+            default_start_gripper = next(iter(grippers))
+        else:
+            default_start_gripper = ""
+
+        self.config = {
+            "start_gripper": default_start_gripper,
+            "poses": {
+                "home": [0.0, -90.0, -90.0, -90.0, 90.0, 0.0],
+            },
+            "tasks": [],
+        }
+        self._task_defaults = _build_task_defaults(self._beamline_config)
 
         self.setWindowTitle("MTC GUI Client (beambot)")
         self.resize(1400, 900)
@@ -520,7 +562,9 @@ class MTCMainWindow(QMainWindow):
     def _add_task(self, task_type):
         import copy
 
-        step = copy.deepcopy(TASK_DEFAULTS.get(task_type, {"task_type": task_type}))
+        step = copy.deepcopy(
+            self._task_defaults.get(task_type, {"task_type": task_type})
+        )
         self.config["tasks"].append(step)
         self._refresh_tree()
         self._log(f"Added {task_type}")
@@ -531,7 +575,7 @@ class MTCMainWindow(QMainWindow):
             return
         import copy
 
-        step = copy.deepcopy(TASK_DEFAULTS["moveto"])
+        step = copy.deepcopy(self._task_defaults["moveto"])
         step["target"] = pose_name
         self.config["tasks"].append(step)
         self._refresh_tree()

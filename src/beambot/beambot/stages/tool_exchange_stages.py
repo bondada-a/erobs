@@ -5,40 +5,34 @@ Uses Cartesian moves for precise tool attachment/detachment.
 
 Dock geometry (spacing, reference dock, load/dock motion sequences) is
 sourced from the active beamline YAML's `tool_exchange:` block — see
-config_loader for the schema. Module-level fallbacks below are used only
-when the env var isn't set (test paths, isolated stage construction).
+config_loader for the schema. Required keys (no silent fallbacks):
+  tool_exchange.dock_spacing_m, .reference_dock, .load_sequence, .dock_sequence
 """
 
 from moveit.task_constructor import stages
 from beambot.stages.base_stages import BaseStages, joints_from_degrees
 
-# Fallback geometry (CMS magnetic dock plate). Real values come from YAML.
-_FALLBACK_DOCK_SPACING_M = 0.1524
-_FALLBACK_REFERENCE_DOCK = 3
-_FALLBACK_LOAD_SEQUENCE = [
-    {"direction": "forward",  "distance": 0.20},
-    {"direction": "up",       "distance": 0.15},
-    {"direction": "backward", "distance": 0.20},
-]
-_FALLBACK_DOCK_SEQUENCE = [
-    {"direction": "forward",  "distance": 0.20},
-    {"direction": "down",     "distance": 0.15},
-    {"direction": "backward", "distance": 0.20},
-]
-
 
 def _load_tool_exchange_config() -> dict:
     """Read the `tool_exchange:` block from the active beamline YAML.
 
-    Falls back to module-level constants on any read failure so the stage
-    still works in isolated test paths.
+    Raises ValueError if the YAML doesn't declare `tool_exchange:` or any
+    of its required keys. Silent CMS-geometry fallback would let a new
+    beamline drift into wrong-physical-spacing territory without warning.
     """
-    try:
-        from beambot.config_loader import load_beamline_config
-        cfg, _ = load_beamline_config()
-        return cfg.get("tool_exchange", {}) or {}
-    except Exception:
-        return {}
+    from beambot.config_loader import load_beamline_config
+    cfg, _ = load_beamline_config()
+    te = cfg.get("tool_exchange") or {}
+    required = ("dock_spacing_m", "reference_dock", "load_sequence", "dock_sequence")
+    missing = [k for k in required if te.get(k) in (None, "")]
+    if missing:
+        raise ValueError(
+            "Active beamline YAML is missing required tool_exchange keys: "
+            f"{missing}. Add a `tool_exchange:` block to "
+            "$BEAMBOT_BEAMLINE_CONFIG declaring all of: "
+            f"{required}."
+        )
+    return te
 
 
 class ToolExchangeStages(BaseStages):
@@ -78,12 +72,16 @@ class ToolExchangeStages(BaseStages):
             f"gripper={goal.gripper}, dock={goal.dock_number}"
         )
 
-        # Resolve dock geometry from beamline YAML (falls back to CMS values)
-        te_cfg = _load_tool_exchange_config()
-        dock_spacing = float(te_cfg.get("dock_spacing_m", _FALLBACK_DOCK_SPACING_M))
-        reference_dock = int(te_cfg.get("reference_dock", _FALLBACK_REFERENCE_DOCK))
-        load_sequence = te_cfg.get("load_sequence") or _FALLBACK_LOAD_SEQUENCE
-        dock_sequence = te_cfg.get("dock_sequence") or _FALLBACK_DOCK_SEQUENCE
+        # Resolve dock geometry from beamline YAML — required, no fallback.
+        try:
+            te_cfg = _load_tool_exchange_config()
+        except ValueError as e:
+            self.logger.error(str(e))
+            return str(e)
+        dock_spacing = float(te_cfg["dock_spacing_m"])
+        reference_dock = int(te_cfg["reference_dock"])
+        load_sequence = te_cfg["load_sequence"]
+        dock_sequence = te_cfg["dock_sequence"]
 
         # Validate state transitions
         if goal.operation == "load" and goal.current_attached_gripper != "none":
