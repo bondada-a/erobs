@@ -284,9 +284,15 @@ class MTCMainWindow(QMainWindow):
             lambda it: self._add_task(it.data(Qt.ItemDataRole.UserRole))
         )
         # Pin the palette to exactly fit all items so nothing is hidden behind a scrollbar.
-        palette_h = item_height * len(palette_items) + 2 * self.task_toolbar.spacing() * len(palette_items) + 4
+        palette_h = (
+            item_height * len(palette_items)
+            + 2 * self.task_toolbar.spacing() * len(palette_items)
+            + 4
+        )
         self.task_toolbar.setFixedHeight(palette_h)
-        self.task_toolbar.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.task_toolbar.setVerticalScrollBarPolicy(
+            Qt.ScrollBarPolicy.ScrollBarAlwaysOff
+        )
         tasks_layout.addWidget(self.task_toolbar)
 
         templates_label = QLabel("TEMPLATES")
@@ -387,8 +393,12 @@ class MTCMainWindow(QMainWindow):
         self.clear_steps_btn = QPushButton("⌫ Clear")
         self.clear_steps_btn.setToolTip("Remove all steps from the sequence")
         self.clear_steps_btn.clicked.connect(self._clear_tasks)
-        for b in (self.up_step_btn, self.down_step_btn,
-                  self.remove_step_btn, self.clear_steps_btn):
+        for b in (
+            self.up_step_btn,
+            self.down_step_btn,
+            self.remove_step_btn,
+            self.clear_steps_btn,
+        ):
             b.setFlat(True)
             step_ops.addWidget(b)
         step_ops.addStretch(1)
@@ -447,6 +457,10 @@ class MTCMainWindow(QMainWindow):
             lambda n: self.chat_panel.set_status(f"Connected ({n} tools)")
         )
 
+        # Agent → GUI task queue (Plan/Run mode)
+        self.agent_bridge.tasks_proposed.connect(self._on_tasks_proposed)
+        self.agent_bridge.tasks_cleared.connect(self._on_agent_tasks_cleared)
+
         # Auto-connect agent on startup
         self.agent_bridge.connect_agent()
 
@@ -497,6 +511,38 @@ class MTCMainWindow(QMainWindow):
         self.config["tasks"].clear()
         self._refresh_tree()
         self._log(f"Cleared {n} step{'s' if n != 1 else ''}")
+
+    # --- Agent-driven queue updates (Plan/Run mode) ---
+
+    def _on_tasks_proposed(self, tasks: list, options: dict):
+        """Agent emitted propose_tasks. Populate the queue for human review."""
+        replace = options.get("replace", True)
+        if replace:
+            self.config["tasks"] = list(tasks)
+        else:
+            self.config["tasks"].extend(tasks)
+        # start_gripper must update the combobox — _execute snapshots from
+        # gripper_combo.currentText() at dispatch time, so writing only to
+        # config["start_gripper"] would be silently overwritten.
+        sg = options.get("start_gripper")
+        if sg:
+            idx = self.gripper_combo.findText(sg)
+            if idx >= 0:
+                self.gripper_combo.setCurrentIndex(idx)
+        if options.get("poses"):
+            self.config.setdefault("poses", {}).update(options["poses"])
+        self._refresh_tree()
+        self._log(
+            f"Agent proposed {len(tasks)} task(s) "
+            f"({'replace' if replace else 'append'})"
+        )
+
+    def _on_agent_tasks_cleared(self):
+        """Agent emitted clear_proposed_tasks."""
+        n = len(self.config["tasks"])
+        self.config["tasks"] = []
+        self._refresh_tree()
+        self._log(f"Agent cleared the task queue ({n} step(s) removed)")
 
     def _move_up(self):
         indices = self.step_list.selected_indices()
