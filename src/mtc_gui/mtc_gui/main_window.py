@@ -11,7 +11,6 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QSplitter,
-    QToolBar,
     QLabel,
     QComboBox,
     QLineEdit,
@@ -23,8 +22,12 @@ from PyQt6.QtWidgets import (
     QGroupBox,
     QDialog,
     QTabWidget,
+    QListWidget,
+    QListWidgetItem,
+    QFrame,
+    QSizePolicy,
 )
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QSize
 from PyQt6.QtGui import QFont
 from action_msgs.msg import GoalStatus
 
@@ -34,7 +37,7 @@ from .pose_dialogs import PosesManagerDialog, SavePoseDialog
 from .poses_panel import PosesPanel
 from .chat_panel import ChatPanel
 from .agent_bridge import AgentBridge
-from .step_list_panel import StepListPanel
+from .step_list_panel import StepListPanel, TASK_TYPE_CONFIG
 
 try:
     from .visualization_panel import VisualizationPanel, WEBENGINE_AVAILABLE
@@ -214,56 +217,137 @@ class MTCMainWindow(QMainWindow):
         config_layout.addStretch()
         layout.addWidget(config_box)
 
-        # Main splitter (task editor left, camera right — camera added later)
+        # Main splitter — three panes: sidebar | center (steps) | right tabs
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(self.main_splitter, stretch=1)
 
-        # Left panel — tabbed (Tasks | Poses)
+        self.main_splitter.addWidget(self._build_sidebar())
+        self.main_splitter.addWidget(self._build_center_pane())
+        self.main_splitter.addWidget(self._build_right_tabs())
+
+        # Sidebar narrow, center pane gets the room, right tabs middling
+        self.main_splitter.setStretchFactor(0, 0)
+        self.main_splitter.setStretchFactor(1, 3)
+        self.main_splitter.setStretchFactor(2, 2)
+        self.main_splitter.setSizes([240, 720, 440])
+
+    # --- Layout sub-builders ---
+
+    def _build_sidebar(self) -> QWidget:
+        """Narrow left sidebar with TASKS | POSES | RUNS tabs."""
         self.left_tabs = QTabWidget()
+        self.left_tabs.setMinimumWidth(220)
+        self.left_tabs.setMaximumWidth(320)
 
-        # --- Tasks tab ---
+        # --- TASKS tab: vertical add-task palette + templates section ---
         tasks_tab = QWidget()
-        left_layout = QVBoxLayout(tasks_tab)
-        left_layout.setContentsMargins(0, 0, 0, 0)
+        tasks_layout = QVBoxLayout(tasks_tab)
+        tasks_layout.setContentsMargins(6, 6, 6, 6)
+        tasks_layout.setSpacing(6)
 
-        # Task toolbar
-        self.task_toolbar = QToolBar()
-        self.task_toolbar.setMovable(False)
-        task_toolbar = self.task_toolbar
+        add_label = QLabel("ADD TASK")
+        add_label.setFont(QFont("Sans", 8, QFont.Weight.Bold))
+        add_label.setStyleSheet("color: #888888; letter-spacing: 1px;")
+        tasks_layout.addWidget(add_label)
+
+        # The vertical task palette doubles as our self.task_toolbar so
+        # _execute / _on_result can still disable it during runs.
+        self.task_toolbar = QListWidget()
+        self.task_toolbar.setSelectionMode(QListWidget.SelectionMode.NoSelection)
+        self.task_toolbar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.task_toolbar.setFrameShape(QFrame.Shape.NoFrame)
+        self.task_toolbar.setSpacing(2)
+        self.task_toolbar.setStyleSheet(
+            "QListWidget { background-color: transparent; border: none; }"
+            "QListWidget::item { padding: 6px 4px; border-radius: 4px; }"
+            "QListWidget::item:hover { background-color: rgba(255,255,255,0.06); }"
+        )
         for label, task_type in [
-            ("Add MoveTo", "moveto"),
-            ("Add Pick", "pick_sample"),
-            ("Add Place", "place_sample"),
-            ("Add Tool Exchange", "tool_exchange"),
-            ("Add End Effector", "end_effector"),
-            ("Add Vision MoveTo", "vision_moveto"),
-            ("Add Vision Scan", "vision_scan"),
-            ("Add Pipettor", "pipettor"),
+            ("Move To", "moveto"),
+            ("Pick Sample", "pick_sample"),
+            ("Place Sample", "place_sample"),
+            ("Tool Exchange", "tool_exchange"),
+            ("End Effector", "end_effector"),
+            ("Vision MoveTo", "vision_moveto"),
+            ("Vision Scan", "vision_scan"),
+            ("Pipettor", "pipettor"),
         ]:
-            action = task_toolbar.addAction(label)
-            action.triggered.connect(lambda checked, tt=task_type: self._add_task(tt))
+            cfg = TASK_TYPE_CONFIG.get(task_type, {})
+            icon = cfg.get("icon", "+")
+            item = QListWidgetItem(f"  {icon}   {label}")
+            item.setData(Qt.ItemDataRole.UserRole, task_type)
+            item.setSizeHint(QSize(0, 30))
+            self.task_toolbar.addItem(item)
+        self.task_toolbar.itemClicked.connect(
+            lambda it: self._add_task(it.data(Qt.ItemDataRole.UserRole))
+        )
+        tasks_layout.addWidget(self.task_toolbar)
 
-        task_toolbar.addSeparator()
-        task_toolbar.addAction("Remove", self._remove_task)
-        task_toolbar.addAction("Up", self._move_up)
-        task_toolbar.addAction("Down", self._move_down)
-        left_layout.addWidget(task_toolbar)
+        # Step reorder/remove controls (the old toolbar's last three actions)
+        step_ops = QHBoxLayout()
+        step_ops.setSpacing(4)
+        self.remove_step_btn = QPushButton("Remove")
+        self.remove_step_btn.clicked.connect(self._remove_task)
+        self.up_step_btn = QPushButton("Up")
+        self.up_step_btn.clicked.connect(self._move_up)
+        self.down_step_btn = QPushButton("Down")
+        self.down_step_btn.clicked.connect(self._move_down)
+        for b in (self.remove_step_btn, self.up_step_btn, self.down_step_btn):
+            b.setFlat(True)
+            step_ops.addWidget(b)
+        tasks_layout.addLayout(step_ops)
 
-        # Step list panel (replaces old QTreeWidget)
-        self.step_list = StepListPanel()
-        self.step_list.item_double_clicked.connect(self._edit_task_by_index)
-        left_layout.addWidget(self.step_list, stretch=1)
+        templates_label = QLabel("TEMPLATES")
+        templates_label.setFont(QFont("Sans", 8, QFont.Weight.Bold))
+        templates_label.setStyleSheet("color: #888888; letter-spacing: 1px;")
+        tasks_layout.addSpacing(8)
+        tasks_layout.addWidget(templates_label)
 
-        # Execution bar
-        exec_box = QGroupBox("Execution")
-        exec_layout = QHBoxLayout(exec_box)
+        templates_placeholder = QLabel("No saved templates yet.")
+        templates_placeholder.setStyleSheet("color: #666666; font-size: 10px;")
+        templates_placeholder.setWordWrap(True)
+        tasks_layout.addWidget(templates_placeholder)
+
+        tasks_layout.addStretch(1)
+
+        self.left_tabs.addTab(tasks_tab, "Tasks")
+
+        # --- POSES tab ---
+        self.poses_panel = PosesPanel()
+        self.poses_panel.poses_loaded.connect(self._on_poses_loaded)
+        self.left_tabs.addTab(self.poses_panel, "Poses")
+
+        # --- RUNS tab (placeholder) ---
+        runs_tab = QWidget()
+        runs_layout = QVBoxLayout(runs_tab)
+        runs_layout.setContentsMargins(6, 6, 6, 6)
+        runs_placeholder = QLabel("Run history is not implemented yet.")
+        runs_placeholder.setStyleSheet("color: #666666; font-size: 10px;")
+        runs_placeholder.setWordWrap(True)
+        runs_placeholder.setAlignment(Qt.AlignmentFlag.AlignTop)
+        runs_layout.addWidget(runs_placeholder)
+        runs_layout.addStretch(1)
+        self.left_tabs.addTab(runs_tab, "Runs")
+
+        return self.left_tabs
+
+    def _build_center_pane(self) -> QWidget:
+        """Center pane: execution toolbar (top), step list (middle), status log (bottom)."""
+        center = QWidget()
+        center_layout = QVBoxLayout(center)
+        center_layout.setContentsMargins(4, 4, 4, 4)
+        center_layout.setSpacing(4)
+
+        # Top execution toolbar — Execute / Pause / Resume / Stop + progress
+        exec_bar = QFrame()
+        exec_bar.setFrameShape(QFrame.Shape.NoFrame)
+        exec_layout = QHBoxLayout(exec_bar)
+        exec_layout.setContentsMargins(4, 4, 4, 4)
+        exec_layout.setSpacing(6)
+
         self.exec_btn = QPushButton("Execute")
         self.exec_btn.clicked.connect(self._execute)
         exec_layout.addWidget(self.exec_btn)
-        self.stop_btn = QPushButton("Stop")
-        self.stop_btn.setEnabled(False)
-        self.stop_btn.clicked.connect(self.ros2.stop_execution)
-        exec_layout.addWidget(self.stop_btn)
         self.pause_btn = QPushButton("Pause")
         self.pause_btn.setEnabled(False)
         self.pause_btn.clicked.connect(self.ros2.pause_task)
@@ -272,47 +356,50 @@ class MTCMainWindow(QMainWindow):
         self.resume_btn.setEnabled(False)
         self.resume_btn.clicked.connect(self.ros2.resume_task)
         exec_layout.addWidget(self.resume_btn)
+        self.stop_btn = QPushButton("Stop")
+        self.stop_btn.setEnabled(False)
+        self.stop_btn.clicked.connect(self.ros2.stop_execution)
+        exec_layout.addWidget(self.stop_btn)
+
+        exec_layout.addSpacing(8)
         self.progress_bar = QProgressBar()
         exec_layout.addWidget(self.progress_bar, stretch=1)
-        left_layout.addWidget(exec_box)
+        center_layout.addWidget(exec_bar)
 
-        # Status log
+        # Step list
+        self.step_list = StepListPanel()
+        self.step_list.item_double_clicked.connect(self._edit_task_by_index)
+        self.step_list.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
+        )
+        center_layout.addWidget(self.step_list, stretch=1)
+
+        # Status log (bottom)
         self.status_log = QTextEdit()
         self.status_log.setReadOnly(True)
-        self.status_log.setMaximumHeight(180)
+        self.status_log.setMaximumHeight(140)
         self.status_log.setFont(QFont("Monospace", 9))
-        left_layout.addWidget(self.status_log)
+        center_layout.addWidget(self.status_log)
 
-        self.left_tabs.addTab(tasks_tab, "Tasks")
+        return center
 
-        # --- Poses tab ---
-        self.poses_panel = PosesPanel()
-        self.poses_panel.poses_loaded.connect(self._on_poses_loaded)
-        self.left_tabs.addTab(self.poses_panel, "Poses")
-
-        self.main_splitter.addWidget(self.left_tabs)
-
-        # Right panel — tabbed (Chat | Camera)
+    def _build_right_tabs(self) -> QWidget:
+        """Right panel: Chat / Camera / 3D View tabs (unchanged from before)."""
         right_tabs = QTabWidget()
 
-        # Chat panel (always available)
         self.chat_panel = ChatPanel()
         self.agent_bridge = AgentBridge()
         right_tabs.addTab(self.chat_panel, "Chat")
 
-        # Camera panel (only if ROS2 available)
         if ROS2_AVAILABLE:
             self.camera = CameraPanel(self.ros2)
             right_tabs.addTab(self.camera, "Camera")
 
-        # 3D visualization panel
         if WEBENGINE_AVAILABLE:
             self.viz_panel = VisualizationPanel(self.ros2)
             right_tabs.addTab(self.viz_panel, "3D View")
 
-        self.main_splitter.addWidget(right_tabs)
-        self.main_splitter.setStretchFactor(0, 3)
-        self.main_splitter.setStretchFactor(1, 1)
+        return right_tabs
 
     # --- Signal Connections ---
 
