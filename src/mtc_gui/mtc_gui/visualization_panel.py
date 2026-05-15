@@ -1,8 +1,10 @@
 """3D robot visualization panel using QWebEngineView + Three.js + urdf-loaders."""
 
+import json
 import math
 import time
 import threading
+import yaml
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from functools import partial
@@ -119,6 +121,26 @@ def _resolve_packages():
                 break
 
     return packages
+
+
+def _resolve_scene_yaml():
+    """Locate beamline_scene.yaml. Workspace source first (so YAML edits during
+    development show up on Reload Scene without rebuilding), ament share as
+    fallback for installed-only deployments.
+    """
+    for ws in _find_workspace_roots():
+        candidate = ws / "src" / "beambot" / "config" / "beamline_scene.yaml"
+        if candidate.is_file():
+            return candidate
+    try:
+        from ament_index_python.packages import get_package_share_directory
+        share = Path(get_package_share_directory("beambot"))
+        candidate = share / "config" / "beamline_scene.yaml"
+        if candidate.is_file():
+            return candidate
+    except Exception:
+        pass
+    return None
 
 
 class _MeshRequestHandler(SimpleHTTPRequestHandler):
@@ -245,6 +267,15 @@ class VisualizationPanel(QWidget):
         self._btn_stop_preview.setVisible(False)
         toolbar.addWidget(self._btn_stop_preview)
 
+        btn_reload_scene = QPushButton("Reload Scene")
+        btn_reload_scene.setFixedHeight(24)
+        btn_reload_scene.setToolTip(
+            "Reload static planning scene from beamline_scene.yaml.\n"
+            "Preview only — MoveIt's scene may differ until restart."
+        )
+        btn_reload_scene.clicked.connect(self._reload_scene)
+        toolbar.addWidget(btn_reload_scene)
+
         toolbar.addStretch()
         self._preview_label = QLabel("")
         self._preview_label.setStyleSheet(
@@ -304,6 +335,7 @@ class VisualizationPanel(QWidget):
             self._page_ready = True
             self._status.setText("Ready")
             self._load_urdf(self._current_gripper)
+            self._reload_scene()
 
     def _load_urdf(self, gripper):
         if not self._page_ready:
@@ -432,6 +464,66 @@ class VisualizationPanel(QWidget):
                 interp = [round(p0[k] + alpha * (p1[k] - p0[k]), 3) for k in range(6)]
                 self.web_view.page().runJavaScript(f"window.updateJoints({interp})")
                 return
+
+    def _reload_scene(self):
+        """Read beamline_scene.yaml and push obstacles to the JS viewer.
+        No-op if the page isn't ready. All errors surface via the status
+        label, never raised — the panel must remain functional.
+        """
+        if not self._page_ready:
+            return
+        yaml_path = _resolve_scene_yaml()
+        if yaml_path is None:
+            self._status.setText("Scene YAML not found")
+            return
+        try:
+            with open(yaml_path, "r") as f:
+                cfg = yaml.safe_load(f) or {}
+        except Exception as e:
+            self._status.setText(f"Scene YAML parse error: {e}")
+            return
+
+        payload = []
+        skipped = 0
+        for obs in cfg.get("obstacles") or []:
+            try:
+                obs_type = str(obs["type"])
+                pose = obs.get("pose") or {}
+                pos = [float(pose.get(k, 0.0)) for k in ("x", "y", "z")]
+                rot = [float(pose.get(k, 0.0)) for k in ("roll", "pitch", "yaw")]
+                if obs_type == "box":
+                    size = obs["size"]
+                    dims = {"size": [float(size[0]), float(size[1]), float(size[2])]}
+                elif obs_type == "cylinder":
+                    dims = {
+                        "height": float(obs["height"]),
+                        "radius": float(obs["radius"]),
+                    }
+                elif obs_type == "sphere":
+                    dims = {"radius": float(obs["radius"])}
+                else:
+                    skipped += 1
+                    continue
+                payload.append(
+                    {
+                        "name": str(obs["name"]),
+                        "type": obs_type,
+                        "pos": pos,
+                        "rot": rot,
+                        "dims": dims,
+                    }
+                )
+            except (KeyError, TypeError, ValueError):
+                skipped += 1
+                continue
+
+        self.web_view.page().runJavaScript(
+            f"window.setSceneObstacles({json.dumps(payload)})"
+        )
+        msg = f"Scene: {len(payload)} obstacles"
+        if skipped:
+            msg += f" ({skipped} skipped)"
+        self._status.setText(msg)
 
     def closeEvent(self, event):
         self._preview_timer.stop()
