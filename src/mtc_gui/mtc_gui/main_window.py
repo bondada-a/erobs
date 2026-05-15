@@ -464,6 +464,10 @@ class MTCMainWindow(QMainWindow):
         self.agent_bridge.tasks_cleared.connect(self._on_agent_tasks_cleared)
         self.agent_bridge.execution_requested.connect(self._on_agent_execute_requested)
 
+        # Mode toggle: chat panel ↔ bridge
+        self.chat_panel.mode_change_requested.connect(self.agent_bridge.set_mode)
+        self.agent_bridge.mode_changed.connect(self._on_agent_mode_changed)
+
         # Auto-connect agent on startup
         self.agent_bridge.connect_agent()
 
@@ -562,6 +566,16 @@ class MTCMainWindow(QMainWindow):
         self._execution_initiator = "agent"
         self._log(f"Agent dispatched execution ({len(self.config['tasks'])} task(s))")
         self._execute()
+
+    def _on_agent_mode_changed(self, mode: str):
+        """Bridge confirmed the new mode. Reset chat and update the panel."""
+        self.chat_panel.clear_chat()
+        self.chat_panel.set_mode_label(mode)
+        self.chat_panel.set_status(f"Mode: {mode}")
+        self.chat_panel.append_assistant(
+            f"Switched to {mode.upper()} mode. Conversation reset."
+        )
+        self._log(f"Agent mode → {mode}")
 
     def _move_up(self):
         indices = self.step_list.selected_indices()

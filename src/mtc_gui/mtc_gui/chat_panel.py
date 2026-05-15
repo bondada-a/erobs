@@ -12,6 +12,8 @@ from PyQt6.QtWidgets import (
     QTextEdit,
     QSizePolicy,
     QFrame,
+    QButtonGroup,
+    QRadioButton,
 )
 from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QEvent
 
@@ -140,7 +142,9 @@ class MessageBubble(QFrame):
             background: transparent;
             padding: 0;
         """)
-        msg_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        msg_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
         msg_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         bubble_layout.addWidget(msg_label)
 
@@ -155,7 +159,9 @@ class MessageBubble(QFrame):
                 padding: 0 4px;
             """)
             ts_label.setAlignment(
-                Qt.AlignmentFlag.AlignLeft if not is_user else Qt.AlignmentFlag.AlignRight
+                Qt.AlignmentFlag.AlignLeft
+                if not is_user
+                else Qt.AlignmentFlag.AlignRight
             )
             outer.addWidget(ts_label)
 
@@ -238,7 +244,9 @@ class ErrorBubble(QFrame):
     def __init__(self, text: str, parent=None):
         super().__init__(parent)
         self.setFrameShape(QFrame.Shape.NoFrame)
-        self.setStyleSheet("ErrorBubble { background: transparent; margin-right: 48px; }")
+        self.setStyleSheet(
+            "ErrorBubble { background: transparent; margin-right: 48px; }"
+        )
 
         outer = QVBoxLayout(self)
         outer.setContentsMargins(8, 2, 8, 2)
@@ -274,7 +282,9 @@ class ErrorBubble(QFrame):
             background: transparent;
             padding: 0;
         """)
-        msg_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        msg_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
+        )
         msg_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
         bubble_layout.addWidget(msg_label)
 
@@ -345,6 +355,7 @@ class ChatPanel(QWidget):
     """Modern chat widget with scrollable message list and input area."""
 
     message_submitted = pyqtSignal(str)
+    mode_change_requested = pyqtSignal(str)  # "plan" or "run"
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -369,6 +380,30 @@ class ChatPanel(QWidget):
         title = QLabel("Beambot Assistant")
         title.setStyleSheet("color: #e0e0e0; font-size: 14px; font-weight: bold;")
         header_layout.addWidget(title)
+
+        # Mode toggle (Plan | Run). Plan is the default safe state.
+        self._mode_group = QButtonGroup(self)
+        self._mode_group.setExclusive(True)
+        self._plan_radio = QRadioButton("Plan")
+        self._run_radio = QRadioButton("Run")
+        self._plan_radio.setChecked(True)
+        radio_style = (
+            "QRadioButton { color: #cccccc; font-size: 12px; padding: 0 8px; }"
+        )
+        self._plan_radio.setStyleSheet(radio_style)
+        self._run_radio.setStyleSheet(radio_style)
+        self._plan_radio.setToolTip(
+            "Agent proposes; human reviews and presses Execute."
+        )
+        self._run_radio.setToolTip("Agent proposes and dispatches via the GUI.")
+        self._mode_group.addButton(self._plan_radio)
+        self._mode_group.addButton(self._run_radio)
+        header_layout.addWidget(self._plan_radio)
+        header_layout.addWidget(self._run_radio)
+        # toggled fires twice on a switch (old=False, new=True). Filter to "True".
+        self._plan_radio.toggled.connect(self._on_mode_radio_toggled)
+        self._run_radio.toggled.connect(self._on_mode_radio_toggled)
+
         header_layout.addStretch()
 
         self._status_label = QLabel("Connecting...")
@@ -534,7 +569,33 @@ class ChatPanel(QWidget):
             if item.widget():
                 item.widget().deleteLater()
 
+    def set_mode_label(self, mode: str) -> None:
+        """Re-enable mode radios and refresh the status label suffix."""
+        self._plan_radio.setEnabled(True)
+        self._run_radio.setEnabled(True)
+        # Sync the radios in case the mode change came from elsewhere
+        if mode == "plan" and not self._plan_radio.isChecked():
+            self._plan_radio.blockSignals(True)
+            self._plan_radio.setChecked(True)
+            self._plan_radio.blockSignals(False)
+        elif mode == "run" and not self._run_radio.isChecked():
+            self._run_radio.blockSignals(True)
+            self._run_radio.setChecked(True)
+            self._run_radio.blockSignals(False)
+
     # -- Private helpers --
+
+    def _on_mode_radio_toggled(self, checked: bool) -> None:
+        # toggled fires for both the deselected and selected radio.
+        # Only react to the radio that just became selected.
+        if not checked:
+            return
+        mode = "plan" if self._plan_radio.isChecked() else "run"
+        # Disable both radios until the bridge confirms via mode_changed.
+        # Prevents a rapid double-toggle while the agent is being rebuilt.
+        self._plan_radio.setEnabled(False)
+        self._run_radio.setEnabled(False)
+        self.mode_change_requested.emit(mode)
 
     def _on_send(self) -> None:
         text = self.input_field.toPlainText().strip()

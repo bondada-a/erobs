@@ -28,6 +28,7 @@ class AgentBridge(QObject):
     execution_requested = pyqtSignal()  # agent called execute_queue
     execution_outcome = pyqtSignal(bool, str, int, int)
     # ^ (success, error_message, completed_steps, total_steps)
+    mode_changed = pyqtSignal(str)  # "plan" or "run", fires after rebuild completes
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -71,6 +72,13 @@ class AgentBridge(QObject):
         if self._thread:
             self._thread.join(timeout=3.0)
             self._thread = None
+
+    def set_mode(self, mode: str):
+        """Switch between Plan and Run. Rebuilds the agent on the bg loop."""
+        if not self._loop:
+            self.error_occurred.emit("Agent not connected; cannot change mode")
+            return
+        asyncio.run_coroutine_threadsafe(self._async_set_mode(mode), self._loop)
 
     def notify_execution_complete(
         self, success: bool, error: str, completed: int, total: int
@@ -132,6 +140,52 @@ class AgentBridge(QObject):
                 self._agent = None
         finally:
             self._loop.stop()
+
+    async def _async_set_mode(self, mode: str):
+        """Tear down the current agent and rebuild it for the new mode."""
+        if mode == self._mode:
+            self.mode_changed.emit(mode)
+            return
+        if mode not in ("plan", "run"):
+            self.error_occurred.emit(f"Unknown mode: {mode!r}")
+            self.mode_changed.emit(self._mode)
+            return
+
+        # Resolve any in-flight execute_queue future so the old agent's
+        # await doesn't dangle forever when we tear it down.
+        if (
+            self._pending_exec_future is not None
+            and not self._pending_exec_future.done()
+        ):
+            self._pending_exec_future.set_result(
+                (False, "Mode changed mid-execution", 0, 0)
+            )
+            self._pending_exec_future = None
+
+        try:
+            if self._agent:
+                await self._agent.disconnect()
+                self._agent = None
+        except Exception as e:
+            self.error_occurred.emit(f"Mode switch teardown error: {e}")
+
+        self._mode = mode
+        try:
+            from beambot.agent.robot_agent import RobotAgent
+
+            self._agent = RobotAgent(
+                system_prompt_prefix=banner_for(mode),
+                extra_tools=local_tools_for(mode),
+                extra_dispatch=self._local_dispatch,
+                tool_filter=tool_filter_for(mode),
+            )
+            await self._agent.connect()
+            self.connected.emit(len(self._agent.tools))
+            self.mode_changed.emit(mode)
+        except Exception as e:
+            self.error_occurred.emit(f"Mode switch reconnect failed: {e}")
+            # Still emit mode_changed so the chat panel re-enables radios.
+            self.mode_changed.emit(mode)
 
     # --- Local tool dispatch (runs on background event loop) ---
 
