@@ -155,6 +155,8 @@ class MTCMainWindow(QMainWindow):
         }
         self.current_json_file = None
         self.current_robot_pose = None
+        # "human" or "agent" — tells _on_result whether to notify the bridge
+        self._execution_initiator = "human"
 
         self.setWindowTitle("MTC GUI Client (beambot)")
         self.resize(1400, 900)
@@ -460,6 +462,7 @@ class MTCMainWindow(QMainWindow):
         # Agent → GUI task queue (Plan/Run mode)
         self.agent_bridge.tasks_proposed.connect(self._on_tasks_proposed)
         self.agent_bridge.tasks_cleared.connect(self._on_agent_tasks_cleared)
+        self.agent_bridge.execution_requested.connect(self._on_agent_execute_requested)
 
         # Auto-connect agent on startup
         self.agent_bridge.connect_agent()
@@ -544,6 +547,22 @@ class MTCMainWindow(QMainWindow):
         self._refresh_tree()
         self._log(f"Agent cleared the task queue ({n} step(s) removed)")
 
+    def _on_agent_execute_requested(self):
+        """Agent emitted execute_queue (Run mode). Reuse the human Execute path."""
+        if self.ros2._current_goal_handle is not None:
+            self.agent_bridge.notify_execution_complete(
+                False, "Another goal is already executing", 0, 0
+            )
+            return
+        if not self.config["tasks"]:
+            self.agent_bridge.notify_execution_complete(
+                False, "Task queue is empty", 0, 0
+            )
+            return
+        self._execution_initiator = "agent"
+        self._log(f"Agent dispatched execution ({len(self.config['tasks'])} task(s))")
+        self._execute()
+
     def _move_up(self):
         indices = self.step_list.selected_indices()
         if len(indices) != 1:
@@ -621,6 +640,15 @@ class MTCMainWindow(QMainWindow):
         else:
             self.step_list.finish_execution("failed", completed)
             self._log(f"Task failed: {error_msg} ({completed}/{total} steps)")
+
+        # Notify the agent bridge if this run was agent-initiated; resolves
+        # the pending execute_queue future so the agent can continue.
+        if self._execution_initiator == "agent":
+            success = status == GoalStatus.STATUS_SUCCEEDED
+            self.agent_bridge.notify_execution_complete(
+                success, error_msg, completed, total
+            )
+        self._execution_initiator = "human"
 
     def _on_joint_state(self, pose):
         self.current_robot_pose = pose

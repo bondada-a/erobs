@@ -25,6 +25,9 @@ class AgentBridge(QObject):
     # Plan/Run additions
     tasks_proposed = pyqtSignal(list, dict)  # (tasks, options)
     tasks_cleared = pyqtSignal()
+    execution_requested = pyqtSignal()  # agent called execute_queue
+    execution_outcome = pyqtSignal(bool, str, int, int)
+    # ^ (success, error_message, completed_steps, total_steps)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -32,6 +35,7 @@ class AgentBridge(QObject):
         self._thread = None
         self._agent = None
         self._mode = "plan"  # default; flipped by set_mode in commit 5
+        self._pending_exec_future = None  # asyncio.Future awaited by execute_queue
 
     # --- Public API (called from Qt main thread) ---
 
@@ -67,6 +71,26 @@ class AgentBridge(QObject):
         if self._thread:
             self._thread.join(timeout=3.0)
             self._thread = None
+
+    def notify_execution_complete(
+        self, success: bool, error: str, completed: int, total: int
+    ):
+        """Resolve any pending execute_queue future and broadcast outcome.
+
+        Called from the Qt main thread by MTCMainWindow._on_result when the
+        run was agent-initiated. Crosses the thread boundary into asyncio
+        via call_soon_threadsafe.
+        """
+        payload = (success, error, completed, total)
+        if (
+            self._loop
+            and self._pending_exec_future is not None
+            and not self._pending_exec_future.done()
+        ):
+            self._loop.call_soon_threadsafe(
+                self._pending_exec_future.set_result, payload
+            )
+        self.execution_outcome.emit(success, error, completed, total)
 
     # --- Async internals (run on background event loop) ---
 
@@ -143,10 +167,20 @@ class AgentBridge(QObject):
                 return "Task queue cleared."
 
             if name == "execute_queue":
-                # Wired in commit 3. Safe stub for now.
                 if self._mode != "run":
                     return "execute_queue is unavailable in Plan mode."
-                return "execute_queue not yet implemented (commit 3 pending)."
+                if self._pending_exec_future is not None:
+                    return "Error: an execute_queue call is already pending."
+                loop = asyncio.get_event_loop()
+                self._pending_exec_future = loop.create_future()
+                self.execution_requested.emit()
+                try:
+                    success, error, completed, total = await self._pending_exec_future
+                finally:
+                    self._pending_exec_future = None
+                status = "succeeded" if success else "failed"
+                tail = f": {error}" if error else ""
+                return f"Execution {status} ({completed}/{total} steps){tail}"
 
             return f"Error: unknown local tool '{name}'"
         except Exception as e:
