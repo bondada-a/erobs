@@ -8,7 +8,6 @@ poses_file: "src/cms/poses.yaml"                          # Relative to workspac
 scene_file: "src/beambot/config/beamline_scene.yaml"      # Static planning-scene obstacles
 
 robot:
-  model: "ur5e"
   ip: "192.168.1.101"          # Default IP from current launch files
   arm_group: "ur_arm"
   ik_frame: "flange"           # Matches SRDF chain (common.srdf.xacro: base_link → flange)
