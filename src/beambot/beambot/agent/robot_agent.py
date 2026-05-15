@@ -1,22 +1,28 @@
 """Lightweight agentic loop: Claude API + MCP client for robot control."""
 
-import asyncio
 import json
 import logging
 import os
 from contextlib import AsyncExitStack
+from typing import Awaitable, Callable, Optional
 
 from mcp.client.session import ClientSession
 from mcp.client.stdio import stdio_client, StdioServerParameters
 
 logger = logging.getLogger(__name__)
 
+# Sentinel stored in tool_to_session for tools handled by extra_dispatch
+# rather than an MCP server. _call_tool reads it to route locally.
+_LOCAL_SESSION_SENTINEL = "__local__"
+
 # Path to the shared robot-operation prompt. Colocated with this module so the
 # same file drives the CLI, the GUI chat panel (via RobotAgent), and the
 # .claude/skills/robot-operation skill (which cats it into Claude Code's context).
 # Read fresh on every RobotAgent() construction so prompt edits take effect on
 # the next chat without restarting the host process.
-_PROMPT_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "robot_operation.md")
+_PROMPT_PATH = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)), "robot_operation.md"
+)
 
 
 def _load_system_prompt() -> str:
@@ -35,28 +41,48 @@ def _create_client():
     """
     if os.environ.get("CLAUDE_CODE_USE_BEDROCK") == "1":
         from anthropic import AnthropicBedrock
-        region = os.environ.get("AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1"))
+
+        region = os.environ.get(
+            "AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
+        )
         client = AnthropicBedrock(aws_region=region)
         # Use regional model ID (us. prefix). For global routing use "global." prefix instead.
         default_model = "us.anthropic.claude-opus-4-6-v1"
         return client, default_model
     else:
         from anthropic import Anthropic
+
         return Anthropic(), "claude-sonnet-4-5-20250514"
 
 
 class RobotAgent:
     """Direct Claude API → MCP tool loop. No Claude Code overhead."""
 
-    def __init__(self, model=None, mcp_config_path=None):
+    def __init__(
+        self,
+        model=None,
+        mcp_config_path=None,
+        system_prompt_prefix: str = "",
+        extra_tools: Optional[list] = None,
+        extra_dispatch: Optional[Callable[[str, dict], Awaitable[str]]] = None,
+        tool_filter: Optional[Callable[[str, str], bool]] = None,
+    ):
         self.client, default_model = _create_client()
         self.model = model or default_model
-        self.system_prompt = _load_system_prompt()
-        self.tools = []              # Anthropic API tool format
-        self.tool_to_session = {}    # tool_name -> ClientSession
-        self.messages = []           # conversation history
+        base_prompt = _load_system_prompt()
+        self.system_prompt = (
+            f"{system_prompt_prefix}\n\n---\n\n{base_prompt}"
+            if system_prompt_prefix
+            else base_prompt
+        )
+        self.tools = []  # Anthropic API tool format
+        self.tool_to_session = {}  # tool_name -> ClientSession or sentinel
+        self.messages = []  # conversation history
         self._exit_stack = AsyncExitStack()
         self._mcp_config_path = mcp_config_path
+        self._extra_tools = list(extra_tools or [])
+        self._extra_dispatch = extra_dispatch
+        self._tool_filter = tool_filter
 
     async def connect(self):
         """Connect to all MCP servers defined in .mcp.json."""
@@ -75,9 +101,15 @@ class RobotAgent:
             except Exception as e:
                 logger.warning(f"Failed to connect to MCP server '{name}': {e}")
 
+        # Register caller-supplied local tools (handled by extra_dispatch).
+        for tool in self._extra_tools:
+            self.tools.append(tool)
+            self.tool_to_session[tool["name"]] = _LOCAL_SESSION_SENTINEL
+
         logger.info(
-            f"Connected: {len(self.tools)} tools from "
-            f"{len(set(self.tool_to_session.values()))} server(s)"
+            f"Connected: {len(self.tools)} tools "
+            f"({len(self._extra_tools)} local) from "
+            f"{len({s for s in self.tool_to_session.values() if s != _LOCAL_SESSION_SENTINEL})} server(s)"
         )
 
     async def _connect_server(self, name, server_cfg):
@@ -92,20 +124,29 @@ class RobotAgent:
         streams = await self._exit_stack.enter_async_context(stdio_client(params))
         read_stream, write_stream = streams
 
-        session = await self._exit_stack.enter_async_context(ClientSession(read_stream, write_stream))
+        session = await self._exit_stack.enter_async_context(
+            ClientSession(read_stream, write_stream)
+        )
         await session.initialize()
 
         # Register tools
         result = await session.list_tools()
+        registered = 0
         for tool in result.tools:
-            self.tools.append({
-                "name": tool.name,
-                "description": tool.description or "",
-                "input_schema": tool.inputSchema,
-            })
+            if self._tool_filter and not self._tool_filter(name, tool.name):
+                logger.debug(f"  {name}: filtered out '{tool.name}'")
+                continue
+            self.tools.append(
+                {
+                    "name": tool.name,
+                    "description": tool.description or "",
+                    "input_schema": tool.inputSchema,
+                }
+            )
             self.tool_to_session[tool.name] = session
+            registered += 1
 
-        logger.info(f"  {name}: {len(result.tools)} tools")
+        logger.info(f"  {name}: {registered}/{len(result.tools)} tools")
 
     async def chat(self, user_message: str, on_tool_call=None, on_text=None) -> str:
         """Send message, execute tool calls in a loop, return final text.
@@ -132,12 +173,14 @@ class RobotAgent:
                 if block.type == "text":
                     content.append({"type": "text", "text": block.text})
                 elif block.type == "tool_use":
-                    content.append({
-                        "type": "tool_use",
-                        "id": block.id,
-                        "name": block.name,
-                        "input": block.input,
-                    })
+                    content.append(
+                        {
+                            "type": "tool_use",
+                            "id": block.id,
+                            "name": block.name,
+                            "input": block.input,
+                        }
+                    )
             self.messages.append({"role": "assistant", "content": content})
 
             # If no tool calls, return final text
@@ -154,20 +197,30 @@ class RobotAgent:
                     result_text = await self._call_tool(block.name, block.input)
                     if on_tool_call:
                         on_tool_call(block.name, block.input, result_text)
-                    tool_results.append({
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": result_text,
-                    })
+                    tool_results.append(
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": block.id,
+                            "content": result_text,
+                        }
+                    )
 
             if tool_results:
                 self.messages.append({"role": "user", "content": tool_results})
 
     async def _call_tool(self, name: str, arguments: dict) -> str:
-        """Route tool call to the correct MCP server session."""
+        """Route tool call to the correct MCP server session or local dispatcher."""
         session = self.tool_to_session.get(name)
         if not session:
             return f"Error: tool '{name}' not found in any connected MCP server"
+
+        if session == _LOCAL_SESSION_SENTINEL:
+            if self._extra_dispatch is None:
+                return f"Error: tool '{name}' is local but no dispatcher is configured"
+            try:
+                return await self._extra_dispatch(name, arguments)
+            except Exception as e:
+                return f"Error in local dispatch for '{name}': {e}"
 
         try:
             result = await session.call_tool(name, arguments)
