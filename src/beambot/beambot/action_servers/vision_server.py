@@ -6,11 +6,8 @@ Both actions share the same VisionStages instance so the tag pose cache
 populated by vision_scan is available to vision_moveto.
 """
 
-import yaml
 from rclpy.action import ActionServer
 from std_srvs.srv import Trigger
-
-from ament_index_python.packages import get_package_share_directory
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
 from beambot.stages.vision_stages import VisionStages
@@ -53,23 +50,13 @@ class VisionActionServer(BaseActionServer):
 
     def create_stages(self):
         """Build VisionStages with camera config from beamline config."""
-        self.declare_parameter(
-            "beamline_config",
-            get_package_share_directory("beambot") + "/config/default_beamline.yaml"
+        from beambot.config_loader import load_beamline_config
+        config, _ = load_beamline_config()
+        camera_config = config.get("camera", {})
+        self.get_logger().info(
+            f"Camera config: type={camera_config.get('type')}, "
+            f"frame={camera_config.get('frame')}"
         )
-        config_file = self.get_parameter("beamline_config").value
-
-        camera_config = {}
-        try:
-            with open(config_file, 'r') as f:
-                config = yaml.safe_load(f)
-            camera_config = config.get("camera", {})
-            self.get_logger().info(
-                f"Camera config: type={camera_config.get('type', 'zivid')}, "
-                f"frame={camera_config.get('frame', 'zivid_optical_frame')}"
-            )
-        except Exception as e:
-            self.get_logger().warning(f"Failed to load camera config: {e}, using defaults")
 
         return VisionStages(
             self,

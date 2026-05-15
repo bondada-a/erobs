@@ -112,36 +112,20 @@ class MTCOrchestratorServer(Node):
         self._pause_event = threading.Event()
         self._pause_event.set()  # Start in "go" state (not blocked)
 
-        # Load beamline configuration (single source of truth)
-        self.declare_parameter("beamline_config", "config/default_beamline.yaml")
+        # Load beamline configuration (single source of truth, BEAMBOT_BEAMLINE_CONFIG env var)
+        from beambot.config_loader import load_beamline_config, resolve_beamline_path
         self.declare_parameter("use_mock_hardware", False)
         self.declare_parameter("enable_batching", True)
         self.declare_parameter("cup_profile", "")  # Override cup profile (empty = use beamline config default)
-        config_file = self.get_parameter("beamline_config").value
         self._use_mock_hardware = self.get_parameter("use_mock_hardware").value
         self._enable_batching = self.get_parameter("enable_batching").value
 
-        with open(config_file, 'r') as f:
-            config = yaml.safe_load(f)
-
-        # Resolve poses_file relative to workspace root (parent of src/ and install/)
-        poses_rel = config.get("poses_file", "")
-        self._poses_file = ""
-        if poses_rel:
-            config_dir = os.path.dirname(os.path.realpath(config_file))
-            candidate = config_dir
-            for _ in range(10):
-                if os.path.isdir(os.path.join(candidate, "src")):
-                    self._poses_file = os.path.join(candidate, poses_rel)
-                    break
-                parent = os.path.dirname(candidate)
-                if parent == candidate:
-                    break
-                candidate = parent
+        config, config_file = load_beamline_config()
+        self._poses_file = resolve_beamline_path(config.get("poses_file", ""), config_file)
 
         self._grippers = config["grippers"]  # Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group, states}
         self._robot_ip = config["robot"]["ip"]  # Single source: config file
-        self._arm_group = config.get("robot", {}).get("arm_group", "ur_manipulator")  # For batched execution
+        self._arm_group = config.get("robot", {}).get("arm_group", "ur_arm")  # For batched execution
         self.get_logger().info(f"Loaded beamline: {config['beamline']} (robot: {self._robot_ip})")
         if self._use_mock_hardware:
             self.get_logger().info("Using FAKE HARDWARE (simulation mode)")
@@ -439,14 +423,18 @@ class MTCOrchestratorServer(Node):
 
     # ---- Plan cache (dry-run -> execute reuse) -------------------------
 
-    # UR5e arm joints monitored for the "robot moved since plan" check.
-    _ARM_JOINTS_FOR_DRIFT = (
-        "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
-        "wrist_1_joint", "wrist_2_joint", "wrist_3_joint",
-    )
+    # Arm joints monitored for the "robot moved since plan" check are
+    # sourced from the active beamline YAML (robot.arm_joints) — see
+    # _arm_joints_for_drift property below.
     # Tolerance: 1 degree on any joint. Tight enough to catch an operator
     # jog, loose enough to ignore controller-side noise on a stationary arm.
     _CACHE_DRIFT_TOLERANCE_RAD = math.radians(1.0)
+
+    @property
+    def _ARM_JOINTS_FOR_DRIFT(self) -> tuple:
+        """Tuple of arm joint names to watch for plan-cache drift checks."""
+        from beambot.config_loader import arm_joint_names
+        return tuple(arm_joint_names())
 
     def _compute_plan_cache_key(self, full_json: str, gripper: str) -> str:
         """Compute a stable key from goal JSON + gripper.
@@ -1258,18 +1246,15 @@ class MTCOrchestratorServer(Node):
             self._toolexchange_client, goal, "tool_exchange", self._timeouts["tool_exchange"]
         )
 
-    # Gripper name → IK tip frame mapping
-    _GRIPPER_IK_FRAMES = {
-        "epick": "epick_tip",
-        "hande": "robotiq_hande_end",
-        "pipettor": "pipette_tip_link",
-        "2fg7": "2fg7_tip",
-        "none": "flange",
-    }
-
     def _gripper_ik_frame(self) -> str:
-        """Return the IK frame for the currently attached gripper."""
-        return self._GRIPPER_IK_FRAMES.get(self._current_gripper, "flange")
+        """Return the IK tip frame for the currently attached gripper.
+
+        Reads grippers.<name>.tip_frame from the active beamline YAML. The
+        single source of truth lives there so adding a gripper at a new
+        beamline is a YAML edit, not a code change.
+        """
+        from beambot.config_loader import gripper_tip_frame
+        return gripper_tip_frame(self._current_gripper, default="flange")
 
     def _gripper_z_offset(self) -> float:
         """Default Z offset for the currently attached gripper (meters)."""

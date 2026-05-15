@@ -160,6 +160,11 @@ class MTCMainWindow(QMainWindow):
         self._execution_initiator = "human"
         self._last_goal_was_dry_run = False
 
+        # Load beamline YAML once, before _build_central uses fields from it.
+        # Soft-fail: GUI can still open as a JSON inspector when no robot is
+        # configured; operator can type the IP into the QLineEdit by hand.
+        self._beamline_config, self._beamline_config_path = self._load_beamline_yaml()
+
         self.setWindowTitle("MTC GUI Client (beambot)")
         self.resize(1400, 900)
 
@@ -201,12 +206,22 @@ class MTCMainWindow(QMainWindow):
         config_box = QGroupBox("Robot Configuration")
         config_layout = QHBoxLayout(config_box)
         config_layout.addWidget(QLabel("Robot IP:"))
-        self.robot_ip_edit = QLineEdit("192.168.1.101")
+        default_ip = self._beamline_config.get("robot", {}).get("ip", "")
+        # Read-only: the IP comes from $BEAMBOT_BEAMLINE_CONFIG (YAML is the
+        # single source of truth). Displayed here for operator awareness;
+        # not editable from the GUI to avoid silently diverging from what
+        # the orchestrator actually connects to.
+        self.robot_ip_edit = QLineEdit(default_ip)
         self.robot_ip_edit.setMaximumWidth(150)
+        self.robot_ip_edit.setReadOnly(True)
+        self.robot_ip_edit.setToolTip(
+            "Sourced from $BEAMBOT_BEAMLINE_CONFIG (robot.ip). "
+            "Edit the YAML and restart to change."
+        )
         config_layout.addWidget(self.robot_ip_edit)
         config_layout.addWidget(QLabel("Start Gripper:"))
         self.gripper_combo = QComboBox()
-        self.gripper_combo.addItems(["epick", "hande", "2fg7", "pipettor", "none"])
+        self.gripper_combo.addItems(list(self._beamline_config.get("grippers", {}).keys()))
         # Changing gripper invalidates any cached dry-run plan (different SRDF).
         self.gripper_combo.currentTextChanged.connect(
             lambda _: self._set_plan_cached(False)
@@ -844,23 +859,45 @@ class MTCMainWindow(QMainWindow):
 
     # --- Pose Management ---
 
-    def _load_beamline_poses(self):
-        """Load poses from the beamline config's poses_file on startup."""
-        # Resolve workspace root (directory containing src/)
-        here = Path(__file__).resolve()
-        workspace_root = None
-        for parent in here.parents:
-            if (parent / "src" / "beambot").exists():
-                workspace_root = parent
-                break
-        if workspace_root is None:
-            return
+    def _load_beamline_yaml(self) -> tuple[dict, str | None]:
+        """Read $BEAMBOT_BEAMLINE_CONFIG once at startup.
 
-        config_path = (
-            workspace_root / "src" / "beambot" / "config" / "default_beamline.yaml"
-        )
-        if config_path.exists():
-            self.poses_panel.load_from_beamline_config(config_path)
+        Returns ({}, None) instead of raising so the GUI still opens for
+        operators who only want to inspect a JSON file. Hardware-touching
+        consumers (action servers, MCP) fail loudly; this UI surface
+        deliberately doesn't.
+        """
+        import os
+        import yaml
+        raw = os.environ.get("BEAMBOT_BEAMLINE_CONFIG", "").strip()
+        if not raw:
+            self._pending_log = (
+                "BEAMBOT_BEAMLINE_CONFIG not set; robot IP and pose "
+                "registry will be empty until you set it and restart."
+            )
+            return {}, None
+        path = os.path.abspath(os.path.expanduser(raw))
+        if not os.path.isfile(path):
+            self._pending_log = f"BEAMBOT_BEAMLINE_CONFIG points at missing file: {path}"
+            return {}, None
+        try:
+            with open(path, "r") as f:
+                data = yaml.safe_load(f) or {}
+            if not isinstance(data, dict):
+                self._pending_log = f"{path}: expected a YAML mapping at root"
+                return {}, None
+            return data, path
+        except Exception as e:
+            self._pending_log = f"Failed to parse {path}: {e}"
+            return {}, None
+
+    def _load_beamline_poses(self):
+        """Push poses from the loaded beamline config into the poses panel."""
+        if self._beamline_config_path:
+            self.poses_panel.load_from_beamline_config(self._beamline_config_path)
+        if hasattr(self, "_pending_log"):
+            self._log(self._pending_log)
+            del self._pending_log
 
     def _on_poses_loaded(self, poses: dict):
         """Merge beamline poses into the working config."""

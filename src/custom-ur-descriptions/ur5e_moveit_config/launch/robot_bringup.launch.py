@@ -326,7 +326,9 @@ def generate_launch_description():
             description="Gripper type: none, epick, hande, 2fg7, pipettor",
         ),
         DeclareLaunchArgument(
-            "robot_ip", default_value="192.168.1.10",
+            "robot_ip", default_value="192.168.1.101",
+            description="Default matches CMS beamline YAML; orchestrator always "
+                        "overrides via robot_ip:= from $BEAMBOT_BEAMLINE_CONFIG.",
         ),
         DeclareLaunchArgument(
             "ur_type", default_value="ur5e",

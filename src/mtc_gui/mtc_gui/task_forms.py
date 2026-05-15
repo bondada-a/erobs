@@ -10,6 +10,55 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt
 
 
+# --- Beamline-driven enumerations -----------------------------------------
+# Read fresh on each dialog open so the YAML is the single source. Soft-fails
+# to empty lists if BEAMBOT_BEAMLINE_CONFIG isn't set — operator sees an
+# empty dropdown and the GUI's startup banner already explains why.
+
+def _configured_grippers() -> list[str]:
+    """All gripper names declared in the active beamline YAML."""
+    try:
+        from beambot.config_loader import load_beamline_config
+        config, _ = load_beamline_config()
+        return list(config.get("grippers", {}).keys())
+    except Exception:
+        return []
+
+
+def _grippers_with_states() -> list[str]:
+    """Grippers whose YAML config declares a non-empty `states:` block.
+
+    Excludes grippers like `none` and `pipettor` that have no end-effector
+    actions, so the EndEffectorForm only offers grippers that can act.
+    """
+    try:
+        from beambot.config_loader import load_beamline_config
+        config, _ = load_beamline_config()
+        return [
+            name for name, gconf in config.get("grippers", {}).items()
+            if gconf.get("states")
+        ]
+    except Exception:
+        return []
+
+
+def _end_effector_actions() -> list[str]:
+    """Union of all `states.grasp` + `states.release` action names across grippers."""
+    try:
+        from beambot.config_loader import load_beamline_config
+        config, _ = load_beamline_config()
+        actions: list[str] = []
+        for gconf in config.get("grippers", {}).values():
+            states = gconf.get("states") or {}
+            for key in ("grasp", "release"):
+                val = states.get(key)
+                if val and val not in actions:
+                    actions.append(val)
+        return actions
+    except Exception:
+        return []
+
+
 # --- Dispatch ---
 
 def open_task_form(step, step_index, poses, parent=None):
@@ -356,7 +405,7 @@ class ToolExchangeForm(BaseTaskForm):
     def build_form(self):
         self.operation = self.add_combo("Operation:", "operation", ["load", "dock"])
         self.gripper = self.add_combo("Gripper:", "gripper",
-                                      ["epick", "hande", "2fg7", "pipettor", "none"])
+                                      _configured_grippers())
         self.dock_num = self.add_int("Dock Number:", "dock_number", 3, 1, 10)
         self.approach = self.add_text("Approach Pose:", "approach_pose", "load_approach")
         self.add_hint("Auto convention: load -> load_approach, dock -> dock_approach")
@@ -383,10 +432,9 @@ class EndEffectorForm(BaseTaskForm):
 
     def build_form(self):
         self.type_combo = self.add_combo("Type:", "end_effector_type",
-                                         ["epick", "hande", "2fg7"])
+                                         _grippers_with_states())
         self.action_combo = self.add_combo("Action:", "end_effector_action",
-                                           ["hande_open", "hande_closed",
-                                            "vacuum_on", "vacuum_off"])
+                                           _end_effector_actions())
 
     def collect_values(self):
         return {

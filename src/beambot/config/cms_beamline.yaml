@@ -1,17 +1,32 @@
-# Default Beamline Configuration
-# This config maintains the current system behavior
-# Use this as a template for creating beamline-specific configs
+# CMS Beamline Configuration (NSLS-II Complex Materials Scattering)
+# Selected at runtime via the BEAMBOT_BEAMLINE_CONFIG environment variable.
+# Use this file as a template for new beamlines: copy and rename, then point
+# BEAMBOT_BEAMLINE_CONFIG at the new file.
 
-beamline: "default"
-poses_file: "src/cms/poses.yaml"    # Relative to workspace root
+beamline: "cms"
+poses_file: "src/cms/poses.yaml"                          # Relative to workspace root
+scene_file: "src/beambot/config/beamline_scene.yaml"      # Static planning-scene obstacles
 
 robot:
   model: "ur5e"
   ip: "192.168.1.101"          # Default IP from current launch files
   arm_group: "ur_arm"
-  ik_frame: "tool0"
+  ik_frame: "flange"           # Matches SRDF chain (common.srdf.xacro: base_link → flange)
+  velocity_scaling: 0.2        # 20% of joint limits — per-beamline safety profile
+  acceleration_scaling: 0.2
+  arm_joints:                  # Order matters — pose YAML values are positional
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
 
 grippers:
+  # tip_frame:  TF frame at the gripper's working tip — used as the IK target
+  #             so motions place the tip (not the flange) at the goal pose.
+  # z_offset:   Default Z offset in meters (gripper frame) for vision approach.
+  # urdf_file:  URDF used by the GUI 3D viewer for this gripper configuration.
   none:
     moveit_package: "ur5e_moveit_config"
     gripper_arg: "none"            # Passed as gripper:= to launch file
@@ -19,6 +34,9 @@ grippers:
     gripper_group: ""              # No gripper group
     controller_name: ""            # No gripper controller
     states: {}                     # No states
+    tip_frame: "flange"            # No gripper attached; IK targets the flange
+    z_offset: 0.0
+    urdf_file: "ur_standalone.urdf"
 
   hande:
     moveit_package: "ur5e_moveit_config"
@@ -30,6 +48,9 @@ grippers:
     states:
       grasp: "hande_closed"
       release: "hande_open"
+    tip_frame: "robotiq_hande_end"
+    z_offset: -0.02
+    urdf_file: "ur_with_zivid_hande.urdf"
 
   epick:
     moveit_package: "ur5e_moveit_config"
@@ -43,6 +64,8 @@ grippers:
     states:
       grasp: "vacuum_on"
       release: "vacuum_off"
+    tip_frame: "epick_tip"
+    urdf_file: "ur_with_zivid_epick.urdf"
 
   2fg7:
     moveit_package: "ur5e_moveit_config"
@@ -55,6 +78,9 @@ grippers:
     states:
       grasp: "2fg7_closed"
       release: "2fg7_open"
+    tip_frame: "2fg7_tip"
+    z_offset: 0.0
+    urdf_file: "ur_standalone.urdf"   # No dedicated 2fg7 viewer URDF yet
 
   pipettor:
     moveit_package: "ur5e_moveit_config"
@@ -64,6 +90,9 @@ grippers:
     gripper_group: ""              # Pipettor has no gripper group
     controller_name: ""            # External driver, no ros2_control
     states: {}                     # No states
+    tip_frame: "pipette_tip_link"
+    z_offset: 0.0
+    urdf_file: "ur_with_zivid_pipettor.urdf"
 
 # Vision camera configuration
 cameras:
@@ -143,3 +172,29 @@ vision_targets:
     marker_offset: {x: 0.020, y: 0.0, z: 0.0}   # 20mm in marker +X (right of tag)
     z_offset: 0.0
 
+# Tool exchange geometry — physical layout of the magnetic dock plate.
+# Lateral docks are on a uniform spacing along the Y axis of the IK frame;
+# `reference_dock` is the dock_number whose Y offset is zero (i.e., the dock
+# the approach pose lines up with). load/dock sequences are executed in
+# order after the lateral shift puts the gripper in front of the target dock.
+tool_exchange:
+  dock_spacing_m: 0.1524           # 6 inches between dock centers (CMS magnetic plate)
+  reference_dock: 3                # dock 3 is centered on the approach pose
+  load_sequence:
+    - {direction: "forward",  distance: 0.20}    # attach to magnet
+    - {direction: "up",       distance: 0.15}    # lift off the holder
+    - {direction: "backward", distance: 0.20}    # retreat clear of plate
+  dock_sequence:
+    - {direction: "forward",  distance: 0.20}    # align with holder slot
+    - {direction: "down",     distance: 0.15}    # set tool into holder
+    - {direction: "backward", distance: 0.20}    # retreat clear of plate
+
+# Collision objects keyed by ArUco tag ID. When a vision detection finds one
+# of these tags, the matching shape/dimensions are added to the planning scene
+# so MoveIt can avoid it. Migrated from src/beambot/config/vision_objects.json.
+collision_objects:
+  200:
+    name: "sample_bar"
+    shape: "box"
+    dimensions: [0.026, 0.013, 0.11]   # 2.6cm wide × 1.3cm deep × 11cm tall
+    tag_offset: [0.0, 0.0, 0.0]

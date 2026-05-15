@@ -32,10 +32,13 @@
   <exec_depend>tf_transformations</exec_depend>
 
   <!-- Vision: Zivid is optional — only required on beamlines that select
-       camera: zivid in default_beamline.yaml. The zivid import in
-       beambot.camera.zivid is lazy-loaded through get_camera(). -->
+       camera: zivid in their $BEAMBOT_BEAMLINE_CONFIG YAML. The zivid
+       import in beambot.camera.zivid is lazy-loaded through get_camera(). -->
 
-  <!-- End effector feedback -->
+  <!-- End effector feedback: epick_msgs is optional — required only on
+       beamlines whose YAML lists the ePick gripper. Imports are guarded
+       with try/except in vacuum_monitor.py, beambot_mcp_server.py, and
+       pick_sample_stages.py so non-ePick beamlines build and run cleanly. -->
   <exec_depend>epick_msgs</exec_depend>
 
   <!-- MCP bridge: start_mcp.sh launches rosbridge_websocket on :9090 so

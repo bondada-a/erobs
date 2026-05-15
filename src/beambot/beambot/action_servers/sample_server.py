@@ -7,10 +7,7 @@ the same camera config but use separate stages instances.
 Replaces pick_place_server.py and vision_pick_place_server.py.
 """
 
-import yaml
 from rclpy.action import ActionServer
-
-from ament_index_python.packages import get_package_share_directory
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
 from beambot.stages.pick_sample_stages import PickSampleStages
@@ -50,23 +47,13 @@ class SampleActionServer(BaseActionServer):
         self._stages; the place-side lives on self._place_stages, set here
         because place shares the same config load.
         """
-        self.declare_parameter(
-            "beamline_config",
-            get_package_share_directory("beambot") + "/config/default_beamline.yaml"
+        from beambot.config_loader import load_beamline_config
+        config, _ = load_beamline_config()
+        camera_config = config.get("camera", {})
+        self.get_logger().info(
+            f"Camera config: type={camera_config.get('type')}, "
+            f"frame={camera_config.get('frame')}"
         )
-        config_file = self.get_parameter("beamline_config").value
-
-        camera_config = {}
-        try:
-            with open(config_file, 'r') as f:
-                config = yaml.safe_load(f)
-            camera_config = config.get("camera", {})
-            self.get_logger().info(
-                f"Camera config: type={camera_config.get('type', 'zivid')}, "
-                f"frame={camera_config.get('frame', 'zivid_optical_frame')}"
-            )
-        except Exception as e:
-            self.get_logger().warning(f"Failed to load camera config: {e}, using defaults")
 
         cam_kwargs = dict(
             camera_type=camera_config.get("type"),

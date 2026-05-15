@@ -125,7 +125,7 @@ class PosesPanel(QWidget):
             return
 
         # poses_file is relative to workspace root — walk up from config
-        # to find it (config lives at src/beambot/config/default_beamline.yaml)
+        # to find it (the active beamline YAML is named via $BEAMBOT_BEAMLINE_CONFIG)
         workspace_root = config_path.parent
         while workspace_root != workspace_root.parent:
             if (workspace_root / poses_file_rel).exists():

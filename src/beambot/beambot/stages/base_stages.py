@@ -75,15 +75,21 @@ DIRECTION_VECTORS: dict[str, tuple[float, float, float]] = {
     "down":     ( 0.0,  0.0, -1.0), "-z": ( 0.0,  0.0, -1.0),
 }
 
-# UR5e default joint names
-DEFAULT_JOINT_NAMES: list[str] = [
-    "shoulder_pan_joint",
-    "shoulder_lift_joint",
-    "elbow_joint",
-    "wrist_1_joint",
-    "wrist_2_joint",
-    "wrist_3_joint"
-]
+# Arm joint names sourced from the active beamline YAML (robot.arm_joints).
+# Falls back to the UR 6-DOF order when the env var isn't set so module-level
+# imports still succeed in test paths and tooling.
+def _load_default_joint_names() -> list[str]:
+    try:
+        from beambot.config_loader import arm_joint_names
+        return arm_joint_names()
+    except Exception:
+        return [
+            "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
+            "wrist_1_joint", "wrist_2_joint", "wrist_3_joint",
+        ]
+
+
+DEFAULT_JOINT_NAMES: list[str] = _load_default_joint_names()
 
 # Global velocity/acceleration scaling (20% of joint limits)
 VELOCITY_SCALING = 0.2
@@ -384,6 +390,20 @@ class BaseStages:
         self.logger = rclpy_node.get_logger()
         self._preview_pub = None  # Lazily created on first dry-run publish
 
+        # Velocity/acceleration scaling: read once from the active beamline
+        # YAML so per-beamline safety profiles stick without code edits. Falls
+        # back to module-level constants if YAML doesn't declare them or the
+        # env var isn't set (test paths, isolated stage construction).
+        try:
+            from beambot.config_loader import load_beamline_config
+            cfg, _ = load_beamline_config()
+            robot_cfg = cfg.get("robot", {})
+            self._velocity_scaling = float(robot_cfg.get("velocity_scaling", VELOCITY_SCALING))
+            self._acceleration_scaling = float(robot_cfg.get("acceleration_scaling", ACCELERATION_SCALING))
+        except Exception:
+            self._velocity_scaling = VELOCITY_SCALING
+            self._acceleration_scaling = ACCELERATION_SCALING
+
     def create_task_template(self, name: str) -> core.Task:
         """Create a new MTC task with standard configuration.
 
@@ -418,8 +438,8 @@ class BaseStages:
         # warnings unless the config lists the named planner.
         planner = core.PipelinePlanner(self._mtc_node, "ompl")
         planner.goal_joint_tolerance = 1e-4
-        planner.max_velocity_scaling_factor = VELOCITY_SCALING
-        planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
+        planner.max_velocity_scaling_factor = self._velocity_scaling
+        planner.max_acceleration_scaling_factor = self._acceleration_scaling
         return planner
 
     def make_cartesian_planner(self) -> core.CartesianPath:
@@ -429,8 +449,8 @@ class BaseStages:
             Configured CartesianPath planner
         """
         planner = core.CartesianPath()
-        planner.max_velocity_scaling_factor = VELOCITY_SCALING
-        planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
+        planner.max_velocity_scaling_factor = self._velocity_scaling
+        planner.max_acceleration_scaling_factor = self._acceleration_scaling
         planner.step_size = 0.0005 # 1mm steps - good for collision detection
         planner.min_fraction = 0.9  # Require near-complete path (was 0.6)
         return planner
@@ -446,8 +466,8 @@ class BaseStages:
         planner = core.PipelinePlanner(
             self._mtc_node, "pilz_industrial_motion_planner", planner_id=mode
         )
-        planner.max_velocity_scaling_factor = VELOCITY_SCALING
-        planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
+        planner.max_velocity_scaling_factor = self._velocity_scaling
+        planner.max_acceleration_scaling_factor = self._acceleration_scaling
         return planner
 
     def make_joint_interpolation_planner(self) -> core.JointInterpolationPlanner:
@@ -457,8 +477,8 @@ class BaseStages:
             Configured JointInterpolationPlanner
         """
         planner = core.JointInterpolationPlanner()
-        planner.max_velocity_scaling_factor = VELOCITY_SCALING
-        planner.max_acceleration_scaling_factor = ACCELERATION_SCALING
+        planner.max_velocity_scaling_factor = self._velocity_scaling
+        planner.max_acceleration_scaling_factor = self._acceleration_scaling
         return planner
 
     def _set_ik_frame(self, stage) -> None:

@@ -17,6 +17,21 @@ source "$SCRIPT_DIR/install/setup.bash" 2>/dev/null || {
     exit 1
 }
 
+# Beamline config is the single source of truth for the deployment site.
+# We refuse to launch without it — silent CMS-fallback would mask a
+# misconfiguration on a different beamline machine.
+if [[ -z "${BEAMBOT_BEAMLINE_CONFIG:-}" ]]; then
+    echo "ERROR: BEAMBOT_BEAMLINE_CONFIG is not set." >&2
+    echo "Export it before launching, e.g.:" >&2
+    echo "    export BEAMBOT_BEAMLINE_CONFIG=$SCRIPT_DIR/src/beambot/config/cms_beamline.yaml" >&2
+    exit 1
+fi
+if [[ ! -f "$BEAMBOT_BEAMLINE_CONFIG" ]]; then
+    echo "ERROR: BEAMBOT_BEAMLINE_CONFIG points at missing file: $BEAMBOT_BEAMLINE_CONFIG" >&2
+    exit 1
+fi
+echo "Beamline config: $BEAMBOT_BEAMLINE_CONFIG"
+
 # Cleanup on exit. PIDs are populated as children are spawned below; guard
 # against re-entry so a second Ctrl-C while wait is unwinding doesn't confuse
 # bash's variable-scope stack (pop_var_context warning).

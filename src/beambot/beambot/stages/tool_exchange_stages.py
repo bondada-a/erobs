@@ -2,13 +2,43 @@
 
 Tool exchange: load/dock grippers at magnetic holder stations.
 Uses Cartesian moves for precise tool attachment/detachment.
+
+Dock geometry (spacing, reference dock, load/dock motion sequences) is
+sourced from the active beamline YAML's `tool_exchange:` block — see
+config_loader for the schema. Module-level fallbacks below are used only
+when the env var isn't set (test paths, isolated stage construction).
 """
 
 from moveit.task_constructor import stages
 from beambot.stages.base_stages import BaseStages, joints_from_degrees
 
-# Tool exchange dock spacing (6 inches between dock stations)
-DOCK_SPACING_METERS = 0.1524
+# Fallback geometry (CMS magnetic dock plate). Real values come from YAML.
+_FALLBACK_DOCK_SPACING_M = 0.1524
+_FALLBACK_REFERENCE_DOCK = 3
+_FALLBACK_LOAD_SEQUENCE = [
+    {"direction": "forward",  "distance": 0.20},
+    {"direction": "up",       "distance": 0.15},
+    {"direction": "backward", "distance": 0.20},
+]
+_FALLBACK_DOCK_SEQUENCE = [
+    {"direction": "forward",  "distance": 0.20},
+    {"direction": "down",     "distance": 0.15},
+    {"direction": "backward", "distance": 0.20},
+]
+
+
+def _load_tool_exchange_config() -> dict:
+    """Read the `tool_exchange:` block from the active beamline YAML.
+
+    Falls back to module-level constants on any read failure so the stage
+    still works in isolated test paths.
+    """
+    try:
+        from beambot.config_loader import load_beamline_config
+        cfg, _ = load_beamline_config()
+        return cfg.get("tool_exchange", {}) or {}
+    except Exception:
+        return {}
 
 
 class ToolExchangeStages(BaseStages):
@@ -48,6 +78,13 @@ class ToolExchangeStages(BaseStages):
             f"gripper={goal.gripper}, dock={goal.dock_number}"
         )
 
+        # Resolve dock geometry from beamline YAML (falls back to CMS values)
+        te_cfg = _load_tool_exchange_config()
+        dock_spacing = float(te_cfg.get("dock_spacing_m", _FALLBACK_DOCK_SPACING_M))
+        reference_dock = int(te_cfg.get("reference_dock", _FALLBACK_REFERENCE_DOCK))
+        load_sequence = te_cfg.get("load_sequence") or _FALLBACK_LOAD_SEQUENCE
+        dock_sequence = te_cfg.get("dock_sequence") or _FALLBACK_DOCK_SEQUENCE
+
         # Validate state transitions
         if goal.operation == "load" and goal.current_attached_gripper != "none":
             error = (
@@ -86,8 +123,8 @@ class ToolExchangeStages(BaseStages):
         approach.setGoal(joints_from_degrees(joint_pose))
         task.add(approach)
 
-        # 2. Lateral shift to align with dock (reference is dock 3)
-        offset_y = DOCK_SPACING_METERS * (3 - goal.dock_number)
+        # 2. Lateral shift to align with the requested dock
+        offset_y = dock_spacing * (reference_dock - goal.dock_number)
         if abs(offset_y) >= 1e-4:
             direction = "right" if offset_y >= 0 else "left"
             shift = self.create_relative_move_stage(
@@ -95,46 +132,25 @@ class ToolExchangeStages(BaseStages):
             )
             task.add(shift)
 
-        # 3-5. Perform load or dock sequence
+        # 3-5. Perform the configured load or dock sequence
         if goal.operation == "load":
-            # Move forward to attach tool
-            attach = self.create_relative_move_stage(
-                "attach tool", "forward", 0.2, cartesian
-            )
-            task.add(attach)
-
-            # Move up to detach from holder
-            detach = self.create_relative_move_stage(
-                "detach holder", "up", 0.15, cartesian
-            )
-            task.add(detach)
-
-            # Retreat backward
-            retreat = self.create_relative_move_stage(
-                "retreat", "backward", 0.2, cartesian
-            )
-            task.add(retreat)
-
+            sequence = load_sequence
+            stage_prefix = "load"
         elif goal.operation == "dock":
-            # Move forward to align with holder
-            align = self.create_relative_move_stage(
-                "align holder", "forward", 0.2, cartesian
-            )
-            task.add(align)
-
-            # Move down to detach tool
-            detach = self.create_relative_move_stage(
-                "detach tool", "down", 0.15, cartesian
-            )
-            task.add(detach)
-
-            # Retreat backward
-            retreat = self.create_relative_move_stage(
-                "retreat", "backward", 0.2, cartesian
-            )
-            task.add(retreat)
-
+            sequence = dock_sequence
+            stage_prefix = "dock"
         else:
             return f"Unknown tool exchange operation: '{goal.operation}' (expected 'load' or 'dock')"
+
+        for idx, move in enumerate(sequence):
+            direction = move.get("direction", "")
+            distance = float(move.get("distance", 0.0))
+            if not direction or distance <= 0:
+                return f"Invalid {goal.operation}_sequence step {idx}: {move}"
+            stage = self.create_relative_move_stage(
+                f"{stage_prefix} step {idx + 1}: {direction} {distance:.3f}m",
+                direction, distance, cartesian,
+            )
+            task.add(stage)
 
         return self.load_plan_execute(task)

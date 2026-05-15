@@ -122,7 +122,7 @@
   <!-- Suction cup profile: dimensions loaded from suction_cups.yaml (single source of truth).
        The cup_profile default MUST match the physically attached cup — the UR driver's
        robot_state_publisher uses this default (it can't receive args from the orchestrator).
-       When changing cups, update this default AND default_beamline.yaml grippers.epick.cup_profile.
+       When changing cups, update this default AND the active beamline YAML's grippers.epick.cup_profile.
        Available profiles: see epick_config/config/suction_cups.yaml -->
   <xacro:property name="cups_yaml_path" value="$(find epick_config)/config/suction_cups.yaml"/>
   <xacro:property name="cups_config" value="${xacro.load_yaml(cups_yaml_path)}"/>

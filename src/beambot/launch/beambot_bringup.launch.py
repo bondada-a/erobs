@@ -45,12 +45,9 @@ def generate_launch_description():
         '-p', "pilz_industrial_motion_planner.response_adapters:=['default_planning_response_adapters/ValidateSolution','default_planning_response_adapters/DisplayMotionPath']",
     ]
 
-    # Declare launch arguments
-    declare_beamline_config = DeclareLaunchArgument(
-        'beamline_config',
-        default_value='config/default_beamline.yaml',
-        description='Path to beamline configuration YAML (relative to beambot package)'
-    )
+    # Declare launch arguments. The beamline YAML is loaded by every framework
+    # consumer from $BEAMBOT_BEAMLINE_CONFIG (set in the environment), not via
+    # a launch arg — keeps the deployment site choice undeniable.
 
     declare_enable_vision = DeclareLaunchArgument(
         'enable_vision',
@@ -110,12 +107,6 @@ def generate_launch_description():
         condition=IfCondition(enable_tracing),
     )
 
-    # Resolve beamline config path (relative to beambot package)
-    beamline_config_path = PathJoinSubstitution([
-        FindPackageShare('beambot'),
-        LaunchConfiguration('beamline_config')
-    ])
-
     # Action servers need kinematics for Cartesian planning
     # Robot URDF comes from /robot_description topic published by move_group
     action_server_parameters = [
@@ -168,9 +159,7 @@ def generate_launch_description():
         executable='vision_server.py',
         name='beambot_vision_server',
         output='screen',
-        parameters=action_server_parameters + [
-            {'beamline_config': beamline_config_path}
-        ],
+        parameters=action_server_parameters,
         arguments=ompl_args,
         condition=IfCondition(enable_vision),
     )
@@ -181,9 +170,7 @@ def generate_launch_description():
         executable='sample_server.py',
         name='beambot_sample_server',
         output='screen',
-        parameters=action_server_parameters + [
-            {'beamline_config': beamline_config_path}
-        ],
+        parameters=action_server_parameters,
         arguments=ompl_args,
         condition=IfCondition(enable_vision),
     )
@@ -230,7 +217,6 @@ def generate_launch_description():
         name='beambot_orchestrator',
         output='screen',
         parameters=action_server_parameters + [
-            {'beamline_config': beamline_config_path},
             {'use_mock_hardware': use_mock_hardware},
             {'enable_batching': enable_batching},
         ],
@@ -239,7 +225,6 @@ def generate_launch_description():
 
     return LaunchDescription([
         # Launch arguments
-        declare_beamline_config,
         declare_enable_vision,
         declare_enable_pipettor,
         declare_use_mock_hardware,

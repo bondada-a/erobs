@@ -8,7 +8,6 @@ Handles vision-guided robot movement:
 - Motion to detected poses
 """
 
-import json
 import math
 import time
 from dataclasses import dataclass
@@ -55,14 +54,9 @@ class VisionStages(BaseStages):
     DETECTION_MARKER = "marker"
     DETECTION_SAMPLE_ROI = "sample_roi"
 
-    # Retry configuration defaults
+    # Retry configuration defaults (not beamline-specific — tuning constants)
     DEFAULT_RETRY_COUNT = 3  # Number of retries after first attempt
     DEFAULT_RETRY_DELAY = 0.5  # Seconds between retries
-
-    # Default camera settings (used if not specified)
-    DEFAULT_CAMERA_TYPE = "zivid"
-    DEFAULT_CAMERA_FRAME = "zivid_optical_frame"
-    DEFAULT_MARKER_DICTIONARY = "aruco4x4_50"
 
     # Settle time: wait before capture for robot vibration to dampen
     DEFAULT_SETTLE_TIME = 0.3
@@ -85,19 +79,37 @@ class VisionStages(BaseStages):
             rclpy_node: ROS node for service calls and TF
             arm_group: MoveIt planning group for arm
             ik_frame: IK frame (empty = auto-detect)
-            camera_type: Camera type from beamline config (default: "zivid")
-            camera_frame: Camera TF frame (default: "zivid_optical_frame")
-            marker_dictionary: ArUco dictionary (default: "aruco4x4_50")
+            camera_type: Camera type from beamline config (REQUIRED)
+            camera_frame: Camera TF frame (REQUIRED)
+            marker_dictionary: ArUco dictionary (REQUIRED)
             retry_count: Number of detection retries (default: 3)
             retry_delay: Delay between retries in seconds (default: 0.5)
             settle_time: Seconds to wait before capture for robot to settle (default: 0.3)
+
+        Raises:
+            ValueError: if camera_type/camera_frame/marker_dictionary aren't supplied.
+                Callers must source these from the active beamline YAML's
+                `camera:` block — VisionStages refuses CMS-flavored fallbacks
+                so a misconfiguration fails loudly at startup.
         """
         super().__init__(rclpy_node, arm_group, ik_frame=ik_frame)
 
-        # Camera configuration
-        self._camera_type = camera_type if camera_type else self.DEFAULT_CAMERA_TYPE
-        self._camera_frame = camera_frame if camera_frame else self.DEFAULT_CAMERA_FRAME
-        self._marker_dictionary = marker_dictionary if marker_dictionary else self.DEFAULT_MARKER_DICTIONARY
+        # Camera configuration — required, no fallback
+        missing = [
+            name for name, val in (
+                ("camera_type", camera_type),
+                ("camera_frame", camera_frame),
+                ("marker_dictionary", marker_dictionary),
+            ) if not val
+        ]
+        if missing:
+            raise ValueError(
+                f"VisionStages requires {', '.join(missing)} from the active "
+                f"beamline YAML's `camera:` block (set BEAMBOT_BEAMLINE_CONFIG)."
+            )
+        self._camera_type = camera_type
+        self._camera_frame = camera_frame
+        self._marker_dictionary = marker_dictionary
 
         # Retry configuration
         self._retry_count = retry_count if retry_count is not None else self.DEFAULT_RETRY_COUNT
@@ -167,33 +179,29 @@ class VisionStages(BaseStages):
         self.logger.info("TF buffer cleared, listener re-created")
 
     def _load_vision_objects_config(self):
-        """Load vision objects configuration from JSON file."""
+        """Load tag-keyed collision-object metadata from the active beamline YAML.
+
+        Reads `collision_objects:` from $BEAMBOT_BEAMLINE_CONFIG. When a vision
+        detection sees one of these tags, the matching shape is added to the
+        planning scene so MoveIt avoids it.
+        """
         try:
-            config_path = (
-                get_package_share_directory("beambot") +
-                "/config/vision_objects.json"
-            )
-            with open(config_path, 'r') as f:
-                config = json.load(f)
+            from beambot.config_loader import load_beamline_config
+            config, _ = load_beamline_config()
+            objects = config.get("collision_objects") or {}
 
-            if "vision_objects" not in config:
-                return
-
-            for tag_str, obj in config["vision_objects"].items():
+            for tag_id, obj in objects.items():
                 info = ObjectInfo(
                     name=obj["name"],
                     shape=obj["shape"],
                     dimensions=obj["dimensions"],
-                    tag_offset=obj["tag_offset"]
+                    tag_offset=obj["tag_offset"],
                 )
-                self._object_database[int(tag_str)] = info
+                self._object_database[int(tag_id)] = info
 
             self.logger.info(f"Loaded {len(self._object_database)} vision objects")
-
-        except FileNotFoundError:
-            self.logger.warning("vision_objects.json not found, collision objects disabled")
         except Exception as e:
-            self.logger.error(f"Failed to load vision objects config: {e}")
+            self.logger.error(f"Failed to load collision_objects from beamline YAML: {e}")
 
     # =========================================================================
     # Tag Pose Cache Methods
@@ -939,18 +947,15 @@ class VisionStages(BaseStages):
             self.logger.error(f"TF failed: {e}")
             return None
 
-    # Default z_offsets per gripper tip frame
-    _Z_OFFSETS = {
-        "epick_tip": 0.0,
-        "robotiq_hande_end": -0.02,
-        "pipette_tip_link": 0.0,
-        "flange": 0.0,
-    }
+    @staticmethod
+    def _z_offset_for_frame(ik_frame: str) -> float:
+        """Return default z_offset for a given IK frame name.
 
-    @classmethod
-    def _z_offset_for_frame(cls, ik_frame: str) -> float:
-        """Return default z_offset for a given IK frame name."""
-        return cls._Z_OFFSETS.get(ik_frame, 0.0)
+        Sourced from grippers.<name>.z_offset in the active beamline YAML
+        (matched against tip_frame). The flange case (no gripper) returns 0.
+        """
+        from beambot.config_loader import z_offset_for_tip_frame
+        return z_offset_for_tip_frame(ik_frame, default=0.0)
 
     def compute_approach_pose(
         self,
@@ -1176,8 +1181,9 @@ class VisionStages(BaseStages):
         Returns:
             GripperDetection with ik_frame and z_offset
         """
-        # Check for known gripper tip frames in TF
-        for frame in ("epick_tip", "robotiq_hande_end", "pipette_tip_link"):
+        # Check for known gripper tip frames in TF (sourced from YAML)
+        from beambot.config_loader import configured_tip_frames
+        for frame in configured_tip_frames():
             if self._tf_buffer.can_transform(
                 "base_link", frame,
                 rclpy.time.Time(),

@@ -18,19 +18,24 @@ try:
 except ImportError:
     WEBENGINE_AVAILABLE = False
 
-GRIPPER_URDF_MAP = {
-    "epick": "ur_with_zivid_epick.urdf",
-    "hande": "ur_with_zivid_hande.urdf",
-    "pipettor": "ur_with_zivid_pipettor.urdf",
-    "2fg7": "ur_standalone.urdf",
-    "none": "ur_standalone.urdf",
-}
+# GRIPPER_URDF_MAP is now sourced per-gripper from the active beamline YAML
+# (grippers.<name>.urdf_file) via config_loader.gripper_urdf_file().
 
-# UR5e arm joint order expected by window.updateJoints(...)
-_ARM_JOINTS = [
-    "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
-    "wrist_1_joint", "wrist_2_joint", "wrist_3_joint",
-]
+# Arm joint order expected by window.updateJoints(...) — sourced from the
+# active beamline YAML's robot.arm_joints. Loaded once at module import so
+# the JS viewer's ordering is stable for a given GUI session.
+def _load_arm_joints() -> list[str]:
+    try:
+        from beambot.config_loader import arm_joint_names
+        return arm_joint_names()
+    except Exception:
+        return [
+            "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
+            "wrist_1_joint", "wrist_2_joint", "wrist_3_joint",
+        ]
+
+
+_ARM_JOINTS = _load_arm_joints()
 
 REQUIRED_PACKAGES = [
     "ur_description",
@@ -124,23 +129,22 @@ def _resolve_packages():
 
 
 def _resolve_scene_yaml():
-    """Locate beamline_scene.yaml. Workspace source first (so YAML edits during
-    development show up on Reload Scene without rebuilding), ament share as
-    fallback for installed-only deployments.
+    """Locate the beamline's scene file via $BEAMBOT_BEAMLINE_CONFIG.
+
+    Reads scene_file: from the active beamline config. Returns None if the
+    env var is unset (same soft-fail pattern as the rest of the GUI — the
+    operator can still inspect a JSON file with no scene loaded).
     """
-    for ws in _find_workspace_roots():
-        candidate = ws / "src" / "beambot" / "config" / "beamline_scene.yaml"
-        if candidate.is_file():
-            return candidate
     try:
-        from ament_index_python.packages import get_package_share_directory
-        share = Path(get_package_share_directory("beambot"))
-        candidate = share / "config" / "beamline_scene.yaml"
-        if candidate.is_file():
-            return candidate
+        from beambot.config_loader import load_beamline_config, resolve_beamline_path
+        config, config_path = load_beamline_config()
+        scene_rel = config.get("scene_file", "")
+        if not scene_rel:
+            return None
+        candidate = Path(resolve_beamline_path(scene_rel, config_path))
+        return candidate if candidate.is_file() else None
     except Exception:
-        pass
-    return None
+        return None
 
 
 class _MeshRequestHandler(SimpleHTTPRequestHandler):
@@ -340,7 +344,8 @@ class VisualizationPanel(QWidget):
     def _load_urdf(self, gripper):
         if not self._page_ready:
             return
-        urdf_file = GRIPPER_URDF_MAP.get(gripper, "ur_standalone.urdf")
+        from beambot.config_loader import gripper_urdf_file
+        urdf_file = gripper_urdf_file(gripper, default="ur_standalone.urdf")
         port = self._mesh_server.port
         urdf_url = f"http://127.0.0.1:{port}/__urdf__/{urdf_file}"
         js = f"window.loadRobot('{urdf_url}', {port})"

@@ -19,14 +19,8 @@ from beambot.stages.base_stages import (
     BaseStages, joints_from_degrees, parse_constraints, apply_constraints,
 )
 
-# Known gripper tip frames and their TF parent for detection.
-# Checked in order — first match wins.
-_GRIPPER_TIP_FRAMES = [
-    "epick_tip",           # Robotiq ePick vacuum gripper
-    "robotiq_hande_end",   # Robotiq Hand-E adaptive gripper
-    "2fg7_tip",            # OnRobot 2FG7 parallel gripper
-    "pipette_tip_link",    # Pipettor nozzle tip
-]
+# Gripper tip frames are sourced from the active beamline YAML's
+# grippers.<name>.tip_frame entries via config_loader.configured_tip_frames().
 
 
 class MoveToStages(BaseStages):
@@ -80,7 +74,8 @@ class MoveToStages(BaseStages):
         Returns:
             Frame name for IK (e.g., "epick_tip", "robotiq_hande_end", or "flange")
         """
-        for frame in _GRIPPER_TIP_FRAMES:
+        from beambot.config_loader import configured_tip_frames
+        for frame in configured_tip_frames():
             try:
                 if self._tf_buffer.can_transform(
                     "base_link", frame,

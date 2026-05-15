@@ -1,32 +1,24 @@
 #!/usr/bin/env python3
+"""Launch the MTC GUI client.
+
+The GUI reads its beamline configuration (including robot IP) from
+$BEAMBOT_BEAMLINE_CONFIG. There are no launch arguments — set the env
+var before launching, e.g.:
+
+    export BEAMBOT_BEAMLINE_CONFIG=$(realpath src/beambot/config/cms_beamline.yaml)
+    ros2 launch mtc_gui mtc_gui_client.launch.py
+"""
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from launch.actions import DeclareLaunchArgument
-from launch.substitutions import LaunchConfiguration
+
 
 def generate_launch_description():
-    """Generate launch description for MTC GUI Client"""
-    
-    # Launch arguments
-    robot_ip_arg = DeclareLaunchArgument(
-        'robot_ip',
-        default_value='192.168.1.101',
-        description='Robot IP address'
-    )
-    
-    # MTC GUI Client node
-    gui_client_node = Node(
-        package='mtc_gui',
-        executable='mtc_gui_client',
-        name='mtc_gui_client',
-        output='screen',
-        parameters=[
-            {'robot_ip': LaunchConfiguration('robot_ip')}
-        ]
-    )
-    
     return LaunchDescription([
-        robot_ip_arg,
-        gui_client_node
+        Node(
+            package='mtc_gui',
+            executable='mtc_gui_client',
+            name='mtc_gui_client',
+            output='screen',
+        ),
     ])

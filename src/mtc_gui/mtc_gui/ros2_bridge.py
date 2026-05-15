@@ -158,11 +158,9 @@ class ROS2Bridge(QObject):
 
     def _on_joint_state(self, msg):
         try:
+            from beambot.config_loader import arm_joint_names
             joint_dict = dict(zip(msg.name, msg.position))
-            joint_order = [
-                "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
-                "wrist_1_joint", "wrist_2_joint", "wrist_3_joint",
-            ]
+            joint_order = arm_joint_names()
             if all(j in joint_dict for j in joint_order):
                 pose_deg = [round(math.degrees(joint_dict[j]), 2) for j in joint_order]
                 self.joint_state_received.emit(pose_deg)

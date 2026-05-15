@@ -93,7 +93,7 @@ Send this JSON as a serialized string in the `full_json` field of an
 
 | Field | Required | Notes |
 |---|---|---|
-| `start_gripper` | yes | Key in `default_beamline.yaml`'s `grippers` block |
+| `start_gripper` | yes | Key in the active beamline YAML's `grippers` block (selected via `$BEAMBOT_BEAMLINE_CONFIG`) |
 | `tasks` | yes | Ordered array of task steps |
 | `poses` | no | Name → `[j1…j6]` in degrees. The orchestrator **auto-resolves** any named pose (`target`, `scan_pose`, `approach_pose`, `target_pose`, `scan_positions`) from the beamline's `poses_file` registry when not supplied here. You can omit `"poses"` entirely for named-pose moves. Only supply it to override a registry value or use an ad-hoc pose not in the registry |
 
@@ -231,8 +231,8 @@ Same fields as `pick_sample` including `detection_type` + `sample_index`
 
 - `operation` — `"dock"` or `"load"`.
 - `gripper` — the gripper being docked or loaded (any config key).
-- `dock_number` — **look up from `grippers.<name>.dock_number` in
-  `default_beamline.yaml`**, don't hardcode.
+- `dock_number` — **look up from `grippers.<name>.dock_number` in the
+  active beamline YAML (`$BEAMBOT_BEAMLINE_CONFIG`)**, don't hardcode.
 - `approach_pose` — use `"dock_approach"` for dock, `"load_approach"` for
   load. They are different poses tuned for each direction; swapping causes
   collisions.
@@ -424,7 +424,7 @@ Two MCP servers are wired: `beambot` (project-specific) and `ros-mcp-server`
 | `stop_robot` | Cancel active `/beambot_execution` goals. Finishes current motion step first. |
 | `get_robot_state` | System running? gripper? joints? vacuum? **Call first every session.** |
 | `get_vacuum_status` | ePick `ObjectDetectionStatus` (`status`, `object_detected`). |
-| `get_saved_poses(filter="")` | Read the pose registry (configured in `default_beamline.yaml` → `poses_file`), optional substring filter. Useful to discover available pose names; you do **not** need to call this before sending a move — the orchestrator auto-resolves named poses. |
+| `get_saved_poses(filter="")` | Read the pose registry (configured in the active beamline YAML → `poses_file`), optional substring filter. Useful to discover available pose names; you do **not** need to call this before sending a move — the orchestrator auto-resolves named poses. |
 | `save_pose(name, joints_deg=None, description="")` | Save pose; omit joints to save current position. |
 | `delete_pose(name)` | Remove a pose. |
 | `set_cup_profile(name)` | ePick cup swap. Takes effect on next MoveIt launch for ePick (§10). |
@@ -466,7 +466,7 @@ ePick's collision shape and tip-frame offset.
   the first goal if ePick is already attached).
 - Known profiles: `pen_vacuum` (nozzle + 2 mm cup), `7mm_dia` (short
   extension + 6 mm cup), `3mm_dia`, `default` (stock 20 mm cup).
-- Current default in `default_beamline.yaml`: `3mm_dia`.
+- Current default in `cms_beamline.yaml`: `3mm_dia`.
 - Only call `set_cup_profile` when the user asks (see safety_boundary).
 
 ---

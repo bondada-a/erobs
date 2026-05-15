@@ -39,10 +39,11 @@ class MoveItLifecycleManager:
     SOCKET_TIMEOUT = 2.0
     ALLOWED_TOOL_VOLTAGES = frozenset({0, 12, 24})
 
-    ARM_JOINTS = (
-        "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
-        "wrist_1_joint", "wrist_2_joint", "wrist_3_joint",
-    )
+    @property
+    def ARM_JOINTS(self) -> tuple:
+        """Arm joint names from the active beamline YAML."""
+        from beambot.config_loader import arm_joint_names
+        return tuple(arm_joint_names())
 
     def __init__(self, node: Node, grippers: dict, robot_ip: str, callback_group=None,
                  use_mock_hardware: bool = False):
@@ -308,19 +309,24 @@ class MoveItLifecycleManager:
     def _load_collision_obstacles(self) -> bool:
         """Load collision obstacles into the planning scene.
 
-        Reads obstacles from beambot/config/beamline_scene.yaml and applies
-        them via the /apply_planning_scene service (transactional — no
-        subscriber-discovery race like publishing to /planning_scene).
+        Reads obstacles from the beamline's scene_file (declared in the
+        YAML pointed at by $BEAMBOT_BEAMLINE_CONFIG) and applies them via
+        /apply_planning_scene (transactional — no subscriber-discovery race
+        like publishing to /planning_scene).
         """
         try:
-            beambot_share = get_package_share_directory("beambot")
-            config_path = os.path.join(
-                beambot_share, "config", "beamline_scene.yaml"
-            )
+            from beambot.config_loader import load_beamline_config, resolve_beamline_path
+            config, config_path = load_beamline_config()
+            scene_rel = config.get("scene_file", "")
+            if not scene_rel:
+                self._logger.info("No scene_file declared in beamline config; skipping obstacles")
+                return True
+            scene_path = resolve_beamline_path(scene_rel, config_path)
 
-            if not os.path.exists(config_path):
-                self._logger.error(f"Obstacle config not found: {config_path}")
+            if not os.path.exists(scene_path):
+                self._logger.error(f"Obstacle config not found: {scene_path}")
                 return False
+            config_path = scene_path  # rest of method reads from config_path
 
             with open(config_path, 'r') as f:
                 config = yaml.safe_load(f)

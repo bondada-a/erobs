@@ -4,12 +4,17 @@ Arms when vacuum_on is sent, disarms on vacuum_off. A background
 subscription on /object_detection_status watches for NO_OBJECT_DETECTED
 while armed, and flags the drop so the orchestrator can abort before
 the next motion step.
+
+epick_msgs is imported lazily so beamlines without ePick installed can
+still load this module. If the import fails, VacuumMonitor instantiates
+in a permanently-disarmed state and never subscribes — the orchestrator
+unconditionally builds a monitor, but only ePick-using beamlines have
+end_effector tasks that would arm it anyway.
 """
 
 from typing import Any
 
 from rclpy.node import Node
-from epick_msgs.msg import ObjectDetectionStatus
 
 
 # ePick status code for "no object detected"
@@ -28,6 +33,16 @@ class VacuumMonitor:
         self.lost = False
         self.status: 'int | None' = None
         self.last_error = ""
+
+        try:
+            from epick_msgs.msg import ObjectDetectionStatus
+        except ImportError:
+            self._sub = None
+            self._logger.info(
+                "epick_msgs not available — vacuum monitor inactive "
+                "(non-ePick beamline)"
+            )
+            return
 
         self._sub = node.create_subscription(
             ObjectDetectionStatus, '/object_detection_status',
@@ -53,12 +68,28 @@ class VacuumMonitor:
     def update_after_tasks(
         self, executed_tasks: list[dict[str, Any]], current_gripper: str
     ):
-        """Arm/disarm monitor based on vacuum_on/off actions in executed tasks."""
+        """Arm/disarm the monitor based on grasp/release actions in executed tasks.
+
+        State names are sourced from the active beamline YAML's
+        grippers.epick.states block — they must match the SRDF group_state
+        names exactly (e.g. "vacuum_on"/"vacuum_off" for the stock CMS SRDF,
+        or whatever the local SRDF declares). If the YAML doesn't declare
+        them, the monitor refuses to run — silent mismatch would mean no
+        drop detection during transport.
+        """
         if current_gripper != "epick":
             return
 
-        grasp_state = self._grippers.get("epick", {}).get("states", {}).get("grasp", "vacuum_on")
-        release_state = self._grippers.get("epick", {}).get("states", {}).get("release", "vacuum_off")
+        states = self._grippers.get("epick", {}).get("states", {})
+        grasp_state = states.get("grasp")
+        release_state = states.get("release")
+        if not grasp_state or not release_state:
+            self._logger.error(
+                "Vacuum monitor disabled: grippers.epick.states.grasp/release "
+                "must be declared in the active beamline YAML and match the "
+                "SRDF group_state names. Drop detection is OFF until fixed."
+            )
+            return
 
         for task in executed_tasks:
             if task.get("task_type") != "end_effector":
@@ -67,16 +98,16 @@ class VacuumMonitor:
             if action == grasp_state:
                 self.lost = False
                 self.armed = True
-                self._logger.info("Vacuum monitor ARMED (vacuum_on detected)")
+                self._logger.info(f"Vacuum monitor ARMED ({grasp_state} detected)")
                 if self.status == _NO_OBJECT:
                     self.lost = True
                     self._logger.warning(
-                        "VACUUM_LOST: no seal detected immediately after vacuum_on"
+                        f"VACUUM_LOST: no seal detected immediately after {grasp_state}"
                     )
             elif action == release_state:
                 self.armed = False
                 self.lost = False
-                self._logger.info("Vacuum monitor DISARMED (vacuum_off detected)")
+                self._logger.info(f"Vacuum monitor DISARMED ({release_state} detected)")
 
     def check_lost(self) -> str | None:
         """Check if vacuum was lost. Returns error string if lost, None if OK."""

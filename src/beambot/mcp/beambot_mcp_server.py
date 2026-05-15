@@ -65,7 +65,15 @@ except ImportError:
     _ZIVID_MARKER_AVAILABLE = False
 from cv_bridge import CvBridge
 
-from epick_msgs.msg import ObjectDetectionStatus
+# epick_msgs is optional — only required on beamlines that use the ePick
+# vacuum gripper. Beamlines without it still get full MCP functionality
+# minus vacuum-status reporting.
+try:
+    from epick_msgs.msg import ObjectDetectionStatus
+    _EPICK_MSGS_AVAILABLE = True
+except ImportError:
+    ObjectDetectionStatus = None
+    _EPICK_MSGS_AVAILABLE = False
 
 from beambot.stages.base_stages import wait_for_future
 
@@ -115,11 +123,21 @@ EPICK_STATUS_NAMES = {
     3: "NO_OBJECT_DETECTED",
 }
 
-# Pose registry
-POSES_FILE = os.environ.get(
-    "EROBS_POSES_FILE",
-    os.path.join(os.path.dirname(__file__), "..", "..", "cms", "poses.yaml"),
-)
+# Pose registry — resolved at call time from $BEAMBOT_BEAMLINE_CONFIG → poses_file
+def _poses_file_path() -> str:
+    """Resolve the poses YAML path via the active beamline config.
+
+    Reads BEAMBOT_BEAMLINE_CONFIG, parses its poses_file field, and resolves
+    that against the workspace root. Returns "" if unset/unresolvable, so
+    callers can present a helpful error rather than crashing at import time.
+    """
+    try:
+        from beambot.config_loader import load_beamline_config, resolve_beamline_path
+        config, config_path = load_beamline_config()
+        return resolve_beamline_path(config.get("poses_file", ""), config_path)
+    except Exception as e:
+        logger.error(f"Failed to resolve poses_file: {e}")
+        return ""
 
 # Default save locations
 DEFAULT_IMAGE_PATH = "/tmp/beambot_capture.jpg"
@@ -355,12 +373,15 @@ class ROS2BridgeNode(Node):
             callback_group=self._cb_group,
         )
 
-        # ePick vacuum object detection status
-        self._epick_status_sub = self.create_subscription(
-            ObjectDetectionStatus, EPICK_STATUS_TOPIC,
-            self._on_epick_status, 10,
-            callback_group=self._cb_group,
-        )
+        # ePick vacuum object detection status (only if epick_msgs is installed)
+        if _EPICK_MSGS_AVAILABLE:
+            self._epick_status_sub = self.create_subscription(
+                ObjectDetectionStatus, EPICK_STATUS_TOPIC,
+                self._on_epick_status, 10,
+                callback_group=self._cb_group,
+            )
+        else:
+            self._epick_status_sub = None
 
         # Robot state (updated by callbacks, None = no data received yet)
         self.joint_names: list[str] | None = None
@@ -817,7 +838,7 @@ async def get_vacuum_status() -> str:
 
 def _read_poses_file() -> dict:
     """Read the poses YAML file. Returns empty dict if file doesn't exist."""
-    path = os.path.realpath(POSES_FILE)
+    path = os.path.realpath(_poses_file_path())
     if not os.path.exists(path):
         return {}
     with open(path, "r") as f:
@@ -833,7 +854,7 @@ def _write_poses_file(poses: dict):
     """
     import tempfile
 
-    path = os.path.realpath(POSES_FILE)
+    path = os.path.realpath(_poses_file_path())
     dir_path = os.path.dirname(path)
     os.makedirs(dir_path, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(dir=dir_path, suffix=".yaml.tmp")
@@ -865,7 +886,7 @@ async def get_saved_poses(filter: str = "") -> str:
         return json.dumps({
             "poses": {},
             "count": 0,
-            "message": f"No poses file found at {os.path.realpath(POSES_FILE)}. "
+            "message": f"No poses file found at {os.path.realpath(_poses_file_path())}. "
                        "Use save_pose to create one.",
         })
 
@@ -2083,21 +2104,19 @@ _DIRECTION_OPPOSITES = {
 
 
 def _load_beamline_config() -> dict:
-    """Load the full beamline config from default_beamline.yaml."""
+    """Load the full beamline config from $BEAMBOT_BEAMLINE_CONFIG."""
     try:
-        from ament_index_python.packages import get_package_share_directory
-        config_path = os.path.join(
-            get_package_share_directory("beambot"), "config", "default_beamline.yaml"
-        )
-        with open(config_path) as f:
-            return yaml.safe_load(f) or {}
+        # Import lazily so the MCP server can still start without ROS sourced
+        from beambot.config_loader import load_beamline_config
+        config, _ = load_beamline_config()
+        return config
     except Exception as e:
         logger.error(f"Failed to load beamline config: {e}")
         return {}
 
 
 def _load_vision_targets() -> dict:
-    """Load vision target configs from default_beamline.yaml."""
+    """Load vision target configs from $BEAMBOT_BEAMLINE_CONFIG."""
     return _load_beamline_config().get("vision_targets", {})
 
 
@@ -2283,7 +2302,7 @@ async def vision_target(
 ) -> str:
     """Build task JSON for a config-driven vision target operation.
 
-    Vision targets are defined in default_beamline.yaml under 'vision_targets'.
+    Vision targets are defined in $BEAMBOT_BEAMLINE_CONFIG under 'vision_targets'.
     Each target uses ArUco marker detection to locate the target, then either:
       - offset mode: moves directly to a marker-relative position (single point)
       - grid mode: aligns with marker, then does relative moves to grid element

@@ -50,7 +50,7 @@ Available profiles: `pen_vacuum`, `7mm_dia`, `3mm_dia`, `default`
    <xacro:arg name="cup_profile" default="3mm_dia"/>  <!-- change this -->
    ```
 
-2. **Beamline config** — `src/beambot/config/default_beamline.yaml` under `grippers.epick`:
+2. **Beamline config** — the YAML pointed at by `$BEAMBOT_BEAMLINE_CONFIG` (CMS: `src/beambot/config/cms_beamline.yaml`) under `grippers.epick`:
    ```yaml
    cup_profile: "3mm_dia"  # change this
    ```
