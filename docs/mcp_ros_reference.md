@@ -546,7 +546,7 @@ Gripper behavior is defined in the beamline config (`config/default_beamline.yam
 | `2fg7` | `gripper:=2fg7` | `2fg7_gripper` | `2fg7_closed` | `2fg7_open` |
 | `pipettor` | `gripper:=pipettor` | (none) | — | — |
 
-All grippers use `ur5e_moveit_config` with the `gripper:=` launch argument.
+All grippers use `cms_moveit_config` with the `gripper:=` launch argument.
 
 ### Gripper Auto-Resolution
 

@@ -296,7 +296,7 @@ Physical marker quality could affect detection:
 |------|---------|
 | `beambot/camera/zivid.py` | Detection implementation |
 | `beambot/stages/vision_stages.py` | Vision stage orchestration |
-| `ur5e_robot_description/urdf/zivid_camera_mount.xacro` | Hand-eye calibration |
+| `cms_robot_description/urdf/zivid_camera_mount.xacro` | Hand-eye calibration |
 | `beambot/config/default_beamline.yaml` | Camera configuration |
 
 ---

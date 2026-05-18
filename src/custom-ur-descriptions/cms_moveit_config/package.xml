@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ur5e_moveit_config</name>
+  <name>cms_moveit_config</name>
   <version>0.4.0</version>
   <description>
      Unified MoveIt configuration for UR5e with parameterized gripper support.
@@ -25,7 +25,7 @@
   <exec_depend>xacro</exec_depend>
   <exec_depend>moveit_configs_utils</exec_depend>
   <exec_depend>ur_robot_driver</exec_depend>
-  <exec_depend>ur5e_robot_description</exec_depend>
+  <exec_depend>cms_robot_description</exec_depend>
 
   <export>
       <build_type>ament_cmake</build_type>

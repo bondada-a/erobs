@@ -59,7 +59,7 @@ UR5e Robot + Grippers
 
 ### Hand-Eye Calibration History
 
-The Zivid camera is mounted on the robot arm (eye-in-hand). The transform `tool0 → zivid_optical_frame` is stored in `ur5e_robot_description/urdf/zivid_camera_mount.xacro`.
+The Zivid camera is mounted on the robot arm (eye-in-hand). The transform `tool0 → zivid_optical_frame` is stored in `cms_robot_description/urdf/zivid_camera_mount.xacro`.
 
 **Re-run calibration when**: Robot is moved to a different location, camera mount is disturbed, or vision accuracy degrades.
 
@@ -113,7 +113,7 @@ ros2 topic echo /beambot/execution_state  # Monitor state
 | MCP server (beambot) | `beambot/mcp/beambot_mcp_server.py` |
 | Beamline configs | `beambot/config/default_beamline.yaml` |
 | Pose registry | `cms/poses.yaml` |
-| MoveIt configs | `custom-ur-descriptions/ur5e_moveit_configs/` |
+| MoveIt configs | `custom-ur-descriptions/cms_moveit_configs/` |
 | Launch files | `beambot/launch/` |
 | MCP detailed reference | `docs/mcp_ros_reference.md` |
 | Isaac Sim integration | `docs/isaac_sim_integration.md` |

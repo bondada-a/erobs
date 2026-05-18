@@ -33,7 +33,7 @@
 
 ## Prerequisites
 
-MoveIt must be running with `ExecuteTaskSolutionCapability`. The unified `ur5e_moveit_config` package includes this by default for all grippers.
+MoveIt must be running with `ExecuteTaskSolutionCapability`. The unified `cms_moveit_config` package includes this by default for all grippers.
 
 The demo uses hardcoded values that must exist in your MoveIt config:
 - **Planning group**: `ur_arm` (hardcoded in `base_stages.py` and `demo.launch.py`)
@@ -45,7 +45,7 @@ The demo uses hardcoded values that must exist in your MoveIt config:
 
 ```bash
 colcon build --packages-select \
-  ur5e_moveit_config \
+  cms_moveit_config \
   hello_orchestrator_py \
   hello_orchestrator_py_interfaces
 
@@ -55,7 +55,7 @@ source install/setup.bash
 ### 2. Launch MoveIt (Terminal 1)
 
 ```bash
-ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=none use_fake_hardware:=true
+ros2 launch cms_moveit_config robot_bringup.launch.py gripper:=none use_fake_hardware:=true
 ```
 
 Wait for: `"You can start planning now!"`

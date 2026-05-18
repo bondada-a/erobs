@@ -16,8 +16,8 @@ EROBS integrates ROS2 robotics with Bluesky experiment orchestration to enable s
   - [end_effectors.repos](./src/end_effectors/end_effectors.repos): VCS file for downloading robotiq_hande_driver, robotiq_hande_description, ros2_epick_gripper, and serial packages.
   - [epick_config](./src/end_effectors/epick_config): Site-specific configuration overlay for EPick vacuum gripper.
 - [custom-ur-descriptions](./src/custom-ur-descriptions): Custom UR5e robot arm descriptions with attached grippers.
-  - [ur5e_robot_description](./src/custom-ur-descriptions/ur5e_robot_description): UR5e robot arm with Zivid camera mount and gripper attachments.
-  - [ur5e_moveit_configs](./src/custom-ur-descriptions/ur5e_moveit_configs): MoveIt configurations for UR5e with each gripper type (HandE, EPick, Pipettor).
+  - [cms_robot_description](./src/custom-ur-descriptions/cms_robot_description): UR5e robot arm with Zivid camera mount and gripper attachments.
+  - [cms_moveit_configs](./src/custom-ur-descriptions/cms_moveit_configs): MoveIt configurations for UR5e with each gripper type (HandE, EPick, Pipettor).
 - [vision](./src/vision): Vision system packages for Zivid 3D camera and ArUco marker detection.
 - [bluesky_ros](./src/bluesky_ros): Python module for integrating Bluesky and ROS2 via Ophyd devices.
 - [pdf](./src/pdf): PDF beamline specific applications (placeholder).

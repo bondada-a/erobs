@@ -12,7 +12,7 @@ robot:
 
 grippers:
   none:
-    moveit_package: "ur5e_moveit_config"
+    moveit_package: "cms_moveit_config"
     gripper_arg: "none"            # Passed as gripper:= to launch file
     tool_voltage: 0
     gripper_group: ""              # No gripper group
@@ -20,7 +20,7 @@ grippers:
     states: {}                     # No states
 
   hande:
-    moveit_package: "ur5e_moveit_config"
+    moveit_package: "cms_moveit_config"
     gripper_arg: "hande"
     tool_voltage: 24
     dock_number: 3
@@ -31,7 +31,7 @@ grippers:
       release: "hande_open"
 
   epick:
-    moveit_package: "ur5e_moveit_config"
+    moveit_package: "cms_moveit_config"
     gripper_arg: "epick"
     tool_voltage: 24
     dock_number: 4
@@ -44,7 +44,7 @@ grippers:
       release: "vacuum_off"
 
   2fg7:
-    moveit_package: "ur5e_moveit_config"
+    moveit_package: "cms_moveit_config"
     gripper_arg: "2fg7"
     tool_voltage: 24
     tool_baud_rate: 1000000
@@ -56,7 +56,7 @@ grippers:
       release: "2fg7_open"
 
   pipettor:
-    moveit_package: "ur5e_moveit_config"
+    moveit_package: "cms_moveit_config"
     gripper_arg: "pipettor"
     tool_voltage: 24
     dock_number: 2

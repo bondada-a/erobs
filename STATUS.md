@@ -34,7 +34,7 @@ gh issue close <number> --reason completed
 
 - **MCP server setup**: `beambot-mcp-server` (custom, in beambot/mcp/) + `ros-mcp-server` (external). Both in `.claude/settings.local.json`
 - **Gripper tracking**: Orchestrator tracks gripper state. Always use `/beambot_execution`, not individual action servers.
-- **Zivid calibration**: Eye-in-hand, last calibrated 2026-01-15. Transform in `ur5e_robot_description/urdf/zivid_camera_mount.xacro`
+- **Zivid calibration**: Eye-in-hand, last calibrated 2026-01-15. Transform in `cms_robot_description/urdf/zivid_camera_mount.xacro`
 - **ZED calibration**: Eye-to-hand, completed 2026-03-10
 - **Planning strategy**: Pilz LIN/PTP preferred for short/deterministic moves. OMPL/RRTConnect as fallback via MTC Fallbacks container.
 - **OMPL goal_bias**: Left at 0.15 intentionally — higher values make it redundant with PTP.

@@ -8,8 +8,8 @@
 
   <!-- import main macros -->
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
-  <xacro:include filename="$(find ur5e_robot_description)/urdf/zivid_camera_mount.xacro"/>
-  <xacro:include filename="$(find ur5e_robot_description)/urdf/tool_block.xacro"/>
+  <xacro:include filename="$(find cms_robot_description)/urdf/zivid_camera_mount.xacro"/>
+  <xacro:include filename="$(find cms_robot_description)/urdf/tool_block.xacro"/>
   <xacro:include filename="$(find epick_config)/urdf/epick_overlay.xacro"/>
 
   <!-- possible 'ur_type' values: ur3, ur5e, ur5, ur10, ur10e, ur16e, ur20 -->
@@ -61,7 +61,7 @@
   <xacro:arg name="mock_hardware" default="true" />
 
   <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
-  <xacro:arg name="initial_positions_file" default="$(find ur5e_moveit_config)/config/epick/initial_positions.yaml"/>
+  <xacro:arg name="initial_positions_file" default="$(find cms_moveit_config)/config/epick/initial_positions.yaml"/>
   <xacro:property name="initial_positions_file" default="$(arg initial_positions_file)"/>
 
   <!-- create link fixed to the "map" -->

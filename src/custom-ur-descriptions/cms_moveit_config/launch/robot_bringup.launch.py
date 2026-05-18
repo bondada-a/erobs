@@ -1,8 +1,8 @@
 """Unified MoveIt launch file for UR5e with parameterized gripper support.
 
 Usage:
-    ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=epick
-    ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=hande use_fake_hardware:=true
+    ros2 launch cms_moveit_config robot_bringup.launch.py gripper:=epick
+    ros2 launch cms_moveit_config robot_bringup.launch.py gripper:=hande use_fake_hardware:=true
 
 Supported grippers: none, epick, hande, 2fg7, pipettor
 
@@ -114,8 +114,8 @@ def launch_setup(context, *args, **kwargs):
         )
 
     config = GRIPPER_CONFIGS[gripper]
-    pkg_share = get_package_share_directory("ur5e_moveit_config")
-    desc_share = get_package_share_directory("ur5e_robot_description")
+    pkg_share = get_package_share_directory("cms_moveit_config")
+    desc_share = get_package_share_directory("cms_robot_description")
 
     # ── Xacro args ──────────────────────────────────────────────────────
     xacro_args = {
@@ -162,7 +162,7 @@ def launch_setup(context, *args, **kwargs):
     # MoveItConfigsBuilder's default inference looks for config/joint_limits.yaml
     # at the package root, but our per-gripper files are in config/<gripper>/.
     moveit_config = (
-        MoveItConfigsBuilder("ur_moveit", package_name="ur5e_moveit_config")
+        MoveItConfigsBuilder("ur_moveit", package_name="cms_moveit_config")
         .robot_description(
             file_path=os.path.join(desc_share, "urdf", config["urdf"]),
             mappings=xacro_args,

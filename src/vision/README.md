@@ -33,4 +33,4 @@ The `zed-ros2-wrapper` package provides:
 
 ## Dependencies
 
-The robot description packages (e.g., `ur5e_robot_description`) depend on `zivid_description` for camera URDF models. 
+The robot description packages (e.g., `cms_robot_description`) depend on `zivid_description` for camera URDF models. 
