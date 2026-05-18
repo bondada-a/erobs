@@ -154,7 +154,7 @@ def wait_for_future(future, timeout: float, poll_interval: float = 0.01) -> bool
 # internal logs still go to stdout/stderr via rcutils.
 def _load_joint_accel_limits() -> dict[str, float]:
     """Collect max_acceleration for every joint declared under any gripper's
-    joint_limits.yaml in cms_moveit_config/config/<gripper>/.
+    joint_limits.yaml in the beamline's moveit_config_package/config/<gripper>/.
 
     The active gripper isn't known at module-import time (beambot_mtc is built
     before the orchestrator picks a gripper), so we load the union across all
@@ -169,8 +169,13 @@ def _load_joint_accel_limits() -> dict[str, float]:
     approach has stopped being valid and beambot_mtc should become
     gripper-aware (load only the active gripper's yaml instead).
     """
+    try:
+        from beambot.config_loader import moveit_config_package
+        pkg_name = moveit_config_package()
+    except Exception:
+        pkg_name = "cms_moveit_config"
     cfg_root = os.path.join(
-        get_package_share_directory("cms_moveit_config"), "config"
+        get_package_share_directory(pkg_name), "config"
     )
     limits: dict[str, float] = {}
     for entry in sorted(os.listdir(cfg_root)):

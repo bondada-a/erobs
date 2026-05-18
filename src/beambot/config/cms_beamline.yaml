@@ -13,6 +13,8 @@ robot:
   ik_frame: "flange"           # Matches SRDF chain (common.srdf.xacro: base_link → flange)
   velocity_scaling: 0.2        # 20% of joint limits — per-beamline safety profile
   acceleration_scaling: 0.2
+  moveit_config_package: "cms_moveit_config"    # Package with joint_limits.yaml per gripper
+  description_package: "cms_robot_description"  # URDF package for GUI 3D viewer
   arm_joints:                  # Order matters — pose YAML values are positional
     - shoulder_pan_joint
     - shoulder_lift_joint

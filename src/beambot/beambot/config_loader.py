@@ -158,6 +158,33 @@ def configured_tip_frames() -> list[str]:
         return []
 
 
+def moveit_config_package(default: str = "cms_moveit_config") -> str:
+    """Return the MoveIt config package name from the active beamline YAML.
+
+    Used by stages that load joint_limits.yaml across gripper configs.
+    Falls back to the provided default so module-level imports succeed
+    in test paths where the env var is unset.
+    """
+    try:
+        config, _ = load_beamline_config()
+        return config.get("robot", {}).get("moveit_config_package", default)
+    except Exception:
+        return default
+
+
+def description_package(default: str = "cms_robot_description") -> str:
+    """Return the robot description package from the active beamline YAML.
+
+    Used by the GUI 3D viewer to locate URDF/mesh resources. Falls back
+    to the provided default when the env var is unset.
+    """
+    try:
+        config, _ = load_beamline_config()
+        return config.get("robot", {}).get("description_package", default)
+    except Exception:
+        return default
+
+
 def gripper_urdf_file(gripper: str, default: str = "ur_standalone.urdf") -> str:
     """Return the URDF filename for a gripper as used by the GUI 3D viewer.
 

@@ -40,15 +40,23 @@ _ARM_JOINTS = _load_arm_joints()
 
 
 # Always required for any UR-based viewer URDF: the bare arm description
-# (joint hierarchy) and the workspace's ur5e description (mounting + meshes).
-_BASE_PACKAGES = ["ur_description", "cms_robot_description"]
+# (joint hierarchy) and the beamline's robot description (mounting + meshes).
+def _base_packages() -> list[str]:
+    try:
+        from beambot.config_loader import description_package
+        return ["ur_description", description_package()]
+    except Exception:
+        return ["ur_description", "cms_robot_description"]
+
+
+_BASE_PACKAGES = _base_packages()
 
 # All description packages we know how to locate. The URDF parser below picks
 # the subset actually referenced by the active beamline's URDFs; entries here
 # that go unreferenced are simply skipped.
 _KNOWN_DESCRIPTION_PACKAGES = (
     "ur_description",
-    "cms_robot_description",
+    _BASE_PACKAGES[1] if len(_BASE_PACKAGES) > 1 else "cms_robot_description",
     "zivid_description",
     "epick_description",
     "robotiq_hande_description",
@@ -115,9 +123,10 @@ def _resolve_packages(required: set[str] | None = None):
     workspace_roots = _find_workspace_roots()
 
     # Fill in anything ament_index didn't find
+    desc_pkg = _BASE_PACKAGES[1] if len(_BASE_PACKAGES) > 1 else "cms_robot_description"
     candidates_per_pkg = {
         "ur_description": [Path("/opt/ros/jazzy/share/ur_description")],
-        "cms_robot_description": [],
+        desc_pkg: [],
         "zivid_description": [Path("/opt/ros/jazzy/share/zivid_description")],
         "epick_description": [],
         "robotiq_hande_description": [],
@@ -126,9 +135,9 @@ def _resolve_packages(required: set[str] | None = None):
 
     # Add workspace-relative paths for each root
     for ws in workspace_roots:
-        candidates_per_pkg["cms_robot_description"].extend([
-            ws / "install" / "cms_robot_description" / "share" / "cms_robot_description",
-            ws / "src" / "custom-ur-descriptions" / "cms_robot_description",
+        candidates_per_pkg[desc_pkg].extend([
+            ws / "install" / desc_pkg / "share" / desc_pkg,
+            ws / "src" / "custom-ur-descriptions" / desc_pkg,
         ])
         candidates_per_pkg["zivid_description"].insert(0,
             ws / "install" / "zivid_description" / "share" / "zivid_description")
@@ -254,14 +263,19 @@ class VisualizationPanel(QWidget):
         self._preview_timer.timeout.connect(self._tick_preview)
 
         self._resources_dir = Path(__file__).parent / "resources"
+        try:
+            from beambot.config_loader import description_package
+            desc_pkg = description_package()
+        except Exception:
+            desc_pkg = "cms_robot_description"
         self._urdf_dir = None
         for ws in _find_workspace_roots():
-            candidate = ws / "src" / "custom-ur-descriptions" / "cms_robot_description" / "urdf"
+            candidate = ws / "src" / "custom-ur-descriptions" / desc_pkg / "urdf"
             if candidate.is_dir():
                 self._urdf_dir = candidate
                 break
         if self._urdf_dir is None:
-            self._urdf_dir = Path(__file__).resolve().parents[2] / "custom-ur-descriptions" / "cms_robot_description" / "urdf"
+            self._urdf_dir = Path(__file__).resolve().parents[2] / "custom-ur-descriptions" / desc_pkg / "urdf"
 
         # Limit description-package lookup to the packages actually referenced
         # by the URDFs the active beamline's grippers declare. A beamline that
