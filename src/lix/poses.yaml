@@ -1,0 +1,4 @@
+# LiX beamline pose registry
+# Joint order: [shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3]
+# All values in radians. Teach on real hardware and paste values here.
+

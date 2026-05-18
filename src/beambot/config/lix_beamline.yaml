@@ -1,0 +1,36 @@
+# LiX Beamline Configuration (NSLS-II Liquid Interface X-ray Scattering)
+# Selected at runtime via the BEAMBOT_BEAMLINE_CONFIG environment variable.
+#   export BEAMBOT_BEAMLINE_CONFIG=$(realpath src/beambot/config/lix_beamline.yaml)
+
+beamline: "lix"
+poses_file: "src/lix/poses.yaml"
+
+robot:
+  ip: "192.168.1.101"
+  arm_group: "ur_arm"
+  ik_frame: "robotiq_hande_end"
+  velocity_scaling: 0.2
+  acceleration_scaling: 0.2
+  moveit_config_package: "lix_moveit_config"
+  description_package: "lix_robot_description"
+  arm_joints:
+    - shoulder_pan_joint
+    - shoulder_lift_joint
+    - elbow_joint
+    - wrist_1_joint
+    - wrist_2_joint
+    - wrist_3_joint
+
+grippers:
+  hande:
+    moveit_package: "lix_moveit_config"
+    gripper_arg: "hande"
+    tool_voltage: 24
+    gripper_group: "hande_gripper"
+    controller_name: "gripper_action_controller"
+    states:
+      grasp: "hande_closed"
+      release: "hande_open"
+    tip_frame: "robotiq_hande_end"
+    z_offset: -0.02
+    urdf_file: "ur_with_hande.xacro"
