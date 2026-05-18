@@ -102,7 +102,7 @@ gitignored at this repo level. Fix upstream, then bump the ref.
 ### Hand-Eye Calibration History
 
 Zivid is mounted on the arm; the transform `tool0 → zivid_optical_frame`
-lives in `ur5e_robot_description/urdf/zivid_camera_mount.xacro`.
+lives in `cms_robot_description/urdf/zivid_camera_mount.xacro`.
 Re-run calibration when the robot moves, the mount is disturbed, or
 vision accuracy degrades.
 
@@ -193,8 +193,8 @@ tail -f /tmp/beambot_launch.log               # written by start_mcp.sh for get_
 | MCP server (beambot) | `src/beambot/mcp/beambot_mcp_server.py` |
 | Beamline config | `src/beambot/config/default_beamline.yaml` |
 | Pose registry | `src/cms/poses.yaml` (path hardcoded in MCP server) |
-| MoveIt configs (per gripper) | `src/custom-ur-descriptions/ur5e_moveit_config/config/` |
-| SRDF xacros (per gripper) | `src/custom-ur-descriptions/ur5e_moveit_config/srdf/` |
+| MoveIt configs (per gripper) | `src/custom-ur-descriptions/cms_moveit_config/config/` |
+| SRDF xacros (per gripper) | `src/custom-ur-descriptions/cms_moveit_config/srdf/` |
 | Launch files | `src/beambot/launch/` |
 | Per-action field reference | [`src/beambot/beambot/agent/robot_operation.md`](../src/beambot/beambot/agent/robot_operation.md) (authoritative — also powers the `robot-operation` skill) |
 | Hardware capabilities audit | [`docs/hardware_capabilities.md`](./hardware_capabilities.md) |

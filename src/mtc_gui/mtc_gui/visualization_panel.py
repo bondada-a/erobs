@@ -41,14 +41,14 @@ _ARM_JOINTS = _load_arm_joints()
 
 # Always required for any UR-based viewer URDF: the bare arm description
 # (joint hierarchy) and the workspace's ur5e description (mounting + meshes).
-_BASE_PACKAGES = ["ur_description", "ur5e_robot_description"]
+_BASE_PACKAGES = ["ur_description", "cms_robot_description"]
 
 # All description packages we know how to locate. The URDF parser below picks
 # the subset actually referenced by the active beamline's URDFs; entries here
 # that go unreferenced are simply skipped.
 _KNOWN_DESCRIPTION_PACKAGES = (
     "ur_description",
-    "ur5e_robot_description",
+    "cms_robot_description",
     "zivid_description",
     "epick_description",
     "robotiq_hande_description",
@@ -117,7 +117,7 @@ def _resolve_packages(required: set[str] | None = None):
     # Fill in anything ament_index didn't find
     candidates_per_pkg = {
         "ur_description": [Path("/opt/ros/jazzy/share/ur_description")],
-        "ur5e_robot_description": [],
+        "cms_robot_description": [],
         "zivid_description": [Path("/opt/ros/jazzy/share/zivid_description")],
         "epick_description": [],
         "robotiq_hande_description": [],
@@ -126,9 +126,9 @@ def _resolve_packages(required: set[str] | None = None):
 
     # Add workspace-relative paths for each root
     for ws in workspace_roots:
-        candidates_per_pkg["ur5e_robot_description"].extend([
-            ws / "install" / "ur5e_robot_description" / "share" / "ur5e_robot_description",
-            ws / "src" / "custom-ur-descriptions" / "ur5e_robot_description",
+        candidates_per_pkg["cms_robot_description"].extend([
+            ws / "install" / "cms_robot_description" / "share" / "cms_robot_description",
+            ws / "src" / "custom-ur-descriptions" / "cms_robot_description",
         ])
         candidates_per_pkg["zivid_description"].insert(0,
             ws / "install" / "zivid_description" / "share" / "zivid_description")
@@ -256,12 +256,12 @@ class VisualizationPanel(QWidget):
         self._resources_dir = Path(__file__).parent / "resources"
         self._urdf_dir = None
         for ws in _find_workspace_roots():
-            candidate = ws / "src" / "custom-ur-descriptions" / "ur5e_robot_description" / "urdf"
+            candidate = ws / "src" / "custom-ur-descriptions" / "cms_robot_description" / "urdf"
             if candidate.is_dir():
                 self._urdf_dir = candidate
                 break
         if self._urdf_dir is None:
-            self._urdf_dir = Path(__file__).resolve().parents[2] / "custom-ur-descriptions" / "ur5e_robot_description" / "urdf"
+            self._urdf_dir = Path(__file__).resolve().parents[2] / "custom-ur-descriptions" / "cms_robot_description" / "urdf"
 
         # Limit description-package lookup to the packages actually referenced
         # by the URDFs the active beamline's grippers declare. A beamline that

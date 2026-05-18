@@ -26,7 +26,7 @@ fi
 # Package mappings - add more as needed
 sed -e 's|package://ur_description|/opt/ros/jazzy/share/ur_description|g' \
     -e 's|package://zivid_description|/home/aditya/work/erobs/src/vision/zivid-ros/zivid_description|g' \
-    -e 's|package://ur5e_robot_description|/home/aditya/work/erobs/src/custom-ur-descriptions/ur5e_robot_description|g' \
+    -e 's|package://cms_robot_description|/home/aditya/work/erobs/src/custom-ur-descriptions/cms_robot_description|g' \
     -e 's|package://robotiq_hande_description|/home/aditya/work/erobs/src/end_effectors/robotiq_hande_description|g' \
     -e 's|package://epick_description|/home/aditya/work/erobs/src/end_effectors/ros2_epick_gripper/epick_description|g' \
     -e 's|package://pipette_description|/home/aditya/work/erobs/src/end_effectors/pipettor/pipette_description|g' \

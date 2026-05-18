@@ -154,7 +154,7 @@ def wait_for_future(future, timeout: float, poll_interval: float = 0.01) -> bool
 # internal logs still go to stdout/stderr via rcutils.
 def _load_joint_accel_limits() -> dict[str, float]:
     """Collect max_acceleration for every joint declared under any gripper's
-    joint_limits.yaml in ur5e_moveit_config/config/<gripper>/.
+    joint_limits.yaml in cms_moveit_config/config/<gripper>/.
 
     The active gripper isn't known at module-import time (beambot_mtc is built
     before the orchestrator picks a gripper), so we load the union across all
@@ -170,7 +170,7 @@ def _load_joint_accel_limits() -> dict[str, float]:
     gripper-aware (load only the active gripper's yaml instead).
     """
     cfg_root = os.path.join(
-        get_package_share_directory("ur5e_moveit_config"), "config"
+        get_package_share_directory("cms_moveit_config"), "config"
     )
     limits: dict[str, float] = {}
     for entry in sorted(os.listdir(cfg_root)):
@@ -230,7 +230,7 @@ _options.arguments = [
     "-p", "robot_description_planning.cartesian_limits.max_rot_acc:=3.15",
     "-p", "robot_description_planning.cartesian_limits.max_rot_dec:=-5.0",
     # Pilz PTP / TOTG joint acceleration limits — union across all gripper
-    # joint_limits.yaml files under ur5e_moveit_config/config/<gripper>/.
+    # joint_limits.yaml files under cms_moveit_config/config/<gripper>/.
     *_build_joint_limit_args(_load_joint_accel_limits()),
 ]
 _mtc_node = rclcpp.Node("beambot_mtc", _options)

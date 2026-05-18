@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
 
-<!--   Chain: map -> UR -> flange -> zivid_camera_mount -> zivid_camera -> EPick gripper -->
+<!--Chain: map -> UR -> flange -> zivid_camera_mount -> zivid_camera -> tool_block -> pipettor -->
 
   <!-- robot name parameter -->
   <xacro:arg name="name" default="ur5e"/>
@@ -9,13 +9,13 @@
   <!-- import main macros -->
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
   <xacro:include filename="$(find ur_robot_driver)/urdf/ur.ros2_control.xacro"/>
-  <xacro:include filename="$(find ur5e_robot_description)/urdf/zivid_camera_mount.xacro"/>
-  <xacro:include filename="$(find ur5e_robot_description)/urdf/tool_block.xacro"/>
-  <xacro:include filename="$(find epick_config)/urdf/epick_overlay.xacro"/>
+  <xacro:include filename="$(find cms_robot_description)/urdf/zivid_camera_mount.xacro"/>
+  <xacro:include filename="$(find cms_robot_description)/urdf/tool_block.xacro"/>
+  <xacro:include filename="$(find pipette_description)/urdf/pipette_macro.urdf.xacro"/>
 
   <!-- possible 'ur_type' values: ur3, ur5e, ur5, ur10, ur10e, ur16e, ur20 -->
   <xacro:arg name="ur_type" default="ur5e"/>
-  <!--. -->
+
   <!-- Parameters from upstream UR description -->
   <xacro:arg name="tf_prefix" default="" />
   <xacro:arg name="joint_limit_params" default="$(find ur_description)/config/$(arg ur_type)/joint_limits.yaml"/>
@@ -41,8 +41,8 @@
   <xacro:arg name="robot_receive_timeout" default="0.2"/>
 
   <!-- tool communication related parameters -->
-  <xacro:arg name="use_tool_communication" default="false" />
-  <xacro:arg name="tool_voltage" default="0" />
+  <xacro:arg name="use_tool_communication" default="true" />
+  <xacro:arg name="tool_voltage" default="24" />
   <xacro:arg name="tool_parity" default="0" />
   <xacro:arg name="tool_baud_rate" default="115200" />
   <xacro:arg name="tool_stop_bits" default="1" />
@@ -56,7 +56,7 @@
   <xacro:arg name="use_mock_hardware" default="false" />
 
   <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
-  <xacro:arg name="initial_positions_file" default="$(find ur5e_moveit_config)/config/epick/initial_positions.yaml"/>
+  <xacro:arg name="initial_positions_file" default="$(find cms_moveit_config)/config/pipettor/initial_positions.yaml"/>
   <xacro:property name="initial_positions_file" default="$(arg initial_positions_file)"/>
 
   <!-- create link fixed to the "map" -->
@@ -119,27 +119,13 @@
   <!-- Tool block attached to the Zivid arm mount (not the camera) -->
   <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.049" rpy="-1.5708 0 3.14159"/>
 
-  <!-- Suction cup profile: dimensions loaded from suction_cups.yaml (single source of truth).
-       The cup_profile default MUST match the physically attached cup — the UR driver's
-       robot_state_publisher uses this default (it can't receive args from the orchestrator).
-       When changing cups, update this default AND the active beamline YAML's grippers.epick.cup_profile.
-       Available profiles: see epick_config/config/suction_cups.yaml -->
-  <xacro:property name="cups_yaml_path" value="$(find epick_config)/config/suction_cups.yaml"/>
-  <xacro:property name="cups_config" value="${xacro.load_yaml(cups_yaml_path)}"/>
-  <xacro:arg name="cup_profile" default="3mm_dia"/>
-  <xacro:property name="cup_profile_name" value="$(arg cup_profile)"/>
-  <xacro:property name="cup" value="${cups_config['cups'][cup_profile_name]}"/>
-
-  <!-- Epick Gripper -->
-  <xacro:epick_overlay use_mock_hardware="$(arg use_mock_hardware)" parent="tool_block"
-                  origin_xyz="0 -0.03235 0"
-                  origin_rpy="-1.5708 0 3.1416"
-                  extension_length="${cup['extension_length']}"
-                  extension_radius="${cup['extension_radius']}"
-                  suction_cup_height="${cup['suction_cup_height']}"
-                  suction_cup_radius="${cup['suction_cup_radius']}"/>
+  <!-- Pipettor attached to tool block -->
+  <xacro:pipette
+    name="pipette"
+    prefix="$(arg tf_prefix)"
+    parent="tool_block"
+    pipette_mass="0.200"
+    xyz="-0.005 -0.015 0"
+    rpy="-1.5708 0 3.1416"
+  />
 </robot>
-
-
-
-

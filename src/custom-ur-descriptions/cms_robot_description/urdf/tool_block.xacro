@@ -7,7 +7,7 @@
       <visual>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur5e_robot_description/meshes/tool_exchanger/Tool_block.stl"
+          <mesh filename="package://cms_robot_description/meshes/tool_exchanger/Tool_block.stl"
                 scale="${scale} ${scale} ${scale}"/>
         </geometry>
         <material name="grey">
@@ -17,7 +17,7 @@
       <collision>
         <origin xyz="0 0 0" rpy="0 0 0"/>
         <geometry>
-          <mesh filename="package://ur5e_robot_description/meshes/tool_exchanger/Tool_block.stl"
+          <mesh filename="package://cms_robot_description/meshes/tool_exchanger/Tool_block.stl"
                 scale="${scale} ${scale} ${scale}"/>
         </geometry>
       </collision>

@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
 
-<!--Chain: map -> UR -> flange -> zivid_camera_mount -> zivid_camera -> tool_block -> pipettor -->
+<!--Chain: map -> UR -> flange -> zivid_camera_mount -> zivid_camera -> 2FG7 gripper -->
 
   <!-- robot name parameter -->
   <xacro:arg name="name" default="ur5e"/>
@@ -9,9 +9,9 @@
   <!-- import main macros -->
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
   <xacro:include filename="$(find ur_robot_driver)/urdf/ur.ros2_control.xacro"/>
-  <xacro:include filename="$(find ur5e_robot_description)/urdf/zivid_camera_mount.xacro"/>
-  <xacro:include filename="$(find ur5e_robot_description)/urdf/tool_block.xacro"/>
-  <xacro:include filename="$(find pipette_description)/urdf/pipette_macro.urdf.xacro"/>
+  <xacro:include filename="$(find cms_robot_description)/urdf/zivid_camera_mount.xacro"/>
+  <xacro:include filename="$(find cms_robot_description)/urdf/tool_block.xacro"/>
+  <xacro:include filename="$(find onrobot_2fg7_description)/urdf/onrobot_2fg7.xacro"/>
 
   <!-- possible 'ur_type' values: ur3, ur5e, ur5, ur10, ur10e, ur16e, ur20 -->
   <xacro:arg name="ur_type" default="ur5e"/>
@@ -40,11 +40,11 @@
   <!-- Keep-alive: number of 20ms cycles without response before disconnect (10 = 200ms timeout) -->
   <xacro:arg name="robot_receive_timeout" default="0.2"/>
 
-  <!-- tool communication related parameters -->
+  <!-- tool communication related parameters (2FG7 defaults: 1Mbps, Even parity) -->
   <xacro:arg name="use_tool_communication" default="true" />
   <xacro:arg name="tool_voltage" default="24" />
-  <xacro:arg name="tool_parity" default="0" />
-  <xacro:arg name="tool_baud_rate" default="115200" />
+  <xacro:arg name="tool_parity" default="2" />
+  <xacro:arg name="tool_baud_rate" default="1000000" />
   <xacro:arg name="tool_stop_bits" default="1" />
   <xacro:arg name="tool_rx_idle_chars" default="1.5" />
   <xacro:arg name="tool_tx_idle_chars" default="3.5" />
@@ -56,7 +56,7 @@
   <xacro:arg name="use_mock_hardware" default="false" />
 
   <!-- initial position for simulations (Fake Hardware, Gazebo, Ignition) -->
-  <xacro:arg name="initial_positions_file" default="$(find ur5e_moveit_config)/config/pipettor/initial_positions.yaml"/>
+  <xacro:arg name="initial_positions_file" default="$(find cms_moveit_config)/config/2fg7/initial_positions.yaml"/>
   <xacro:property name="initial_positions_file" default="$(arg initial_positions_file)"/>
 
   <!-- create link fixed to the "map" -->
@@ -119,13 +119,9 @@
   <!-- Tool block attached to the Zivid arm mount (not the camera) -->
   <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.049" rpy="-1.5708 0 3.14159"/>
 
-  <!-- Pipettor attached to tool block -->
-  <xacro:pipette
-    name="pipette"
-    prefix="$(arg tf_prefix)"
+  <!-- OnRobot 2FG7 gripper — same mounting offset as ePick/Hand-E (same bolt pattern) -->
+  <xacro:onrobot_2fg7
     parent="tool_block"
-    pipette_mass="0.200"
-    xyz="-0.005 -0.015 0"
-    rpy="-1.5708 0 3.1416"
-  />
+    xyz="0 -0.03235 0"
+    rpy="-1.5708 0 3.1416"/>
 </robot>

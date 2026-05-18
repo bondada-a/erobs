@@ -27,7 +27,7 @@ grippers:
   # z_offset:   Default Z offset in meters (gripper frame) for vision approach.
   # urdf_file:  URDF used by the GUI 3D viewer for this gripper configuration.
   none:
-    moveit_package: "ur5e_moveit_config"
+    moveit_package: "cms_moveit_config"
     gripper_arg: "none"            # Passed as gripper:= to launch file
     tool_voltage: 0
     gripper_group: ""              # No gripper group
@@ -38,7 +38,7 @@ grippers:
     urdf_file: "ur_standalone.urdf"
 
   hande:
-    moveit_package: "ur5e_moveit_config"
+    moveit_package: "cms_moveit_config"
     gripper_arg: "hande"
     tool_voltage: 24
     dock_number: 3
@@ -52,7 +52,7 @@ grippers:
     urdf_file: "ur_with_zivid_hande.urdf"
 
   epick:
-    moveit_package: "ur5e_moveit_config"
+    moveit_package: "cms_moveit_config"
     gripper_arg: "epick"
     tool_voltage: 24
     dock_number: 4
@@ -67,7 +67,7 @@ grippers:
     urdf_file: "ur_with_zivid_epick.urdf"
 
   2fg7:
-    moveit_package: "ur5e_moveit_config"
+    moveit_package: "cms_moveit_config"
     gripper_arg: "2fg7"
     tool_voltage: 24
     tool_baud_rate: 1000000
@@ -82,7 +82,7 @@ grippers:
     urdf_file: "ur_standalone.urdf"   # No dedicated 2fg7 viewer URDF yet
 
   pipettor:
-    moveit_package: "ur5e_moveit_config"
+    moveit_package: "cms_moveit_config"
     gripper_arg: "pipettor"
     tool_voltage: 24
     dock_number: 2

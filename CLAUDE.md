@@ -39,7 +39,7 @@ the live-robot step to the ops skill.
 | `src/beambot/launch/beambot_bringup.launch.py` | Launches all action servers + Zivid + orchestrator. Takes `enable_vision`, `enable_pipettor`, `use_mock_hardware`, `enable_batching` |
 | `src/beambot_interfaces/action/` | 9 `.action` definitions. When adding fields, update the corresponding `_create_*_goal` / `_call_*` method in `orchestrator.py` |
 | `src/mtc_gui/` | PyQt5 operator cockpit (primary manual interface). `main_window.py` is the entry; task dialogs in `task_forms.py`; chat panel in `chat_panel.py` + `agent_bridge.py` (wires RobotAgent into Qt) |
-| `src/custom-ur-descriptions/ur5e_moveit_config/` | URDF / SRDF / MoveIt configs. SRDF has a separate xacro per gripper (`hande.srdf.xacro`, `epick.srdf.xacro`, `2fg7.srdf.xacro`, `pipettor.srdf.xacro`, `none.srdf.xacro`) stitched by `ur.srdf.xacro` |
+| `src/custom-ur-descriptions/cms_moveit_config/` | URDF / SRDF / MoveIt configs. SRDF has a separate xacro per gripper (`hande.srdf.xacro`, `epick.srdf.xacro`, `2fg7.srdf.xacro`, `pipettor.srdf.xacro`, `none.srdf.xacro`) stitched by `ur.srdf.xacro` |
 | `src/cms/` | CMS beamline assets: `poses.yaml` (pose registry — referenced by `poses_file` in `default_beamline.yaml`, auto-resolved by the orchestrator), `beamtime_poses.yaml`, `experiments.md` (session protocols), `tasks/` (JSON task sequences) |
 | `src/bluesky_ros/` | Ophyd wrapper for `/beambot_execution`. **Currently broken / not kept in sync with PickSample/PlaceSample split.** Don't assume it works |
 | `src/end_effectors/`, `src/vision/` | `vcs import`ed subtrees — gitignored. Edits here don't commit at this repo level |
@@ -93,7 +93,7 @@ uses).
   from `beambot.detection`, not be re-inlined.
 - **Gripper config is driven by `default_beamline.yaml`.** Adding a
   gripper is a four-touch change: entry in that YAML, SRDF xacro in
-  `ur5e_moveit_config/srdf/`, MoveIt config folder, and the `_GRIPPER_IK_FRAMES`
+  `cms_moveit_config/srdf/`, MoveIt config folder, and the `_GRIPPER_IK_FRAMES`
   dict in `orchestrator.py:909`. Forgetting any of these fails silently
   (wrong IK frame, missing SRDF state, no controller).
 - **`src/beambot/beambot/agent/robot_operation.md` is the shared ops

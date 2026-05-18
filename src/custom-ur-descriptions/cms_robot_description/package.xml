@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>ur5e_robot_description</name>
+  <name>cms_robot_description</name>
   <version>0.0.0</version>
   <description>This package creates robot descriptions for UR5e robotic systems with various end-effector configurations</description>
   <maintainer email="abondada@bnl.gov">abondada</maintainer>

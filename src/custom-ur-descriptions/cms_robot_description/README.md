@@ -1,4 +1,4 @@
-# ur5e_robot_description
+# cms_robot_description
 
 This package contains robot description files for UR5e robotic systems with
 various end-effectors and camera configurations:
@@ -172,14 +172,14 @@ The `.urdf` files are pre-baked from xacro for packages that include them direct
 
 ```bash
 # Rebuild xacro source packages
-colcon build --packages-select epick_config epick_description ur5e_robot_description
+colcon build --packages-select epick_config epick_description cms_robot_description
 source install/setup.bash
 
 # Regenerate baked URDF
-xacro src/custom-ur-descriptions/ur5e_robot_description/urdf/ur_with_zivid_epick.xacro \
+xacro src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_epick.xacro \
   name:=ur5e robot_ip:=0.0.0.0 script_filename:="" \
   output_recipe_filename:="" input_recipe_filename:="" \
-  > src/custom-ur-descriptions/ur5e_robot_description/urdf/ur_with_zivid_epick.urdf
+  > src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_epick.urdf
 ```
 
 ## Usage
@@ -187,7 +187,7 @@ xacro src/custom-ur-descriptions/ur5e_robot_description/urdf/ur_with_zivid_epick
 ### Building the Package
 
 ```bash
-colcon build --packages-select ur5e_robot_description
+colcon build --packages-select cms_robot_description
 source install/setup.bash
 ```
 
@@ -195,13 +195,13 @@ source install/setup.bash
 
 ```bash
 # Launch with specific gripper configuration
-ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=none          # standalone
-ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=epick         # ePick vacuum
-ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=hande         # Hand-E
-ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=pipettor      # pipettor
-ros2 launch ur5e_moveit_config robot_bringup.launch.py gripper:=2fg7          # OnRobot 2FG7
+ros2 launch cms_moveit_config robot_bringup.launch.py gripper:=none          # standalone
+ros2 launch cms_moveit_config robot_bringup.launch.py gripper:=epick         # ePick vacuum
+ros2 launch cms_moveit_config robot_bringup.launch.py gripper:=hande         # Hand-E
+ros2 launch cms_moveit_config robot_bringup.launch.py gripper:=pipettor      # pipettor
+ros2 launch cms_moveit_config robot_bringup.launch.py gripper:=2fg7          # OnRobot 2FG7
 ```
 
 ### Integration with MoveIt
 
-This package is designed to work with the unified MoveIt configuration package `ur5e_moveit_config`, which supports all grippers via the `gripper:=` launch argument.
+This package is designed to work with the unified MoveIt configuration package `cms_moveit_config`, which supports all grippers via the `gripper:=` launch argument.

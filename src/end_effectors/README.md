@@ -45,7 +45,7 @@ Available profiles: `pen_vacuum`, `7mm_dia`, `3mm_dia`, `default`
 
 2 edits, both just the profile name string:
 
-1. **Xacro default** — `src/custom-ur-descriptions/ur5e_robot_description/urdf/ur_with_zivid_epick.xacro`:
+1. **Xacro default** — `src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_epick.xacro`:
    ```xml
    <xacro:arg name="cup_profile" default="3mm_dia"/>  <!-- change this -->
    ```
@@ -57,7 +57,7 @@ Available profiles: `pen_vacuum`, `7mm_dia`, `3mm_dia`, `default`
 
 Both must be the same string. Then rebuild:
 ```bash
-colcon build --packages-select ur5e_robot_description
+colcon build --packages-select cms_robot_description
 ```
 
 **Why two files?** The UR driver's robot_state_publisher processes the xacro with defaults only (it can't receive args from the orchestrator). The beamline config is what the orchestrator reads at runtime. Both must agree.

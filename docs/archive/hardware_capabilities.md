@@ -577,7 +577,7 @@ ePick vacuum is done. Complete the grasp verification loop for Hand-E:
 
 | Category | Key Files |
 |---|---|
-| **Controller configs** | `src/custom-ur-descriptions/ur5e_moveit_configs/*/config/ur*_controllers.yaml` |
+| **Controller configs** | `src/custom-ur-descriptions/cms_moveit_configs/*/config/ur*_controllers.yaml` |
 | **Speed/accel scaling** | `src/beambot/beambot/stages/base_stages.py` (lines 74-76) |
 | **Zivid 3D settings** | `src/beambot/config/scene_capture.yml` |
 | **Zivid 2D settings** | `src/beambot/config/zivid_settings.yml` |
@@ -586,7 +586,7 @@ ePick vacuum is done. Complete the grasp verification loop for Hand-E:
 | **Pick/place stages** | `src/beambot/beambot/stages/pick_place_stages.py` |
 | **End effector stages** | `src/beambot/beambot/stages/end_effector_stages.py` |
 | **Gripper config** | `src/beambot/config/default_beamline.yaml` |
-| **URDF/xacro** | `src/custom-ur-descriptions/ur5e_robot_description/urdf/` |
+| **URDF/xacro** | `src/custom-ur-descriptions/cms_robot_description/urdf/` |
 | **Action definitions** | `src/beambot_interfaces/action/` |
 | **ePick driver** | External: `PickNikRobotics/ros2_epick_gripper` (via `end_effectors.repos`) |
 | **HandE driver** | External: `AGH-CEAI/robotiq_hande_driver` (via `end_effectors.repos`) |

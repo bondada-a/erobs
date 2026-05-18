@@ -52,7 +52,7 @@ run_test "Total packages > 400" \
 echo ""
 echo "--- EROBS Core Packages ---"
 for pkg in beambot beambot_interfaces pdf_beamtime pdf_beamtime_interfaces \
-           aruco_pose mtc_gui ur5e_robot_description; do
+           aruco_pose mtc_gui cms_robot_description; do
     run_test "Package: $pkg" \
         "ros2 pkg prefix $pkg >/dev/null"
 done

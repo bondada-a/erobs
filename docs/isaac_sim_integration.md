@@ -7,12 +7,12 @@ URDFs using `package://` URIs don't work directly in Isaac Sim because it doesn'
 **Solution**: Convert to absolute paths using the conversion script.
 
 **Files**:
-- `ur5e_robot_description/urdf/convert_urdf_for_isaac.sh` - Conversion script
-- `ur5e_robot_description/urdf/*_isaac.urdf` - Converted URDFs with absolute paths
+- `cms_robot_description/urdf/convert_urdf_for_isaac.sh` - Conversion script
+- `cms_robot_description/urdf/*_isaac.urdf` - Converted URDFs with absolute paths
 
 **Usage**:
 ```bash
-cd src/custom-ur-descriptions/ur5e_robot_description/urdf/
+cd src/custom-ur-descriptions/cms_robot_description/urdf/
 ./convert_urdf_for_isaac.sh ur_with_zivid_hande.urdf ur_with_zivid_hande_isaac.urdf
 ```
 
@@ -41,7 +41,7 @@ If Physics Inspector shows no joints after import:
 ## Joint Drive Parameters
 
 Official NVIDIA UR5e + Robotiq Hand-E values stored in:
-- `ur5e_robot_description/urdf/isaac_sim_joint_params.yaml`
+- `cms_robot_description/urdf/isaac_sim_joint_params.yaml`
 
 **UR5e Arm Joints** (Revolute → Angular Drive):
 
