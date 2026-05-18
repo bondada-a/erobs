@@ -751,6 +751,7 @@ async def get_robot_state() -> str:
     """Get the current state of the robot system.
 
     Returns a JSON object with:
+    - beamline: active beamline name from $BEAMBOT_BEAMLINE_CONFIG (e.g. "cms")
     - system_running: whether the robot system (MoveIt, action servers) is up
     - gripper: currently attached gripper name, or "unknown" if system not running
     - execution_state: IDLE, EXECUTING, or PAUSED (null if system not running)
@@ -784,7 +785,17 @@ async def get_robot_state() -> str:
             "object_detected": status_int in (1, 2),
         }
 
+    # Read beamline identity from config (safe even if robot isn't running)
+    beamline_name = None
+    try:
+        from beambot.config_loader import load_beamline_config
+        config, _ = load_beamline_config()
+        beamline_name = config.get("beamline")
+    except Exception:
+        pass
+
     result = {
+        "beamline": beamline_name,
         "system_running": system_running,
         "gripper": gripper,
         "execution_state": exec_state,
