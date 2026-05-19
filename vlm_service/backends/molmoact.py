@@ -72,20 +72,42 @@ class MolmoActBackend(VLMBackend):
 
     def load(self) -> None:
         import torch
-        from transformers import AutoModelForCausalLM, AutoProcessor
+        from transformers import AutoModelForImageTextToText, AutoProcessor, BitsAndBytesConfig
 
-        log.info("Loading MolmoAct model %s ...", self.model_id)
+        load_in_8bit = os.environ.get("LOAD_IN_8BIT", "0") == "1"
+        load_in_4bit = os.environ.get("LOAD_IN_4BIT", "0") == "1"
+        log.info("Loading MolmoAct model %s (8bit=%s, 4bit=%s) ...",
+                 self.model_id, load_in_8bit, load_in_4bit)
+
         self.processor = AutoProcessor.from_pretrained(
             self.model_id,
             trust_remote_code=True,
-            torch_dtype="auto",
-            device_map="auto",
         )
-        self.model = AutoModelForCausalLM.from_pretrained(
+
+        model_kwargs = {
+            "trust_remote_code": True,
+            "device_map": "auto",
+        }
+        if load_in_4bit:
+            torch.cuda.empty_cache()
+            model_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.bfloat16,
+                bnb_4bit_quant_type="nf4",
+                bnb_4bit_use_double_quant=True,
+            )
+        elif load_in_8bit:
+            model_kwargs["quantization_config"] = BitsAndBytesConfig(
+                load_in_8bit=True,
+                llm_int8_enable_fp32_cpu_offload=True,
+            )
+            model_kwargs["max_memory"] = {0: "7GiB", "cpu": "24GiB"}
+        else:
+            model_kwargs["torch_dtype"] = torch.bfloat16
+
+        self.model = AutoModelForImageTextToText.from_pretrained(
             self.model_id,
-            trust_remote_code=True,
-            torch_dtype=torch.bfloat16,
-            device_map="auto",
+            **model_kwargs,
         )
         log.info("MolmoAct loaded.")
 

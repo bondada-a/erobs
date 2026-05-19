@@ -8,7 +8,8 @@ httpx>=0.27
 # ML deps (only required for non-stub backends)
 # Comment these out if you only need the stub backend.
 torch>=2.3
-transformers>=4.45
+torchvision>=0.18
+transformers>=4.45,<5.0
 accelerate>=0.30
 einops>=0.7
 
