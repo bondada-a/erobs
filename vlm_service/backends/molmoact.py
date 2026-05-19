@@ -84,10 +84,18 @@ class MolmoActBackend(VLMBackend):
             trust_remote_code=True,
         )
 
+        from transformers import AutoConfig
+        config = AutoConfig.from_pretrained(self.model_id, trust_remote_code=True)
+        config._attn_implementation = "sdpa"
+        for sub_name in ("vit_config", "adapter_config", "llm_config"):
+            sub = getattr(config, sub_name, None)
+            if sub is not None:
+                sub._attn_implementation = "sdpa"
+
         model_kwargs = {
             "trust_remote_code": True,
             "device_map": "auto",
-            "attn_implementation": "sdpa",
+            "config": config,
         }
         if load_in_4bit:
             torch.cuda.empty_cache()
@@ -110,22 +118,7 @@ class MolmoActBackend(VLMBackend):
             self.model_id,
             **model_kwargs,
         )
-        self._set_attn_implementation(self.model, "sdpa")
         log.info("MolmoAct loaded.")
-
-    @staticmethod
-    def _set_attn_implementation(model, impl: str) -> None:
-        """Propagate attn_implementation to all sub-configs."""
-        for name in dir(model):
-            obj = getattr(model, name, None)
-            if hasattr(obj, "_attn_implementation"):
-                obj._attn_implementation = impl
-        if hasattr(model, "config"):
-            model.config._attn_implementation = impl
-            for key in dir(model.config):
-                sub = getattr(model.config, key, None)
-                if hasattr(sub, "_attn_implementation"):
-                    sub._attn_implementation = impl
 
     def point(self, image: Image.Image, prompt: str) -> PointResult:
         if self.model is None or self.processor is None:
