@@ -115,17 +115,16 @@ class MolmoActBackend(VLMBackend):
         if self.model is None or self.processor is None:
             raise RuntimeError("Backend not loaded. Call load() first.")
 
-        # Molmo expects: "Point to the <object>" or similar phrasing.
-        # We pass the user prompt through; callers should phrase it as a
-        # pointing instruction (e.g. "Point to the sample on the puck").
-        inputs = self.processor.process(images=[image], text=prompt)
-        inputs = {k: v.to(self.model.device).unsqueeze(0) for k, v in inputs.items()}
+        inputs = self.processor(
+            text=prompt,
+            images=image,
+            return_tensors="pt",
+        ).to(self.model.device)
 
-        from transformers import GenerationConfig
-        output = self.model.generate_from_batch(
-            inputs,
-            GenerationConfig(max_new_tokens=200, stop_strings="<|endoftext|>"),
-            tokenizer=self.processor.tokenizer,
+        output = self.model.generate(
+            **inputs,
+            max_new_tokens=200,
+            do_sample=False,
         )
         generated = output[0, inputs["input_ids"].size(1):]
         text = self.processor.tokenizer.decode(generated, skip_special_tokens=True)
