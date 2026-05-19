@@ -87,6 +87,7 @@ class MolmoActBackend(VLMBackend):
         model_kwargs = {
             "trust_remote_code": True,
             "device_map": "auto",
+            "attn_implementation": "sdpa",
         }
         if load_in_4bit:
             torch.cuda.empty_cache()
