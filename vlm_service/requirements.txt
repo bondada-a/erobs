@@ -1,0 +1,19 @@
+# Core service deps (always required)
+fastapi>=0.110
+uvicorn[standard]>=0.27
+pydantic>=2.0
+pillow>=10.0
+httpx>=0.27
+
+# ML deps (only required for non-stub backends)
+# Comment these out if you only need the stub backend.
+torch>=2.3
+transformers>=4.45
+accelerate>=0.30
+einops>=0.7
+
+# Quantization fallback for smaller GPUs (8GB / 12GB cards)
+bitsandbytes>=0.43
+
+# Test
+pytest>=7.0

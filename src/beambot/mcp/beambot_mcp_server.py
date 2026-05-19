@@ -1408,6 +1408,154 @@ async def _confirm_point_via_gui(
 
 
 @mcp.tool()
+async def detect_sample_vlm(
+    prompt: str,
+    image_path: str = "",
+    camera: str = "zivid",
+    save_path: str = "/tmp/sample_detection_vlm.jpg",
+) -> str:
+    """Detect a sample using a Vision-Language Model (VLM) pointing service.
+
+    Mirrors the response shape of detect_sample so downstream agent / orchestrator
+    code is unchanged. Unlike detect_sample (ArUco + contours) and detect_sample_yolo
+    (trained YOLO weights), this routes the image + a natural-language prompt to a
+    standalone HTTP service running a VLM (MolmoAct, MolmoAct2, RoboBrain 2.5, ...).
+
+    The VLM service is configured via the `vlm` section of default_beamline.yaml:
+        vlm:
+          service_url: http://localhost:8765
+          model_backend: molmoact
+          timeout_seconds: 10
+          enabled: false   # must be flipped to true to use this tool
+
+    Setup: see vlm_service/README.md at the repo root.
+
+    Args:
+        prompt: Natural-language pointing instruction. Phrase as
+            "Point to the <object>" — e.g. "Point to the sample on the puck."
+        image_path: Path to a saved RGB image. If empty, uses the most recent
+            capture from `camera` (call capture_image first).
+        camera: Camera id when reading from live capture state. Default "zivid".
+        save_path: Where to save the annotated detection image.
+
+    Returns:
+        JSON with:
+        - pixel_x, pixel_y: VLM-predicted pixel coordinate
+        - confidence: model confidence (1.0 if backend doesn't emit one)
+        - backend: name of the VLM backend that produced the result
+        - pickup_base_xyz: [x, y, z] in base_link, looked up from the most
+          recent point cloud at (pixel_x, pixel_y). Null if no cloud available.
+        - raw: backend-specific extra info (e.g. all candidate points)
+    """
+    import os
+
+    node = bridge.node
+
+    # Load VLM config from beamline yaml.
+    try:
+        beamline_cfg = node.beamline_config if hasattr(node, "beamline_config") else {}
+    except Exception:
+        beamline_cfg = {}
+    vlm_cfg = (beamline_cfg or {}).get("vlm", {}) if isinstance(beamline_cfg, dict) else {}
+    enabled = vlm_cfg.get("enabled", False)
+    service_url = vlm_cfg.get("service_url", os.environ.get("VLM_SERVICE_URL", "http://localhost:8765"))
+    timeout_seconds = float(vlm_cfg.get("timeout_seconds", 10.0))
+
+    if not enabled:
+        return json.dumps({
+            "error": (
+                "VLM detector is disabled. Set vlm.enabled: true in "
+                "default_beamline.yaml (and ensure the VLM service is running)."
+            )
+        })
+
+    # Resolve image bytes.
+    image_bytes = None
+    cloud = None
+    camera_frame = None
+    if image_path:
+        try:
+            with open(image_path, "rb") as f:
+                image_bytes = f.read()
+        except OSError as e:
+            return json.dumps({"error": f"Could not read image_path: {e}"})
+    else:
+        try:
+            rgb, cloud, _stamp, camera_frame = _resolve_camera_state(node, camera)
+        except ValueError as e:
+            return json.dumps({"error": str(e)})
+        if rgb is None:
+            return json.dumps({
+                "error": f"No cached image from {camera}. "
+                         f"Either call capture_image(camera='{camera}') first "
+                         f"or pass image_path."
+            })
+        bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+        ok, buf = cv2.imencode(".png", bgr)
+        if not ok:
+            return json.dumps({"error": "Failed to encode RGB to PNG."})
+        image_bytes = buf.tobytes()
+
+    # Call VLM service.
+    try:
+        from beambot.detection.vlm_detector import VLMDetector, VLMDetectorError
+    except ImportError as e:
+        return json.dumps({"error": f"VLMDetector import failed: {e}"})
+
+    detector = VLMDetector(service_url=service_url, timeout_seconds=timeout_seconds)
+    try:
+        result = detector.detect("", prompt, image_bytes=image_bytes)
+    except VLMDetectorError as e:
+        return json.dumps({"error": str(e)})
+    except Exception as e:  # pragma: no cover - defensive
+        return json.dumps({"error": f"VLM call failed: {e}"})
+
+    # Optional: lookup 3D pickup point from cloud.
+    pickup_base_xyz = None
+    try:
+        if cloud is not None and camera_frame is not None:
+            from beambot.detection.algorithms import get_3d_position
+            px = int(round(result["pixel_x"]))
+            py = int(round(result["pixel_y"]))
+            xyz = get_3d_position(cloud, px, py)
+            if xyz is not None:
+                pt_in_base = await _transform_point_to_base(node, xyz, camera_frame)
+                if pt_in_base is not None:
+                    pickup_base_xyz = list(pt_in_base)
+    except Exception as e:
+        node.get_logger().warn(f"[detect_sample_vlm] 3D lookup failed: {e}")
+
+    # Save annotated image (best-effort).
+    try:
+        if image_bytes is not None:
+            arr = np.frombuffer(image_bytes, dtype=np.uint8)
+            img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
+            if img is not None:
+                px = int(round(result["pixel_x"]))
+                py = int(round(result["pixel_y"]))
+                cv2.circle(img, (px, py), 12, (0, 255, 0), 2)
+                cv2.circle(img, (px, py), 2, (0, 0, 255), -1)
+                cv2.putText(
+                    img, f"{result['backend']}",
+                    (px + 16, py), cv2.FONT_HERSHEY_SIMPLEX, 0.6,
+                    (0, 255, 0), 2,
+                )
+                cv2.imwrite(save_path, img)
+    except Exception:
+        pass  # annotation failure is non-fatal
+
+    return json.dumps({
+        "pixel_x": result["pixel_x"],
+        "pixel_y": result["pixel_y"],
+        "confidence": result["confidence"],
+        "backend": result["backend"],
+        "pickup_base_xyz": pickup_base_xyz,
+        "raw": result.get("raw", {}),
+        "annotated_image": save_path,
+    })
+
+
+@mcp.tool()
 async def detect_sample(
     tag_id: int = -1,
     camera: str = "zivid",
