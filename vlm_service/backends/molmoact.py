@@ -110,6 +110,8 @@ class MolmoActBackend(VLMBackend):
             self.model_id,
             **model_kwargs,
         )
+        if hasattr(self.model, "config"):
+            self.model.config._attn_implementation = "sdpa"
         log.info("MolmoAct loaded.")
 
     def point(self, image: Image.Image, prompt: str) -> PointResult:
