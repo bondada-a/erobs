@@ -39,6 +39,7 @@ from .poses_panel import PosesPanel
 from .chat_panel import ChatPanel
 from .agent_bridge import AgentBridge
 from .step_list_panel import StepListPanel, TASK_TYPE_CONFIG
+from . import theme
 
 try:
     from .visualization_panel import VisualizationPanel, WEBENGINE_AVAILABLE
@@ -244,10 +245,18 @@ class MTCMainWindow(QMainWindow):
         layout = QVBoxLayout(central)
         layout.setContentsMargins(8, 8, 8, 8)
 
-        # Config bar (top)
-        config_box = QGroupBox("Robot Configuration")
+        # Config bar (top) — flat header strip, no QGroupBox frame
+        config_header = QLabel("ROBOT CONFIGURATION")
+        config_header.setProperty("role", "section")
+        layout.addWidget(config_header)
+
+        config_box = QFrame()
+        config_box.setObjectName("configStrip")
+        config_box.setFrameShape(QFrame.Shape.NoFrame)
         config_layout = QHBoxLayout(config_box)
-        config_layout.addWidget(QLabel("Robot IP:"))
+        config_layout.setContentsMargins(0, 0, 0, 8)
+        config_layout.setSpacing(8)
+        config_layout.addWidget(QLabel("Robot IP"))
         default_ip = self._beamline_config.get("robot", {}).get("ip", "")
         # Read-only: the IP comes from $BEAMBOT_BEAMLINE_CONFIG (YAML is the
         # single source of truth). Displayed here for operator awareness;
@@ -256,12 +265,14 @@ class MTCMainWindow(QMainWindow):
         self.robot_ip_edit = QLineEdit(default_ip)
         self.robot_ip_edit.setMaximumWidth(150)
         self.robot_ip_edit.setReadOnly(True)
+        self.robot_ip_edit.setPlaceholderText("not configured")
         self.robot_ip_edit.setToolTip(
             "Sourced from $BEAMBOT_BEAMLINE_CONFIG (robot.ip). "
             "Edit the YAML and restart to change."
         )
         config_layout.addWidget(self.robot_ip_edit)
-        config_layout.addWidget(QLabel("Start Gripper:"))
+        config_layout.addSpacing(12)
+        config_layout.addWidget(QLabel("Start Gripper"))
         self.gripper_combo = QComboBox()
         self.gripper_combo.addItems(list(self._beamline_config.get("grippers", {}).keys()))
         # Changing gripper invalidates any cached dry-run plan (different SRDF).
@@ -311,8 +322,7 @@ class MTCMainWindow(QMainWindow):
         tasks_layout.setSpacing(6)
 
         add_label = QLabel("ADD TASK")
-        add_label.setFont(QFont("Sans", 8, QFont.Weight.Bold))
-        add_label.setStyleSheet("color: #888888; letter-spacing: 1px;")
+        add_label.setProperty("role", "section")
         tasks_layout.addWidget(add_label)
 
         # The vertical task palette doubles as our self.task_toolbar so
@@ -322,10 +332,21 @@ class MTCMainWindow(QMainWindow):
         self.task_toolbar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
         self.task_toolbar.setFrameShape(QFrame.Shape.NoFrame)
         self.task_toolbar.setSpacing(2)
+        self.task_toolbar.setObjectName("taskPalette")
         self.task_toolbar.setStyleSheet(
-            "QListWidget { background-color: transparent; border: none; }"
-            "QListWidget::item { padding: 6px 4px; border-radius: 4px; }"
-            "QListWidget::item:hover { background-color: rgba(255,255,255,0.06); }"
+            "QListWidget#taskPalette {"
+            "    background-color: transparent;"
+            "    border: none;"
+            "    padding: 0;"
+            "}"
+            "QListWidget#taskPalette::item {"
+            "    padding: 8px 10px;"
+            "    border-radius: 6px;"
+            "    color: #E6EAF2;"
+            "}"
+            "QListWidget#taskPalette::item:hover {"
+            "    background-color: #1F2C45;"
+            "}"
         )
         palette_items = [
             ("Move To", "moveto"),
@@ -361,14 +382,19 @@ class MTCMainWindow(QMainWindow):
         tasks_layout.addWidget(self.task_toolbar)
 
         templates_label = QLabel("TEMPLATES")
-        templates_label.setFont(QFont("Sans", 8, QFont.Weight.Bold))
-        templates_label.setStyleSheet("color: #888888; letter-spacing: 1px;")
+        templates_label.setProperty("role", "section")
         tasks_layout.addSpacing(8)
         tasks_layout.addWidget(templates_label)
 
-        templates_placeholder = QLabel("No saved templates yet.")
-        templates_placeholder.setStyleSheet("color: #666666; font-size: 10px;")
+        templates_placeholder = QLabel(
+            "No saved templates yet — save a sequence of steps to reuse it."
+        )
+        templates_placeholder.setProperty("role", "hint")
         templates_placeholder.setWordWrap(True)
+        templates_placeholder.setStyleSheet(
+            "QLabel { color: #6B7385; font-size: 11px; padding: 6px 4px;"
+            " background: transparent; }"
+        )
         tasks_layout.addWidget(templates_placeholder)
 
         tasks_layout.addStretch(1)
@@ -389,7 +415,7 @@ class MTCMainWindow(QMainWindow):
         runs_layout = QVBoxLayout(runs_tab)
         runs_layout.setContentsMargins(6, 6, 6, 6)
         runs_placeholder = QLabel("Run history is not implemented yet.")
-        runs_placeholder.setStyleSheet("color: #666666; font-size: 10px;")
+        runs_placeholder.setProperty("role", "hint")
         runs_placeholder.setWordWrap(True)
         runs_placeholder.setAlignment(Qt.AlignmentFlag.AlignTop)
         runs_layout.addWidget(runs_placeholder)
@@ -410,23 +436,41 @@ class MTCMainWindow(QMainWindow):
         exec_bar.setFrameShape(QFrame.Shape.NoFrame)
         exec_layout = QHBoxLayout(exec_bar)
         exec_layout.setContentsMargins(4, 4, 4, 4)
-        exec_layout.setSpacing(6)
+        exec_layout.setSpacing(8)
+
+        # Segmented run-control group — Execute | Pause | Resume | Stop
+        run_bar = QFrame()
+        run_bar.setObjectName("runBar")
+        run_bar.setFrameShape(QFrame.Shape.NoFrame)
+        run_layout = QHBoxLayout(run_bar)
+        run_layout.setContentsMargins(0, 0, 0, 0)
+        run_layout.setSpacing(0)
 
         self.exec_btn = QPushButton("Execute")
+        self.exec_btn.setObjectName("segFirst")
+        self.exec_btn.setIcon(theme.icon("mdi6.play", color=theme.ON_PRIMARY))
+        self.exec_btn.setProperty("class", "primary")
         self.exec_btn.clicked.connect(self._execute)
-        exec_layout.addWidget(self.exec_btn)
+        run_layout.addWidget(self.exec_btn)
         self.pause_btn = QPushButton("Pause")
+        self.pause_btn.setIcon(theme.icon("mdi6.pause", color=theme.ON_SURFACE_DIM))
         self.pause_btn.setEnabled(False)
         self.pause_btn.clicked.connect(self.ros2.pause_task)
-        exec_layout.addWidget(self.pause_btn)
+        run_layout.addWidget(self.pause_btn)
         self.resume_btn = QPushButton("Resume")
+        self.resume_btn.setIcon(theme.icon("mdi6.play-outline", color=theme.ON_SURFACE_DIM))
         self.resume_btn.setEnabled(False)
         self.resume_btn.clicked.connect(self.ros2.resume_task)
-        exec_layout.addWidget(self.resume_btn)
+        run_layout.addWidget(self.resume_btn)
         self.stop_btn = QPushButton("Stop")
+        self.stop_btn.setObjectName("segLast")
+        self.stop_btn.setIcon(theme.icon("mdi6.stop", color=theme.ON_SURFACE_DIM))
+        self.stop_btn.setProperty("class", "danger")
         self.stop_btn.setEnabled(False)
         self.stop_btn.clicked.connect(self.ros2.stop_execution)
-        exec_layout.addWidget(self.stop_btn)
+        run_layout.addWidget(self.stop_btn)
+        exec_layout.addWidget(run_bar)
+        exec_layout.addSpacing(12)
 
         self.dry_run_check = QCheckBox("Dry Run")
         self.dry_run_check.setToolTip(
@@ -438,14 +482,16 @@ class MTCMainWindow(QMainWindow):
         exec_layout.addWidget(self.dry_run_check)
 
         self.plan_cached_label = QLabel("")
-        self.plan_cached_label.setStyleSheet(
-            "color: #2e7d32; font-size: 11px; font-weight: bold;"
-        )
+        self.plan_cached_label.setProperty("status", "success")
+        self.plan_cached_label.setVisible(False)
         exec_layout.addWidget(self.plan_cached_label)
 
         exec_layout.addSpacing(8)
+        # Hide the progress bar in idle state — empty bars look broken.
         self.progress_bar = QProgressBar()
+        self.progress_bar.setVisible(False)
         exec_layout.addWidget(self.progress_bar, stretch=1)
+        exec_layout.addStretch(1)
         center_layout.addWidget(exec_bar)
 
         # Step list
@@ -464,13 +510,17 @@ class MTCMainWindow(QMainWindow):
         step_ops = QHBoxLayout(step_ops_bar)
         step_ops.setContentsMargins(4, 0, 4, 0)
         step_ops.setSpacing(4)
-        self.up_step_btn = QPushButton("↑ Up")
+        self.up_step_btn = QPushButton("Up")
+        self.up_step_btn.setIcon(theme.icon("mdi6.arrow-up", color=theme.ON_SURFACE_MUTED))
         self.up_step_btn.clicked.connect(self._move_up)
-        self.down_step_btn = QPushButton("↓ Down")
+        self.down_step_btn = QPushButton("Down")
+        self.down_step_btn.setIcon(theme.icon("mdi6.arrow-down", color=theme.ON_SURFACE_MUTED))
         self.down_step_btn.clicked.connect(self._move_down)
-        self.remove_step_btn = QPushButton("✕ Remove")
+        self.remove_step_btn = QPushButton("Remove")
+        self.remove_step_btn.setIcon(theme.icon("mdi6.close", color=theme.ON_SURFACE_MUTED))
         self.remove_step_btn.clicked.connect(self._remove_task)
-        self.clear_steps_btn = QPushButton("⌫ Clear")
+        self.clear_steps_btn = QPushButton("Clear")
+        self.clear_steps_btn.setIcon(theme.icon("mdi6.broom", color=theme.ON_SURFACE_MUTED))
         self.clear_steps_btn.setToolTip("Remove all steps from the sequence")
         self.clear_steps_btn.clicked.connect(self._clear_tasks)
         for b in (
@@ -479,16 +529,31 @@ class MTCMainWindow(QMainWindow):
             self.remove_step_btn,
             self.clear_steps_btn,
         ):
-            b.setFlat(True)
+            # Don't use setFlat — Fusion paints flat buttons natively and
+            # ignores QSS chrome. Keep them styled but secondary.
+            b.setCursor(Qt.CursorShape.PointingHandCursor)
             step_ops.addWidget(b)
         step_ops.addStretch(1)
         center_layout.addWidget(step_ops_bar)
 
         # Status log (bottom)
+        log_label = QLabel("ACTIVITY LOG")
+        log_label.setProperty("role", "section")
+        center_layout.addWidget(log_label)
         self.status_log = QTextEdit()
         self.status_log.setReadOnly(True)
         self.status_log.setMaximumHeight(140)
-        self.status_log.setFont(QFont("Monospace", 9))
+        self.status_log.setObjectName("activityLog")
+        mono = QFont("JetBrains Mono")
+        if not mono.exactMatch():
+            mono = QFont("DejaVu Sans Mono")
+        mono.setPointSize(9)
+        self.status_log.setFont(mono)
+        self.status_log.setStyleSheet(
+            f"QTextEdit#activityLog {{ background-color: {theme.SURFACE};"
+            f" border: 1px solid {theme.OUTLINE}; border-radius: 6px;"
+            f" padding: 8px 10px; color: {theme.ON_SURFACE_MUTED}; }}"
+        )
         center_layout.addWidget(self.status_log)
 
         return center
@@ -710,28 +775,33 @@ class MTCMainWindow(QMainWindow):
         # a task they just edited.
         self._set_plan_cached(False)
 
-    _PLAN_CACHED_GREEN = "color: #2e7d32; font-size: 11px; font-weight: bold;"
-    _PLAN_CACHED_RED = "color: #c62828; font-size: 11px; font-weight: bold;"
-
     def _set_plan_cached(self, cached: bool, reason: str = ""):
         """Update the 'Plan cached' indicator next to the Dry Run checkbox."""
+        from . import theme
         if cached:
-            self.plan_cached_label.setStyleSheet(self._PLAN_CACHED_GREEN)
+            self.plan_cached_label.setProperty("status", "success")
             self.plan_cached_label.setText(
                 "✓ Plan cached — Execute will replay preview"
             )
+            self.plan_cached_label.setVisible(True)
         elif reason:
-            self.plan_cached_label.setStyleSheet(self._PLAN_CACHED_RED)
+            self.plan_cached_label.setProperty("status", "warning")
             self.plan_cached_label.setText(f"⚠ {reason}")
+            self.plan_cached_label.setVisible(True)
             from PyQt6.QtCore import QTimer
 
             QTimer.singleShot(8000, self._clear_plan_cache_warning)
         else:
             self.plan_cached_label.setText("")
+            self.plan_cached_label.setVisible(False)
+        theme.restyle(self.plan_cached_label)
 
     def _clear_plan_cache_warning(self):
+        from . import theme
         self.plan_cached_label.setText("")
-        self.plan_cached_label.setStyleSheet(self._PLAN_CACHED_GREEN)
+        self.plan_cached_label.setVisible(False)
+        self.plan_cached_label.setProperty("status", "success")
+        theme.restyle(self.plan_cached_label)
 
     # --- Execution ---
 
@@ -770,6 +840,7 @@ class MTCMainWindow(QMainWindow):
         self.pause_btn.setEnabled(not dry_run)
         self.task_toolbar.setEnabled(False)
         self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(True)
         self.step_list.start_execution(len(self.config["tasks"]))
         self.ros2.execute_task(json.dumps(self.config), dry_run=dry_run)
 
