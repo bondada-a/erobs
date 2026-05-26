@@ -201,11 +201,45 @@ QPushButton[class="danger"]:disabled {{
     background: transparent;
 }}
 
+/* Segmented run-control row — Execute|Pause|Resume|Stop merged.
+   Strategy: container holds the outer border, buttons are borderless
+   with a 1px right-divider (last button's divider suppressed). */
+QFrame#runBar {{
+    background-color: {SURFACE_HIGH};
+    border: 1px solid {OUTLINE};
+    border-radius: {R_SM}px;
+}}
+QFrame#runBar > QPushButton,
+QFrame#runBar > QPushButton[class="primary"],
+QFrame#runBar > QPushButton[class="danger"] {{
+    border: none;
+    border-right: 1px solid {OUTLINE};
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    margin: 0;
+    padding: 6px 14px;
+}}
+QFrame#runBar > QPushButton#segLast,
+QFrame#runBar > QPushButton[class="danger"]#segLast {{
+    border-right: none;
+}}
+QFrame#runBar > QPushButton#segFirst,
+QFrame#runBar > QPushButton[class="primary"]#segFirst {{
+    border-top-left-radius: {R_SM}px;
+    border-bottom-left-radius: {R_SM}px;
+}}
+QFrame#runBar > QPushButton#segLast {{
+    border-top-right-radius: {R_SM}px;
+    border-bottom-right-radius: {R_SM}px;
+}}
+
 /* ─── Inputs ───────────────────────────────────────────────────────── */
 QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox {{
-    background-color: {SURFACE_HIGH};
+    background-color: {BG};
     color: {ON_SURFACE};
-    border: 1px solid transparent;
+    border: 1px solid {OUTLINE};
     border-radius: {R_SM}px;
     padding: 5px 10px;
     selection-background-color: {PRIMARY};
@@ -213,17 +247,17 @@ QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox {{
 }}
 QLineEdit:hover, QTextEdit:hover, QPlainTextEdit:hover,
 QSpinBox:hover, QDoubleSpinBox:hover {{
-    background-color: {SURFACE_HIGHEST};
+    border-color: {OUTLINE_STRONG};
 }}
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus,
 QSpinBox:focus, QDoubleSpinBox:focus {{
     border: 1px solid {PRIMARY};
-    background-color: {SURFACE_HIGH};
+    background-color: {BG};
 }}
 QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled {{
     background-color: {SURFACE};
     color: {ON_SURFACE_MUTED};
-    border-color: transparent;
+    border-color: {OUTLINE};
 }}
 QLineEdit::placeholder {{
     color: {ON_SURFACE_DIM};
@@ -231,15 +265,15 @@ QLineEdit::placeholder {{
 
 /* ─── Combo box ────────────────────────────────────────────────────── */
 QComboBox {{
-    background-color: {SURFACE_HIGH};
+    background-color: {BG};
     color: {ON_SURFACE};
-    border: 1px solid transparent;
+    border: 1px solid {OUTLINE};
     border-radius: {R_SM}px;
     padding: 5px 10px;
     min-height: 22px;
 }}
 QComboBox:hover {{
-    background-color: {SURFACE_HIGHEST};
+    border-color: {OUTLINE_STRONG};
 }}
 QComboBox:focus {{
     border-color: {PRIMARY};
@@ -357,15 +391,20 @@ QListWidget, QTreeWidget, QTreeView, QListView {{
     padding: 4px;
 }}
 QListWidget::item, QTreeWidget::item {{
-    padding: 7px 10px;
+    padding: 8px 12px;
     border-radius: {R_SM}px;
-    margin: 1px 0;
+    margin: 1px 4px;
 }}
 QListWidget::item:hover, QTreeWidget::item:hover {{
     background-color: {SURFACE_HIGH};
+    color: {ON_SURFACE};
 }}
 QListWidget::item:selected, QTreeWidget::item:selected {{
     background-color: {PRIMARY_TINT};
+    color: {ON_SURFACE};
+}}
+QListWidget::item:selected:!active, QTreeWidget::item:selected:!active {{
+    background-color: {SURFACE_HIGH};
     color: {ON_SURFACE};
 }}
 

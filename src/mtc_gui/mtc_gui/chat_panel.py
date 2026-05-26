@@ -240,54 +240,102 @@ class ToolCallBubble(QFrame):
 
 
 class ErrorBubble(QFrame):
-    """Red-tinted error message bubble."""
+    """Tinted notice bubble — severity controls tone.
 
-    def __init__(self, text: str, parent=None):
+    severity='error' (default): red-tinted; reserved for real failures.
+    severity='warning':         amber-tinted; for connect-pending /
+                                degraded-but-recoverable states.
+    on_retry: optional zero-arg callable; when given, a small Retry
+              button is rendered inline.
+    """
+
+    def __init__(
+        self,
+        text: str,
+        parent=None,
+        *,
+        severity: str = "error",
+        on_retry=None,
+    ):
         super().__init__(parent)
         self.setFrameShape(QFrame.Shape.NoFrame)
         self.setStyleSheet(
             "ErrorBubble { background: transparent; margin-right: 48px; }"
         )
 
+        if severity == "warning":
+            bg = "#2A220F"
+            bd = "#7C5A14"
+            txt = "#FBBF24"
+            head_txt = "#FDE68A"
+            role = "Notice"
+            icon_name = "mdi6.alert-outline"
+        else:
+            bg = _COLORS["error_bg"]
+            bd = _COLORS["error_border"]
+            txt = _COLORS["error_text"]
+            head_txt = _COLORS["error_text"]
+            role = "Error"
+            icon_name = "mdi6.alert-octagon-outline"
+
         outer = QVBoxLayout(self)
         outer.setContentsMargins(8, 2, 8, 2)
         outer.setSpacing(2)
 
-        role_label = QLabel("Error")
-        role_label.setStyleSheet(f"""
-            color: {_COLORS["error_text"]};
-            font-size: 11px;
-            font-weight: bold;
-            padding: 0 4px;
-        """)
+        role_label = QLabel(role)
+        role_label.setStyleSheet(
+            f"color: {head_txt}; font-size: 11px; font-weight: 600;"
+            " padding: 0 4px; letter-spacing: 0.5px;"
+        )
         outer.addWidget(role_label)
 
         bubble = QFrame()
-        bubble.setStyleSheet(f"""
-            QFrame {{
-                background-color: {_COLORS["error_bg"]};
-                border: 1px solid {_COLORS["error_border"]};
-                border-radius: 12px;
-                padding: 10px 14px;
-            }}
-        """)
-        bubble_layout = QVBoxLayout(bubble)
+        bubble.setStyleSheet(
+            f"QFrame {{ background-color: {bg}; border: 1px solid {bd};"
+            f" border-radius: 8px; padding: 10px 14px; }}"
+        )
+        bubble_layout = QHBoxLayout(bubble)
         bubble_layout.setContentsMargins(0, 0, 0, 0)
+        bubble_layout.setSpacing(10)
+
+        # Icon
+        try:
+            import qtawesome as qta
+            from PyQt6.QtCore import QSize as _QSize
+            icon_lbl = QLabel()
+            icon_lbl.setPixmap(qta.icon(icon_name, color=txt).pixmap(_QSize(16, 16)))
+            icon_lbl.setStyleSheet("background: transparent; padding: 2px 0 0 0;")
+            icon_lbl.setAlignment(Qt.AlignmentFlag.AlignTop)
+            bubble_layout.addWidget(icon_lbl)
+        except Exception:
+            pass
 
         msg_label = QLabel(text)
         msg_label.setWordWrap(True)
         msg_label.setTextFormat(Qt.TextFormat.PlainText)
-        msg_label.setStyleSheet(f"""
-            color: {_COLORS["error_text"]};
-            font-size: 13px;
-            background: transparent;
-            padding: 0;
-        """)
+        msg_label.setStyleSheet(
+            f"color: {txt}; font-size: 13px; background: transparent;"
+            " padding: 0;"
+        )
         msg_label.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum
         )
-        msg_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
-        bubble_layout.addWidget(msg_label)
+        msg_label.setTextInteractionFlags(
+            Qt.TextInteractionFlag.TextSelectableByMouse
+        )
+        bubble_layout.addWidget(msg_label, stretch=1)
+
+        if on_retry is not None:
+            retry_btn = QPushButton("Retry")
+            retry_btn.setFlat(True)
+            retry_btn.setCursor(Qt.CursorShape.PointingHandCursor)
+            retry_btn.setStyleSheet(
+                f"QPushButton {{ background: transparent; border: none;"
+                f" color: {head_txt}; font-weight: 600; padding: 0 4px; }}"
+                f"QPushButton:hover {{ color: #FFFFFF; }}"
+            )
+            retry_btn.clicked.connect(on_retry)
+            bubble_layout.addWidget(retry_btn)
 
         outer.addWidget(bubble)
 
@@ -568,8 +616,8 @@ class ChatPanel(QWidget):
         bubble = ToolCallBubble(name, args_json, result)
         self._add_message_widget(bubble)
 
-    def append_error(self, text: str) -> None:
-        bubble = ErrorBubble(text)
+    def append_error(self, text: str, *, severity: str = "error", on_retry=None) -> None:
+        bubble = ErrorBubble(text, severity=severity, on_retry=on_retry)
         self._add_message_widget(bubble)
 
     def append_execution_outcome(

@@ -386,9 +386,15 @@ class MTCMainWindow(QMainWindow):
         tasks_layout.addSpacing(8)
         tasks_layout.addWidget(templates_label)
 
-        templates_placeholder = QLabel("No saved templates yet.")
+        templates_placeholder = QLabel(
+            "No saved templates yet — save a sequence of steps to reuse it."
+        )
         templates_placeholder.setProperty("role", "hint")
         templates_placeholder.setWordWrap(True)
+        templates_placeholder.setStyleSheet(
+            "QLabel { color: #6B7385; font-size: 11px; padding: 6px 4px;"
+            " background: transparent; }"
+        )
         tasks_layout.addWidget(templates_placeholder)
 
         tasks_layout.addStretch(1)
@@ -430,29 +436,41 @@ class MTCMainWindow(QMainWindow):
         exec_bar.setFrameShape(QFrame.Shape.NoFrame)
         exec_layout = QHBoxLayout(exec_bar)
         exec_layout.setContentsMargins(4, 4, 4, 4)
-        exec_layout.setSpacing(6)
+        exec_layout.setSpacing(8)
+
+        # Segmented run-control group — Execute | Pause | Resume | Stop
+        run_bar = QFrame()
+        run_bar.setObjectName("runBar")
+        run_bar.setFrameShape(QFrame.Shape.NoFrame)
+        run_layout = QHBoxLayout(run_bar)
+        run_layout.setContentsMargins(0, 0, 0, 0)
+        run_layout.setSpacing(0)
 
         self.exec_btn = QPushButton("Execute")
+        self.exec_btn.setObjectName("segFirst")
         self.exec_btn.setIcon(theme.icon("mdi6.play", color=theme.ON_PRIMARY))
         self.exec_btn.setProperty("class", "primary")
         self.exec_btn.clicked.connect(self._execute)
-        exec_layout.addWidget(self.exec_btn)
+        run_layout.addWidget(self.exec_btn)
         self.pause_btn = QPushButton("Pause")
-        self.pause_btn.setIcon(theme.icon("mdi6.pause", color=theme.ON_SURFACE))
+        self.pause_btn.setIcon(theme.icon("mdi6.pause", color=theme.ON_SURFACE_DIM))
         self.pause_btn.setEnabled(False)
         self.pause_btn.clicked.connect(self.ros2.pause_task)
-        exec_layout.addWidget(self.pause_btn)
+        run_layout.addWidget(self.pause_btn)
         self.resume_btn = QPushButton("Resume")
-        self.resume_btn.setIcon(theme.icon("mdi6.play-outline", color=theme.ON_SURFACE))
+        self.resume_btn.setIcon(theme.icon("mdi6.play-outline", color=theme.ON_SURFACE_DIM))
         self.resume_btn.setEnabled(False)
         self.resume_btn.clicked.connect(self.ros2.resume_task)
-        exec_layout.addWidget(self.resume_btn)
+        run_layout.addWidget(self.resume_btn)
         self.stop_btn = QPushButton("Stop")
-        self.stop_btn.setIcon(theme.icon("mdi6.stop", color=theme.DANGER))
+        self.stop_btn.setObjectName("segLast")
+        self.stop_btn.setIcon(theme.icon("mdi6.stop", color=theme.ON_SURFACE_DIM))
         self.stop_btn.setProperty("class", "danger")
         self.stop_btn.setEnabled(False)
         self.stop_btn.clicked.connect(self.ros2.stop_execution)
-        exec_layout.addWidget(self.stop_btn)
+        run_layout.addWidget(self.stop_btn)
+        exec_layout.addWidget(run_bar)
+        exec_layout.addSpacing(12)
 
         self.dry_run_check = QCheckBox("Dry Run")
         self.dry_run_check.setToolTip(
@@ -579,7 +597,7 @@ class MTCMainWindow(QMainWindow):
         self.agent_bridge.response_received.connect(self.chat_panel.append_assistant)
         self.agent_bridge.tool_called.connect(self.chat_panel.append_tool_call)
         self.agent_bridge.thinking_changed.connect(self.chat_panel.set_thinking)
-        self.agent_bridge.error_occurred.connect(self.chat_panel.append_error)
+        self.agent_bridge.error_occurred.connect(self._on_agent_error)
         self.agent_bridge.connected.connect(
             lambda n: self._log(f"Agent connected: {n} tools")
         )
@@ -1041,6 +1059,48 @@ class MTCMainWindow(QMainWindow):
     def _on_chat_message(self, text):
         self.chat_panel.append_user(text)
         self.agent_bridge.send_message(text)
+
+    def _on_agent_error(self, text: str) -> None:
+        """Route agent-bridge errors to the chat panel with the right tone.
+
+        Connect-pending / dependency-missing states are recoverable and
+        get demoted to a warning chip with a Retry action; everything
+        else stays a hard error.
+        """
+        msg = (text or "").lower()
+        recoverable_markers = (
+            "unavailable",
+            "missing",
+            "not found",
+            "could not connect",
+            "cannot connect",
+            "connection refused",
+            "timed out",
+            "timeout",
+        )
+        is_recoverable = any(m in msg for m in recoverable_markers)
+        if is_recoverable:
+            self.chat_panel.append_error(
+                text,
+                severity="warning",
+                on_retry=self._reconnect_agent,
+            )
+        else:
+            self.chat_panel.append_error(text)
+
+    def _reconnect_agent(self) -> None:
+        """Best-effort reconnect for the agent bridge, with status feedback."""
+        try:
+            self.chat_panel.set_status("•  Reconnecting")
+            if hasattr(self.agent_bridge, "disconnect"):
+                try:
+                    self.agent_bridge.disconnect()
+                except Exception:
+                    pass
+            if hasattr(self.agent_bridge, "connect_agent"):
+                self.agent_bridge.connect_agent()
+        except Exception as e:  # pragma: no cover - best-effort
+            self._log(f"Reconnect failed: {e}")
 
     def closeEvent(self, event):
         self.agent_bridge.disconnect()

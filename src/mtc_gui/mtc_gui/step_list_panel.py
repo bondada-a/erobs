@@ -392,16 +392,43 @@ class StepListPanel(QWidget):
         layout.addWidget(self._list_widget, stretch=1)
 
         # Empty-state overlay — visible only when the list is empty.
-        self._empty_label = QLabel(
-            "No steps yet.\n\nClick a task on the left, or drag a pose here.",
-            self._list_widget,
+        self._empty_label = QWidget(self._list_widget)
+        self._empty_label.setStyleSheet("background: transparent;")
+        _empty_v = QVBoxLayout(self._empty_label)
+        _empty_v.setContentsMargins(24, 24, 24, 24)
+        _empty_v.setSpacing(8)
+        _empty_v.addStretch(1)
+
+        # Icon
+        try:
+            import qtawesome as qta
+            from PyQt6.QtCore import QSize as _QSize
+            _icon_lbl = QLabel()
+            _icon_lbl.setPixmap(
+                qta.icon("mdi6.format-list-bulleted-square", color="#3A4256").pixmap(_QSize(40, 40))
+            )
+            _icon_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            _icon_lbl.setStyleSheet("background: transparent;")
+            _empty_v.addWidget(_icon_lbl, alignment=Qt.AlignmentFlag.AlignCenter)
+        except Exception:
+            pass
+
+        _title = QLabel("No steps yet")
+        _title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        _title.setStyleSheet(
+            "QLabel { color: #A0A8BC; font-size: 13px; font-weight: 600;"
+            " background: transparent; }"
         )
-        self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._empty_label.setStyleSheet(
-            "QLabel { color: #6B7385; font-size: 12px; background: transparent;"
-            " padding: 24px; }"
+        _empty_v.addWidget(_title)
+
+        _hint = QLabel("Click a task on the left, or drag a pose here.")
+        _hint.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        _hint.setWordWrap(True)
+        _hint.setStyleSheet(
+            "QLabel { color: #6B7385; font-size: 12px; background: transparent; }"
         )
-        self._empty_label.setWordWrap(True)
+        _empty_v.addWidget(_hint)
+        _empty_v.addStretch(1)
         # Track list-widget resize so the overlay stays centered.
         self._list_widget.installEventFilter(self)
         self._update_empty_state()
