@@ -411,11 +411,12 @@ class ChatPanel(QWidget):
 
         header_layout.addStretch()
 
-        self._status_label = QLabel("Connecting…")
+        self._status_label = QLabel("•  Connecting")
+        self._status_label.setObjectName("statusPill")
         self._status_label.setStyleSheet(
-            "QLabel { color: #A0A8BC; font-size: 11px;"
-            " background-color: #1B2230; border: 1px solid #2C3448;"
-            " border-radius: 999px; padding: 2px 10px; }"
+            "QLabel#statusPill { color: #A0A8BC; font-size: 11px;"
+            " background: transparent; border: none;"
+            " padding: 2px 4px; }"
         )
         header_layout.addWidget(self._status_label)
         layout.addWidget(header)

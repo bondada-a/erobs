@@ -39,6 +39,7 @@ from .poses_panel import PosesPanel
 from .chat_panel import ChatPanel
 from .agent_bridge import AgentBridge
 from .step_list_panel import StepListPanel, TASK_TYPE_CONFIG
+from . import theme
 
 try:
     from .visualization_panel import VisualizationPanel, WEBENGINE_AVAILABLE
@@ -244,10 +245,18 @@ class MTCMainWindow(QMainWindow):
         layout = QVBoxLayout(central)
         layout.setContentsMargins(8, 8, 8, 8)
 
-        # Config bar (top)
-        config_box = QGroupBox("Robot Configuration")
+        # Config bar (top) — flat header strip, no QGroupBox frame
+        config_header = QLabel("ROBOT CONFIGURATION")
+        config_header.setProperty("role", "section")
+        layout.addWidget(config_header)
+
+        config_box = QFrame()
+        config_box.setObjectName("configStrip")
+        config_box.setFrameShape(QFrame.Shape.NoFrame)
         config_layout = QHBoxLayout(config_box)
-        config_layout.addWidget(QLabel("Robot IP:"))
+        config_layout.setContentsMargins(0, 0, 0, 8)
+        config_layout.setSpacing(8)
+        config_layout.addWidget(QLabel("Robot IP"))
         default_ip = self._beamline_config.get("robot", {}).get("ip", "")
         # Read-only: the IP comes from $BEAMBOT_BEAMLINE_CONFIG (YAML is the
         # single source of truth). Displayed here for operator awareness;
@@ -256,12 +265,14 @@ class MTCMainWindow(QMainWindow):
         self.robot_ip_edit = QLineEdit(default_ip)
         self.robot_ip_edit.setMaximumWidth(150)
         self.robot_ip_edit.setReadOnly(True)
+        self.robot_ip_edit.setPlaceholderText("not configured")
         self.robot_ip_edit.setToolTip(
             "Sourced from $BEAMBOT_BEAMLINE_CONFIG (robot.ip). "
             "Edit the YAML and restart to change."
         )
         config_layout.addWidget(self.robot_ip_edit)
-        config_layout.addWidget(QLabel("Start Gripper:"))
+        config_layout.addSpacing(12)
+        config_layout.addWidget(QLabel("Start Gripper"))
         self.gripper_combo = QComboBox()
         self.gripper_combo.addItems(list(self._beamline_config.get("grippers", {}).keys()))
         # Changing gripper invalidates any cached dry-run plan (different SRDF).
@@ -421,19 +432,23 @@ class MTCMainWindow(QMainWindow):
         exec_layout.setContentsMargins(4, 4, 4, 4)
         exec_layout.setSpacing(6)
 
-        self.exec_btn = QPushButton("▶  Execute")
+        self.exec_btn = QPushButton("Execute")
+        self.exec_btn.setIcon(theme.icon("mdi6.play", color=theme.ON_PRIMARY))
         self.exec_btn.setProperty("class", "primary")
         self.exec_btn.clicked.connect(self._execute)
         exec_layout.addWidget(self.exec_btn)
-        self.pause_btn = QPushButton("⏸  Pause")
+        self.pause_btn = QPushButton("Pause")
+        self.pause_btn.setIcon(theme.icon("mdi6.pause", color=theme.ON_SURFACE))
         self.pause_btn.setEnabled(False)
         self.pause_btn.clicked.connect(self.ros2.pause_task)
         exec_layout.addWidget(self.pause_btn)
-        self.resume_btn = QPushButton("⏵  Resume")
+        self.resume_btn = QPushButton("Resume")
+        self.resume_btn.setIcon(theme.icon("mdi6.play-outline", color=theme.ON_SURFACE))
         self.resume_btn.setEnabled(False)
         self.resume_btn.clicked.connect(self.ros2.resume_task)
         exec_layout.addWidget(self.resume_btn)
-        self.stop_btn = QPushButton("⏹  Stop")
+        self.stop_btn = QPushButton("Stop")
+        self.stop_btn.setIcon(theme.icon("mdi6.stop", color=theme.DANGER))
         self.stop_btn.setProperty("class", "danger")
         self.stop_btn.setEnabled(False)
         self.stop_btn.clicked.connect(self.ros2.stop_execution)
@@ -477,13 +492,17 @@ class MTCMainWindow(QMainWindow):
         step_ops = QHBoxLayout(step_ops_bar)
         step_ops.setContentsMargins(4, 0, 4, 0)
         step_ops.setSpacing(4)
-        self.up_step_btn = QPushButton("↑  Up")
+        self.up_step_btn = QPushButton("Up")
+        self.up_step_btn.setIcon(theme.icon("mdi6.arrow-up", color=theme.ON_SURFACE_MUTED))
         self.up_step_btn.clicked.connect(self._move_up)
-        self.down_step_btn = QPushButton("↓  Down")
+        self.down_step_btn = QPushButton("Down")
+        self.down_step_btn.setIcon(theme.icon("mdi6.arrow-down", color=theme.ON_SURFACE_MUTED))
         self.down_step_btn.clicked.connect(self._move_down)
-        self.remove_step_btn = QPushButton("✕  Remove")
+        self.remove_step_btn = QPushButton("Remove")
+        self.remove_step_btn.setIcon(theme.icon("mdi6.close", color=theme.ON_SURFACE_MUTED))
         self.remove_step_btn.clicked.connect(self._remove_task)
-        self.clear_steps_btn = QPushButton("⌫  Clear")
+        self.clear_steps_btn = QPushButton("Clear")
+        self.clear_steps_btn.setIcon(theme.icon("mdi6.broom", color=theme.ON_SURFACE_MUTED))
         self.clear_steps_btn.setToolTip("Remove all steps from the sequence")
         self.clear_steps_btn.clicked.connect(self._clear_tasks)
         for b in (
@@ -506,10 +525,16 @@ class MTCMainWindow(QMainWindow):
         self.status_log = QTextEdit()
         self.status_log.setReadOnly(True)
         self.status_log.setMaximumHeight(140)
-        self.status_log.setFont(QFont("Monospace", 9))
+        self.status_log.setObjectName("activityLog")
+        mono = QFont("JetBrains Mono")
+        if not mono.exactMatch():
+            mono = QFont("DejaVu Sans Mono")
+        mono.setPointSize(9)
+        self.status_log.setFont(mono)
         self.status_log.setStyleSheet(
-            "QTextEdit { background-color: #161B24; border: 1px solid #2C3448;"
-            " border-radius: 6px; padding: 8px 10px; color: #A0A8BC; }"
+            f"QTextEdit#activityLog {{ background-color: {theme.SURFACE};"
+            f" border: 1px solid {theme.OUTLINE}; border-radius: 6px;"
+            f" padding: 8px 10px; color: {theme.ON_SURFACE_MUTED}; }}"
         )
         center_layout.addWidget(self.status_log)
 

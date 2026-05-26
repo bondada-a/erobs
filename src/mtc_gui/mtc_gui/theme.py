@@ -15,22 +15,23 @@ a styled variant (e.g. ``btn.setProperty("class", "primary")``).
 from __future__ import annotations
 
 from PyQt6.QtCore import Qt
-from PyQt6.QtGui import QColor, QPalette
+from PyQt6.QtGui import QColor, QFont, QFontDatabase, QPalette
 from PyQt6.QtWidgets import QApplication, QWidget
 
 # ─── Tokens ──────────────────────────────────────────────────────────────────
 
-# Surfaces (dark, robotics-tuned — deep navy-charcoal canvas)
-BG = "#0E1117"               # canvas / QMainWindow background
-SURFACE = "#161B24"          # default panels, splitters
-SURFACE_LOW = "#1B2230"      # cards, group boxes, list rows
-SURFACE_HIGH = "#222A3A"     # hovered rows, secondary buttons
-SURFACE_HIGHEST = "#2C3548"  # pressed / active emphasis
-ELEVATED = "#1E2533"         # popovers, menus, dropdowns
+# Surfaces — v2 collapses to two real levels.
+# Visual depth comes from typography + spacing, not stacking 4 grays.
+BG = "#0B0E14"               # canvas / QMainWindow background (deeper)
+SURFACE = "#11151D"          # default panels, splitters
+SURFACE_LOW = "#11151D"      # alias — kept so old code compiles
+SURFACE_HIGH = "#1A2030"     # hovered rows, secondary buttons
+SURFACE_HIGHEST = "#222A3C"  # pressed / active emphasis
+ELEVATED = "#161B26"         # popovers, menus, dropdowns
 
-# Borders / dividers
-OUTLINE = "#2C3448"          # subtle dividers (default)
-OUTLINE_STRONG = "#3D4660"   # input borders, group-box borders
+# Borders / dividers — used sparingly, mostly hairlines
+OUTLINE = "#1E2533"          # subtle dividers (default)
+OUTLINE_STRONG = "#2A3346"   # input borders, focus-adjacent
 
 # Text
 ON_SURFACE = "#E6EAF2"       # primary text
@@ -132,11 +133,11 @@ QMenu::separator {{
     margin: 4px 6px;
 }}
 
-/* ─── Buttons ──────────────────────────────────────────────────────── */
+/* ─── Buttons — borderless tonal-fill (Linear-style) ─────────────── */
 QPushButton {{
     background-color: {SURFACE_HIGH};
     color: {ON_SURFACE};
-    border: 1px solid {OUTLINE_STRONG};
+    border: 1px solid transparent;
     border-radius: {R_SM}px;
     padding: 6px 14px;
     font-weight: 500;
@@ -144,15 +145,18 @@ QPushButton {{
 }}
 QPushButton:hover {{
     background-color: {SURFACE_HIGHEST};
-    border-color: {PRIMARY};
 }}
 QPushButton:pressed {{
-    background-color: {SURFACE_LOW};
+    background-color: {SURFACE};
+}}
+QPushButton:focus {{
+    border: 1px solid {PRIMARY};
+    outline: none;
 }}
 QPushButton:disabled {{
-    background-color: {SURFACE_LOW};
+    background-color: {SURFACE};
     color: {DISABLED};
-    border-color: {OUTLINE};
+    border-color: transparent;
 }}
 QPushButton:flat {{
     background: transparent;
@@ -162,7 +166,6 @@ QPushButton:flat {{
 QPushButton:flat:hover {{
     background-color: {SURFACE_HIGH};
     color: {ON_SURFACE};
-    border-color: {OUTLINE};
 }}
 
 /* Variants — opt in via setProperty("class", "primary") etc. */
@@ -180,25 +183,29 @@ QPushButton[class="primary"]:pressed {{
     background-color: {PRIMARY_PRESSED};
 }}
 QPushButton[class="primary"]:disabled {{
-    background-color: {SURFACE_LOW};
+    background-color: {SURFACE};
     color: {DISABLED};
-    border-color: {OUTLINE};
+    border-color: transparent;
 }}
 QPushButton[class="danger"] {{
-    background-color: {DANGER_DIM};
+    background-color: transparent;
     color: {DANGER};
-    border: 1px solid {DANGER};
+    border: 1px solid transparent;
 }}
 QPushButton[class="danger"]:hover {{
-    background-color: {DANGER};
-    color: {ON_PRIMARY};
+    background-color: {DANGER_DIM};
+    color: {DANGER};
+}}
+QPushButton[class="danger"]:disabled {{
+    color: {DISABLED};
+    background: transparent;
 }}
 
 /* ─── Inputs ───────────────────────────────────────────────────────── */
 QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox {{
-    background-color: {SURFACE_LOW};
+    background-color: {SURFACE_HIGH};
     color: {ON_SURFACE};
-    border: 1px solid {OUTLINE_STRONG};
+    border: 1px solid transparent;
     border-radius: {R_SM}px;
     padding: 5px 10px;
     selection-background-color: {PRIMARY};
@@ -206,18 +213,17 @@ QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox {{
 }}
 QLineEdit:hover, QTextEdit:hover, QPlainTextEdit:hover,
 QSpinBox:hover, QDoubleSpinBox:hover {{
-    border-color: {OUTLINE_STRONG};
-    background-color: {SURFACE};
+    background-color: {SURFACE_HIGHEST};
 }}
 QLineEdit:focus, QTextEdit:focus, QPlainTextEdit:focus,
 QSpinBox:focus, QDoubleSpinBox:focus {{
     border: 1px solid {PRIMARY};
-    background-color: {SURFACE};
+    background-color: {SURFACE_HIGH};
 }}
 QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled {{
-    background-color: {BG};
-    color: {DISABLED};
-    border-color: {OUTLINE};
+    background-color: {SURFACE};
+    color: {ON_SURFACE_MUTED};
+    border-color: transparent;
 }}
 QLineEdit::placeholder {{
     color: {ON_SURFACE_DIM};
@@ -225,16 +231,15 @@ QLineEdit::placeholder {{
 
 /* ─── Combo box ────────────────────────────────────────────────────── */
 QComboBox {{
-    background-color: {SURFACE_LOW};
+    background-color: {SURFACE_HIGH};
     color: {ON_SURFACE};
-    border: 1px solid {OUTLINE_STRONG};
+    border: 1px solid transparent;
     border-radius: {R_SM}px;
     padding: 5px 10px;
     min-height: 22px;
 }}
 QComboBox:hover {{
-    background-color: {SURFACE};
-    border-color: {OUTLINE_STRONG};
+    background-color: {SURFACE_HIGHEST};
 }}
 QComboBox:focus {{
     border-color: {PRIMARY};
@@ -290,71 +295,71 @@ QCheckBox::indicator:checked, QRadioButton::indicator:checked {{
     border-color: {PRIMARY};
 }}
 
-/* ─── Group box ────────────────────────────────────────────────────── */
+/* ─── Group box — flat, header-strip style (no Qt-classic border+title) ── */
 QGroupBox {{
-    background-color: {SURFACE};
-    border: 1px solid {OUTLINE};
-    border-radius: {R_MD}px;
-    margin-top: 14px;
-    padding: 12px;
+    background: transparent;
+    border: none;
+    border-top: 1px solid {OUTLINE};
+    border-radius: 0;
+    margin-top: 22px;
+    padding: 14px 4px 4px 4px;
     font-weight: 500;
 }}
 QGroupBox::title {{
     subcontrol-origin: margin;
     subcontrol-position: top left;
-    left: 12px;
-    padding: 0 6px;
+    left: 0;
+    top: 2px;
+    padding: 0 0 6px 0;
     color: {ON_SURFACE_MUTED};
-    background-color: {SURFACE};
+    background: transparent;
     font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.5px;
+    letter-spacing: 1px;
     text-transform: uppercase;
 }}
 
-/* ─── Tabs ─────────────────────────────────────────────────────────── */
+/* ─── Tabs — modern bottom-border indicator (Linear/VSCode-style) ─── */
 QTabWidget::pane {{
-    background-color: {SURFACE};
-    border: 1px solid {OUTLINE};
-    border-radius: {R_MD}px;
-    top: -1px;
+    background: transparent;
+    border: none;
+    border-top: 1px solid {OUTLINE};
+    top: 0;
 }}
 QTabBar {{
     background: transparent;
     qproperty-drawBase: 0;
 }}
 QTabBar::tab {{
-    background-color: transparent;
+    background: transparent;
     color: {ON_SURFACE_MUTED};
-    padding: 8px 16px;
-    border: 1px solid transparent;
-    border-bottom: 1px solid {OUTLINE};
-    margin-right: 2px;
+    padding: 8px 14px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-right: 4px;
+    font-weight: 500;
 }}
 QTabBar::tab:hover {{
     color: {ON_SURFACE};
 }}
 QTabBar::tab:selected {{
-    background-color: {SURFACE};
+    background: transparent;
     color: {ON_SURFACE};
-    border: 1px solid {OUTLINE};
-    border-bottom: 1px solid {SURFACE};
-    border-top-left-radius: {R_SM}px;
-    border-top-right-radius: {R_SM}px;
+    border-bottom: 2px solid {PRIMARY};
 }}
 
 /* ─── List / Tree ──────────────────────────────────────────────────── */
 QListWidget, QTreeWidget, QTreeView, QListView {{
-    background-color: {SURFACE};
+    background: transparent;
     color: {ON_SURFACE};
-    border: 1px solid {OUTLINE};
-    border-radius: {R_MD}px;
+    border: none;
     outline: none;
     padding: 4px;
 }}
 QListWidget::item, QTreeWidget::item {{
-    padding: 6px 8px;
+    padding: 7px 10px;
     border-radius: {R_SM}px;
+    margin: 1px 0;
 }}
 QListWidget::item:hover, QTreeWidget::item:hover {{
     background-color: {SURFACE_HIGH};
@@ -520,9 +525,49 @@ def _palette() -> QPalette:
     return p
 
 
+def _load_fonts() -> str:
+    """Register Inter as the app font. Inter Variable lives at
+    /usr/share/fonts/truetype/inter-vf/InterVariable.ttf when fonts-inter-variable
+    is installed via apt; if QFontDatabase already knows it (system fontconfig),
+    we don't need to addApplicationFont. Returns the resolved family name."""
+    families = set(QFontDatabase.families())
+    for cand in ("Inter Variable", "Inter"):
+        if cand in families:
+            return cand
+    # Try loading from disk explicitly.
+    for path in (
+        "/usr/share/fonts/truetype/inter-vf/InterVariable.ttf",
+        "/usr/share/fonts/truetype/inter/Inter-Regular.otf",
+    ):
+        idx = QFontDatabase.addApplicationFont(path)
+        if idx >= 0:
+            fams = QFontDatabase.applicationFontFamilies(idx)
+            if fams:
+                return fams[0]
+    return "Sans Serif"
+
+
+def icon(name: str, color: str = ON_SURFACE):
+    """Return a qtawesome QIcon for ``name`` (e.g. 'mdi6.play').
+    Imports lazily so headless tests can stub it. Falls back to an empty
+    QIcon if qtawesome isn't installed.
+    """
+    try:
+        import qtawesome as qta  # type: ignore
+        return qta.icon(name, color=color)
+    except Exception:
+        from PyQt6.QtGui import QIcon
+        return QIcon()
+
+
 def apply(app: QApplication) -> None:
-    """Apply the dark theme + QSS to the running application."""
+    """Apply the dark theme + QSS + font to the running application."""
     app.setStyle("Fusion")  # consistent baseline across platforms
+    family = _load_fonts()
+    f = QFont(family)
+    f.setPointSize(10)
+    f.setHintingPreference(QFont.HintingPreference.PreferFullHinting)
+    app.setFont(f)
     app.setPalette(_palette())
     app.setStyleSheet(DARK_QSS)
 

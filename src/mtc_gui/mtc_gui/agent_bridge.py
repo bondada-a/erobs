@@ -115,7 +115,15 @@ class AgentBridge(QObject):
             await self._agent.connect()
             self.connected.emit(len(self._agent.tools))
         except Exception as e:
-            self.error_occurred.emit(f"Connection failed: {e}")
+            # Operator-facing message: hide the Python-y bits unless this is
+            # something the operator can act on.
+            msg = str(e)
+            if isinstance(e, ModuleNotFoundError) or "No module named" in msg:
+                user_msg = "AI assistant unavailable — required component is missing."
+            else:
+                # Trim multi-line tracebacks; keep first line.
+                user_msg = f"AI assistant unavailable — {msg.splitlines()[0]}"
+            self.error_occurred.emit(user_msg)
 
     async def _async_chat(self, text: str):
         self.thinking_changed.emit(True)
