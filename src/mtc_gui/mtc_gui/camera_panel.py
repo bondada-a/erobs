@@ -33,7 +33,7 @@ class CameraPanel(QWidget):
         btn_row.addWidget(detect_btn)
 
         self.status_label = QLabel("No camera feed")
-        self.status_label.setStyleSheet("color: gray;")
+        self.status_label.setStyleSheet("color: #6B7385; font-size: 11px;")
         btn_row.addWidget(self.status_label)
         btn_row.addStretch()
         layout.addLayout(btn_row)
@@ -42,7 +42,10 @@ class CameraPanel(QWidget):
         self.image_label = QLabel("No image")
         self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.image_label.setMinimumSize(400, 300)
-        self.image_label.setStyleSheet("background-color: black; color: white;")
+        self.image_label.setStyleSheet(
+            "background-color: #0B0F18; color: #6B7385;"
+            " border: 1px solid #2C3448; border-radius: 6px;"
+        )
         layout.addWidget(self.image_label, stretch=1)
 
         # Detection info
@@ -61,14 +64,14 @@ class CameraPanel(QWidget):
         self.current_image = cv_image
         self._display_image(cv_image)
         self.status_label.setText("Image received")
-        self.status_label.setStyleSheet("color: green;")
+        self.status_label.setStyleSheet("color: #3DD68C; font-size: 11px; font-weight: 600;")
 
     def on_detection(self, markers):
         """Handle ArUco marker detection results."""
         self.current_detections = markers
         if not markers:
             self.status_label.setText("No markers detected")
-            self.status_label.setStyleSheet("color: orange;")
+            self.status_label.setStyleSheet("color: #F2B33D; font-size: 11px; font-weight: 600;")
             self.detection_info.setPlainText("No markers detected")
             return
 
@@ -90,7 +93,7 @@ class CameraPanel(QWidget):
             self._display_image(display)
 
         self.status_label.setText(f"{len(markers)} marker(s) detected")
-        self.status_label.setStyleSheet("color: green;")
+        self.status_label.setStyleSheet("color: #3DD68C; font-size: 11px; font-weight: 600;")
 
         # Update info panel
         lines = [f"Detected {len(markers)} ArUco marker(s):\n"]

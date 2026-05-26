@@ -384,11 +384,27 @@ class StepListPanel(QWidget):
         self._list_widget.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self._list_widget.pose_dropped.connect(self.pose_dropped)
         self._list_widget.setStyleSheet(
-            "QListWidget { background-color: #232323; border: none; outline: none; }"
-            "QListWidget::item { border-bottom: 1px solid #2e2e2e; padding: 0; }"
-            "QListWidget::item:selected { background-color: rgba(42, 130, 218, 0.08); }"
+            "QListWidget { background-color: #161B24; border: 1px solid #2C3448;"
+            " border-radius: 6px; outline: none; padding: 4px; }"
+            "QListWidget::item { border-bottom: 1px solid #1B2230; padding: 0; }"
+            "QListWidget::item:selected { background-color: #1F2C45; }"
         )
         layout.addWidget(self._list_widget, stretch=1)
+
+        # Empty-state overlay — visible only when the list is empty.
+        self._empty_label = QLabel(
+            "No steps yet.\n\nClick a task on the left, or drag a pose here.",
+            self._list_widget,
+        )
+        self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self._empty_label.setStyleSheet(
+            "QLabel { color: #6B7385; font-size: 12px; background: transparent;"
+            " padding: 24px; }"
+        )
+        self._empty_label.setWordWrap(True)
+        # Track list-widget resize so the overlay stays centered.
+        self._list_widget.installEventFilter(self)
+        self._update_empty_state()
 
     # --- Public API ---
 
@@ -410,6 +426,26 @@ class StepListPanel(QWidget):
             self._step_rows.append(row_widget)
 
         self._total_steps = len(tasks)
+        self._update_empty_state()
+
+    # --- Empty-state overlay helpers ---
+
+    def _update_empty_state(self):
+        """Show or hide the empty-state hint, and re-center it on the list."""
+        if not hasattr(self, "_empty_label"):
+            return
+        is_empty = self._list_widget.count() == 0
+        self._empty_label.setVisible(is_empty)
+        if is_empty:
+            self._empty_label.resize(self._list_widget.viewport().size())
+            self._empty_label.move(0, 0)
+            self._empty_label.raise_()
+
+    def eventFilter(self, obj, event):
+        from PyQt6.QtCore import QEvent
+        if obj is self._list_widget and event.type() == QEvent.Type.Resize:
+            self._update_empty_state()
+        return super().eventFilter(obj, event)
 
     def start_execution(self, total_steps: int):
         """Enter execution mode."""

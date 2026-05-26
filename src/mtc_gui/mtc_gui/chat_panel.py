@@ -23,27 +23,28 @@ from PyQt6.QtCore import pyqtSignal, Qt, QTimer, QEvent
 # ---------------------------------------------------------------------------
 
 _COLORS = {
-    "user_bg": "#1a6b3a",
-    "user_text": "#e8f5e9",
-    "assistant_bg": "#2d2d2d",
-    "assistant_text": "#e0e0e0",
-    "tool_bg": "#1e1e2e",
-    "tool_border": "#3d3d5c",
-    "tool_text": "#a0a0c0",
-    "error_bg": "#3d1a1a",
-    "error_border": "#6b2b2b",
-    "error_text": "#f0a0a0",
-    "timestamp": "#777777",
-    "input_bg": "#2a2a2a",
-    "input_border": "#444444",
-    "input_border_focus": "#5c9ce6",
-    "send_btn": "#5c9ce6",
-    "send_btn_hover": "#7ab3f0",
-    "clear_btn": "#555555",
-    "clear_btn_hover": "#666666",
-    "thinking_dot": "#5c9ce6",
-    "panel_bg": "#1e1e1e",
-    "scroll_bg": "#252525",
+    # Aligned with mtc_gui.theme tokens — keep in sync if those change.
+    "user_bg": "#1F2C45",          # primary tint (cool indigo)
+    "user_text": "#E6EAF2",
+    "assistant_bg": "#1B2230",     # surface_low
+    "assistant_text": "#E6EAF2",
+    "tool_bg": "#161B24",          # surface
+    "tool_border": "#2C3448",      # outline
+    "tool_text": "#A0A8BC",        # muted
+    "error_bg": "#4A1F1F",
+    "error_border": "#F26B6B",
+    "error_text": "#F26B6B",
+    "timestamp": "#6B7385",
+    "input_bg": "#1B2230",
+    "input_border": "#3D4660",
+    "input_border_focus": "#5B8DEF",
+    "send_btn": "#5B8DEF",
+    "send_btn_hover": "#7AA4F4",
+    "clear_btn": "#222A3A",
+    "clear_btn_hover": "#2C3548",
+    "thinking_dot": "#5B8DEF",
+    "panel_bg": "#0E1117",         # canvas
+    "scroll_bg": "#161B24",
 }
 
 _PANEL_STYLESHEET = f"""
@@ -339,7 +340,7 @@ class ThinkingIndicator(QFrame):
                 """)
             else:
                 dot.setStyleSheet("""
-                    color: #3a5a7a;
+                    color: #2C3448;
                     font-size: 20px;
                     padding: 0 2px;
                 """)
@@ -371,14 +372,17 @@ class ChatPanel(QWidget):
         header.setStyleSheet(f"""
             QFrame {{
                 background-color: {_COLORS["panel_bg"]};
-                border-bottom: 1px solid #333333;
-                padding: 8px 12px;
+                border-bottom: 1px solid {_COLORS["tool_border"]};
+                padding: 10px 14px;
             }}
         """)
         header_layout = QHBoxLayout(header)
-        header_layout.setContentsMargins(12, 8, 12, 8)
+        header_layout.setContentsMargins(14, 10, 14, 10)
         title = QLabel("Beambot Assistant")
-        title.setStyleSheet("color: #e0e0e0; font-size: 14px; font-weight: bold;")
+        title.setStyleSheet(
+            "color: #E6EAF2; font-size: 13px; font-weight: 600;"
+            " letter-spacing: 0.2px;"
+        )
         header_layout.addWidget(title)
 
         # Mode toggle (Plan | Run). Plan is the default safe state.
@@ -388,7 +392,8 @@ class ChatPanel(QWidget):
         self._run_radio = QRadioButton("Run")
         self._plan_radio.setChecked(True)
         radio_style = (
-            "QRadioButton { color: #cccccc; font-size: 12px; padding: 0 8px; }"
+            "QRadioButton { color: #A0A8BC; font-size: 12px; padding: 0 8px; }"
+            "QRadioButton:checked { color: #E6EAF2; font-weight: 600; }"
         )
         self._plan_radio.setStyleSheet(radio_style)
         self._run_radio.setStyleSheet(radio_style)
@@ -406,8 +411,12 @@ class ChatPanel(QWidget):
 
         header_layout.addStretch()
 
-        self._status_label = QLabel("Connecting...")
-        self._status_label.setStyleSheet("color: #888888; font-size: 11px;")
+        self._status_label = QLabel("Connecting…")
+        self._status_label.setStyleSheet(
+            "QLabel { color: #A0A8BC; font-size: 11px;"
+            " background-color: #1B2230; border: 1px solid #2C3448;"
+            " border-radius: 999px; padding: 2px 10px; }"
+        )
         header_layout.addWidget(self._status_label)
         layout.addWidget(header)
 
@@ -436,26 +445,31 @@ class ChatPanel(QWidget):
         input_frame.setStyleSheet(f"""
             QFrame {{
                 background-color: {_COLORS["panel_bg"]};
-                border-top: 1px solid #333333;
+                border-top: 1px solid {_COLORS["tool_border"]};
             }}
         """)
         input_outer = QVBoxLayout(input_frame)
-        input_outer.setContentsMargins(12, 8, 12, 8)
-        input_outer.setSpacing(6)
+        input_outer.setContentsMargins(14, 10, 14, 12)
+        input_outer.setSpacing(8)
 
         # Multi-line input
         self.input_field = QTextEdit()
-        self.input_field.setPlaceholderText("Ask Beambot something...")
+        self.input_field.setPlaceholderText("Ask Beambot something…")
         self.input_field.setMaximumHeight(80)
-        self.input_field.setMinimumHeight(36)
+        self.input_field.setMinimumHeight(40)
         self.input_field.setStyleSheet(f"""
             QTextEdit {{
                 background-color: {_COLORS["input_bg"]};
-                color: #e0e0e0;
+                color: #E6EAF2;
                 border: 1px solid {_COLORS["input_border"]};
                 border-radius: 8px;
-                padding: 8px 12px;
+                padding: 10px 14px;
                 font-size: 13px;
+                selection-background-color: {_COLORS["send_btn"]};
+                selection-color: #0B0F18;
+            }}
+            QTextEdit:hover {{
+                border-color: #4A5573;
             }}
             QTextEdit:focus {{
                 border-color: {_COLORS["input_border_focus"]};
@@ -468,8 +482,8 @@ class ChatPanel(QWidget):
         btn_row = QHBoxLayout()
         btn_row.setSpacing(8)
 
-        hint_label = QLabel("Enter to send, Shift+Enter for newline")
-        hint_label.setStyleSheet("color: #666666; font-size: 10px;")
+        hint_label = QLabel("Enter to send  ·  Shift+Enter for newline")
+        hint_label.setStyleSheet("color: #6B7385; font-size: 10px;")
         btn_row.addWidget(hint_label)
         btn_row.addStretch()
 
@@ -477,15 +491,17 @@ class ChatPanel(QWidget):
         clear_btn.setCursor(Qt.CursorShape.PointingHandCursor)
         clear_btn.setStyleSheet(f"""
             QPushButton {{
-                background-color: {_COLORS["clear_btn"]};
-                color: #cccccc;
-                border: none;
+                background-color: transparent;
+                color: #A0A8BC;
+                border: 1px solid {_COLORS["input_border"]};
                 border-radius: 6px;
-                padding: 5px 14px;
+                padding: 6px 14px;
                 font-size: 12px;
             }}
             QPushButton:hover {{
                 background-color: {_COLORS["clear_btn_hover"]};
+                color: #E6EAF2;
+                border-color: #4A5573;
             }}
         """)
         clear_btn.clicked.connect(self.clear_chat)
@@ -496,19 +512,22 @@ class ChatPanel(QWidget):
         send_btn.setStyleSheet(f"""
             QPushButton {{
                 background-color: {_COLORS["send_btn"]};
-                color: white;
+                color: #0B0F18;
                 border: none;
                 border-radius: 6px;
-                padding: 5px 18px;
+                padding: 6px 18px;
                 font-size: 12px;
-                font-weight: bold;
+                font-weight: 600;
             }}
             QPushButton:hover {{
                 background-color: {_COLORS["send_btn_hover"]};
             }}
+            QPushButton:pressed {{
+                background-color: #3F70D8;
+            }}
             QPushButton:disabled {{
-                background-color: #3a3a3a;
-                color: #666666;
+                background-color: #1B2230;
+                color: #4A5060;
             }}
         """)
         send_btn.clicked.connect(self._on_send)
