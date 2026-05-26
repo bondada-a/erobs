@@ -597,7 +597,7 @@ class MTCMainWindow(QMainWindow):
         self.agent_bridge.response_received.connect(self.chat_panel.append_assistant)
         self.agent_bridge.tool_called.connect(self.chat_panel.append_tool_call)
         self.agent_bridge.thinking_changed.connect(self.chat_panel.set_thinking)
-        self.agent_bridge.error_occurred.connect(self._on_agent_error)
+        self.agent_bridge.error_occurred.connect(self.chat_panel.append_error)
         self.agent_bridge.connected.connect(
             lambda n: self._log(f"Agent connected: {n} tools")
         )
@@ -1059,48 +1059,6 @@ class MTCMainWindow(QMainWindow):
     def _on_chat_message(self, text):
         self.chat_panel.append_user(text)
         self.agent_bridge.send_message(text)
-
-    def _on_agent_error(self, text: str) -> None:
-        """Route agent-bridge errors to the chat panel with the right tone.
-
-        Connect-pending / dependency-missing states are recoverable and
-        get demoted to a warning chip with a Retry action; everything
-        else stays a hard error.
-        """
-        msg = (text or "").lower()
-        recoverable_markers = (
-            "unavailable",
-            "missing",
-            "not found",
-            "could not connect",
-            "cannot connect",
-            "connection refused",
-            "timed out",
-            "timeout",
-        )
-        is_recoverable = any(m in msg for m in recoverable_markers)
-        if is_recoverable:
-            self.chat_panel.append_error(
-                text,
-                severity="warning",
-                on_retry=self._reconnect_agent,
-            )
-        else:
-            self.chat_panel.append_error(text)
-
-    def _reconnect_agent(self) -> None:
-        """Best-effort reconnect for the agent bridge, with status feedback."""
-        try:
-            self.chat_panel.set_status("•  Reconnecting")
-            if hasattr(self.agent_bridge, "disconnect"):
-                try:
-                    self.agent_bridge.disconnect()
-                except Exception:
-                    pass
-            if hasattr(self.agent_bridge, "connect_agent"):
-                self.agent_bridge.connect_agent()
-        except Exception as e:  # pragma: no cover - best-effort
-            self._log(f"Reconnect failed: {e}")
 
     def closeEvent(self, event):
         self.agent_bridge.disconnect()
