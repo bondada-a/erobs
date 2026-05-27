@@ -2,11 +2,10 @@
 
 ## ROS-VM Setup (xf11bm-ros1)
 
-
 ```bash
 git clone https://github.com/bondada-a/erobs.git
 cd erobs
-source install/setup.bash
+pixi shell -e ros2 
 export ROS_DISCOVERY_SERVER=10.65.2.151:11811
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 export ROS_DOMAIN_ID=0
@@ -63,4 +62,19 @@ fastdds discovery --server-id 0 --udp-address 10.65.14.42 --udp-port 7999
 
 #### Terminal 2: Listener
 ```bash
+pixi shell -e ros2 
+export ROS_DISCOVERY_SERVER=10.65.14.42:7999
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export ROS_DOMAIN_ID=0
+ros2 run demo_nodes_cpp listener
+```
 
+## WS2
+
+#### Terminal 1: Talker 
+```bash
+pixi shell -e ros2 
+export ROS_DISCOVERY_SERVER=10.65.14.42:7999
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export ROS_DOMAIN_ID=0
+ros2 run demo_nodes_cpp talker
