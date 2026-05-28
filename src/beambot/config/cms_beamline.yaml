@@ -207,5 +207,5 @@ collision_objects:
 vlm:
   service_url: "http://localhost:8765"
   model_backend: "molmoact"          # one of: stub | molmoact | molmoact2 | robobrain25
-  timeout_seconds: 10
-  enabled: false
+  timeout_seconds: 30
+  enabled: true

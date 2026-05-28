@@ -26,39 +26,66 @@ log = logging.getLogger(__name__)
 
 DEFAULT_MODEL_ID = os.environ.get("MOLMOACT_MODEL_ID", "allenai/MolmoAct-7B-D-0812")
 
-# Matches both <point x=".." y=".." /> and <points x1=".." y1=".." ... />
-_POINT_RE = re.compile(
-    r'<point[s]?\s+([^>]*?)/?>',
-    re.IGNORECASE,
-)
-_XY_RE = re.compile(r'(x\d*)="([\d.]+)"\s+(y\d*)="([\d.]+)"', re.IGNORECASE)
+# Matches both <point x=".." y=".." /> and <points x1=".." y1=".." ... />.
+# The output may be truncated (no closing >), so we accept either a closing
+# tag or end-of-string.
+_POINT_TAG_RE = re.compile(r'<point[s]?\s+(.+?)(?:/?>|$)', re.IGNORECASE | re.DOTALL)
+_XY_RE = re.compile(r'x(\d*)\s*=\s*"([\d.]+)"\s+y\d*\s*=\s*"([\d.]+)"', re.IGNORECASE)
+# Fallback: bracketed pairs like [[150,102],[...]] or [150, 102]
+_BRACKET_PAIRS_RE = re.compile(r'\[\s*([\d.]+)\s*,\s*([\d.]+)\s*\]')
 
 
 def _parse_molmo_point(text: str, width: int, height: int) -> Optional[PointResult]:
-    """Parse the first <point .../> tag from Molmo output.
+    """Parse the first point coordinate from Molmo output.
 
-    Returns absolute pixel coordinates, or None if no point found.
+    Handles three formats:
+        <point x="50" y="60" />                 — single point, percentages
+        <points x1="10" y1="20" x2=...>         — multi-point, percentages
+        [[150,102], [...]]                       — bracketed pairs (rare,
+                                                   appears as pixel coords)
     """
-    m = _POINT_RE.search(text)
-    if not m:
-        return None
-    attrs = m.group(1)
-    pairs = _XY_RE.findall(attrs)
-    if not pairs:
-        return None
-    # Take the first (x, y) pair.
-    _, xs, _, ys = pairs[0]
-    # Molmo emits percentages 0-100.
-    x_pct = float(xs)
-    y_pct = float(ys)
-    x_px = (x_pct / 100.0) * width
-    y_px = (y_pct / 100.0) * height
-    return PointResult(
-        x=x_px,
-        y=y_px,
-        confidence=1.0,  # Molmo doesn't emit a confidence score.
-        raw={"text": text, "x_pct": x_pct, "y_pct": y_pct},
-    )
+    # Try XML tag formats first.
+    m = _POINT_TAG_RE.search(text)
+    if m:
+        attrs = m.group(1)
+        pairs = _XY_RE.findall(attrs)
+        if pairs:
+            _, xs, ys = pairs[0]
+            x_pct = float(xs)
+            y_pct = float(ys)
+            return PointResult(
+                x=(x_pct / 100.0) * width,
+                y=(y_pct / 100.0) * height,
+                confidence=1.0,
+                raw={
+                    "text": text,
+                    "x_pct": x_pct,
+                    "y_pct": y_pct,
+                    "n_points": len(pairs),
+                },
+            )
+
+    # Fallback: bracketed pairs (some prompts trigger this format).
+    bm = _BRACKET_PAIRS_RE.search(text)
+    if bm:
+        x = float(bm.group(1))
+        y = float(bm.group(2))
+        # Heuristic: values <= 100 are likely percentages, otherwise pixels.
+        if x <= 100 and y <= 100:
+            return PointResult(
+                x=(x / 100.0) * width,
+                y=(y / 100.0) * height,
+                confidence=1.0,
+                raw={"text": text, "format": "bracket_pct"},
+            )
+        return PointResult(
+            x=x,
+            y=y,
+            confidence=1.0,
+            raw={"text": text, "format": "bracket_pixel"},
+        )
+
+    return None
 
 
 class MolmoActBackend(VLMBackend):
@@ -132,7 +159,7 @@ class MolmoActBackend(VLMBackend):
 
         output = self.model.generate(
             **inputs,
-            max_new_tokens=200,
+            max_new_tokens=512,
             do_sample=False,
         )
         generated = output[0, inputs["input_ids"].size(1):]
