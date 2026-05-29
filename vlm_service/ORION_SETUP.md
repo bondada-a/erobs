@@ -55,6 +55,10 @@ cd ~
 git clone https://github.com/bondada-a/erobs.git -b feat/vlm-detector-integration
 cd erobs
 
+## Update  - use python3.12 for every command instead of python3
+rm -rf ~/erobs/vlm_service/.venv
+python3.12 -m venv ~/erobs/vlm_service/.venv
+
 # Create venv and install deps
 python3 -m venv vlm_service/.venv
 source vlm_service/.venv/bin/activate
