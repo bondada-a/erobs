@@ -51,7 +51,7 @@
     </joint>
 
     <!-- ============================================================ -->
-    <!-- ARM MOUNT (for attaching grippers via tool_block)            -->
+    <!-- ARM MOUNT (for attaching grippers via wrist_extension)       -->
     <!-- ============================================================ -->
 
     <link name="zivid_arm_mount">

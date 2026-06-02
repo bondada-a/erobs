@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <robot xmlns:xacro="http://wiki.ros.org/xacro" name="$(arg name)">
 
-<!--Chain: map -> UR -> flange -> zivid_camera_mount -> zivid_camera -> tool_block -> pipettor -->
+<!--Chain: map -> UR -> flange -> wrist_extension -> te_robotside -> te_toolside -> pipettor -->
 
   <!-- robot name parameter -->
   <xacro:arg name="name" default="ur5e"/>
@@ -10,7 +10,9 @@
   <xacro:include filename="$(find ur_description)/urdf/ur_macro.xacro"/>
   <xacro:include filename="$(find ur_robot_driver)/urdf/ur.ros2_control.xacro"/>
   <xacro:include filename="$(find cms_robot_description)/urdf/zivid_camera_mount.xacro"/>
-  <xacro:include filename="$(find cms_robot_description)/urdf/tool_block.xacro"/>
+  <xacro:include filename="$(find cms_robot_description)/urdf/wrist_extension.xacro"/>
+  <xacro:include filename="$(find cms_robot_description)/urdf/te_robotside.xacro"/>
+  <xacro:include filename="$(find cms_robot_description)/urdf/te_toolside.xacro"/>
   <xacro:include filename="$(find pipette_description)/urdf/pipette_macro.urdf.xacro"/>
 
   <!-- possible 'ur_type' values: ur3, ur5e, ur5, ur10, ur10e, ur16e, ur20 -->
@@ -116,16 +118,31 @@
     rpy="0 0 0"
     zivid_model="ZIVID_2_PLUS_MR60"/>
 
-  <!-- Tool block attached to the Zivid arm mount (not the camera) -->
-  <xacro:tool_block parent_link="zivid_arm_mount" xyz="0 0 0.049" rpy="-1.5708 0 3.14159"/>
+  <!-- Wrist extension (EX-50-35): bolts to flange, extends 35mm along tool-Z -->
+  <xacro:wrist_extension
+    parent_link="$(arg tf_prefix)tool0"
+    xyz="0 0 0.016"
+    rpy="1.5708 0 3.14159"/>
 
-  <!-- Pipettor attached to tool block -->
+  <!-- Tool exchanger robot-side plate (Wingman WM1) at the tip of the extension -->
+  <xacro:te_robotside
+    parent_link="wrist_extension"
+    xyz="0 0.047 0"
+    rpy="3.14159 0 0"/>
+
+  <!-- Tool exchanger tool-side plate (Wingman WM1) — comes with each gripper -->
+  <xacro:te_toolside
+    parent_link="te_robotside"
+    xyz="0 -0.011 0"
+    rpy="0 0 0"/>
+
+  <!-- Pipettor attached to tool-side plate -->
   <xacro:pipette
     name="pipette"
     prefix="$(arg tf_prefix)"
-    parent="tool_block"
+    parent="te_toolside"
     pipette_mass="0.200"
-    xyz="-0.005 -0.015 0"
+    xyz="-0.005 -0.005 0"
     rpy="-1.5708 0 3.1416"
   />
 </robot>
