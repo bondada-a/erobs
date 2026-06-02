@@ -13,6 +13,7 @@
   <xacro:include filename="$(find cms_robot_description)/urdf/wrist_extension.xacro"/>
   <xacro:include filename="$(find cms_robot_description)/urdf/te_robotside.xacro"/>
   <xacro:include filename="$(find cms_robot_description)/urdf/te_toolside.xacro"/>
+  <xacro:include filename="$(find cms_robot_description)/urdf/te_coupling.xacro"/>
   <xacro:include filename="$(find epick_config)/urdf/epick_overlay.xacro"/>
 
   <!-- possible 'ur_type' values: ur3, ur5e, ur5, ur10, ur10e, ur16e, ur20 -->
@@ -147,10 +148,18 @@
   <xacro:property name="cup_profile_name" value="$(arg cup_profile)"/>
   <xacro:property name="cup" value="${cups_config['cups'][cup_profile_name]}"/>
 
-  <!-- Epick Gripper -->
-  <xacro:epick_overlay use_mock_hardware="$(arg use_mock_hardware)" parent="te_toolside"
-                  origin_xyz="0 -0.005 0"
-                  origin_rpy="-1.5708 0 3.1416"
+  <!-- Tool-changer coupling (W-010-B, 16.9mm axial) on the tool-side plate.
+       Mounts on te_toolside's outward (-Y) face; coupling axis (mesh Z) aligned
+       to te_toolside -Y via the rpy below. -->
+  <xacro:te_coupling
+    parent_link="te_toolside"
+    xyz="0 -0.012 0"
+    rpy="1.5708 0 0"/>
+
+  <!-- Epick Gripper — now mounted on the coupling far face -->
+  <xacro:epick_overlay use_mock_hardware="$(arg use_mock_hardware)" parent="te_coupling"
+                  origin_xyz="0 0 0.0099"
+                  origin_rpy="0 0 0"
                   extension_length="${cup['extension_length']}"
                   extension_radius="${cup['extension_radius']}"
                   suction_cup_height="${cup['suction_cup_height']}"
