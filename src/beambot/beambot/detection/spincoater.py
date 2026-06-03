@@ -1,23 +1,43 @@
-"""Spincoater pocket detection for orientation-aware placement.
+"""Spincoater pocket and sample detection for orientation-aware placement.
 
-Detects the machined pocket in a red-painted spincoater chuck using 2D
-flash-lit imagery. The chuck face is painted red (leaving the pocket bare),
-so the pocket appears as a bright bare-metal square inside a red field.
+Two detectors:
 
-Pipeline:
-  1. HSV dual-range red mask (handles hue wraparound at 0/179)
-  2. Locate chuck as the largest red blob
-  3. Restrict to red field, isolate bright bare-metal (high V, low S)
-  4. minAreaRect → center, angle (mod 90° for 4-fold symmetry)
+1. detect_spincoater_pocket() — detects the empty pocket in the red-painted
+   chuck using classical CV (HSV color masking + bright-metal isolation).
+   Used BEFORE placing a sample to determine the pocket's orientation.
 
-Requirements:
-  - 2D flash-lit capture (/capture_2d) — NOT the 3D projector capture
-  - Chuck centered in frame (flash falloff causes failure off-axis)
-  - Opaque red paint with saturation ~200+ for reliable masking
+2. detect_spincoater_sample() — detects a sample wafer sitting on the chuck
+   using a YOLO segmentation model. Used AFTER spincoating to find the
+   sample's actual position and orientation for re-pickup.
+
+Both require 2D flash-lit capture (/capture_2d) — NOT the 3D projector capture.
+Chuck must be centered in the camera frame (flash falloff off-axis).
 """
+
+import logging
+from pathlib import Path
 
 import cv2
 import numpy as np
+
+logger = logging.getLogger(__name__)
+
+# YOLO model for sample detection (lazy-loaded)
+# Resolve from repo root (non-.py files aren't copied to install/)
+def _find_model_path() -> Path:
+    """Find the model file by searching from the git repo root."""
+    import subprocess
+    try:
+        repo_root = subprocess.check_output(
+            ["git", "rev-parse", "--show-toplevel"],
+            stderr=subprocess.DEVNULL, text=True
+        ).strip()
+        return Path(repo_root) / "src" / "beambot" / "models" / "spincoater_sample_seg.pt"
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return Path(__file__).parent.parent.parent / "models" / "spincoater_sample_seg.pt"
+
+_SAMPLE_MODEL_PATH = _find_model_path()
+_sample_model = None
 
 
 def _red_mask(hsv: np.ndarray) -> np.ndarray:
@@ -126,4 +146,99 @@ def detect_spincoater_pocket(
                 "solidity": round(solidity, 3),
                 "area": int(area),
             }
+    return None
+
+
+def _get_sample_model():
+    """Lazy-load the YOLO segmentation model for sample detection."""
+    global _sample_model
+    if _sample_model is not None:
+        return _sample_model
+
+    try:
+        from ultralytics import YOLO
+    except ImportError:
+        raise RuntimeError(
+            "ultralytics not installed. Run: pip install ultralytics"
+        )
+
+    if not _SAMPLE_MODEL_PATH.exists():
+        raise FileNotFoundError(
+            f"Spincoater sample model not found at {_SAMPLE_MODEL_PATH}. "
+            "Train with: yolo segment train data=data.yaml model=yolov8n-seg.pt"
+        )
+
+    logger.info(f"Loading spincoater sample model: {_SAMPLE_MODEL_PATH}")
+    _sample_model = YOLO(str(_SAMPLE_MODEL_PATH))
+    return _sample_model
+
+
+def detect_spincoater_sample(
+    image: np.ndarray,
+    confidence: float = 0.3,
+) -> dict | None:
+    """Detect a sample wafer on the spincoater chuck using YOLO segmentation.
+
+    Uses a fine-tuned YOLOv8-seg model to detect the sample. Returns the
+    centroid and orientation derived from the segmentation mask's minAreaRect.
+
+    This is used for re-pickup after spincoating: the chuck stops at a random
+    angle, the sample may have shifted, and we need its actual position and
+    orientation.
+
+    Args:
+        image: BGR image from a 2D flash-lit capture (/capture_2d).
+        confidence: Minimum detection confidence (0-1).
+
+    Returns:
+        Dict with keys:
+          - center_px: (x, y) centroid of the segmentation mask
+          - angle_mod90: sample rotation in degrees [0, 90), mod 90 for
+            4-fold symmetry, measured from image horizontal
+          - angle_raw: raw minAreaRect angle (for cases where full 180° needed)
+          - width: fitted rectangle width in pixels
+          - height: fitted rectangle height in pixels
+          - aspect: aspect ratio (>= 1.0)
+          - confidence: detection confidence score
+          - mask_points: number of polygon points in the segmentation mask
+        Returns None if no sample detected.
+    """
+    model = _get_sample_model()
+    results = model(image, conf=confidence, verbose=False)
+
+    for r in results:
+        if r.masks is None or len(r.masks) == 0:
+            continue
+
+        # Take the highest-confidence detection
+        best_idx = r.boxes.conf.argmax()
+        mask_xy = r.masks[best_idx].xy[0]
+        conf = r.boxes[best_idx].conf[0].item()
+
+        if len(mask_xy) < 4:
+            continue
+
+        pts = mask_xy.astype(np.float32)
+        (cx, cy), (rw, rh), ang = cv2.minAreaRect(pts)
+        aspect = max(rw, rh) / (min(rw, rh) + 1e-6)
+
+        # Centroid from moments (more accurate than rect center)
+        M = cv2.moments(pts.astype(np.int32))
+        if M["m00"] > 0:
+            centroid_x = M["m10"] / M["m00"]
+            centroid_y = M["m01"] / M["m00"]
+        else:
+            centroid_x, centroid_y = cx, cy
+
+        return {
+            "center_px": (int(round(centroid_x)), int(round(centroid_y))),
+            "angle_mod90": ang % 90,
+            "angle_raw": ang,
+            "width": rw,
+            "height": rh,
+            "aspect": round(aspect, 3),
+            "confidence": round(conf, 3),
+            "mask_points": len(mask_xy),
+        }
+
     return None

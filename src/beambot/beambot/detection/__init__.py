@@ -10,7 +10,7 @@ from beambot.detection.algorithms import (
     get_3d_position,
     get_3d_position_averaged,
 )
-from beambot.detection.spincoater import detect_spincoater_pocket
+from beambot.detection.spincoater import detect_spincoater_pocket, detect_spincoater_sample
 from beambot.detection.yolo_detector import (
     YoloDetector,
     YoloDetectionParams,
@@ -21,6 +21,7 @@ __all__ = [
     "SampleRoiDetectionParams",
     "detect_sample_in_roi",
     "detect_spincoater_pocket",
+    "detect_spincoater_sample",
     "get_3d_position",
     "get_3d_position_averaged",
     "YoloDetector",
