@@ -147,7 +147,7 @@ vision_targets:
   vial_rack:
     mode: grid
     marker_id: 25
-    scan_pose: "vial_scan"
+    scan_pose: "pipettor_scan"   # TEMP: reusing pipettor_scan; vial_scan pose needs re-tuning for EX-50-35 wrist spacer
     start_gripper: "pipettor"
     grid:
       rows: 2                    # A-B
