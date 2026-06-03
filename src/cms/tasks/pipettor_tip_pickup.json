@@ -1,0 +1,52 @@
+{
+  "start_gripper": "pipettor",
+  "poses": {
+    "pipettor_scan": [
+      112.19,
+      -63.37,
+      -140.83,
+      -65.82,
+      -269.73,
+      -229.5
+    ]
+  },
+  "tasks": [
+    {
+      "task_type": "moveto",
+      "target": "pipettor_scan",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "vision_moveto",
+      "tag_id": 10
+    },
+    {
+      "task_type": "moveto",
+      "target": "",
+      "planning_type": "cartesian",
+      "direction": "forward",
+      "distance": 0.050
+    },
+    {
+      "task_type": "moveto",
+      "target": "",
+      "planning_type": "cartesian",
+      "direction": "up",
+      "distance": 0.058
+    },
+    {
+      "task_type": "moveto",
+      "target": "",
+      "planning_type": "cartesian",
+      "direction": "forward",
+      "distance": 0.031
+    },
+    {
+      "task_type": "moveto",
+      "target": "",
+      "planning_type": "cartesian",
+      "direction": "backward",
+      "distance": 0.158
+    }
+  ]
+}

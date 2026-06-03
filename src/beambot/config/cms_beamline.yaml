@@ -141,8 +141,8 @@ vision_targets:
       - {direction: "forward", distance: 0.050}    # approach toward rack surface
       - column_offset                               # computed col offset
       - row_offset                                   # computed row offset
-      - {direction: "forward", distance: 0.023}    # press to seat tip
-      - {direction: "backward", distance: 0.150}   # retreat clear of rack
+      - {direction: "forward", distance: 0.031}    # press to seat tip (+8mm for EX-50-35 wrist spacer, verified 2026-06)
+      - {direction: "backward", distance: 0.158}   # retreat clear of rack (+8mm to match)
 
   vial_rack:
     mode: grid
@@ -164,8 +164,8 @@ vision_targets:
       - {direction: "backward", distance: 0.020}   # clearance before lateral moves
       - column_offset                               # computed col offset
       - row_offset                                   # computed row offset
-      - {direction: "forward", distance: 0.065}    # insert into vial
-      - {direction: "backward", distance: 0.065}   # retreat from vial
+      - {direction: "forward", distance: 0.073}    # insert into vial (+8mm for EX-50-35 wrist spacer, verified 2026-06)
+      - {direction: "backward", distance: 0.073}   # retreat from vial (+8mm to match)
 
   sample:
     mode: offset
