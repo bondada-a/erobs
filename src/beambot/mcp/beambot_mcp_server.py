@@ -1412,7 +1412,7 @@ async def detect_sample(
     tag_id: int = -1,
     camera: str = "zivid",
     strategy: str = "farthest_edge",
-    edge_inset_mm: float = 4.0,
+    edge_inset_mm: float = 6.5,
     roi_center_px: list = None,
     roi_size_px: list = None,
     save_path: str = "/tmp/sample_detection.jpg",
@@ -1432,7 +1432,7 @@ async def detect_sample(
         camera: Camera to use ("zivid" or "zed"). Default "zivid".
         strategy: Where to grip — "center", "farthest_edge" (default),
             "nearest_edge", "farthest_corner", "nearest_corner".
-        edge_inset_mm: How far inward from edge toward center (mm). Default 4.0.
+        edge_inset_mm: How far inward from edge toward center (mm). Default 6.5.
         roi_center_px: [x, y] pixel center for fixed ROI mode. Required when tag_id=-1.
         roi_size_px: [width, height] in pixels for fixed ROI mode. Default [200, 200].
         save_path: Where to save annotated detection image.

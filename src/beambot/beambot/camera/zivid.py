@@ -371,7 +371,7 @@ def detect_sample_roi(
     node: Node,
     tag_id: int,
     strategy: str = "farthest_edge",
-    edge_inset_mm: float = 4.0,
+    edge_inset_mm: float = 6.5,
     dictionary: str = "aruco4x4_50",
     timeout: float = 45.0,
     params: SampleRoiDetectionParams | None = None,

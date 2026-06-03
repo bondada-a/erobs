@@ -135,6 +135,16 @@ _EXECUTE_QUEUE = {
     "input_schema": {"type": "object", "properties": {}},
 }
 
+_GET_CURRENT_TASKS = {
+    "name": "get_current_tasks",
+    "description": (
+        "Read the GUI's current task queue. Returns the full task sequence "
+        "as JSON including start_gripper and all step objects. Use this to "
+        "inspect what's loaded before making modifications via propose_tasks."
+    ),
+    "input_schema": {"type": "object", "properties": {}},
+}
+
 
 # MCP tool names from ros-mcp-server that mutate robot state. These are
 # the ones we filter out in both Plan and Run modes — execution flows
@@ -155,9 +165,9 @@ _MUTATING_ROS_MCP_TOOLS = frozenset(
 def local_tools_for(mode: str) -> List[dict]:
     """Return the local tool schemas the agent should see in this mode."""
     if mode == "plan":
-        return [_PROPOSE_TASKS, _CLEAR_PROPOSED_TASKS]
+        return [_PROPOSE_TASKS, _CLEAR_PROPOSED_TASKS, _GET_CURRENT_TASKS]
     if mode == "run":
-        return [_PROPOSE_TASKS, _CLEAR_PROPOSED_TASKS, _EXECUTE_QUEUE]
+        return [_PROPOSE_TASKS, _CLEAR_PROPOSED_TASKS, _EXECUTE_QUEUE, _GET_CURRENT_TASKS]
     raise ValueError(f"Unknown mode: {mode!r}")
 
 

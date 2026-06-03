@@ -389,7 +389,7 @@ class VisionStages(BaseStages):
         # Route to appropriate detection method
         if detection_type == self.DETECTION_SAMPLE_ROI:
             strategy = getattr(goal, 'strategy', '') or 'farthest_edge'
-            edge_inset_mm = getattr(goal, 'edge_inset_mm', 0.0) or 4.0
+            edge_inset_mm = getattr(goal, 'edge_inset_mm', 0.0) or 6.5
             self.logger.info(
                 f"Using sample_roi detection (tag {goal.tag_id}, "
                 f"strategy={strategy}, inset={edge_inset_mm}mm)"
@@ -622,7 +622,7 @@ class VisionStages(BaseStages):
         self,
         tag_id: int,
         strategy: str = "farthest_edge",
-        edge_inset_mm: float = 4.0,
+        edge_inset_mm: float = 6.5,
         timeout: float = 45.0,
     ) -> PoseStamped | None:
         """Detect a sample in an ROI anchored to an ArUco tag.

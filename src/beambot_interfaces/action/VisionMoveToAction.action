@@ -21,7 +21,7 @@ string ik_frame             # IK frame override (e.g. "pipette_tip_link", "epick
 string strategy             # Pickup strategy for sample_roi: "center", "farthest_edge" (default),
                             # "nearest_edge", "farthest_corner", "nearest_corner".
                             # Only used when detection_type="sample_roi".
-float64 edge_inset_mm       # Distance inward from edge toward center (mm). Default: 4.0.
+float64 edge_inset_mm       # Distance inward from edge toward center (mm). Default: 6.5.
                             # Only used when detection_type="sample_roi".
 ---
 # Result

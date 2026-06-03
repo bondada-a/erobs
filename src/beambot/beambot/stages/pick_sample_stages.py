@@ -117,7 +117,7 @@ class PickSampleStages(BaseStages):
         detection_type = goal.detection_type or "marker"
         if detection_type == "sample_roi":
             strategy = getattr(goal, 'strategy', '') or 'farthest_edge'
-            edge_inset_mm = getattr(goal, 'edge_inset_mm', 0.0) or 4.0
+            edge_inset_mm = getattr(goal, 'edge_inset_mm', 0.0) or 6.5
             target_pose = self._vision.detect_and_transform_sample_roi(
                 tag_id=goal.tag_id,
                 strategy=strategy,

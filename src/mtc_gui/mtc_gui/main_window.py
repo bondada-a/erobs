@@ -118,6 +118,8 @@ def _build_task_defaults(beamline_config: dict) -> dict:
             "marker_dictionary": default_marker_dict,
         },
         "pipettor": {"task_type": "pipettor", "operation": "SUCK", "volume_pct": 0.5},
+        "pickup_tip": {"task_type": "pickup_tip", "row": 0, "col": 0},
+        "pickup_vial": {"task_type": "pickup_vial", "row": 0, "col": 0},
     }
 
 
@@ -169,6 +171,14 @@ def task_summary(step):
             c = step.get("led_color", {})
             return f"LED ({c.get('r', 0):.1f},{c.get('g', 0):.1f},{c.get('b', 0):.1f})"
         return op
+    elif t == "pickup_tip":
+        pos = step.get("position", f"{chr(65 + step.get('row', 0))}{step.get('col', 0) + 1}")
+        return f"Tip @ {pos}"
+    elif t == "pickup_vial":
+        pos = step.get("position", f"{chr(65 + step.get('row', 0))}{step.get('col', 0) + 1}")
+        op = step.get("pipettor_operation", "")
+        suffix = f" → {op} {step.get('volume_pct', 0) * 100:.0f}%" if op else ""
+        return f"Vial @ {pos}{suffix}"
     return t
 
 
@@ -357,6 +367,8 @@ class MTCMainWindow(QMainWindow):
             ("Vision MoveTo", "vision_moveto"),
             ("Vision Scan", "vision_scan"),
             ("Pipettor", "pipettor"),
+            ("Pickup Tip", "pickup_tip"),
+            ("Vial Rack", "pickup_vial"),
         ]
         item_height = 32
         for label, task_type in palette_items:
@@ -620,6 +632,7 @@ class MTCMainWindow(QMainWindow):
         )
 
         # Auto-connect agent on startup
+        self.agent_bridge.set_config_getter(lambda: self.config)
         self.agent_bridge.connect_agent()
 
     # --- Task Management ---
@@ -810,6 +823,114 @@ class MTCMainWindow(QMainWindow):
     # an immediate, friendly message instead of a goal rejection.
     _DRY_RUN_SUPPORTED = {"moveto", "end_effector"}
 
+    def _expand_vision_target_steps(self, tasks: list) -> list:
+        """Expand compact pickup_tip/pickup_vial steps into primitive orchestrator steps."""
+        from beambot.config_loader import load_beamline_config
+
+        expanded = []
+        for step in tasks:
+            tt = step.get("task_type", "")
+            if tt not in ("pickup_tip", "pickup_vial"):
+                expanded.append(step)
+                continue
+
+            target_name = "tip_rack" if tt == "pickup_tip" else "vial_rack"
+            try:
+                config, _ = load_beamline_config()
+                targets = config.get("vision_targets", {})
+                cfg = targets.get(target_name, {})
+            except Exception:
+                expanded.append(step)
+                continue
+
+            if not cfg:
+                expanded.append(step)
+                continue
+
+            grid_cfg = cfg.get("grid", {})
+            default_pitch = grid_cfg.get("pitch", 0.009)
+            col_pitch = grid_cfg.get("col_pitch", default_pitch)
+            row_pitch = grid_cfg.get("row_pitch", default_pitch)
+            col_dir_a1 = grid_cfg.get("col_direction", "left")
+            row_dir_a1 = grid_cfg.get("row_direction", "up")
+            opposites = {"left": "right", "right": "left", "up": "down",
+                         "down": "up", "forward": "backward", "backward": "forward"}
+            col_dir_away = opposites.get(col_dir_a1, "right")
+            row_dir_away = opposites.get(row_dir_a1, "down")
+            col_increasing = grid_cfg.get("col_increasing", col_dir_away)
+            row_increasing = grid_cfg.get("row_increasing", row_dir_away)
+
+            marker_offset = cfg.get("marker_offset", {})
+            a1_col_offset = grid_cfg.get("col_offset", abs(marker_offset.get("x", 0.0)))
+            a1_row_offset = grid_cfg.get("row_offset", abs(marker_offset.get("y", 0.0)))
+
+            row = int(step.get("row", 0))
+            col = int(step.get("col", 0))
+
+            if col_increasing == col_dir_a1:
+                col_offset = a1_col_offset + col * col_pitch
+            else:
+                col_offset = a1_col_offset - col * col_pitch
+
+            if row_increasing == row_dir_a1:
+                row_offset = a1_row_offset + row * row_pitch
+            else:
+                row_offset = a1_row_offset - row * row_pitch
+
+            col_dir = col_dir_a1 if col_offset >= 0 else col_dir_away
+            col_dist = abs(col_offset)
+            row_dir = row_dir_a1 if row_offset >= 0 else row_dir_away
+            row_dist = abs(row_offset)
+
+            marker_id = cfg.get("marker_id", 0)
+            scan_pose = cfg.get("scan_pose", "")
+
+            # Move to scan position
+            if scan_pose:
+                expanded.append({"task_type": "moveto", "target": scan_pose})
+
+            # Vision alignment
+            expanded.append({"task_type": "vision_moveto", "tag_id": marker_id})
+
+            # Sequential moves from config
+            for move in cfg.get("moves", []):
+                if move == "column_offset":
+                    if col_dist > 1e-6:
+                        expanded.append({
+                            "task_type": "moveto", "target": "",
+                            "planning_type": "cartesian",
+                            "direction": col_dir,
+                            "distance": round(col_dist, 6),
+                        })
+                elif move == "row_offset":
+                    if row_dist > 1e-6:
+                        expanded.append({
+                            "task_type": "moveto", "target": "",
+                            "planning_type": "cartesian",
+                            "direction": row_dir,
+                            "distance": round(row_dist, 6),
+                        })
+                elif isinstance(move, dict) and "direction" in move:
+                    expanded.append({
+                        "task_type": "moveto", "target": "",
+                        "planning_type": "cartesian",
+                        "direction": move["direction"],
+                        "distance": float(move["distance"]),
+                    })
+
+            # For vial: optional pipettor operation after insertion (before retreat)
+            if tt == "pickup_vial" and step.get("pipettor_operation"):
+                # Insert the pipettor step before the last move (retreat)
+                retreat = expanded.pop()
+                expanded.append({
+                    "task_type": "pipettor",
+                    "operation": step["pipettor_operation"],
+                    "volume_pct": float(step.get("volume_pct", 0.5)),
+                })
+                expanded.append(retreat)
+
+        return expanded
+
     def _execute(self):
         if not self.config["tasks"]:
             QMessageBox.warning(self, "Warning", "No tasks defined")
@@ -842,7 +963,12 @@ class MTCMainWindow(QMainWindow):
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(True)
         self.step_list.start_execution(len(self.config["tasks"]))
-        self.ros2.execute_task(json.dumps(self.config), dry_run=dry_run)
+
+        # Expand compact macro steps before sending to orchestrator
+        import copy
+        exec_config = copy.deepcopy(self.config)
+        exec_config["tasks"] = self._expand_vision_target_steps(exec_config["tasks"])
+        self.ros2.execute_task(json.dumps(exec_config), dry_run=dry_run)
 
     def _on_feedback(self, progress, step, action, gripper, msg):
         self.progress_bar.setValue(int(progress))

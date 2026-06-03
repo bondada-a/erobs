@@ -125,7 +125,7 @@ def detect_sample_in_roi(
     marker_corners: np.ndarray,
     px_per_mm: float,
     strategy: str = "farthest_edge",
-    edge_inset_mm: float = 4.0,
+    edge_inset_mm: float = 6.5,
     params: SampleRoiDetectionParams | None = None,
 ) -> dict[str, Any] | None:
     """Detect a sample contour in a fixed ROI relative to an ArUco marker.

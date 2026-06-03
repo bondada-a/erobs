@@ -36,6 +36,8 @@ TASK_TYPE_CONFIG = {
     "end_effector": {"icon": "✦", "color": "#a0a0a0", "title": "End Effector"},
     "vision_moveto": {"icon": "◉", "color": "#5ce68a", "title": "Vision MoveTo"},
     "pipettor": {"icon": "⬍", "color": "#b05ce6", "title": "Pipettor"},
+    "pickup_tip": {"icon": "▼", "color": "#e6c85c", "title": "Pickup Tip"},
+    "pickup_vial": {"icon": "◈", "color": "#e6855c", "title": "Vial Rack"},
 }
 
 STATUS_CONFIG = {

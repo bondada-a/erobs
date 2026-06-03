@@ -37,8 +37,13 @@ class AgentBridge(QObject):
         self._agent = None
         self._mode = "plan"  # default; flipped by set_mode in commit 5
         self._pending_exec_future = None  # asyncio.Future awaited by execute_queue
+        self._get_config_fn = None  # callable returning current config dict
 
     # --- Public API (called from Qt main thread) ---
+
+    def set_config_getter(self, fn):
+        """Register a callable that returns the current GUI config dict."""
+        self._get_config_fn = fn
 
     def connect_agent(self):
         """Spawn background event loop thread and connect the agent."""
@@ -219,6 +224,15 @@ class AgentBridge(QObject):
             if name == "clear_proposed_tasks":
                 self.tasks_cleared.emit()
                 return "Task queue cleared."
+
+            if name == "get_current_tasks":
+                if not self._get_config_fn:
+                    return "Error: config getter not registered"
+                config = self._get_config_fn()
+                return json.dumps({
+                    "start_gripper": config.get("start_gripper", ""),
+                    "tasks": config.get("tasks", []),
+                }, indent=2)
 
             if name == "execute_queue":
                 if self._mode != "run":

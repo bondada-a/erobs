@@ -6,8 +6,10 @@ from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QDialogButtonBox, QScrollArea,
     QWidget, QLabel, QLineEdit, QComboBox, QCheckBox, QDoubleSpinBox,
     QSpinBox, QGroupBox, QHBoxLayout, QTextEdit, QSlider, QMessageBox,
+    QGridLayout, QPushButton, QSizePolicy,
 )
 from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 
 
 # --- Beamline-driven enumerations -----------------------------------------
@@ -57,6 +59,17 @@ def _end_effector_actions() -> list[str]:
         return actions
     except Exception:
         return []
+
+
+def _vision_target_grid(target_name: str) -> dict:
+    """Load grid config for a vision target (rows, cols)."""
+    try:
+        from beambot.config_loader import load_beamline_config
+        config, _ = load_beamline_config()
+        targets = config.get("vision_targets", {})
+        return targets.get(target_name, {}).get("grid", {})
+    except Exception:
+        return {}
 
 
 # --- Dispatch ---
@@ -571,6 +584,146 @@ class PipettorForm(BaseTaskForm):
         }
 
 
+class _GridSelectorForm(BaseTaskForm):
+    """Base form with a clickable grid for selecting A1, A2, B1, etc."""
+
+    TARGET_NAME = ""  # Override in subclasses
+
+    def build_form(self):
+        grid_cfg = _vision_target_grid(self.TARGET_NAME)
+        self._rows = grid_cfg.get("rows", 1)
+        self._cols = grid_cfg.get("cols", 1)
+
+        self.add_hint(f"Select a position on the {self._rows}×{self._cols} grid.")
+
+        # Grid of buttons
+        grid_group = QGroupBox("Position")
+        grid_layout = QGridLayout(grid_group)
+        grid_layout.setSpacing(2)
+
+        self._grid_buttons: dict[tuple[int, int], QPushButton] = {}
+        self._selected_row = int(self.step.get("row", 0))
+        self._selected_col = int(self.step.get("col", 0))
+
+        # Column headers (1, 2, 3, ...)
+        for c in range(self._cols):
+            lbl = QLabel(str(c + 1))
+            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            lbl.setFont(QFont("Monospace", 8))
+            lbl.setStyleSheet("color: #888;")
+            grid_layout.addWidget(lbl, 0, c + 1)
+
+        # Row headers (A, B, C, ...) and buttons
+        for r in range(self._rows):
+            row_lbl = QLabel(chr(ord("A") + r))
+            row_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            row_lbl.setFont(QFont("Monospace", 9, QFont.Weight.Bold))
+            row_lbl.setStyleSheet("color: #aaa;")
+            grid_layout.addWidget(row_lbl, r + 1, 0)
+
+            for c in range(self._cols):
+                btn = QPushButton(f"{chr(ord('A') + r)}{c + 1}")
+                btn.setFixedSize(36, 28)
+                btn.setFont(QFont("Monospace", 8))
+                btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+                btn.setCheckable(True)
+                btn.clicked.connect(lambda checked, row=r, col=c: self._select_cell(row, col))
+                grid_layout.addWidget(btn, r + 1, c + 1)
+                self._grid_buttons[(r, c)] = btn
+
+        self.form.addRow(grid_group)
+
+        # Highlight initial selection
+        self._update_selection()
+
+        # Show selected label
+        self._sel_label = QLabel(self._cell_name(self._selected_row, self._selected_col))
+        self._sel_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #5ce68a;")
+        self.form.addRow("Selected:", self._sel_label)
+
+    def _cell_name(self, row, col):
+        return f"{chr(ord('A') + row)}{col + 1}"
+
+    def _select_cell(self, row, col):
+        self._selected_row = row
+        self._selected_col = col
+        self._update_selection()
+        self._sel_label.setText(self._cell_name(row, col))
+
+    def _update_selection(self):
+        for (r, c), btn in self._grid_buttons.items():
+            if r == self._selected_row and c == self._selected_col:
+                btn.setChecked(True)
+                btn.setStyleSheet(
+                    "background-color: #2a6b3a; color: white; border: 1px solid #5ce68a;"
+                )
+            else:
+                btn.setChecked(False)
+                btn.setStyleSheet("")
+
+    def collect_values(self):
+        return {
+            **self.step,
+            "row": self._selected_row,
+            "col": self._selected_col,
+            "position": self._cell_name(self._selected_row, self._selected_col),
+        }
+
+
+class PickupTipForm(_GridSelectorForm):
+    TITLE = "Pickup Tip"
+    TARGET_NAME = "tip_rack"
+
+    def build_form(self):
+        super().build_form()
+        self.add_hint("Tip rack: 8 rows (A-H) × 12 columns (1-12). "
+                      "Uses vision to align with marker, then moves to selected position.")
+
+
+class PickupVialForm(_GridSelectorForm):
+    TITLE = "Vial Rack"
+    TARGET_NAME = "vial_rack"
+
+    def build_form(self):
+        super().build_form()
+
+        # Pipettor operation after reaching vial
+        op_group = QGroupBox("Pipettor Operation (optional)")
+        op_layout = QFormLayout(op_group)
+
+        self._vial_operation = QComboBox()
+        self._vial_operation.addItems(["None", "SUCK", "EXPEL"])
+        self._vial_operation.setCurrentText(self.step.get("pipettor_operation", "None"))
+        op_layout.addRow("Operation:", self._vial_operation)
+
+        self._vial_volume = QDoubleSpinBox()
+        self._vial_volume.setRange(0.0, 1.0)
+        self._vial_volume.setDecimals(2)
+        self._vial_volume.setSingleStep(0.05)
+        self._vial_volume.setValue(float(self.step.get("volume_pct", 0.5)))
+        op_layout.addRow("Volume %:", self._vial_volume)
+
+        def _toggle_volume(text):
+            self._vial_volume.setEnabled(text != "None")
+        self._vial_operation.currentTextChanged.connect(_toggle_volume)
+        _toggle_volume(self._vial_operation.currentText())
+
+        self.form.addRow(op_group)
+        self.add_hint("Vial rack: 2 rows (A-B) × 5 columns (1-5). "
+                      "Select SUCK to aspirate or EXPEL to dispense after insertion.")
+
+    def collect_values(self):
+        s = super().collect_values()
+        op = self._vial_operation.currentText()
+        if op != "None":
+            s["pipettor_operation"] = op
+            s["volume_pct"] = self._vial_volume.value()
+        else:
+            s.pop("pipettor_operation", None)
+            s.pop("volume_pct", None)
+        return s
+
+
 # --- Form dispatch map ---
 
 _FORMS = {
@@ -582,4 +735,6 @@ _FORMS = {
     "end_effector": EndEffectorForm,
     "vision_moveto": VisionMoveToForm,
     "pipettor": PipettorForm,
+    "pickup_tip": PickupTipForm,
+    "pickup_vial": PickupVialForm,
 }

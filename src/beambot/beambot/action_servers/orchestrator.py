@@ -1111,7 +1111,8 @@ class MTCOrchestratorServer(Node):
             for key in task.get("scan_positions", []):
                 if key not in poses:
                     pose_keys_needed.add(key)
-            for field in ("scan_pose", "approach_pose", "target_pose"):
+            for field in ("scan_pose", "approach_pose", "target_pose",
+                          "place_pose", "pickup_pose"):
                 val = task.get(field)
                 if val and val not in poses:
                     pose_keys_needed.add(val)
@@ -1165,6 +1166,8 @@ class MTCOrchestratorServer(Node):
             return self._call_pipettor(step, poses_json)
         elif task_type == "place_spincoater":
             return self._call_place_spincoater(step, poses_json)
+        elif task_type == "pick_spincoater":
+            return self._call_pick_spincoater(step, poses_json)
         else:
             self._last_error = f"Unknown task type: '{task_type}'"
             self.get_logger().error(self._last_error)
@@ -1769,6 +1772,139 @@ class MTCOrchestratorServer(Node):
                 return False
 
         self.get_logger().info("place_spincoater: placement complete")
+        return True
+
+    def _call_pick_spincoater(self, step: dict[str, Any], poses_json: str) -> bool:
+        """Pick a sample from the spincoater with vision-guided orientation.
+
+        Sequence:
+          1. Move to scan pose (framing the chuck for 2D capture)
+          2. Capture 2D image, detect sample angle via YOLO segmentation
+          3. Compute corrected joint 6 = pickup_pose[5] + detected_angle + k_offset
+          4. Rotate wrist at scan pose (planning is reliable there)
+          5. Move to pickup pose with corrected joint 6 (with Z clearance)
+          6. Move forward to contact the sample
+          7. Activate vacuum
+          8. Retreat to scan pose
+
+        Task JSON fields:
+          scan_pose: str — pose key for the scan position (default "spincoater_scan")
+          pickup_pose: str — pose key for the pickup position (default "spincoater_place")
+          forward_distance: float — distance in meters to move forward (default 0.003)
+          k_offset: float — calibration constant in degrees (default 0.0)
+        """
+        from beambot.camera.zivid import capture_2d
+        from beambot.detection import detect_spincoater_sample
+
+        scan_pose_key = step.get("scan_pose", "spincoater_scan")
+        pickup_pose_key = step.get("pickup_pose", "spincoater_place")
+        forward_distance = float(step.get("forward_distance", 0.003))
+        k_offset = float(step.get("k_offset", 0.0))
+
+        # Resolve poses
+        poses = json.loads(poses_json) if poses_json else {}
+        scan_joints = poses.get(scan_pose_key)
+        pickup_joints = poses.get(pickup_pose_key)
+
+        if scan_joints is None or pickup_joints is None:
+            self._last_error = (
+                f"pick_spincoater: missing pose '{scan_pose_key}' or "
+                f"'{pickup_pose_key}' in poses"
+            )
+            self.get_logger().error(self._last_error)
+            return False
+
+        # Step 1: Move to scan pose
+        self.get_logger().info(f"pick_spincoater: moving to scan pose '{scan_pose_key}'")
+        scan_step = {"target": scan_pose_key, "planning_type": "joint"}
+        if not self._call_moveto(scan_step, poses_json):
+            self._last_error = "pick_spincoater: failed to reach scan pose"
+            return False
+
+        # Step 2: 2D capture + sample detection
+        self.get_logger().info("pick_spincoater: capturing 2D image...")
+        time.sleep(1.0)
+        image = capture_2d(self, timeout=15.0)
+        if image is None:
+            self._last_error = "pick_spincoater: 2D capture failed"
+            self.get_logger().error(self._last_error)
+            return False
+
+        detection = detect_spincoater_sample(image)
+        if detection is None:
+            self._last_error = "pick_spincoater: sample detection failed"
+            self.get_logger().error(self._last_error)
+            return False
+
+        sample_angle = detection["angle_mod90"]
+        self.get_logger().info(
+            f"pick_spincoater: sample detected — angle_mod90={sample_angle:.1f}°, "
+            f"confidence={detection['confidence']:.2f}, center={detection['center_px']}"
+        )
+
+        # Step 3: Compute corrected joint 6
+        base_j6 = pickup_joints[5]
+        raw_correction = sample_angle + k_offset
+        correction = raw_correction % 90
+        if correction > 45:
+            correction -= 90
+        corrected_j6 = base_j6 + correction
+
+        self.get_logger().info(
+            f"pick_spincoater: j6 correction — base={base_j6:.1f}°, "
+            f"sample={sample_angle:.1f}°, k={k_offset:.1f}°, "
+            f"correction={correction:.1f}°, target_j6={corrected_j6:.1f}°"
+        )
+
+        # Step 4: Rotate wrist at scan pose first (planning reliable there)
+        rotated_scan = list(scan_joints)
+        rotated_scan[5] = corrected_j6
+        rotate_pose_name = "_spincoater_scan_rotated"
+        poses[rotate_pose_name] = rotated_scan
+        corrected_poses_json = json.dumps(poses)
+
+        rotate_step = {"target": rotate_pose_name, "planning_type": "joint"}
+        if not self._call_moveto(rotate_step, corrected_poses_json):
+            self._last_error = "pick_spincoater: failed to rotate wrist at scan pose"
+            return False
+
+        # Step 5: Move to pickup position with corrected j6
+        corrected_pickup = list(pickup_joints)
+        corrected_pickup[5] = corrected_j6
+        pickup_pose_name = "_spincoater_pick_corrected"
+        poses[pickup_pose_name] = corrected_pickup
+        corrected_poses_json = json.dumps(poses)
+
+        pickup_step = {"target": pickup_pose_name, "planning_type": "joint"}
+        if not self._call_moveto(pickup_step, corrected_poses_json):
+            self._last_error = "pick_spincoater: failed to reach pickup pose"
+            return False
+
+        # Step 6: Move forward to contact
+        if forward_distance > 0:
+            self.get_logger().info(
+                f"pick_spincoater: moving forward {forward_distance*1000:.1f}mm"
+            )
+            fwd_step = {"target": "", "direction": "forward", "distance": forward_distance}
+            if not self._call_moveto(fwd_step, corrected_poses_json):
+                self._last_error = "pick_spincoater: forward move failed"
+                return False
+
+        # Step 7: Activate vacuum
+        self.get_logger().info("pick_spincoater: activating vacuum")
+        grasp_step = {"end_effector_action": "vacuum_on"}
+        if not self._call_endeffector(grasp_step, corrected_poses_json):
+            self._last_error = "pick_spincoater: vacuum activation failed"
+            return False
+
+        # Step 8: Retreat to scan pose
+        self.get_logger().info("pick_spincoater: retreating to scan pose")
+        retreat_step = {"target": scan_pose_key, "planning_type": "joint"}
+        if not self._call_moveto(retreat_step, poses_json):
+            self._last_error = "pick_spincoater: retreat failed"
+            return False
+
+        self.get_logger().info("pick_spincoater: pickup complete")
         return True
 
     def _update_feedback(
