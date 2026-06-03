@@ -17,6 +17,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from sensor_msgs.msg import Image, PointCloud2
 
+from std_srvs.srv import Trigger
 from zivid_interfaces.srv import CaptureAndDetectMarkers
 
 import numpy as np
@@ -42,10 +43,79 @@ def _wait_for_future(future, timeout: float, poll_interval: float = 0.01) -> boo
 
 # Zivid service endpoint
 SERVICE_NAME = "/capture_and_detect_markers"
+CAPTURE_2D_SERVICE = "/capture_2d"
 
 # Topic names for image and point cloud
 IMAGE_TOPIC = "/color/image_color"
 CLOUD_TOPIC = "/points/xyzrgba"
+
+# QoS for Zivid topics (volatile, reliable — matches publisher)
+_ZIVID_QOS = QoSProfile(
+    reliability=ReliabilityPolicy.RELIABLE,
+    history=HistoryPolicy.KEEP_LAST,
+    depth=1,
+    durability=DurabilityPolicy.VOLATILE,
+)
+
+
+def capture_2d(node: Node, timeout: float = 15.0) -> np.ndarray | None:
+    """Trigger a 2D flash-lit capture and return the BGR image.
+
+    Uses /capture_2d (no projector, camera LED flash only). This produces
+    a color image suitable for color-based detection (e.g., spincoater
+    pocket detection) without the structured-light glare of 3D captures.
+
+    Args:
+        node: ROS2 node for service calls and subscriptions.
+        timeout: Maximum time to wait for the image (seconds).
+
+    Returns:
+        BGR numpy array, or None on failure.
+    """
+    bridge = CvBridge()
+    received: list[Image | None] = [None]
+
+    def on_image(msg: Image):
+        received[0] = msg
+
+    sub = node.create_subscription(Image, IMAGE_TOPIC, on_image, _ZIVID_QOS)
+    client = node.create_client(Trigger, CAPTURE_2D_SERVICE)
+
+    try:
+        if not client.wait_for_service(timeout_sec=2.0):
+            node.get_logger().error(
+                f"Service '{CAPTURE_2D_SERVICE}' not available"
+            )
+            return None
+
+        # Clear stale image
+        time.sleep(0.3)
+        received[0] = None
+
+        future = client.call_async(Trigger.Request())
+        if not _wait_for_future(future, timeout):
+            node.get_logger().error("2D capture service timed out")
+            return None
+
+        result = future.result()
+        if not result.success:
+            node.get_logger().warning(f"2D capture failed: {result.message}")
+            return None
+
+        # Wait for image on topic
+        deadline = time.monotonic() + timeout
+        while received[0] is None and time.monotonic() < deadline:
+            time.sleep(0.05)
+
+        if received[0] is None:
+            node.get_logger().error("No image received after 2D capture")
+            return None
+
+        return bridge.imgmsg_to_cv2(received[0], desired_encoding="bgr8")
+
+    finally:
+        node.destroy_subscription(sub)
+        node.destroy_client(client)
 
 
 def create_client(node: Node):
@@ -161,14 +231,6 @@ def detect_markers(
 # ============================================================================
 # Shared Capture Helper
 # ============================================================================
-
-# Match Zivid's default QoS: RELIABLE, VOLATILE, KEEP_LAST
-_ZIVID_QOS = QoSProfile(
-    reliability=ReliabilityPolicy.RELIABLE,
-    durability=DurabilityPolicy.VOLATILE,
-    history=HistoryPolicy.KEEP_LAST,
-    depth=1,
-)
 
 
 def _capture_image_and_cloud(

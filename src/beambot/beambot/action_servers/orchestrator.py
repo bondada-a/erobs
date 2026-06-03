@@ -1163,6 +1163,8 @@ class MTCOrchestratorServer(Node):
             return self._call_place_sample(step, poses_json)
         elif task_type == "pipettor":
             return self._call_pipettor(step, poses_json)
+        elif task_type == "place_spincoater":
+            return self._call_place_spincoater(step, poses_json)
         else:
             self._last_error = f"Unknown task type: '{task_type}'"
             self.get_logger().error(self._last_error)
@@ -1651,6 +1653,123 @@ class MTCOrchestratorServer(Node):
         return self._send_and_wait(
             self._pipettor_client, goal, "pipettor", self._timeouts["pipettor"]
         )
+
+    def _call_place_spincoater(self, step: dict[str, Any], poses_json: str) -> bool:
+        """Place a sample on the spincoater with vision-guided orientation.
+
+        Sequence:
+          1. Move to scan pose (framing the chuck centered for flash-lit 2D capture)
+          2. Capture 2D image, detect pocket angle via red-field negative-space method
+          3. Compute corrected joint 6 = place_pose[5] + detected_angle + k_offset
+          4. Move to placement pose with corrected joint 6 (with Z clearance)
+          5. Move forward to contact the surface
+          6. Release vacuum
+
+        Task JSON fields:
+          scan_pose: str — pose key for the scan position (default "spincoater_scan")
+          place_pose: str — pose key for the placement position (default "spincoater_place")
+          forward_distance: float — distance in meters to move forward after positioning
+                                    (default 0.003 = 3mm)
+          k_offset: float — calibration constant in degrees (default 0.0)
+          release: bool — whether to release vacuum after placement (default true)
+        """
+        from beambot.camera.zivid import capture_2d
+        from beambot.detection import detect_spincoater_pocket
+
+        scan_pose_key = step.get("scan_pose", "spincoater_scan")
+        place_pose_key = step.get("place_pose", "spincoater_place")
+        forward_distance = float(step.get("forward_distance", 0.003))
+        k_offset = float(step.get("k_offset", 0.0))
+        release = step.get("release", True)
+
+        # Resolve poses
+        poses = json.loads(poses_json) if poses_json else {}
+        scan_joints = poses.get(scan_pose_key)
+        place_joints = poses.get(place_pose_key)
+
+        if scan_joints is None or place_joints is None:
+            self._last_error = (
+                f"place_spincoater: missing pose '{scan_pose_key}' or "
+                f"'{place_pose_key}' in poses"
+            )
+            self.get_logger().error(self._last_error)
+            return False
+
+        # Step 1: Move to scan pose
+        self.get_logger().info(f"place_spincoater: moving to scan pose '{scan_pose_key}'")
+        scan_step = {"target": scan_pose_key, "planning_type": "joint"}
+        if not self._call_moveto(scan_step, poses_json):
+            self._last_error = "place_spincoater: failed to reach scan pose"
+            return False
+
+        # Step 2: 2D capture + pocket detection
+        self.get_logger().info("place_spincoater: capturing 2D image...")
+        time.sleep(1.0)  # settle time
+        image = capture_2d(self, timeout=15.0)
+        if image is None:
+            self._last_error = "place_spincoater: 2D capture failed"
+            self.get_logger().error(self._last_error)
+            return False
+
+        detection = detect_spincoater_pocket(image)
+        if detection is None:
+            self._last_error = "place_spincoater: pocket detection failed"
+            self.get_logger().error(self._last_error)
+            return False
+
+        pocket_angle = detection["angle_mod90"]
+        self.get_logger().info(
+            f"place_spincoater: pocket detected — angle_mod90={pocket_angle:.1f}°, "
+            f"aspect={detection['aspect']:.2f}, solidity={detection['solidity']:.2f}"
+        )
+
+        # Step 3: Compute corrected joint 6
+        base_j6 = place_joints[5]
+        raw_correction = pocket_angle + k_offset
+        # Snap to nearest ±45° (4-fold symmetry)
+        correction = raw_correction % 90
+        if correction > 45:
+            correction -= 90
+        corrected_j6 = base_j6 + correction
+
+        self.get_logger().info(
+            f"place_spincoater: j6 correction — base={base_j6:.1f}°, "
+            f"pocket={pocket_angle:.1f}°, k={k_offset:.1f}°, "
+            f"correction={correction:.1f}°, target_j6={corrected_j6:.1f}°"
+        )
+
+        # Step 4: Move to placement pose with corrected j6
+        corrected_place = list(place_joints)
+        corrected_place[5] = corrected_j6
+        place_pose_name = "_spincoater_place_corrected"
+        poses[place_pose_name] = corrected_place
+        corrected_poses_json = json.dumps(poses)
+
+        place_step = {"target": place_pose_name, "planning_type": "joint"}
+        if not self._call_moveto(place_step, corrected_poses_json):
+            self._last_error = "place_spincoater: failed to reach placement pose"
+            return False
+
+        # Step 5: Move forward to contact
+        if forward_distance > 0:
+            self.get_logger().info(
+                f"place_spincoater: moving forward {forward_distance*1000:.1f}mm"
+            )
+            fwd_step = {"target": "", "direction": "forward", "distance": forward_distance}
+            if not self._call_moveto(fwd_step, corrected_poses_json):
+                self._last_error = "place_spincoater: forward move failed"
+                return False
+
+        # Step 6: Release vacuum
+        if release:
+            self.get_logger().info("place_spincoater: releasing vacuum")
+            release_step = {"end_effector_action": "vacuum_off"}
+            if not self._call_endeffector(release_step, corrected_poses_json):
+                self._last_error = "place_spincoater: vacuum release failed"
+                return False
+
+        self.get_logger().info("place_spincoater: placement complete")
+        return True
 
     def _update_feedback(
         self,

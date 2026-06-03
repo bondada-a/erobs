@@ -326,24 +326,55 @@ step 6.5.5**, don't assume.
 
 ---
 
-## 9. What to do next (suggested order)
-1. Set the hardcoded **spincoater scan pose** to frame the chuck centered &
-   well-lit (match images `18`/`19`).
-2. Upgrade the marker to **opaque paint** (two coats); re-validate empty-pocket
-   detection (should improve aspect toward 1.0, solidity toward 0.95+).
-3. Implement the **placement detector** in `beambot.detection` (adapt
-   `code/detect_pocket.py`); return `(center_px, angle_mod90)`.
-4. Run the **K calibration** (§6.5) and the multi-angle verification.
-5. Wire the wrist-angle correction into the place sequence (top-down,
-   90°-snap, joint-limit check).
-6. THEN tackle re-pickup (Problem 2): implement the hole-in-red-field detector
-   (Q2), validate with deliberately off-nominal wafer positions.
+## 9. Implementation status
+
+### Completed (2026-06-03)
+1. ✅ Set the hardcoded **spincoater scan pose** — `spincoater_scan` in
+   `src/cms/poses.yaml`: `[69.49, -87.19, -82.31, -100.51, -269.78, -202.09]`
+2. ✅ Implemented the **placement detector** in `beambot.detection.spincoater`
+   (`detect_spincoater_pocket()`). Exported from `beambot.detection`.
+3. ✅ Added `capture_2d()` utility to `beambot.camera.zivid` — triggers
+   `/capture_2d` and returns BGR image for use by action servers.
+4. ✅ Wired the **`place_spincoater` task type** into the orchestrator
+   (`orchestrator.py:_call_place_spincoater`). Sequence: scan → detect →
+   compute j6 → move to placement → forward → vacuum_off.
+5. ✅ Added `spincoater_place` pose: `[75.50, -100.16, -86.89, -83.03, -267.98, -202.09]`
+6. ✅ Validated angle detection + wrist rotation at multiple random chuck
+   angles (K=0 works, no calibration constant needed yet).
+7. ✅ Documented in `robot_operation.md` §3.9.
+
+### Remaining
+- Upgrade marker to **opaque paint** for robustness (current coverage is marginal
+  but functional).
+- Run multi-angle verification with an actual sample (K calibration §6.5).
+- Re-pickup (Problem 2): implement the hole-in-red-field detector.
+
+### Usage
+```json
+{
+  "start_gripper": "epick",
+  "tasks": [
+    {"task_type": "pick_sample", "use_vision": true, "detection_type": "sample_roi",
+     "tag_id": 5, "scan_pose": "sample_scan_1", "strategy": "farthest_edge"},
+    {"task_type": "place_spincoater", "scan_pose": "spincoater_scan",
+     "place_pose": "spincoater_place", "forward_distance": 0.003}
+  ]
+}
+```
 
 ---
 
 ## 10. File index
 See `images/` (22 captures/overlays, numbered in session order) and `code/`
 (detection + capture scripts). Full descriptions in `IMAGES.md`.
+
+### Production code locations
+| File | What |
+|------|------|
+| `src/beambot/beambot/detection/spincoater.py` | Pocket detection algorithm |
+| `src/beambot/beambot/camera/zivid.py` | `capture_2d()` utility |
+| `src/beambot/beambot/action_servers/orchestrator.py` | `_call_place_spincoater()` |
+| `src/cms/poses.yaml` | `spincoater_scan` + `spincoater_place` poses |
 
 ## 11. Reproducing captures (robot must be running with Zivid up)
 ```bash

@@ -299,6 +299,34 @@ and the pipettor physically attached.
 - `volume_pct` — `0.0 – 1.0`.
 - `led_color.{r,g,b}` — floats `0.0 – 1.0`.
 
+### 3.9 `place_spincoater` — orientation-aware spincoater placement
+
+Places a sample into the spincoater chuck's machined pocket with automatic
+orientation alignment. Uses 2D flash-lit capture to detect the pocket's
+random rotation, then corrects the wrist angle before placing.
+
+```json
+{"task_type": "place_spincoater", "scan_pose": "spincoater_scan",
+ "place_pose": "spincoater_place", "forward_distance": 0.003, "k_offset": 0.0}
+```
+
+- `scan_pose` — pose key for 2D vision scan (default `"spincoater_scan"`).
+  Must frame the chuck centered in the camera for reliable detection.
+- `place_pose` — pose key for the placement position with Z clearance
+  (default `"spincoater_place"`). Joint 6 in this pose is the **base angle**
+  — the orchestrator adds the detected pocket rotation to it.
+- `forward_distance` — meters to move forward after positioning to contact
+  the surface (default `0.003` = 3 mm).
+- `k_offset` — calibration constant in degrees (default `0.0`). Absorbs
+  fixed offsets between the camera frame angle and the wrist angle. Adjust
+  empirically if placement is consistently off by a fixed rotation.
+- `release` — whether to turn vacuum off after placement (default `true`).
+
+Requires `start_gripper: "epick"`. The chuck must be painted red with the
+pocket left bare. Detection uses the red-field negative-space method (HSV
+dual-range mask → bright bare-metal square inside). The pocket angle is
+mod 90° (4-fold symmetric sample assumed).
+
 ---
 
 ## 4. Optional path constraints

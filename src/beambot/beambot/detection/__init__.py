@@ -1,4 +1,4 @@
-"""Shared detection algorithms for sample ROI, YOLO, and point cloud lookup.
+"""Shared detection algorithms for sample ROI, YOLO, spincoater, and point cloud lookup.
 
 Pure OpenCV + NumPy — no ROS dependencies.
 YOLO detector requires ultralytics (optional, lazy-loaded).
@@ -10,6 +10,7 @@ from beambot.detection.algorithms import (
     get_3d_position,
     get_3d_position_averaged,
 )
+from beambot.detection.spincoater import detect_spincoater_pocket
 from beambot.detection.yolo_detector import (
     YoloDetector,
     YoloDetectionParams,
@@ -19,6 +20,7 @@ from beambot.detection.yolo_detector import (
 __all__ = [
     "SampleRoiDetectionParams",
     "detect_sample_in_roi",
+    "detect_spincoater_pocket",
     "get_3d_position",
     "get_3d_position_averaged",
     "YoloDetector",
