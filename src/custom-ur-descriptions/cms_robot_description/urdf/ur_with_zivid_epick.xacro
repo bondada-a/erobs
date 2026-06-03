@@ -156,10 +156,13 @@
     xyz="0 -0.012 0"
     rpy="1.5708 0 0"/>
 
-  <!-- Epick Gripper — now mounted on the coupling far face -->
+  <!-- Epick Gripper — mounted on the coupling far face.
+       origin_rpy yaw=pi: the cylindrical coupling/spacer hid a 180 deg yaw flip
+       of epick_tip vs the validated pre-coupling frame; this restores it so the
+       IK target matches and wrist_3 doesn't swing the camera into wrist_1. -->
   <xacro:epick_overlay use_mock_hardware="$(arg use_mock_hardware)" parent="te_coupling"
                   origin_xyz="0 0 0.0099"
-                  origin_rpy="0 0 0"
+                  origin_rpy="0 0 3.14159"
                   extension_length="${cup['extension_length']}"
                   extension_radius="${cup['extension_radius']}"
                   suction_cup_height="${cup['suction_cup_height']}"

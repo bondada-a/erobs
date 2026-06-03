@@ -61,7 +61,9 @@ grippers:
     gripper_group: "epick_gripper"
     controller_name: "epick_gripper_action_controller"
     cup_profile: "3mm_dia"
-    z_offset: 0.0
+    z_offset: -0.009   # BANDAID: epick_tip modeled ~9mm too long (W-010-B coupling
+                       # over-counted). Compensates vision approaches until the URDF
+                       # coupling length is corrected. See te_coupling in ur_with_zivid_epick.xacro.
     states:
       grasp: "vacuum_on"
       release: "vacuum_off"

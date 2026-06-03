@@ -3,6 +3,7 @@
 <robot xmlns:xacro="http://www.ros.org/wiki/xacro">
     <group name="epick_gripper">
         <link name="te_toolside"/>
+        <link name="te_coupling"/>
         <link name="epick_base_link"/>
         <link name="epick_body"/>
         <link name="epick_extension"/>
@@ -20,6 +21,20 @@
     </group_state>
 
     <end_effector name="epick_gripper" parent_link="flange" group="epick_gripper"/>
+
+    <!-- Tool-changer coupling (W-010-B) collision rules -->
+    <disable_collisions link1="te_coupling" link2="te_toolside" reason="Adjacent"/>
+    <disable_collisions link1="te_coupling" link2="epick_base_link" reason="Adjacent"/>
+    <disable_collisions link1="te_coupling" link2="epick_body" reason="Adjacent"/>
+    <disable_collisions link1="te_coupling" link2="te_robotside" reason="Never"/>
+    <disable_collisions link1="te_coupling" link2="wrist_extension" reason="Never"/>
+    <disable_collisions link1="te_coupling" link2="wrist_1_link" reason="Never"/>
+    <disable_collisions link1="te_coupling" link2="wrist_2_link" reason="Never"/>
+    <disable_collisions link1="te_coupling" link2="wrist_3_link" reason="Never"/>
+    <disable_collisions link1="te_coupling" link2="zivid_arm_mount" reason="Never"/>
+    <disable_collisions link1="te_coupling" link2="zivid_base_link" reason="Never"/>
+    <disable_collisions link1="te_coupling" link2="epick_extension" reason="Never"/>
+    <disable_collisions link1="te_coupling" link2="epick_suction_cup" reason="Never"/>
 
     <!-- ePick collision rules -->
     <disable_collisions link1="epick_body" link2="epick_extension" reason="Adjacent"/>
