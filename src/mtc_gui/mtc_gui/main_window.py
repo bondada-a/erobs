@@ -376,6 +376,8 @@ class MTCMainWindow(QMainWindow):
             ("Move To", "moveto"),
             ("Pick Sample", "pick_sample"),
             ("Place Sample", "place_sample"),
+            ("Place Spincoater", "place_spincoater"),
+            ("Pick Spincoater", "pick_spincoater"),
             ("Tool Exchange", "tool_exchange"),
             ("End Effector", "end_effector"),
             ("Vision MoveTo", "vision_moveto"),
