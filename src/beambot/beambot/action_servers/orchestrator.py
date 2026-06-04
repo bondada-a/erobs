@@ -899,16 +899,16 @@ class MTCOrchestratorServer(Node):
                     self._publish_state("IDLE")
                     return result
 
-            # Check if vacuum was lost since last step (skip in dry_run — no
-            # physical execution, no chance of dropping)
-            if not dry_run:
-                vacuum_error = self._vacuum.check_lost()
-                if vacuum_error:
-                    result.error_message = f"Step {completed_tasks + 1} aborted: {vacuum_error}"
-                    result.completed_steps = completed_tasks
-                    goal_handle.abort()
-                    self._publish_state("IDLE")
-                    return result
+            # Vacuum-loss abort DISABLED — even if the ePick reports a dropped
+            # object, the sequence continues instead of aborting.
+            # if not dry_run:
+            #     vacuum_error = self._vacuum.check_lost()
+            #     if vacuum_error:
+            #         result.error_message = f"Step {completed_tasks + 1} aborted: {vacuum_error}"
+            #         result.completed_steps = completed_tasks
+            #         goal_handle.abort()
+            #         self._publish_state("IDLE")
+            #         return result
 
             # Check if MoveIt subprocess is still alive before dispatching
             if not self._moveit_manager.is_moveit_alive():
@@ -1032,16 +1032,16 @@ class MTCOrchestratorServer(Node):
 
             result.completed_steps = completed_tasks
 
-        # Final vacuum check — catch drops during the last step (skipped in
-        # dry_run, where nothing was executed)
-        if not dry_run:
-            vacuum_error = self._vacuum.check_lost()
-            if vacuum_error:
-                result.error_message = f"Final step aborted: {vacuum_error}"
-                result.completed_steps = completed_tasks
-                goal_handle.abort()
-                self._publish_state("IDLE")
-                return result
+        # Final vacuum-loss abort DISABLED — a drop during the last step no
+        # longer aborts; the sequence is reported complete regardless.
+        # if not dry_run:
+        #     vacuum_error = self._vacuum.check_lost()
+        #     if vacuum_error:
+        #         result.error_message = f"Final step aborted: {vacuum_error}"
+        #         result.completed_steps = completed_tasks
+        #         goal_handle.abort()
+        #         self._publish_state("IDLE")
+        #         return result
 
         # Success
         result.success = True
@@ -1593,13 +1593,15 @@ class MTCOrchestratorServer(Node):
 
             # Check vacuum status from result
             vacuum_ok = getattr(self._last_result, 'vacuum_ok', True)
-            if not vacuum_ok:
-                self._last_error = (
-                    "VACUUM_LOST: ePick reports NO_OBJECT_DETECTED after pick. "
-                    "Send vacuum_off then vacuum_on to retry."
-                )
-                self.get_logger().error(self._last_error)
-                return False
+            # Vacuum-loss abort DISABLED — a failed vacuum check after pick no
+            # longer returns False; the flow continues regardless.
+            # if not vacuum_ok:
+            #     self._last_error = (
+            #         "VACUUM_LOST: ePick reports NO_OBJECT_DETECTED after pick. "
+            #         "Send vacuum_off then vacuum_on to retry."
+            #     )
+            #     self.get_logger().error(self._last_error)
+            #     return False
 
             # Arm background vacuum monitor for transport (pick_sample turns
             # vacuum on internally, but VacuumMonitor only tracks end_effector

@@ -438,17 +438,56 @@ class MTCMainWindow(QMainWindow):
         )
         self.left_tabs.addTab(self.poses_panel, "Poses")
 
-        # --- RUNS tab (placeholder) ---
+        # --- RUNS tab ---
         runs_tab = QWidget()
         runs_layout = QVBoxLayout(runs_tab)
         runs_layout.setContentsMargins(6, 6, 6, 6)
-        runs_placeholder = QLabel("Run history is not implemented yet.")
-        runs_placeholder.setProperty("role", "hint")
-        runs_placeholder.setWordWrap(True)
-        runs_placeholder.setAlignment(Qt.AlignmentFlag.AlignTop)
-        runs_layout.addWidget(runs_placeholder)
-        runs_layout.addStretch(1)
+        runs_layout.setSpacing(6)
+
+        # Button row: Save + Rename + Delete + Refresh
+        runs_btn_row = QHBoxLayout()
+        self._save_run_btn = QPushButton("Save")
+        self._save_run_btn.setToolTip("Save the current task sequence as a named run")
+        self._save_run_btn.clicked.connect(self._save_run)
+        runs_btn_row.addWidget(self._save_run_btn)
+
+        self._rename_run_btn = QPushButton("Rename")
+        self._rename_run_btn.setToolTip("Rename the selected run")
+        self._rename_run_btn.clicked.connect(self._rename_run)
+        runs_btn_row.addWidget(self._rename_run_btn)
+
+        self._delete_run_btn = QPushButton("Delete")
+        self._delete_run_btn.setToolTip("Delete the selected run")
+        self._delete_run_btn.clicked.connect(self._delete_run)
+        runs_btn_row.addWidget(self._delete_run_btn)
+
+        self._refresh_runs_btn = QPushButton("↻")
+        self._refresh_runs_btn.setFixedWidth(28)
+        self._refresh_runs_btn.setToolTip("Reload the runs list from disk")
+        self._refresh_runs_btn.clicked.connect(self._refresh_runs_list)
+        runs_btn_row.addWidget(self._refresh_runs_btn)
+        runs_layout.addLayout(runs_btn_row)
+
+        # Runs list
+        self._runs_list = QListWidget()
+        self._runs_list.setStyleSheet(
+            "QListWidget { background-color: #161B24; border: 1px solid #2C3448;"
+            " border-radius: 6px; outline: none; padding: 4px; }"
+            "QListWidget::item { padding: 4px 8px; }"
+            "QListWidget::item:selected { background-color: #1F2C45; }"
+            "QListWidget::item:hover { background-color: #1A2538; }"
+        )
+        self._runs_list.itemDoubleClicked.connect(self._load_run)
+        runs_layout.addWidget(self._runs_list, stretch=1)
+
+        hint = QLabel("Double-click a run to load it into the active sequence.")
+        hint.setProperty("role", "hint")
+        hint.setWordWrap(True)
+        hint.setStyleSheet("color: #6B7385; font-size: 11px;")
+        runs_layout.addWidget(hint)
+
         self.left_tabs.addTab(runs_tab, "Runs")
+        self._refresh_runs_list()
 
         return self.left_tabs
 
@@ -1085,6 +1124,163 @@ class MTCMainWindow(QMainWindow):
             self._log(f"Saved to {path}")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Failed to save: {e}")
+
+    # --- Runs Management ---
+
+    def _runs_dir(self) -> "Path | None":
+        """Resolve the runs directory (src/cms/runs/) from the beamline config path."""
+        if not self._beamline_config_path:
+            return None
+        config_path = Path(self._beamline_config_path)
+        workspace_root = config_path.parent
+        while workspace_root != workspace_root.parent:
+            if (workspace_root / "src" / "cms").exists():
+                break
+            workspace_root = workspace_root.parent
+        else:
+            return None
+        runs_dir = workspace_root / "src" / "cms" / "runs"
+        runs_dir.mkdir(parents=True, exist_ok=True)
+        return runs_dir
+
+    def _refresh_runs_list(self):
+        """Reload the runs list from the cms/runs/ directory."""
+        self._runs_list.clear()
+        runs_dir = self._runs_dir()
+        if not runs_dir:
+            return
+        for f in sorted(runs_dir.glob("*.json")):
+            try:
+                with open(f) as fh:
+                    data = json.load(fh)
+                display_name = data.get("run_name", f.stem)
+            except Exception:
+                display_name = f.stem
+            item = QListWidgetItem(display_name)
+            item.setData(Qt.ItemDataRole.UserRole, str(f))
+            item.setToolTip(f"{f.name}  ({display_name})")
+            self._runs_list.addItem(item)
+
+    def _save_run(self):
+        """Save the current task sequence as a named run."""
+        runs_dir = self._runs_dir()
+        if not runs_dir:
+            QMessageBox.warning(
+                self, "Cannot Save",
+                "BEAMBOT_BEAMLINE_CONFIG not set — cannot locate runs directory."
+            )
+            return
+        if not self.config["tasks"]:
+            QMessageBox.warning(self, "Empty", "No tasks to save.")
+            return
+
+        from PyQt6.QtWidgets import QInputDialog
+        display_name, ok = QInputDialog.getText(
+            self, "Save Run", "Display name (shown in the list):",
+        )
+        if not ok or not display_name.strip():
+            return
+        display_name = display_name.strip()
+
+        # Derive a filename from the display name (sanitized)
+        default_filename = display_name.lower().replace(" ", "_").replace("/", "_")
+        filename, ok = QInputDialog.getText(
+            self, "Save Run", "Filename (without .json):",
+            text=default_filename,
+        )
+        if not ok or not filename.strip():
+            return
+        filename = filename.strip().replace(" ", "_").replace("/", "_")
+        if not filename.endswith(".json"):
+            filename += ".json"
+
+        path = runs_dir / filename
+        if path.exists():
+            reply = QMessageBox.question(
+                self, "Overwrite?",
+                f"'{filename}' already exists. Overwrite?",
+                QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+            )
+            if reply != QMessageBox.StandardButton.Yes:
+                return
+
+        try:
+            import copy
+            save_data = copy.deepcopy(self.config)
+            save_data["start_gripper"] = self.gripper_combo.currentText()
+            save_data["run_name"] = display_name
+            with open(path, "w") as f:
+                json.dump(save_data, f, indent=2)
+            self._log(f"Saved run: {display_name} → {filename}")
+            self._refresh_runs_list()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to save run: {e}")
+
+    def _load_run(self, item: "QListWidgetItem"):
+        """Load a run from the runs list into the active sequence."""
+        path = item.data(Qt.ItemDataRole.UserRole)
+        if not path:
+            return
+        try:
+            with open(path) as f:
+                self.config = json.load(f)
+            if "start_gripper" in self.config:
+                idx = self.gripper_combo.findText(self.config["start_gripper"])
+                if idx >= 0:
+                    self.gripper_combo.setCurrentIndex(idx)
+            self.current_json_file = path
+            self._refresh_tree()
+            self._log(f"Loaded run: {item.text()}")
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to load run: {e}")
+
+    def _rename_run(self):
+        """Rename the display name of the selected run."""
+        item = self._runs_list.currentItem()
+        if not item:
+            return
+        path = item.data(Qt.ItemDataRole.UserRole)
+        current_name = item.text()
+
+        from PyQt6.QtWidgets import QInputDialog
+        new_name, ok = QInputDialog.getText(
+            self, "Rename Run", "New display name:",
+            text=current_name,
+        )
+        if not ok or not new_name.strip() or new_name.strip() == current_name:
+            return
+
+        try:
+            with open(path) as f:
+                data = json.load(f)
+            data["run_name"] = new_name.strip()
+            with open(path, "w") as f:
+                json.dump(data, f, indent=2)
+            self._log(f"Renamed: {current_name} → {new_name.strip()}")
+            self._refresh_runs_list()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to rename: {e}")
+
+    def _delete_run(self):
+        """Delete the selected run file."""
+        item = self._runs_list.currentItem()
+        if not item:
+            return
+        path = item.data(Qt.ItemDataRole.UserRole)
+        name = item.text()
+        reply = QMessageBox.question(
+            self, "Delete Run",
+            f"Delete '{name}'?",
+            QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.Cancel,
+        )
+        if reply != QMessageBox.StandardButton.Yes:
+            return
+        try:
+            Path(path).unlink()
+            self._log(f"Deleted run: {name}")
+            self._refresh_runs_list()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to delete: {e}")
 
     # --- Logging ---
 

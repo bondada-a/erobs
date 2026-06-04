@@ -1,0 +1,147 @@
+{
+  "start_gripper": "pipettor",
+  "poses": {
+    "home": [
+      0.0,
+      -90.0,
+      -90.0,
+      -90.0,
+      90.0,
+      0.0
+    ],
+    "dock_approach": [
+      152.33,
+      -135.73,
+      -106.46,
+      -27.73,
+      -270.37,
+      -207.74
+    ],
+    "load_approach": [
+      143.73,
+      -129.69,
+      -124.24,
+      -15.92,
+      -270.41,
+      -216.3
+    ],
+    "pipettor_scan": [
+      112.19,
+      -63.37,
+      -140.83,
+      -65.82,
+      -269.73,
+      -229.5
+    ],
+    "safe_sample_transport": [
+      79.72,
+      -69.5,
+      -81.91,
+      -117.92,
+      -268.05,
+      -157.15
+    ],
+    "safe_tool_exchange": [
+      152.33,
+      -110.63,
+      -100.17,
+      -59.12,
+      -270.43,
+      -207.7
+    ],
+    "sample_scan_1": [
+      13.38,
+      -112.45,
+      -65.22,
+      -90.98,
+      -267.33,
+      -166.94
+    ],
+    "sample_scan_2": [
+      18.64,
+      -115.78,
+      -60.48,
+      -92.18,
+      -267.47,
+      -161.69
+    ],
+    "sample_scan_3": [
+      5.87,
+      -109.29,
+      -69.51,
+      -90.18,
+      -267.17,
+      -174.45
+    ],
+    "spincoater_scan": [
+      69.49,
+      -87.19,
+      -82.31,
+      -100.51,
+      -269.78,
+      -202.09
+    ],
+    "spincoater_place": [
+      75.5,
+      -100.16,
+      -86.89,
+      -83.03,
+      -267.98,
+      -202.09
+    ],
+    "pipettor_pre_tip_eject": [
+      113.93,
+      -100.12,
+      -116.71,
+      -53.06,
+      -270.01,
+      -147.61
+    ],
+    "pipettor_pre_dispense": [
+      63.82,
+      -117.93,
+      -28.7,
+      -123.22,
+      -268.0,
+      -173.16
+    ],
+    "pipettor_dispense": [
+      63.61,
+      -114.88,
+      -38.45,
+      -116.53,
+      -267.97,
+      -173.35
+    ],
+    "vial_scan": [
+      90.95,
+      -55.09,
+      -134.23,
+      -80.7,
+      -269.7,
+      -182.8
+    ]
+  },
+  "tasks": [
+    {
+      "task_type": "moveto",
+      "target": "moveit_home",
+      "planning_type": "joint",
+      "direction": "forward",
+      "distance": 0.05
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "epick",
+      "end_effector_action": "vacuum_off"
+    },
+    {
+      "task_type": "moveto",
+      "target": "moveit_home",
+      "planning_type": "joint",
+      "direction": "backward",
+      "distance": 0.03
+    }
+  ],
+  "run_name": "place_on_hotplate"
+}
