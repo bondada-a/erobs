@@ -1792,6 +1792,11 @@ class MTCOrchestratorServer(Node):
         """
         from beambot.camera.zivid import capture_2d
         from beambot.detection import detect_spincoater_sample
+        from beambot.detection.spincoater import _get_sample_model
+
+        # Pre-load YOLO model before capture to avoid blocking during image receive
+        self.get_logger().info("pick_spincoater: loading detection model...")
+        _get_sample_model()
 
         scan_pose_key = step.get("scan_pose", "spincoater_scan")
         pickup_pose_key = step.get("pickup_pose", "spincoater_place")
