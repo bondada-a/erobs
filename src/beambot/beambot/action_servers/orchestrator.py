@@ -1777,15 +1777,12 @@ class MTCOrchestratorServer(Node):
     def _call_pick_spincoater(self, step: dict[str, Any], poses_json: str) -> bool:
         """Pick a sample from the spincoater with vision-guided orientation.
 
-        Sequence:
-          1. Move to scan pose (framing the chuck for 2D capture)
+        Mirrors place_spincoater structure exactly:
+          1. Move to scan pose
           2. Capture 2D image, detect sample angle via YOLO segmentation
-          3. Compute corrected joint 6 = pickup_pose[5] + detected_angle + k_offset
-          4. Rotate wrist at scan pose (planning is reliable there)
-          5. Move to pickup pose with corrected joint 6 (with Z clearance)
-          6. Move forward to contact the sample
-          7. Activate vacuum
-          8. Retreat to scan pose
+          3. Move to pickup pose with corrected joint 6
+          4. Move forward to contact the sample
+          5. Activate vacuum
 
         Task JSON fields:
           scan_pose: str — pose key for the scan position (default "spincoater_scan")
@@ -1856,19 +1853,7 @@ class MTCOrchestratorServer(Node):
             f"correction={correction:.1f}°, target_j6={corrected_j6:.1f}°"
         )
 
-        # Step 4: Rotate wrist at scan pose first (planning reliable there)
-        rotated_scan = list(scan_joints)
-        rotated_scan[5] = corrected_j6
-        rotate_pose_name = "_spincoater_scan_rotated"
-        poses[rotate_pose_name] = rotated_scan
-        corrected_poses_json = json.dumps(poses)
-
-        rotate_step = {"target": rotate_pose_name, "planning_type": "joint"}
-        if not self._call_moveto(rotate_step, corrected_poses_json):
-            self._last_error = "pick_spincoater: failed to rotate wrist at scan pose"
-            return False
-
-        # Step 5: Move to pickup position with corrected j6
+        # Step 4: Move to pickup pose with corrected j6
         corrected_pickup = list(pickup_joints)
         corrected_pickup[5] = corrected_j6
         pickup_pose_name = "_spincoater_pick_corrected"
@@ -1880,7 +1865,7 @@ class MTCOrchestratorServer(Node):
             self._last_error = "pick_spincoater: failed to reach pickup pose"
             return False
 
-        # Step 6: Move forward to contact
+        # Step 5: Move forward to contact
         if forward_distance > 0:
             self.get_logger().info(
                 f"pick_spincoater: moving forward {forward_distance*1000:.1f}mm"
@@ -1890,7 +1875,7 @@ class MTCOrchestratorServer(Node):
                 self._last_error = "pick_spincoater: forward move failed"
                 return False
 
-        # Step 7: Activate vacuum
+        # Step 6: Activate vacuum
         self.get_logger().info("pick_spincoater: activating vacuum")
         grasp_step = {"end_effector_action": "vacuum_on"}
         if not self._call_endeffector(grasp_step, corrected_poses_json):
