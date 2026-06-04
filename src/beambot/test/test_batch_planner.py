@@ -147,6 +147,83 @@ class TestRealWorldSequences:
 
 
 # ---------------------------------------------------------------------------
+# Breaker actions — ePick grasp (vacuum_on) must run as its own step
+# ---------------------------------------------------------------------------
+
+class TestBreakerActions:
+
+    def test_grasp_splits_batch(self):
+        """vacuum_on is demoted to a single batch; surrounding moves stay batched."""
+        tasks = [
+            _task("moveto", target="spincoat"),
+            _task("end_effector", end_effector_action="vacuum_on"),
+            _task("moveto", target="pre_spincoat"),
+        ]
+        result = group_into_batches(tasks, breaker_actions={"vacuum_on"})
+        assert _types(result) == [
+            ("batched", ["moveto"]),
+            ("single", ["end_effector"]),
+            ("batched", ["moveto"]),
+        ]
+
+    def test_release_still_batches(self):
+        """vacuum_off is NOT a breaker — it fuses with adjacent moves."""
+        tasks = [
+            _task("moveto", target="hotplate"),
+            _task("end_effector", end_effector_action="vacuum_off"),
+            _task("moveto", target="pre_hotplate"),
+        ]
+        result = group_into_batches(tasks, breaker_actions={"vacuum_on"})
+        assert _types(result) == [
+            ("batched", ["moveto", "end_effector", "moveto"]),
+        ]
+
+    def test_spincoat_to_hotplate_with_grasp_breaker(self):
+        """Full ePick sequence: grasp splits, release stays in its batch."""
+        tasks = [
+            _task("moveto", target="pre_spincoat"),
+            _task("moveto", target="spincoat"),
+            _task("end_effector", end_effector_action="vacuum_on"),
+            _task("moveto", target="pre_spincoat"),
+            _task("moveto", target="post_spincoat"),
+            _task("moveto", target="pre_hotplate"),
+            _task("moveto", target="hotplate"),
+            _task("end_effector", end_effector_action="vacuum_off"),
+            _task("moveto", target="pre_hotplate"),
+        ]
+        result = group_into_batches(tasks, breaker_actions={"vacuum_on"})
+        assert _types(result) == [
+            ("batched", ["moveto", "moveto"]),
+            ("single", ["end_effector"]),
+            ("batched", ["moveto", "moveto", "moveto", "moveto", "end_effector", "moveto"]),
+        ]
+
+    def test_no_breaker_actions_keeps_grasp_batched(self):
+        """Default (no breakers) — grasp batches as before, preserving non-ePick behavior."""
+        tasks = [
+            _task("moveto"),
+            _task("end_effector", end_effector_action="vacuum_on"),
+            _task("moveto"),
+        ]
+        result = group_into_batches(tasks)
+        assert _types(result) == [
+            ("batched", ["moveto", "end_effector", "moveto"]),
+        ]
+
+    def test_mechanical_grasp_unaffected(self):
+        """A grasp action not in breaker_actions (e.g. hande_closed) stays batchable."""
+        tasks = [
+            _task("moveto"),
+            _task("end_effector", end_effector_action="hande_closed"),
+            _task("moveto"),
+        ]
+        result = group_into_batches(tasks, breaker_actions={"vacuum_on"})
+        assert _types(result) == [
+            ("batched", ["moveto", "end_effector", "moveto"]),
+        ]
+
+
+# ---------------------------------------------------------------------------
 # Disabled batching
 # ---------------------------------------------------------------------------
 

@@ -51,6 +51,13 @@ STATUS_CONFIG = {
 
 _ROW_HEIGHT = 52
 
+_FONT_MONO_9 = QFont("Monospace", 9)
+_FONT_SANS_8_BOLD = QFont("Sans", 8, QFont.Weight.Bold)
+_FONT_SANS_9 = QFont("Sans", 9)
+_FONT_SANS_10_BOLD = QFont("Sans", 10, QFont.Weight.Bold)
+_FONT_SANS_11 = QFont("Sans", 11)
+_FONT_SANS_12 = QFont("Sans", 12)
+
 
 class StepRowWidget(QFrame):
     """Single step row with status icon, type icon, title, subtitle, and timer."""
@@ -84,7 +91,7 @@ class StepRowWidget(QFrame):
         self._num_label = QLabel(f"{index + 1:02d}")
         self._num_label.setFixedWidth(28)
         self._num_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._num_label.setFont(QFont("Monospace", 9))
+        self._num_label.setFont(_FONT_MONO_9)
         self._num_label.setStyleSheet("color: #888888; padding-left: 4px;")
         main_layout.addWidget(self._num_label)
 
@@ -92,7 +99,7 @@ class StepRowWidget(QFrame):
         self._status_icon = QLabel("○")
         self._status_icon.setFixedWidth(22)
         self._status_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._status_icon.setFont(QFont("Sans", 11))
+        self._status_icon.setFont(_FONT_SANS_11)
         self._status_icon.setStyleSheet("color: #888888;")
         main_layout.addWidget(self._status_icon)
 
@@ -100,7 +107,7 @@ class StepRowWidget(QFrame):
         self._type_icon = QLabel(type_cfg["icon"])
         self._type_icon.setFixedSize(28, 28)
         self._type_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self._type_icon.setFont(QFont("Sans", 12))
+        self._type_icon.setFont(_FONT_SANS_12)
         type_color = type_cfg["color"]
         r, g, b = (
             int(type_color[1:3], 16),
@@ -121,12 +128,12 @@ class StepRowWidget(QFrame):
         title_col.setSpacing(1)
 
         self._title_label = QLabel(type_cfg["title"])
-        self._title_label.setFont(QFont("Sans", 10, QFont.Weight.Bold))
+        self._title_label.setFont(_FONT_SANS_10_BOLD)
         self._title_label.setStyleSheet("color: #e0e0e0;")
         title_col.addWidget(self._title_label)
 
         self._subtitle_label = QLabel(detail_text)
-        self._subtitle_label.setFont(QFont("Sans", 9))
+        self._subtitle_label.setFont(_FONT_SANS_9)
         self._subtitle_label.setStyleSheet("color: #999999;")
         title_col.addWidget(self._subtitle_label)
 
@@ -139,14 +146,14 @@ class StepRowWidget(QFrame):
         right_col.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
 
         self._timer_label = QLabel("")
-        self._timer_label.setFont(QFont("Monospace", 9))
+        self._timer_label.setFont(_FONT_MONO_9)
         self._timer_label.setStyleSheet("color: #e6a832;")
         self._timer_label.setAlignment(Qt.AlignmentFlag.AlignRight)
         self._timer_label.hide()
         right_col.addWidget(self._timer_label)
 
         self._next_badge = QLabel("next")
-        self._next_badge.setFont(QFont("Sans", 8, QFont.Weight.Bold))
+        self._next_badge.setFont(_FONT_SANS_8_BOLD)
         self._next_badge.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._next_badge.setFixedSize(40, 18)
         self._next_badge.setStyleSheet(
@@ -157,7 +164,7 @@ class StepRowWidget(QFrame):
         right_col.addWidget(self._next_badge)
 
         self._done_check = QLabel("✓")
-        self._done_check.setFont(QFont("Sans", 11))
+        self._done_check.setFont(_FONT_SANS_11)
         self._done_check.setStyleSheet("color: #4caf5088;")
         self._done_check.setAlignment(Qt.AlignmentFlag.AlignRight)
         self._done_check.hide()
@@ -165,6 +172,39 @@ class StepRowWidget(QFrame):
 
         main_layout.addLayout(right_col)
 
+        self._apply_state_style()
+
+    def update_content(self, index: int, task_type: str, detail_text: str):
+        """Update this row's visible content in-place (no widget rebuild)."""
+        self.index = index
+        self.task_type = task_type
+        self._state = StepState.PENDING
+        self._start_time = None
+        self._is_next = False
+
+        type_cfg = TASK_TYPE_CONFIG.get(
+            task_type, {"icon": "?", "color": "#888888", "title": task_type}
+        )
+
+        self._num_label.setText(f"{index + 1:02d}")
+        self._status_icon.setText("○")
+        self._status_icon.setStyleSheet("color: #888888;")
+        self._type_icon.setText(type_cfg["icon"])
+        type_color = type_cfg["color"]
+        r, g, b = (
+            int(type_color[1:3], 16),
+            int(type_color[3:5], 16),
+            int(type_color[5:7], 16),
+        )
+        self._type_icon.setStyleSheet(
+            f"color: {type_color}; background-color: rgba({r}, {g}, {b}, 0.13);"
+            f" border-radius: 14px;"
+        )
+        self._title_label.setText(type_cfg["title"])
+        self._subtitle_label.setText(detail_text)
+        self._timer_label.hide()
+        self._next_badge.hide()
+        self._done_check.hide()
         self._apply_state_style()
 
     def set_state(self, state: StepState):
@@ -440,23 +480,39 @@ class StepListPanel(QWidget):
     # --- Public API ---
 
     def refresh(self, tasks: list, summary_fn):
-        """Rebuild step list from task data."""
-        self._list_widget.clear()
-        self._step_rows.clear()
-        self._current_step = -1
+        """Rebuild step list from task data.
 
-        for i, step in enumerate(tasks):
-            task_type = step.get("task_type", "?")
-            detail = summary_fn(step)
-            row_widget = StepRowWidget(i, task_type, detail)
+        When the task count matches the existing row count, updates widget
+        content in-place (fast path — no widget destruction/creation).
+        """
+        self._list_widget.setUpdatesEnabled(False)
+        n_new = len(tasks)
+        n_old = len(self._step_rows)
 
-            item = QListWidgetItem(self._list_widget)
-            item.setSizeHint(QSize(0, _ROW_HEIGHT))
-            item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
-            self._list_widget.setItemWidget(item, row_widget)
-            self._step_rows.append(row_widget)
+        if n_new == n_old and n_new > 0:
+            for i, step in enumerate(tasks):
+                task_type = step.get("task_type", "?")
+                detail = summary_fn(step)
+                self._step_rows[i].update_content(i, task_type, detail)
+            self._current_step = -1
+        else:
+            self._list_widget.clear()
+            self._step_rows.clear()
+            self._current_step = -1
 
-        self._total_steps = len(tasks)
+            for i, step in enumerate(tasks):
+                task_type = step.get("task_type", "?")
+                detail = summary_fn(step)
+                row_widget = StepRowWidget(i, task_type, detail)
+
+                item = QListWidgetItem(self._list_widget)
+                item.setSizeHint(QSize(0, _ROW_HEIGHT))
+                item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                self._list_widget.setItemWidget(item, row_widget)
+                self._step_rows.append(row_widget)
+
+        self._total_steps = n_new
+        self._list_widget.setUpdatesEnabled(True)
         self._update_empty_state()
 
     # --- Empty-state overlay helpers ---

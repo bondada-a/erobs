@@ -426,7 +426,9 @@ class BaseStages:
         task = core.Task()
         task.enableIntrospection(True)
         task.name = name
+        _t = time.monotonic()
         task.loadRobotModel(self._mtc_node)
+        self.logger.info(f"[TIMING] loadRobotModel: {time.monotonic() - _t:.2f}s")
 
         # Add current state as first stage
         task.add(stages.CurrentState("current_state"))
@@ -618,18 +620,23 @@ class BaseStages:
         """
         try:
             self.logger.info(f"Initializing task: {task.name}")
+            _t = time.monotonic()
             try:
                 task.init()
             except Exception as e:
                 error = f"Task init failed for '{task.name}': {e}"
                 self.logger.error(error)
                 return error
+            self.logger.info(f"[TIMING] task.init(): {time.monotonic() - _t:.2f}s")
 
             self.logger.info(f"Planning task: {task.name}")
+            _t = time.monotonic()
             if not task.plan(max_solutions=1):
                 error = f"PLANNING_FAILED: No motion plan found for task '{task.name}'"
                 self.logger.error(error)
                 return error
+
+            self.logger.info(f"[TIMING] task.plan(): {time.monotonic() - _t:.2f}s")
 
             if not task.solutions:
                 error = f"PLANNING_FAILED: No solutions found for task '{task.name}'"
@@ -684,7 +691,9 @@ class BaseStages:
                 self.logger.error(error)
                 return error
 
+            _t = time.monotonic()
             result = task.execute(task.solutions[0])
+            self.logger.info(f"[TIMING] task.execute(): {time.monotonic() - _t:.2f}s")
             if result.val != MoveItErrorCodes.SUCCESS:
                 error_name = MOVEIT_ERROR_NAMES.get(result.val, "UNKNOWN")
                 error = (
@@ -891,6 +900,7 @@ class BaseStages:
         Returns:
             Joint dict {name: radians} for the arm group, or None on failure.
         """
+        _t_ik = time.monotonic()
         js_holder = [None]
         js_event = threading.Event()
 
@@ -901,6 +911,7 @@ class BaseStages:
         js_sub = self.rclpy_node.create_subscription(JointState, '/joint_states', _on_js, 10)
         js_event.wait(timeout=1.0)
         self.rclpy_node.destroy_subscription(js_sub)
+        self.logger.info(f"[TIMING] IK joint_state seed wait: {time.monotonic() - _t_ik:.2f}s")
 
         if not js_holder[0]:
             self.logger.warning("No joint_states for IK seed")
@@ -913,10 +924,12 @@ class BaseStages:
             quantized.append(math.radians(deg_q))
 
         try:
+            _t_svc = time.monotonic()
             ik_client = self.rclpy_node.create_client(GetPositionIK, '/compute_ik')
             if not ik_client.wait_for_service(timeout_sec=2.0):
                 self.logger.warning("/compute_ik service not available")
                 return None
+            self.logger.info(f"[TIMING] /compute_ik wait_for_service: {time.monotonic() - _t_svc:.2f}s")
 
             req = GetPositionIK.Request()
             req.ik_request.group_name = self.arm_group
@@ -926,12 +939,14 @@ class BaseStages:
             req.ik_request.pose_stamped = approach
             req.ik_request.timeout.sec = 1
 
+            _t_call = time.monotonic()
             future = ik_client.call_async(req)
             if not wait_for_future(future, timeout=5.0):
                 self.logger.warning("/compute_ik timed out")
                 self.rclpy_node.destroy_client(ik_client)
                 return None
             self.rclpy_node.destroy_client(ik_client)
+            self.logger.info(f"[TIMING] /compute_ik call: {time.monotonic() - _t_call:.2f}s")
 
             result = future.result()
             if result and result.error_code.val == 1:  # SUCCESS

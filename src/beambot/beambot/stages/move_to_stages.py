@@ -8,6 +8,7 @@ Handles MoveTo operations:
 
 import json
 import math
+import time
 
 import rclpy
 from geometry_msgs.msg import PoseStamped
@@ -311,10 +312,20 @@ class MoveToStages(BaseStages):
         Returns:
             None if successful, error string describing failure otherwise
         """
+        _t_run = time.monotonic()
         task = self.create_task_template("MoveTo Task")
 
+        _t_add = time.monotonic()
         error = self.add_to_task(task, goal)
+        self.logger.info(
+            f"[TIMING] add_to_task (TF + IK + stage build): "
+            f"{time.monotonic() - _t_add:.2f}s"
+        )
         if error is not None:
             return error
 
-        return self.load_plan_execute(task)
+        result = self.load_plan_execute(task)
+        self.logger.info(
+            f"[TIMING] MoveTo run() total: {time.monotonic() - _t_run:.2f}s"
+        )
+        return result

@@ -623,6 +623,25 @@ class MTCOrchestratorServer(Node):
 
     # _group_into_batches extracted to beambot.batch_planner.group_into_batches
 
+    def _grasp_breaker_actions(self, gripper: str) -> set[str]:
+        """Return end_effector_action values that must NOT be batched for this gripper.
+
+        Only ePick's grasp (vacuum_on) qualifies: the suction seal must settle
+        before the arm transports, so the grasp runs as its own discrete step
+        rather than fusing into a continuous trajectory with the following
+        move. Mechanical grippers (HandE, 2fg7) close fast and reliably, so
+        their grasps remain batchable — preserving prior behavior. The release
+        action is never a breaker; losing grip early on a release is harmless.
+
+        The grasp state name is read from the active beamline YAML
+        (grippers.<gripper>.states.grasp) so it tracks the SRDF group_state
+        name rather than being hard-coded to "vacuum_on".
+        """
+        if gripper != "epick":
+            return set()
+        grasp_state = self._grippers.get("epick", {}).get("states", {}).get("grasp")
+        return {grasp_state} if grasp_state else set()
+
     def _execute_batch(
         self,
         batch_tasks: list[dict[str, Any]],
@@ -848,20 +867,20 @@ class MTCOrchestratorServer(Node):
         self._publish_state("RUNNING")
 
         # Group tasks into batches for optimized execution.
-        # Disable batching when ePick is attached — the vacuum watchdog needs
-        # step boundaries between every move to detect dropped objects.
-        # In dry_run, force batching on regardless of gripper: the vacuum
-        # watchdog is irrelevant when nothing executes, and one MTC task per
-        # batch lets the operator preview the whole sequence in one trajectory.
-        if dry_run:
-            batching_enabled = self._enable_batching
-        else:
-            batching_enabled = self._enable_batching and start_gripper != "epick"
-            if self._enable_batching and not batching_enabled:
-                self.get_logger().info(
-                    "Batching disabled for ePick — vacuum watchdog needs per-step boundaries"
-                )
-        batches = group_into_batches(tasks, enabled=batching_enabled)
+        # ePick is no longer a blanket batching exclusion. Instead the grasp
+        # action (vacuum_on) is treated as a batch breaker so it runs as its
+        # own discrete step — the suction seal must settle before the arm
+        # transports the object, which a fused continuous trajectory wouldn't
+        # guarantee. The release action (vacuum_off) stays batchable and fuses
+        # with adjacent moves; losing grip early on a release is harmless.
+        # Dry-run and live runs share this same grouping so a previewed plan
+        # replays against an identical batch structure.
+        breaker_actions = self._grasp_breaker_actions(start_gripper)
+        batches = group_into_batches(
+            tasks,
+            enabled=self._enable_batching,
+            breaker_actions=breaker_actions,
+        )
         self.get_logger().info(
             f"Grouped {task_count} tasks into {len(batches)} batches"
         )

@@ -233,6 +233,14 @@ def launch_setup(context, *args, **kwargs):
             moveit_config.planning_pipelines,
             moveit_config.joint_limits,
         ],
+        # The orchestrator imports cv2 (YOLO warm-up) before launching this
+        # subprocess. opencv-python's config-3.py forcibly sets
+        # QT_QPA_PLATFORM_PLUGIN_PATH to its bundled Qt5 plugins, which RViz2
+        # (built against system Qt6) then loads and aborts on (ABI mismatch).
+        # Override it back to the system Qt6 platforms dir for RViz only.
+        additional_env={
+            "QT_QPA_PLATFORM_PLUGIN_PATH": "/usr/lib/x86_64-linux-gnu/qt6/plugins/platforms",
+        },
     )
 
     # ── Payload ─────────────────────────────────────────────────────────

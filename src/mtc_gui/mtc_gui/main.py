@@ -34,6 +34,7 @@ def toggle_dark_mode(app, enabled):
 def main():
     # Required for QtWebEngine in Qt6 — must be set before QApplication is constructed
     QApplication.setAttribute(Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
+
     app = QApplication(sys.argv)
     theme.apply(app)
 

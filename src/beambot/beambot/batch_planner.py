@@ -24,6 +24,7 @@ BATCH_BREAKERS = {"tool_exchange", "vision_moveto", "vision_scan", "pick_sample"
 def group_into_batches(
     tasks: list[dict[str, Any]],
     enabled: bool = True,
+    breaker_actions: set[str] | None = None,
 ) -> list[tuple[str, list[dict[str, Any]]]]:
     """Group consecutive batchable tasks into batches.
 
@@ -35,6 +36,14 @@ def group_into_batches(
         tasks: List of task dictionaries from the JSON script.
         enabled: When False, every task becomes a single-task batch
                  (disables batching optimization entirely).
+        breaker_actions: Optional set of ``end_effector_action`` values that,
+                 although their task_type is batchable, must run as discrete
+                 single-task batches. Used for ePick ``vacuum_on``: a grasp
+                 must fully actuate (seal settle) before the arm transports,
+                 so it cannot be fused into a continuous trajectory with the
+                 following move. Release (``vacuum_off``) is NOT a breaker —
+                 losing grip early on a release is harmless, so it stays
+                 batchable and fuses with adjacent moves.
 
     Returns:
         List of (batch_type, tasks) tuples where:
@@ -44,14 +53,22 @@ def group_into_batches(
     if not enabled:
         return [("single", [task]) for task in tasks]
 
+    breaker_actions = breaker_actions or set()
+
     batches = []
     current_batch: list[dict[str, Any]] = []
     current_type = None
 
     for task in tasks:
         task_type = task.get("task_type", "")
+        # An end_effector action flagged as a breaker (e.g. ePick grasp) is
+        # demoted to a single-task batch even though its type is batchable.
+        is_breaker_action = (
+            task_type == "end_effector"
+            and task.get("end_effector_action", "") in breaker_actions
+        )
 
-        if task_type in BATCHABLE_TYPES:
+        if task_type in BATCHABLE_TYPES and not is_breaker_action:
             if current_type == "batched":
                 current_batch.append(task)
             else:
