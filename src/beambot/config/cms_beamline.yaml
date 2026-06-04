@@ -128,7 +128,7 @@ vision_targets:
     scan_pose: "pipettor_scan"
     start_gripper: "pipettor"
     # Offset from marker center to first element (A1) in marker local frame (meters)
-    marker_offset: {x: 0.0, y: -0.058}
+    marker_offset: {x: 0.0, y: -0.059}
     grid:
       rows: 8                    # A-H
       cols: 12                   # 1-12
