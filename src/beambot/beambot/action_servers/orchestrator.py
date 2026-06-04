@@ -1897,13 +1897,6 @@ class MTCOrchestratorServer(Node):
             self._last_error = "pick_spincoater: vacuum activation failed"
             return False
 
-        # Step 8: Retreat to scan pose
-        self.get_logger().info("pick_spincoater: retreating to scan pose")
-        retreat_step = {"target": scan_pose_key, "planning_type": "joint"}
-        if not self._call_moveto(retreat_step, poses_json):
-            self._last_error = "pick_spincoater: retreat failed"
-            return False
-
         self.get_logger().info("pick_spincoater: pickup complete")
         return True
 
