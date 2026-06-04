@@ -15,6 +15,7 @@ Chuck must be centered in the camera frame (flash falloff off-axis).
 """
 
 import logging
+import threading
 from pathlib import Path
 
 import cv2
@@ -38,6 +39,7 @@ def _find_model_path() -> Path:
 
 _SAMPLE_MODEL_PATH = _find_model_path()
 _sample_model = None
+_sample_model_lock = threading.Lock()
 
 
 def _red_mask(hsv: np.ndarray) -> np.ndarray:
@@ -150,27 +152,36 @@ def detect_spincoater_pocket(
 
 
 def _get_sample_model():
-    """Lazy-load the YOLO segmentation model for sample detection."""
+    """Lazy-load the YOLO segmentation model for sample detection.
+
+    Thread-safe: a background warmup thread and a task thread may both call
+    this; the lock ensures the model loads exactly once.
+    """
     global _sample_model
     if _sample_model is not None:
         return _sample_model
 
-    try:
-        from ultralytics import YOLO
-    except ImportError:
-        raise RuntimeError(
-            "ultralytics not installed. Run: pip install ultralytics"
-        )
+    with _sample_model_lock:
+        # Re-check inside the lock (another thread may have loaded it)
+        if _sample_model is not None:
+            return _sample_model
 
-    if not _SAMPLE_MODEL_PATH.exists():
-        raise FileNotFoundError(
-            f"Spincoater sample model not found at {_SAMPLE_MODEL_PATH}. "
-            "Train with: yolo segment train data=data.yaml model=yolov8n-seg.pt"
-        )
+        try:
+            from ultralytics import YOLO
+        except ImportError:
+            raise RuntimeError(
+                "ultralytics not installed. Run: pip install ultralytics"
+            )
 
-    logger.info(f"Loading spincoater sample model: {_SAMPLE_MODEL_PATH}")
-    _sample_model = YOLO(str(_SAMPLE_MODEL_PATH))
-    return _sample_model
+        if not _SAMPLE_MODEL_PATH.exists():
+            raise FileNotFoundError(
+                f"Spincoater sample model not found at {_SAMPLE_MODEL_PATH}. "
+                "Train with: yolo segment train data=data.yaml model=yolov8n-seg.pt"
+            )
+
+        logger.info(f"Loading spincoater sample model: {_SAMPLE_MODEL_PATH}")
+        _sample_model = YOLO(str(_SAMPLE_MODEL_PATH))
+        return _sample_model
 
 
 def detect_spincoater_sample(

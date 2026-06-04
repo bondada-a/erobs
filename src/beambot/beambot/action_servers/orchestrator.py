@@ -268,6 +268,29 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("MTC Orchestrator (Python) started on 'beambot_execution'")
         self.get_logger().info("Pause/Resume services available: beambot/pause, beambot/resume")
 
+        # Warm up the spincoater YOLO model in the background so torch/CUDA init
+        # happens during idle startup, not on the executor thread mid-task (which
+        # starves the 500Hz control loop and balloons load time from ~9s to ~70s).
+        self._warmup_spincoater_model()
+
+    def _warmup_spincoater_model(self):
+        """Pre-load the spincoater sample YOLO model in a background daemon thread."""
+        def _warmup():
+            try:
+                import numpy as np
+                from beambot.detection.spincoater import _get_sample_model
+                self.get_logger().info("Warming up spincoater sample model (background)...")
+                model = _get_sample_model()
+                # Dummy inference to trigger CUDA kernel compilation / graph build
+                # so the first real detection is instant.
+                dummy = np.zeros((640, 640, 3), dtype=np.uint8)
+                model(dummy, conf=0.5, verbose=False)
+                self.get_logger().info("Spincoater sample model ready")
+            except Exception as e:  # noqa: BLE001 — warmup is best-effort
+                self.get_logger().warning(f"Spincoater model warmup skipped: {e}")
+
+        threading.Thread(target=_warmup, daemon=True).start()
+
     def _goal_callback(self, goal_request) -> GoalResponse:
         """Handle incoming goal requests."""
         with self._lock:
@@ -1792,11 +1815,6 @@ class MTCOrchestratorServer(Node):
         """
         from beambot.camera.zivid import capture_2d
         from beambot.detection import detect_spincoater_sample
-        from beambot.detection.spincoater import _get_sample_model
-
-        # Pre-load YOLO model before capture to avoid blocking during image receive
-        self.get_logger().info("pick_spincoater: loading detection model...")
-        _get_sample_model()
 
         scan_pose_key = step.get("scan_pose", "spincoater_scan")
         pickup_pose_key = step.get("pickup_pose", "spincoater_place")
