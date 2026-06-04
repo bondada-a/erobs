@@ -78,8 +78,14 @@ def capture_2d(node: Node, timeout: float = 15.0) -> np.ndarray | None:
     def on_image(msg: Image):
         received[0] = msg
 
-    sub = node.create_subscription(Image, IMAGE_TOPIC, on_image, _ZIVID_QOS)
-    client = node.create_client(Trigger, CAPTURE_2D_SERVICE)
+    from rclpy.callback_groups import ReentrantCallbackGroup
+    cb_group = ReentrantCallbackGroup()
+    sub = node.create_subscription(
+        Image, IMAGE_TOPIC, on_image, _ZIVID_QOS, callback_group=cb_group
+    )
+    client = node.create_client(
+        Trigger, CAPTURE_2D_SERVICE, callback_group=cb_group
+    )
 
     try:
         if not client.wait_for_service(timeout_sec=2.0):
@@ -89,7 +95,7 @@ def capture_2d(node: Node, timeout: float = 15.0) -> np.ndarray | None:
             return None
 
         # Clear stale image
-        time.sleep(0.3)
+        time.sleep(0.5)
         received[0] = None
 
         future = client.call_async(Trigger.Request())
@@ -102,10 +108,11 @@ def capture_2d(node: Node, timeout: float = 15.0) -> np.ndarray | None:
             node.get_logger().warning(f"2D capture failed: {result.message}")
             return None
 
-        # Wait for image on topic
+        # Wait for image on topic — poll with short sleeps to allow
+        # the executor to deliver the subscription callback
         deadline = time.monotonic() + timeout
         while received[0] is None and time.monotonic() < deadline:
-            time.sleep(0.05)
+            time.sleep(0.1)
 
         if received[0] is None:
             node.get_logger().error("No image received after 2D capture")
