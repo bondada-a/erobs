@@ -38,6 +38,8 @@ TASK_TYPE_CONFIG = {
     "pipettor": {"icon": "⬍", "color": "#b05ce6", "title": "Pipettor"},
     "pickup_tip": {"icon": "▼", "color": "#e6c85c", "title": "Pickup Tip"},
     "pickup_vial": {"icon": "◈", "color": "#e6855c", "title": "Vial Rack"},
+    "place_spincoater": {"icon": "⬇", "color": "#e65c8a", "title": "Place Spincoater"},
+    "pick_spincoater": {"icon": "⬆", "color": "#e65c8a", "title": "Pick Spincoater"},
 }
 
 STATUS_CONFIG = {

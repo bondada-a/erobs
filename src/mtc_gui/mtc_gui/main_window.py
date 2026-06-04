@@ -120,6 +120,20 @@ def _build_task_defaults(beamline_config: dict) -> dict:
         "pipettor": {"task_type": "pipettor", "operation": "SUCK", "volume_pct": 0.5},
         "pickup_tip": {"task_type": "pickup_tip", "row": 0, "col": 0},
         "pickup_vial": {"task_type": "pickup_vial", "row": 0, "col": 0},
+        "place_spincoater": {
+            "task_type": "place_spincoater",
+            "scan_pose": "spincoater_scan",
+            "place_pose": "spincoater_place",
+            "forward_distance": 0.003,
+            "k_offset": 0.0,
+        },
+        "pick_spincoater": {
+            "task_type": "pick_spincoater",
+            "scan_pose": "spincoater_scan",
+            "pickup_pose": "spincoater_place",
+            "forward_distance": 0.003,
+            "k_offset": 0.0,
+        },
     }
 
 

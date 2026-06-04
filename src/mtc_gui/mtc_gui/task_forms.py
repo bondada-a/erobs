@@ -724,6 +724,54 @@ class PickupVialForm(_GridSelectorForm):
         return s
 
 
+class SpincoaterForm(BaseTaskForm):
+    """Form for place_spincoater and pick_spincoater tasks."""
+
+    @property
+    def _is_pick(self):
+        return self.step.get("task_type") == "pick_spincoater"
+
+    @property
+    def TITLE(self):
+        return "Pick from Spincoater" if self._is_pick else "Place on Spincoater"
+
+    def build_form(self):
+        mode = "pickup" if self._is_pick else "placement"
+        self.add_hint(
+            f"Vision-guided {mode}: detects orientation via 2D capture, "
+            f"corrects wrist angle, then {'picks' if self._is_pick else 'places'}."
+        )
+        self.scan_pose = self.add_text(
+            "Scan pose:", "scan_pose", "spincoater_scan"
+        )
+        pose_key = "pickup_pose" if self._is_pick else "place_pose"
+        self.target_pose = self.add_text(
+            f"{'Pickup' if self._is_pick else 'Place'} pose:",
+            pose_key, "spincoater_place"
+        )
+        self.forward_dist = self.add_float(
+            "Forward distance (m):", "forward_distance", 0.003, 0.0, 0.05, 4
+        )
+        self.k_offset = self.add_float(
+            "K offset (deg):", "k_offset", 0.0, -90.0, 90.0, 1
+        )
+        if not self._is_pick:
+            self.release = self.add_check("Release vacuum:", "release", True)
+
+    def collect_values(self):
+        pose_key = "pickup_pose" if self._is_pick else "place_pose"
+        result = {
+            **self.step,
+            "scan_pose": self.scan_pose.text(),
+            pose_key: self.target_pose.text(),
+            "forward_distance": self.forward_dist.value(),
+            "k_offset": self.k_offset.value(),
+        }
+        if not self._is_pick:
+            result["release"] = self.release.isChecked()
+        return result
+
+
 # --- Form dispatch map ---
 
 _FORMS = {
@@ -737,4 +785,6 @@ _FORMS = {
     "pipettor": PipettorForm,
     "pickup_tip": PickupTipForm,
     "pickup_vial": PickupVialForm,
+    "place_spincoater": SpincoaterForm,
+    "pick_spincoater": SpincoaterForm,
 }
