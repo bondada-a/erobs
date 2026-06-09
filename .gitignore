@@ -150,3 +150,6 @@ state/
 
 # Training data (large files)
 src/beambot/data/spincoater_training/
+
+# Understand-Anything generated knowledge graph (per-dev tooling output)
+.understand-anything/
