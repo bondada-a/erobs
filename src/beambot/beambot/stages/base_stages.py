@@ -409,6 +409,20 @@ class BaseStages:
             self._velocity_scaling = VELOCITY_SCALING
             self._acceleration_scaling = ACCELERATION_SCALING
 
+        # Per-task planner cache. MTC solvers are meant to be built once and
+        # shared across all stages of a task (see the official MTC demos); a
+        # PipelinePlanner's first init() loads its pluginlib pipeline (Pilz
+        # PTP/LIN/CIRC, OMPL), which costs ~0.5s — so rebuilding one per stage
+        # made an N-move batch pay N× that load (the dominant planning cost).
+        # The cache is keyed by (kind, mode) and CLEARED at the top of every
+        # create_task_template() call: each MTC task gets a fresh RobotModel
+        # pointer, and PipelinePlanner.init() throws if a cached planner is
+        # reused against a different model. Resetting per task makes the cache
+        # lifetime exactly one task, so the planners and the task's model are
+        # always born and discarded together — never stale across a tool
+        # exchange or any task boundary.
+        self._task_planner_cache: dict = {}
+
     def create_task_template(self, name: str) -> core.Task:
         """Create a new MTC task with standard configuration.
 
@@ -418,17 +432,41 @@ class BaseStages:
         Returns:
             Configured MTC Task with robot model loaded and CurrentState added
         """
+        # New task → fresh RobotModel pointer. Any planner cached for a prior
+        # task is bound to that task's (now-superseded) model and would throw in
+        # PipelinePlanner.init() if reused here, so drop the cache before any
+        # make_*_planner() call for this task can repopulate it.
+        self._task_planner_cache.clear()
+
         # MTC introspection publishes solutions to RViz's Motion Planning Tasks
-        # panel. Creates/destroys Introspection nodes that poison rcl's rosout
-        # hashmap on Humble (unfixed rcl bug since 2019, ros2/rcl#984). Effect:
-        # MTC C++ internal logs break after first task, but our rclpy-based logs
-        # (detection, IK, vacuum) are unaffected. Re-enabled for RViz visualization.
+        # panel. It creates/destroys an Introspection node per task, which
+        # poisons rcl's rosout hashmap (unfixed rcl bug ros2/rcl#984): the
+        # introspection node collides on the 'beambot_orchestrator' name and on
+        # teardown unregisters the rosout publisher. The symptom in the logs is
+        #   "Publisher already registered for node name: 'beambot_orchestrator'"
+        #   "Failed to get logger entry ... logging_rosout.c:416"
+        # and the CONSEQUENCE is that every subsequent logger.info() stalls for
+        # ~0.5-1 s on the broken hashmap — measured as multi-second wall time
+        # with ~0.01 s CPU across stage-building and planning. enable_rosout is
+        # already False on the MTC node (see ~line 221) to avoid this, but
+        # enableIntrospection(True) re-introduced the offending node and undid
+        # that protection.
+        #
+        # DISABLED for performance. Cost: the RViz "Motion Planning Tasks" panel
+        # no longer shows the live MTC stage tree. Robot motion, planning, and
+        # RViz itself are unaffected. Set back to True if you need that panel.
         task = core.Task()
-        task.enableIntrospection(True)
+        task.enableIntrospection(False)
         task.name = name
         _t = time.monotonic()
+        _c = time.process_time()
         task.loadRobotModel(self._mtc_node)
-        self.logger.info(f"[TIMING] loadRobotModel: {time.monotonic() - _t:.2f}s")
+        _lrm_wall = time.monotonic() - _t
+        _lrm_cpu = time.process_time() - _c
+        self.logger.info(
+            f"[TIMING] loadRobotModel: wall={_lrm_wall:.2f}s cpu={_lrm_cpu:.2f}s "
+            f"({'BLOCKED/contention' if _lrm_wall - _lrm_cpu > 0.5 * max(_lrm_wall, 0.01) else 'compute-bound'})"
+        )
 
         # Add current state as first stage
         task.add(stages.CurrentState("current_state"))
@@ -440,6 +478,9 @@ class BaseStages:
         Returns:
             Configured PipelinePlanner using OMPL with RRTConnect (default)
         """
+        cached = self._task_planner_cache.get(("ompl",))
+        if cached is not None:
+            return cached
         # Don't set planner.planner_id — OMPL defaults to RRTConnect, and
         # setting it explicitly triggers "Cannot find planning configuration"
         # warnings unless the config lists the named planner.
@@ -447,6 +488,7 @@ class BaseStages:
         planner.goal_joint_tolerance = 1e-4
         planner.max_velocity_scaling_factor = self._velocity_scaling
         planner.max_acceleration_scaling_factor = self._acceleration_scaling
+        self._task_planner_cache[("ompl",)] = planner
         return planner
 
     def make_cartesian_planner(self) -> core.CartesianPath:
@@ -455,11 +497,15 @@ class BaseStages:
         Returns:
             Configured CartesianPath planner
         """
+        cached = self._task_planner_cache.get(("cartesian",))
+        if cached is not None:
+            return cached
         planner = core.CartesianPath()
         planner.max_velocity_scaling_factor = self._velocity_scaling
         planner.max_acceleration_scaling_factor = self._acceleration_scaling
         planner.step_size = 0.0005 # 1mm steps - good for collision detection
         planner.min_fraction = 0.9  # Require near-complete path (was 0.6)
+        self._task_planner_cache[("cartesian",)] = planner
         return planner
 
     def make_pilz_planner(self, mode: str = "LIN") -> core.PipelinePlanner:
@@ -468,6 +514,9 @@ class BaseStages:
         Args:
             mode: "LIN" (straight-line Cartesian) or "PTP" (point-to-point joint)
         """
+        cached = self._task_planner_cache.get(("pilz", mode))
+        if cached is not None:
+            return cached
         # Jazzy MTC dropped the mutable .planner attribute; planner_id is now a
         # constructor kwarg.
         planner = core.PipelinePlanner(
@@ -475,6 +524,7 @@ class BaseStages:
         )
         planner.max_velocity_scaling_factor = self._velocity_scaling
         planner.max_acceleration_scaling_factor = self._acceleration_scaling
+        self._task_planner_cache[("pilz", mode)] = planner
         return planner
 
     def make_joint_interpolation_planner(self) -> core.JointInterpolationPlanner:
@@ -483,9 +533,13 @@ class BaseStages:
         Returns:
             Configured JointInterpolationPlanner
         """
+        cached = self._task_planner_cache.get(("joint_interp",))
+        if cached is not None:
+            return cached
         planner = core.JointInterpolationPlanner()
         planner.max_velocity_scaling_factor = self._velocity_scaling
         planner.max_acceleration_scaling_factor = self._acceleration_scaling
+        self._task_planner_cache[("joint_interp",)] = planner
         return planner
 
     def _set_ik_frame(self, stage) -> None:
@@ -620,23 +674,40 @@ class BaseStages:
         """
         try:
             self.logger.info(f"Initializing task: {task.name}")
+            # Wall vs CPU discriminator (planning-latency diagnosis): time.monotonic()
+            # is wall-clock; time.process_time() is CPU across all threads in this
+            # process. wall >> CPU ⇒ the call BLOCKED (executor contention, GIL
+            # starvation, or service/DDS waits — H2/H3); wall ≈ CPU ⇒ the time is
+            # real computation (model load / planning — H1/H4). This is the single
+            # cleanest split between the contention vs compute hypotheses.
             _t = time.monotonic()
+            _c = time.process_time()
             try:
                 task.init()
             except Exception as e:
                 error = f"Task init failed for '{task.name}': {e}"
                 self.logger.error(error)
                 return error
-            self.logger.info(f"[TIMING] task.init(): {time.monotonic() - _t:.2f}s")
+            self.logger.info(
+                f"[TIMING] task.init(): wall={time.monotonic() - _t:.2f}s "
+                f"cpu={time.process_time() - _c:.2f}s"
+            )
 
             self.logger.info(f"Planning task: {task.name}")
             _t = time.monotonic()
+            _c = time.process_time()
             if not task.plan(max_solutions=1):
                 error = f"PLANNING_FAILED: No motion plan found for task '{task.name}'"
                 self.logger.error(error)
                 return error
 
-            self.logger.info(f"[TIMING] task.plan(): {time.monotonic() - _t:.2f}s")
+            _plan_wall = time.monotonic() - _t
+            _plan_cpu = time.process_time() - _c
+            self.logger.info(
+                f"[TIMING] task.plan(): wall={_plan_wall:.2f}s cpu={_plan_cpu:.2f}s "
+                f"(wall-cpu gap={_plan_wall - _plan_cpu:.2f}s ⇒ "
+                f"{'BLOCKED/contention' if _plan_wall - _plan_cpu > 0.5 * max(_plan_wall, 0.01) else 'compute-bound'})"
+            )
 
             if not task.solutions:
                 error = f"PLANNING_FAILED: No solutions found for task '{task.name}'"
@@ -654,6 +725,23 @@ class BaseStages:
             try:
                 sol = task.solutions[0]
                 sol_msg = sol.toMsg()
+                # Which planner branch actually solved each sub-trajectory?
+                # The Fallbacks(Pilz PTP → OMPL) chain names the winning stage in
+                # sub.info.creator_name / sub.execution_info — log it so we can
+                # see whether the slow tail is OMPL firing after a Pilz failure
+                # (H4). info field availability varies by MTC build, so guard.
+                for i, sub in enumerate(sol_msg.sub_trajectory):
+                    creator = ""
+                    for attr in ("info",):
+                        info = getattr(sub, attr, None)
+                        if info is not None:
+                            creator = (getattr(info, "creator_name", "")
+                                       or getattr(info, "stage_name", "")
+                                       or getattr(info, "comment", ""))
+                            if creator:
+                                break
+                    pts = len(sub.trajectory.joint_trajectory.points)
+                    self.logger.info(f"[TIMING]   solved_stage[{i}]: '{creator}' ({pts} pts)")
                 for i, sub in enumerate(sol_msg.sub_trajectory):
                     traj = sub.trajectory.joint_trajectory
                     if traj.joint_names and traj.points:
@@ -852,12 +940,24 @@ class BaseStages:
             (lambda: self.make_pilz_planner("PTP"), "Pilz PTP"),
             (self.make_pipeline_planner, "OMPL"),
         ]:
-            stage = stages.MoveTo(f"{label} [{suffix}]", planner_fn())
+            _tp = time.monotonic()
+            planner = planner_fn()
+            _t0 = time.monotonic()
+            stage = stages.MoveTo(f"{label} [{suffix}]", planner)
+            _t1 = time.monotonic()
             stage.group = self.arm_group
             self._set_ik_frame(stage)
+            _t2 = time.monotonic()
             stage.setGoal(joint_goal)
+            _t3 = time.monotonic()
             apply_constraints(stage, constraints)
             fb.add(stage)
+            _t4 = time.monotonic()
+            self.logger.info(
+                f"[TIMING]   named_stage[{suffix}]: planner={_t0-_tp:.2f} "
+                f"MoveTo={_t1-_t0:.2f} ikframe={_t2-_t1:.2f} "
+                f"setGoal={_t3-_t2:.2f} add={_t4-_t3:.2f}"
+            )
         return fb
 
     def make_gripper_stage(
@@ -900,7 +1000,6 @@ class BaseStages:
         Returns:
             Joint dict {name: radians} for the arm group, or None on failure.
         """
-        _t_ik = time.monotonic()
         js_holder = [None]
         js_event = threading.Event()
 
@@ -911,7 +1010,6 @@ class BaseStages:
         js_sub = self.rclpy_node.create_subscription(JointState, '/joint_states', _on_js, 10)
         js_event.wait(timeout=1.0)
         self.rclpy_node.destroy_subscription(js_sub)
-        self.logger.info(f"[TIMING] IK joint_state seed wait: {time.monotonic() - _t_ik:.2f}s")
 
         if not js_holder[0]:
             self.logger.warning("No joint_states for IK seed")
@@ -924,12 +1022,10 @@ class BaseStages:
             quantized.append(math.radians(deg_q))
 
         try:
-            _t_svc = time.monotonic()
             ik_client = self.rclpy_node.create_client(GetPositionIK, '/compute_ik')
             if not ik_client.wait_for_service(timeout_sec=2.0):
                 self.logger.warning("/compute_ik service not available")
                 return None
-            self.logger.info(f"[TIMING] /compute_ik wait_for_service: {time.monotonic() - _t_svc:.2f}s")
 
             req = GetPositionIK.Request()
             req.ik_request.group_name = self.arm_group
@@ -939,14 +1035,12 @@ class BaseStages:
             req.ik_request.pose_stamped = approach
             req.ik_request.timeout.sec = 1
 
-            _t_call = time.monotonic()
             future = ik_client.call_async(req)
             if not wait_for_future(future, timeout=5.0):
                 self.logger.warning("/compute_ik timed out")
                 self.rclpy_node.destroy_client(ik_client)
                 return None
             self.rclpy_node.destroy_client(ik_client)
-            self.logger.info(f"[TIMING] /compute_ik call: {time.monotonic() - _t_call:.2f}s")
 
             result = future.result()
             if result and result.error_code.val == 1:  # SUCCESS

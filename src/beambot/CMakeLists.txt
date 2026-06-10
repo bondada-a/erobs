@@ -53,6 +53,8 @@ install(PROGRAMS
   scripts/test_wafer_detection.py
   scripts/test_contour_detection.py
   scripts/test_sample_detection.py
+  # Rosbag helper: periodic Zivid capture trigger
+  scripts/trigger_zivid_capture.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

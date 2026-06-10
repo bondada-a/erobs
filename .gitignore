@@ -124,6 +124,7 @@ frames_*.gv
 # ROS bag recordings (can be large)
 *.bag
 *.db3
+rosbag2_*/
 src/moveit_task_constructor/
 yolov8n.pt
 
@@ -150,6 +151,16 @@ state/
 
 # Training data (large files)
 src/beambot/data/spincoater_training/
+src/beambot/data/yolo_dataset/spincoater_obb/
 
 # Understand-Anything generated knowledge graph (per-dev tooling output)
 .understand-anything/
+
+# VLM service (large local models / venv — not shared via git)
+vlm_service/
+
+# Planning-latency investigation scratch (probe scripts, plots, diagnostic notes — local only)
+latency_analysis/
+
+# Debug capture images (keep root clean)
+marker_sheet_detections*.png

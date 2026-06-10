@@ -147,13 +147,17 @@ class TestRealWorldSequences:
 
 
 # ---------------------------------------------------------------------------
-# Breaker actions — ePick grasp (vacuum_on) must run as its own step
+# Breaker actions — the planner can demote a named end_effector_action to a
+# single-task batch. NOTE: the orchestrator currently passes NO breakers
+# (_grasp_breaker_actions returns set()), so ePick vacuum_on is batched in
+# practice. These tests cover the planner mechanism itself, which is retained
+# so grasp-breaking (or a dwell-stage variant) can be re-enabled cheaply.
 # ---------------------------------------------------------------------------
 
 class TestBreakerActions:
 
-    def test_grasp_splits_batch(self):
-        """vacuum_on is demoted to a single batch; surrounding moves stay batched."""
+    def test_grasp_splits_batch_when_flagged(self):
+        """When vacuum_on IS passed as a breaker, it splits; surrounding moves stay batched."""
         tasks = [
             _task("moveto", target="spincoat"),
             _task("end_effector", end_effector_action="vacuum_on"),
@@ -221,6 +225,24 @@ class TestBreakerActions:
         assert _types(result) == [
             ("batched", ["moveto", "end_effector", "moveto"]),
         ]
+
+    def test_current_epick_policy_fuses_grasp(self):
+        """Current orchestrator policy: no breakers passed → vacuum_on fuses into
+        one batch with vacuum_off and all moves, matching the live ePick run."""
+        tasks = [
+            _task("moveto", target="pre_spincoat"),
+            _task("moveto", target="spincoat"),
+            _task("end_effector", end_effector_action="vacuum_on"),
+            _task("moveto", target="pre_spincoat"),
+            _task("moveto", target="hotplate"),
+            _task("end_effector", end_effector_action="vacuum_off"),
+            _task("moveto", target="pre_hotplate"),
+        ]
+        # Orchestrator calls group_into_batches with no breaker_actions.
+        result = group_into_batches(tasks)
+        assert len(result) == 1
+        assert result[0][0] == "batched"
+        assert len(result[0][1]) == 7
 
 
 # ---------------------------------------------------------------------------

@@ -34,6 +34,26 @@ class VacuumMonitor:
         self.status: 'int | None' = None
         self.last_error = ""
 
+        # Subscription DISABLED for performance.
+        #
+        # /object_detection_status arrives at a high rate (~250 Hz) and each
+        # message grabs the GIL in this GIL-bound Python process, contending
+        # with the goal-execution thread. The vacuum-loss ABORT was already
+        # disabled in the orchestrator (commit 88b3d4e — sequences continue
+        # regardless of drop detection), so this subscription fed nothing
+        # actionable. Leaving it active was pure GIL overhead.
+        #
+        # arm/disarm bookkeeping (update_after_tasks) and check_lost() still
+        # work; without the subscription self.lost never flips to True, which
+        # matches the current "no abort on drop" behavior. To restore live drop
+        # detection, set _SUBSCRIBE = True below AND re-enable the abort checks
+        # in the orchestrator.
+        _SUBSCRIBE = False
+
+        if not _SUBSCRIBE:
+            self._sub = None
+            return
+
         try:
             from epick_msgs.msg import ObjectDetectionStatus
         except ImportError:

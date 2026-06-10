@@ -1,5 +1,5 @@
 {
-  "start_gripper": "epick",
+  "start_gripper": "pipettor",
   "poses": {
     "home": [
       0.0,
@@ -124,46 +124,18 @@
   },
   "tasks": [
     {
-      "task_type": "moveto",
-      "target": "sample_scan_1",
-      "planning_type": "joint"
+      "task_type": "pickup_tip",
+      "row": 0,
+      "col": 5,
+      "position": "A6"
     },
     {
-      "task_type": "vision_moveto",
-      "detection_type": "marker",
-      "tag_id": 0,
-      "timeout": 10.0,
-      "z_offset": 0.0,
-      "marker_dictionary": "aruco4x4_50",
-      "detect_only": false,
-      "marker_offset_x": 0.017
-    },
-    {
-      "task_type": "end_effector",
-      "end_effector_type": "epick",
-      "end_effector_action": "vacuum_on"
-    },
-    {
-      "task_type": "moveto",
-      "target": "sample_scan_1",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "place_spincoater",
-      "scan_pose": "spincoater_scan",
-      "place_pose": "spincoater_place",
-      "forward_distance": 0.003,
-      "k_offset": 0.0
-    },
-    {
-      "task_type": "moveto",
-      "target": "spincoater_place",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "moveto",
-      "target": "spincoater_scan",
-      "planning_type": "joint"
+      "task_type": "pickup_vial",
+      "row": 0,
+      "col": 2,
+      "position": "A3",
+      "pipettor_operation": "SUCK",
+      "volume_pct": 0.5
     },
     {
       "task_type": "moveto",
@@ -171,19 +143,15 @@
       "planning_type": "joint"
     },
     {
-      "task_type": "tool_exchange",
-      "operation": "dock",
-      "gripper": "epick",
-      "dock_number": 4,
-      "approach_pose": "dock_approach"
+      "task_type": "moveto",
+      "target": "pipettor_pre_dispense",
+      "planning_type": "joint"
     },
     {
-      "task_type": "tool_exchange",
-      "operation": "load",
-      "gripper": "pipettor",
-      "dock_number": 3,
-      "approach_pose": "load_approach"
+      "task_type": "moveto",
+      "target": "pipettor_dispense",
+      "planning_type": "joint"
     }
   ],
-  "run_name": "sample_to_spincoater"
+  "run_name": "anti_solvent_hold"
 }

@@ -230,15 +230,32 @@ class MTCOrchestratorServer(Node):
             callback_group=self._callback_group,
         )
 
-        # Joint state subscription for dry-run plan-cache validation. We only
-        # need the latest snapshot, so depth=1 + sensor-style QoS is fine.
-        self.create_subscription(
-            JointState,
-            "/joint_states",
-            self._joint_state_cb,
-            10,
-            callback_group=self._callback_group,
-        )
+        # Joint state subscription DISABLED for performance.
+        #
+        # This subscription fed ONLY the dry-run plan-cache joint-drift check
+        # (_snapshot_arm_joints → _validate_plan_cache). At ~500 Hz it was one
+        # of the largest sources of GIL contention in this (GIL-bound) Python
+        # process — every message woke the executor and grabbed the interpreter
+        # lock, starving the goal-execution thread (measured: ~5 s wall / 0.02 s
+        # CPU per moveto stage-build, i.e. the thread was blocked, not working).
+        #
+        # Disabling it loses only the dry-run drift PRE-check: if the arm is
+        # physically moved between a GUI dry-run preview and Execute, MoveIt
+        # still rejects the stale start state at execute time with
+        # INVALID_ROBOT_STATE (see _validate_plan_cache lines ~521-524). The
+        # CACHE_KEY_MISMATCH / CACHE_GRIPPER_CHANGED checks don't need joints.
+        #
+        # To restore the drift pre-check, re-enable the subscription below.
+        # NOTE: compute_deterministic_ik in base_stages.py uses its own
+        # short-lived, on-demand /joint_states subscription — that path is
+        # unaffected by this change.
+        # self.create_subscription(
+        #     JointState,
+        #     "/joint_states",
+        #     self._joint_state_cb,
+        #     10,
+        #     callback_group=self._callback_group,
+        # )
 
         # Pause/Resume services
         self._pause_service = self.create_service(
@@ -626,21 +643,21 @@ class MTCOrchestratorServer(Node):
     def _grasp_breaker_actions(self, gripper: str) -> set[str]:
         """Return end_effector_action values that must NOT be batched for this gripper.
 
-        Only ePick's grasp (vacuum_on) qualifies: the suction seal must settle
-        before the arm transports, so the grasp runs as its own discrete step
-        rather than fusing into a continuous trajectory with the following
-        move. Mechanical grippers (HandE, 2fg7) close fast and reliably, so
-        their grasps remain batchable — preserving prior behavior. The release
-        action is never a breaker; losing grip early on a release is harmless.
+        Currently empty for every gripper: ePick's grasp (vacuum_on) is now
+        batched alongside surrounding moves, just like vacuum_off already is.
+        The drop-detection watchdog that originally motivated breaking the
+        batch is disabled (the 3mm sample is too small to give a reliable
+        ObjectDetectionStatus seal signal), so a per-grasp step boundary no
+        longer protects anything.
 
-        The grasp state name is read from the active beamline YAML
-        (grippers.<gripper>.states.grasp) so it tracks the SRDF group_state
-        name rather than being hard-coded to "vacuum_on".
+        The plumbing is retained for two reasons: (1) re-adding ePick grasp as
+        a breaker is a one-line change here (return the grasp state name read
+        from grippers.<gripper>.states.grasp), and (2) if fused grasps drop the
+        sample because the suction seal hasn't formed before the arm departs,
+        the fix is a short dwell stage after the vacuum_on MoveTo — not
+        reverting to per-step execution.
         """
-        if gripper != "epick":
-            return set()
-        grasp_state = self._grippers.get("epick", {}).get("states", {}).get("grasp")
-        return {grasp_state} if grasp_state else set()
+        return set()
 
     def _execute_batch(
         self,
@@ -698,10 +715,19 @@ class MTCOrchestratorServer(Node):
         for i, batch_task in enumerate(batch_tasks):
             task_type = batch_task.get("task_type", "")
             error = None
+            _t_add = time.monotonic()
+            _c_add = time.thread_time()  # CPU time on THIS thread
 
             if task_type == "moveto":
+                _t_goal = time.monotonic()
                 goal = self._create_moveto_goal(batch_task, poses_json)
+                _t_a2t = time.monotonic()
                 error = moveto_stage.add_to_task(task, goal)
+                _t_a2t_end = time.monotonic()
+                self.get_logger().info(
+                    f"[TIMING]   split[{i}]: create_goal={_t_a2t-_t_goal:.2f}s "
+                    f"add_to_task_call={_t_a2t_end-_t_a2t:.2f}s"
+                )
 
             elif task_type == "end_effector":
                 goal = self._create_endeffector_goal(batch_task)
@@ -711,6 +737,12 @@ class MTCOrchestratorServer(Node):
                 self._last_error = f"Unknown batchable type: {task_type}"
                 self.get_logger().error(self._last_error)
                 return False
+
+            self.get_logger().info(
+                f"[TIMING] add_to_task[{i}] ({task_type}): "
+                f"wall={time.monotonic() - _t_add:.2f}s "
+                f"cpu={time.thread_time() - _c_add:.2f}s"
+            )
 
             if error is not None:
                 self._last_error = f"Batch task {i} ({task_type}): {error}"
@@ -866,13 +898,11 @@ class MTCOrchestratorServer(Node):
         # Publish running state before starting task execution
         self._publish_state("RUNNING")
 
-        # Group tasks into batches for optimized execution.
-        # ePick is no longer a blanket batching exclusion. Instead the grasp
-        # action (vacuum_on) is treated as a batch breaker so it runs as its
-        # own discrete step — the suction seal must settle before the arm
-        # transports the object, which a fused continuous trajectory wouldn't
-        # guarantee. The release action (vacuum_off) stays batchable and fuses
-        # with adjacent moves; losing grip early on a release is harmless.
+        # Group tasks into batches for optimized execution. All end_effector
+        # actions (including ePick vacuum_on/off) currently batch with adjacent
+        # moves — _grasp_breaker_actions returns no breakers (see its docstring
+        # for the rationale and the dwell-stage fallback). The breaker_actions
+        # plumbing is retained so grasp-breaking can be re-enabled cheaply.
         # Dry-run and live runs share this same grouping so a previewed plan
         # replays against an identical batch structure.
         breaker_actions = self._grasp_breaker_actions(start_gripper)

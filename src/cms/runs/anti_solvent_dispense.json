@@ -124,50 +124,8 @@
   },
   "tasks": [
     {
-      "task_type": "pickup_tip",
-      "row": 0,
-      "col": 1,
-      "position": "A2"
-    },
-    {
-      "task_type": "pickup_vial",
-      "row": 0,
-      "col": 1,
-      "position": "A2"
-    },
-    {
-      "task_type": "moveto",
-      "target": "safe_sample_transport",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "moveto",
-      "target": "pipettor_pre_dispense",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "moveto",
-      "target": "pipettor_dispense",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "moveto",
-      "target": "pipettor_pre_dispense",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "moveto",
-      "target": "safe_sample_transport",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "moveto",
-      "target": "pipettor_pre_tip_eject",
-      "planning_type": "joint"
-    },
-    {
       "task_type": "pipettor",
-      "operation": "EJECT_TIP",
+      "operation": "EXPEL",
       "volume_pct": 0.5,
       "led_color": {
         "r": 0.0,
@@ -176,5 +134,5 @@
       }
     }
   ],
-  "run_name": "anti_solvent_dispense"
+  "run_name": "3. anti_solvent_dispense"
 }

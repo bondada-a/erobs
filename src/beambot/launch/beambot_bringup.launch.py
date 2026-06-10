@@ -87,12 +87,23 @@ def generate_launch_description():
         description='LTTng session name (timestamp is appended automatically)'
     )
 
+    declare_orchestrator_log_level = DeclareLaunchArgument(
+        'orchestrator_log_level',
+        default_value='info',
+        description='Logger severity for the orchestrator node (debug|info|warn|'
+                    'error). Set to "warn" to suppress the ~25 INFO lines/goal '
+                    'on the hot path — diagnostic for the planning-latency '
+                    'investigation (does suppressing INFO collapse early-goal '
+                    'latency?). Default "info" preserves normal behavior.'
+    )
+
     enable_vision = LaunchConfiguration('enable_vision')
     enable_pipettor = LaunchConfiguration('enable_pipettor')
     use_mock_hardware = LaunchConfiguration('use_mock_hardware')
     enable_batching = LaunchConfiguration('enable_batching')
     enable_tracing = LaunchConfiguration('enable_tracing')
     trace_session_name = LaunchConfiguration('trace_session_name')
+    orchestrator_log_level = LaunchConfiguration('orchestrator_log_level')
 
     # ros2_tracing: opt-in via enable_tracing:=true. Instruments every rclcpp
     # callback, publish, take, and executor event across all nodes launched
@@ -220,7 +231,10 @@ def generate_launch_description():
             {'use_mock_hardware': use_mock_hardware},
             {'enable_batching': enable_batching},
         ],
-        arguments=ompl_args,
+        arguments=ompl_args + [
+            '--ros-args', '--log-level',
+            ['beambot_orchestrator:=', orchestrator_log_level],
+        ],
     )
 
     return LaunchDescription([
@@ -231,6 +245,7 @@ def generate_launch_description():
         declare_enable_batching,
         declare_enable_tracing,
         declare_trace_session_name,
+        declare_orchestrator_log_level,
         # Tracing (conditional - must come BEFORE any Node so tracepoints
         # in those processes are captured from process start)
         trace_action,

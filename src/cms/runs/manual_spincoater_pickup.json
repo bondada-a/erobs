@@ -125,39 +125,12 @@
   "tasks": [
     {
       "task_type": "moveto",
-      "target": "sample_scan_1",
+      "target": "safe_tool_exchange",
       "planning_type": "joint"
     },
     {
-      "task_type": "vision_moveto",
-      "detection_type": "marker",
-      "tag_id": 0,
-      "timeout": 10.0,
-      "z_offset": 0.0,
-      "marker_dictionary": "aruco4x4_50",
-      "detect_only": false,
-      "marker_offset_x": 0.017
-    },
-    {
-      "task_type": "end_effector",
-      "end_effector_type": "epick",
-      "end_effector_action": "vacuum_on"
-    },
-    {
       "task_type": "moveto",
-      "target": "sample_scan_1",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "place_spincoater",
-      "scan_pose": "spincoater_scan",
-      "place_pose": "spincoater_place",
-      "forward_distance": 0.003,
-      "k_offset": 0.0
-    },
-    {
-      "task_type": "moveto",
-      "target": "spincoater_place",
+      "target": "safe_sample_transport",
       "planning_type": "joint"
     },
     {
@@ -167,23 +140,33 @@
     },
     {
       "task_type": "moveto",
-      "target": "safe_sample_transport",
+      "target": "spincoater_place",
       "planning_type": "joint"
     },
     {
-      "task_type": "tool_exchange",
-      "operation": "dock",
-      "gripper": "epick",
-      "dock_number": 4,
-      "approach_pose": "dock_approach"
+      "task_type": "moveto",
+      "target": "moveit_home",
+      "planning_type": "joint",
+      "direction": "forward",
+      "distance": 0.003
     },
     {
-      "task_type": "tool_exchange",
-      "operation": "load",
-      "gripper": "pipettor",
-      "dock_number": 3,
-      "approach_pose": "load_approach"
+      "task_type": "end_effector",
+      "end_effector_type": "epick",
+      "end_effector_action": "vacuum_on"
+    },
+    {
+      "task_type": "moveto",
+      "target": "spincoater_place",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "moveit_home",
+      "planning_type": "joint",
+      "direction": "backward",
+      "distance": 0.047
     }
   ],
-  "run_name": "sample_to_spincoater"
+  "run_name": "5.manual_spincoater_pickup"
 }

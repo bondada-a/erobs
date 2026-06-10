@@ -40,10 +40,25 @@ class MoveItLifecycleManager:
     ALLOWED_TOOL_VOLTAGES = frozenset({0, 12, 24})
 
     @property
-    def ARM_JOINTS(self) -> tuple:
-        """Arm joint names from the active beamline YAML."""
-        from beambot.config_loader import arm_joint_names
-        return tuple(arm_joint_names())
+    def ARM_JOINTS(self) -> frozenset:
+        """Arm joint names from the active beamline YAML, memoized.
+
+        Cached on first access: the joint set is fixed for the process
+        lifetime (it comes from the beamline YAML, which does not change
+        while running). Previously this re-read and re-parsed the YAML from
+        disk on EVERY access — and it is accessed from `_joint_state_cb`,
+        which fires per /joint_states message (~500 Hz). Across the
+        executor's worker pool that produced a continuous storm of
+        yaml.safe_load() calls that thrashed the GIL and starved goal
+        planning (proven via py-spy). Memoizing collapses it to one parse,
+        and a frozenset makes the per-message membership test O(1).
+        """
+        cached = getattr(self, "_arm_joints_cache", None)
+        if cached is None:
+            from beambot.config_loader import arm_joint_names
+            cached = frozenset(arm_joint_names())
+            self._arm_joints_cache = cached
+        return cached
 
     def __init__(self, node: Node, grippers: dict, robot_ip: str, callback_group=None,
                  use_mock_hardware: bool = False):

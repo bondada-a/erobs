@@ -1,5 +1,5 @@
 {
-  "start_gripper": "pipettor",
+  "start_gripper": "epick",
   "poses": {
     "home": [
       0.0,
@@ -123,20 +123,6 @@
     ]
   },
   "tasks": [
-    {
-      "task_type": "tool_exchange",
-      "operation": "dock",
-      "gripper": "pipettor",
-      "dock_number": 3,
-      "approach_pose": "dock_approach"
-    },
-    {
-      "task_type": "tool_exchange",
-      "operation": "load",
-      "gripper": "epick",
-      "dock_number": 4,
-      "approach_pose": "load_approach"
-    },
     {
       "task_type": "moveto",
       "target": "safe_tool_exchange",

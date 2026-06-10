@@ -125,49 +125,17 @@
   "tasks": [
     {
       "task_type": "moveto",
-      "target": "sample_scan_1",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "vision_moveto",
-      "detection_type": "marker",
-      "tag_id": 0,
-      "timeout": 10.0,
-      "z_offset": 0.0,
-      "marker_dictionary": "aruco4x4_50",
-      "detect_only": false,
-      "marker_offset_x": 0.017
-    },
-    {
-      "task_type": "end_effector",
-      "end_effector_type": "epick",
-      "end_effector_action": "vacuum_on"
-    },
-    {
-      "task_type": "moveto",
-      "target": "sample_scan_1",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "place_spincoater",
-      "scan_pose": "spincoater_scan",
-      "place_pose": "spincoater_place",
-      "forward_distance": 0.003,
-      "k_offset": 0.0
-    },
-    {
-      "task_type": "moveto",
-      "target": "spincoater_place",
-      "planning_type": "joint"
-    },
-    {
-      "task_type": "moveto",
       "target": "spincoater_scan",
       "planning_type": "joint"
     },
     {
       "task_type": "moveto",
       "target": "safe_sample_transport",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "safe_tool_exchange",
       "planning_type": "joint"
     },
     {
@@ -185,5 +153,5 @@
       "approach_pose": "load_approach"
     }
   ],
-  "run_name": "sample_to_spincoater"
+  "run_name": "1. after_hotplate_toolchange"
 }

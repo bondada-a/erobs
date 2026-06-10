@@ -8,7 +8,6 @@ Handles MoveTo operations:
 
 import json
 import math
-import time
 
 import rclpy
 from geometry_msgs.msg import PoseStamped
@@ -17,7 +16,7 @@ from tf2_ros import Buffer, TransformListener
 from tf_transformations import quaternion_from_euler, euler_from_quaternion
 
 from beambot.stages.base_stages import (
-    BaseStages, joints_from_degrees, parse_constraints, apply_constraints,
+    BaseStages, parse_constraints, apply_constraints,
 )
 
 # Gripper tip frames are sourced from the active beamline YAML's
@@ -83,11 +82,11 @@ class MoveToStages(BaseStages):
                     rclpy.time.Time(),
                     timeout=rclpy.duration.Duration(seconds=1.0),
                 ):
-                    self.logger.info(f"Detected gripper tip frame: {frame}")
+                    self.logger.debug(f"Detected gripper tip frame: {frame}")
                     return frame
             except Exception:
                 continue
-        self.logger.info("No gripper tip frame detected, using flange")
+        self.logger.debug("No gripper tip frame detected, using flange")
         return "flange"
 
     def add_to_task(self, task: core.Task, goal, planner=None) -> str | None:
@@ -119,26 +118,26 @@ class MoveToStages(BaseStages):
         if not use_fallback and planner is None:
             if planning_type == "cartesian":
                 planner = self.make_cartesian_planner()
-                self.logger.info("Using Cartesian planner")
+                self.logger.debug("Using Cartesian planner")
             elif planning_type == "pilz":
                 planner = self.make_pilz_planner("LIN")
-                self.logger.info("Using Pilz LIN planner")
+                self.logger.debug("Using Pilz LIN planner")
             elif planning_type == "pilz_ptp":
                 planner = self.make_pilz_planner("PTP")
-                self.logger.info("Using Pilz PTP planner")
+                self.logger.debug("Using Pilz PTP planner")
             else:
                 planner = self.make_pipeline_planner()
-                self.logger.info("Using pipeline planner (OMPL)")
+                self.logger.debug("Using pipeline planner (OMPL)")
 
         if use_fallback:
-            self.logger.info("Using fallback planning (auto)")
+            self.logger.debug("Using fallback planning (auto)")
 
         # Parse optional constraints
         constraints = parse_constraints(
             json.loads(goal.constraints_json) if goal.constraints_json else None
         )
         if constraints is not None:
-            self.logger.info("Path constraints active for this move")
+            self.logger.debug("Path constraints active for this move")
 
         # Case 1: Relative move (direction + distance)
         if goal.direction and goal.distance != 0.0:
@@ -148,7 +147,7 @@ class MoveToStages(BaseStages):
                 planner=planner, constraints=constraints
             )
             task.add(stage)
-            self.logger.info(
+            self.logger.debug(
                 f"Planning relative move: {goal.direction} {goal.distance}m"
             )
             return None
@@ -175,7 +174,7 @@ class MoveToStages(BaseStages):
                 # Preserves the robot's current yaw to avoid unreachable orientations
                 current_yaw = self._get_current_yaw(active_ik_frame)
                 q = quaternion_from_euler(math.pi, 0.0, current_yaw)
-                self.logger.info(f"Using current yaw from {active_ik_frame}: {math.degrees(current_yaw):.1f}°")
+                self.logger.debug(f"Using current yaw from {active_ik_frame}: {math.degrees(current_yaw):.1f}°")
 
             pose.pose.orientation.x = q[0]
             pose.pose.orientation.y = q[1]
@@ -232,7 +231,7 @@ class MoveToStages(BaseStages):
                     move_stage.setGoal(pose)
                     apply_constraints(move_stage, constraints)
                     task.add(move_stage)
-            self.logger.info(
+            self.logger.debug(
                 f"Planning Cartesian move to "
                 f"[{pose.pose.position.x:.3f}, {pose.pose.position.y:.3f}, "
                 f"{pose.pose.position.z:.3f}] in {pose.header.frame_id} "
@@ -260,7 +259,7 @@ class MoveToStages(BaseStages):
                 if not stage:
                     return f"Pose '{goal.target}' not found or invalid"
                 task.add(stage)
-                self.logger.info(f"Planning move to joint pose: {goal.target}")
+                self.logger.debug(f"Planning move to joint pose: {goal.target}")
             else:
                 # SRDF named state
                 if use_fallback:
@@ -284,7 +283,7 @@ class MoveToStages(BaseStages):
                     move_stage.setGoal(goal.target)
                     apply_constraints(move_stage, constraints)
                     task.add(move_stage)
-                self.logger.info(f"Planning move to named state: {goal.target}")
+                self.logger.debug(f"Planning move to named state: {goal.target}")
 
             return None
 
@@ -312,20 +311,10 @@ class MoveToStages(BaseStages):
         Returns:
             None if successful, error string describing failure otherwise
         """
-        _t_run = time.monotonic()
         task = self.create_task_template("MoveTo Task")
 
-        _t_add = time.monotonic()
         error = self.add_to_task(task, goal)
-        self.logger.info(
-            f"[TIMING] add_to_task (TF + IK + stage build): "
-            f"{time.monotonic() - _t_add:.2f}s"
-        )
         if error is not None:
             return error
 
-        result = self.load_plan_execute(task)
-        self.logger.info(
-            f"[TIMING] MoveTo run() total: {time.monotonic() - _t_run:.2f}s"
-        )
-        return result
+        return self.load_plan_execute(task)

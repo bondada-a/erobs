@@ -1,0 +1,109 @@
+# Zivid "Manufacturing: Specular" 3D capture preset.
+# Tuned for shiny / reflective parts needing high dynamic range.
+# Serialized from the Zivid SDK 2.17.1 for model zivid2PlusMR60 (the camera at
+# this beamline). Presets are coupled to SDK versions, so this file pins the
+# values. Re-extract with the same SDK if the camera/SDK changes.
+# Used by scripts/trigger_zivid_capture.py (default --settings-file).
+__version__: 27
+Settings:
+  Acquisitions:
+    - Acquisition:
+        Aperture: 2.83
+        Brightness: 1.25
+        ExposureTime: 900
+        Gain: 2
+    - Acquisition:
+        Aperture: 2.83
+        Brightness: 2.5
+        ExposureTime: 5000
+        Gain: 2
+  Color:
+    __version__: 8
+    Settings2D:
+      Acquisitions:
+        - Acquisition:
+            Aperture: 2.83
+            Brightness: 2.5
+            ExposureTime: 900
+            Gain: 2
+      Processing:
+        Color:
+          Balance:
+            Blue: 1
+            Green: 1
+            Red: 1
+          Experimental:
+            Mode: automatic
+          Gamma: 1
+      Sampling:
+        Color: rgb
+        Interval:
+          Duration: __not_set__
+          Enabled: __not_set__
+        Pixel: by2x2
+  Diagnostics:
+    Enabled: no
+  Engine: sage
+  Processing:
+    Color:
+      Balance:
+        Blue: __not_set__
+        Green: __not_set__
+        Red: __not_set__
+      Experimental:
+        Mode: __not_set__
+      Gamma: __not_set__
+    Filters:
+      Cluster:
+        Removal:
+          Enabled: yes
+          MaxNeighborDistance: 3.5
+          MinArea: 50
+      Experimental:
+        ContrastDistortion:
+          Correction:
+            Enabled: yes
+            Strength: 0.2
+          Removal:
+            Enabled: yes
+            Threshold: 0.3
+      Hole:
+        Repair:
+          Enabled: yes
+          HoleSize: 0.3
+          Strictness: 4
+      Noise:
+        Removal:
+          Enabled: yes
+          Threshold: 2
+        Repair:
+          Enabled: yes
+        Suppression:
+          Enabled: no
+      Outlier:
+        Removal:
+          Enabled: yes
+          Threshold: 5
+      Reflection:
+        Removal:
+          Enabled: yes
+          Mode: global
+      Smoothing:
+        Gaussian:
+          Enabled: yes
+          Sigma: 1.5
+    Resampling:
+      Mode: disabled
+  RegionOfInterest:
+    Box:
+      Enabled: no
+      Extents: [-10, 100]
+      PointA: [0, 0, 0]
+      PointB: [0, 0, 0]
+      PointO: [0, 0, 0]
+    Depth:
+      Enabled: no
+      Range: [300, 1100]
+  Sampling:
+    Color: __not_set__
+    Pixel: by2x2
