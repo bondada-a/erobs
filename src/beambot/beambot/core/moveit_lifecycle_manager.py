@@ -17,7 +17,6 @@ import time
 import traceback
 
 import yaml
-from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Pose
 from moveit_msgs.action import ExecuteTrajectory
 from moveit_msgs.msg import CollisionObject, PlanningScene
@@ -81,6 +80,12 @@ class MoveItLifecycleManager:
         self._moveit_process: subprocess.Popen | None = None
         self._current_gripper: str = ""
         self._current_voltage: int | None = None
+
+        # Runtime ePick cup-profile override (set by the orchestrator from the
+        # cup_profile ROS param). Kept here as instance state rather than
+        # written back into the shared, cached beamline config dict. Empty
+        # string ("") means "no override — use the gripper's YAML value".
+        self.cup_override: str = ""
 
         # Persistent joint state subscription for hardware verification.
         # Created once to avoid create/destroy races with MultiThreadedExecutor.
@@ -190,7 +195,10 @@ class MoveItLifecycleManager:
                 f"gripper:={gripper_arg}",
             ]
 
-            cup_profile = config.get("cup_profile")
+            # Runtime override (cup_override) wins over the gripper's YAML value.
+            # Only ePick's launch consumes cup_profile:=; it's an inert,
+            # default-valued arg for every other gripper's launch.
+            cup_profile = self.cup_override or config.get("cup_profile")
             if cup_profile:
                 cmd.append(f"cup_profile:={cup_profile}")
 

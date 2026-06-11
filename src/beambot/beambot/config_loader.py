@@ -9,12 +9,28 @@ deployment at a different beamline must declare itself, or nothing starts.
 """
 
 import os
+import threading
 from typing import Tuple
 
 import yaml
 
 
 _ENV_VAR = "BEAMBOT_BEAMLINE_CONFIG"
+
+# Process-lifetime memo of the parsed beamline config. The beamline is selected
+# once at startup (via BEAMBOT_BEAMLINE_CONFIG) and never changes mid-run, so we
+# parse the YAML exactly once and hand the same (dict, path) back to every
+# caller. This is load-bearing for performance: helpers like arm_joint_names()
+# are reached from ~500 Hz /joint_states callbacks; re-parsing the YAML on every
+# access thrashed the GIL and starved MTC planning (the goal->motion latency
+# bug). Double-checked locking mirrors spincoater._get_sample_model.
+#
+# The cached dict is SHARED — treat it as READ-ONLY. Mutating it (or any of its
+# sub-dicts) leaks into every other caller in the process. The one historical
+# runtime mutation (the cup_profile override) now lives on the orchestrator /
+# MoveItLifecycleManager instead of being written back into this dict.
+_config_cache: Tuple[dict, str] | None = None
+_config_cache_lock = threading.Lock()
 
 
 class BeamlineConfigError(RuntimeError):
@@ -47,11 +63,32 @@ def get_beamline_config_path() -> str:
 
 
 def load_beamline_config() -> Tuple[dict, str]:
-    """Load and return (parsed_yaml_dict, absolute_path_loaded_from).
+    """Return (parsed_yaml_dict, absolute_path_loaded_from), parsed once.
+
+    The YAML is parsed on the first call and memoized for the process lifetime
+    (see _config_cache). Every later call — from any of the ~30 helpers below,
+    at any frequency — returns the same cached objects without touching disk.
 
     The path is returned alongside the dict so callers can resolve sibling
     paths declared inside the YAML (poses_file, scene_file) relative to it.
+
+    IMPORTANT: the returned dict is shared and must be treated as READ-ONLY.
+
+    Failures are NOT cached: if the env var is unset or the file is unreadable
+    the exception propagates and _config_cache stays None, so a later call (once
+    the env is fixed) retries cleanly. This preserves the try/except fallbacks
+    in arm_joint_names() and friends.
     """
+    global _config_cache
+    if _config_cache is None:
+        with _config_cache_lock:
+            if _config_cache is None:
+                _config_cache = _load_beamline_config_uncached()
+    return _config_cache
+
+
+def _load_beamline_config_uncached() -> Tuple[dict, str]:
+    """Read and parse the beamline YAML from disk (no caching)."""
     path = get_beamline_config_path()
     try:
         with open(path, "r") as f:
@@ -61,6 +98,18 @@ def load_beamline_config() -> Tuple[dict, str]:
     if not isinstance(data, dict):
         raise BeamlineConfigError(f"{path}: expected a YAML mapping at root")
     return data, path
+
+
+def reset_beamline_config_cache() -> None:
+    """Clear the memoized config so the next load() re-parses from disk.
+
+    For test isolation (a test that points the env var at a different YAML) or
+    an explicit in-process reload. Not used on the normal robot path — the
+    beamline is fixed for the process lifetime.
+    """
+    global _config_cache
+    with _config_cache_lock:
+        _config_cache = None
 
 
 _DEFAULT_ARM_JOINTS = (

@@ -879,10 +879,12 @@ class MTCOrchestratorServer(Node):
         self._publish_gripper(start_gripper)
         self._update_required_controllers()
 
-        # Apply cup_profile override if parameter was changed via MCP
-        cup_override = self.get_parameter("cup_profile").value
-        if cup_override and start_gripper in self._grippers:
-            self._grippers[start_gripper]["cup_profile"] = cup_override
+        # Apply cup_profile override if parameter was changed via MCP. Set it
+        # on the MoveIt manager instead of writing into self._grippers, which
+        # is a reference into the shared, cached beamline config (see
+        # config_loader.load_beamline_config). Empty/cleared param falls back to
+        # the gripper's YAML cup_profile.
+        self._moveit_manager.cup_override = self.get_parameter("cup_profile").value or ""
 
         # Step 1: Launch MoveIt for the gripper configuration
         self._update_feedback(
