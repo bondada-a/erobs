@@ -6,8 +6,9 @@ EROBS ROS workspace calls it through the MCP tool `detect_sample_vlm`.
 
 ## 1. What this is
 
-Three large pointing-capable VLMs (MolmoAct, MolmoAct2, RoboBrain 2.5)
-plus a deterministic stub backend, all wrapped behind one FastAPI
+Several pointing-capable VLMs — in-process HuggingFace models (MolmoAct,
+MolmoAct2, RoboBrain 2.5, RoboPoint) plus an OpenAI-compatible client backend
+(`cosmos`, see §8b) and a deterministic stub — all wrapped behind one FastAPI
 service so swapping models is a config change, not a code change. The
 service runs in **its own Python venv on its own host** — typically a
 remote A100/H100 GPU box. The ROS workspace reaches it over HTTP, which
@@ -199,6 +200,45 @@ only; the actual model is whichever the running server loaded.
 pkill -f "vlm_service.server"
 ./launch.sh robobrain25
 ```
+
+## 8b. The `cosmos` backend (NVIDIA Cosmos 3 Reasoner)
+
+`cosmos` is **different from every other backend**: it does not load weights
+in-process. Cosmos 3 Reasoner can't be loaded via `transformers` yet (NVIDIA
+lists that path as "Coming soon"), so it runs only as its own
+OpenAI-compatible HTTP server, and this backend is a thin **client** that POSTs
+an image + grounding prompt and parses the returned 2D boxes (returning the
+center of the first box). `requires_verification: true` — the exact grounding
+JSON schema and coordinate space are unconfirmed until a first real run; the
+parser is defensive and stashes raw coords in the response `raw` for
+calibration.
+
+Three ways to serve Cosmos (pick one, then point the backend at it via env):
+
+| Option | When | Setup |
+|---|---|---|
+| **Hosted NVIDIA API** | easiest first call, no GPU | API key only; `COSMOS_BASE_URL=https://integrate.api.nvidia.com/v1`, `COSMOS_API_KEY=nvapi-...` |
+| **NIM container** | easiest self-host (e.g. Orion) | `docker run ... nvcr.io/nim/nvidia/cosmos3-reasoner` → OpenAI `/v1` on `:8000` |
+| **vLLM** | self-host w/o NIM | `vllm serve` + the `vllm-cosmos3` package → `:8000` |
+
+Backend config is via env vars on the **service host** (mirrors the
+`XXX_MODEL_ID` pattern of the other backends):
+
+```bash
+export COSMOS_BASE_URL="http://localhost:8000/v1"        # or the hosted URL
+export COSMOS_API_KEY=""                                  # set for hosted API
+export COSMOS_MODEL="nvidia/cosmos3-nano-reasoner"        # match /v1/models
+./launch.sh cosmos
+```
+
+`load()` does a best-effort `/models` probe and warns (does not crash) if the
+endpoint is down, so you can start `cosmos` before the model server is ready.
+
+**ROS-side timeout:** Cosmos reasoning latency exceeds the `VLMDetector`
+default of 10 s (`detection/vlm_detector.py`). Set `vlm.timeout_seconds` to
+~60 in the beamline yaml (`cms_beamline.yaml` already uses 30 — bump if you see
+timeouts). No other ROS-side change is needed; the backend is selected by the
+service's `--backend`, and `vlm.model_backend` in the yaml is informational.
 
 ## 9a. Local single-machine deployment
 

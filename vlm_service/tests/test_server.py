@@ -47,6 +47,7 @@ def test_info(client):
     assert "molmoact2" in body["available_backends"]
     assert "robobrain25" in body["available_backends"]
     assert "robopoint" in body["available_backends"]
+    assert "cosmos" in body["available_backends"]
     assert body["active"]["name"] == "stub"
 
 
@@ -187,3 +188,88 @@ def test_robopoint_parser_clamps_out_of_range():
 def test_robopoint_parser_no_match():
     from vlm_service.backends.robopoint import _parse_robopoint_points
     assert _parse_robopoint_points("no points here", 100, 100) is None
+
+
+def test_cosmos_parser_bbox_json():
+    """Qwen-style bbox_2d JSON -> center of the first box."""
+    from vlm_service.backends.cosmos import _parse_cosmos_boxes
+
+    text = '[{"bbox_2d": [100, 200, 300, 400], "label": "sample"}]'
+    r = _parse_cosmos_boxes(text, 800, 600)
+    assert r is not None
+    assert r.x == pytest.approx(200.0)  # (100+300)/2
+    assert r.y == pytest.approx(300.0)  # (200+400)/2
+    assert r.raw["all_boxes_raw"] == [[100.0, 200.0, 300.0, 400.0]]
+    assert r.raw["labels"] == ["sample"]
+    assert r.raw["coord_format"] == "bbox_2d_json"
+
+
+def test_cosmos_parser_strips_think_block():
+    from vlm_service.backends.cosmos import _parse_cosmos_boxes
+
+    text = (
+        "<think>The sample is the bright chip near the center.</think>\n"
+        '[{"bbox_2d": [10, 10, 30, 30], "label": "chip"}]'
+    )
+    r = _parse_cosmos_boxes(text, 100, 100)
+    assert r is not None
+    assert r.x == pytest.approx(20.0)
+    assert r.y == pytest.approx(20.0)
+    assert r.raw["reasoning_present"] is True
+
+
+def test_cosmos_parser_markdown_fence():
+    from vlm_service.backends.cosmos import _parse_cosmos_boxes
+
+    text = '```json\n[{"bbox_2d": [0, 0, 100, 100]}]\n```'
+    r = _parse_cosmos_boxes(text, 200, 200)
+    assert r is not None
+    assert r.x == pytest.approx(50.0)
+    assert r.y == pytest.approx(50.0)
+
+
+def test_cosmos_parser_bare_bbox4():
+    from vlm_service.backends.cosmos import _parse_cosmos_boxes
+
+    r = _parse_cosmos_boxes("the box is [40, 60, 140, 160]", 800, 600)
+    assert r is not None
+    assert r.x == pytest.approx(90.0)  # (40+140)/2
+    assert r.y == pytest.approx(110.0)  # (60+160)/2
+    assert r.raw["coord_format"] == "bare_bbox4"
+
+
+def test_cosmos_parser_point_xy():
+    from vlm_service.backends.cosmos import _parse_cosmos_boxes
+
+    r = _parse_cosmos_boxes("here: [123, 456]", 800, 600)
+    assert r is not None
+    assert r.x == pytest.approx(123.0)
+    assert r.y == pytest.approx(456.0)
+    assert r.raw["coord_format"] == "point_xy"
+
+
+def test_cosmos_parser_normalized_rescale():
+    """All coords <= 1.5 are treated as normalized [0,1] and scaled to pixels."""
+    from vlm_service.backends.cosmos import _parse_cosmos_boxes
+
+    text = '[{"bbox_2d": [0.25, 0.5, 0.75, 1.0]}]'
+    r = _parse_cosmos_boxes(text, 800, 600)
+    assert r is not None
+    assert r.x == pytest.approx(400.0)  # center 0.5 * 800
+    assert r.y == pytest.approx(450.0)  # center 0.75 * 600
+    assert r.raw["rescaled"] is True
+
+
+def test_cosmos_parser_clamps_out_of_range():
+    from vlm_service.backends.cosmos import _parse_cosmos_boxes
+
+    # Center lands beyond the image; result must clamp into [0,w]x[0,h].
+    r = _parse_cosmos_boxes("[[900, 700, 1000, 800]]", 640, 480)
+    assert r is not None
+    assert r.x == 640.0
+    assert r.y == 480.0
+
+
+def test_cosmos_parser_no_match():
+    from vlm_service.backends.cosmos import _parse_cosmos_boxes
+    assert _parse_cosmos_boxes("no coordinates anywhere", 100, 100) is None

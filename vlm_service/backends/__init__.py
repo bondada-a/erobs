@@ -35,12 +35,18 @@ def _load_robopoint() -> Type[VLMBackend]:
     return RoboPointBackend
 
 
+def _load_cosmos() -> Type[VLMBackend]:
+    from .cosmos import CosmosBackend
+    return CosmosBackend
+
+
 REGISTRY: Dict[str, callable] = {
     "stub": _load_stub,
     "molmoact": _load_molmoact,
     "molmoact2": _load_molmoact2,
     "robobrain25": _load_robobrain25,
     "robopoint": _load_robopoint,
+    "cosmos": _load_cosmos,
 }
 
 
