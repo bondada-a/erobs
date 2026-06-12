@@ -144,15 +144,6 @@ for frontmatter tuning (description, trigger keywords).
 or `src/vision/zivid-ros` — they're `vcs import`ed from
 `src/{end_effectors,vision}/*.repos`. Fix upstream, then bump the ref.
 
-## Skills and hooks
-
-This project has `ruflo` (`@claude-flow/cli`) installed as the multi-agent
-layer. Its hooks and per-session `.claude/settings.json` are gitignored
-(per-dev). Don't add ops- or dev-workflow content to ruflo hooks — the
-`robot-operation` skill + this file should cover it. OMC was previously
-installed and removed; don't reintroduce `<remember>` / `oh-my-claudecode:*`
-conventions.
-
 ## Further reading
 
 - [`docs/development.md`](./docs/development.md) — full architecture, calibration history, known issues

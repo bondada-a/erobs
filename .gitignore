@@ -134,17 +134,13 @@ yolov8n.pt
 state/
 **/.omc/
 
-# Ruflo (claude-flow) — per-dev, not shared. Each dev runs `ruflo init` to opt in.
-.claude-flow/
-.swarm/
+# Per-dev local Claude Code state — not shared.
 .claude/settings.json
+.claude/settings.local.json
 .claude/memory.db
-.claude/agents/
-.claude/commands/
-.claude/helpers/
 # Keep .claude/skills/omc-reference/ tracked (pre-existing) and robot-operation/
 # (project-owned skill pointing at src/beambot/beambot/agent/robot_operation.md);
-# ignore ruflo-installed skills.
+# ignore any other locally-installed skills.
 .claude/skills/*/
 !.claude/skills/omc-reference/
 !.claude/skills/robot-operation/
