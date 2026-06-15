@@ -458,15 +458,7 @@ class BaseStages:
         task = core.Task()
         task.enableIntrospection(False)
         task.name = name
-        _t = time.monotonic()
-        _c = time.process_time()
         task.loadRobotModel(self._mtc_node)
-        _lrm_wall = time.monotonic() - _t
-        _lrm_cpu = time.process_time() - _c
-        self.logger.info(
-            f"[TIMING] loadRobotModel: wall={_lrm_wall:.2f}s cpu={_lrm_cpu:.2f}s "
-            f"({'BLOCKED/contention' if _lrm_wall - _lrm_cpu > 0.5 * max(_lrm_wall, 0.01) else 'compute-bound'})"
-        )
 
         # Add current state as first stage
         task.add(stages.CurrentState("current_state"))
@@ -674,40 +666,18 @@ class BaseStages:
         """
         try:
             self.logger.info(f"Initializing task: {task.name}")
-            # Wall vs CPU discriminator (planning-latency diagnosis): time.monotonic()
-            # is wall-clock; time.process_time() is CPU across all threads in this
-            # process. wall >> CPU ⇒ the call BLOCKED (executor contention, GIL
-            # starvation, or service/DDS waits — H2/H3); wall ≈ CPU ⇒ the time is
-            # real computation (model load / planning — H1/H4). This is the single
-            # cleanest split between the contention vs compute hypotheses.
-            _t = time.monotonic()
-            _c = time.process_time()
             try:
                 task.init()
             except Exception as e:
                 error = f"Task init failed for '{task.name}': {e}"
                 self.logger.error(error)
                 return error
-            self.logger.info(
-                f"[TIMING] task.init(): wall={time.monotonic() - _t:.2f}s "
-                f"cpu={time.process_time() - _c:.2f}s"
-            )
 
             self.logger.info(f"Planning task: {task.name}")
-            _t = time.monotonic()
-            _c = time.process_time()
             if not task.plan(max_solutions=1):
                 error = f"PLANNING_FAILED: No motion plan found for task '{task.name}'"
                 self.logger.error(error)
                 return error
-
-            _plan_wall = time.monotonic() - _t
-            _plan_cpu = time.process_time() - _c
-            self.logger.info(
-                f"[TIMING] task.plan(): wall={_plan_wall:.2f}s cpu={_plan_cpu:.2f}s "
-                f"(wall-cpu gap={_plan_wall - _plan_cpu:.2f}s ⇒ "
-                f"{'BLOCKED/contention' if _plan_wall - _plan_cpu > 0.5 * max(_plan_wall, 0.01) else 'compute-bound'})"
-            )
 
             if not task.solutions:
                 error = f"PLANNING_FAILED: No solutions found for task '{task.name}'"
@@ -725,23 +695,6 @@ class BaseStages:
             try:
                 sol = task.solutions[0]
                 sol_msg = sol.toMsg()
-                # Which planner branch actually solved each sub-trajectory?
-                # The Fallbacks(Pilz PTP → OMPL) chain names the winning stage in
-                # sub.info.creator_name / sub.execution_info — log it so we can
-                # see whether the slow tail is OMPL firing after a Pilz failure
-                # (H4). info field availability varies by MTC build, so guard.
-                for i, sub in enumerate(sol_msg.sub_trajectory):
-                    creator = ""
-                    for attr in ("info",):
-                        info = getattr(sub, attr, None)
-                        if info is not None:
-                            creator = (getattr(info, "creator_name", "")
-                                       or getattr(info, "stage_name", "")
-                                       or getattr(info, "comment", ""))
-                            if creator:
-                                break
-                    pts = len(sub.trajectory.joint_trajectory.points)
-                    self.logger.info(f"[TIMING]   solved_stage[{i}]: '{creator}' ({pts} pts)")
                 for i, sub in enumerate(sol_msg.sub_trajectory):
                     traj = sub.trajectory.joint_trajectory
                     if traj.joint_names and traj.points:
@@ -779,9 +732,7 @@ class BaseStages:
                 self.logger.error(error)
                 return error
 
-            _t = time.monotonic()
             result = task.execute(task.solutions[0])
-            self.logger.info(f"[TIMING] task.execute(): {time.monotonic() - _t:.2f}s")
             if result.val != MoveItErrorCodes.SUCCESS:
                 error_name = MOVEIT_ERROR_NAMES.get(result.val, "UNKNOWN")
                 error = (
@@ -940,24 +891,13 @@ class BaseStages:
             (lambda: self.make_pilz_planner("PTP"), "Pilz PTP"),
             (self.make_pipeline_planner, "OMPL"),
         ]:
-            _tp = time.monotonic()
             planner = planner_fn()
-            _t0 = time.monotonic()
             stage = stages.MoveTo(f"{label} [{suffix}]", planner)
-            _t1 = time.monotonic()
             stage.group = self.arm_group
             self._set_ik_frame(stage)
-            _t2 = time.monotonic()
             stage.setGoal(joint_goal)
-            _t3 = time.monotonic()
             apply_constraints(stage, constraints)
             fb.add(stage)
-            _t4 = time.monotonic()
-            self.logger.info(
-                f"[TIMING]   named_stage[{suffix}]: planner={_t0-_tp:.2f} "
-                f"MoveTo={_t1-_t0:.2f} ikframe={_t2-_t1:.2f} "
-                f"setGoal={_t3-_t2:.2f} add={_t4-_t3:.2f}"
-            )
         return fb
 
     def make_gripper_stage(

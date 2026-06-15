@@ -505,19 +505,10 @@ class MTCOrchestratorServer(Node):
         for i, batch_task in enumerate(batch_tasks):
             task_type = batch_task.get("task_type", "")
             error = None
-            _t_add = time.monotonic()
-            _c_add = time.thread_time()  # CPU time on THIS thread
 
             if task_type == "moveto":
-                _t_goal = time.monotonic()
                 goal = self._create_moveto_goal(batch_task, poses_json)
-                _t_a2t = time.monotonic()
                 error = moveto_stage.add_to_task(task, goal)
-                _t_a2t_end = time.monotonic()
-                self.get_logger().info(
-                    f"[TIMING]   split[{i}]: create_goal={_t_a2t-_t_goal:.2f}s "
-                    f"add_to_task_call={_t_a2t_end-_t_a2t:.2f}s"
-                )
 
             elif task_type == "end_effector":
                 goal = self._create_endeffector_goal(batch_task)
@@ -527,12 +518,6 @@ class MTCOrchestratorServer(Node):
                 self._last_error = f"Unknown batchable type: {task_type}"
                 self.get_logger().error(self._last_error)
                 return False
-
-            self.get_logger().info(
-                f"[TIMING] add_to_task[{i}] ({task_type}): "
-                f"wall={time.monotonic() - _t_add:.2f}s "
-                f"cpu={time.thread_time() - _c_add:.2f}s"
-            )
 
             if error is not None:
                 self._last_error = f"Batch task {i} ({task_type}): {error}"
