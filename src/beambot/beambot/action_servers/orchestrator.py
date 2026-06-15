@@ -585,6 +585,12 @@ class MTCOrchestratorServer(Node):
         finally:
             with self._lock:
                 self._executing = False
+            # Every terminal exit of _execute (success, abort, cancel, or an
+            # uncaught exception) leaves the goal finished → publish IDLE here so
+            # no return path can forget it. The "Server busy" early-return above
+            # is outside this try, so a rejected concurrent goal won't reset the
+            # running goal's state.
+            self._publish_state("IDLE")
 
     def _execute(self, goal_handle: ServerGoalHandle) -> MTCExecution.Result:
         """Main execution logic."""
@@ -602,7 +608,6 @@ class MTCOrchestratorServer(Node):
         parsed = self._parse_goal(goal_handle.request, result)
         if parsed is None:
             goal_handle.abort()
-            self._publish_state("IDLE")
             return result
 
         start_gripper, tasks, poses_json, dry_run = parsed
@@ -642,7 +647,6 @@ class MTCOrchestratorServer(Node):
                     result.error_message = reason
                     self._clear_plan_cache("stale on execute")
                     goal_handle.abort()
-                    self._publish_state("IDLE")
                     return result
 
         # On a fresh dry-run, drop any prior cache before planning the new one.
@@ -668,7 +672,6 @@ class MTCOrchestratorServer(Node):
         if not self._moveit_manager.launch_moveit_with_gripper(start_gripper):
             result.error_message = "Failed to initialize MoveIt stack"
             goal_handle.abort()
-            self._publish_state("IDLE")
             return result
 
         # Publish running state before starting task execution
@@ -706,7 +709,6 @@ class MTCOrchestratorServer(Node):
                 result.error_message = "Task was canceled"
                 result.completed_steps = completed_tasks
                 goal_handle.canceled()
-                self._publish_state("IDLE")
                 return result
 
             # Check for pause request at batch boundary
@@ -721,7 +723,6 @@ class MTCOrchestratorServer(Node):
                     result.error_message = "Task was cancelled while paused"
                     result.completed_steps = completed_tasks
                     goal_handle.canceled()
-                    self._publish_state("IDLE")
                     return result
 
             # Vacuum-loss abort DISABLED — even if the ePick reports a dropped
@@ -742,7 +743,6 @@ class MTCOrchestratorServer(Node):
                 self.get_logger().error(result.error_message)
                 result.completed_steps = completed_tasks
                 goal_handle.abort()
-                self._publish_state("IDLE")
                 return result
 
             if batch_type == "batched":
@@ -771,7 +771,6 @@ class MTCOrchestratorServer(Node):
                     result.error_message = f"Batch failed at step {completed_tasks + 1}: {self._last_error}"
                     result.completed_steps = completed_tasks
                     goal_handle.abort()
-                    self._publish_state("IDLE")
                     return result
 
                 # On a successful dry-run, stash the planned task so the
@@ -803,7 +802,6 @@ class MTCOrchestratorServer(Node):
                     result.error_message = f"Step {completed_tasks} missing 'task_type' field"
                     result.completed_steps = completed_tasks
                     goal_handle.abort()
-                    self._publish_state("IDLE")
                     return result
 
                 # Dry-run safety net: the parser already rejects unsupported
@@ -823,7 +821,6 @@ class MTCOrchestratorServer(Node):
                         result.error_message = f"{task_type} preview failed: {self._last_error}"
                         result.completed_steps = completed_tasks
                         goal_handle.abort()
-                        self._publish_state("IDLE")
                         return result
                     if self._last_planned_task is not None:
                         with self._plan_cache_lock:
@@ -845,7 +842,6 @@ class MTCOrchestratorServer(Node):
                     result.error_message = f"{task_type} failed: {self._last_error}"
                     result.completed_steps = completed_tasks
                     goal_handle.abort()
-                    self._publish_state("IDLE")
                     return result
 
                 self._vacuum.update_after_tasks([task], self._current_gripper)
@@ -878,8 +874,6 @@ class MTCOrchestratorServer(Node):
             feedback, goal_handle, task_count, task_count, ""
         )
         goal_handle.succeed()
-        self._publish_state("IDLE")
-
         self.get_logger().info("Orchestration goal completed successfully")
         return result
 
