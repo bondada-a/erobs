@@ -112,7 +112,12 @@ class MoveToStages(BaseStages):
             None if stages were added successfully, error string on failure
         """
         planning_type = goal.planning_type if goal.planning_type else ""
-        use_fallback = planning_type in ("", "auto") and planner is None
+        # "joint" routes through the same Pilz-PTP → OMPL fallback as auto/"":
+        # joint-space point-to-point is exactly what Pilz PTP is for, with OMPL
+        # as the obstacle-avoidance backstop. Without "joint" here it fell to the
+        # pure-OMPL else-branch below — non-deterministic for a move that should
+        # be deterministic, and the reason dry-run previews needed plan-replay.
+        use_fallback = planning_type in ("", "auto", "joint") and planner is None
 
         # Select single planner when not using fallbacks
         if not use_fallback and planner is None:
