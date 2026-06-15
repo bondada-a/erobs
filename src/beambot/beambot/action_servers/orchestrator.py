@@ -1177,7 +1177,6 @@ class MTCOrchestratorServer(Node):
             return False
 
         # Update gripper state based on operation
-        operation = step.get("operation", "")
         new_gripper = self._current_gripper
 
         if operation == "dock":
