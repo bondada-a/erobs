@@ -39,9 +39,6 @@ from beambot_interfaces.action import (
     VisionScanAction,
     PipettorAction,
 )
-from controller_manager_msgs.srv import ListControllers, SwitchController
-from controller_manager_msgs.msg import ControllerManagerActivity
-from sensor_msgs.msg import JointState
 from std_srvs.srv import Trigger
 from std_msgs.msg import String
 
@@ -96,12 +93,11 @@ class MTCOrchestratorServer(Node):
         # non-dry-run goal whose key matches. Lets the operator preview a
         # plan and then execute exactly that plan instead of re-planning
         # (which OMPL randomization would otherwise randomize).
-        # Keys: goal_key (sha256 of normalized goal JSON), gripper, joint_snapshot,
+        # Keys: goal_key (sha256 of normalized goal JSON), gripper,
         #       task (MTC core.Task with solutions populated), stage (BaseStages
         #       instance — needed to call execute_solution).
         self._plan_cache: dict | None = None
         self._plan_cache_lock = threading.Lock()
-        self._latest_joint_state: dict[str, float] = {}  # joint_name -> position (rad)
         # Set by _execute_batch in dry_run mode so _execute() can capture
         # the freshly-planned MTC task into the plan cache.
         self._last_planned_task = None
@@ -200,62 +196,6 @@ class MTCOrchestratorServer(Node):
             Trigger, "beambot_vision_reset_tf",
             callback_group=self._callback_group
         )
-
-        # Controller manager service clients for recovery
-        self._list_controllers_client = self.create_client(
-            ListControllers,
-            "/controller_manager/list_controllers",
-            callback_group=self._callback_group
-        )
-        self._switch_controller_client = self.create_client(
-            SwitchController,
-            "/controller_manager/switch_controller",
-            callback_group=self._callback_group
-        )
-
-        # Controllers that must be active for robot motion
-        self._base_controllers = ["scaled_joint_trajectory_controller"]
-        self._required_controllers = list(self._base_controllers)
-
-        # Cached controller states from /controller_manager/activity (Jazzy ros2_control 4.x+).
-        # Populated by the latest ControllerManagerActivity message; used as the
-        # fast path in _ensure_controllers_active so we don't call list_controllers
-        # before every motion.
-        self._controller_states: dict[str, str] = {}
-        self.create_subscription(
-            ControllerManagerActivity,
-            "/controller_manager/activity",
-            self._controller_activity_cb,
-            QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL),
-            callback_group=self._callback_group,
-        )
-
-        # Joint state subscription DISABLED for performance.
-        #
-        # This subscription fed ONLY the dry-run plan-cache joint-drift check
-        # (_snapshot_arm_joints → _validate_plan_cache). At ~500 Hz it was one
-        # of the largest sources of GIL contention in this (GIL-bound) Python
-        # process — every message woke the executor and grabbed the interpreter
-        # lock, starving the goal-execution thread (measured: ~5 s wall / 0.02 s
-        # CPU per moveto stage-build, i.e. the thread was blocked, not working).
-        #
-        # Disabling it loses only the dry-run drift PRE-check: if the arm is
-        # physically moved between a GUI dry-run preview and Execute, MoveIt
-        # still rejects the stale start state at execute time with
-        # INVALID_ROBOT_STATE (see _validate_plan_cache lines ~521-524). The
-        # CACHE_KEY_MISMATCH / CACHE_GRIPPER_CHANGED checks don't need joints.
-        #
-        # To restore the drift pre-check, re-enable the subscription below.
-        # NOTE: compute_deterministic_ik in base_stages.py uses its own
-        # short-lived, on-demand /joint_states subscription — that path is
-        # unaffected by this change.
-        # self.create_subscription(
-        #     JointState,
-        #     "/joint_states",
-        #     self._joint_state_cb,
-        #     10,
-        #     callback_group=self._callback_group,
-        # )
 
         # Pause/Resume services
         self._pause_service = self.create_service(
@@ -384,15 +324,6 @@ class MTCOrchestratorServer(Node):
         msg.data = gripper
         self._gripper_publisher.publish(msg)
 
-    def _update_required_controllers(self):
-        """Update required controllers list based on current gripper."""
-        gripper_controller = self._grippers.get(
-            self._current_gripper, {}
-        ).get("controller_name", "")
-        self._required_controllers = list(self._base_controllers)
-        if gripper_controller:
-            self._required_controllers.append(gripper_controller)
-
     def _handle_pause(
         self,
         feedback: MTCExecution.Feedback,
@@ -434,47 +365,7 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Execution resumed")
         self._publish_state("RUNNING")
 
-    def _controller_activity_cb(self, msg: ControllerManagerActivity) -> None:
-        """Cache controller states from the latched /controller_manager/activity topic.
-
-        ros2_control 4.x+ (Jazzy) publishes this on every state transition with
-        TRANSIENT_LOCAL durability, so our subscription gets the latest value on
-        connect. The primary-state id (3 = ACTIVE, 2 = INACTIVE, ...) is mapped
-        to the lowercase string used by /controller_manager/list_controllers so
-        the cache and the fallback path agree.
-        """
-        _STATE_ID_TO_NAME = {
-            0: "unknown", 1: "unconfigured", 2: "inactive",
-            3: "active", 4: "finalized",
-        }
-        self._controller_states = {
-            c.name: _STATE_ID_TO_NAME.get(c.state.id, f"state_{c.state.id}")
-            for c in msg.controllers
-        }
-
-    def _joint_state_cb(self, msg: JointState) -> None:
-        """Cache the latest joint positions for plan-cache validation.
-
-        Replaces the dict each tick so a missing-joints message (gripper-only
-        publisher, etc.) doesn't poison earlier readings. We only need a
-        roughly-current snapshot; staleness is bounded by ROS topic latency.
-        """
-        self._latest_joint_state = dict(zip(msg.name, msg.position))
-
     # ---- Plan cache (dry-run -> execute reuse) -------------------------
-
-    # Arm joints monitored for the "robot moved since plan" check are
-    # sourced from the active beamline YAML (robot.arm_joints) — see
-    # _arm_joints_for_drift property below.
-    # Tolerance: 1 degree on any joint. Tight enough to catch an operator
-    # jog, loose enough to ignore controller-side noise on a stationary arm.
-    _CACHE_DRIFT_TOLERANCE_RAD = math.radians(1.0)
-
-    @property
-    def _ARM_JOINTS_FOR_DRIFT(self) -> tuple:
-        """Tuple of arm joint names to watch for plan-cache drift checks."""
-        from beambot.config_loader import arm_joint_names
-        return tuple(arm_joint_names())
 
     def _compute_plan_cache_key(self, full_json: str, gripper: str) -> str:
         """Compute a stable key from goal JSON + gripper.
@@ -493,22 +384,6 @@ class MTCOrchestratorServer(Node):
         h.update(b"|")
         h.update(gripper.encode("utf-8"))
         return h.hexdigest()
-
-    def _snapshot_arm_joints(self) -> dict[str, float] | None:
-        """Return current arm joint positions (rad), or None if unavailable.
-
-        Used both at plan-cache write time (snapshot) and validate time
-        (current). None means /joint_states isn't publishing — the caller
-        decides whether to refuse or skip the check.
-        """
-        if not self._latest_joint_state:
-            return None
-        snapshot = {}
-        for j in self._ARM_JOINTS_FOR_DRIFT:
-            if j not in self._latest_joint_state:
-                return None  # Partial data — treat as unavailable
-            snapshot[j] = self._latest_joint_state[j]
-        return snapshot
 
     def _validate_plan_cache(
         self, goal_key: str, current_gripper: str
@@ -535,22 +410,13 @@ class MTCOrchestratorServer(Node):
                     "Run Dry Run again to preview with the current gripper."
                 )
 
-            # Joint drift — only enforce if both snapshot and current state
-            # are available. If /joint_states isn't publishing now, MoveIt
-            # itself will fail at execute time with INVALID_ROBOT_STATE,
-            # which is a louder signal than a pre-emptive refusal here.
-            current = self._snapshot_arm_joints()
-            snapshot = cache.get("joint_snapshot")
-            if current is not None and snapshot is not None:
-                for j in self._ARM_JOINTS_FOR_DRIFT:
-                    delta = abs(current[j] - snapshot[j])
-                    if delta > self._CACHE_DRIFT_TOLERANCE_RAD:
-                        return False, (
-                            f"CACHE_ROBOT_MOVED: Robot has moved since dry-run "
-                            f"({j} drifted {math.degrees(delta):.1f}°). "
-                            "Run Dry Run again to preview from current state."
-                        )
-
+            # No robot-moved check here: MoveIt's trajectory_execution.
+            # allowed_start_tolerance (~0.01 rad, on by default — verified in
+            # libmoveit_trajectory_execution_manager.so) rejects a stale-start
+            # replay BEFORE motion, so a jogged robot fails loudly instead of
+            # jumping. ponytail: a friendly "robot moved, re-run Dry Run" message
+            # needs the real MoveItErrorCode observed on a jog-then-Execute
+            # hardware test — add the ~2-line translation then, not on a guess.
             return True, ""
 
     def _clear_plan_cache(self, reason: str = "") -> None:
@@ -561,82 +427,6 @@ class MTCOrchestratorServer(Node):
                 if reason:
                     self.get_logger().info(f"Plan cache cleared: {reason}")
                 self._plan_cache = None
-
-    def _ensure_controllers_active(self) -> bool:
-        """Check if required controllers are active and restart them if needed.
-
-        Fast path: consult the cached state from /controller_manager/activity.
-        If all required controllers are active in the cache, we're done — no
-        service round-trip. Fall back to list_controllers only when the cache
-        is empty (pre-activity-topic or the first message hasn't arrived yet)
-        or when any required controller is missing/inactive in the cache.
-
-        This handles the case where the UR driver's controller_stopper stops
-        controllers after a connection drop but doesn't restart them.
-
-        Returns:
-            True if all required controllers are active, False on failure.
-        """
-        # Fast path: if the cache has every required controller and they're
-        # all active, skip the service call entirely.
-        if self._controller_states and all(
-            self._controller_states.get(name) == "active"
-            for name in self._required_controllers
-        ):
-            return True
-
-        # Fallback: cache is stale/empty or something is inactive — query CM.
-        if not self._list_controllers_client.wait_for_service(timeout_sec=2.0):
-            self.get_logger().warning("Controller manager service not available")
-            return True  # Proceed anyway, let MoveIt handle the error
-
-        list_request = ListControllers.Request()
-        future = self._list_controllers_client.call_async(list_request)
-
-        if not wait_for_future(future, timeout=5.0):
-            self.get_logger().warning("Timeout listing controllers")
-            return True  # Proceed anyway
-
-        list_response = future.result()
-        if list_response is None:
-            self.get_logger().warning("Failed to list controllers")
-            return True  # Proceed anyway
-
-        # Check which required controllers are inactive
-        inactive_controllers = []
-        for controller in list_response.controller:
-            if controller.name in self._required_controllers:
-                if controller.state != "active":
-                    inactive_controllers.append(controller.name)
-                    self.get_logger().warning(
-                        f"Controller '{controller.name}' is {controller.state}, needs restart"
-                    )
-
-        if not inactive_controllers:
-            return True  # All controllers active
-
-        # Try to activate inactive controllers
-        self.get_logger().info(f"Activating controllers: {inactive_controllers}")
-
-        switch_request = SwitchController.Request()
-        switch_request.activate_controllers = inactive_controllers
-        switch_request.deactivate_controllers = []
-        switch_request.strictness = SwitchController.Request.BEST_EFFORT
-        switch_request.activate_asap = True
-
-        future = self._switch_controller_client.call_async(switch_request)
-
-        if not wait_for_future(future, timeout=5.0):
-            self.get_logger().error("Timeout activating controllers")
-            return False
-
-        switch_response = future.result()
-        if switch_response is None or not switch_response.ok:
-            self.get_logger().error("Failed to activate controllers")
-            return False
-
-        self.get_logger().info("Controllers reactivated successfully")
-        return True
 
     # _group_into_batches extracted to beambot.batch_planner.group_into_batches
 
@@ -877,7 +667,6 @@ class MTCOrchestratorServer(Node):
         # Initialize gripper state
         self._current_gripper = start_gripper
         self._publish_gripper(start_gripper)
-        self._update_required_controllers()
 
         # Apply cup_profile override if parameter was changed via MCP. Set it
         # on the MoveIt manager instead of writing into self._grippers, which
@@ -979,15 +768,13 @@ class MTCOrchestratorServer(Node):
                     f"batch[{batch_size}]: {batch_desc}"
                 )
 
-                # Controller activation is handled by ur_control.launch.py's
-                # controller_manager/spawner and by the UR driver's
+                # Controller activation is intentionally NOT done here: the
+                # ur_control.launch.py spawner and the UR driver's
                 # controller_stopper_node (which restarts controllers it stopped
-                # on a connection drop). Calling _ensure_controllers_active here
-                # races with the spawner during initial launch and caused the
-                # parallel_gripper_action_controller activation to fail with
-                # "already active". See TODO: remove _ensure_controllers_active
-                # entirely once we've stress-tested connection-drop recovery on
-                # Jazzy.
+                # on a connection drop) own it. An earlier in-orchestrator
+                # activation helper raced the spawner ("already active" failures)
+                # and was removed — re-add only with connection-drop recovery
+                # stress-tested on Jazzy.
 
                 self._last_planned_task = None
                 ok = self._execute_batch(
@@ -1010,7 +797,6 @@ class MTCOrchestratorServer(Node):
                             "goal_key": goal_key,
                             "task": self._last_planned_task,
                             "gripper": self._current_gripper,
-                            "joint_snapshot": self._snapshot_arm_joints(),
                         }
                     self.get_logger().info("Plan cached for next execute")
                     self._last_planned_task = None
@@ -1060,7 +846,6 @@ class MTCOrchestratorServer(Node):
                                 "goal_key": goal_key,
                                 "task": self._last_planned_task,
                                 "gripper": self._current_gripper,
-                                "joint_snapshot": self._snapshot_arm_joints(),
                             }
                         self._last_planned_task = None
                     completed_tasks += 1
@@ -1216,9 +1001,9 @@ class MTCOrchestratorServer(Node):
         self, task_type: str, step: dict[str, Any], poses_json: str
     ) -> bool:
         """Execute a single step by dispatching to the appropriate action server."""
-        # Controller activation is handled by ur_control.launch.py's spawner and
-        # by the UR driver's controller_stopper_node (see comment in
-        # _execute_script for why _ensure_controllers_active is disabled).
+        # Controller activation is intentionally NOT done here — owned by the
+        # ur_control.launch.py spawner + UR driver controller_stopper_node
+        # (see the batched-execution path in _execute for the full rationale).
 
         self.get_logger().info(f"Executing step: {task_type}")
 
@@ -1436,7 +1221,6 @@ class MTCOrchestratorServer(Node):
             )
             self._current_gripper = new_gripper
             self._publish_gripper(new_gripper)
-            self._update_required_controllers()
             # Any cached dry-run plan was for the previous gripper's SRDF /
             # collision model — invalidate it so the next execute can't
             # silently replay a plan against the wrong robot model.
