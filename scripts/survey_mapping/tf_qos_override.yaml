@@ -1,0 +1,20 @@
+# rosbag2 QoS override for /tf during a survey recording.
+#
+# Why: /tf has two publishers with different durability — tcp_pose_broadcaster
+# (TRANSIENT_LOCAL) and robot_state_publisher (VOLATILE). When `ros2 bag record`
+# auto-infers /tf QoS it picks TRANSIENT_LOCAL (to match one publisher), and a
+# TRANSIENT_LOCAL subscription is INCOMPATIBLE with the VOLATILE publisher — so
+# the 6 moving arm transforms from robot_state_publisher get silently dropped,
+# splitting the TF tree (base_link and zivid_optical_frame end up disconnected).
+#
+# Fix: force the recorder's /tf subscription to VOLATILE. A VOLATILE
+# subscription is compatible with BOTH publishers, so it captures every edge.
+#
+# Note: we intentionally DON'T override /tf_static — it must stay
+# TRANSIENT_LOCAL to receive the latched static transforms published before the
+# recorder started (which is why /tf_static recorded fine).
+/tf:
+  history: keep_last
+  depth: 1000
+  reliability: reliable
+  durability: volatile

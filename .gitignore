@@ -124,9 +124,17 @@ frames_*.gv
 # ROS bag recordings (can be large)
 *.bag
 *.db3
+*.mcap
 rosbag2_*/
+# Survey bags are recorded at the repo root (run_survey.py --bag-out). Anchor to
+# root so this doesn't swallow scripts/survey_mapping/ (the tooling itself).
+/survey_*/
 src/moveit_task_constructor/
 yolov8n.pt
+
+# Point cloud / mesh outputs from survey mapping (large, regenerable from bags)
+*.ply
+*.pcd
 
 # OMC / Claude Code state
 .claude/worktrees/
