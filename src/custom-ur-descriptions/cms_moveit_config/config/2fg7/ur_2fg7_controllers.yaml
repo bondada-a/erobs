@@ -35,6 +35,11 @@
       force_mode_controller:
         type: ur_controllers/ForceModeController
 
+      # Required since ur_robot_driver 3.8.0: spawned active by upstream;
+      # if undeclared the spawner dies before scaled_joint_trajectory_controller.
+      friction_model_controller:
+        type: ur_controllers/FrictionModelController
+
       freedrive_mode_controller:
         type: ur_controllers/FreedriveModeController
 
@@ -192,6 +197,10 @@
       interface_name: effort
 
   force_mode_controller:
+    ros__parameters:
+      tf_prefix: "$(var tf_prefix)"
+
+  friction_model_controller:
     ros__parameters:
       tf_prefix: "$(var tf_prefix)"
 
