@@ -38,6 +38,8 @@ grippers:
     tip_frame: "flange"            # No gripper attached; IK targets the flange
     z_offset: 0.0
     urdf_file: "ur_standalone.urdf"
+    payload_mass: 1.430
+    payload_cog: {x: -0.038, y: -0.022, z: -0.055}
 
   hande:
     moveit_package: "cms_moveit_config"
@@ -52,6 +54,8 @@ grippers:
     tip_frame: "robotiq_hande_end"
     z_offset: -0.02
     urdf_file: "ur_with_zivid_hande.urdf"
+    payload_mass: 2.520
+    payload_cog: {x: 0.018, y: -0.013, z: -0.031}
 
   epick:
     moveit_package: "cms_moveit_config"
@@ -69,6 +73,8 @@ grippers:
       release: "vacuum_off"
     tip_frame: "epick_tip"
     urdf_file: "ur_with_zivid_epick.urdf"
+    payload_mass: 2.150
+    payload_cog: {x: 0.018, y: -0.015, z: -0.036}
 
   2fg7:
     moveit_package: "cms_moveit_config"
@@ -84,6 +90,8 @@ grippers:
     tip_frame: "2fg7_tip"
     z_offset: 0.0
     urdf_file: "ur_standalone.urdf"   # No dedicated 2fg7 viewer URDF yet
+    payload_mass: 2.210
+    payload_cog: {x: 0.018, y: -0.013, z: -0.031}
 
   pipettor:
     moveit_package: "cms_moveit_config"
@@ -96,6 +104,8 @@ grippers:
     tip_frame: "pipette_tip_link"
     z_offset: 0.0
     urdf_file: "ur_with_zivid_pipettor.urdf"
+    payload_mass: 1.630
+    payload_cog: {x: 0.010, y: -0.010, z: -0.020}
 
 # Vision camera configuration
 cameras:

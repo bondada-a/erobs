@@ -224,10 +224,52 @@ class MoveItLifecycleManager:
                 return False
             if not self._verify_hardware_connected():
                 return False
+            # Set the arm payload now that io_and_status_controller is up —
+            # gated on the service, not a fixed launch-time timer.
+            self._set_payload(config)
 
         self._current_gripper = gripper
         self._logger.info(f"Robot ready with {gripper} configuration")
         return True
+
+    def _set_payload(self, config: dict) -> None:
+        """Set the arm payload via io_and_status_controller (best-effort).
+
+        Replaces the launch-time TimerAction(5.0)+service-call guess with a
+        readiness-gated client. Best-effort: a failure warns but does not abort
+        the launch (matches the prior fire-and-forget behavior).
+        """
+        mass = config.get("payload_mass")
+        cog = config.get("payload_cog")
+        if mass is None or cog is None:
+            return
+
+        from ur_msgs.srv import SetPayload
+        from geometry_msgs.msg import Vector3
+
+        client = self._node.create_client(
+            SetPayload, "/io_and_status_controller/set_payload",
+            callback_group=self._callback_group,
+        )
+        try:
+            if not client.wait_for_service(timeout_sec=5.0):
+                self._logger.warning("set_payload service not available — payload not set")
+                return
+            request = SetPayload.Request()
+            request.mass = float(mass)
+            request.center_of_gravity = Vector3(
+                x=float(cog["x"]), y=float(cog["y"]), z=float(cog["z"])
+            )
+            future = client.call_async(request)
+            deadline = time.monotonic() + 5.0
+            while not future.done() and time.monotonic() < deadline:
+                time.sleep(0.05)
+            if future.done() and future.result().success:
+                self._logger.info(f"Payload set to {mass}kg")
+            else:
+                self._logger.warning("set_payload call failed or timed out")
+        finally:
+            self._node.destroy_client(client)
 
     def kill_current_process(self):
         """Kill the current MoveIt process and wait for its servers to drop

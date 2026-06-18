@@ -20,7 +20,6 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from launch.actions import (
     DeclareLaunchArgument,
-    ExecuteProcess,
     IncludeLaunchDescription,
     OpaqueFunction,
     TimerAction,
@@ -42,8 +41,6 @@ GRIPPER_CONFIGS = {
         "tool_voltage": "0",
         "use_tool_communication": "true",
         "tool_comm_params": {},
-        "payload_mass": 1.430,
-        "payload_cog": {"x": -0.038, "y": -0.022, "z": -0.055},
     },
     "epick": {
         "urdf": "ur_with_zivid_epick.xacro",
@@ -58,8 +55,6 @@ GRIPPER_CONFIGS = {
             "tool_rx_idle_chars": "1.5",
             "tool_tx_idle_chars": "3.5",
         },
-        "payload_mass": 2.150,
-        "payload_cog": {"x": 0.018, "y": -0.015, "z": -0.036},
     },
     "hande": {
         "urdf": "ur_with_zivid_hande.xacro",
@@ -68,8 +63,6 @@ GRIPPER_CONFIGS = {
         "tool_voltage": "24",
         "use_tool_communication": "false",  # hande driver manages socat via create_socat_tty
         "tool_comm_params": {},
-        "payload_mass": 2.520,
-        "payload_cog": {"x": 0.018, "y": -0.013, "z": -0.031},
     },
     "2fg7": {
         "urdf": "ur_with_zivid_2fg7.xacro",
@@ -84,8 +77,6 @@ GRIPPER_CONFIGS = {
             "tool_rx_idle_chars": "1.5",
             "tool_tx_idle_chars": "3.5",
         },
-        "payload_mass": 2.210,
-        "payload_cog": {"x": 0.018, "y": -0.013, "z": -0.031},
     },
     "pipettor": {
         "urdf": "ur_with_zivid_pipettor.xacro",
@@ -94,8 +85,6 @@ GRIPPER_CONFIGS = {
         "tool_voltage": "24",
         "use_tool_communication": "true",
         "tool_comm_params": {},
-        "payload_mass": 1.630,
-        "payload_cog": {"x": 0.010, "y": -0.010, "z": -0.020},
     },
 }
 
@@ -243,23 +232,8 @@ def launch_setup(context, *args, **kwargs):
         },
     )
 
-    # ── Payload ─────────────────────────────────────────────────────────
-    cog = config["payload_cog"]
-    set_payload = TimerAction(
-        period=5.0,
-        actions=[
-            ExecuteProcess(
-                cmd=[
-                    "ros2", "service", "call",
-                    "/io_and_status_controller/set_payload",
-                    "ur_msgs/srv/SetPayload",
-                    f"{{mass: {config['payload_mass']}, "
-                    f"center_of_gravity: {{x: {cog['x']}, y: {cog['y']}, z: {cog['z']}}}}}",
-                ],
-                output="screen",
-            )
-        ],
-    )
+    # Payload is set by the orchestrator's lifecycle manager after launch
+    # (readiness-gated via the set_payload service), not here.
 
     # ── Build launch actions list ───────────────────────────────────────
     actions = [ur_control_launch]
@@ -267,7 +241,6 @@ def launch_setup(context, *args, **kwargs):
     # Common nodes
     actions.append(run_move_group_node)
     actions.append(rviz_node)
-    actions.append(set_payload)
 
     # ── Gripper-specific nodes ──────────────────────────────────────────
     if gripper == "epick":
