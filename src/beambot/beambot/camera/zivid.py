@@ -504,11 +504,10 @@ def detect_sample_roi(
             )
             return None
 
-        rgb_image = bridge.imgmsg_to_cv2(received_image[0], desired_encoding='rgb8')
+        bgr = bridge.imgmsg_to_cv2(received_image[0], desired_encoding='bgr8')
         cloud = received_cloud[0]
 
         # Run ROI-based sample detection
-        bgr = np.ascontiguousarray(rgb_image[:, :, ::-1])
         detection = detect_sample_in_roi(
             bgr, marker_corners, px_per_mm,
             strategy=strategy,

@@ -1041,7 +1041,7 @@ class MTCOrchestratorServer(Node):
             return False
 
         request = SetIO.Request()
-        request.fun = 4   # FUN_SET_TOOL_VOLTAGE
+        request.fun = SetIO.Request.FUN_SET_TOOL_VOLTAGE
         request.pin = 0
         request.state = float(voltage)
 

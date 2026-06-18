@@ -127,7 +127,7 @@ between every step.
 
 ## 3. Task types
 
-Eight types. Unknown `task_type` returns `"Unknown task type: '<name>'"`.
+Unknown `task_type` returns `"Unknown task type: '<name>'"`.
 
 ### 3.1 `moveto` — joint / SRDF / cartesian / relative
 

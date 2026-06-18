@@ -30,34 +30,11 @@ from std_msgs.msg import Header
 from tf_transformations import quaternion_from_euler
 
 
-# MoveIt error code → human-readable name mapping
-# See: http://docs.ros.org/en/noetic/api/moveit_msgs/html/msg/MoveItErrorCodes.html
+# MoveIt error code → name, reflected from the message so it can't drift.
 MOVEIT_ERROR_NAMES: dict[int, str] = {
-    MoveItErrorCodes.SUCCESS: "SUCCESS",
-    MoveItErrorCodes.FAILURE: "FAILURE",
-    MoveItErrorCodes.PLANNING_FAILED: "PLANNING_FAILED",
-    MoveItErrorCodes.INVALID_MOTION_PLAN: "INVALID_MOTION_PLAN",
-    MoveItErrorCodes.MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE: "MOTION_PLAN_INVALIDATED_BY_ENVIRONMENT_CHANGE",
-    MoveItErrorCodes.CONTROL_FAILED: "CONTROL_FAILED",
-    MoveItErrorCodes.UNABLE_TO_AQUIRE_SENSOR_DATA: "UNABLE_TO_AQUIRE_SENSOR_DATA",
-    MoveItErrorCodes.TIMED_OUT: "TIMED_OUT",
-    MoveItErrorCodes.PREEMPTED: "PREEMPTED",
-    MoveItErrorCodes.START_STATE_IN_COLLISION: "START_STATE_IN_COLLISION",
-    MoveItErrorCodes.START_STATE_VIOLATES_PATH_CONSTRAINTS: "START_STATE_VIOLATES_PATH_CONSTRAINTS",
-    MoveItErrorCodes.GOAL_IN_COLLISION: "GOAL_IN_COLLISION",
-    MoveItErrorCodes.GOAL_VIOLATES_PATH_CONSTRAINTS: "GOAL_VIOLATES_PATH_CONSTRAINTS",
-    MoveItErrorCodes.GOAL_CONSTRAINTS_VIOLATED: "GOAL_CONSTRAINTS_VIOLATED",
-    MoveItErrorCodes.INVALID_GROUP_NAME: "INVALID_GROUP_NAME",
-    MoveItErrorCodes.INVALID_GOAL_CONSTRAINTS: "INVALID_GOAL_CONSTRAINTS",
-    MoveItErrorCodes.INVALID_ROBOT_STATE: "INVALID_ROBOT_STATE",
-    MoveItErrorCodes.INVALID_LINK_NAME: "INVALID_LINK_NAME",
-    MoveItErrorCodes.INVALID_OBJECT_NAME: "INVALID_OBJECT_NAME",
-    MoveItErrorCodes.FRAME_TRANSFORM_FAILURE: "FRAME_TRANSFORM_FAILURE",
-    MoveItErrorCodes.COLLISION_CHECKING_UNAVAILABLE: "COLLISION_CHECKING_UNAVAILABLE",
-    MoveItErrorCodes.ROBOT_STATE_STALE: "ROBOT_STATE_STALE",
-    MoveItErrorCodes.SENSOR_INFO_STALE: "SENSOR_INFO_STALE",
-    MoveItErrorCodes.COMMUNICATION_FAILURE: "COMMUNICATION_FAILURE",
-    MoveItErrorCodes.NO_IK_SOLUTION: "NO_IK_SOLUTION",
+    getattr(MoveItErrorCodes, n): n
+    for n in dir(MoveItErrorCodes)
+    if n.isupper() and isinstance(getattr(MoveItErrorCodes, n), int)
 }
 
 
