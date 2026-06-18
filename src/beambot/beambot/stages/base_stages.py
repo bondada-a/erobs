@@ -191,6 +191,27 @@ def _build_joint_limit_args(limits: dict[str, float]) -> list[str]:
     return args
 
 
+def _build_cartesian_limit_args() -> list[str]:
+    """Emit Pilz cartesian-limit -p pairs from pilz_cartesian_limits.yaml.
+
+    Single source of truth shared with move_group (which loads the same file).
+    """
+    try:
+        from beambot.config_loader import moveit_config_package
+        pkg_name = moveit_config_package()
+    except Exception:
+        pkg_name = "cms_moveit_config"
+    path = os.path.join(
+        get_package_share_directory(pkg_name), "config", "pilz_cartesian_limits.yaml"
+    )
+    with open(path) as f:
+        limits = (yaml.safe_load(f) or {})["cartesian_limits"]
+    args: list[str] = []
+    for key, value in limits.items():
+        args += ["-p", f"robot_description_planning.cartesian_limits.{key}:={value}"]
+    return args
+
+
 rclcpp.init()
 _options = rclcpp.NodeOptions()
 _options.automatically_declare_parameters_from_overrides = True
@@ -204,13 +225,9 @@ _options.arguments = [
     "-p", "ompl.start_state_max_bounds_error:=0.1",
     # Pilz industrial motion planner pipeline
     "-p", "pilz_industrial_motion_planner.planning_plugins:=['pilz_industrial_motion_planner/CommandPlanner']",
-    # Pilz cartesian limits (must match pilz_cartesian_limits.yaml in MoveIt configs)
-    "-p", "robot_description_planning.cartesian_limits.max_trans_vel:=1.0",
-    "-p", "robot_description_planning.cartesian_limits.max_trans_acc:=2.25",
-    "-p", "robot_description_planning.cartesian_limits.max_trans_dec:=-5.0",
-    "-p", "robot_description_planning.cartesian_limits.max_rot_vel:=1.57",
-    "-p", "robot_description_planning.cartesian_limits.max_rot_acc:=3.15",
-    "-p", "robot_description_planning.cartesian_limits.max_rot_dec:=-5.0",
+    # Pilz cartesian limits — read from pilz_cartesian_limits.yaml (same file
+    # move_group loads), not duplicated here.
+    *_build_cartesian_limit_args(),
     # Pilz PTP / TOTG joint acceleration limits — union across all gripper
     # joint_limits.yaml files under cms_moveit_config/config/<gripper>/.
     *_build_joint_limit_args(_load_joint_accel_limits()),
