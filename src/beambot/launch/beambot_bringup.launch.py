@@ -15,6 +15,10 @@ Usage:
     ros2 launch beambot beambot_bringup.launch.py use_mock_hardware:=true
 """
 
+import os
+
+import yaml
+from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument
 from launch.conditions import IfCondition
@@ -118,20 +122,20 @@ def generate_launch_description():
         condition=IfCondition(enable_tracing),
     )
 
-    # Action servers need kinematics for Cartesian planning
-    # Robot URDF comes from /robot_description topic published by move_group
+    # Shared IK config: same kinematics.yaml move_group loads, wrapped under the
+    # key its RobotModelLoader reads. Required — without it Cartesian/IK tasks
+    # (e.g. tool_exchange dock) fail with "No kinematics solver instantiated".
+    from beambot.config_loader import moveit_config_package
+    _kinematics_path = os.path.join(
+        get_package_share_directory(moveit_config_package()),
+        'config', 'kinematics.yaml',
+    )
+    with open(_kinematics_path) as _f:
+        _robot_description_kinematics = yaml.safe_load(_f)
+
     action_server_parameters = [
         {'use_sim_time': False},
-        {
-            'robot_description_kinematics': {
-                'ur_arm': {
-                    'kinematics_solver': 'kdl_kinematics_plugin/KDLKinematicsPlugin',
-                    'kinematics_solver_search_resolution': 0.001,
-                    'kinematics_solver_timeout': 1.0,
-                    'kinematics_solver_attempts': 10
-                }
-            }
-        }
+        {'robot_description_kinematics': _robot_description_kinematics},
     ]
 
     # MoveTo action server
