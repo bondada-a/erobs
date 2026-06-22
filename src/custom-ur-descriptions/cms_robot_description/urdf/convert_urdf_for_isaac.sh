@@ -23,18 +23,23 @@ if [ ! -f "$INPUT" ]; then
     exit 1
 fi
 
+# Repo root is derived from this script's location, not hardcoded, so the
+# converted URDF stays valid wherever the workspace is checked out.
+WS="$(cd "$(dirname "${BASH_SOURCE[0]}")" && git rev-parse --show-toplevel)"
+ROS_SHARE="${ROS_SHARE:-/opt/ros/jazzy/share}"
+
 # Package mappings - add more as needed
-sed -e 's|package://ur_description|/opt/ros/jazzy/share/ur_description|g' \
-    -e 's|package://zivid_description|/home/aditya/work/erobs/src/vision/zivid-ros/zivid_description|g' \
-    -e 's|package://cms_robot_description|/home/aditya/work/erobs/src/custom-ur-descriptions/cms_robot_description|g' \
-    -e 's|package://robotiq_hande_description|/home/aditya/work/erobs/src/end_effectors/robotiq_hande_description|g' \
-    -e 's|package://epick_description|/home/aditya/work/erobs/src/end_effectors/ros2_epick_gripper/epick_description|g' \
-    -e 's|package://pipette_description|/home/aditya/work/erobs/src/end_effectors/pipettor/pipette_description|g' \
-    -e 's|package://onrobot_2fg7_description|/home/aditya/work/erobs/src/end_effectors/onrobot_2fg7_description|g' \
+sed -e "s|package://ur_description|${ROS_SHARE}/ur_description|g" \
+    -e "s|package://zivid_description|${WS}/src/vision/zivid-ros/zivid_description|g" \
+    -e "s|package://cms_robot_description|${WS}/src/custom-ur-descriptions/cms_robot_description|g" \
+    -e "s|package://robotiq_hande_description|${WS}/src/end_effectors/robotiq_hande_description|g" \
+    -e "s|package://epick_description|${WS}/src/end_effectors/ros2_epick_gripper/epick_description|g" \
+    -e "s|package://pipette_description|${WS}/src/end_effectors/pipettor/pipette_description|g" \
+    -e "s|package://onrobot_2fg7_description|${WS}/src/end_effectors/onrobot_2fg7_description|g" \
     "$INPUT" > "$OUTPUT"
 
 # Check for any remaining package:// URIs
-REMAINING=$(grep -c "package://" "$OUTPUT" 2>/dev/null || echo "0")
+REMAINING=$(grep -o "package://" "$OUTPUT" 2>/dev/null | wc -l)
 
 echo "Converted: $INPUT -> $OUTPUT"
 if [ "$REMAINING" -gt 0 ]; then
