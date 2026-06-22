@@ -34,8 +34,8 @@ from beambot_interfaces.action import (
     PickSampleAction,
     PlaceSampleAction,
     ToolExchangeAction,
-    VisionMoveToAction,
     VisionScanAction,
+    VisionTaskAction,
     PipettorAction,
 )
 from std_srvs.srv import Trigger
@@ -72,6 +72,7 @@ class MTCOrchestratorServer(Node):
         "end_effector": 30.0,
         "tool_exchange": 180.0,
         "vision_moveto": 60.0,
+        "vision_task": 60.0,  # Unified pipeline (issue #88); matches vision_moveto
         "vision_scan": 180.0,  # Batch scan: 3 positions × 3 scans
         "pick_sample": 180.0,
         "place_sample": 180.0,
@@ -104,23 +105,36 @@ class MTCOrchestratorServer(Node):
 
         # Load beamline configuration (single source of truth, BEAMBOT_BEAMLINE_CONFIG env var)
         from beambot.config_loader import load_beamline_config, resolve_beamline_path
+
         self.declare_parameter("use_mock_hardware", False)
         self.declare_parameter("enable_batching", True)
-        self.declare_parameter("cup_profile", "")  # Override cup profile (empty = use beamline config default)
+        self.declare_parameter(
+            "cup_profile", ""
+        )  # Override cup profile (empty = use beamline config default)
         self._use_mock_hardware = self.get_parameter("use_mock_hardware").value
         self._enable_batching = self.get_parameter("enable_batching").value
 
         config, config_file = load_beamline_config()
-        self._poses_file = resolve_beamline_path(config.get("poses_file", ""), config_file)
+        self._poses_file = resolve_beamline_path(
+            config.get("poses_file", ""), config_file
+        )
 
-        self._grippers = config["grippers"]  # Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group, states}
+        self._grippers = config[
+            "grippers"
+        ]  # Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group, states}
         self._robot_ip = config["robot"]["ip"]  # Single source: config file
-        self._arm_group = config.get("robot", {}).get("arm_group", "ur_arm")  # For batched execution
-        self.get_logger().info(f"Loaded beamline: {config['beamline']} (robot: {self._robot_ip})")
+        self._arm_group = config.get("robot", {}).get(
+            "arm_group", "ur_arm"
+        )  # For batched execution
+        self.get_logger().info(
+            f"Loaded beamline: {config['beamline']} (robot: {self._robot_ip})"
+        )
         if self._use_mock_hardware:
             self.get_logger().info("Using FAKE HARDWARE (simulation mode)")
         if not self._enable_batching:
-            self.get_logger().info("Batching DISABLED - each task executes via action server")
+            self.get_logger().info(
+                "Batching DISABLED - each task executes via action server"
+            )
 
         # Declare timeout parameters (configurable at launch)
         self._timeouts = {}
@@ -136,8 +150,11 @@ class MTCOrchestratorServer(Node):
 
         # MoveIt lifecycle manager - launches MoveIt based on gripper config
         self._moveit_manager = MoveItLifecycleManager(
-            self, self._grippers, self._robot_ip, self._callback_group,
-            use_mock_hardware=self._use_mock_hardware
+            self,
+            self._grippers,
+            self._robot_ip,
+            self._callback_group,
+            use_mock_hardware=self._use_mock_hardware,
         )
 
         # Create action server
@@ -153,71 +170,99 @@ class MTCOrchestratorServer(Node):
 
         # Create action clients for specialized servers
         self._moveto_client = ActionClient(
-            self, MoveToAction, "beambot_moveto",
-            callback_group=self._callback_group
+            self, MoveToAction, "beambot_moveto", callback_group=self._callback_group
         )
         self._endeffector_client = ActionClient(
-            self, EndEffectorAction, "beambot_endeffector",
-            callback_group=self._callback_group
+            self,
+            EndEffectorAction,
+            "beambot_endeffector",
+            callback_group=self._callback_group,
         )
         self._toolexchange_client = ActionClient(
-            self, ToolExchangeAction, "beambot_toolexchange",
-            callback_group=self._callback_group
+            self,
+            ToolExchangeAction,
+            "beambot_toolexchange",
+            callback_group=self._callback_group,
         )
-        self._vision_client = ActionClient(
-            self, VisionMoveToAction, "beambot_vision_moveto",
-            callback_group=self._callback_group
+        # Unified vision pipeline (issue #88). vision_moveto routes here,
+        # replacing the retired beambot_vision_moveto server.
+        self._vision_task_client = ActionClient(
+            self,
+            VisionTaskAction,
+            "beambot_vision_task",
+            callback_group=self._callback_group,
         )
         self._vision_scan_client = ActionClient(
-            self, VisionScanAction, "beambot_vision_scan",
-            callback_group=self._callback_group
+            self,
+            VisionScanAction,
+            "beambot_vision_scan",
+            callback_group=self._callback_group,
         )
         self._pick_sample_client = ActionClient(
-            self, PickSampleAction, "beambot_pick_sample",
-            callback_group=self._callback_group
+            self,
+            PickSampleAction,
+            "beambot_pick_sample",
+            callback_group=self._callback_group,
         )
         self._place_sample_client = ActionClient(
-            self, PlaceSampleAction, "beambot_place_sample",
-            callback_group=self._callback_group
+            self,
+            PlaceSampleAction,
+            "beambot_place_sample",
+            callback_group=self._callback_group,
         )
         self._pipettor_client = ActionClient(
-            self, PipettorAction, "beambot_pipettor",
-            callback_group=self._callback_group
+            self,
+            PipettorAction,
+            "beambot_pipettor",
+            callback_group=self._callback_group,
         )
 
-        # Vision server TF reset service (called after tool exchange)
+        # Vision server TF reset services (called after tool exchange). Both the
+        # legacy vision server (vision_scan) and the unified vision_task server
+        # hold their own TF buffers; both must drop stale transforms after the
+        # URDF changes, or they auto-detect the wrong gripper IK frame.
         self._vision_reset_tf_client = self.create_client(
-            Trigger, "beambot_vision_reset_tf",
-            callback_group=self._callback_group
+            Trigger, "beambot_vision_reset_tf", callback_group=self._callback_group
+        )
+        self._vision_task_reset_tf_client = self.create_client(
+            Trigger, "beambot_vision_task_reset_tf", callback_group=self._callback_group
         )
 
         # Pause/Resume services
         self._pause_service = self.create_service(
-            Trigger, 'beambot/pause', self._pause_callback,
-            callback_group=self._callback_group
+            Trigger,
+            "beambot/pause",
+            self._pause_callback,
+            callback_group=self._callback_group,
         )
         self._resume_service = self.create_service(
-            Trigger, 'beambot/resume', self._resume_callback,
-            callback_group=self._callback_group
+            Trigger,
+            "beambot/resume",
+            self._resume_callback,
+            callback_group=self._callback_group,
         )
 
         # Execution state publisher
         self._state_publisher = self.create_publisher(
-            String, 'beambot/execution_state', 10
+            String, "beambot/execution_state", 10
         )
 
         # Current gripper publisher (latched so late subscribers get last value)
         latched_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self._gripper_publisher = self.create_publisher(
-            String, 'beambot/current_gripper', latched_qos
+            String, "beambot/current_gripper", latched_qos
         )
         self._publish_gripper(self._current_gripper)
 
         # Vacuum monitoring (ePick grasp verification)
         self._vacuum = VacuumMonitor(self, self._grippers, self._callback_group)
 
-        self.get_logger().info("MTC Orchestrator (Python) started on 'beambot_execution'")
-        self.get_logger().info("Pause/Resume services available: beambot/pause, beambot/resume")
+        self.get_logger().info(
+            "MTC Orchestrator (Python) started on 'beambot_execution'"
+        )
+        self.get_logger().info(
+            "Pause/Resume services available: beambot/pause, beambot/resume"
+        )
 
         # Warm up the spincoater YOLO model in the background so torch/CUDA init
         # happens during idle startup, not on the executor thread mid-task (which
@@ -226,11 +271,15 @@ class MTCOrchestratorServer(Node):
 
     def _warmup_spincoater_model(self):
         """Pre-load the spincoater sample YOLO model in a background daemon thread."""
+
         def _warmup():
             try:
                 import numpy as np
                 from beambot.detection.spincoater import _get_sample_model
-                self.get_logger().info("Warming up spincoater sample model (background)...")
+
+                self.get_logger().info(
+                    "Warming up spincoater sample model (background)..."
+                )
                 model = _get_sample_model()
                 # Dummy inference to trigger CUDA kernel compilation / graph build
                 # so the first real detection is instant.
@@ -273,13 +322,17 @@ class MTCOrchestratorServer(Node):
 
             if self._pause_requested:
                 response.success = False
-                response.message = "Pause already requested, waiting for current task to complete"
+                response.message = (
+                    "Pause already requested, waiting for current task to complete"
+                )
                 return response
 
             self._pause_requested = True
             self._publish_state("COMPLETING_TASK")
             response.success = True
-            response.message = "Pause requested - will pause after current task completes"
+            response.message = (
+                "Pause requested - will pause after current task completes"
+            )
 
         self.get_logger().info("Pause requested - will pause after current task")
         return response
@@ -323,7 +376,7 @@ class MTCOrchestratorServer(Node):
         feedback: MTCExecution.Feedback,
         goal_handle: ServerGoalHandle,
         current_step: int,
-        total_steps: int
+        total_steps: int,
     ):
         """Block execution until resumed or cancelled.
 
@@ -339,7 +392,9 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info(f"Paused after step {current_step}/{total_steps}")
 
         # Update feedback to show paused state
-        feedback.status_message = f"PAUSED - completed {current_step}/{total_steps}, waiting for resume"
+        feedback.status_message = (
+            f"PAUSED - completed {current_step}/{total_steps}, waiting for resume"
+        )
         goal_handle.publish_feedback(feedback)
 
         # Wait loop - check for cancel periodically, keep publishing feedback
@@ -488,7 +543,9 @@ class MTCOrchestratorServer(Node):
         goal.cartesian_target = [float(v) for v in step.get("cartesian_target", [])]
         goal.frame_id = step.get("frame_id", "base_link")
         goal.poses_json = poses_json
-        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
+        goal.constraints_json = (
+            json.dumps(step["constraints"]) if "constraints" in step else ""
+        )
         return goal
 
     def _create_endeffector_goal(self, step: dict[str, Any]) -> EndEffectorAction.Goal:
@@ -551,9 +608,7 @@ class MTCOrchestratorServer(Node):
 
         # Compute the plan-cache key from the raw goal payload + gripper.
         # On dry-run we'll write the cache; on execute we'll check it.
-        goal_key = PlanCache.compute_key(
-            goal_handle.request.full_json, start_gripper
-        )
+        goal_key = PlanCache.compute_key(goal_handle.request.full_json, start_gripper)
 
         # Cache validation for non-dry-run goals: if we have a cache and it
         # matches the goal, we'll replay it; if we have a cache that DOESN'T
@@ -589,7 +644,9 @@ class MTCOrchestratorServer(Node):
         # is a reference into the shared, cached beamline config (see
         # config_loader.load_beamline_config). Empty/cleared param falls back to
         # the gripper's YAML cup_profile.
-        self._moveit_manager.cup_override = self.get_parameter("cup_profile").value or ""
+        self._moveit_manager.cup_override = (
+            self.get_parameter("cup_profile").value or ""
+        )
 
         # Step 1: Launch MoveIt for the gripper configuration
         self._update_feedback(
@@ -666,7 +723,9 @@ class MTCOrchestratorServer(Node):
             # Check if MoveIt subprocess is still alive before dispatching
             if not self._moveit_manager.is_moveit_alive():
                 exit_info = self._moveit_manager.get_moveit_exit_info()
-                result.error_message = f"MoveIt crashed before step {completed_tasks + 1}: {exit_info}"
+                result.error_message = (
+                    f"MoveIt crashed before step {completed_tasks + 1}: {exit_info}"
+                )
                 self.get_logger().error(result.error_message)
                 result.completed_steps = completed_tasks
                 goal_handle.abort()
@@ -676,8 +735,11 @@ class MTCOrchestratorServer(Node):
                 # Execute batch of batchable tasks as single MTC Task
                 batch_desc = ", ".join(t.get("task_type", "?") for t in batch_tasks)
                 self._update_feedback(
-                    feedback, goal_handle, completed_tasks + 1, task_count,
-                    f"batch[{batch_size}]: {batch_desc}"
+                    feedback,
+                    goal_handle,
+                    completed_tasks + 1,
+                    task_count,
+                    f"batch[{batch_size}]: {batch_desc}",
                 )
 
                 # Controller activation is intentionally NOT done here: the
@@ -690,7 +752,8 @@ class MTCOrchestratorServer(Node):
 
                 self._last_planned_task = None
                 ok = self._execute_batch(
-                    batch_tasks, poses_json,
+                    batch_tasks,
+                    poses_json,
                     dry_run=dry_run,
                     cached_plan=cached_plan_for_replay,
                 )
@@ -723,7 +786,9 @@ class MTCOrchestratorServer(Node):
                 task_type = task.get("task_type", "")
 
                 if not task_type:
-                    result.error_message = f"Step {completed_tasks} missing 'task_type' field"
+                    result.error_message = (
+                        f"Step {completed_tasks} missing 'task_type' field"
+                    )
                     result.completed_steps = completed_tasks
                     goal_handle.abort()
                     return result
@@ -738,11 +803,17 @@ class MTCOrchestratorServer(Node):
                 # is on by default; this is a safety fallback.
                 if dry_run:
                     self._update_feedback(
-                        feedback, goal_handle, completed_tasks + 1, task_count, task_type
+                        feedback,
+                        goal_handle,
+                        completed_tasks + 1,
+                        task_count,
+                        task_type,
                     )
                     self._last_planned_task = None
                     if not self._execute_batch([task], poses_json, dry_run=True):
-                        result.error_message = f"{task_type} preview failed: {self._last_error}"
+                        result.error_message = (
+                            f"{task_type} preview failed: {self._last_error}"
+                        )
                         result.completed_steps = completed_tasks
                         goal_handle.abort()
                         return result
@@ -791,9 +862,7 @@ class MTCOrchestratorServer(Node):
         if self._last_detected_orientation is not None:
             result.detected_orientation = self._last_detected_orientation
 
-        self._update_feedback(
-            feedback, goal_handle, task_count, task_count, ""
-        )
+        self._update_feedback(feedback, goal_handle, task_count, task_count, "")
         goal_handle.succeed()
         self.get_logger().info("Orchestration goal completed successfully")
         return result
@@ -870,8 +939,13 @@ class MTCOrchestratorServer(Node):
             for key in task.get("scan_positions", []):
                 if key not in poses:
                     pose_keys_needed.add(key)
-            for field in ("scan_pose", "approach_pose", "target_pose",
-                          "place_pose", "pickup_pose"):
+            for field in (
+                "scan_pose",
+                "approach_pose",
+                "target_pose",
+                "place_pose",
+                "pickup_pose",
+            ):
                 val = task.get(field)
                 if val and val not in poses:
                     pose_keys_needed.add(val)
@@ -913,20 +987,12 @@ class MTCOrchestratorServer(Node):
             return self._call_endeffector(step, poses_json)
         elif task_type == "tool_exchange":
             return self._handle_tool_exchange(step, poses_json)
-        elif task_type == "vision_moveto":
-            return self._call_vision_moveto(step, poses_json)
+        elif task_type in self._VISION_TASK_TYPES:
+            return self._call_vision_task(task_type, step, poses_json)
         elif task_type == "vision_scan":
             return self._call_vision_scan(step, poses_json)
-        elif task_type == "pick_sample":
-            return self._call_pick_sample(step, poses_json)
-        elif task_type == "place_sample":
-            return self._call_place_sample(step, poses_json)
         elif task_type == "pipettor":
             return self._call_pipettor(step, poses_json)
-        elif task_type == "place_spincoater":
-            return self._call_place_spincoater(step, poses_json)
-        elif task_type == "pick_spincoater":
-            return self._call_pick_spincoater(step, poses_json)
         else:
             self._last_error = f"Unknown task type: '{task_type}'"
             self.get_logger().error(self._last_error)
@@ -978,7 +1044,10 @@ class MTCOrchestratorServer(Node):
         self._last_result = result.result
         if not result.result.success:
             # Capture the real error_message from the action server
-            self._last_error = getattr(result.result, 'error_message', '') or f"{name} failed (no details)"
+            self._last_error = (
+                getattr(result.result, "error_message", "")
+                or f"{name} failed (no details)"
+            )
             self.get_logger().error(f"{name} failed: {self._last_error}")
         return result.result.success
 
@@ -993,7 +1062,10 @@ class MTCOrchestratorServer(Node):
         """Call the EndEffector action server."""
         goal = self._create_endeffector_goal(step)
         return self._send_and_wait(
-            self._endeffector_client, goal, "end_effector", self._timeouts["end_effector"]
+            self._endeffector_client,
+            goal,
+            "end_effector",
+            self._timeouts["end_effector"],
         )
 
     def _call_toolexchange(self, step: dict[str, Any], poses_json: str) -> bool:
@@ -1007,7 +1079,10 @@ class MTCOrchestratorServer(Node):
         goal.poses_json = poses_json
 
         return self._send_and_wait(
-            self._toolexchange_client, goal, "tool_exchange", self._timeouts["tool_exchange"]
+            self._toolexchange_client,
+            goal,
+            "tool_exchange",
+            self._timeouts["tool_exchange"],
         )
 
     def _gripper_ik_frame(self) -> str:
@@ -1018,6 +1093,7 @@ class MTCOrchestratorServer(Node):
         beamline is a YAML edit, not a code change.
         """
         from beambot.config_loader import gripper_tip_frame
+
         return gripper_tip_frame(self._current_gripper, default="flange")
 
     def _gripper_z_offset(self) -> float:
@@ -1031,9 +1107,11 @@ class MTCOrchestratorServer(Node):
         program — safe to call while the robot is ready for trajectories.
         """
         from ur_msgs.srv import SetIO
+
         client = self.create_client(
-            SetIO, "/io_and_status_controller/set_io",
-            callback_group=self._callback_group
+            SetIO,
+            "/io_and_status_controller/set_io",
+            callback_group=self._callback_group,
         )
         if not client.wait_for_service(timeout_sec=3.0):
             self.get_logger().error("set_io service not available")
@@ -1056,23 +1134,28 @@ class MTCOrchestratorServer(Node):
         return False
 
     def _reset_vision_tf(self):
-        """Call the vision server's TF reset service after tool exchange.
+        """Reset both vision servers' TF buffers after tool exchange.
 
-        Clears stale static transforms from the old URDF so
-        _detect_current_gripper picks up the correct IK frame.
+        Clears stale static transforms from the old URDF so each server's
+        gripper auto-detection picks up the correct IK frame. Covers the
+        legacy vision server (vision_scan) and the unified vision_task server.
         """
-        if not self._vision_reset_tf_client.wait_for_service(timeout_sec=3.0):
-            self.get_logger().warning(
-                "Vision TF reset service not available — "
-                "vision server may detect wrong gripper frame"
-            )
-            return
-        future = self._vision_reset_tf_client.call_async(Trigger.Request())
-        done = wait_for_future(future, timeout=5.0, poll_interval=0.05)
-        if done and future.result().success:
-            self.get_logger().info("Vision server TF buffer reset")
-        else:
-            self.get_logger().warning("Vision TF reset did not complete")
+        for name, client in (
+            ("vision", self._vision_reset_tf_client),
+            ("vision_task", self._vision_task_reset_tf_client),
+        ):
+            if not client.wait_for_service(timeout_sec=3.0):
+                self.get_logger().warning(
+                    f"{name} TF reset service not available — "
+                    f"server may detect wrong gripper frame"
+                )
+                continue
+            future = client.call_async(Trigger.Request())
+            done = wait_for_future(future, timeout=5.0, poll_interval=0.05)
+            if done and future.result().success:
+                self.get_logger().info(f"{name} server TF buffer reset")
+            else:
+                self.get_logger().warning(f"{name} TF reset did not complete")
 
     def _handle_tool_exchange(self, step: dict[str, Any], poses_json: str) -> bool:
         """Handle tool exchange with gripper state tracking and MoveIt restart.
@@ -1138,88 +1221,6 @@ class MTCOrchestratorServer(Node):
 
         return True
 
-    def _call_vision_moveto(self, step: dict[str, Any], poses_json: str) -> bool:
-        """Call the VisionMoveTo action server.
-
-        Supports:
-        - tag_id: ArUco marker ID (for marker detection)
-        - detection_type: "marker" (default) or "sample_roi"
-        - z_offset: Override approach height
-        - timeout: Detection timeout
-        - settle_time: Seconds to wait before capture for robot to settle (default: 1.0)
-        - scan_positions: List of pose keys for multi-position averaging (optional)
-        """
-        # Wait for robot vibrations to settle BEFORE calling vision action
-        # This happens in orchestrator, completely outside MTC and action server
-        settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
-        if settle_time > 0:
-            self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle before vision capture...")
-            time.sleep(settle_time)
-            self.get_logger().info("Settle complete, starting vision action")
-
-        goal = VisionMoveToAction.Goal()
-        goal.tag_id = int(step.get("tag_id", 0))
-        goal.sample_index = int(step.get("sample_index", 1))
-        goal.timeout = float(step.get("timeout", 10.0))
-        goal.poses_json = poses_json
-        goal.detection_type = step.get("detection_type", "marker")
-        goal.z_offset = float(step.get("z_offset", self._gripper_z_offset()))
-        goal.detect_only = bool(step.get("detect_only", False))
-        goal.offset_direction = step.get("offset_direction", "")
-        goal.offset_distance = float(step.get("offset_distance", 0.0))
-        goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
-        goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
-        goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
-        # Pass current gripper's IK frame to avoid stale TF auto-detection
-        goal.ik_frame = self._gripper_ik_frame()
-        # sample_roi detection parameters (only consumed when detection_type="sample_roi")
-        goal.strategy = step.get("strategy", "")
-        goal.edge_inset_mm = float(step.get("edge_inset_mm", 0.0))
-
-        # Handle multi-position scan mode
-        # Task JSON: "scan_positions": ["sample_scan_1", "sample_scan_2", "sample_scan_3"]
-        scan_position_keys = step.get("scan_positions", [])
-        if scan_position_keys:
-            poses = json.loads(poses_json)
-            scan_positions_flat = []
-            valid_positions = 0
-
-            for key in scan_position_keys:
-                if key in poses:
-                    # Convert degrees to radians (poses in JSON are in degrees)
-                    joints_deg = poses[key]
-                    joints_rad = [math.radians(j) for j in joints_deg]
-                    scan_positions_flat.extend(joints_rad)
-                    valid_positions += 1
-                else:
-                    self.get_logger().warning(
-                        f"Scan position '{key}' not found in poses, skipping"
-                    )
-
-            if valid_positions > 0:
-                goal.scan_positions_flat = scan_positions_flat
-                goal.num_scan_positions = valid_positions
-                self.get_logger().info(
-                    f"Multi-position mode: {valid_positions} scan positions configured"
-                )
-
-        success = self._send_and_wait(
-            self._vision_client, goal, "vision_moveto", self._timeouts["vision_moveto"]
-        )
-
-        # For detect_only, store detected pose for use by subsequent steps
-        if success and goal.detect_only and self._last_result is not None:
-            pos = list(self._last_result.detected_position)
-            ori = list(self._last_result.detected_orientation)
-            if len(pos) == 3:
-                self._last_detected_position = pos
-                self._last_detected_orientation = ori if len(ori) == 4 else None
-                self.get_logger().info(
-                    f"Stored detected pose: [{pos[0]:.4f}, {pos[1]:.4f}, {pos[2]:.4f}]"
-                )
-
-        return success
-
     def _call_vision_scan(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the VisionScan action server to batch-scan all markers.
 
@@ -1275,123 +1276,241 @@ class MTCOrchestratorServer(Node):
         )
 
         return self._send_and_wait(
-            self._vision_scan_client, goal, "vision_scan",
-            self._timeouts["vision_scan"]
+            self._vision_scan_client, goal, "vision_scan", self._timeouts["vision_scan"]
         )
 
-    def _call_pick_sample(self, step: dict[str, Any], poses_json: str) -> bool:
-        """Call the PickSample action server."""
-        # Wait for robot to settle before vision capture
-        settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
-        if settle_time > 0 and step.get("use_vision", True):
+    # Preset aliases (issue #88): each legacy vision task_type expands to a set
+    # of VisionTask params. The task JSON's own fields override the preset (merge
+    # order in _call_vision_task), so {"task_type":"pick_sample","tag_id":5} works
+    # the same as the fully-explicit {"task_type":"vision_task","detector":
+    # "marker","goal_computer":"approach_pose","terminal_action":"grasp",...}.
+    # Adding a vision task type is one entry here — no new handler.
+    #   watchdog: "arm" after a successful grasp / "disarm" after release / "".
+    _VISION_PRESETS = {
+        "vision_moveto": {"detector": "marker", "goal_computer": "approach_pose"},
+        "pick_sample": {
+            "detector": "marker",
+            "goal_computer": "approach_pose",
+            "terminal_action": "grasp",
+            "pre_open": True,
+            "retreat_from_scan": True,
+            "watchdog": "arm",
+        },
+        "place_sample": {
+            "detector": "marker",
+            "goal_computer": "approach_pose",
+            "terminal_action": "release",
+            "retreat_from_scan": True,
+            "watchdog": "disarm",
+        },
+        "pick_spincoater": {
+            "detector": "spincoater_sample",
+            "goal_computer": "j6_snap",
+            "terminal_action": "vacuum_on",
+            "scan_pose": "spincoater_scan",
+            "default_target_pose": "spincoater_place",
+            "forward_distance": 0.003,
+        },
+        "place_spincoater": {
+            "detector": "spincoater_pocket",
+            "goal_computer": "j6_snap",
+            "terminal_action": "vacuum_off",
+            "scan_pose": "spincoater_scan",
+            "default_target_pose": "spincoater_place",
+            "forward_distance": 0.003,
+        },
+    }
+
+    # Task types routed to the unified vision pipeline: the canonical
+    # "vision_task" (params straight from the JSON) plus the preset aliases.
+    _VISION_TASK_TYPES = frozenset({"vision_task", *_VISION_PRESETS})
+
+    def _call_vision_task(
+        self, task_type: str, step: dict[str, Any], poses_json: str
+    ) -> bool:
+        """Single handler for every vision-guided task (issue #88).
+
+        Builds one VisionTask goal from the preset for `task_type` (or, for
+        task_type=="vision_task", straight from the step), sends it to the one
+        vision_task server, then runs the only two things that must stay
+        orchestrator-side: detect_only pose caching and the cross-task vacuum
+        watchdog (it outlives the goal — armed at pick, checked through
+        transport, disarmed at place). ALL motion is server-side.
+        """
+        preset = self._VISION_PRESETS.get(task_type, {})
+
+        # Hardcoded (non-vision) pick/place is a detection-free joint sequence —
+        # it doesn't fit the detect-first pipeline, so it stays on the legacy
+        # sample server.
+        if task_type in ("pick_sample", "place_sample") and not step.get(
+            "use_vision", True
+        ):
+            return (
+                self._call_pick_sample_hardcoded
+                if task_type == "pick_sample"
+                else self._call_place_sample_hardcoded
+            )(step, poses_json)
+
+        # Merge: preset defaults < explicit task-JSON fields.
+        cfg = {**preset, **step}
+
+        # Settle (orchestrator-side, before any server motion), capped at 10s.
+        settle_time = min(float(cfg.get("settle_time", 1.0)), 10.0)
+        if settle_time > 0:
             self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
             time.sleep(settle_time)
 
-        gripper_type = step.get("gripper", self._current_gripper)
-        gripper_config = self._grippers.get(gripper_type, {})
-
-        goal = PickSampleAction.Goal()
-        goal.use_vision = step.get("use_vision", True)
-        goal.detection_type = step.get("detection_type", "marker")
-        goal.tag_id = int(step.get("tag_id", 0))
-        goal.sample_index = int(step.get("sample_index", 1))
-        goal.z_offset = float(step.get("z_offset", self._gripper_z_offset()))
-        goal.scan_pose = step.get("scan_pose", "")
-        goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
-        goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
-        goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
-        goal.offset_direction = step.get("offset_direction", "")
-        goal.offset_distance = float(step.get("offset_distance", 0.0))
-        goal.ik_frame = self._gripper_ik_frame()
-        goal.strategy = step.get("strategy", "")
-        goal.edge_inset_mm = float(step.get("edge_inset_mm", 0.0))
-        goal.approach_pose = step.get("approach_pose", "")
-        goal.target_pose = step.get("target_pose", "")
-        goal.gripper_group = gripper_config.get("gripper_group", "")
-        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
-        goal.poses_json = poses_json
-        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
-
+        goal = self._build_vision_goal(cfg, poses_json)
         success = self._send_and_wait(
-            self._pick_sample_client, goal, "pick_sample",
-            self._timeouts["pick_sample"]
+            self._vision_task_client, goal, task_type, self._timeouts["vision_task"]
         )
 
-        # Store detected position for subsequent steps
         if success and self._last_result is not None:
-            pos = list(getattr(self._last_result, 'detected_position', []))
-            ori = list(getattr(self._last_result, 'detected_orientation', []))
+            pos = list(getattr(self._last_result, "detected_position", []))
+            ori = list(getattr(self._last_result, "detected_orientation", []))
             if len(pos) == 3:
                 self._last_detected_position = pos
                 self._last_detected_orientation = ori if len(ori) == 4 else None
+                self.get_logger().info(
+                    f"Stored detected pose: [{pos[0]:.4f}, {pos[1]:.4f}, {pos[2]:.4f}]"
+                )
 
-            # Check vacuum status from result
-            vacuum_ok = getattr(self._last_result, 'vacuum_ok', True)
-            # Vacuum-loss abort DISABLED — a failed vacuum check after pick no
-            # longer returns False; the flow continues regardless.
-            # if not vacuum_ok:
-            #     self._last_error = (
-            #         "VACUUM_LOST: ePick reports NO_OBJECT_DETECTED after pick. "
-            #         "Send vacuum_off then vacuum_on to retry."
-            #     )
-            #     self.get_logger().error(self._last_error)
-            #     return False
-
-            # Arm background vacuum monitor for transport (pick_sample turns
-            # vacuum on internally, but VacuumMonitor only tracks end_effector
-            # tasks — so we arm it explicitly here)
-            if vacuum_ok and self._current_gripper == "epick":
+        # Cross-task vacuum watchdog (ePick only). The server reports vacuum_ok;
+        # the watchdog state persists across the transport steps between pick and
+        # place, so it must live here, not in the per-goal server.
+        watchdog = preset.get("watchdog", "")
+        if success and watchdog and self._current_gripper == "epick":
+            if watchdog == "arm" and getattr(self._last_result, "vacuum_ok", True):
                 self._vacuum.armed = True
+                self._vacuum.lost = False
+            elif watchdog == "disarm":
+                self._vacuum.armed = False
                 self._vacuum.lost = False
 
         return success
 
-    def _call_place_sample(self, step: dict[str, Any], poses_json: str) -> bool:
-        """Call the PlaceSample action server."""
-        settle_time = min(float(step.get("settle_time", 1.0)), 10.0)
-        if settle_time > 0 and step.get("use_vision", True):
-            self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
-            time.sleep(settle_time)
+    def _build_vision_goal(self, cfg: dict[str, Any], poses_json: str):
+        """Assemble a VisionTask goal from a merged preset+step config dict.
 
-        gripper_type = step.get("gripper", self._current_gripper)
-        gripper_config = self._grippers.get(gripper_type, {})
+        Orchestrator-owned fields (gripper config, IK frame) are filled here;
+        everything else comes from cfg with sane defaults.
+        """
+        gripper_config = self._grippers.get(
+            cfg.get("gripper", self._current_gripper), {}
+        )
 
-        goal = PlaceSampleAction.Goal()
-        goal.use_vision = step.get("use_vision", True)
-        goal.detection_type = step.get("detection_type", "marker")
-        goal.tag_id = int(step.get("tag_id", 0))
-        goal.z_offset = float(step.get("z_offset", self._gripper_z_offset()))
-        goal.scan_pose = step.get("scan_pose", "")
-        goal.marker_offset_x = float(step.get("marker_offset_x", 0.0))
-        goal.marker_offset_y = float(step.get("marker_offset_y", 0.0))
-        goal.marker_offset_z = float(step.get("marker_offset_z", 0.0))
-        goal.offset_direction = step.get("offset_direction", "")
-        goal.offset_distance = float(step.get("offset_distance", 0.0))
+        goal = VisionTaskAction.Goal()
+        # Selectors. Legacy "detection_type" still maps onto "detector".
+        goal.detector = cfg.get("detector", cfg.get("detection_type", "marker"))
+        goal.goal_computer = cfg.get("goal_computer", "approach_pose")
+        # Detection inputs.
+        goal.tag_id = int(cfg.get("tag_id", 0))
+        goal.sample_index = int(cfg.get("sample_index", 1))
+        goal.timeout = float(cfg.get("timeout", 10.0))
+        goal.strategy = cfg.get("strategy", "")
+        goal.edge_inset_mm = float(cfg.get("edge_inset_mm", 0.0))
+        # Goal-computation inputs.
+        goal.z_offset = float(cfg.get("z_offset", self._gripper_z_offset()))
+        goal.marker_offset_x = float(cfg.get("marker_offset_x", 0.0))
+        goal.marker_offset_y = float(cfg.get("marker_offset_y", 0.0))
+        goal.marker_offset_z = float(cfg.get("marker_offset_z", 0.0))
+        goal.offset_direction = cfg.get("offset_direction", "")
+        goal.offset_distance = float(cfg.get("offset_distance", 0.0))
+        # j6_snap (spincoater): accept legacy place_pose/pickup_pose for target.
+        goal.target_pose = (
+            cfg.get("target_pose")
+            or cfg.get("place_pose")
+            or cfg.get("pickup_pose")
+            or cfg.get("default_target_pose", "")
+        )
+        goal.k_offset = float(cfg.get("k_offset", 0.0))
+        goal.forward_distance = float(cfg.get("forward_distance", 0.0))
+        # Execution tail.
+        goal.scan_pose = cfg.get("scan_pose", "")
+        goal.terminal_action = cfg.get("terminal_action", "")
+        goal.pre_open = bool(cfg.get("pre_open", False))
+        # retreat_from_scan: pick/place retreat to the scan pose after the action.
+        if cfg.get("retreat_from_scan"):
+            goal.retreat_pose = cfg.get("scan_pose", "")
+        else:
+            goal.retreat_pose = cfg.get("retreat_pose", "")
+        goal.gripper_group = gripper_config.get("gripper_group", "")
+        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
+        # Common.
         goal.ik_frame = self._gripper_ik_frame()
+        goal.detect_only = bool(cfg.get("detect_only", False))
+        goal.poses_json = poses_json
+        goal.constraints_json = (
+            json.dumps(cfg["constraints"]) if "constraints" in cfg else ""
+        )
+
+        # Multi-position scan averaging (vision_moveto): flatten pose keys -> radians.
+        scan_keys = cfg.get("scan_positions", [])
+        if scan_keys:
+            poses = json.loads(poses_json) if poses_json else {}
+            flat, n = [], 0
+            for key in scan_keys:
+                if key in poses:
+                    flat.extend(math.radians(j) for j in poses[key])
+                    n += 1
+                else:
+                    self.get_logger().warning(
+                        f"Scan position '{key}' not found, skipping"
+                    )
+            if n > 0:
+                goal.scan_positions_flat = flat
+                goal.num_scan_positions = n
+                self.get_logger().info(f"Multi-position mode: {n} scan positions")
+
+        return goal
+
+    def _call_pick_sample_hardcoded(
+        self, step: dict[str, Any], poses_json: str
+    ) -> bool:
+        """Non-vision pick: legacy PickSample server, joint-pose sequence."""
+        gripper_config = self._grippers.get(
+            step.get("gripper", self._current_gripper), {}
+        )
+        goal = PickSampleAction.Goal()
+        goal.use_vision = False
         goal.approach_pose = step.get("approach_pose", "")
         goal.target_pose = step.get("target_pose", "")
         goal.gripper_group = gripper_config.get("gripper_group", "")
         goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
         goal.poses_json = poses_json
-        goal.constraints_json = json.dumps(step["constraints"]) if "constraints" in step else ""
-
-        success = self._send_and_wait(
-            self._place_sample_client, goal, "place_sample",
-            self._timeouts["place_sample"]
+        goal.constraints_json = (
+            json.dumps(step["constraints"]) if "constraints" in step else ""
+        )
+        return self._send_and_wait(
+            self._pick_sample_client, goal, "pick_sample", self._timeouts["pick_sample"]
         )
 
-        if success and self._last_result is not None:
-            pos = list(getattr(self._last_result, 'detected_position', []))
-            ori = list(getattr(self._last_result, 'detected_orientation', []))
-            if len(pos) == 3:
-                self._last_detected_position = pos
-                self._last_detected_orientation = ori if len(ori) == 4 else None
-
-        # Disarm vacuum monitor (place_sample turns vacuum off internally)
+    def _call_place_sample_hardcoded(
+        self, step: dict[str, Any], poses_json: str
+    ) -> bool:
+        """Non-vision place: legacy PlaceSample server, joint-pose sequence."""
+        gripper_config = self._grippers.get(
+            step.get("gripper", self._current_gripper), {}
+        )
+        goal = PlaceSampleAction.Goal()
+        goal.use_vision = False
+        goal.approach_pose = step.get("approach_pose", "")
+        goal.target_pose = step.get("target_pose", "")
+        goal.gripper_group = gripper_config.get("gripper_group", "")
+        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
+        goal.poses_json = poses_json
+        goal.constraints_json = (
+            json.dumps(step["constraints"]) if "constraints" in step else ""
+        )
+        success = self._send_and_wait(
+            self._place_sample_client,
+            goal,
+            "place_sample",
+            self._timeouts["place_sample"],
+        )
         if success and self._current_gripper == "epick":
             self._vacuum.armed = False
             self._vacuum.lost = False
-
         return success
 
     def _call_pipettor(self, step: dict[str, Any], poses_json: str) -> bool:
@@ -1416,234 +1535,6 @@ class MTCOrchestratorServer(Node):
             self._pipettor_client, goal, "pipettor", self._timeouts["pipettor"]
         )
 
-    def _call_place_spincoater(self, step: dict[str, Any], poses_json: str) -> bool:
-        """Place a sample on the spincoater with vision-guided orientation.
-
-        Sequence:
-          1. Move to scan pose (framing the chuck centered for flash-lit 2D capture)
-          2. Capture 2D image, detect pocket angle via red-field negative-space method
-          3. Compute corrected joint 6 = place_pose[5] + detected_angle + k_offset
-          4. Move to placement pose with corrected joint 6 (with Z clearance)
-          5. Move forward to contact the surface
-          6. Release vacuum
-
-        Task JSON fields:
-          scan_pose: str — pose key for the scan position (default "spincoater_scan")
-          place_pose: str — pose key for the placement position (default "spincoater_place")
-          forward_distance: float — distance in meters to move forward after positioning
-                                    (default 0.003 = 3mm)
-          k_offset: float — calibration constant in degrees (default 0.0)
-          release: bool — whether to release vacuum after placement (default true)
-        """
-        from beambot.camera.zivid import capture_2d
-        from beambot.detection import detect_spincoater_pocket
-
-        scan_pose_key = step.get("scan_pose", "spincoater_scan")
-        place_pose_key = step.get("place_pose", "spincoater_place")
-        forward_distance = float(step.get("forward_distance", 0.003))
-        k_offset = float(step.get("k_offset", 0.0))
-        release = step.get("release", True)
-
-        # Resolve poses
-        poses = json.loads(poses_json) if poses_json else {}
-        scan_joints = poses.get(scan_pose_key)
-        place_joints = poses.get(place_pose_key)
-
-        if scan_joints is None or place_joints is None:
-            self._last_error = (
-                f"place_spincoater: missing pose '{scan_pose_key}' or "
-                f"'{place_pose_key}' in poses"
-            )
-            self.get_logger().error(self._last_error)
-            return False
-
-        # Step 1: Move to scan pose
-        self.get_logger().info(f"place_spincoater: moving to scan pose '{scan_pose_key}'")
-        scan_step = {"target": scan_pose_key, "planning_type": "joint"}
-        if not self._call_moveto(scan_step, poses_json):
-            self._last_error = "place_spincoater: failed to reach scan pose"
-            return False
-
-        # Step 2: 2D capture + pocket detection
-        self.get_logger().info("place_spincoater: capturing 2D image...")
-        time.sleep(1.0)  # settle time
-        image = capture_2d(self, timeout=15.0)
-        if image is None:
-            self._last_error = "place_spincoater: 2D capture failed"
-            self.get_logger().error(self._last_error)
-            return False
-
-        detection = detect_spincoater_pocket(image)
-        if detection is None:
-            self._last_error = "place_spincoater: pocket detection failed"
-            self.get_logger().error(self._last_error)
-            return False
-
-        pocket_angle = detection["angle_mod90"]
-        self.get_logger().info(
-            f"place_spincoater: pocket detected — angle_mod90={pocket_angle:.1f}°, "
-            f"aspect={detection['aspect']:.2f}, solidity={detection['solidity']:.2f}"
-        )
-
-        # Step 3: Compute corrected joint 6
-        base_j6 = place_joints[5]
-        raw_correction = pocket_angle + k_offset
-        # Snap to nearest ±45° (4-fold symmetry)
-        correction = raw_correction % 90
-        if correction > 45:
-            correction -= 90
-        corrected_j6 = base_j6 + correction
-
-        self.get_logger().info(
-            f"place_spincoater: j6 correction — base={base_j6:.1f}°, "
-            f"pocket={pocket_angle:.1f}°, k={k_offset:.1f}°, "
-            f"correction={correction:.1f}°, target_j6={corrected_j6:.1f}°"
-        )
-
-        # Step 4: Move to placement pose with corrected j6
-        corrected_place = list(place_joints)
-        corrected_place[5] = corrected_j6
-        place_pose_name = "_spincoater_place_corrected"
-        poses[place_pose_name] = corrected_place
-        corrected_poses_json = json.dumps(poses)
-
-        place_step = {"target": place_pose_name, "planning_type": "joint"}
-        if not self._call_moveto(place_step, corrected_poses_json):
-            self._last_error = "place_spincoater: failed to reach placement pose"
-            return False
-
-        # Step 5: Move forward to contact
-        if forward_distance > 0:
-            self.get_logger().info(
-                f"place_spincoater: moving forward {forward_distance*1000:.1f}mm"
-            )
-            fwd_step = {"target": "", "direction": "forward", "distance": forward_distance}
-            if not self._call_moveto(fwd_step, corrected_poses_json):
-                self._last_error = "place_spincoater: forward move failed"
-                return False
-
-        # Step 6: Release vacuum
-        if release:
-            self.get_logger().info("place_spincoater: releasing vacuum")
-            release_step = {"end_effector_action": "vacuum_off"}
-            if not self._call_endeffector(release_step, corrected_poses_json):
-                self._last_error = "place_spincoater: vacuum release failed"
-                return False
-
-        self.get_logger().info("place_spincoater: placement complete")
-        return True
-
-    def _call_pick_spincoater(self, step: dict[str, Any], poses_json: str) -> bool:
-        """Pick a sample from the spincoater with vision-guided orientation.
-
-        Mirrors place_spincoater structure exactly:
-          1. Move to scan pose
-          2. Capture 2D image, detect sample angle via YOLO segmentation
-          3. Move to pickup pose with corrected joint 6
-          4. Move forward to contact the sample
-          5. Activate vacuum
-
-        Task JSON fields:
-          scan_pose: str — pose key for the scan position (default "spincoater_scan")
-          pickup_pose: str — pose key for the pickup position (default "spincoater_place")
-          forward_distance: float — distance in meters to move forward (default 0.003)
-          k_offset: float — calibration constant in degrees (default 0.0)
-        """
-        from beambot.camera.zivid import capture_2d
-        from beambot.detection import detect_spincoater_sample
-
-        scan_pose_key = step.get("scan_pose", "spincoater_scan")
-        pickup_pose_key = step.get("pickup_pose", "spincoater_place")
-        forward_distance = float(step.get("forward_distance", 0.003))
-        k_offset = float(step.get("k_offset", 0.0))
-
-        # Resolve poses
-        poses = json.loads(poses_json) if poses_json else {}
-        scan_joints = poses.get(scan_pose_key)
-        pickup_joints = poses.get(pickup_pose_key)
-
-        if scan_joints is None or pickup_joints is None:
-            self._last_error = (
-                f"pick_spincoater: missing pose '{scan_pose_key}' or "
-                f"'{pickup_pose_key}' in poses"
-            )
-            self.get_logger().error(self._last_error)
-            return False
-
-        # Step 1: Move to scan pose
-        self.get_logger().info(f"pick_spincoater: moving to scan pose '{scan_pose_key}'")
-        scan_step = {"target": scan_pose_key, "planning_type": "joint"}
-        if not self._call_moveto(scan_step, poses_json):
-            self._last_error = "pick_spincoater: failed to reach scan pose"
-            return False
-
-        # Step 2: 2D capture + sample detection
-        self.get_logger().info("pick_spincoater: capturing 2D image...")
-        time.sleep(1.0)
-        image = capture_2d(self, timeout=15.0)
-        if image is None:
-            self._last_error = "pick_spincoater: 2D capture failed"
-            self.get_logger().error(self._last_error)
-            return False
-
-        detection = detect_spincoater_sample(image)
-        if detection is None:
-            self._last_error = "pick_spincoater: sample detection failed"
-            self.get_logger().error(self._last_error)
-            return False
-
-        sample_angle = detection["angle_mod90"]
-        self.get_logger().info(
-            f"pick_spincoater: sample detected — angle_mod90={sample_angle:.1f}°, "
-            f"confidence={detection['confidence']:.2f}, center={detection['center_px']}"
-        )
-
-        # Step 3: Compute corrected joint 6
-        base_j6 = pickup_joints[5]
-        raw_correction = sample_angle + k_offset
-        correction = raw_correction % 90
-        if correction > 45:
-            correction -= 90
-        corrected_j6 = base_j6 + correction
-
-        self.get_logger().info(
-            f"pick_spincoater: j6 correction — base={base_j6:.1f}°, "
-            f"sample={sample_angle:.1f}°, k={k_offset:.1f}°, "
-            f"correction={correction:.1f}°, target_j6={corrected_j6:.1f}°"
-        )
-
-        # Step 4: Move to pickup pose with corrected j6
-        corrected_pickup = list(pickup_joints)
-        corrected_pickup[5] = corrected_j6
-        pickup_pose_name = "_spincoater_pick_corrected"
-        poses[pickup_pose_name] = corrected_pickup
-        corrected_poses_json = json.dumps(poses)
-
-        pickup_step = {"target": pickup_pose_name, "planning_type": "joint"}
-        if not self._call_moveto(pickup_step, corrected_poses_json):
-            self._last_error = "pick_spincoater: failed to reach pickup pose"
-            return False
-
-        # Step 5: Move forward to contact
-        if forward_distance > 0:
-            self.get_logger().info(
-                f"pick_spincoater: moving forward {forward_distance*1000:.1f}mm"
-            )
-            fwd_step = {"target": "", "direction": "forward", "distance": forward_distance}
-            if not self._call_moveto(fwd_step, corrected_poses_json):
-                self._last_error = "pick_spincoater: forward move failed"
-                return False
-
-        # Step 6: Activate vacuum
-        self.get_logger().info("pick_spincoater: activating vacuum")
-        grasp_step = {"end_effector_action": "vacuum_on"}
-        if not self._call_endeffector(grasp_step, corrected_poses_json):
-            self._last_error = "pick_spincoater: vacuum activation failed"
-            return False
-
-        self.get_logger().info("pick_spincoater: pickup complete")
-        return True
-
     def _update_feedback(
         self,
         feedback: MTCExecution.Feedback,
@@ -1655,8 +1546,12 @@ class MTCOrchestratorServer(Node):
         """Publish progress feedback."""
         feedback.current_step = current_step
         feedback.current_action = task_type
-        feedback.progress_percentage = (current_step / total_steps) * 100.0 if total_steps > 0 else 0.0
-        feedback.status_message = "Task completed" if not task_type else f"Executing: {task_type}"
+        feedback.progress_percentage = (
+            (current_step / total_steps) * 100.0 if total_steps > 0 else 0.0
+        )
+        feedback.status_message = (
+            "Task completed" if not task_type else f"Executing: {task_type}"
+        )
         feedback.current_gripper = self._current_gripper
 
         goal_handle.publish_feedback(feedback)
@@ -1680,5 +1575,5 @@ def main(args=None):
         rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

@@ -17,9 +17,11 @@ from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 
 from beambot.stages.base_stages import (
-    BaseStages, parse_constraints, apply_constraints,
+    BaseStages,
+    parse_constraints,
+    apply_constraints,
 )
-from beambot.stages.vision_stages import VisionStages
+from beambot.pipeline.vision_engine import VisionEngine
 
 
 class PickSampleStages(BaseStages):
@@ -35,8 +37,10 @@ class PickSampleStages(BaseStages):
         marker_dictionary: str = None,
     ):
         super().__init__(rclpy_node, arm_group, ik_frame=ik_frame)
-        self._vision = VisionStages(
-            rclpy_node, arm_group, ik_frame,
+        self._vision = VisionEngine(
+            rclpy_node,
+            arm_group,
+            ik_frame,
             camera_type=camera_type,
             camera_frame=camera_frame,
             marker_dictionary=marker_dictionary,
@@ -59,7 +63,9 @@ class PickSampleStages(BaseStages):
             return "Failed to parse poses_json for pick_sample"
 
         try:
-            gripper_states = json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
+            gripper_states = (
+                json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
+            )
         except json.JSONDecodeError as e:
             return f"Invalid gripper_states_json: {e}"
 
@@ -96,14 +102,19 @@ class PickSampleStages(BaseStages):
         gripper_planner = self.make_joint_interpolation_planner()
 
         release_stage = self.make_gripper_stage(
-            "open gripper", gripper_planner,
-            goal.gripper_group, gripper_states.get("release", ""),
+            "open gripper",
+            gripper_planner,
+            goal.gripper_group,
+            gripper_states.get("release", ""),
         )
         if release_stage:
             task.add(release_stage)
 
         scan_stage = self.make_move_to_named_stage(
-            "scan position", goal.scan_pose, poses, constraints=constraints,
+            "scan position",
+            goal.scan_pose,
+            poses,
+            constraints=constraints,
         )
         if not scan_stage:
             return f"Pose '{goal.scan_pose}' not found or invalid (scan position)"
@@ -116,8 +127,8 @@ class PickSampleStages(BaseStages):
         # Runtime: detect target
         detection_type = goal.detection_type or "marker"
         if detection_type == "sample_roi":
-            strategy = getattr(goal, 'strategy', '') or 'farthest_edge'
-            edge_inset_mm = getattr(goal, 'edge_inset_mm', 0.0) or 6.5
+            strategy = getattr(goal, "strategy", "") or "farthest_edge"
+            edge_inset_mm = getattr(goal, "edge_inset_mm", 0.0) or 6.5
             target_pose = self._vision.detect_and_transform_sample_roi(
                 tag_id=goal.tag_id,
                 strategy=strategy,
@@ -125,7 +136,9 @@ class PickSampleStages(BaseStages):
                 timeout=10.0,
             )
         else:
-            target_pose = self._vision.detect_and_transform_tag(goal.tag_id, timeout=10.0)
+            target_pose = self._vision.detect_and_transform_tag(
+                goal.tag_id, timeout=10.0
+            )
 
         if target_pose is None:
             return (
@@ -134,9 +147,10 @@ class PickSampleStages(BaseStages):
             )
 
         # Compute approach pose with offsets
-        ik_frame_override = getattr(goal, 'ik_frame', '') or ''
+        ik_frame_override = getattr(goal, "ik_frame", "") or ""
         approach, active_ik_frame = self._vision.compute_approach_pose(
-            target_pose, goal.z_offset,
+            target_pose,
+            goal.z_offset,
             marker_offset_x=goal.marker_offset_x,
             marker_offset_y=goal.marker_offset_y,
             marker_offset_z=goal.marker_offset_z,
@@ -144,11 +158,13 @@ class PickSampleStages(BaseStages):
         )
 
         # Apply flange-frame directional offset if specified
-        offset_direction = getattr(goal, 'offset_direction', '') or ''
-        offset_distance = getattr(goal, 'offset_distance', 0.0)
+        offset_direction = getattr(goal, "offset_direction", "") or ""
+        offset_distance = getattr(goal, "offset_distance", 0.0)
         if offset_direction and offset_distance > 0:
             approach = self._vision._apply_flange_offset(
-                approach, offset_direction, offset_distance,
+                approach,
+                offset_direction,
+                offset_distance,
             )
 
         self.last_detected_pose = approach
@@ -182,15 +198,20 @@ class PickSampleStages(BaseStages):
 
         # Close gripper / vacuum on
         grasp_stage = self.make_gripper_stage(
-            "close gripper", gripper_planner,
-            goal.gripper_group, gripper_states.get("grasp", ""),
+            "close gripper",
+            gripper_planner,
+            goal.gripper_group,
+            gripper_states.get("grasp", ""),
         )
         if grasp_stage:
             task.add(grasp_stage)
 
         # Retreat to scan pose
         retreat_stage = self.make_move_to_named_stage(
-            "retreat", goal.scan_pose, poses, constraints=constraints,
+            "retreat",
+            goal.scan_pose,
+            poses,
+            constraints=constraints,
         )
         if not retreat_stage:
             return f"Pose '{goal.scan_pose}' not found or invalid (retreat)"
@@ -215,15 +236,20 @@ class PickSampleStages(BaseStages):
 
         # 1. Open gripper
         release_stage = self.make_gripper_stage(
-            "open gripper", gripper_planner,
-            goal.gripper_group, gripper_states.get("release", ""),
+            "open gripper",
+            gripper_planner,
+            goal.gripper_group,
+            gripper_states.get("release", ""),
         )
         if release_stage:
             task.add(release_stage)
 
         # 2. Move to approach
         stage = self.make_move_to_named_stage(
-            "pick approach", goal.approach_pose, poses, constraints=constraints,
+            "pick approach",
+            goal.approach_pose,
+            poses,
+            constraints=constraints,
         )
         if not stage:
             return f"Pose '{goal.approach_pose}' not found or invalid (approach)"
@@ -231,7 +257,10 @@ class PickSampleStages(BaseStages):
 
         # 3. Move to target
         stage = self.make_move_to_named_stage(
-            "pick target", goal.target_pose, poses, constraints=constraints,
+            "pick target",
+            goal.target_pose,
+            poses,
+            constraints=constraints,
         )
         if not stage:
             return f"Pose '{goal.target_pose}' not found or invalid (target)"
@@ -239,15 +268,20 @@ class PickSampleStages(BaseStages):
 
         # 4. Close gripper
         grasp_stage = self.make_gripper_stage(
-            "close gripper", gripper_planner,
-            goal.gripper_group, gripper_states.get("grasp", ""),
+            "close gripper",
+            gripper_planner,
+            goal.gripper_group,
+            gripper_states.get("grasp", ""),
         )
         if grasp_stage:
             task.add(grasp_stage)
 
         # 5. Retreat to approach
         stage = self.make_move_to_named_stage(
-            "pick retreat", goal.approach_pose, poses, constraints=constraints,
+            "pick retreat",
+            goal.approach_pose,
+            poses,
+            constraints=constraints,
         )
         if not stage:
             return f"Pose '{goal.approach_pose}' not found or invalid (retreat)"
@@ -278,7 +312,10 @@ class PickSampleStages(BaseStages):
             event.set()
 
         sub = self.rclpy_node.create_subscription(
-            ObjectDetectionStatus, '/object_detection_status', _on_status, 10,
+            ObjectDetectionStatus,
+            "/object_detection_status",
+            _on_status,
+            10,
         )
         event.wait(timeout=1.0)
         self.rclpy_node.destroy_subscription(sub)

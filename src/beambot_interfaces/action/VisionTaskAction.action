@@ -1,0 +1,62 @@
+# VisionTaskAction — unified vision-guided pipeline (issue #88)
+#
+# One parameterized action that replaces the bespoke vision/pick/place/
+# spincoater handlers. The pipeline is fixed: settle -> move-to-scan ->
+# DETECT -> COMPUTE-GOAL -> EXECUTE -> (terminal end-effector action).
+# The two middle stages are name-keyed plugins:
+#   detector       -> a Detector  in beambot.pipeline.detectors
+#   goal_computer  -> a GoalComputer in beambot.pipeline.goal_computers
+# Adding an algorithm is a one-decorator change; no .action edit, no handler edit.
+#
+# The field set grows additively per migration (vision_moveto -> spincoater ->
+# pick/place). All fields are optional with sane defaults so each task type
+# fills only what it uses; growth never breaks an existing caller.
+
+# Goal
+# ---- pipeline selectors (the unified contract) ----
+string detector             # registry key: "marker" | "sample_roi" | "spincoater_pocket" | "spincoater_sample"
+string goal_computer        # registry key: "approach_pose" (default) | "j6_snap"
+
+# ---- detection inputs ----
+int32 tag_id                # ArUco marker ID (marker detector); ROI anchor (sample_roi)
+int32 sample_index          # Sample number for contour selection (1-indexed)
+float64 timeout             # Detection timeout in seconds
+string strategy             # sample_roi pickup strategy (default: "farthest_edge")
+float64 edge_inset_mm       # sample_roi inset from edge in mm (default: 6.5)
+float64[] scan_positions_flat  # Multi-position averaging: flattened [j1..j6, ...] (radians)
+int32 num_scan_positions       # Number of scan positions (0 = single-position)
+
+# ---- goal-computation inputs ----
+float64 z_offset            # Approach height (0 = gripper default)
+float64 marker_offset_x     # Marker-local X offset (m)
+float64 marker_offset_y     # Marker-local Y offset (m)
+float64 marker_offset_z     # Marker-local Z offset (m)
+string offset_direction     # Flange-frame post-offset direction (e.g. "forward")
+float64 offset_distance     # Distance for offset_direction (m)
+string target_pose          # j6_snap: pose key whose joint 6 is corrected (spincoater)
+float64 k_offset            # j6_snap: calibration constant (degrees)
+float64 forward_distance    # j6_snap: forward-contact move after positioning (m; 0 = none)
+
+# ---- execution tail (pick/place: fused scan -> approach+grasp+retreat) ----
+string scan_pose            # Pose key to move to before detection ("" = caller already positioned)
+string terminal_action      # SRDF gripper state after approach: "" (none) | grasp | release state name
+string gripper_group        # MoveIt gripper group (orchestrator-filled)
+string gripper_states_json  # {"grasp": "...", "release": "..."} SRDF state map (orchestrator-filled)
+bool pre_open               # Pick: open gripper before moving to scan pose (place: false)
+string retreat_pose         # Pose key to retreat to after the terminal action ("" = no retreat)
+
+# ---- common (orchestrator-filled) ----
+string ik_frame             # IK frame override (orchestrator sets after tool exchange)
+string poses_json           # Pose registry from task
+string constraints_json     # Optional MoveIt path constraints (JSON; "" = none)
+bool detect_only            # Detect + return pose, do not move
+---
+# Result
+bool success
+string error_message
+bool vacuum_ok                  # ePick reports object detected after grasp (true for non-ePick)
+float64[] detected_position     # [x, y, z] in base_link (detect_only)
+float64[] detected_orientation  # [x, y, z, w] in base_link (detect_only)
+string motion_kind              # which MotionTarget variant ran (telemetry / migration parity)
+---
+# Feedback

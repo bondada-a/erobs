@@ -129,6 +129,17 @@ between every step.
 
 Unknown `task_type` returns `"Unknown task type: '<name>'"`.
 
+**Vision tasks are unified (issue #88).** `vision_moveto`, `pick_sample`,
+`place_sample`, `pick_spincoater`, and `place_spincoater` are **preset aliases**
+over one `vision_task` pipeline (detect → compute goal → execute → terminal).
+Keep using the named task types below exactly as documented — they still work
+unchanged. Power users can instead send `{"task_type": "vision_task", ...}`
+directly and set the pipeline pieces by name: `detector`
+(`marker`|`sample_roi`|`spincoater_pocket`|`spincoater_sample`), `goal_computer`
+(`approach_pose`|`j6_snap`), `terminal_action`, `scan_pose`, `retreat_pose`,
+`forward_distance`. The named presets are the recommended interface; reach for
+raw `vision_task` only for a combination no preset covers.
+
 ### 3.1 `moveto` — joint / SRDF / cartesian / relative
 
 ```json
@@ -471,16 +482,20 @@ Two MCP servers are wired: `beambot` (project-specific) and `ros-mcp-server`
 
 Use these explicitly — auto-resolution is unreliable:
 
+Send all task JSON through `/beambot_execution`. The orchestrator routes each
+`task_type` to the right server; you do not call these directly. The task JSON
+fields in §3 are unchanged — the unification (issue #88) is internal routing.
+
 | Topic | Type |
 |---|---|
-| `/beambot_execution` | `beambot_interfaces/action/MTCExecution` (**primary**) |
+| `/beambot_execution` | `beambot_interfaces/action/MTCExecution` (**primary — use this**) |
 | `/beambot_moveto` | `beambot_interfaces/action/MoveToAction` |
 | `/beambot_endeffector` | `beambot_interfaces/action/EndEffectorAction` |
-| `/beambot_pick_sample` | `beambot_interfaces/action/PickSampleAction` |
-| `/beambot_place_sample` | `beambot_interfaces/action/PlaceSampleAction` |
+| `/beambot_vision_task` | `beambot_interfaces/action/VisionTaskAction` (unified: vision_moveto, vision-mode pick/place, pick/place_spincoater) |
+| `/beambot_pick_sample` | `beambot_interfaces/action/PickSampleAction` (hardcoded `use_vision:false` pick only) |
+| `/beambot_place_sample` | `beambot_interfaces/action/PlaceSampleAction` (hardcoded `use_vision:false` place only) |
 | `/beambot_toolexchange` | `beambot_interfaces/action/ToolExchangeAction` |
-| `/beambot_vision_moveto` | `beambot_interfaces/action/VisionMoveToAction` |
-| `/beambot_vision_scan` | `beambot_interfaces/action/VisionScanAction` |
+| `/beambot_vision_scan` | `beambot_interfaces/action/VisionScanAction` (legacy; not actively used) |
 | `/beambot_pipettor` | `beambot_interfaces/action/PipettorAction` |
 
 ---
@@ -497,4 +512,3 @@ ePick's collision shape and tip-frame offset.
   extension + 6 mm cup), `3mm_dia`, `default` (stock 20 mm cup).
 - The active default is in the beamline YAML's `grippers.epick.cup_profile`.
 - Only call `set_cup_profile` when the user asks (see safety_boundary).
-

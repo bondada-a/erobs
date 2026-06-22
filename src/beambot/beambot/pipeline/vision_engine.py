@@ -1,11 +1,21 @@
-"""VisionStages - Python equivalent of vision_stages.cpp.
+"""VisionEngine — shared detection / approach-geometry / tag-cache helpers.
 
-Handles vision-guided robot movement:
-- ArUco marker detection via Zivid camera
-- Circle/object detection via Hough Transform
-- TF transforms from camera to base frame
-- Collision object management
-- Motion to detected poses
+Formerly VisionStages (a task "stage"); after the issue #88 migration it no
+longer hosts a run() action handler — it's an engine called à la carte by the
+unified pipeline (detectors + goal_computers via vision_task_stages) and by the
+remaining legacy paths (vision_scan, hardcoded pick/place). Four jobs live here:
+
+- DETECTION PLUMBING: capture via the camera module + transform camera->base_link
+  at the capture timestamp (detect_and_transform_tag / _sample_roi / multiposition).
+  The detection ALGORITHMS live in beambot.detection / beambot.camera; this wraps
+  them with ROS capture + TF.
+- APPROACH GEOMETRY: compute_approach_pose, _apply_flange_offset (pure pose math).
+- TAG CACHE: scan_all_tags / get_cached_pose (used by vision_scan).
+- COLLISION OBJECTS: planning-scene helpers for detected tags.
+
+Future (separate issue): split these four into capture.py / approach.py /
+tag_cache.py under pipeline/. Deferred until vision_scan + hardcoded pick/place
+are retired so the split isn't done on hardware-unverified paths.
 """
 
 import math
@@ -14,26 +24,34 @@ from dataclasses import dataclass
 
 import numpy as np
 import rclpy
-from ament_index_python.packages import get_package_share_directory
 from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from moveit.task_constructor import stages
 from moveit_msgs.msg import CollisionObject, PlanningScene
-from moveit_msgs.srv import GetPlanningScene, GetPositionIK
+from moveit_msgs.srv import GetPlanningScene
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 from shape_msgs.msg import SolidPrimitive
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
-from tf_transformations import quaternion_multiply, quaternion_from_euler, quaternion_matrix, euler_from_quaternion
+from tf_transformations import (
+    quaternion_multiply,
+    quaternion_from_euler,
+    quaternion_matrix,
+    euler_from_quaternion,
+)
 
 from beambot.camera import DetectionResult, get_camera
 from beambot.stages.base_stages import (
-    BaseStages, DEFAULT_JOINT_NAMES, DIRECTION_VECTORS, wait_for_future,
+    BaseStages,
+    DEFAULT_JOINT_NAMES,
+    DIRECTION_VECTORS,
+    wait_for_future,
 )
 
 
 @dataclass
 class ObjectInfo:
     """Information about a collision object associated with a marker."""
+
     name: str
     shape: str
     dimensions: list
@@ -43,12 +61,18 @@ class ObjectInfo:
 @dataclass
 class GripperDetection:
     """Auto-detected gripper frame and offset."""
+
     ik_frame: str
     z_offset: float
 
 
-class VisionStages(BaseStages):
-    """Handles vision-guided movement to ArUco markers and detected objects."""
+class VisionEngine(BaseStages):
+    """Detection / approach-geometry / tag-cache helpers for the vision pipeline.
+
+    Inherits BaseStages for the shared MTC toolkit (planners, IK, task template,
+    pose parsing). Holds its own detection plumbing, approach geometry, and tag
+    cache. No run() handler — callers invoke individual methods.
+    """
 
     # Detection types
     DETECTION_MARKER = "marker"
@@ -71,9 +95,9 @@ class VisionStages(BaseStages):
         marker_dictionary: str = None,
         retry_count: int = None,
         retry_delay: float = None,
-        settle_time: float = None
+        settle_time: float = None,
     ):
-        """Initialize VisionStages.
+        """Initialize the VisionEngine.
 
         Args:
             rclpy_node: ROS node for service calls and TF
@@ -89,22 +113,24 @@ class VisionStages(BaseStages):
         Raises:
             ValueError: if camera_type/camera_frame/marker_dictionary aren't supplied.
                 Callers must source these from the active beamline YAML's
-                `camera:` block — VisionStages refuses CMS-flavored fallbacks
+                `camera:` block — VisionEngine refuses CMS-flavored fallbacks
                 so a misconfiguration fails loudly at startup.
         """
         super().__init__(rclpy_node, arm_group, ik_frame=ik_frame)
 
         # Camera configuration — required, no fallback
         missing = [
-            name for name, val in (
+            name
+            for name, val in (
                 ("camera_type", camera_type),
                 ("camera_frame", camera_frame),
                 ("marker_dictionary", marker_dictionary),
-            ) if not val
+            )
+            if not val
         ]
         if missing:
             raise ValueError(
-                f"VisionStages requires {', '.join(missing)} from the active "
+                f"VisionEngine requires {', '.join(missing)} from the active "
                 f"beamline YAML's `camera:` block (set BEAMBOT_BEAMLINE_CONFIG)."
             )
         self._camera_type = camera_type
@@ -112,11 +138,17 @@ class VisionStages(BaseStages):
         self._marker_dictionary = marker_dictionary
 
         # Retry configuration
-        self._retry_count = retry_count if retry_count is not None else self.DEFAULT_RETRY_COUNT
-        self._retry_delay = retry_delay if retry_delay is not None else self.DEFAULT_RETRY_DELAY
+        self._retry_count = (
+            retry_count if retry_count is not None else self.DEFAULT_RETRY_COUNT
+        )
+        self._retry_delay = (
+            retry_delay if retry_delay is not None else self.DEFAULT_RETRY_DELAY
+        )
 
         # Settle time before capture (for robot vibration damping)
-        self._settle_time = settle_time if settle_time is not None else self.DEFAULT_SETTLE_TIME
+        self._settle_time = (
+            settle_time if settle_time is not None else self.DEFAULT_SETTLE_TIME
+        )
 
         # TF2
         self._tf_buffer = Buffer()
@@ -131,7 +163,7 @@ class VisionStages(BaseStages):
         scene_qos = QoSProfile(
             depth=10,
             durability=DurabilityPolicy.VOLATILE,
-            reliability=ReliabilityPolicy.RELIABLE
+            reliability=ReliabilityPolicy.RELIABLE,
         )
         self._planning_scene_pub = rclpy_node.create_publisher(
             PlanningScene, "/planning_scene", scene_qos
@@ -141,7 +173,6 @@ class VisionStages(BaseStages):
         self._get_scene_client = rclpy_node.create_client(
             GetPlanningScene, "/get_planning_scene"
         )
-
 
         # Parameters
         self._publish_marker_frames = True
@@ -158,7 +189,7 @@ class VisionStages(BaseStages):
         self._tag_pose_cache: dict[int, PoseStamped] = {}
 
         self.logger.info(
-            f"VisionStages initialized (camera: {self._camera_type}, "
+            f"VisionEngine initialized (camera: {self._camera_type}, "
             f"frame: {self._camera_frame}, ik_frame: "
             f"{'auto-detect' if not ik_frame else ik_frame}, "
             f"settle_time: {self._settle_time:.2f}s)"
@@ -190,9 +221,12 @@ class VisionStages(BaseStages):
         """
         try:
             from beambot.config_loader import load_beamline_config
+
             config, _ = load_beamline_config()
         except Exception as e:
-            self.logger.error(f"Failed to load beamline YAML for collision_objects: {e}")
+            self.logger.error(
+                f"Failed to load beamline YAML for collision_objects: {e}"
+            )
             return
 
         objects = config.get("collision_objects") or {}
@@ -232,7 +266,7 @@ class VisionStages(BaseStages):
         scan_positions: list[list[float]],
         scans_per_position: int = 3,
         timeout: float = 10.0,
-        settle_time: float = 0.3
+        settle_time: float = 0.3,
     ) -> int:
         """Scan from multiple positions, detect ALL tags, cache averaged poses.
 
@@ -262,11 +296,11 @@ class VisionStages(BaseStages):
         )
 
         for pos_idx, joint_pose in enumerate(scan_positions):
-            self.logger.info(f"Position {pos_idx+1}/{len(scan_positions)}")
+            self.logger.info(f"Position {pos_idx + 1}/{len(scan_positions)}")
 
             # Move to scan position
             if not self._move_to_joint_pose(joint_pose):
-                self.logger.warning(f"Failed to reach position {pos_idx+1}, skipping")
+                self.logger.warning(f"Failed to reach position {pos_idx + 1}, skipping")
                 continue
 
             # Wait for robot to settle (vibration damping)
@@ -275,7 +309,7 @@ class VisionStages(BaseStages):
 
             # Multiple scans at this position
             for scan_idx in range(scans_per_position):
-                self.logger.info(f"  Scan {scan_idx+1}/{scans_per_position}")
+                self.logger.info(f"  Scan {scan_idx + 1}/{scans_per_position}")
 
                 # Detect ALL markers (no specific tag_id filter)
                 result = self._camera.detect_markers(
@@ -284,7 +318,7 @@ class VisionStages(BaseStages):
                     marker_ids=None,  # Detect all markers
                     dictionary=self._marker_dictionary,
                     timeout=timeout,
-                    settle_time=0  # Already settled after move
+                    settle_time=0,  # Already settled after move
                 )
 
                 if not result.markers:
@@ -294,8 +328,7 @@ class VisionStages(BaseStages):
                 # Process each detected marker
                 for marker_id, marker_pose in result.markers:
                     pose_base = self._transform_to_base_link(
-                        marker_pose,
-                        capture_stamp=result.capture_stamp
+                        marker_pose, capture_stamp=result.capture_stamp
                     )
                     if pose_base:
                         all_detections.setdefault(marker_id, []).append(pose_base)
@@ -311,8 +344,8 @@ class VisionStages(BaseStages):
                     self._tag_pose_cache[tag_id] = averaged
                     pos = averaged.pose.position
                     self.logger.info(
-                        f"  Tag {tag_id}: [{pos.x*1000:.2f}, {pos.y*1000:.2f}, "
-                        f"{pos.z*1000:.2f}] mm (from {len(poses)} detections)"
+                        f"  Tag {tag_id}: [{pos.x * 1000:.2f}, {pos.y * 1000:.2f}, "
+                        f"{pos.z * 1000:.2f}] mm (from {len(poses)} detections)"
                     )
             else:
                 self.logger.warning(
@@ -324,147 +357,14 @@ class VisionStages(BaseStages):
         )
         return len(self._tag_pose_cache)
 
-    def run(self, goal) -> 'str | None':
-        """Execute VisionMoveTo action.
-
-        Args:
-            goal: VisionMoveToAction.Goal with:
-                - tag_id: Marker ID (for marker detection)
-                - timeout: Detection timeout
-                - detection_type: "marker" (default) or "sample_roi"
-                - z_offset: Override z_offset (0 = use gripper default)
-                - scan_positions_flat: Flattened joint poses for multi-position mode
-                - num_scan_positions: Number of scan positions (0 = single-position)
-                - detect_only: If true, detect and return position without moving
-
-        Returns:
-            None if successful, error string describing failure otherwise
-        """
-        # Clear any previous detect_only result
-        self.last_detected_pose = None
-        # Optional: Wait for robot to settle BEFORE any detection
-        # This ensures vibrations from the previous motion have damped out
-        if self._settle_time > 0:
-            self.logger.info(f"Waiting {self._settle_time:.2f}s for robot to settle...")
-            time.sleep(self._settle_time)
-            self.logger.info("Settle complete, starting detection")
-
-        # Parse scan positions if provided (multi-position averaging mode)
-        scan_positions = None
-        num_positions = getattr(goal, 'num_scan_positions', 0)
-        if num_positions > 0:
-            flat = list(getattr(goal, 'scan_positions_flat', []))
-            if len(flat) == num_positions * 6:
-                scan_positions = [flat[i*6:(i+1)*6] for i in range(num_positions)]
-                self.logger.info(
-                    f"Multi-position mode enabled: {num_positions} scan positions"
-                )
-            else:
-                self.logger.warning(
-                    f"Invalid scan_positions_flat length: {len(flat)}, "
-                    f"expected {num_positions * 6}. Falling back to single-position."
-                )
-
-        # Determine detection type (default to marker for backwards compatibility)
-        detection_type = getattr(goal, 'detection_type', '') or self.DETECTION_MARKER
-
-        # Get z_offset override (0 or missing means use gripper default)
-        z_offset_override = getattr(goal, 'z_offset', 0.0)
-
-        # Check detect_only flag
-        detect_only = getattr(goal, 'detect_only', False)
-
-        # Parse offset parameters
-        offset_direction = getattr(goal, 'offset_direction', '') or ''
-        offset_distance = getattr(goal, 'offset_distance', 0.0)
-
-        # Parse marker-frame offset parameters
-        marker_offset_x = getattr(goal, 'marker_offset_x', 0.0)
-        marker_offset_y = getattr(goal, 'marker_offset_y', 0.0)
-        marker_offset_z = getattr(goal, 'marker_offset_z', 0.0)
-
-        # IK frame override from orchestrator (avoids stale TF auto-detection)
-        goal_ik_frame = getattr(goal, 'ik_frame', '') or ''
-
-        # Route to appropriate detection method
-        if detection_type == self.DETECTION_SAMPLE_ROI:
-            strategy = getattr(goal, 'strategy', '') or 'farthest_edge'
-            edge_inset_mm = getattr(goal, 'edge_inset_mm', 0.0) or 6.5
-            self.logger.info(
-                f"Using sample_roi detection (tag {goal.tag_id}, "
-                f"strategy={strategy}, inset={edge_inset_mm}mm)"
-            )
-            target_pose = self.detect_and_transform_sample_roi(
-                tag_id=goal.tag_id,
-                strategy=strategy,
-                edge_inset_mm=edge_inset_mm,
-                timeout=goal.timeout,
-            )
-            if target_pose is None:
-                return (
-                    f"DETECTION_FAILED: sample_roi detection failed for tag {goal.tag_id}"
-                )
-        else:
-            # Marker detection - check cache first (populated by vision_scan task)
-            cached_pose = self.get_cached_pose(goal.tag_id)
-            if cached_pose is not None:
-                pos = cached_pose.pose.position
-                self.logger.info(
-                    f"Using cached pose for tag {goal.tag_id}: "
-                    f"[{pos.x*1000:.2f}, {pos.y*1000:.2f}, {pos.z*1000:.2f}] mm"
-                )
-                target_pose = cached_pose
-            elif scan_positions is not None:
-                # Multi-position averaging mode
-                target_pose = self.detect_tag_multiposition(
-                    tag_id=goal.tag_id,
-                    scan_positions=scan_positions,
-                    timeout=goal.timeout,
-                    settle_time=self._settle_time
-                )
-                if target_pose is None:
-                    return (
-                        f"DETECTION_FAILED: Multi-position detection failed for "
-                        f"ArUco tag {goal.tag_id} ({num_positions} positions attempted)"
-                    )
-            else:
-                # Single-position mode (existing behavior)
-                target_pose = self.detect_and_transform_tag(goal.tag_id, goal.timeout)
-                if target_pose is None:
-                    return (
-                        f"DETECTION_FAILED: ArUco tag {goal.tag_id} not detected "
-                        f"(timeout: {goal.timeout}s, retries: {self._retry_count})"
-                    )
-
-        # Compute the full approach pose (marker offset, z_offset, orientation)
-        approach, active_ik_frame = self.compute_approach_pose(
-            target_pose, z_offset_override,
-            marker_offset_x=marker_offset_x,
-            marker_offset_y=marker_offset_y,
-            marker_offset_z=marker_offset_z,
-            ik_frame_override=goal_ik_frame,
-        )
-
-        # Apply directional offset in flange frame if specified
-        if offset_direction and offset_distance > 0:
-            approach = self._apply_flange_offset(approach, offset_direction, offset_distance)
-
-        # If detect_only, return the pose without moving
-        if detect_only:
-            self.last_detected_pose = approach
-            pos = approach.pose.position
-            self.logger.info(
-                f"Detect-only: returning approach pose [{pos.x:.4f}, {pos.y:.4f}, {pos.z:.4f}] "
-                f"in {approach.header.frame_id}"
-            )
-            return None
-
-        return self._move_to_approach(approach, ik_frame=active_ik_frame)
+    # NOTE: the old run() entry point (VisionMoveTo action handler) was removed
+    # in the issue #88 migration — VisionTaskStages.run() replaced it. This class
+    # is now an engine of detection/approach/cache helpers called à la carte by
+    # the pipeline detectors + goal_computers (and by the legacy vision_scan and
+    # hardcoded pick/place paths). It is no longer a task "stage".
 
     def detect_and_transform_tag(
-        self,
-        tag_id: int,
-        timeout: float = 45.0
+        self, tag_id: int, timeout: float = 45.0
     ) -> PoseStamped | None:
         """Detect an ArUco marker and transform to base_link frame.
 
@@ -495,14 +395,12 @@ class VisionStages(BaseStages):
                 pose_base = self._process_detection_result(tag_id, result)
                 if pose_base is not None:
                     if attempt > 0:
-                        self.logger.info(
-                            f"Tag {tag_id} detected on retry {attempt}"
-                        )
+                        self.logger.info(f"Tag {tag_id} detected on retry {attempt}")
                     return pose_base
                 else:
                     last_error = f"Tag {tag_id} not found in detection results"
             else:
-                last_error = f"Detection attempt failed"
+                last_error = "Detection attempt failed"
 
         self.logger.error(
             f"Failed to detect tag {tag_id} after {total_attempts} attempts: {last_error}"
@@ -510,9 +408,7 @@ class VisionStages(BaseStages):
         return None
 
     def _single_detection_attempt(
-        self,
-        tag_id: int,
-        timeout: float
+        self, tag_id: int, timeout: float
     ) -> DetectionResult | None:
         """Execute a single detection attempt using camera module.
 
@@ -532,7 +428,7 @@ class VisionStages(BaseStages):
             marker_ids=[tag_id],
             dictionary=self._marker_dictionary,
             timeout=timeout,
-            settle_time=self._settle_time
+            settle_time=self._settle_time,
         )
 
         if not result.markers:
@@ -542,9 +438,7 @@ class VisionStages(BaseStages):
         return result
 
     def _process_detection_result(
-        self,
-        tag_id: int,
-        detection_result: DetectionResult
+        self, tag_id: int, detection_result: DetectionResult
     ) -> PoseStamped | None:
         """Process detection result and transform to base_link.
 
@@ -570,8 +464,7 @@ class VisionStages(BaseStages):
                 # Transform to base_link using capture timestamp
                 # This ensures we use the TF at the exact moment the image was captured
                 pose_base = self._transform_to_base_link(
-                    marker_pose,
-                    capture_stamp=detection_result.capture_stamp
+                    marker_pose, capture_stamp=detection_result.capture_stamp
                 )
                 if pose_base is None:
                     return None
@@ -582,8 +475,8 @@ class VisionStages(BaseStages):
                 )
                 # Debug: pose in mm for easier comparison with TF analysis
                 self.logger.debug(
-                    f"  BASE_LINK pose (mm): ({pose_base.pose.position.x*1000:.2f}, "
-                    f"{pose_base.pose.position.y*1000:.2f}, {pose_base.pose.position.z*1000:.2f})"
+                    f"  BASE_LINK pose (mm): ({pose_base.pose.position.x * 1000:.2f}, "
+                    f"{pose_base.pose.position.y * 1000:.2f}, {pose_base.pose.position.z * 1000:.2f})"
                 )
 
                 # Optional: broadcast TF frame for RViz
@@ -759,20 +652,24 @@ class VisionStages(BaseStages):
         # Quaternions q and -q represent the same rotation, so we align all
         # quaternions to the same hemisphere as the first one before averaging
         quats = []
-        ref_q = np.array([
-            poses[0].pose.orientation.x,
-            poses[0].pose.orientation.y,
-            poses[0].pose.orientation.z,
-            poses[0].pose.orientation.w
-        ])
+        ref_q = np.array(
+            [
+                poses[0].pose.orientation.x,
+                poses[0].pose.orientation.y,
+                poses[0].pose.orientation.z,
+                poses[0].pose.orientation.w,
+            ]
+        )
 
         for p in poses:
-            q = np.array([
-                p.pose.orientation.x,
-                p.pose.orientation.y,
-                p.pose.orientation.z,
-                p.pose.orientation.w
-            ])
+            q = np.array(
+                [
+                    p.pose.orientation.x,
+                    p.pose.orientation.y,
+                    p.pose.orientation.z,
+                    p.pose.orientation.w,
+                ]
+            )
             # Flip if in opposite hemisphere (dot product < 0)
             if np.dot(ref_q, q) < 0:
                 q = -q
@@ -800,7 +697,7 @@ class VisionStages(BaseStages):
         tag_id: int,
         scan_positions: list[list[float]],
         timeout: float = 45.0,
-        settle_time: float = 0.3
+        settle_time: float = 0.3,
     ) -> PoseStamped | None:
         """Detect tag from multiple positions and average results.
 
@@ -825,13 +722,13 @@ class VisionStages(BaseStages):
         )
 
         for i, joint_pose in enumerate(scan_positions):
-            position_name = f"position {i+1}/{len(scan_positions)}"
+            position_name = f"position {i + 1}/{len(scan_positions)}"
 
             # Move to scan position
             self.logger.info(f"Moving to {position_name}...")
             if not self._move_to_joint_pose(joint_pose):
                 self.logger.warning(f"Failed to reach {position_name}, skipping")
-                position_results.append((i+1, False, "move_failed"))
+                position_results.append((i + 1, False, "move_failed"))
                 continue
 
             # Wait for robot to settle (vibration damping)
@@ -847,12 +744,12 @@ class VisionStages(BaseStages):
                 pos = pose.pose.position
                 self.logger.info(
                     f"  {position_name}: detected at "
-                    f"[{pos.x*1000:.2f}, {pos.y*1000:.2f}, {pos.z*1000:.2f}] mm"
+                    f"[{pos.x * 1000:.2f}, {pos.y * 1000:.2f}, {pos.z * 1000:.2f}] mm"
                 )
-                position_results.append((i+1, True, None))
+                position_results.append((i + 1, True, None))
             else:
                 self.logger.warning(f"  {position_name}: detection failed")
-                position_results.append((i+1, False, "detection_failed"))
+                position_results.append((i + 1, False, "detection_failed"))
 
         # Log summary
         success_count = len(detected_poses)
@@ -872,7 +769,7 @@ class VisionStages(BaseStages):
         if averaged_pose is not None:
             pos = averaged_pose.pose.position
             self.logger.info(
-                f"Averaged pose: [{pos.x*1000:.2f}, {pos.y*1000:.2f}, {pos.z*1000:.2f}] mm"
+                f"Averaged pose: [{pos.x * 1000:.2f}, {pos.y * 1000:.2f}, {pos.z * 1000:.2f}] mm"
             )
 
             # Calculate and log standard deviation for variance analysis
@@ -880,16 +777,14 @@ class VisionStages(BaseStages):
             y_vals = [p.pose.position.y for p in detected_poses]
             z_vals = [p.pose.position.z for p in detected_poses]
             self.logger.info(
-                f"Spread (σ): X={np.std(x_vals)*1000:.3f}mm, "
-                f"Y={np.std(y_vals)*1000:.3f}mm, Z={np.std(z_vals)*1000:.3f}mm"
+                f"Spread (σ): X={np.std(x_vals) * 1000:.3f}mm, "
+                f"Y={np.std(y_vals) * 1000:.3f}mm, Z={np.std(z_vals) * 1000:.3f}mm"
             )
 
         return averaged_pose
 
     def _transform_to_base_link(
-        self,
-        pose_camera: Pose,
-        capture_stamp=None
+        self, pose_camera: Pose, capture_stamp=None
     ) -> PoseStamped | None:
         """Transform a pose from camera frame to base_link.
 
@@ -924,7 +819,7 @@ class VisionStages(BaseStages):
                 "base_link",
                 self._camera_frame,
                 lookup_time,
-                timeout=rclpy.duration.Duration(seconds=2.0)
+                timeout=rclpy.duration.Duration(seconds=2.0),
             ):
                 self.logger.error(
                     f"TF {self._camera_frame} -> base_link not available "
@@ -946,7 +841,7 @@ class VisionStages(BaseStages):
                 "base_link",
                 self._camera_frame,
                 lookup_time,
-                timeout=rclpy.duration.Duration(seconds=2.0)
+                timeout=rclpy.duration.Duration(seconds=2.0),
             )
             pose_out = do_transform_pose_stamped(pose_in, transform)
             pose_out.header.frame_id = "base_link"
@@ -965,6 +860,7 @@ class VisionStages(BaseStages):
         (matched against tip_frame). The flange case (no gripper) returns 0.
         """
         from beambot.config_loader import z_offset_for_tip_frame
+
         return z_offset_for_tip_frame(ik_frame, default=0.0)
 
     def compute_approach_pose(
@@ -1025,7 +921,7 @@ class VisionStages(BaseStages):
                 target.pose.orientation.x,
                 target.pose.orientation.y,
                 target.pose.orientation.z,
-                target.pose.orientation.w
+                target.pose.orientation.w,
             ]
             rot_matrix = quaternion_matrix(q)[:3, :3]
             local_offset = np.array([marker_offset_x, marker_offset_y, marker_offset_z])
@@ -1042,7 +938,9 @@ class VisionStages(BaseStages):
         approach.header = target.header
         approach.pose.position.x = target.pose.position.x + world_offset[0]
         approach.pose.position.y = target.pose.position.y + world_offset[1]
-        approach.pose.position.z = target.pose.position.z + world_offset[2] + active_z_offset
+        approach.pose.position.z = (
+            target.pose.position.z + world_offset[2] + active_z_offset
+        )
 
         # Straight-down orientation with marker-aligned yaw
         # 1. Compute yaw from the original marker orientation + 180° Z rotation
@@ -1053,7 +951,7 @@ class VisionStages(BaseStages):
             target.pose.orientation.x,
             target.pose.orientation.y,
             target.pose.orientation.z,
-            target.pose.orientation.w
+            target.pose.orientation.w,
         ]
         q_z180 = quaternion_from_euler(0, 0, math.pi)
         q_rotated = quaternion_multiply(q_marker, q_z180)
@@ -1073,10 +971,7 @@ class VisionStages(BaseStages):
         return approach, active_ik_frame
 
     def _apply_flange_offset(
-        self,
-        pose: PoseStamped,
-        direction: str,
-        distance: float
+        self, pose: PoseStamped, direction: str, distance: float
     ) -> PoseStamped:
         """Apply a directional offset in the flange frame to a base_link pose.
 
@@ -1102,9 +997,10 @@ class VisionStages(BaseStages):
         # Get the flange orientation in base_link from TF
         try:
             tf = self._tf_buffer.lookup_transform(
-                "base_link", "flange",
+                "base_link",
+                "flange",
                 rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=2.0)
+                timeout=rclpy.duration.Duration(seconds=2.0),
             )
         except TransformException as e:
             self.logger.error(f"Failed to look up flange TF for offset: {e}")
@@ -1115,7 +1011,7 @@ class VisionStages(BaseStages):
             tf.transform.rotation.x,
             tf.transform.rotation.y,
             tf.transform.rotation.z,
-            tf.transform.rotation.w
+            tf.transform.rotation.w,
         ]
         rot = quaternion_matrix(q)[:3, :3]
 
@@ -1129,7 +1025,7 @@ class VisionStages(BaseStages):
         pose.pose.position.z += base_vec[2] * distance
 
         self.logger.info(
-            f"Applied offset: {distance*1000:.1f}mm {direction} "
+            f"Applied offset: {distance * 1000:.1f}mm {direction} "
             f"(flange {flange_vec} → base [{base_vec[0]:.3f}, {base_vec[1]:.3f}, {base_vec[2]:.3f}])"
         )
 
@@ -1139,7 +1035,7 @@ class VisionStages(BaseStages):
 
     def _move_to_approach(
         self, approach: PoseStamped, ik_frame: str = ""
-    ) -> 'str | None':
+    ) -> "str | None":
         """Execute MoveIt move to a pre-computed approach pose.
 
         Args:
@@ -1163,7 +1059,9 @@ class VisionStages(BaseStages):
         # non-determinism entirely. (#51)
         joint_goal = self.compute_deterministic_ik(approach, ik_frame)
         if joint_goal is None:
-            self.logger.warning("Deterministic IK failed, falling back to Cartesian goal")
+            self.logger.warning(
+                "Deterministic IK failed, falling back to Cartesian goal"
+            )
             # Fallback: use original Cartesian goal (may have ~1mm jitter)
             task = self.create_task_template("Vision Move")
             planner = self.make_pilz_planner("LIN")
@@ -1193,11 +1091,13 @@ class VisionStages(BaseStages):
         """
         # Check for known gripper tip frames in TF (sourced from YAML)
         from beambot.config_loader import configured_tip_frames
+
         for frame in configured_tip_frames():
             if self._tf_buffer.can_transform(
-                "base_link", frame,
+                "base_link",
+                frame,
                 rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=1.0)
+                timeout=rclpy.duration.Duration(seconds=1.0),
             ):
                 return GripperDetection(frame, self._z_offset_for_frame(frame))
 
@@ -1252,9 +1152,7 @@ class VisionStages(BaseStages):
         self.logger.info(f"Added collision object '{info.name}'")
 
     def _calculate_object_pose(
-        self,
-        tag_pose: PoseStamped,
-        offset: list
+        self, tag_pose: PoseStamped, offset: list
     ) -> PoseStamped:
         """Calculate object pose from tag pose with offset.
 
@@ -1270,7 +1168,7 @@ class VisionStages(BaseStages):
             tag_pose.pose.orientation.x,
             tag_pose.pose.orientation.y,
             tag_pose.pose.orientation.z,
-            tag_pose.pose.orientation.w
+            tag_pose.pose.orientation.w,
         ]
         rot_matrix = quaternion_matrix(q)[:3, :3]
 
@@ -1295,13 +1193,13 @@ class VisionStages(BaseStages):
         """
         # Query current planning scene to check if object exists
         if not self._get_scene_client.wait_for_service(timeout_sec=1.0):
-            self.logger.warning("GetPlanningScene service not available, skipping removal check")
+            self.logger.warning(
+                "GetPlanningScene service not available, skipping removal check"
+            )
             # Publish removal anyway - it's safe if object doesn't exist
         else:
             request = GetPlanningScene.Request()
-            request.components.components = (
-                request.components.WORLD_OBJECT_NAMES
-            )
+            request.components.components = request.components.WORLD_OBJECT_NAMES
             future = self._get_scene_client.call_async(request)
             wait_for_future(future, timeout=2.0)
 

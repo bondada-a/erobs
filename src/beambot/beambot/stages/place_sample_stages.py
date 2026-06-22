@@ -16,9 +16,11 @@ from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 
 from beambot.stages.base_stages import (
-    BaseStages, parse_constraints, apply_constraints,
+    BaseStages,
+    parse_constraints,
+    apply_constraints,
 )
-from beambot.stages.vision_stages import VisionStages
+from beambot.pipeline.vision_engine import VisionEngine
 
 
 class PlaceSampleStages(BaseStages):
@@ -34,8 +36,10 @@ class PlaceSampleStages(BaseStages):
         marker_dictionary: str = None,
     ):
         super().__init__(rclpy_node, arm_group, ik_frame=ik_frame)
-        self._vision = VisionStages(
-            rclpy_node, arm_group, ik_frame,
+        self._vision = VisionEngine(
+            rclpy_node,
+            arm_group,
+            ik_frame,
             camera_type=camera_type,
             camera_frame=camera_frame,
             marker_dictionary=marker_dictionary,
@@ -56,7 +60,9 @@ class PlaceSampleStages(BaseStages):
             return "Failed to parse poses_json for place_sample"
 
         try:
-            gripper_states = json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
+            gripper_states = (
+                json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
+            )
         except json.JSONDecodeError as e:
             return f"Invalid gripper_states_json: {e}"
 
@@ -91,7 +97,10 @@ class PlaceSampleStages(BaseStages):
         task = self.create_task_template("Position for Place")
 
         scan_stage = self.make_move_to_named_stage(
-            "scan position", goal.scan_pose, poses, constraints=constraints,
+            "scan position",
+            goal.scan_pose,
+            poses,
+            constraints=constraints,
         )
         if not scan_stage:
             return f"Pose '{goal.scan_pose}' not found or invalid (scan position)"
@@ -112,9 +121,10 @@ class PlaceSampleStages(BaseStages):
             )
 
         # Compute approach pose with offsets
-        ik_frame_override = getattr(goal, 'ik_frame', '') or ''
+        ik_frame_override = getattr(goal, "ik_frame", "") or ""
         approach, active_ik_frame = self._vision.compute_approach_pose(
-            target_pose, goal.z_offset,
+            target_pose,
+            goal.z_offset,
             marker_offset_x=goal.marker_offset_x,
             marker_offset_y=goal.marker_offset_y,
             marker_offset_z=goal.marker_offset_z,
@@ -122,11 +132,13 @@ class PlaceSampleStages(BaseStages):
         )
 
         # Apply flange-frame directional offset if specified
-        offset_direction = getattr(goal, 'offset_direction', '') or ''
-        offset_distance = getattr(goal, 'offset_distance', 0.0)
+        offset_direction = getattr(goal, "offset_direction", "") or ""
+        offset_distance = getattr(goal, "offset_distance", 0.0)
         if offset_direction and offset_distance > 0:
             approach = self._vision._apply_flange_offset(
-                approach, offset_direction, offset_distance,
+                approach,
+                offset_direction,
+                offset_distance,
             )
 
         self.last_detected_pose = approach
@@ -160,15 +172,20 @@ class PlaceSampleStages(BaseStages):
 
         # Open gripper / vacuum off (release)
         release_stage = self.make_gripper_stage(
-            "open gripper", gripper_planner,
-            goal.gripper_group, gripper_states.get("release", ""),
+            "open gripper",
+            gripper_planner,
+            goal.gripper_group,
+            gripper_states.get("release", ""),
         )
         if release_stage:
             task.add(release_stage)
 
         # Retreat to scan pose
         retreat_stage = self.make_move_to_named_stage(
-            "retreat", goal.scan_pose, poses, constraints=constraints,
+            "retreat",
+            goal.scan_pose,
+            poses,
+            constraints=constraints,
         )
         if not retreat_stage:
             return f"Pose '{goal.scan_pose}' not found or invalid (retreat)"
@@ -193,7 +210,10 @@ class PlaceSampleStages(BaseStages):
 
         # 1. Move to approach
         stage = self.make_move_to_named_stage(
-            "place approach", goal.approach_pose, poses, constraints=constraints,
+            "place approach",
+            goal.approach_pose,
+            poses,
+            constraints=constraints,
         )
         if not stage:
             return f"Pose '{goal.approach_pose}' not found or invalid (approach)"
@@ -201,7 +221,10 @@ class PlaceSampleStages(BaseStages):
 
         # 2. Move to target
         stage = self.make_move_to_named_stage(
-            "place target", goal.target_pose, poses, constraints=constraints,
+            "place target",
+            goal.target_pose,
+            poses,
+            constraints=constraints,
         )
         if not stage:
             return f"Pose '{goal.target_pose}' not found or invalid (target)"
@@ -209,15 +232,20 @@ class PlaceSampleStages(BaseStages):
 
         # 3. Open gripper (release)
         release_stage = self.make_gripper_stage(
-            "open gripper", gripper_planner,
-            goal.gripper_group, gripper_states.get("release", ""),
+            "open gripper",
+            gripper_planner,
+            goal.gripper_group,
+            gripper_states.get("release", ""),
         )
         if release_stage:
             task.add(release_stage)
 
         # 4. Retreat to approach
         stage = self.make_move_to_named_stage(
-            "place retreat", goal.approach_pose, poses, constraints=constraints,
+            "place retreat",
+            goal.approach_pose,
+            poses,
+            constraints=constraints,
         )
         if not stage:
             return f"Pose '{goal.approach_pose}' not found or invalid (retreat)"

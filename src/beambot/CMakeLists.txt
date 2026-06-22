@@ -39,6 +39,7 @@ install(PROGRAMS
   beambot/action_servers/sample_server.py
   beambot/action_servers/tool_exchange_server.py
   beambot/action_servers/vision_server.py
+  beambot/action_servers/vision_task_server.py
   beambot/action_servers/pipettor_server.py
   beambot/action_servers/orchestrator.py
   # Utility nodes
