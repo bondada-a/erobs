@@ -246,7 +246,9 @@ def generate_launch_description():
     orchestrator = Node(
         package="beambot",
         executable="orchestrator.py",
-        name="beambot_orchestrator",
+        # No name= on purpose: it would inject a process-global __node remap
+        # that the in-process MTC node adopts, colliding on /rosout (see #91).
+        # The orchestrator self-names via super().__init__() in orchestrator.py.
         output="screen",
         parameters=action_server_parameters
         + [

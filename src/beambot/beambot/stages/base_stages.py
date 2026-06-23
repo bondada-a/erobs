@@ -115,20 +115,12 @@ def wait_for_future(future, timeout: float, poll_interval: float = 0.01) -> bool
 # With automatically_declare_parameters_from_overrides=True, these are auto-declared
 # on the C++ node and visible to MoveIt's PlanningPipeline.
 #
-# The __node:=beambot_mtc remapping is critical: ros2 launch injects
-# --ros-args -r __node:=<server_name> which renames ALL nodes in the process.
-# Without this override, both the rclcpp MTC node and the rclpy action server
-# node end up with the same name, causing the shared /rosout publisher to be
-# unregistered when either node is destroyed — silently breaking all /rosout
-# logging for the process.
-#
-# ROSOUT FIX: Disable rosout on the MTC rclcpp node entirely. On Humble,
-# rcl's rosout hashmap has no reference counting — when MTC's internal nodes
-# (Introspection, executor) are destroyed, they unregister the rosout publisher
-# for ALL same-named nodes, silently breaking /rosout logging for the rclpy
-# action server. With enable_rosout=False, the MTC node never touches the
-# hashmap, keeping the rclpy node's /rosout publisher intact. MoveIt C++
-# internal logs still go to stdout/stderr via rcutils.
+# __node:=beambot_mtc names this node, but only wins if no process-global
+# __node remap competes — so the orchestrator Node is launched without name=
+# (see #91 for the /rosout collision this avoids). Keep use_global_arguments
+# at its default True: this node inherits the planning-pipeline adapters and
+# robot_description_kinematics from the global launch args (see #87).
+# enable_rosout=False is defense-in-depth against the same collision.
 def _load_joint_accel_limits() -> dict[str, float]:
     """Collect max_acceleration for every joint declared under any gripper's
     joint_limits.yaml in the beamline's moveit_config_package/config/<gripper>/.
