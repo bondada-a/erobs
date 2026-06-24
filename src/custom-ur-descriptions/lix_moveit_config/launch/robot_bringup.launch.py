@@ -51,8 +51,9 @@ def launch_setup(context, *args, **kwargs):
         "launch_rviz": "false",
         "description_package": "ur_description",
         "description_file": os.path.join(desc_share, "urdf", urdf_file),
+        # Gripper-agnostic base; gripper controller added by the spawner overlay. #86
         "controllers_file": os.path.join(
-            pkg_share, "config", "hande", "ur_hande_controllers.yaml"),
+            pkg_share, "config", "ur_base_controllers.yaml"),
         "kinematics_params_file": os.path.join(
             desc_share, "config", "ur5e_calibration.yaml"),
         "use_tool_communication": "false",
@@ -153,10 +154,13 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # ── Gripper controller spawner ──────────────────────────────────────
+    # Overlay carries the gripper type+params (spawner won't expand $(var ...),
+    # so its joint name is literal; LiX runs tf_prefix=""). #86
     gripper_spawner = Node(
         package="controller_manager",
         executable="spawner",
-        arguments=["gripper_action_controller", "-c", "/controller_manager"],
+        arguments=["gripper_action_controller", "-c", "/controller_manager",
+                   "--param-file", os.path.join(pkg_share, "config", "hande_controllers.yaml")],
     )
 
     return [

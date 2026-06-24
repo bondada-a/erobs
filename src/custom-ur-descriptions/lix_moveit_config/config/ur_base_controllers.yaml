@@ -1,6 +1,7 @@
 /**:
   controller_manager:
     ros__parameters:
+
       joint_state_broadcaster:
         type: joint_state_broadcaster/JointStateBroadcaster
 
@@ -31,6 +32,11 @@
       force_mode_controller:
         type: ur_controllers/ForceModeController
 
+      # Required since ur_robot_driver 3.8.0: spawned active by upstream;
+      # if undeclared the spawner dies before scaled_joint_trajectory_controller.
+      friction_model_controller:
+        type: ur_controllers/FrictionModelController
+
       freedrive_mode_controller:
         type: ur_controllers/FreedriveModeController
 
@@ -46,9 +52,12 @@
       tool_contact_controller:
         type: ur_controllers/ToolContactController
 
-      gripper_action_controller:
-        type: parallel_gripper_action_controller/GripperActionController
-
+      # The way this is currently implemented upstream doesn't really work for us. When using
+      # position control, the robot will have a tracking error. However, limits will be enforced
+      # from the currently reported position, effectively limiting the possible step size using the
+      # joints' velocity limits. Until this is resolved, we will keep command limits non-enforced.
+      # Note: On Jazzy this is the default behavior, anyway. For Rolling / Kilted this defaults to
+      # true.
       enforce_command_limits: false
 
   speed_scaling_state_broadcaster:
@@ -77,6 +86,7 @@
       frame_id: $(var tf_prefix)tool0
       topic_name: ft_data
 
+
   joint_trajectory_controller:
     ros__parameters:
       joints:
@@ -103,6 +113,7 @@
         $(var tf_prefix)wrist_1_joint: { trajectory: 0.05, goal: 0.01 }
         $(var tf_prefix)wrist_2_joint: { trajectory: 0.05, goal: 0.01 }
         $(var tf_prefix)wrist_3_joint: { trajectory: 0.05, goal: 0.01 }
+
 
   scaled_joint_trajectory_controller:
     ros__parameters:
@@ -183,6 +194,10 @@
     ros__parameters:
       tf_prefix: "$(var tf_prefix)"
 
+  friction_model_controller:
+    ros__parameters:
+      tf_prefix: "$(var tf_prefix)"
+
   freedrive_mode_controller:
     ros__parameters:
       tf_prefix: "$(var tf_prefix)"
@@ -198,18 +213,3 @@
     ros__parameters:
       tf_prefix: "$(var tf_prefix)"
 
-  gripper_action_controller:
-      ros__parameters:
-        action_monitor_rate: 20.0
-        joint: $(var tf_prefix)robotiq_hande_left_finger_joint
-        goal_tolerance: 0.01
-        allow_stalling: false
-        stall_velocity_threshold: 0.001
-        stall_timeout: 1.0
-        max_effort_interface: ""
-        max_effort: 10.0
-        max_velocity_interface: ""
-        max_velocity: 0.1
-        state_interfaces:
-          - position
-          - velocity
