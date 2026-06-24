@@ -148,6 +148,26 @@ ros2 run mtc_gui mtc_gui_client                                           # oper
 ./start_mcp.sh
 ```
 
+### Realtime scheduling (new robot machine, one-time)
+
+`ros2_control_node` runs the 500 Hz control loop and wants FIFO realtime
+priority. Without it the log shows `Could not enable FIFO RT scheduling
+policy ... Operation not permitted` and `Overrun detected` lines. Grant the
+user RT limits once per machine:
+
+```bash
+echo -e "@realtime - rtprio 98\n@realtime - memlock 8388608" | sudo tee /etc/security/limits.d/30-realtime.conf
+sudo groupadd -f realtime
+sudo usermod -aG realtime "$USER"
+# then REBOOT (or full logout) — group + limits only apply to a fresh login
+```
+
+Verify after reboot: `ulimit -r` prints `98` (not `0`), and the bringup log
+shows `Successful set up FIFO RT scheduling policy with priority 50`.
+Persists across reboots. (Residual `Write time`-heavy overruns under the
+Hand-E gripper are a separate issue — blocking Modbus I/O in the control
+loop, not scheduling — and don't affect execution.)
+
 ### Tests and lint
 
 ```bash

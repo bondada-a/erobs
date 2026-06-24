@@ -441,6 +441,12 @@ class BaseStages:
         # DISABLED for performance. Cost: the RViz "Motion Planning Tasks" panel
         # no longer shows the live MTC stage tree. Robot motion, planning, and
         # RViz itself are unaffected. Set back to True if you need that panel.
+        # MTC logs "...does not have any controllers specified..." per moving
+        # sub-trajectory because we never set controller_names. Benign on our
+        # single UR5e (one arm + one gripper controller, disjoint joints →
+        # move_group auto-selects unambiguously). No Python fix exists: the
+        # setter (Stage::setTrajectoryExecutionInfo) isn't exposed in the
+        # bindings. Revisit only if a controller ever overlaps the arm joints.
         task = core.Task()
         task.enableIntrospection(False)
         task.name = name
