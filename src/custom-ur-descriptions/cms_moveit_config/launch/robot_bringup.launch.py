@@ -32,11 +32,20 @@ import os
 
 # ─── Per-gripper configuration ──────────────────────────────────────────────
 # Each entry defines everything that differs between gripper configurations.
+#
+# ros2_control controllers: every gripper loads the SAME shared base file
+# (ur_base_controllers.yaml = the full UR controller set, gripper-agnostic).
+# Gripper-specific controllers are added by the per-gripper spawner Nodes below
+# via --param-file <gripper>_controllers.yaml. This replaces 5 near-identical
+# ~220-line copies, so the next ur_robot_driver controller-set change is a
+# one-file edit (see #86).
+
+_BASE_CONTROLLERS = "ur_base_controllers.yaml"
 
 GRIPPER_CONFIGS = {
     "none": {
         "urdf": "ur_standalone.xacro",
-        "controllers": "none/ur_controllers.yaml",
+        "controllers": _BASE_CONTROLLERS,
         "moveit_controllers": "none/moveit_controllers.yaml",
         "tool_voltage": "0",
         "use_tool_communication": "true",
@@ -44,7 +53,7 @@ GRIPPER_CONFIGS = {
     },
     "epick": {
         "urdf": "ur_with_zivid_epick.xacro",
-        "controllers": "epick/ur_epick_controllers.yaml",
+        "controllers": _BASE_CONTROLLERS,
         "moveit_controllers": "epick/moveit_controllers.yaml",
         "tool_voltage": "24",
         "use_tool_communication": "true",
@@ -58,7 +67,7 @@ GRIPPER_CONFIGS = {
     },
     "hande": {
         "urdf": "ur_with_zivid_hande.xacro",
-        "controllers": "hande/ur_hande_controllers.yaml",
+        "controllers": _BASE_CONTROLLERS,
         "moveit_controllers": "hande/moveit_controllers.yaml",
         "tool_voltage": "24",
         "use_tool_communication": "false",  # hande driver manages socat via create_socat_tty
@@ -66,7 +75,7 @@ GRIPPER_CONFIGS = {
     },
     "2fg7": {
         "urdf": "ur_with_zivid_2fg7.xacro",
-        "controllers": "2fg7/ur_2fg7_controllers.yaml",
+        "controllers": _BASE_CONTROLLERS,
         "moveit_controllers": "2fg7/moveit_controllers.yaml",
         "tool_voltage": "24",
         "use_tool_communication": "true",
@@ -80,7 +89,7 @@ GRIPPER_CONFIGS = {
     },
     "pipettor": {
         "urdf": "ur_with_zivid_pipettor.xacro",
-        "controllers": "pipettor/ur_pipettor_controllers.yaml",
+        "controllers": _BASE_CONTROLLERS,
         "moveit_controllers": "pipettor/moveit_controllers.yaml",
         "tool_voltage": "24",
         "use_tool_communication": "true",
@@ -243,22 +252,27 @@ def launch_setup(context, *args, **kwargs):
     actions.append(rviz_node)
 
     # ── Gripper-specific nodes ──────────────────────────────────────────
+    # Gripper controllers are NOT in the shared base controllers file; each
+    # spawner carries its controller's type+params via --param-file overlay
+    # (config/<gripper>_controllers.yaml). The spawner reads the overlay with
+    # plain yaml.safe_load — no $(var ...) expansion — so overlays use literal
+    # values. See #86.
     if gripper == "epick":
+        # One spawner for both ePick controllers (native mode takes multiple
+        # names) — shares a single load/switch and removes any ordering ambiguity.
         actions.append(Node(
             package="controller_manager",
             executable="spawner",
-            arguments=["epick_gripper_action_controller", "-c", "/controller_manager"],
-        ))
-        actions.append(Node(
-            package="controller_manager",
-            executable="spawner",
-            arguments=["epick_status_publisher_controller", "-c", "/controller_manager"],
+            arguments=["epick_gripper_action_controller", "epick_status_publisher_controller",
+                       "-c", "/controller_manager",
+                       "--param-file", os.path.join(pkg_share, "config", "epick_controllers.yaml")],
         ))
     elif gripper == "hande":
         actions.append(Node(
             package="controller_manager",
             executable="spawner",
-            arguments=["gripper_action_controller", "-c", "/controller_manager"],
+            arguments=["gripper_action_controller", "-c", "/controller_manager",
+                       "--param-file", os.path.join(pkg_share, "config", "hande_controllers.yaml")],
         ))
     elif gripper == "2fg7":
         actions.append(TimerAction(
