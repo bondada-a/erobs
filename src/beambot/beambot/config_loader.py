@@ -8,6 +8,7 @@ Refusing to default-load avoids the silent-CMS-fallback failure mode: a
 deployment at a different beamline must declare itself, or nothing starts.
 """
 
+import json
 import os
 import threading
 from typing import Tuple
@@ -245,6 +246,49 @@ def gripper_urdf_file(gripper: str, default: str = "ur_standalone.urdf") -> str:
         return config.get("grippers", {}).get(gripper, {}).get("urdf_file", default)
     except Exception:
         return default
+
+
+# Pipeline params (planning_plugins + request/response adapters) the MTC node
+# and action-server processes need declared. Each maps to
+# config/<pipeline>_planning.yaml — the SAME files move_group loads via
+# MoveItConfigsBuilder — so the adapter lists (incl. the load-bearing Pilz
+# ValidateSolution) live in ONE place instead of being re-hardcoded (#87).
+_PLANNING_PIPELINE_FILES = {
+    "ompl": "ompl_planning.yaml",
+    "pilz_industrial_motion_planner": "pilz_industrial_motion_planner_planning.yaml",
+}
+# planner_configs / capabilities / defaults are move_group-only and irrelevant
+# to the PipelinePlanner these nodes run, so they are not forwarded.
+_PIPELINE_PARAM_KEYS = ("planning_plugins", "request_adapters", "response_adapters")
+
+
+def build_pipeline_param_args() -> list:
+    """Emit OMPL+Pilz pipeline ``-p`` pairs from the moveit config *_planning.yaml.
+
+    MoveItConfigsBuilder nests each file under its pipeline id (``ompl.*``,
+    ``pilz_industrial_motion_planner.*``) for move_group; nodes that can't use
+    the builder (the MTC rclcpp node, the action servers) read the same YAMLs
+    here and emit the pipeline-prefixed params they expect. Returns a flat
+    ``["-p", "ompl.planning_plugins:=[...]", ...]`` list ready to splice into a
+    node's ``arguments``/``--ros-args``.
+    """
+    from ament_index_python.packages import get_package_share_directory
+
+    cfg_root = os.path.join(
+        get_package_share_directory(moveit_config_package()), "config"
+    )
+    args: list = []
+    for pipeline, filename in _PLANNING_PIPELINE_FILES.items():
+        with open(os.path.join(cfg_root, filename)) as f:
+            data = yaml.safe_load(f) or {}
+        for key in _PIPELINE_PARAM_KEYS:
+            if key not in data:
+                continue
+            # JSON renders a YAML string list as ['a','b'] — the ros2 -p array
+            # syntax — once double quotes are swapped for single.
+            value = json.dumps(data[key]).replace('"', "'")
+            args += ["-p", f"{pipeline}.{key}:={value}"]
+    return args
 
 
 def resolve_beamline_path(rel_or_abs: str, config_path: str) -> str:

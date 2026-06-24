@@ -18,6 +18,7 @@ import rclcpp
 import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
+from beambot.config_loader import build_pipeline_param_args
 from geometry_msgs.msg import PoseStamped, Vector3, Vector3Stamped
 from moveit.task_constructor import core, stages
 from moveit_msgs.msg import (
@@ -212,11 +213,12 @@ _options.enable_rosout = False
 _options.arguments = [
     "--ros-args",
     "-r", "__node:=beambot_mtc",
-    # OMPL planning pipeline
-    "-p", "ompl.planning_plugins:=['ompl_interface/OMPLPlanner']",
+    # OMPL + Pilz planning_plugins and request/response adapters — read from the
+    # moveit config's *_planning.yaml (same files move_group loads), not
+    # hardcoded here. Includes the load-bearing Pilz ValidateSolution (#87).
+    *build_pipeline_param_args(),
+    # OMPL start-state tolerance — MTC-specific, not in the shared YAML.
     "-p", "ompl.start_state_max_bounds_error:=0.1",
-    # Pilz industrial motion planner pipeline
-    "-p", "pilz_industrial_motion_planner.planning_plugins:=['pilz_industrial_motion_planner/CommandPlanner']",
     # Pilz cartesian limits — read from pilz_cartesian_limits.yaml (same file
     # move_group loads), not duplicated here.
     *_build_cartesian_limit_args(),

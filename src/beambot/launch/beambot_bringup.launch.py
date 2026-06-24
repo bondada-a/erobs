@@ -27,33 +27,24 @@ from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 from tracetools_launch.action import Trace
 
+from beambot.config_loader import build_pipeline_param_args
+
 
 def generate_launch_description():
     """Generate launch description for beambot servers."""
 
-    # OMPL + Pilz pipeline parameters for PipelinePlanner
-    # Required because Python's rclcpp.Node binding lacks declare_parameter().
+    # OMPL + Pilz pipeline parameters for PipelinePlanner, passed as process
+    # --ros-args to every node whose in-process MTC rclcpp.Node needs them
+    # (that binding lacks declare_parameter(), so params arrive as args).
     # Without these, PipelinePlanner falls back to CHOMP instead of OMPL.
     #
-    # The Pilz response_adapters (ValidateSolution in particular) are critical:
-    # on Jazzy, missing adapter config means Pilz PTP returns collision-containing
-    # trajectories as valid solutions. MTC's Fallbacks container then treats the
-    # first (unchecked) solution as success without ever trying OMPL.
-    ompl_args = [
-        "--ros-args",
-        "-p",
-        "ompl.planning_plugins:=['ompl_interface/OMPLPlanner']",
-        "-p",
-        "ompl.request_adapters:=['default_planning_request_adapters/ResolveConstraintFrames','default_planning_request_adapters/ValidateWorkspaceBounds','default_planning_request_adapters/CheckStartStateBounds','default_planning_request_adapters/CheckStartStateCollision']",
-        "-p",
-        "ompl.response_adapters:=['default_planning_response_adapters/AddTimeOptimalParameterization','default_planning_response_adapters/ValidateSolution','default_planning_response_adapters/DisplayMotionPath']",
-        "-p",
-        "pilz_industrial_motion_planner.planning_plugins:=['pilz_industrial_motion_planner/CommandPlanner']",
-        "-p",
-        "pilz_industrial_motion_planner.request_adapters:=['default_planning_request_adapters/ResolveConstraintFrames','default_planning_request_adapters/ValidateWorkspaceBounds','default_planning_request_adapters/CheckStartStateBounds','default_planning_request_adapters/CheckStartStateCollision']",
-        "-p",
-        "pilz_industrial_motion_planner.response_adapters:=['default_planning_response_adapters/ValidateSolution','default_planning_response_adapters/DisplayMotionPath']",
-    ]
+    # Sourced from the moveit config's *_planning.yaml (the same files
+    # move_group loads) — single source of truth, no re-hardcoded adapter
+    # lists. The Pilz response_adapters (ValidateSolution in particular) are
+    # critical: on Jazzy, missing adapter config means Pilz PTP returns
+    # collision-containing trajectories as valid solutions, and MTC's Fallbacks
+    # container accepts the first unchecked solution without trying OMPL (#87).
+    ompl_args = ["--ros-args", *build_pipeline_param_args()]
 
     # Declare launch arguments. The beamline YAML is loaded by every framework
     # consumer from $BEAMBOT_BEAMLINE_CONFIG (set in the environment), not via
