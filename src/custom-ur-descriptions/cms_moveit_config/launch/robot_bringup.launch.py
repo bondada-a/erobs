@@ -31,71 +31,21 @@ import os
 
 
 # ─── Per-gripper configuration ──────────────────────────────────────────────
-# Each entry defines everything that differs between gripper configurations.
+# Per-gripper launch values come from the active beamline YAML
+# (grippers.<name>, via config_loader.gripper_launch_config) — this file is a
+# generic interpreter with no hardcoded gripper dict (#77). A new beamline with
+# existing gripper types sets only YAML; only brand-new gripper hardware adds a
+# structural branch (the gripper-specific spawner/driver Nodes below).
 #
-# ros2_control controllers: every gripper loads the SAME shared base file
-# (ur_base_controllers.yaml = the full UR controller set, gripper-agnostic).
-# Gripper-specific controllers are added by the per-gripper spawner Nodes below
-# via --param-file <gripper>_controllers.yaml. This replaces 5 near-identical
-# ~220-line copies, so the next ur_robot_driver controller-set change is a
-# one-file edit (see #86).
+# ros2_control controllers are NOT per-gripper: every gripper loads the SAME
+# shared base (ur_base_controllers.yaml = full UR set), with gripper-specific
+# controllers added by the spawner Nodes via --param-file overlay (#86). So the
+# base file stays a launch constant here, not a YAML field.
+from beambot.config_loader import gripper_launch_config
 
 _BASE_CONTROLLERS = "ur_base_controllers.yaml"
 
-GRIPPER_CONFIGS = {
-    "none": {
-        "urdf": "ur_standalone.xacro",
-        "controllers": _BASE_CONTROLLERS,
-        "moveit_controllers": "none/moveit_controllers.yaml",
-        "tool_voltage": "0",
-        "use_tool_communication": "true",
-        "tool_comm_params": {},
-    },
-    "epick": {
-        "urdf": "ur_with_zivid_epick.xacro",
-        "controllers": _BASE_CONTROLLERS,
-        "moveit_controllers": "epick/moveit_controllers.yaml",
-        "tool_voltage": "24",
-        "use_tool_communication": "true",
-        "tool_comm_params": {
-            "tool_baud_rate": "115200",
-            "tool_parity": "0",
-            "tool_stop_bits": "1",
-            "tool_rx_idle_chars": "1.5",
-            "tool_tx_idle_chars": "3.5",
-        },
-    },
-    "hande": {
-        "urdf": "ur_with_zivid_hande.xacro",
-        "controllers": _BASE_CONTROLLERS,
-        "moveit_controllers": "hande/moveit_controllers.yaml",
-        "tool_voltage": "24",
-        "use_tool_communication": "false",  # hande driver manages socat via create_socat_tty
-        "tool_comm_params": {},
-    },
-    "2fg7": {
-        "urdf": "ur_with_zivid_2fg7.xacro",
-        "controllers": _BASE_CONTROLLERS,
-        "moveit_controllers": "2fg7/moveit_controllers.yaml",
-        "tool_voltage": "24",
-        "use_tool_communication": "true",
-        "tool_comm_params": {
-            "tool_baud_rate": "1000000",
-            "tool_parity": "2",
-            "tool_stop_bits": "1",
-            "tool_rx_idle_chars": "1.5",
-            "tool_tx_idle_chars": "3.5",
-        },
-    },
-    "pipettor": {
-        "urdf": "ur_with_zivid_pipettor.xacro",
-        "controllers": _BASE_CONTROLLERS,
-        "moveit_controllers": "pipettor/moveit_controllers.yaml",
-        "tool_voltage": "24",
-        "use_tool_communication": "true",
-        "tool_comm_params": {},
-    },
-}
+SUPPORTED_GRIPPERS = ["none", "epick", "hande", "2fg7", "pipettor"]
 
 
 def launch_setup(context, *args, **kwargs):
@@ -111,13 +61,13 @@ def launch_setup(context, *args, **kwargs):
     use_mock_hardware = LaunchConfiguration("use_mock_hardware").perform(context)
     tf_prefix = LaunchConfiguration("tf_prefix").perform(context)
 
-    if gripper not in GRIPPER_CONFIGS:
+    if gripper not in SUPPORTED_GRIPPERS:
         raise ValueError(
-            f"Unknown gripper '{gripper}'. "
-            f"Supported: {list(GRIPPER_CONFIGS.keys())}"
+            f"Unknown gripper '{gripper}'. Supported: {SUPPORTED_GRIPPERS}"
         )
 
-    config = GRIPPER_CONFIGS[gripper]
+    # Per-gripper launch values from the active beamline YAML (#77).
+    config = gripper_launch_config(gripper)
     pkg_share = get_package_share_directory("cms_moveit_config")
     desc_share = get_package_share_directory("cms_robot_description")
 
@@ -143,8 +93,8 @@ def launch_setup(context, *args, **kwargs):
         "use_mock_hardware": use_mock_hardware,
         "launch_rviz": "false",
         "description_package": "ur_description",
-        "description_file": os.path.join(desc_share, "urdf", config["urdf"]),
-        "controllers_file": os.path.join(pkg_share, "config", config["controllers"]),
+        "description_file": os.path.join(desc_share, "urdf", config["urdf_xacro"]),
+        "controllers_file": os.path.join(pkg_share, "config", _BASE_CONTROLLERS),
         "kinematics_params_file": os.path.join(
             desc_share, "config", "ur5e_calibration.yaml"),
         "use_tool_communication": config["use_tool_communication"],
@@ -173,7 +123,7 @@ def launch_setup(context, *args, **kwargs):
     moveit_config = (
         MoveItConfigsBuilder("ur_moveit", package_name="cms_moveit_config")
         .robot_description(
-            file_path=os.path.join(desc_share, "urdf", config["urdf"]),
+            file_path=os.path.join(desc_share, "urdf", config["urdf_xacro"]),
             mappings=xacro_args,
         )
         .robot_description_semantic(
@@ -317,7 +267,7 @@ def generate_launch_description():
         # ── Arguments ───────────────────────────────────────────────────
         DeclareLaunchArgument(
             "gripper", default_value="none",
-            choices=list(GRIPPER_CONFIGS.keys()),
+            choices=SUPPORTED_GRIPPERS,
             description="Gripper type: none, epick, hande, 2fg7, pipettor",
         ),
         DeclareLaunchArgument(

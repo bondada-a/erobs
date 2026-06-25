@@ -291,6 +291,49 @@ def build_pipeline_param_args() -> list:
     return args
 
 
+def gripper_launch_config(gripper: str) -> dict:
+    """Per-gripper launch values from the active beamline YAML (#77).
+
+    Returns the fields ``robot_bringup.launch.py`` needs to bring up a gripper,
+    sourced from ``grippers.<name>`` so the launch file is a generic interpreter
+    with no hardcoded per-gripper dict. Values are coerced to launch-arg strings
+    (YAML gives int/bool; ros2 launch args must be strings — booleans lowercased
+    to "true"/"false").
+
+    Keys returned:
+      urdf_xacro              — robot_description xacro filename (distinct from
+                                ``urdf_file``, which is the .urdf the GUI viewer
+                                loads — do not conflate)
+      moveit_controllers      — config/<...> path for MoveItConfigsBuilder
+      tool_voltage            — "0"/"24" (single source; was duplicated in launch)
+      use_tool_communication  — "true"/"false"
+      tool_comm_params        — dict of RS485 params (str values), {} if none
+
+    Note: the ros2_control controllers file is NOT per-gripper after #86 — all
+    grippers share ur_base_controllers.yaml — so it stays a launch constant, not
+    a YAML field.
+    """
+    config, _ = load_beamline_config()
+    g = config.get("grippers", {}).get(gripper)
+    if g is None:
+        raise BeamlineConfigError(
+            f"Gripper '{gripper}' not declared in beamline config grippers: block"
+        )
+
+    def _s(v):
+        if isinstance(v, bool):
+            return str(v).lower()
+        return str(v)
+
+    return {
+        "urdf_xacro": g["launch_urdf"],
+        "moveit_controllers": g["moveit_controllers_file"],
+        "tool_voltage": _s(g["tool_voltage"]),
+        "use_tool_communication": _s(g["use_tool_communication"]),
+        "tool_comm_params": {k: _s(v) for k, v in (g.get("tool_comm_params") or {}).items()},
+    }
+
+
 def resolve_beamline_path(rel_or_abs: str, config_path: str) -> str:
     """Resolve a path declared inside a beamline YAML.
 

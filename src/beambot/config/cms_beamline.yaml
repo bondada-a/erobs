@@ -40,6 +40,11 @@ grippers:
     urdf_file: "ur_standalone.urdf"
     payload_mass: 1.430
     payload_cog: {x: -0.038, y: -0.022, z: -0.055}
+    # Launch-only config (read by robot_bringup.launch.py, #77)
+    launch_urdf: "ur_standalone.xacro"           # robot_description xacro (≠ urdf_file, GUI .urdf)
+    moveit_controllers_file: "none/moveit_controllers.yaml"
+    use_tool_communication: true
+    tool_comm_params: {}
 
   hande:
     moveit_package: "cms_moveit_config"
@@ -56,6 +61,11 @@ grippers:
     urdf_file: "ur_with_zivid_hande.urdf"
     payload_mass: 2.520
     payload_cog: {x: 0.018, y: -0.013, z: -0.031}
+    # Launch-only config (#77)
+    launch_urdf: "ur_with_zivid_hande.xacro"
+    moveit_controllers_file: "hande/moveit_controllers.yaml"
+    use_tool_communication: false    # hande driver manages socat via create_socat_tty
+    tool_comm_params: {}
 
   epick:
     moveit_package: "cms_moveit_config"
@@ -75,13 +85,21 @@ grippers:
     urdf_file: "ur_with_zivid_epick.urdf"
     payload_mass: 2.150
     payload_cog: {x: 0.018, y: -0.015, z: -0.036}
+    # Launch-only config (#77)
+    launch_urdf: "ur_with_zivid_epick.xacro"
+    moveit_controllers_file: "epick/moveit_controllers.yaml"
+    use_tool_communication: true
+    tool_comm_params:
+      tool_baud_rate: 115200
+      tool_parity: 0
+      tool_stop_bits: 1
+      tool_rx_idle_chars: 1.5
+      tool_tx_idle_chars: 3.5
 
   2fg7:
     moveit_package: "cms_moveit_config"
     gripper_arg: "2fg7"
     tool_voltage: 24
-    tool_baud_rate: 1000000
-    tool_parity: 2                 # Even parity (0=none, 1=odd, 2=even)
     gripper_group: "2fg7_gripper"
     controller_name: "gripper_action_controller"
     states:
@@ -92,6 +110,17 @@ grippers:
     urdf_file: "ur_standalone.urdf"   # No dedicated 2fg7 viewer URDF yet
     payload_mass: 2.210
     payload_cog: {x: 0.018, y: -0.013, z: -0.031}
+    # Launch-only config (#77). tool_baud_rate/tool_parity moved here from
+    # top-level into tool_comm_params (consistent shape with epick).
+    launch_urdf: "ur_with_zivid_2fg7.xacro"
+    moveit_controllers_file: "2fg7/moveit_controllers.yaml"
+    use_tool_communication: true
+    tool_comm_params:
+      tool_baud_rate: 1000000
+      tool_parity: 2                 # Even parity (0=none, 1=odd, 2=even)
+      tool_stop_bits: 1
+      tool_rx_idle_chars: 1.5
+      tool_tx_idle_chars: 3.5
 
   pipettor:
     moveit_package: "cms_moveit_config"
@@ -106,6 +135,11 @@ grippers:
     urdf_file: "ur_with_zivid_pipettor.urdf"
     payload_mass: 1.630
     payload_cog: {x: 0.010, y: -0.010, z: -0.020}
+    # Launch-only config (#77)
+    launch_urdf: "ur_with_zivid_pipettor.xacro"
+    moveit_controllers_file: "pipettor/moveit_controllers.yaml"
+    use_tool_communication: true
+    tool_comm_params: {}
 
 # Vision camera configuration
 cameras:
