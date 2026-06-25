@@ -17,7 +17,8 @@ Task Constructor pipeline drives a UR5e with swappable end effectors,
 controlled through a JSON task interface that can be driven by the GUI,
 by an LLM over MCP, or (eventually) by Bluesky.
 
-Currently deployed at **CMS**. The `default_beamline.yaml` config layer
+Currently deployed at **CMS**. The beamline config layer (`cms_beamline.yaml`,
+selected at runtime via `$BEAMBOT_BEAMLINE_CONFIG`)
 and the per-gripper MoveIt configs are designed for reuse across UR-arm
 beamlines, but no second site is live today.
 
@@ -211,7 +212,7 @@ tail -f /tmp/beambot_launch.log               # written by start_mcp.sh for get_
 | Experimental agent module | `src/beambot/beambot/agent/` |
 | Agent system prompt | `src/beambot/beambot/agent/robot_operation.md` |
 | MCP server (beambot) | `src/beambot/mcp/beambot_mcp_server.py` |
-| Beamline config | `src/beambot/config/default_beamline.yaml` |
+| Beamline config | `src/beambot/config/cms_beamline.yaml` (active beamline via `$BEAMBOT_BEAMLINE_CONFIG`) |
 | Pose registry | `src/cms/poses.yaml` (path hardcoded in MCP server) |
 | MoveIt configs (per gripper) | `src/custom-ur-descriptions/cms_moveit_config/config/` |
 | SRDF xacros (per gripper) | `src/custom-ur-descriptions/cms_moveit_config/srdf/` |
