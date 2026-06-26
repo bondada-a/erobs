@@ -55,7 +55,15 @@ export GOAL="$(cat src/cms/tasks/spincoat_to_hotplate.json)"
 ros2 action send_goal /beambot_execution beambot_interfaces/action/MTCExecution "{full_json: '$GOAL'}" --feedback
 ```
 
-
+## To list ROS2 topics
+```bash
+ros2 topic list ## for topics
+```
+if no topics are listed , try 
+```bash
+ros2 daemon stop 
+ros2 daemon start ## and try ros2 topic list again
+```
 
 ### send goal via BSUI
 
