@@ -67,8 +67,6 @@ ros2 daemon start ## and try ros2 topic list again
 
 ### send goal via BSUI
 
-
-
 ```python
 import rclpy
 from bluesky import RunEngine
@@ -92,3 +90,20 @@ If `import bluesky_ros` fails, add the repo's `src/` to the path for that
 shell: `export PYTHONPATH="$PWD/src:$PYTHONPATH"`. (bluesky_ros isn't a colcon
 package, so `colcon build` doesn't install it — only `beambot_interfaces` is.)
 
+## camonitor + publish topic test
+On xf11bm-ros1 (inside podman container)
+```bash
+ros2 topic echo /pv_value std_msgs/msg/Float64
+```
+On ws2
+```bash
+python3 src/bluesky_ros/pv_to_topic.py {PV}
+```
+
+## ros2 service to "caget"
+```bash
+# Terminal 1 (on ws2):
+python3 pv_service.py "{PV}"
+# Terminal 2 xf11bm-ros1:
+ros2 service call /get_pv std_srvs/srv/Trigger
+```
