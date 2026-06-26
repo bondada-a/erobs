@@ -73,9 +73,10 @@ RE = RunEngine({})
 
 # Pass a .json path (read into full_json) — or a raw JSON string.
 # note : epick mock_hardware / fake_hardware arg is broken upstream , run tests with hande gripper ...
-RE(bps.mv(robot, "src/cms/tasks/spincoat_to_hotplate.json"))
+# RE(bps.mv(robot, "src/cms/tasks/spincoat_to_hotplate.json"))
+# RE(bps.mv(robot, "src/cms/tasks/perf_safe_transport_to_safe_exchange.json"))
+RE(bps.mv(robot, "src/cms/tasks/hande_spincoat_to_hotplate.json"))  #uses hande gripper
 
-RE(bps.mv(robot, "src/cms/tasks/perf_safe_transport_to_safe_exchange.json"))
 
 ```
 
