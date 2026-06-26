@@ -10,6 +10,7 @@ podman run -it --rm --network host --ipc=host --pid=host ghcr.io/bondada-a/erobs
 ```bash
 export ROS_DISCOVERY_SERVER=10.65.2.151:11811
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export FASTDDS_DEFAULT_PROFILES_FILE=$(pwd)/super_client_configuration_file.xml
 export ROS_DOMAIN_ID=0
 ```
 
@@ -43,6 +44,7 @@ colcon build --packages-select beambot_interfaces
 ```bash
 export ROS_DISCOVERY_SERVER=10.65.2.151:11811
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export FASTDDS_DEFAULT_PROFILES_FILE=$(pwd)/super_client_configuration_file.xml
 export ROS_DOMAIN_ID=0
 ```
 
@@ -70,6 +72,7 @@ robot = MTCExecutionDevice()
 RE = RunEngine({})
 
 # Pass a .json path (read into full_json) — or a raw JSON string.
+# note : epick mock_hardware / fake_hardware arg is broken upstream , run tests with hande gripper ...
 RE(bps.mv(robot, "src/cms/tasks/spincoat_to_hotplate.json"))
 
 RE(bps.mv(robot, "src/cms/tasks/perf_safe_transport_to_safe_exchange.json"))
