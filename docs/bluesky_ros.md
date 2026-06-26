@@ -10,7 +10,7 @@ podman run -it --rm --network host --ipc=host --pid=host ghcr.io/bondada-a/erobs
 ```bash
 export ROS_DISCOVERY_SERVER=10.65.2.151:11811
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-export FASTDDS_DEFAULT_PROFILES_FILE=$(pwd)/super_client_configuration_file.xml
+export ROS_SUPER_CLIENT=TRUE   
 export ROS_DOMAIN_ID=0
 ```
 
@@ -44,7 +44,7 @@ colcon build --packages-select beambot_interfaces
 ```bash
 export ROS_DISCOVERY_SERVER=10.65.2.151:11811
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-export FASTDDS_DEFAULT_PROFILES_FILE=$(pwd)/super_client_configuration_file.xml
+export ROS_SUPER_CLIENT=TRUE 
 export ROS_DOMAIN_ID=0
 ```
 
