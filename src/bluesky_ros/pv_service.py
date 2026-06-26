@@ -12,10 +12,10 @@ class PVService(Node):
     def __init__(self, pvname):
         super().__init__("pv_service")
         self.pvname = pvname
-        self.create_service(Trigger, "get_pv", self.handle)
+        self.create_service(Trigger, "get_pv", self.on_request)
         self.get_logger().info(f"Serving caget({pvname}) on /get_pv")
 
-    def handle(self, request, response):
+    def on_request(self, request, response):
         value = epics.caget(self.pvname)
         response.success = value is not None
         response.message = str(value)
