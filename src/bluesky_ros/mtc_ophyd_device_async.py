@@ -32,6 +32,7 @@ class MTCExecutionDeviceAsync(Node, Movable):
 
         # Set name attribute for Ophyd
         self.name = name
+        self.parent = None
 
         self.action_type = get_action('beambot_interfaces/MTCExecution')
 

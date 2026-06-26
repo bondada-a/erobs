@@ -28,8 +28,9 @@ class MTCExecutionDevice(Node, Movable):
     def __init__(self, name="mtc_executor", **kwargs):
         super().__init__(name, **kwargs)
 
-        # Set name attribute for Ophyd
+        # Ophyd attributes Bluesky expects on a Movable (merge_cycler reads .parent)
         self.name = name
+        self.parent = None
 
         self.action_type = get_action('beambot_interfaces/MTCExecution')
 
