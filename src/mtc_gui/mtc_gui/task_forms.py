@@ -96,7 +96,8 @@ def _vision_target_grid(target_name: str) -> dict:
 # --- Dispatch ---
 
 
-def open_task_form(step, step_index, poses, parent=None, current_pose=None):
+def open_task_form(step, step_index, poses, parent=None, current_pose=None,
+                   preview_cb=None, end_preview_cb=None):
     """Open the edit dialog for a task step. Returns edited step dict or None if cancelled."""
     task_type = step.get("task_type", "")
     form_cls = _FORMS.get(task_type)
@@ -104,7 +105,8 @@ def open_task_form(step, step_index, poses, parent=None, current_pose=None):
         QMessageBox.warning(parent, "Unknown", f"No form for task type: {task_type}")
         return None
     if form_cls is MoveToForm:
-        dialog = form_cls(step, step_index, poses, parent, current_pose=current_pose)
+        dialog = form_cls(step, step_index, poses, parent, current_pose=current_pose,
+                          preview_cb=preview_cb, end_preview_cb=end_preview_cb)
     else:
         dialog = form_cls(step, step_index, poses, parent)
     if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -254,9 +256,12 @@ class MoveToForm(BaseTaskForm):
         "All Zero": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     }
 
-    def __init__(self, step, step_index, poses, parent=None, current_pose=None):
+    def __init__(self, step, step_index, poses, parent=None, current_pose=None,
+                 preview_cb=None, end_preview_cb=None):
         self._current_pose = current_pose
         self._step_index = step_index
+        self._preview_cb = preview_cb
+        self._end_preview_cb = end_preview_cb
         super().__init__(step, step_index, poses, parent)
 
     def _detect_mode(self):
@@ -410,6 +415,12 @@ class MoveToForm(BaseTaskForm):
         self.mode_combo.currentTextChanged.connect(self._apply_mode)
         self._apply_mode(self.mode_combo.currentText())
 
+        # Wire live preview callbacks
+        for spin in self.joint_spins:
+            spin.valueChanged.connect(self._emit_preview)
+        self.target.textChanged.connect(self._emit_preview)
+        self._emit_preview()
+
     def _apply_joint_preset(self, values):
         for spin, val in zip(self.joint_spins, values):
             spin.setValue(val)
@@ -436,6 +447,29 @@ class MoveToForm(BaseTaskForm):
             "Joint values": "Will execute: move to explicit joint angles",
         }
         self._preview.setText(previews.get(mode, ""))
+        self._emit_preview()
+
+    def _emit_preview(self, _=None):
+        """Push the current goal pose to the 3D viewer preview callback."""
+        if not self._preview_cb:
+            return
+        mode = self.mode_combo.currentText()
+        if mode == "Joint values":
+            self._preview_cb([s.value() for s in self.joint_spins])
+        elif mode == "Named target":
+            pose = self.poses.get(self.target.text())
+            if isinstance(pose, (list, tuple)) and len(pose) == 6:
+                self._preview_cb(list(pose))
+            elif self._end_preview_cb:
+                self._end_preview_cb()
+        else:
+            if self._end_preview_cb:
+                self._end_preview_cb()
+
+    def done(self, r):
+        if self._end_preview_cb:
+            self._end_preview_cb()
+        super().done(r)
 
     def collect_values(self):
         s = {**self.step}
