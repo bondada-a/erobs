@@ -24,7 +24,7 @@ beamlines, but no second site is live today.
 
 ## Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │  ENTRY POINTS (four interfaces, all speak MTCExecution JSON) │
 ├─────────────────────────────────────────────────────────────┤
