@@ -6,6 +6,7 @@ import time
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
+    QApplication,
     QMainWindow,
     QWidget,
     QVBoxLayout,
@@ -625,21 +626,23 @@ class MTCMainWindow(QMainWindow):
 
     def _build_right_tabs(self) -> QWidget:
         """Right panel: Chat / Camera / 3D View tabs (unchanged from before)."""
-        right_tabs = QTabWidget()
+        self.right_tabs = QTabWidget()
 
         self.chat_panel = ChatPanel()
         self.agent_bridge = AgentBridge()
-        right_tabs.addTab(self.chat_panel, "Chat")
+        self.right_tabs.addTab(self.chat_panel, "Chat")
 
         if ROS2_AVAILABLE:
             self.camera = CameraPanel(self.ros2)
-            right_tabs.addTab(self.camera, "Camera")
+            self.right_tabs.addTab(self.camera, "Camera")
 
         if WEBENGINE_AVAILABLE:
             self.viz_panel = VisualizationPanel(self.ros2)
-            right_tabs.addTab(self.viz_panel, "3D View")
+            self._viz_tab_title = "3D View"
+            self.right_tabs.addTab(self.viz_panel, self._viz_tab_title)
 
-        return right_tabs
+        self._viz_floating = False
+        return self.right_tabs
 
     # --- Signal Connections ---
 
@@ -820,6 +823,48 @@ class MTCMainWindow(QMainWindow):
         self._refresh_tree()
         self.step_list.set_current_row(idx + 1)
 
+    def _float_viz_for_form(self):
+        """Pop the 3D viewer out as a companion window beside the main window."""
+        if not (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")):
+            return
+        if self._viz_floating:
+            return
+        self._viz_home_index = self.right_tabs.indexOf(self.viz_panel)
+        if self._viz_home_index >= 0:
+            self.right_tabs.removeTab(self._viz_home_index)
+        self.viz_panel.setParent(None)
+        self.viz_panel.setWindowFlags(
+            Qt.WindowType.Tool
+            | Qt.WindowType.WindowStaysOnTopHint
+            | Qt.WindowType.WindowTitleHint
+        )
+        self.viz_panel.setWindowTitle("Goal Preview")
+        # Position to the right of the main window
+        geo = self.frameGeometry()
+        x = geo.x() + geo.width() + 8
+        y = geo.y()
+        screen = QApplication.primaryScreen()
+        if screen:
+            avail = screen.availableGeometry()
+            x = min(x, avail.right() - 480)
+            y = max(y, avail.top())
+        self.viz_panel.setGeometry(x, y, 480, 480)
+        self.viz_panel.show()
+        self.viz_panel.raise_()
+        self._viz_floating = True
+
+    def _dock_viz_after_form(self):
+        """Return the 3D viewer to its tab."""
+        if not (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")):
+            return
+        if not self._viz_floating:
+            return
+        self.viz_panel.setWindowFlags(Qt.WindowType.Widget)
+        idx = min(self._viz_home_index, self.right_tabs.count())
+        self.right_tabs.insertTab(idx, self.viz_panel, self._viz_tab_title)
+        self.viz_panel.show()
+        self._viz_floating = False
+
     def _edit_task_by_index(self, idx):
         if idx < 0 or idx >= len(self.config["tasks"]):
             return
@@ -832,10 +877,14 @@ class MTCMainWindow(QMainWindow):
         merged_poses = {**self.poses_panel.get_poses(), **self.config.get("poses", {})}
         preview_cb = self.viz_panel.preview_pose if (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")) else None
         end_preview_cb = self.viz_panel.end_preview if (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")) else None
-        result = open_task_form(step, idx, merged_poses, self,
-                                current_pose=self.current_robot_pose,
-                                preview_cb=preview_cb,
-                                end_preview_cb=end_preview_cb)
+        self._float_viz_for_form()
+        try:
+            result = open_task_form(step, idx, merged_poses, self,
+                                    current_pose=self.current_robot_pose,
+                                    preview_cb=preview_cb,
+                                    end_preview_cb=end_preview_cb)
+        finally:
+            self._dock_viz_after_form()
         if result is not None:
             if "_inline_joint_pose" in result:
                 ijp = result.pop("_inline_joint_pose")
