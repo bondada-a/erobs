@@ -70,7 +70,7 @@ class PointSelector:
         self.title = title
         # Point in original image coordinates
         self.current_point = initial_point
-        self.result: Dict | None = None
+        self.result: dict | None = None
 
         # Compute display scale to fit window
         self.scale = min(
@@ -107,7 +107,7 @@ class PointSelector:
 
         return ImageTk.PhotoImage(img)
 
-    def run(self) -> Dict:
+    def run(self) -> dict:
         """Run the tkinter event loop. Returns result dict."""
         root = tk.Tk()
         root.title(self.title)

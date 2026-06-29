@@ -62,7 +62,7 @@ source install/setup.bash
 ./test.sh                  # colcon test --merge-install + colcon test-result --verbose
 # Python tests: src/beambot/test/test_*.py (orchestrator parsing, batch planner, algorithms, base_stages)
 
-# Lint (pre-commit runs ruff + ament linters; CI runs ruff.yml + super-linter.yml + ros.yaml on push/PR to jazzy_dev)
+# Lint (pre-commit runs ruff + ament linters; CI runs ruff.yml + super-linter.yml on push/PR to jazzy_dev)
 pre-commit run --all-files
 ruff check --fix && ruff format
 ```
@@ -114,10 +114,11 @@ uses).
   historical — don't build new work on them.
 - ROS 2 distro: **Jazzy** (Ubuntu 24.04). `start_mcp.sh` and `.mcp.json`
   both source `/opt/ros/jazzy/setup.bash`.
-- CI: `ros.yaml` runs ament C++ tests + lint; `ruff.yml` runs `ruff check`
-  and `ruff format`; `super-linter.yml` runs multi-language lint; all
-  three trigger on push/PR to `main`, `humble`, `jazzy_dev`. Docker publish
-  is `workflow_dispatch` only.
+- CI: `ruff.yml` runs `ruff check` and `ruff format`; `super-linter.yml`
+  runs multi-language lint; both trigger on push/PR to `main`, `humble`,
+  `jazzy_dev`. Docker publish is `workflow_dispatch` only. (The old
+  `ros.yaml` ament C++ test/lint workflow was removed — the repo is
+  Python-only now, so it linted nothing and failed on rosdep.)
 
 ## When editing specific surfaces
 

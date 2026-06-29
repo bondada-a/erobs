@@ -68,7 +68,7 @@ class MTCExecutionDevice(Node, Movable):
         # Construct and send goal
         goal_msg = self.construct_goal_message(json_path_or_string)
 
-        self.get_logger().info(f"Waiting for action server...")
+        self.get_logger().info("Waiting for action server...")
         self._action_client.wait_for_server(timeout_sec=10.0)
 
         self.get_logger().info("Sending goal...")

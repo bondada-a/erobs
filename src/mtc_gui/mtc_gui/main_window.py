@@ -20,7 +20,6 @@ from PyQt6.QtWidgets import (
     QProgressBar,
     QFileDialog,
     QMessageBox,
-    QGroupBox,
     QDialog,
     QTabWidget,
     QListWidget,
@@ -171,7 +170,6 @@ def task_summary(step):
         return f"{step.get('end_effector_type', '?')} {step.get('end_effector_action', '?')}"
     elif t == "vision_moveto":
         prefix = "[detect only] " if step.get("detect_only") else ""
-        det = step.get("detection_type", "marker")
         s = f"{prefix}Detect ArUco {step.get('tag_id', 0)}"
         od = step.get("offset_direction", "")
         if od:

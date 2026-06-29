@@ -17,7 +17,6 @@ import cv2
 import matplotlib
 matplotlib.use('TkAgg')
 import matplotlib.pyplot as plt
-from matplotlib.patches import Rectangle
 from matplotlib.widgets import RectangleSelector
 import numpy as np
 
@@ -115,7 +114,7 @@ def draw_roi_mode(image, tag_corners, tag_id):
         ax.set_title(f"ROI: {w_mm:.1f} x {h_mm:.1f} mm. Close window when done.", fontsize=12)
         fig.canvas.draw_idle()
 
-    selector = RectangleSelector(ax, on_select, interactive=True,
+    RectangleSelector(ax, on_select, interactive=True,
                                   button=[1], useblit=True,
                                   props=dict(facecolor='green', alpha=0.2, edgecolor='green', linewidth=2))
 
@@ -144,7 +143,7 @@ def draw_roi_mode(image, tag_corners, tag_id):
     print(f"  Width:  {width_mm:.1f} mm")
     print(f"  Height: {height_mm:.1f} mm")
     print(f"  Scale:  {px_per_mm:.2f} px/mm")
-    print(f"\nCopy these values into the script:")
+    print("\nCopy these values into the script:")
     print(f"  ROI_OFFSET_X_MM = {offset_x_mm:.1f}")
     print(f"  ROI_OFFSET_Y_MM = {offset_y_mm:.1f}")
     print(f"  ROI_WIDTH_MM = {width_mm:.1f}")
@@ -154,14 +153,14 @@ def draw_roi_mode(image, tag_corners, tag_id):
     # Run detection in drawn ROI
     roi = image[y1:y2, x1:x2]
     cv2.imwrite("/tmp/sample_roi.jpg", roi)
-    print(f"\nSaved ROI: /tmp/sample_roi.jpg")
+    print("\nSaved ROI: /tmp/sample_roi.jpg")
 
     roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     sample_contour = find_sample_contour(roi_gray)
 
     if sample_contour is not None:
         rect = cv2.minAreaRect(sample_contour)
-        print(f"\nSample found in ROI:")
+        print("\nSample found in ROI:")
         print(f"  Size (px): {rect[1][0]:.1f} x {rect[1][1]:.1f}")
         print(f"  Size (mm): {rect[1][0]/px_per_mm:.1f} x {rect[1][1]/px_per_mm:.1f}")
         print(f"  Angle: {rect[2]:.1f}°")
@@ -176,7 +175,7 @@ def draw_roi_mode(image, tag_corners, tag_id):
         cv2.circle(annotated, pickup, 8, (0, 0, 255), -1)
         cv2.circle(annotated, pickup, 12, (0, 0, 255), 2)
         cv2.imwrite("/tmp/sample_detection_result.jpg", annotated)
-        print(f"Saved annotated: /tmp/sample_detection_result.jpg")
+        print("Saved annotated: /tmp/sample_detection_result.jpg")
     else:
         print("\nNo sample contour found in drawn ROI.")
 
@@ -230,7 +229,7 @@ def detect_mode(image, tag_corners, tag_id, strategy):
     offset_px = np.array(pickup, dtype=float) - center
     offset_marker_x_mm = np.dot(offset_px, marker_x) / px_per_mm
     offset_marker_y_mm = np.dot(offset_px, marker_y) / px_per_mm
-    print(f"\nFor vision_moveto:")
+    print("\nFor vision_moveto:")
     print(f"  marker_offset_x: {offset_marker_x_mm / 1000:.4f} m ({offset_marker_x_mm:.1f} mm)")
     print(f"  marker_offset_y: {offset_marker_y_mm / 1000:.4f} m ({offset_marker_y_mm:.1f} mm)")
 
@@ -251,7 +250,7 @@ def detect_mode(image, tag_corners, tag_id, strategy):
     cv2.putText(annotated, strategy, (pickup[0] + 15, pickup[1] - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
     cv2.imwrite("/tmp/sample_detection_result.jpg", annotated)
-    print(f"Saved: /tmp/sample_detection_result.jpg")
+    print("Saved: /tmp/sample_detection_result.jpg")
 
 
 def compute_pickup_point(rect_center, rect_corners, tag_center_px, strategy="center",

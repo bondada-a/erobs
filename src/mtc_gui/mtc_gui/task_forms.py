@@ -5,7 +5,7 @@ import copy
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QFormLayout, QDialogButtonBox, QScrollArea,
     QWidget, QLabel, QLineEdit, QComboBox, QCheckBox, QDoubleSpinBox,
-    QSpinBox, QGroupBox, QHBoxLayout, QTextEdit, QSlider, QMessageBox,
+    QSpinBox, QGroupBox, QHBoxLayout, QTextEdit, QMessageBox,
     QGridLayout, QPushButton, QSizePolicy,
 )
 from PyQt6.QtCore import Qt
@@ -230,9 +230,15 @@ class MoveToForm(BaseTaskForm):
         # Cartesian target
         cart = self.add_section("Cartesian Target (optional)")
         existing = self.step.get("cartesian_target", [])
-        self.cart_x = QDoubleSpinBox(); self.cart_x.setRange(-2, 2); self.cart_x.setDecimals(4)
-        self.cart_y = QDoubleSpinBox(); self.cart_y.setRange(-2, 2); self.cart_y.setDecimals(4)
-        self.cart_z = QDoubleSpinBox(); self.cart_z.setRange(-2, 2); self.cart_z.setDecimals(4)
+        self.cart_x = QDoubleSpinBox()
+        self.cart_x.setRange(-2, 2)
+        self.cart_x.setDecimals(4)
+        self.cart_y = QDoubleSpinBox()
+        self.cart_y.setRange(-2, 2)
+        self.cart_y.setDecimals(4)
+        self.cart_z = QDoubleSpinBox()
+        self.cart_z.setRange(-2, 2)
+        self.cart_z.setDecimals(4)
         pos_row = QHBoxLayout()
         for lbl, spin, i in [("X:", self.cart_x, 0), ("Y:", self.cart_y, 1), ("Z:", self.cart_z, 2)]:
             pos_row.addWidget(QLabel(lbl))
@@ -241,9 +247,15 @@ class MoveToForm(BaseTaskForm):
             pos_row.addWidget(spin)
         cart.addRow("Position (m):", pos_row)
 
-        self.cart_r = QDoubleSpinBox(); self.cart_r.setRange(-360, 360); self.cart_r.setDecimals(2)
-        self.cart_p = QDoubleSpinBox(); self.cart_p.setRange(-360, 360); self.cart_p.setDecimals(2)
-        self.cart_yaw = QDoubleSpinBox(); self.cart_yaw.setRange(-360, 360); self.cart_yaw.setDecimals(2)
+        self.cart_r = QDoubleSpinBox()
+        self.cart_r.setRange(-360, 360)
+        self.cart_r.setDecimals(2)
+        self.cart_p = QDoubleSpinBox()
+        self.cart_p.setRange(-360, 360)
+        self.cart_p.setDecimals(2)
+        self.cart_yaw = QDoubleSpinBox()
+        self.cart_yaw.setRange(-360, 360)
+        self.cart_yaw.setDecimals(2)
         rot_row = QHBoxLayout()
         for lbl, spin, i in [("R:", self.cart_r, 3), ("P:", self.cart_p, 4), ("Y:", self.cart_yaw, 5)]:
             rot_row.addWidget(QLabel(lbl))
@@ -309,7 +321,8 @@ class SampleForm(BaseTaskForm):
         self.det_type.setCurrentText(self.step.get("detection_type", "marker"))
         vl.addRow("Detection Type:", self.det_type)
 
-        self.tag_id = QSpinBox(); self.tag_id.setRange(0, 999)
+        self.tag_id = QSpinBox()
+        self.tag_id.setRange(0, 999)
         self.tag_id.setValue(int(self.step.get("tag_id", 0)))
         vl.addRow("Tag ID:", self.tag_id)
 
@@ -317,7 +330,8 @@ class SampleForm(BaseTaskForm):
         vl.addRow("Scan Pose:", self.scan_pose)
 
         self.z_offset = QDoubleSpinBox()
-        self.z_offset.setRange(-0.1, 0.1); self.z_offset.setDecimals(4)
+        self.z_offset.setRange(-0.1, 0.1)
+        self.z_offset.setDecimals(4)
         self.z_offset.setValue(float(self.step.get("z_offset", 0.0)))
         vl.addRow("Z Offset (m):", self.z_offset)
 
@@ -331,7 +345,8 @@ class SampleForm(BaseTaskForm):
         self.offset_dir.setCurrentText(self.step.get("offset_direction", ""))
         vl.addRow("Flange Direction:", self.offset_dir)
         self.offset_dist = QDoubleSpinBox()
-        self.offset_dist.setRange(0, 1.0); self.offset_dist.setDecimals(4)
+        self.offset_dist.setRange(0, 1.0)
+        self.offset_dist.setDecimals(4)
         self.offset_dist.setValue(float(self.step.get("offset_distance", 0.0)))
         vl.addRow("Flange Distance (m):", self.offset_dist)
 
@@ -467,7 +482,8 @@ class VisionMoveToForm(BaseTaskForm):
 
         # Marker options
         marker_sec = self.add_section("ArUco Marker Options")
-        self.tag_id = QSpinBox(); self.tag_id.setRange(0, 999)
+        self.tag_id = QSpinBox()
+        self.tag_id.setRange(0, 999)
         self.tag_id.setValue(int(self.step.get("tag_id", 0)))
         marker_sec.addRow("Marker ID:", self.tag_id)
         self.marker_dict = QComboBox()
@@ -482,11 +498,13 @@ class VisionMoveToForm(BaseTaskForm):
         # Common options
         common = self.add_section("Common Options")
         self.z_offset = QDoubleSpinBox()
-        self.z_offset.setRange(-0.1, 0.1); self.z_offset.setDecimals(4)
+        self.z_offset.setRange(-0.1, 0.1)
+        self.z_offset.setDecimals(4)
         self.z_offset.setValue(float(self.step.get("z_offset", 0.0)))
         common.addRow("Z Offset (m):", self.z_offset)
         self.timeout = QDoubleSpinBox()
-        self.timeout.setRange(1.0, 120.0); self.timeout.setDecimals(1)
+        self.timeout.setRange(1.0, 120.0)
+        self.timeout.setDecimals(1)
         self.timeout.setValue(float(self.step.get("timeout", 10.0)))
         common.addRow("Timeout (s):", self.timeout)
         self.detect_only = QCheckBox()
@@ -503,7 +521,8 @@ class VisionMoveToForm(BaseTaskForm):
         self.offset_dir.setCurrentText(self.step.get("offset_direction", ""))
         common.addRow("Flange Direction:", self.offset_dir)
         self.offset_dist = QDoubleSpinBox()
-        self.offset_dist.setRange(0, 1.0); self.offset_dist.setDecimals(4)
+        self.offset_dist.setRange(0, 1.0)
+        self.offset_dist.setDecimals(4)
         self.offset_dist.setValue(float(self.step.get("offset_distance", 0.0)))
         common.addRow("Flange Distance (m):", self.offset_dist)
 
@@ -543,13 +562,19 @@ class PipettorForm(BaseTaskForm):
         # LED color
         led = self.add_section("LED Color (for SET_LED)")
         led_color = self.step.get("led_color", {"r": 0.0, "g": 1.0, "b": 0.0})
-        self.led_r = QDoubleSpinBox(); self.led_r.setRange(0, 1); self.led_r.setDecimals(2)
+        self.led_r = QDoubleSpinBox()
+        self.led_r.setRange(0, 1)
+        self.led_r.setDecimals(2)
         self.led_r.setValue(led_color.get("r", 0.0))
         led.addRow("Red:", self.led_r)
-        self.led_g = QDoubleSpinBox(); self.led_g.setRange(0, 1); self.led_g.setDecimals(2)
+        self.led_g = QDoubleSpinBox()
+        self.led_g.setRange(0, 1)
+        self.led_g.setDecimals(2)
         self.led_g.setValue(led_color.get("g", 1.0))
         led.addRow("Green:", self.led_g)
-        self.led_b = QDoubleSpinBox(); self.led_b.setRange(0, 1); self.led_b.setDecimals(2)
+        self.led_b = QDoubleSpinBox()
+        self.led_b.setRange(0, 1)
+        self.led_b.setDecimals(2)
         self.led_b.setValue(led_color.get("b", 0.0))
         led.addRow("Blue:", self.led_b)
 

@@ -41,7 +41,7 @@ from typing import List, Optional, Tuple
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image, PointCloud2
-from geometry_msgs.msg import Pose, PoseStamped
+from geometry_msgs.msg import PoseStamped
 from std_srvs.srv import Trigger
 from cv_bridge import CvBridge
 
@@ -167,7 +167,7 @@ class ContourDetectionTest(Node):
 
     def _print_params(self):
         """Print current detection parameters."""
-        self.get_logger().info(f'Detection parameters:')
+        self.get_logger().info('Detection parameters:')
         self.get_logger().info(f'  min_area: {self.params.min_area} px²')
         self.get_logger().info(f'  max_area: {self.params.max_area} px²')
         self.get_logger().info(f'  canny_low: {self.params.canny_low}')
@@ -533,14 +533,14 @@ class ContourDetectionTest(Node):
                         'pose_base': pose_base,
                     })
                 else:
-                    self.get_logger().warning(f'  No valid depth at centroid!')
+                    self.get_logger().warning('  No valid depth at centroid!')
 
                 self.get_logger().info('')
 
             self.get_logger().info('=' * 60)
         else:
             self.get_logger().warning('No contours detected matching area criteria!')
-            self.get_logger().info(f'Try adjusting parameters:')
+            self.get_logger().info('Try adjusting parameters:')
             self.get_logger().info(f'  - Lower min_area (current: {self.params.min_area})')
             self.get_logger().info(f'  - Raise max_area (current: {self.params.max_area})')
             self.get_logger().info(f'  - Adjust canny thresholds ({self.params.canny_low}, {self.params.canny_high})')

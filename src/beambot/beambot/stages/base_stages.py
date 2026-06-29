@@ -15,7 +15,6 @@ import traceback
 from typing import Any
 
 import rclcpp
-import rclpy
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from beambot.config_loader import build_pipeline_param_args

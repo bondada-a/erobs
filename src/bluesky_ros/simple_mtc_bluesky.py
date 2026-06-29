@@ -8,9 +8,7 @@ Backend: beambot (Python MTC implementation)
 """
 
 import argparse
-import json
 import os
-import sys
 import subprocess
 import bluesky.plan_stubs as bps
 import rclpy

@@ -1,6 +1,5 @@
 """Tests for beambot.batch_planner.group_into_batches()."""
 
-import pytest
 from beambot.batch_planner import group_into_batches, BATCHABLE_TYPES, BATCH_BREAKERS
 
 

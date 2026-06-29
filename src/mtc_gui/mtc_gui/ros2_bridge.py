@@ -3,8 +3,6 @@
 import math
 import time
 import threading
-import json
-import numpy as np
 
 from PyQt6.QtCore import QObject, QThread, pyqtSignal
 
@@ -12,7 +10,6 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal
 try:
     import rclpy
     from rclpy.action import ActionClient
-    from rclpy.node import Node
     from action_msgs.msg import GoalStatus
     from sensor_msgs.msg import Image as RosImage, JointState
     from std_msgs.msg import String as RosString

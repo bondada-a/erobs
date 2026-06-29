@@ -9,7 +9,6 @@ JSON structure that feeds into the orchestrator.
 """
 
 import json
-import math
 
 import pytest
 

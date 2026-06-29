@@ -212,7 +212,7 @@ class MarkerVisitor(Node):
 
     def move_to_sample_scan(self):
         """Move to sample_scan joint position."""
-        print(f"\n  → Returning to sample_scan position...")
+        print("\n  → Returning to sample_scan position...")
 
         # Convert degrees to radians
         joint_positions = [math.radians(deg) for deg in SAMPLE_SCAN_POSE]
@@ -220,9 +220,9 @@ class MarkerVisitor(Node):
         success = self.execute_trajectory(joint_positions)
 
         if success:
-            print(f"  ✓ At sample_scan position")
+            print("  ✓ At sample_scan position")
         else:
-            print(f"  ✗ Failed to reach sample_scan position")
+            print("  ✗ Failed to reach sample_scan position")
 
         return success
 
@@ -298,16 +298,16 @@ class MarkerVisitor(Node):
         show_tf = (marker_id == 0)
         goal_pose = self.prepare_goal_pose(x, y, z, verbose=show_tf)
         if goal_pose is None:
-            print(f"  ERROR: Failed to prepare goal pose")
+            print("  ERROR: Failed to prepare goal pose")
             return False
 
         # Show base_link position
         if OFFSET_IN_CAMERA_FRAME:
-            print(f"  Base link (offset applied in camera frame):")
+            print("  Base link (offset applied in camera frame):")
             print(f"    X={goal_pose.pose.position.x:.4f}, Y={goal_pose.pose.position.y:.4f}, Z={goal_pose.pose.position.z:.4f}")
         else:
             base_z_before_offset = goal_pose.pose.position.z - Z_OFFSET
-            print(f"  Base link (before Z_OFFSET):")
+            print("  Base link (before Z_OFFSET):")
             print(f"    X={goal_pose.pose.position.x:.4f}, Y={goal_pose.pose.position.y:.4f}, Z={base_z_before_offset:.4f}")
             print(f"  Base link (after +{Z_OFFSET}m Z offset):")
             print(f"    X={goal_pose.pose.position.x:.4f}, Y={goal_pose.pose.position.y:.4f}, Z={goal_pose.pose.position.z:.4f}")
@@ -319,7 +319,7 @@ class MarkerVisitor(Node):
             return False
 
         # Execute
-        print(f"  Executing motion...")
+        print("  Executing motion...")
         success = self.execute_trajectory(joint_solution)
 
         if success:
@@ -332,8 +332,8 @@ class MarkerVisitor(Node):
     def analyze_depth_mapping(self):
         """Analyze how camera depth maps to base_link coordinates (no motion)."""
         print(f"\n{'#'*60}")
-        print(f"# DEPTH MAPPING ANALYSIS")
-        print(f"# Comparing left-side (shallow Z) vs right-side (deep Z) markers")
+        print("# DEPTH MAPPING ANALYSIS")
+        print("# Comparing left-side (shallow Z) vs right-side (deep Z) markers")
         print(f"{'#'*60}")
 
         # Select representative markers: left column vs right column
@@ -341,7 +341,7 @@ class MarkerVisitor(Node):
         right_markers = [4, 9, 14, 19, 24]  # X ≈ 0.13-0.14, Z ≈ 0.408-0.410
 
         print(f"\n{'='*60}")
-        print(f"LEFT SIDE MARKERS (closer to camera, smaller Z):")
+        print("LEFT SIDE MARKERS (closer to camera, smaller Z):")
         print(f"{'='*60}")
         for mid in left_markers:
             if mid not in MARKERS:
@@ -354,7 +354,7 @@ class MarkerVisitor(Node):
                       f"→ Base(X={pose.pose.position.x:.3f}, Y={pose.pose.position.y:.3f}, Z={bz:.3f})")
 
         print(f"\n{'='*60}")
-        print(f"RIGHT SIDE MARKERS (further from camera, larger Z):")
+        print("RIGHT SIDE MARKERS (further from camera, larger Z):")
         print(f"{'='*60}")
         for mid in right_markers:
             if mid not in MARKERS:
@@ -368,11 +368,11 @@ class MarkerVisitor(Node):
 
         # Show expected vs actual behavior
         print(f"\n{'='*60}")
-        print(f"ANALYSIS:")
+        print("ANALYSIS:")
         print(f"{'='*60}")
-        print(f"  Camera Z increases by ~4mm (0.406 → 0.410) from left to right.")
-        print(f"  Expected: Base X or Y should increase (robot moves forward)")
-        print(f"  Check: Does Base Z increase more than X/Y? → Camera pointing down")
+        print("  Camera Z increases by ~4mm (0.406 → 0.410) from left to right.")
+        print("  Expected: Base X or Y should increase (robot moves forward)")
+        print("  Check: Does Base Z increase more than X/Y? → Camera pointing down")
         print(f"{'='*60}\n")
 
     def run(self):
@@ -384,9 +384,9 @@ class MarkerVisitor(Node):
             marker_ids = [m for m in MARKERS_TO_VISIT if m in MARKERS]
 
         print(f"\n{'#'*50}")
-        print(f"# MARKER VISITOR")
+        print("# MARKER VISITOR")
         print(f"# Visiting {len(marker_ids)} markers: {marker_ids}")
-        print(f"# Pattern: sample_scan → marker → sample_scan → ...")
+        print("# Pattern: sample_scan → marker → sample_scan → ...")
         print(f"# IK Frame: {IK_FRAME}")
         print(f"# Z Offset: {Z_OFFSET}m ({'camera frame' if OFFSET_IN_CAMERA_FRAME else 'world frame'})")
         print(f"# Motion duration: {MOTION_DURATION}s")
@@ -398,7 +398,7 @@ class MarkerVisitor(Node):
         failed_ids = []
 
         # Start at sample_scan position
-        print(f"\n[INIT] Moving to initial sample_scan position...")
+        print("\n[INIT] Moving to initial sample_scan position...")
         if not self.move_to_sample_scan():
             print("ERROR: Could not reach initial sample_scan position!")
             return False
@@ -423,7 +423,7 @@ class MarkerVisitor(Node):
 
         # Summary
         print(f"\n{'='*50}")
-        print(f"SUMMARY")
+        print("SUMMARY")
         print(f"  Successful: {successful}/{len(marker_ids)}")
         print(f"  Failed: {failed}/{len(marker_ids)}")
         if failed_ids:

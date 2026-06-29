@@ -8,7 +8,9 @@ return (center_px, angle_mod90, aspect, solidity, area).
 Usage: detect_pocket.py <image> [cx cy half]
 Auto-locates the chuck via the red field if cx/cy not given.
 """
-import sys, cv2, numpy as np
+import sys
+import cv2
+import numpy as np
 
 def red_mask(hsv):
     m1 = cv2.inRange(hsv, (0, 60, 40), (14, 255, 255))
@@ -70,7 +72,8 @@ if __name__ == "__main__":
     else:
         loc = locate_chuck(img)
         if loc is None:
-            print("FAIL: no red field found"); sys.exit(1)
+            print("FAIL: no red field found")
+            sys.exit(1)
         cx, cy, half, loc_area = loc
     r = detect(img, cx, cy, half)
     if r is None:

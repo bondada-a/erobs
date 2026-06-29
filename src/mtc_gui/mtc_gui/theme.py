@@ -14,7 +14,6 @@ a styled variant (e.g. ``btn.setProperty("class", "primary")``).
 
 from __future__ import annotations
 
-from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QColor, QFont, QFontDatabase, QPalette
 from PyQt6.QtWidgets import QApplication, QWidget
 

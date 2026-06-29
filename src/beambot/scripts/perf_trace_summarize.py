@@ -21,7 +21,6 @@ import numpy as np
 import pandas as pd
 
 from tracetools_analysis.loading import load_file
-from tracetools_analysis.processor import Processor
 from tracetools_analysis.processor.ros2 import Ros2Handler
 from tracetools_analysis.utils.ros2 import Ros2DataModelUtil
 
@@ -160,14 +159,14 @@ def main() -> int:
     )
 
     out_lines: list[str] = []
-    out_lines.append(f"# Beambot perf trace summary")
-    out_lines.append(f"")
+    out_lines.append("# Beambot perf trace summary")
+    out_lines.append("")
     out_lines.append(f"- **Trace:** `{args.trace_dir}`")
     out_lines.append(f"- **Callbacks observed:** {len(df)}")
     out_lines.append(f"- **Total callback time:** {format_duration(df['total_s'].sum())}")
-    out_lines.append(f"")
+    out_lines.append("")
     out_lines.append(f"## Top {n} callbacks by cumulative time (count × mean)")
-    out_lines.append(f"")
+    out_lines.append("")
     out_lines.append(md_table(top_total, [
         ('symbol', 'Callback', 60),
         ('owner', 'Owner', 45),
@@ -176,9 +175,9 @@ def main() -> int:
         ('p95_s', 'p95', 10),
         ('total_s', 'Total', 10),
     ]))
-    out_lines.append(f"")
+    out_lines.append("")
     out_lines.append(f"## Top {n} callbacks by p95 latency (>=3 samples)")
-    out_lines.append(f"")
+    out_lines.append("")
     out_lines.append(md_table(top_p95, [
         ('symbol', 'Callback', 60),
         ('owner', 'Owner', 45),
@@ -187,17 +186,17 @@ def main() -> int:
         ('p95_s', 'p95', 10),
         ('max_s', 'Max', 10),
     ]))
-    out_lines.append(f"")
+    out_lines.append("")
     out_lines.append(f"## Top {n} owners by cumulative time")
-    out_lines.append(f"")
+    out_lines.append("")
     out_lines.append(md_table(per_owner, [
         ('owner', 'Owner (node / topic / service)', 55),
         ('n_callbacks', '# cbs', 7),
         ('total_count', 'Invocations', 12),
         ('total_s', 'Total', 10),
     ]))
-    out_lines.append(f"")
-    out_lines.append(f"---")
+    out_lines.append("")
+    out_lines.append("---")
     out_lines.append(f"_For publish/receive latency and timeline, run "
                      f"`ros2 run tracetools_analysis auto {args.trace_dir}`._")
 

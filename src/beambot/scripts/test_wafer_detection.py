@@ -30,8 +30,7 @@ from typing import Optional, Tuple
 import rclpy
 from rclpy.node import Node
 from sensor_msgs.msg import Image, PointCloud2
-from geometry_msgs.msg import Pose, PoseStamped, Vector3, Vector3Stamped
-from std_msgs.msg import Header
+from geometry_msgs.msg import PoseStamped
 from visualization_msgs.msg import Marker, MarkerArray
 from std_srvs.srv import Trigger
 from cv_bridge import CvBridge
@@ -124,7 +123,7 @@ class WaferDetectionTest(Node):
         self.get_logger().info('=' * 60)
         self.get_logger().info('Wafer Detection Test')
         self.get_logger().info('=' * 60)
-        self.get_logger().info(f'Detection parameters:')
+        self.get_logger().info('Detection parameters:')
         self.get_logger().info(f'  min_radius: {self.min_radius} px')
         self.get_logger().info(f'  max_radius: {self.max_radius} px')
         self.get_logger().info(f'  param2 (sensitivity): {self.param2}')
@@ -176,7 +175,7 @@ class WaferDetectionTest(Node):
 
         # Wait for image and cloud to arrive
         timeout = 5.0  # seconds
-        rate = self.create_rate(10)  # 10 Hz
+        self.create_rate(10)  # 10 Hz
         elapsed = 0.0
 
         while elapsed < timeout:
@@ -472,7 +471,7 @@ class WaferDetectionTest(Node):
         # Publish
         self.marker_pub.publish(marker_array)
         self.get_logger().info(
-            f'Published RViz markers on /detected_wafer/pose and /detected_wafer/markers'
+            'Published RViz markers on /detected_wafer/pose and /detected_wafer/markers'
         )
 
     def transform_to_base_link(self, pose_camera: PoseStamped) -> Optional[PoseStamped]:
@@ -540,7 +539,7 @@ class WaferDetectionTest(Node):
         q_final = quaternion_multiply(q_orig, q_rot)
 
         # Convert to euler for readability
-        euler_orig = euler_from_quaternion(q_orig)
+        euler_from_quaternion(q_orig)
         euler_final = euler_from_quaternion(q_final)
 
         self.get_logger().info("")
@@ -619,7 +618,7 @@ class WaferDetectionTest(Node):
         approach_pose.pose.orientation.w = q_final[3]
 
         euler = euler_from_quaternion(q_final)
-        self.get_logger().info(f"Target approach pose (base_link):")
+        self.get_logger().info("Target approach pose (base_link):")
         self.get_logger().info(f"  Position: ({p.x*1000:.1f}, {p.y*1000:.1f}, {(p.z + self.approach_z_offset)*1000:.1f}) mm")
         self.get_logger().info(f"  Orientation: ({math.degrees(euler[0]):.1f}, {math.degrees(euler[1]):.1f}, {math.degrees(euler[2]):.1f})°")
         self.get_logger().info("")
@@ -806,7 +805,7 @@ class WaferDetectionTest(Node):
         self.get_logger().info(f"Position X (mm):    {wafer_p.x*1000:9.1f}      {tag_p.x*1000:9.1f}     {dx:+8.1f}")
         self.get_logger().info(f"Position Y (mm):    {wafer_p.y*1000:9.1f}      {tag_p.y*1000:9.1f}     {dy:+8.1f}")
         self.get_logger().info(f"Position Z (mm):    {wafer_p.z*1000:9.1f}      {tag_p.z*1000:9.1f}     {dz:+8.1f}")
-        self.get_logger().info(f"                                              ─────────")
+        self.get_logger().info("                                              ─────────")
         self.get_logger().info(f"Distance (mm):                                  {dist:8.1f}")
         self.get_logger().info("")
         self.get_logger().info(f"Roll  (deg):        {math.degrees(wafer_euler[0]):9.1f}      {math.degrees(tag_euler[0]):9.1f}     {d_roll:+8.1f}")
@@ -871,7 +870,7 @@ class WaferDetectionTest(Node):
             x, y, z = pose_3d
             text_y += 30
             cv2.putText(
-                display, f'3D Pose (camera frame):', (10, text_y),
+                display, '3D Pose (camera frame):', (10, text_y),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 0), 2
             )
             text_y += 30

@@ -569,7 +569,6 @@ class ROS2BridgeNode(Node):
 
         marker = result.detection_result.detected_markers[0]
         cam_pos = marker.pose.position
-        cam_ori = marker.pose.orientation
         self.get_logger().info(
             f"Marker {marker_id} in camera: ({cam_pos.x*1000:.1f}, "
             f"{cam_pos.y*1000:.1f}, {cam_pos.z*1000:.1f}) mm"
@@ -1318,7 +1317,6 @@ async def _transform_point_to_base(
                 )
                 return None
 
-        from tf_transformations import quaternion_matrix
 
         q = transform.transform.rotation
         t = transform.transform.translation
@@ -1583,7 +1581,6 @@ async def detect_sample(
         return json.dumps({
             "error": f"No valid depth at tag center ({tag_cx}, {tag_cy})."
         })
-    tag_z = tag_xyz[2]
 
     # Look up 3D at pickup pixel (same approach as get_point_3d)
     pickup_xyz = get_3d_position(cloud, pickup_px[0], pickup_px[1], search_radius=20)
@@ -1979,7 +1976,7 @@ async def get_tf_transform(
     q = transform.transform.rotation
 
     # Compute RPY from quaternion
-    from tf_transformations import euler_from_quaternion, quaternion_matrix
+    from tf_transformations import euler_from_quaternion
 
     rpy = euler_from_quaternion([q.x, q.y, q.z, q.w])
     rpy_deg = [math.degrees(a) for a in rpy]

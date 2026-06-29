@@ -22,7 +22,9 @@ appearance, so glints on the wafer no longer corrupt the fit.
 
 Usage: detect_wafer.py <image> [cx cy half]
 """
-import sys, cv2, numpy as np
+import sys
+import cv2
+import numpy as np
 
 def red_mask(hsv):
     m1 = cv2.inRange(hsv, (0, 60, 40), (14, 255, 255))
@@ -114,7 +116,8 @@ if __name__ == "__main__":
     else:
         loc = locate_chuck(img)
         if loc is None:
-            print("FAIL: no red field"); sys.exit(1)
+            print("FAIL: no red field")
+            sys.exit(1)
         cx, cy, half = loc
     for name, fn in [("v1_nonred", detect_wafer_v1_nonred),
                      ("v2_hole", detect_pocket_v2_hole)]:

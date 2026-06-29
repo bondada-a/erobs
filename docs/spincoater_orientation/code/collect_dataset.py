@@ -16,7 +16,6 @@ Example:
 """
 import argparse
 import os
-import sys
 import time
 import subprocess
 import threading
@@ -73,11 +72,11 @@ def main():
     rclpy.init()
     node = DatasetCollector(args.output_dir, args.interval, args.count)
 
-    print(f'=== Dataset Collection ===')
+    print('=== Dataset Collection ===')
     print(f'Output: {args.output_dir}')
     print(f'Interval: {args.interval}s | Target: {args.count} images')
-    print(f'Spin the chuck between captures for varied orientations.')
-    print(f'Press Ctrl+C to stop early.\n')
+    print('Spin the chuck between captures for varied orientations.')
+    print('Press Ctrl+C to stop early.\n')
 
     try:
         while node.captured < node.max_count:
@@ -100,11 +99,11 @@ def main():
                 time.sleep(args.interval)
 
     except KeyboardInterrupt:
-        print(f'\n\nStopped early.')
+        print('\n\nStopped early.')
 
     print(f'\nDone! Captured {node.captured} images in {args.output_dir}')
-    print(f'Next: annotate with bounding boxes (e.g. Roboflow, CVAT, or Label Studio)')
-    print(f'      then train with: yolo detect train data=dataset.yaml model=yolov8n.pt epochs=100')
+    print('Next: annotate with bounding boxes (e.g. Roboflow, CVAT, or Label Studio)')
+    print('      then train with: yolo detect train data=dataset.yaml model=yolov8n.pt epochs=100')
 
     node.destroy_node()
     rclpy.shutdown()

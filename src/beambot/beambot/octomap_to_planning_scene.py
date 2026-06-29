@@ -27,7 +27,7 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 
 from geometry_msgs.msg import Pose
-from moveit_msgs.msg import PlanningScene, PlanningSceneWorld
+from moveit_msgs.msg import PlanningScene
 from octomap_msgs.msg import Octomap, OctomapWithPose
 
 

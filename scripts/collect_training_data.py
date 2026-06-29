@@ -12,15 +12,12 @@ Uses the same ROS2 bridge as the MCP server for reliable Zivid capture.
 import os
 import sys
 import time
-import struct
-import math
 
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, DurabilityPolicy
 from sensor_msgs.msg import Image
 from std_srvs.srv import Trigger
-import numpy as np
 
 try:
     import cv2
@@ -105,7 +102,7 @@ def main():
 
     print(f"Saving to: {output_dir}")
     print(f"Starting at image #{count} ({len(existing)} existing)")
-    print(f"Press Enter to capture, 'q' to quit\n")
+    print("Press Enter to capture, 'q' to quit\n")
 
     try:
         while True:
@@ -120,7 +117,7 @@ def main():
                 print(f"  Saved {filename}")
                 count += 1
             else:
-                print(f"  Failed — try again")
+                print("  Failed — try again")
     except KeyboardInterrupt:
         pass
 

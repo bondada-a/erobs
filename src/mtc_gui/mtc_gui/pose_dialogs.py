@@ -1,13 +1,12 @@
 """Pose management dialogs: pose list manager, single pose editor, save current pose."""
 
 import json
-import math
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QDialogButtonBox,
     QTreeWidget, QTreeWidgetItem, QLabel, QLineEdit, QDoubleSpinBox,
     QPushButton, QGroupBox, QRadioButton, QButtonGroup, QFileDialog,
-    QMessageBox, QHeaderView,
+    QMessageBox,
 )
 
 

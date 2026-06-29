@@ -3,7 +3,6 @@
 import struct
 from unittest.mock import MagicMock
 
-import numpy as np
 
 from beambot.detection.algorithms import get_3d_position
 

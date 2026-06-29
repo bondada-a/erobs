@@ -182,8 +182,9 @@ batch planner, algorithms, base_stages). No hardware-in-the-loop tests
 in the repo.
 
 CI on push / PR to `main`, `humble`, `jazzy_dev`:
-`ros.yaml` (ament C++ + lint), `ruff.yml`, `super-linter.yml`. Docker
-publish is `workflow_dispatch` only.
+`ruff.yml`, `super-linter.yml`. Docker publish is `workflow_dispatch` only.
+(`ros.yaml` — ament C++ test/lint — was removed; the repo is Python-only
+now, so it had no C++ to lint and failed on rosdep.)
 
 ## Debugging
 
