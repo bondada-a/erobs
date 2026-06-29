@@ -45,6 +45,13 @@
        ros-mcp-server can talk to the ROS graph. -->
   <exec_depend>rosbridge_server</exec_depend>
 
+  <!-- Octomap pipeline: opt-in via octomap_test.launch.py (relay +
+       octomap_server + octomap_to_planning_scene bridge). octomap_server
+       provides the server + octomap_saver_node; octomap_msgs backs the
+       bridge node's Octomap/OctomapWithPose imports. -->
+  <exec_depend>octomap_server</exec_depend>
+  <exec_depend>octomap_msgs</exec_depend>
+
   <!-- ros2_tracing: opt-in via enable_tracing:=true in the bringup launch.
        tracetools_launch provides the Trace action; tracetools_analysis
        provides the offline report scripts (ros2 run tracetools_analysis auto). -->

@@ -56,6 +56,8 @@ install(PROGRAMS
   scripts/test_sample_detection.py
   # Rosbag helper: periodic Zivid capture trigger
   scripts/trigger_zivid_capture.py
+  # Octomap capture run: move through scan poses + capture to build a map
+  scripts/capture_run.py
   DESTINATION lib/${PROJECT_NAME}
 )
 

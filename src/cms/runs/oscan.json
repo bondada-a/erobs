@@ -1,0 +1,216 @@
+{
+  "start_gripper": "hande",
+  "poses": {
+    "home": [
+      0.0,
+      -90.0,
+      -90.0,
+      -90.0,
+      90.0,
+      0.0
+    ],
+    "oscan1": [
+      112.49,
+      -80.73,
+      -97.6,
+      -90.95,
+      -268.01,
+      -155.48
+    ],
+    "oscan2": [
+      85.36,
+      -86.28,
+      -76.78,
+      -107.21,
+      -267.9,
+      -182.63
+    ],
+    "oscan3": [
+      68.36,
+      -95.34,
+      -68.22,
+      -107.31,
+      -268.07,
+      -199.64
+    ],
+    "oscan4": [
+      51.45,
+      -115.48,
+      -42.95,
+      -112.96,
+      -268.41,
+      -172.94
+    ],
+    "oscan5": [
+      42.67,
+      -105.41,
+      -57.04,
+      -109.16,
+      -268.64,
+      -181.73
+    ],
+    "oscan6": [
+      32.09,
+      -102.92,
+      -60.32,
+      -108.6,
+      -268.97,
+      -159.67
+    ],
+    "oscan7": [
+      18.32,
+      -101.26,
+      -62.4,
+      -108.39,
+      -269.43,
+      -160.41
+    ],
+    "oscan8": [
+      4.44,
+      -101.55,
+      -61.97,
+      -108.6,
+      -269.94,
+      -174.28
+    ],
+    "oscan9": [
+      7.87,
+      -72.92,
+      -87.86,
+      -111.33,
+      -269.81,
+      -170.86
+    ],
+    "oscan10": [
+      38.8,
+      -74.87,
+      -86.72,
+      -110.12,
+      -268.76,
+      -139.93
+    ],
+    "oscan11": [
+      52.16,
+      -83.89,
+      -79.74,
+      -107.76,
+      -268.39,
+      -211.8
+    ],
+    "oscan12": [
+      91.89,
+      -64.96,
+      -91.8,
+      -113.28,
+      -267.89,
+      -172.07
+    ],
+    "oscan13": [
+      121.95,
+      -58.77,
+      -116.71,
+      -93.49,
+      -268.15,
+      -141.98
+    ],
+    "oscan14": [
+      152.29,
+      -35.74,
+      -122.49,
+      -109.95,
+      -268.93,
+      -111.63
+    ],
+    "oscan15": [
+      77.12,
+      -44.08,
+      -121.99,
+      -104.5,
+      -267.96,
+      -186.85
+    ]
+  },
+  "tasks": [
+    {
+      "task_type": "moveto",
+      "target": "safe_sample_transport",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan1",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan2",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan3",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan4",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan5",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan6",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan7",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan8",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan9",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan10",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan11",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan12",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan13",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan14",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "oscan15",
+      "planning_type": "joint"
+    }
+  ],
+  "run_name": "oscan"
+}
