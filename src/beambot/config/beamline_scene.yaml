@@ -44,15 +44,18 @@ obstacles:
   #   radius: 0.05     # 5cm in meters
 
   # Custom box obstacle (16" x 28" x 50")
+  # Authored in base_link (REP-103) so the GUI viewer renders it correctly --
+  # the viewer ignores the per-obstacle `frame`, and base_link IS its world root.
+  # base_link->base is a pure 180deg-about-Z flip (ur_macro.xacro), so values
+  # measured in the UR 'base' frame are negated on x and y here. (Box is
+  # symmetric, so yaw stays 0.)
   - name: "detector"
     type: "box"
-    frame: "base"
+    frame: "base_link"
     pose:
-      x: 0.0       # 0 inches (relative to base)
-      # y: 1.0    # 38 inches in meters (relative to base)
-      # y: 0.95
-      y: 0.865    # detector closer
-      z: 0.1    # -10 inches in meters (relative to base)
+      x: 0.0       # base x:0 -> base_link x:0
+      y: -0.865    # base y:+0.865 -> base_link y:-0.865 (detector closer)
+      z: 0.1
       roll: 0.0
       pitch: 0.0
       yaw: 0.0
