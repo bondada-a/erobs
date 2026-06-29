@@ -96,14 +96,17 @@ def _vision_target_grid(target_name: str) -> dict:
 # --- Dispatch ---
 
 
-def open_task_form(step, step_index, poses, parent=None):
+def open_task_form(step, step_index, poses, parent=None, current_pose=None):
     """Open the edit dialog for a task step. Returns edited step dict or None if cancelled."""
     task_type = step.get("task_type", "")
     form_cls = _FORMS.get(task_type)
     if not form_cls:
         QMessageBox.warning(parent, "Unknown", f"No form for task type: {task_type}")
         return None
-    dialog = form_cls(step, step_index, poses, parent)
+    if form_cls is MoveToForm:
+        dialog = form_cls(step, step_index, poses, parent, current_pose=current_pose)
+    else:
+        dialog = form_cls(step, step_index, poses, parent)
     if dialog.exec() == QDialog.DialogCode.Accepted:
         return dialog.result
     return None
@@ -239,14 +242,32 @@ class BaseTaskForm(QDialog):
 class MoveToForm(BaseTaskForm):
     TITLE = "MoveTo Configuration"
 
-    _MODES = ["Named target", "Relative move", "Cartesian target"]
+    _MODES = ["Named target", "Relative move", "Cartesian target", "Joint values"]
+
+    _JOINT_NAMES = [
+        "Shoulder Pan", "Shoulder Lift", "Elbow",
+        "Wrist 1", "Wrist 2", "Wrist 3",
+    ]
+    _JOINT_PRESETS = {
+        "Home": [0.0, -90.0, -90.0, -90.0, 90.0, 0.0],
+        "Straight Up": [0.0, -90.0, 0.0, -90.0, 0.0, 0.0],
+        "All Zero": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    }
+
+    def __init__(self, step, step_index, poses, parent=None, current_pose=None):
+        self._current_pose = current_pose
+        self._step_index = step_index
+        super().__init__(step, step_index, poses, parent)
 
     def _detect_mode(self):
-        """Match backend precedence: relative > cartesian > named."""
+        """Match backend precedence: relative > cartesian > joint > named."""
         if self.step.get("direction") and float(self.step.get("distance", 0)) != 0:
             return "Relative move"
         if self.step.get("cartesian_target"):
             return "Cartesian target"
+        target = self.step.get("target", "")
+        if target and self.poses.get(target) and len(self.poses[target]) == 6:
+            return "Joint values"
         return "Named target"
 
     def build_form(self):
@@ -350,19 +371,69 @@ class MoveToForm(BaseTaskForm):
         self.frame_id.setCurrentText(self.step.get("frame_id", "base_link"))
         cart.addRow("Frame:", self.frame_id)
 
+        # --- Joint values section ---
+        self._joint_group = QGroupBox("Joint Values")
+        jl = QFormLayout(self._joint_group)
+        self.form.addRow(self._joint_group)
+
+        # Load existing joint values if editing a joint-mode step
+        existing_jv = []
+        target = self.step.get("target", "")
+        if target and self.poses.get(target) and len(self.poses[target]) == 6:
+            existing_jv = self.poses[target]
+
+        self.joint_spins = []
+        for i, jname in enumerate(self._JOINT_NAMES):
+            spin = QDoubleSpinBox()
+            spin.setRange(-360.0, 360.0)
+            spin.setDecimals(2)
+            spin.setSuffix(" deg")
+            if i < len(existing_jv):
+                spin.setValue(existing_jv[i])
+            jl.addRow(f"{jname}:", spin)
+            self.joint_spins.append(spin)
+
+        # Presets row
+        preset_row = QHBoxLayout()
+        for pname, pvals in self._JOINT_PRESETS.items():
+            btn = QPushButton(pname)
+            btn.clicked.connect(lambda checked, v=pvals: self._apply_joint_preset(v))
+            preset_row.addWidget(btn)
+        jl.addRow("Presets:", preset_row)
+
+        # Read current pose button
+        self._read_pose_btn = QPushButton("Read current pose")
+        self._read_pose_btn.clicked.connect(self._read_current_pose)
+        jl.addRow(self._read_pose_btn)
+
         # Wire mode switching
         self.mode_combo.currentTextChanged.connect(self._apply_mode)
         self._apply_mode(self.mode_combo.currentText())
+
+    def _apply_joint_preset(self, values):
+        for spin, val in zip(self.joint_spins, values):
+            spin.setValue(val)
+
+    def _read_current_pose(self):
+        if self._current_pose is None:
+            QMessageBox.warning(
+                self, "No Pose", "No robot pose available. Is the robot connected?"
+            )
+            return
+        for spin, val in zip(self.joint_spins, self._current_pose):
+            spin.setValue(val)
 
     def _apply_mode(self, mode):
         self._named_group.setVisible(mode == "Named target")
         self._rel_group.setVisible(mode == "Relative move")
         self._cart_group.setVisible(mode == "Cartesian target")
         self._planning_group.setVisible(mode == "Cartesian target")
+        self._joint_group.setVisible(mode == "Joint values")
         previews = {
             "Named target": f"Will execute: move to '{self.target.text()}'",
             "Relative move": "Will execute: relative move in selected direction",
             "Cartesian target": "Will execute: move to XYZ coordinates",
+            "Joint values": "Will execute: move to explicit joint angles",
         }
         self._preview.setText(previews.get(mode, ""))
 
@@ -370,7 +441,7 @@ class MoveToForm(BaseTaskForm):
         s = {**self.step}
         mode = self.mode_combo.currentText()
 
-        # Always strip all three branches, then add back only the active one
+        # Always strip all branches, then add back only the active one
         for k in (
             "target",
             "direction",
@@ -378,6 +449,7 @@ class MoveToForm(BaseTaskForm):
             "cartesian_target",
             "frame_id",
             "planning_type",
+            "_inline_joint_pose",
         ):
             s.pop(k, None)
 
@@ -396,6 +468,15 @@ class MoveToForm(BaseTaskForm):
                 cart.extend([r, p, yaw])
             s["cartesian_target"] = cart
             s["frame_id"] = self.frame_id.currentText()
+        elif mode == "Joint values":
+            # Reuse existing inline name or generate one from step index
+            target = self.step.get("target", "")
+            if not (target and self.poses.get(target) and len(self.poses[target]) == 6):
+                target = f"moveto_joints_{self._step_index + 1}"
+            s["target"] = target
+            s["planning_type"] = "joint"
+            values = [spin.value() for spin in self.joint_spins]
+            s["_inline_joint_pose"] = {"name": target, "values": values}
         return s
 
 

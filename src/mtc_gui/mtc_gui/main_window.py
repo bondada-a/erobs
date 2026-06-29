@@ -830,8 +830,12 @@ class MTCMainWindow(QMainWindow):
         # Dropdowns show the UNION: registry poses first, inline poses on top
         # (inline overrides a same-named registry pose for display only).
         merged_poses = {**self.poses_panel.get_poses(), **self.config.get("poses", {})}
-        result = open_task_form(step, idx, merged_poses, self)
+        result = open_task_form(step, idx, merged_poses, self, current_pose=self.current_robot_pose)
         if result is not None:
+            if "_inline_joint_pose" in result:
+                ijp = result.pop("_inline_joint_pose")
+                self.config.setdefault("poses", {})[ijp["name"]] = ijp["values"]
+                self._log(f"Added inline joint pose '{ijp['name']}'")
             self.config["tasks"][idx] = result
             self._refresh_tree()
             self._log(f"Updated step {idx + 1}")
