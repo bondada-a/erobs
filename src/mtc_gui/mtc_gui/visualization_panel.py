@@ -253,6 +253,9 @@ class VisualizationPanel(QWidget):
         self._current_gripper = "epick"
         self._page_ready = False
 
+        self._preview_hold = False
+        self._last_live_pose = None
+
         # Dry-run preview playback state
         self._preview_waypoints = []  # list of (names, positions, t_seconds)
         self._preview_arm_track = []  # decimated arm-joint waypoints in degrees
@@ -435,11 +438,33 @@ class VisualizationPanel(QWidget):
         """Receive joint angles in degrees and forward to Three.js (throttled)."""
         if not self._page_ready:
             return
+        self._last_live_pose = pose_deg
+        if self._preview_hold:
+            return
         now = time.monotonic()
         if now - self._last_update < 0.033:
             return
         self._last_update = now
         self.web_view.page().runJavaScript(f"window.updateJoints({pose_deg})")
+
+    def preview_pose(self, pose_deg):
+        """Show a goal pose in the 3D viewer, suppressing live joint updates."""
+        if not self._page_ready:
+            return
+        if not (isinstance(pose_deg, (list, tuple)) and len(pose_deg) == 6):
+            return
+        self._preview_hold = True
+        self.web_view.page().runJavaScript(
+            f"window.updateJoints({list(pose_deg)})"
+        )
+
+    def end_preview(self):
+        """Release preview hold and snap back to the live robot pose."""
+        self._preview_hold = False
+        if self._last_live_pose and self._page_ready:
+            self.web_view.page().runJavaScript(
+                f"window.updateJoints({self._last_live_pose})"
+            )
 
     def _reset_view(self):
         if self._page_ready:

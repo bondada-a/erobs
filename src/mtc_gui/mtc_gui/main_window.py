@@ -625,21 +625,23 @@ class MTCMainWindow(QMainWindow):
 
     def _build_right_tabs(self) -> QWidget:
         """Right panel: Chat / Camera / 3D View tabs (unchanged from before)."""
-        right_tabs = QTabWidget()
+        self.right_tabs = QTabWidget()
 
         self.chat_panel = ChatPanel()
         self.agent_bridge = AgentBridge()
-        right_tabs.addTab(self.chat_panel, "Chat")
+        self.right_tabs.addTab(self.chat_panel, "Chat")
 
         if ROS2_AVAILABLE:
             self.camera = CameraPanel(self.ros2)
-            right_tabs.addTab(self.camera, "Camera")
+            self.right_tabs.addTab(self.camera, "Camera")
 
         if WEBENGINE_AVAILABLE:
             self.viz_panel = VisualizationPanel(self.ros2)
-            right_tabs.addTab(self.viz_panel, "3D View")
+            self._viz_tab_title = "3D View"
+            self.right_tabs.addTab(self.viz_panel, self._viz_tab_title)
 
-        return right_tabs
+        self._viz_floating = False
+        return self.right_tabs
 
     # --- Signal Connections ---
 
@@ -820,6 +822,29 @@ class MTCMainWindow(QMainWindow):
         self._refresh_tree()
         self.step_list.set_current_row(idx + 1)
 
+    def _detach_viz_for_form(self):
+        """Remove the 3D viewer from its tab so the form can embed it."""
+        if not (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")):
+            return
+        if self._viz_floating:
+            return
+        self._viz_home_index = self.right_tabs.indexOf(self.viz_panel)
+        if self._viz_home_index >= 0:
+            self.right_tabs.removeTab(self._viz_home_index)
+        self._viz_floating = True
+
+    def _redock_viz_after_form(self):
+        """Return the 3D viewer to its tab after the form closes."""
+        if not (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")):
+            return
+        if not self._viz_floating:
+            return
+        self.viz_panel.setWindowFlags(Qt.WindowType.Widget)
+        idx = min(self._viz_home_index, self.right_tabs.count())
+        self.right_tabs.insertTab(idx, self.viz_panel, self._viz_tab_title)
+        self.viz_panel.show()
+        self._viz_floating = False
+
     def _edit_task_by_index(self, idx):
         if idx < 0 or idx >= len(self.config["tasks"]):
             return
@@ -830,7 +855,18 @@ class MTCMainWindow(QMainWindow):
         # Dropdowns show the UNION: registry poses first, inline poses on top
         # (inline overrides a same-named registry pose for display only).
         merged_poses = {**self.poses_panel.get_poses(), **self.config.get("poses", {})}
-        result = open_task_form(step, idx, merged_poses, self, current_pose=self.current_robot_pose)
+        preview_cb = self.viz_panel.preview_pose if (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")) else None
+        end_preview_cb = self.viz_panel.end_preview if (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")) else None
+        viz_widget = self.viz_panel if (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")) else None
+        self._detach_viz_for_form()
+        try:
+            result = open_task_form(step, idx, merged_poses, self,
+                                    current_pose=self.current_robot_pose,
+                                    preview_cb=preview_cb,
+                                    end_preview_cb=end_preview_cb,
+                                    viz_widget=viz_widget)
+        finally:
+            self._redock_viz_after_form()
         if result is not None:
             if "_inline_joint_pose" in result:
                 ijp = result.pop("_inline_joint_pose")
@@ -1301,9 +1337,9 @@ class MTCMainWindow(QMainWindow):
         toggle_dark_mode(self._app(), enabled)
 
     def _app(self):
-        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication as _QApp
 
-        return QApplication.instance()
+        return _QApp.instance()
 
     def _show_about(self):
         QMessageBox.about(

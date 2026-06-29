@@ -142,6 +142,104 @@ def test_read_current_pose_none_no_crash(monkeypatch):
     assert all(spin.value() == 0.0 for spin in form.joint_spins)
 
 
+# --- Live preview callback tests ---
+
+
+def test_preview_joint_mode_calls_cb():
+    """Joint mode spinbox changes call preview_cb with 6 degree values."""
+    calls = []
+    form = MoveToForm({"task_type": "move_to"}, 0, {},
+                      preview_cb=calls.append, end_preview_cb=lambda: None)
+    form.mode_combo.setCurrentText("Joint values")
+    calls.clear()
+    angles = [10.0, -20.0, 30.0, -40.0, 50.0, -60.0]
+    for spin, val in zip(form.joint_spins, angles):
+        spin.setValue(val)
+    assert len(calls) >= 1
+    assert calls[-1] == angles
+
+
+def test_preview_named_mode_known_pose():
+    """Named mode with a 6-element pose in poses dict calls preview_cb."""
+    calls = []
+    end_calls = []
+    poses = {"scan_pose": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}
+    form = MoveToForm({"task_type": "move_to"}, 0, poses,
+                      preview_cb=calls.append, end_preview_cb=lambda: end_calls.append(1))
+    form.mode_combo.setCurrentText("Named target")
+    calls.clear()
+    end_calls.clear()
+    form.target.setText("scan_pose")
+    assert len(calls) >= 1
+    assert calls[-1] == [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
+
+
+def test_preview_named_mode_unknown_pose():
+    """Named mode with an unknown name calls end_preview_cb, not preview_cb."""
+    calls = []
+    end_calls = []
+    form = MoveToForm({"task_type": "move_to"}, 0, {},
+                      preview_cb=calls.append, end_preview_cb=lambda: end_calls.append(1))
+    form.mode_combo.setCurrentText("Named target")
+    calls.clear()
+    end_calls.clear()
+    form.target.setText("some_srdf_state")
+    assert len(calls) == 0
+    assert len(end_calls) >= 1
+
+
+def test_preview_cartesian_mode_calls_end():
+    """Switching to Cartesian mode calls end_preview_cb."""
+    calls = []
+    end_calls = []
+    form = MoveToForm({"task_type": "move_to"}, 0, {},
+                      preview_cb=calls.append, end_preview_cb=lambda: end_calls.append(1))
+    form.mode_combo.setCurrentText("Joint values")
+    calls.clear()
+    end_calls.clear()
+    form.mode_combo.setCurrentText("Cartesian target")
+    assert len(end_calls) >= 1
+
+
+def test_preview_done_calls_end():
+    """Closing the dialog via done() calls end_preview_cb."""
+    end_calls = []
+    form = MoveToForm({"task_type": "move_to"}, 0, {},
+                      preview_cb=lambda x: None, end_preview_cb=lambda: end_calls.append(1))
+    end_calls.clear()
+    form.done(0)
+    assert len(end_calls) >= 1
+
+
+# --- Embedded viz widget tests ---
+
+
+def test_viz_widget_embedded_in_content_row():
+    """Passing viz_widget embeds it in the form's _content_row layout."""
+    from PyQt6.QtWidgets import QWidget
+
+    dummy_viz = QWidget()
+    form = MoveToForm({"task_type": "move_to"}, 0, {}, viz_widget=dummy_viz)
+    assert dummy_viz.parent() is not None
+    assert form.minimumWidth() == 900
+
+
+def test_viz_widget_detached_on_done():
+    """done() detaches the viz widget (setParent(None)) before dialog teardown."""
+    from PyQt6.QtWidgets import QWidget
+
+    dummy_viz = QWidget()
+    form = MoveToForm({"task_type": "move_to"}, 0, {}, viz_widget=dummy_viz)
+    form.done(0)
+    assert dummy_viz.parent() is None
+
+
+def test_no_viz_widget_no_resize():
+    """Without viz_widget, form keeps its normal minimum width."""
+    form = MoveToForm({"task_type": "move_to"}, 0, {})
+    assert form.minimumWidth() == 480
+
+
 if __name__ == "__main__":
     test_cartesian_mode_emits_only_cartesian_keys()
     test_relative_mode_emits_only_relative_keys()
