@@ -1,6 +1,7 @@
 """Pose management dialogs: pose list manager, single pose editor, save current pose."""
 
 import json
+from pathlib import Path
 
 from PyQt6.QtWidgets import (
     QDialog, QVBoxLayout, QHBoxLayout, QFormLayout, QDialogButtonBox,
@@ -70,12 +71,16 @@ class PoseEditorDialog(QDialog):
 
 
 class PosesManagerDialog(QDialog):
-    """Manage the poses dictionary: list, add, edit, delete, import."""
+    """Manage the pose registry: list, add, edit, delete, import.
 
-    def __init__(self, poses, parent=None):
+    Every action PERSISTS IMMEDIATELY through the panel (the in-process
+    registry owner), so the registry file is the single source of truth and
+    the Poses tab + this dialog never diverge. The dialog returns no result.
+    """
+
+    def __init__(self, panel, parent=None):
         super().__init__(parent)
-        self.poses = dict(poses)  # work on a copy
-        self.result = None
+        self.panel = panel
 
         self.setWindowTitle("Manage Poses")
         self.setMinimumSize(600, 450)
@@ -105,20 +110,28 @@ class PosesManagerDialog(QDialog):
         btn_row.addStretch()
         layout.addLayout(btn_row)
 
-        # Dialog buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
-        buttons.accepted.connect(self._on_save)
+        # Dialog buttons — Close only; all edits already persisted.
+        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Close)
         buttons.rejected.connect(self.reject)
+        buttons.accepted.connect(self.accept)
         layout.addWidget(buttons)
 
         self._refresh()
 
     def _refresh(self):
         self.tree.clear()
-        for name, values in sorted(self.poses.items()):
+        for name, values in sorted(self.panel.get_poses().items()):
             vals_str = ", ".join(f"{v:.2f}" for v in values)
             item = QTreeWidgetItem([name, f"[{vals_str}]"])
             self.tree.addTopLevelItem(item)
+
+    def _persist(self, name, values):
+        if not self.panel.save_pose(name, values):
+            QMessageBox.warning(
+                self, "No Registry",
+                "No pose registry file is loaded — cannot save."
+            )
+        self._refresh()
 
     def _add_pose(self):
         dlg = PoseEditorDialog("new_pose", [0.0] * 6, self)
@@ -127,8 +140,7 @@ class PosesManagerDialog(QDialog):
             from PyQt6.QtWidgets import QInputDialog
             name, ok = QInputDialog.getText(self, "Pose Name", "Enter pose name:")
             if ok and name:
-                self.poses[name] = dlg.result
-                self._refresh()
+                self._persist(name, dlg.result)
 
     def _edit_selected(self):
         items = self.tree.selectedItems()
@@ -137,11 +149,10 @@ class PosesManagerDialog(QDialog):
 
     def _edit_pose(self, item):
         name = item.text(0)
-        values = self.poses.get(name, [0.0] * 6)
+        values = self.panel.get_pose(name) or [0.0] * 6
         dlg = PoseEditorDialog(name, values, self)
         if dlg.exec() == QDialog.DialogCode.Accepted:
-            self.poses[name] = dlg.result
-            self._refresh()
+            self._persist(name, dlg.result)
 
     def _delete_pose(self):
         items = self.tree.selectedItems()
@@ -150,7 +161,11 @@ class PosesManagerDialog(QDialog):
         name = items[0].text(0)
         reply = QMessageBox.question(self, "Delete", f"Delete pose '{name}'?")
         if reply == QMessageBox.StandardButton.Yes:
-            self.poses.pop(name, None)
+            if not self.panel.delete_pose(name):
+                QMessageBox.warning(
+                    self, "No Registry",
+                    "No pose registry file is loaded — cannot delete."
+                )
             self._refresh()
 
     def _import_json(self):
@@ -164,26 +179,20 @@ class PosesManagerDialog(QDialog):
             count = 0
             for name, values in imported.items():
                 if isinstance(values, list) and len(values) == 6:
-                    self.poses[name] = values
-                    count += 1
+                    if self.panel.save_pose(name, values):
+                        count += 1
             self._refresh()
             QMessageBox.information(self, "Imported", f"Imported {count} pose(s)")
         except Exception as e:
             QMessageBox.critical(self, "Error", f"Import failed: {e}")
 
-    def _on_save(self):
-        self.result = self.poses
-        self.accept()
-
 
 class SavePoseDialog(QDialog):
-    """Save the current robot joint pose to the config or a file."""
+    """Save the current robot joint pose to the registry or inline (task-only)."""
 
-    def __init__(self, current_pose, config, current_file, parent=None):
+    def __init__(self, current_pose, registry_file=None, parent=None):
         super().__init__(parent)
         self.current_pose = current_pose
-        self.config = config
-        self.current_file = current_file
         self.result = None
 
         self.setWindowTitle("Save Current Pose")
@@ -207,23 +216,25 @@ class SavePoseDialog(QDialog):
         name_layout.addRow("Name:", self.name_edit)
         layout.addWidget(name_group)
 
-        # Save options
+        # Save options: registry (shared, persisted) vs inline (this task only)
         opts_group = QGroupBox("Save To")
         opts_layout = QVBoxLayout(opts_group)
         self.btn_group = QButtonGroup(self)
-        self.radio_config = QRadioButton("Add to current config")
-        self.radio_config.setChecked(True)
-        self.btn_group.addButton(self.radio_config, 0)
-        opts_layout.addWidget(self.radio_config)
+        reg_name = Path(registry_file).name if registry_file else "(no registry loaded)"
+        self.radio_registry = QRadioButton(f"Pose registry: {reg_name}")
+        self.radio_registry.setEnabled(registry_file is not None)
+        self.btn_group.addButton(self.radio_registry, 0)
+        opts_layout.addWidget(self.radio_registry)
 
-        self.radio_file = QRadioButton(f"Save to: {current_file or '(no file loaded)'}")
-        self.radio_file.setEnabled(current_file is not None)
-        self.btn_group.addButton(self.radio_file, 1)
-        opts_layout.addWidget(self.radio_file)
+        self.radio_inline = QRadioButton("Inline (this task only)")
+        self.btn_group.addButton(self.radio_inline, 1)
+        opts_layout.addWidget(self.radio_inline)
 
-        self.radio_new = QRadioButton("Save to new file...")
-        self.btn_group.addButton(self.radio_new, 2)
-        opts_layout.addWidget(self.radio_new)
+        # Default to the registry when available, else inline.
+        if registry_file is not None:
+            self.radio_registry.setChecked(True)
+        else:
+            self.radio_inline.setChecked(True)
         layout.addWidget(opts_group)
 
         # Buttons
@@ -238,17 +249,9 @@ class SavePoseDialog(QDialog):
             QMessageBox.warning(self, "Error", "Pose name cannot be empty")
             return
 
-        choice = self.btn_group.checkedId()
-        if choice == 0:
-            self.result = {"action": "add_to_config", "pose_name": name, "pose_values": self.current_pose}
-        elif choice == 1:
-            self.result = {"action": "save_to_current", "pose_name": name, "pose_values": self.current_pose}
-        elif choice == 2:
-            path, _ = QFileDialog.getSaveFileName(self, "Save Poses", "", "JSON (*.json)")
-            if not path:
-                return
-            self.result = {
-                "action": "save_to_new", "pose_name": name,
-                "pose_values": self.current_pose, "file_path": path,
-            }
+        if self.btn_group.checkedId() == 0:
+            action = "save_to_registry"
+        else:
+            action = "save_inline"
+        self.result = {"action": action, "pose_name": name, "pose_values": self.current_pose}
         self.accept()

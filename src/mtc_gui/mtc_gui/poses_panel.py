@@ -3,6 +3,8 @@
 import yaml
 from pathlib import Path
 
+from .pose_io import read_poses, write_poses
+
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLineEdit, QListWidget, QListWidgetItem,
     QLabel, QHBoxLayout, QPushButton, QGroupBox, QFormLayout,
@@ -145,16 +147,11 @@ class PosesPanel(QWidget):
             return
 
         self._poses_file = path
-        self._poses = {}
         self._groups = {}
+        self._poses = read_poses(path)
 
-        with open(path) as f:
-            data = yaml.safe_load(f)
-
-        if not isinstance(data, dict):
-            return
-
-        # Parse comments to extract group labels (e.g. "# --- Pipettor ---")
+        # Parse comments to extract group labels (e.g. "# --- Pipettor ---").
+        # Read-only display pass; pose values themselves come from read_poses.
         current_group = ""
         with open(path) as f:
             for line in f:
@@ -163,10 +160,8 @@ class PosesPanel(QWidget):
                     current_group = stripped.strip("# -").strip()
                 elif ":" in stripped and not stripped.startswith("#"):
                     pose_name = stripped.split(":")[0].strip()
-                    if pose_name in data:
+                    if pose_name in self._poses:
                         self._groups[pose_name] = current_group
-
-        self._poses = {k: v for k, v in data.items() if isinstance(v, list) and len(v) == 6}
         self._refresh_list()
         self.source_label.setText(f"Source: {path.name}")
         self.poses_loaded.emit(dict(self._poses))
@@ -212,3 +207,34 @@ class PosesPanel(QWidget):
     def get_pose(self, name: str) -> list | None:
         """Get joint values for a specific pose name."""
         return self._poses.get(name)
+
+    def get_poses_file(self) -> Path | None:
+        """Return the registry file path, or None if no file is loaded."""
+        return self._poses_file
+
+    def save_pose(self, name: str, values: list) -> bool:
+        """Persist a registry pose, then reload to refresh + re-emit.
+
+        Reads the current file (cross-process truth), merges the entry, and
+        writes it back atomically. Returns False if no registry file is set.
+        """
+        # ponytail: cross-process truth is the file, so we re-read before each
+        # write rather than holding a watched in-memory mirror (no
+        # QFileSystemWatcher — deferred upgrade; the reload button covers it).
+        if self._poses_file is None:
+            return False
+        poses = read_poses(self._poses_file)
+        poses[name] = values
+        write_poses(self._poses_file, poses)
+        self.load_from_file(self._poses_file)
+        return True
+
+    def delete_pose(self, name: str) -> bool:
+        """Remove a registry pose, then reload. Returns False if no file set."""
+        if self._poses_file is None:
+            return False
+        poses = read_poses(self._poses_file)
+        poses.pop(name, None)
+        write_poses(self._poses_file, poses)
+        self.load_from_file(self._poses_file)
+        return True

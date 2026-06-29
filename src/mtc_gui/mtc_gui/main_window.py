@@ -827,7 +827,10 @@ class MTCMainWindow(QMainWindow):
 
         from .task_forms import open_task_form
 
-        result = open_task_form(step, idx, self.config.get("poses", {}), self)
+        # Dropdowns show the UNION: registry poses first, inline poses on top
+        # (inline overrides a same-named registry pose for display only).
+        merged_poses = {**self.poses_panel.get_poses(), **self.config.get("poses", {})}
+        result = open_task_form(step, idx, merged_poses, self)
         if result is not None:
             self.config["tasks"][idx] = result
             self._refresh_tree()
@@ -1204,6 +1207,8 @@ class MTCMainWindow(QMainWindow):
 
         try:
             import copy
+            # Runs store registry poses BY NAME (resolved live at exec); only
+            # genuine inline poses are embedded here. See #94.
             save_data = copy.deepcopy(self.config)
             save_data["start_gripper"] = self.gripper_combo.currentText()
             save_data["run_name"] = display_name
@@ -1351,15 +1356,18 @@ class MTCMainWindow(QMainWindow):
             del self._pending_log
 
     def _on_poses_loaded(self, poses: dict):
-        """Merge beamline poses into the working config."""
-        self.config.setdefault("poses", {}).update(poses)
-        self._log(f"Loaded {len(poses)} poses from beamline config")
+        """Registry poses loaded into the panel — log only.
+
+        The panel owns the registry; we deliberately do NOT merge into
+        config["poses"] (that bag is for INLINE poses only). Merging here
+        was the root cause of #94 — it polluted the inline bag, which then
+        got frozen into saved runs.
+        """
+        self._log(f"Loaded {len(poses)} poses from registry")
 
     def _manage_poses(self):
-        dlg = PosesManagerDialog(self.config.get("poses", {}), self)
-        if dlg.exec() == QDialog.DialogCode.Accepted and dlg.result is not None:
-            self.config["poses"] = dlg.result
-            self._log(f"Updated poses ({len(dlg.result)} poses)")
+        # Dialog persists every edit through the panel; no result to apply.
+        PosesManagerDialog(self.poses_panel, self).exec()
 
     def _save_current_pose(self):
         if self.current_robot_pose is None:
@@ -1368,29 +1376,23 @@ class MTCMainWindow(QMainWindow):
             )
             return
         dlg = SavePoseDialog(
-            self.current_robot_pose, self.config, self.current_json_file, self
+            self.current_robot_pose, self.poses_panel.get_poses_file(), self
         )
         if dlg.exec() == QDialog.DialogCode.Accepted and dlg.result is not None:
             r = dlg.result
             name = r["pose_name"]
             values = r["pose_values"]
-            if r["action"] == "add_to_config":
+            if r["action"] == "save_to_registry":
+                if self.poses_panel.save_pose(name, values):
+                    self._log(f"Saved pose '{name}' to registry")
+                else:
+                    QMessageBox.warning(
+                        self, "No Registry",
+                        "No pose registry file is loaded — cannot save."
+                    )
+            elif r["action"] == "save_inline":
                 self.config.setdefault("poses", {})[name] = values
-                self._log(f"Added pose '{name}' to config")
-            elif r["action"] == "save_to_current" and self.current_json_file:
-                self.config.setdefault("poses", {})[name] = values
-                self.config["start_gripper"] = self.gripper_combo.currentText()
-                with open(self.current_json_file, "w") as f:
-                    json.dump(self.config, f, indent=2)
-                self._log(f"Saved pose '{name}' to {self.current_json_file}")
-            elif r["action"] == "save_to_new":
-                self.config.setdefault("poses", {})[name] = values
-                path = r.get("file_path")
-                if path:
-                    with open(path, "w") as f:
-                        json.dump(self.config, f, indent=2)
-                    self.current_json_file = path
-                    self._log(f"Saved pose '{name}' to {path}")
+                self._log(f"Added inline pose '{name}' (this task only)")
 
     def _on_chat_message(self, text):
         self.chat_panel.append_user(text)
