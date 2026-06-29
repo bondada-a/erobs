@@ -295,9 +295,22 @@ class MoveToForm(BaseTaskForm):
         self._named_group = QGroupBox("Named Target")
         named_layout = QFormLayout(self._named_group)
         self.form.addRow(self._named_group)
-        self.target = QLineEdit(str(self.step.get("target", "moveit_home")))
+        self.target = QComboBox()
+        self.target.setEditable(True)
+        self.target.setInsertPolicy(QComboBox.InsertPolicy.NoInsert)
+        pose_names = sorted(self.poses.keys())
+        self.target.addItems(pose_names)
+        for sentinel in ("moveit_home",):
+            if self.target.findText(sentinel) < 0:
+                self.target.addItem(sentinel)
+        current = str(self.step.get("target", "moveit_home"))
+        i = self.target.findText(current)
+        if i >= 0:
+            self.target.setCurrentIndex(i)
+        else:
+            self.target.setEditText(current)
         named_layout.addRow("Target:", self.target)
-        hint = QLabel("Named state (moveit_home) or pose name from the pose manager")
+        hint = QLabel("Pick a pose or type an SRDF named state (e.g. moveit_home)")
         hint.setStyleSheet("color: gray; font-size: 10px;")
         named_layout.addRow(hint)
 
@@ -423,7 +436,7 @@ class MoveToForm(BaseTaskForm):
         # Wire live preview callbacks
         for spin in self.joint_spins:
             spin.valueChanged.connect(self._emit_preview)
-        self.target.textChanged.connect(self._emit_preview)
+        self.target.currentTextChanged.connect(self._emit_preview)
         self._emit_preview()
 
         # Embed the 3D viewer to the right of the form
@@ -454,7 +467,7 @@ class MoveToForm(BaseTaskForm):
         self._planning_group.setVisible(mode == "Cartesian target")
         self._joint_group.setVisible(mode == "Joint values")
         previews = {
-            "Named target": f"Will execute: move to '{self.target.text()}'",
+            "Named target": f"Will execute: move to '{self.target.currentText()}'",
             "Relative move": "Will execute: relative move in selected direction",
             "Cartesian target": "Will execute: move to XYZ coordinates",
             "Joint values": "Will execute: move to explicit joint angles",
@@ -470,7 +483,7 @@ class MoveToForm(BaseTaskForm):
         if mode == "Joint values":
             self._preview_cb([s.value() for s in self.joint_spins])
         elif mode == "Named target":
-            pose = self.poses.get(self.target.text())
+            pose = self.poses.get(self.target.currentText())
             if isinstance(pose, (list, tuple)) and len(pose) == 6:
                 self._preview_cb(list(pose))
             elif self._end_preview_cb:
@@ -503,7 +516,7 @@ class MoveToForm(BaseTaskForm):
             s.pop(k, None)
 
         if mode == "Named target":
-            s["target"] = self.target.text()
+            s["target"] = self.target.currentText()
             s["planning_type"] = "joint"
         elif mode == "Relative move":
             s["direction"] = self.direction.currentText()
