@@ -3,10 +3,25 @@
 import copy
 
 from PyQt6.QtWidgets import (
-    QDialog, QVBoxLayout, QFormLayout, QDialogButtonBox, QScrollArea,
-    QWidget, QLabel, QLineEdit, QComboBox, QCheckBox, QDoubleSpinBox,
-    QSpinBox, QGroupBox, QHBoxLayout, QTextEdit, QMessageBox,
-    QGridLayout, QPushButton, QSizePolicy,
+    QDialog,
+    QVBoxLayout,
+    QFormLayout,
+    QDialogButtonBox,
+    QScrollArea,
+    QWidget,
+    QLabel,
+    QLineEdit,
+    QComboBox,
+    QCheckBox,
+    QDoubleSpinBox,
+    QSpinBox,
+    QGroupBox,
+    QHBoxLayout,
+    QTextEdit,
+    QMessageBox,
+    QGridLayout,
+    QPushButton,
+    QSizePolicy,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -17,10 +32,12 @@ from PyQt6.QtGui import QFont
 # to empty lists if BEAMBOT_BEAMLINE_CONFIG isn't set — operator sees an
 # empty dropdown and the GUI's startup banner already explains why.
 
+
 def _configured_grippers() -> list[str]:
     """All gripper names declared in the active beamline YAML."""
     try:
         from beambot.config_loader import load_beamline_config
+
         config, _ = load_beamline_config()
         return list(config.get("grippers", {}).keys())
     except Exception:
@@ -35,9 +52,11 @@ def _grippers_with_states() -> list[str]:
     """
     try:
         from beambot.config_loader import load_beamline_config
+
         config, _ = load_beamline_config()
         return [
-            name for name, gconf in config.get("grippers", {}).items()
+            name
+            for name, gconf in config.get("grippers", {}).items()
             if gconf.get("states")
         ]
     except Exception:
@@ -48,6 +67,7 @@ def _end_effector_actions() -> list[str]:
     """Union of all `states.grasp` + `states.release` action names across grippers."""
     try:
         from beambot.config_loader import load_beamline_config
+
         config, _ = load_beamline_config()
         actions: list[str] = []
         for gconf in config.get("grippers", {}).values():
@@ -65,6 +85,7 @@ def _vision_target_grid(target_name: str) -> dict:
     """Load grid config for a vision target (rows, cols)."""
     try:
         from beambot.config_loader import load_beamline_config
+
         config, _ = load_beamline_config()
         targets = config.get("vision_targets", {})
         return targets.get(target_name, {}).get("grid", {})
@@ -73,6 +94,7 @@ def _vision_target_grid(target_name: str) -> dict:
 
 
 # --- Dispatch ---
+
 
 def open_task_form(step, step_index, poses, parent=None):
     """Open the edit dialog for a task step. Returns edited step dict or None if cancelled."""
@@ -88,6 +110,7 @@ def open_task_form(step, step_index, poses, parent=None):
 
 
 # --- Base Form ---
+
 
 class BaseTaskForm(QDialog):
     TITLE = "Edit Step"
@@ -120,7 +143,10 @@ class BaseTaskForm(QDialog):
         self.build_form()
 
         # Buttons
-        buttons = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
+        buttons = QDialogButtonBox(
+            QDialogButtonBox.StandardButton.Save
+            | QDialogButtonBox.StandardButton.Cancel
+        )
         buttons.accepted.connect(self._on_save)
         buttons.rejected.connect(self.reject)
         outer.addWidget(buttons)
@@ -155,7 +181,9 @@ class BaseTaskForm(QDialog):
         self.form.addRow(label, edit)
         return edit
 
-    def add_float(self, label, key, default=0.0, min_val=-999.0, max_val=999.0, decimals=4):
+    def add_float(
+        self, label, key, default=0.0, min_val=-999.0, max_val=999.0, decimals=4
+    ):
         spin = QDoubleSpinBox()
         spin.setRange(min_val, max_val)
         spin.setDecimals(decimals)
@@ -207,28 +235,73 @@ class BaseTaskForm(QDialog):
 
 # --- Concrete Forms ---
 
+
 class MoveToForm(BaseTaskForm):
     TITLE = "MoveTo Configuration"
 
-    def build_form(self):
-        self.target = self.add_text("Target:", "target", "moveit_home")
-        self.add_hint("Named state (moveit_home) or pose name from the pose manager")
-        self.planning = self.add_combo("Planning Type:", "planning_type", ["joint", "cartesian"])
+    _MODES = ["Named target", "Relative move", "Cartesian target"]
 
-        # Relative move
-        rel = self.add_section("Relative Move (optional)")
+    def _detect_mode(self):
+        """Match backend precedence: relative > cartesian > named."""
+        if self.step.get("direction") and float(self.step.get("distance", 0)) != 0:
+            return "Relative move"
+        if self.step.get("cartesian_target"):
+            return "Cartesian target"
+        return "Named target"
+
+    def build_form(self):
+        # Mode selector
+        self.mode_combo = QComboBox()
+        self.mode_combo.addItems(self._MODES)
+        self.mode_combo.setCurrentText(self._detect_mode())
+        self.form.addRow("Move mode:", self.mode_combo)
+
+        self._preview = QLabel("")
+        self._preview.setStyleSheet("color: gray; font-size: 10px;")
+        self.form.addRow(self._preview)
+
+        # --- Named target section ---
+        self._named_group = QGroupBox("Named Target")
+        named_layout = QFormLayout(self._named_group)
+        self.form.addRow(self._named_group)
+        self.target = QLineEdit(str(self.step.get("target", "moveit_home")))
+        named_layout.addRow("Target:", self.target)
+        hint = QLabel("Named state (moveit_home) or pose name from the pose manager")
+        hint.setStyleSheet("color: gray; font-size: 10px;")
+        named_layout.addRow(hint)
+
+        # --- Planning type (cartesian mode only) ---
+        self._planning_group = QGroupBox()
+        self._planning_group.setFlat(True)
+        self._planning_group.setStyleSheet("QGroupBox{border:none;}")
+        pl = QFormLayout(self._planning_group)
+        self.form.addRow(self._planning_group)
+        self.planning = QComboBox()
+        self.planning.addItems(["joint", "cartesian"])
+        current_pt = str(self.step.get("planning_type", "joint"))
+        idx = self.planning.findText(current_pt)
+        if idx >= 0:
+            self.planning.setCurrentIndex(idx)
+        pl.addRow("Planning Type:", self.planning)
+
+        # --- Relative move section ---
+        self._rel_group = QGroupBox("Relative Move")
+        rel = QFormLayout(self._rel_group)
+        self.form.addRow(self._rel_group)
         self.direction = QComboBox()
-        self.direction.addItems(["", "forward", "backward", "left", "right", "up", "down"])
-        self.direction.setCurrentText(self.step.get("direction", ""))
+        self.direction.addItems(["forward", "backward", "left", "right", "up", "down"])
+        self.direction.setCurrentText(self.step.get("direction", "forward"))
         rel.addRow("Direction:", self.direction)
         self.distance = QDoubleSpinBox()
         self.distance.setRange(0, 2.0)
         self.distance.setDecimals(3)
-        self.distance.setValue(float(self.step.get("distance", 0.0)))
+        self.distance.setValue(float(self.step.get("distance", 0.05)))
         rel.addRow("Distance (m):", self.distance)
 
-        # Cartesian target
-        cart = self.add_section("Cartesian Target (optional)")
+        # --- Cartesian target section ---
+        self._cart_group = QGroupBox("Cartesian Target")
+        cart = QFormLayout(self._cart_group)
+        self.form.addRow(self._cart_group)
         existing = self.step.get("cartesian_target", [])
         self.cart_x = QDoubleSpinBox()
         self.cart_x.setRange(-2, 2)
@@ -240,7 +313,11 @@ class MoveToForm(BaseTaskForm):
         self.cart_z.setRange(-2, 2)
         self.cart_z.setDecimals(4)
         pos_row = QHBoxLayout()
-        for lbl, spin, i in [("X:", self.cart_x, 0), ("Y:", self.cart_y, 1), ("Z:", self.cart_z, 2)]:
+        for lbl, spin, i in [
+            ("X:", self.cart_x, 0),
+            ("Y:", self.cart_y, 1),
+            ("Z:", self.cart_z, 2),
+        ]:
             pos_row.addWidget(QLabel(lbl))
             if len(existing) > i:
                 spin.setValue(existing[i])
@@ -257,7 +334,11 @@ class MoveToForm(BaseTaskForm):
         self.cart_yaw.setRange(-360, 360)
         self.cart_yaw.setDecimals(2)
         rot_row = QHBoxLayout()
-        for lbl, spin, i in [("R:", self.cart_r, 3), ("P:", self.cart_p, 4), ("Y:", self.cart_yaw, 5)]:
+        for lbl, spin, i in [
+            ("R:", self.cart_r, 3),
+            ("P:", self.cart_p, 4),
+            ("Y:", self.cart_yaw, 5),
+        ]:
             rot_row.addWidget(QLabel(lbl))
             if len(existing) > i:
                 spin.setValue(existing[i])
@@ -269,34 +350,52 @@ class MoveToForm(BaseTaskForm):
         self.frame_id.setCurrentText(self.step.get("frame_id", "base_link"))
         cart.addRow("Frame:", self.frame_id)
 
-        lbl = QLabel("Leave at 0 to use named target. XYZ only = straight-down orientation.")
-        lbl.setStyleSheet("color: gray; font-size: 10px;")
-        cart.addRow(lbl)
+        # Wire mode switching
+        self.mode_combo.currentTextChanged.connect(self._apply_mode)
+        self._apply_mode(self.mode_combo.currentText())
+
+    def _apply_mode(self, mode):
+        self._named_group.setVisible(mode == "Named target")
+        self._rel_group.setVisible(mode == "Relative move")
+        self._cart_group.setVisible(mode == "Cartesian target")
+        self._planning_group.setVisible(mode == "Cartesian target")
+        previews = {
+            "Named target": f"Will execute: move to '{self.target.text()}'",
+            "Relative move": "Will execute: relative move in selected direction",
+            "Cartesian target": "Will execute: move to XYZ coordinates",
+        }
+        self._preview.setText(previews.get(mode, ""))
 
     def collect_values(self):
         s = {**self.step}
-        s["target"] = self.target.text()
-        s["planning_type"] = self.planning.currentText()
+        mode = self.mode_combo.currentText()
 
-        if self.direction.currentText():
+        # Always strip all three branches, then add back only the active one
+        for k in (
+            "target",
+            "direction",
+            "distance",
+            "cartesian_target",
+            "frame_id",
+            "planning_type",
+        ):
+            s.pop(k, None)
+
+        if mode == "Named target":
+            s["target"] = self.target.text()
+            s["planning_type"] = "joint"
+        elif mode == "Relative move":
             s["direction"] = self.direction.currentText()
             s["distance"] = self.distance.value()
-        else:
-            s.pop("direction", None)
-            s.pop("distance", None)
-
-        # Cartesian: if any XYZ non-zero, include
-        x, y, z = self.cart_x.value(), self.cart_y.value(), self.cart_z.value()
-        if x != 0 or y != 0 or z != 0:
+        elif mode == "Cartesian target":
+            s["planning_type"] = self.planning.currentText()
+            x, y, z = self.cart_x.value(), self.cart_y.value(), self.cart_z.value()
             cart = [x, y, z]
             r, p, yaw = self.cart_r.value(), self.cart_p.value(), self.cart_yaw.value()
             if r != 0 or p != 0 or yaw != 0:
                 cart.extend([r, p, yaw])
             s["cartesian_target"] = cart
             s["frame_id"] = self.frame_id.currentText()
-        else:
-            s.pop("cartesian_target", None)
-            s.pop("frame_id", None)
         return s
 
 
@@ -336,12 +435,15 @@ class SampleForm(BaseTaskForm):
         vl.addRow("Z Offset (m):", self.z_offset)
 
         self.marker_offsets = self.add_offset_row(
-            vl, "Marker Offsets (m):",
-            ["marker_offset_x", "marker_offset_y", "marker_offset_z"]
+            vl,
+            "Marker Offsets (m):",
+            ["marker_offset_x", "marker_offset_y", "marker_offset_z"],
         )
 
         self.offset_dir = QComboBox()
-        self.offset_dir.addItems(["", "forward", "backward", "left", "right", "up", "down"])
+        self.offset_dir.addItems(
+            ["", "forward", "backward", "left", "right", "up", "down"]
+        )
         self.offset_dir.setCurrentText(self.step.get("offset_direction", ""))
         vl.addRow("Flange Direction:", self.offset_dir)
         self.offset_dist = QDoubleSpinBox()
@@ -364,7 +466,10 @@ class SampleForm(BaseTaskForm):
         def toggle(checked):
             self.vision_group.setVisible(checked)
             self.hardcoded_group.setVisible(not checked)
-        self.use_vision.stateChanged.connect(lambda state: toggle(state == Qt.CheckState.Checked.value))
+
+        self.use_vision.stateChanged.connect(
+            lambda state: toggle(state == Qt.CheckState.Checked.value)
+        )
         toggle(self.use_vision.isChecked())
 
     def collect_values(self):
@@ -393,9 +498,18 @@ class SampleForm(BaseTaskForm):
         else:
             s["approach_pose"] = self.approach_pose.text()
             s["target_pose"] = self.target_pose.text()
-            for key in ("detection_type", "tag_id", "sample_index", "scan_pose",
-                        "z_offset", "marker_offset_x", "marker_offset_y",
-                        "marker_offset_z", "offset_direction", "offset_distance"):
+            for key in (
+                "detection_type",
+                "tag_id",
+                "sample_index",
+                "scan_pose",
+                "z_offset",
+                "marker_offset_x",
+                "marker_offset_y",
+                "marker_offset_z",
+                "offset_direction",
+                "offset_distance",
+            ):
                 s.pop(key, None)
         return s
 
@@ -404,8 +518,10 @@ class VisionScanForm(BaseTaskForm):
     TITLE = "Vision Scan Configuration"
 
     def build_form(self):
-        self.add_hint("Scans markers from multiple positions and caches averaged poses.\n"
-                      "Subsequent vision_moveto tasks use the cache for faster detection.")
+        self.add_hint(
+            "Scans markers from multiple positions and caches averaged poses.\n"
+            "Subsequent vision_moveto tasks use the cache for faster detection."
+        )
         self.form.addRow(QLabel("Scan Positions (one pose name per line):"))
         self.positions_text = QTextEdit()
         self.positions_text.setMaximumHeight(120)
@@ -432,10 +548,11 @@ class ToolExchangeForm(BaseTaskForm):
 
     def build_form(self):
         self.operation = self.add_combo("Operation:", "operation", ["load", "dock"])
-        self.gripper = self.add_combo("Gripper:", "gripper",
-                                      _configured_grippers())
+        self.gripper = self.add_combo("Gripper:", "gripper", _configured_grippers())
         self.dock_num = self.add_int("Dock Number:", "dock_number", 3, 1, 10)
-        self.approach = self.add_text("Approach Pose:", "approach_pose", "load_approach")
+        self.approach = self.add_text(
+            "Approach Pose:", "approach_pose", "load_approach"
+        )
         self.add_hint("Auto convention: load -> load_approach, dock -> dock_approach")
 
         def update_approach(text):
@@ -443,6 +560,7 @@ class ToolExchangeForm(BaseTaskForm):
                 self.approach.setText("load_approach")
             elif text == "dock":
                 self.approach.setText("dock_approach")
+
         self.operation.currentTextChanged.connect(update_approach)
 
     def collect_values(self):
@@ -459,10 +577,12 @@ class EndEffectorForm(BaseTaskForm):
     TITLE = "End Effector Configuration"
 
     def build_form(self):
-        self.type_combo = self.add_combo("Type:", "end_effector_type",
-                                         _grippers_with_states())
-        self.action_combo = self.add_combo("Action:", "end_effector_action",
-                                           _end_effector_actions())
+        self.type_combo = self.add_combo(
+            "Type:", "end_effector_type", _grippers_with_states()
+        )
+        self.action_combo = self.add_combo(
+            "Action:", "end_effector_action", _end_effector_actions()
+        )
 
     def collect_values(self):
         return {
@@ -476,9 +596,12 @@ class VisionMoveToForm(BaseTaskForm):
     TITLE = "Vision MoveTo Configuration"
 
     def build_form(self):
-        self.add_hint("Detect object using Zivid camera and move gripper to detected location.")
-        self.det_type = self.add_combo("Detection Type:", "detection_type",
-                                       ["marker", "sample_roi"])
+        self.add_hint(
+            "Detect object using Zivid camera and move gripper to detected location."
+        )
+        self.det_type = self.add_combo(
+            "Detection Type:", "detection_type", ["marker", "sample_roi"]
+        )
 
         # Marker options
         marker_sec = self.add_section("ArUco Marker Options")
@@ -487,12 +610,22 @@ class VisionMoveToForm(BaseTaskForm):
         self.tag_id.setValue(int(self.step.get("tag_id", 0)))
         marker_sec.addRow("Marker ID:", self.tag_id)
         self.marker_dict = QComboBox()
-        self.marker_dict.addItems([
-            "aruco4x4_50", "aruco4x4_100", "aruco4x4_250",
-            "aruco5x5_50", "aruco5x5_100", "aruco5x5_250",
-            "aruco6x6_50", "aruco6x6_100", "aruco6x6_250",
-        ])
-        self.marker_dict.setCurrentText(self.step.get("marker_dictionary", "aruco4x4_50"))
+        self.marker_dict.addItems(
+            [
+                "aruco4x4_50",
+                "aruco4x4_100",
+                "aruco4x4_250",
+                "aruco5x5_50",
+                "aruco5x5_100",
+                "aruco5x5_250",
+                "aruco6x6_50",
+                "aruco6x6_100",
+                "aruco6x6_250",
+            ]
+        )
+        self.marker_dict.setCurrentText(
+            self.step.get("marker_dictionary", "aruco4x4_50")
+        )
         marker_sec.addRow("Dictionary:", self.marker_dict)
 
         # Common options
@@ -513,11 +646,14 @@ class VisionMoveToForm(BaseTaskForm):
 
         # Offsets
         self.marker_offsets = self.add_offset_row(
-            common, "Marker Offsets (m):",
-            ["marker_offset_x", "marker_offset_y", "marker_offset_z"]
+            common,
+            "Marker Offsets (m):",
+            ["marker_offset_x", "marker_offset_y", "marker_offset_z"],
         )
         self.offset_dir = QComboBox()
-        self.offset_dir.addItems(["", "forward", "backward", "left", "right", "up", "down"])
+        self.offset_dir.addItems(
+            ["", "forward", "backward", "left", "right", "up", "down"]
+        )
         self.offset_dir.setCurrentText(self.step.get("offset_direction", ""))
         common.addRow("Flange Direction:", self.offset_dir)
         self.offset_dist = QDoubleSpinBox()
@@ -555,8 +691,9 @@ class PipettorForm(BaseTaskForm):
 
     def build_form(self):
         self.add_hint("SUCK=aspirate, EXPEL=dispense, EJECT_TIP, SET_LED")
-        self.operation = self.add_combo("Operation:", "operation",
-                                        ["SUCK", "EXPEL", "EJECT_TIP", "SET_LED"])
+        self.operation = self.add_combo(
+            "Operation:", "operation", ["SUCK", "EXPEL", "EJECT_TIP", "SET_LED"]
+        )
         self.volume = self.add_float("Volume %:", "volume_pct", 0.5, 0.0, 1.0, 2)
 
         # LED color
@@ -652,7 +789,9 @@ class _GridSelectorForm(BaseTaskForm):
                 btn.setFont(QFont("Monospace", 8))
                 btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
                 btn.setCheckable(True)
-                btn.clicked.connect(lambda checked, row=r, col=c: self._select_cell(row, col))
+                btn.clicked.connect(
+                    lambda checked, row=r, col=c: self._select_cell(row, col)
+                )
                 grid_layout.addWidget(btn, r + 1, c + 1)
                 self._grid_buttons[(r, c)] = btn
 
@@ -662,8 +801,12 @@ class _GridSelectorForm(BaseTaskForm):
         self._update_selection()
 
         # Show selected label
-        self._sel_label = QLabel(self._cell_name(self._selected_row, self._selected_col))
-        self._sel_label.setStyleSheet("font-size: 13px; font-weight: bold; color: #5ce68a;")
+        self._sel_label = QLabel(
+            self._cell_name(self._selected_row, self._selected_col)
+        )
+        self._sel_label.setStyleSheet(
+            "font-size: 13px; font-weight: bold; color: #5ce68a;"
+        )
         self.form.addRow("Selected:", self._sel_label)
 
     def _cell_name(self, row, col):
@@ -701,8 +844,10 @@ class PickupTipForm(_GridSelectorForm):
 
     def build_form(self):
         super().build_form()
-        self.add_hint("Tip rack: 8 rows (A-H) × 12 columns (1-12). "
-                      "Uses vision to align with marker, then moves to selected position.")
+        self.add_hint(
+            "Tip rack: 8 rows (A-H) × 12 columns (1-12). "
+            "Uses vision to align with marker, then moves to selected position."
+        )
 
 
 class PickupVialForm(_GridSelectorForm):
@@ -730,12 +875,15 @@ class PickupVialForm(_GridSelectorForm):
 
         def _toggle_volume(text):
             self._vial_volume.setEnabled(text != "None")
+
         self._vial_operation.currentTextChanged.connect(_toggle_volume)
         _toggle_volume(self._vial_operation.currentText())
 
         self.form.addRow(op_group)
-        self.add_hint("Vial rack: 2 rows (A-B) × 5 columns (1-5). "
-                      "Select SUCK to aspirate or EXPEL to dispense after insertion.")
+        self.add_hint(
+            "Vial rack: 2 rows (A-B) × 5 columns (1-5). "
+            "Select SUCK to aspirate or EXPEL to dispense after insertion."
+        )
 
     def collect_values(self):
         s = super().collect_values()
@@ -766,13 +914,12 @@ class SpincoaterForm(BaseTaskForm):
             f"Vision-guided {mode}: detects orientation via 2D capture, "
             f"corrects wrist angle, then {'picks' if self._is_pick else 'places'}."
         )
-        self.scan_pose = self.add_text(
-            "Scan pose:", "scan_pose", "spincoater_scan"
-        )
+        self.scan_pose = self.add_text("Scan pose:", "scan_pose", "spincoater_scan")
         pose_key = "pickup_pose" if self._is_pick else "place_pose"
         self.target_pose = self.add_text(
             f"{'Pickup' if self._is_pick else 'Place'} pose:",
-            pose_key, "spincoater_place"
+            pose_key,
+            "spincoater_place",
         )
         self.forward_dist = self.add_float(
             "Forward distance (m):", "forward_distance", 0.003, 0.0, 0.05, 4
