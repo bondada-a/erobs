@@ -1,6 +1,6 @@
 
 [workspace]
-authors = ["Max Rakitin <mrakitin@bnl.gov>, Jennefer Maldonado <jmaldonad@bnl.gov>"]
+authors = ["Max Rakitin <mrakitin@bnl.gov>, Jennefer Maldonado <jmaldonad@bnl.gov>, Aditya Bondada <abondada@bnl.gov>"]
 channels = ["conda-forge", "robostack-jazzy"]
 name = "rclpy"
 platforms = ["osx-arm64", "linux-64"]
@@ -12,25 +12,25 @@ node-list = "ros2 node list"
 
 [feature.ros.dependencies]
 ipython = ">=9.9.0,<10"
-ros-jazzy-rclpy = "*"
-ros-jazzy-ros2cli = "*"
-ros-jazzy-ros2topic = "*"
-ros-jazzy-ros2action = "*"
-ros-jazzy-ros2node = "*"
-ros-jazzy-turtlesim = "*"
-ros-jazzy-rosidl-default-generators = "*"
-ros-jazzy-rosidl-default-runtime = "*"
-ros-jazzy-rosidl-generator-py = "*"
-ros-jazzy-rosidl-generator-c = "*"
-ros-jazzy-ament-cmake-python = "*"
-ros-jazzy-geometry-msgs = "*"
-ros-jazzy-std-msgs = "*"
-colcon-common-extensions = "*"
-ros-jazzy-rmw-cyclonedds-cpp = "*"
-ros-jazzy-ros2doctor = "*"
-websocket-client = "*"
-ros-jazzy-ros2run = "*"
-ros-jazzy-demo-nodes-cpp = "*"
+ros-jazzy-rclpy = ">=7.1.11,<8"
+ros-jazzy-ros2cli = ">=0.32.9,<0.33"
+ros-jazzy-ros2topic = ">=0.32.9,<0.33"
+ros-jazzy-ros2action = ">=0.32.9,<0.33"
+ros-jazzy-ros2node = ">=0.32.9,<0.33"
+ros-jazzy-turtlesim = ">=1.8.3,<2"
+ros-jazzy-rosidl-default-generators = ">=1.6.0,<2"
+ros-jazzy-rosidl-default-runtime = ">=1.6.0,<2"
+ros-jazzy-rosidl-generator-py = ">=0.22.2,<0.23"
+ros-jazzy-rosidl-generator-c = ">=4.6.7,<5"
+ros-jazzy-ament-cmake-python = ">=2.5.6,<3"
+ros-jazzy-geometry-msgs = ">=5.3.7,<6"
+ros-jazzy-std-msgs = ">=5.3.7,<6"
+colcon-common-extensions = ">=0.3.0,<0.4"
+ros-jazzy-rmw-cyclonedds-cpp = ">=2.2.3,<3"
+ros-jazzy-ros2doctor = ">=0.32.9,<0.33"
+websocket-client = ">=1.9.0,<2"
+ros-jazzy-ros2run = ">=0.32.9,<0.33"
+ros-jazzy-demo-nodes-cpp = ">=0.33.10,<0.34"
 
 [feature.profile.dependencies]
 bluesky-base = "==1.14.6"
