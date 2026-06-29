@@ -211,6 +211,35 @@ def test_preview_done_calls_end():
     assert len(end_calls) >= 1
 
 
+# --- Embedded viz widget tests ---
+
+
+def test_viz_widget_embedded_in_content_row():
+    """Passing viz_widget embeds it in the form's _content_row layout."""
+    from PyQt6.QtWidgets import QWidget
+
+    dummy_viz = QWidget()
+    form = MoveToForm({"task_type": "move_to"}, 0, {}, viz_widget=dummy_viz)
+    assert dummy_viz.parent() is not None
+    assert form.minimumWidth() == 900
+
+
+def test_viz_widget_detached_on_done():
+    """done() detaches the viz widget (setParent(None)) before dialog teardown."""
+    from PyQt6.QtWidgets import QWidget
+
+    dummy_viz = QWidget()
+    form = MoveToForm({"task_type": "move_to"}, 0, {}, viz_widget=dummy_viz)
+    form.done(0)
+    assert dummy_viz.parent() is None
+
+
+def test_no_viz_widget_no_resize():
+    """Without viz_widget, form keeps its normal minimum width."""
+    form = MoveToForm({"task_type": "move_to"}, 0, {})
+    assert form.minimumWidth() == 480
+
+
 if __name__ == "__main__":
     test_cartesian_mode_emits_only_cartesian_keys()
     test_relative_mode_emits_only_relative_keys()

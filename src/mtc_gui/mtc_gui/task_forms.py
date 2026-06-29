@@ -97,7 +97,7 @@ def _vision_target_grid(target_name: str) -> dict:
 
 
 def open_task_form(step, step_index, poses, parent=None, current_pose=None,
-                   preview_cb=None, end_preview_cb=None):
+                   preview_cb=None, end_preview_cb=None, viz_widget=None):
     """Open the edit dialog for a task step. Returns edited step dict or None if cancelled."""
     task_type = step.get("task_type", "")
     form_cls = _FORMS.get(task_type)
@@ -106,7 +106,8 @@ def open_task_form(step, step_index, poses, parent=None, current_pose=None,
         return None
     if form_cls is MoveToForm:
         dialog = form_cls(step, step_index, poses, parent, current_pose=current_pose,
-                          preview_cb=preview_cb, end_preview_cb=end_preview_cb)
+                          preview_cb=preview_cb, end_preview_cb=end_preview_cb,
+                          viz_widget=viz_widget)
     else:
         dialog = form_cls(step, step_index, poses, parent)
     if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -143,7 +144,10 @@ class BaseTaskForm(QDialog):
         form_widget = QWidget()
         self.form = QFormLayout(form_widget)
         scroll.setWidget(form_widget)
-        outer.addWidget(scroll, stretch=1)
+        content_row = QHBoxLayout()
+        content_row.addWidget(scroll, stretch=1)
+        outer.addLayout(content_row, stretch=1)
+        self._content_row = content_row
 
         self.build_form()
 
@@ -257,11 +261,12 @@ class MoveToForm(BaseTaskForm):
     }
 
     def __init__(self, step, step_index, poses, parent=None, current_pose=None,
-                 preview_cb=None, end_preview_cb=None):
+                 preview_cb=None, end_preview_cb=None, viz_widget=None):
         self._current_pose = current_pose
         self._step_index = step_index
         self._preview_cb = preview_cb
         self._end_preview_cb = end_preview_cb
+        self._viz_widget = viz_widget
         super().__init__(step, step_index, poses, parent)
 
     def _detect_mode(self):
@@ -421,6 +426,14 @@ class MoveToForm(BaseTaskForm):
         self.target.textChanged.connect(self._emit_preview)
         self._emit_preview()
 
+        # Embed the 3D viewer to the right of the form
+        if self._viz_widget is not None:
+            self._viz_widget.setParent(None)
+            self._content_row.addWidget(self._viz_widget, stretch=1)
+            self._viz_widget.show()
+            self.setMinimumWidth(900)
+            self.setMinimumHeight(520)
+
     def _apply_joint_preset(self, values):
         for spin, val in zip(self.joint_spins, values):
             spin.setValue(val)
@@ -469,6 +482,8 @@ class MoveToForm(BaseTaskForm):
     def done(self, r):
         if self._end_preview_cb:
             self._end_preview_cb()
+        if self._viz_widget is not None:
+            self._viz_widget.setParent(None)
         super().done(r)
 
     def collect_values(self):

@@ -1,7 +1,7 @@
-"""Tests for the viz-panel float/dock state machine.
+"""Tests for the viz-panel detach/redock + embed state machine.
 
-Exercises the removeTab→setParent→insertTab sequence on real Qt widgets
-without importing MTCMainWindow (which pulls ROS dependencies).
+Exercises the removeTab→embed-in-dialog→setParent(None)→insertTab sequence
+on real Qt widgets without importing MTCMainWindow (which pulls ROS deps).
 """
 
 import os
@@ -14,16 +14,16 @@ import pytest  # noqa: E402
 
 pytest.importorskip("PyQt6.QtWidgets", reason="PyQt6 not installed")
 
-from PyQt6.QtWidgets import QApplication, QTabWidget, QWidget  # noqa: E402
-from PyQt6.QtCore import Qt, QRect  # noqa: E402
+from PyQt6.QtWidgets import QApplication, QTabWidget, QWidget, QHBoxLayout  # noqa: E402
+from PyQt6.QtCore import Qt  # noqa: E402
 
 _app = QApplication.instance() or QApplication([])
 
 WEBENGINE_AVAILABLE = True
 
 
-def _float_viz_for_form(self):
-    """Extracted float logic matching main_window._float_viz_for_form."""
+def _detach_viz_for_form(self):
+    """Extracted detach logic matching main_window._detach_viz_for_form."""
     if not (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")):
         return
     if self._viz_floating:
@@ -31,29 +31,11 @@ def _float_viz_for_form(self):
     self._viz_home_index = self.right_tabs.indexOf(self.viz_panel)
     if self._viz_home_index >= 0:
         self.right_tabs.removeTab(self._viz_home_index)
-    self.viz_panel.setParent(None)
-    self.viz_panel.setWindowFlags(
-        Qt.WindowType.Tool
-        | Qt.WindowType.WindowStaysOnTopHint
-        | Qt.WindowType.WindowTitleHint
-    )
-    self.viz_panel.setWindowTitle("Goal Preview")
-    geo = self.frameGeometry()
-    x = geo.x() + geo.width() + 8
-    y = geo.y()
-    screen = QApplication.primaryScreen()
-    if screen:
-        avail = screen.availableGeometry()
-        x = min(x, avail.right() - 480)
-        y = max(y, avail.top())
-    self.viz_panel.setGeometry(x, y, 480, 480)
-    self.viz_panel.show()
-    self.viz_panel.raise_()
     self._viz_floating = True
 
 
-def _dock_viz_after_form(self):
-    """Extracted dock logic matching main_window._dock_viz_after_form."""
+def _redock_viz_after_form(self):
+    """Extracted redock logic matching main_window._redock_viz_after_form."""
     if not (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")):
         return
     if not self._viz_floating:
@@ -78,49 +60,92 @@ class FakeWindow:
         self._viz_floating = False
         self._viz_home_index = -1
 
-    def frameGeometry(self):
-        return QRect(100, 100, 800, 600)
-
-    _float_viz_for_form = _float_viz_for_form
-    _dock_viz_after_form = _dock_viz_after_form
+    _detach_viz_for_form = _detach_viz_for_form
+    _redock_viz_after_form = _redock_viz_after_form
 
 
-def test_float_removes_from_tab_and_sets_toplevel():
+class FakeDialog(QWidget):
+    """Stand-in for a MoveToForm dialog with a _content_row layout."""
+
+    def __init__(self):
+        super().__init__()
+        self._content_row = QHBoxLayout(self)
+
+
+def test_detach_removes_from_tab():
     w = FakeWindow()
     assert w.right_tabs.indexOf(w.viz_panel) == 1
-    w._float_viz_for_form()
+    w._detach_viz_for_form()
     assert w.right_tabs.indexOf(w.viz_panel) == -1
+    assert w._viz_floating is True
+
+
+def test_embed_into_dialog():
+    w = FakeWindow()
+    w._detach_viz_for_form()
+    dialog = FakeDialog()
+    w.viz_panel.setParent(None)
+    dialog._content_row.addWidget(w.viz_panel)
+    w.viz_panel.show()
+    assert w.viz_panel.parent() is not None
+
+
+def test_done_detaches_from_dialog():
+    w = FakeWindow()
+    w._detach_viz_for_form()
+    dialog = FakeDialog()
+    w.viz_panel.setParent(None)
+    dialog._content_row.addWidget(w.viz_panel)
+    w.viz_panel.show()
+    # Simulate MoveToForm.done() detaching before dialog destruction
+    w.viz_panel.setParent(None)
     assert w.viz_panel.parent() is None
-    assert w._viz_floating is True
 
 
-def test_dock_returns_panel_to_tab():
+def test_redock_returns_panel_to_tab():
     w = FakeWindow()
-    w._float_viz_for_form()
-    w._dock_viz_after_form()
-    assert w.right_tabs.indexOf(w.viz_panel) >= 0
+    original_idx = w.right_tabs.indexOf(w.viz_panel)
+    w._detach_viz_for_form()
+    # Simulate the form embedding and then done() detaching
+    w.viz_panel.setParent(None)
+    w._redock_viz_after_form()
+    assert w.right_tabs.indexOf(w.viz_panel) == original_idx
     assert w._viz_floating is False
 
 
-def test_dock_restores_original_index():
+def test_double_detach_is_noop():
     w = FakeWindow()
-    original_idx = w.right_tabs.indexOf(w.viz_panel)
-    w._float_viz_for_form()
-    w._dock_viz_after_form()
-    assert w.right_tabs.indexOf(w.viz_panel) == original_idx
-
-
-def test_double_float_is_noop():
-    w = FakeWindow()
-    w._float_viz_for_form()
-    w._float_viz_for_form()
+    w._detach_viz_for_form()
+    w._detach_viz_for_form()
     assert w._viz_floating is True
     assert w.right_tabs.indexOf(w.viz_panel) == -1
 
 
-def test_dock_without_float_is_noop():
+def test_redock_without_detach_is_noop():
     w = FakeWindow()
     original_idx = w.right_tabs.indexOf(w.viz_panel)
-    w._dock_viz_after_form()
+    w._redock_viz_after_form()
     assert w._viz_floating is False
     assert w.right_tabs.indexOf(w.viz_panel) == original_idx
+
+
+def test_full_cycle_preserves_panel():
+    """Full detach→embed→done→redock cycle: panel survives and returns home."""
+    w = FakeWindow()
+    original_idx = w.right_tabs.indexOf(w.viz_panel)
+    panel_id = id(w.viz_panel)
+
+    w._detach_viz_for_form()
+    dialog = FakeDialog()
+    w.viz_panel.setParent(None)
+    dialog._content_row.addWidget(w.viz_panel)
+    w.viz_panel.show()
+
+    # done() detaches
+    w.viz_panel.setParent(None)
+    # dialog would be destroyed here in real code
+
+    w._redock_viz_after_form()
+    assert w.right_tabs.indexOf(w.viz_panel) == original_idx
+    assert id(w.viz_panel) == panel_id
+    assert w._viz_floating is False

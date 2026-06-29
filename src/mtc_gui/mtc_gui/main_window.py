@@ -6,7 +6,6 @@ import time
 from pathlib import Path
 
 from PyQt6.QtWidgets import (
-    QApplication,
     QMainWindow,
     QWidget,
     QVBoxLayout,
@@ -823,8 +822,8 @@ class MTCMainWindow(QMainWindow):
         self._refresh_tree()
         self.step_list.set_current_row(idx + 1)
 
-    def _float_viz_for_form(self):
-        """Pop the 3D viewer out as a companion window beside the main window."""
+    def _detach_viz_for_form(self):
+        """Remove the 3D viewer from its tab so the form can embed it."""
         if not (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")):
             return
         if self._viz_floating:
@@ -832,29 +831,10 @@ class MTCMainWindow(QMainWindow):
         self._viz_home_index = self.right_tabs.indexOf(self.viz_panel)
         if self._viz_home_index >= 0:
             self.right_tabs.removeTab(self._viz_home_index)
-        self.viz_panel.setParent(None)
-        self.viz_panel.setWindowFlags(
-            Qt.WindowType.Tool
-            | Qt.WindowType.WindowStaysOnTopHint
-            | Qt.WindowType.WindowTitleHint
-        )
-        self.viz_panel.setWindowTitle("Goal Preview")
-        # Position to the right of the main window
-        geo = self.frameGeometry()
-        x = geo.x() + geo.width() + 8
-        y = geo.y()
-        screen = QApplication.primaryScreen()
-        if screen:
-            avail = screen.availableGeometry()
-            x = min(x, avail.right() - 480)
-            y = max(y, avail.top())
-        self.viz_panel.setGeometry(x, y, 480, 480)
-        self.viz_panel.show()
-        self.viz_panel.raise_()
         self._viz_floating = True
 
-    def _dock_viz_after_form(self):
-        """Return the 3D viewer to its tab."""
+    def _redock_viz_after_form(self):
+        """Return the 3D viewer to its tab after the form closes."""
         if not (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")):
             return
         if not self._viz_floating:
@@ -877,14 +857,16 @@ class MTCMainWindow(QMainWindow):
         merged_poses = {**self.poses_panel.get_poses(), **self.config.get("poses", {})}
         preview_cb = self.viz_panel.preview_pose if (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")) else None
         end_preview_cb = self.viz_panel.end_preview if (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")) else None
-        self._float_viz_for_form()
+        viz_widget = self.viz_panel if (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")) else None
+        self._detach_viz_for_form()
         try:
             result = open_task_form(step, idx, merged_poses, self,
                                     current_pose=self.current_robot_pose,
                                     preview_cb=preview_cb,
-                                    end_preview_cb=end_preview_cb)
+                                    end_preview_cb=end_preview_cb,
+                                    viz_widget=viz_widget)
         finally:
-            self._dock_viz_after_form()
+            self._redock_viz_after_form()
         if result is not None:
             if "_inline_joint_pose" in result:
                 ijp = result.pop("_inline_joint_pose")
@@ -1355,9 +1337,9 @@ class MTCMainWindow(QMainWindow):
         toggle_dark_mode(self._app(), enabled)
 
     def _app(self):
-        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtWidgets import QApplication as _QApp
 
-        return QApplication.instance()
+        return _QApp.instance()
 
     def _show_about(self):
         QMessageBox.about(
