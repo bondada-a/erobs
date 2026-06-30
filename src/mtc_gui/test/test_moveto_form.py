@@ -169,7 +169,7 @@ def test_preview_named_mode_known_pose():
     form.mode_combo.setCurrentText("Named target")
     calls.clear()
     end_calls.clear()
-    form.target.setText("scan_pose")
+    form.target.setCurrentText("scan_pose")
     assert len(calls) >= 1
     assert calls[-1] == [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
 
@@ -183,7 +183,7 @@ def test_preview_named_mode_unknown_pose():
     form.mode_combo.setCurrentText("Named target")
     calls.clear()
     end_calls.clear()
-    form.target.setText("some_srdf_state")
+    form.target.setEditText("some_srdf_state")
     assert len(calls) == 0
     assert len(end_calls) >= 1
 
@@ -238,6 +238,51 @@ def test_no_viz_widget_no_resize():
     """Without viz_widget, form keeps its normal minimum width."""
     form = MoveToForm({"task_type": "move_to"}, 0, {})
     assert form.minimumWidth() == 480
+
+
+# --- Named-target dropdown tests ---
+
+
+def test_named_target_combo_populated():
+    """Combo box lists all pose names plus moveit_home sentinel."""
+    poses = {"alpha": [1, 2, 3, 4, 5, 6], "beta": [0] * 6, "gamma": [0] * 6}
+    form = MoveToForm({"task_type": "move_to"}, 0, poses)
+    items = [form.target.itemText(i) for i in range(form.target.count())]
+    for name in poses:
+        assert name in items
+    assert "moveit_home" in items
+
+
+def test_named_target_dropdown_selection_collects():
+    """Selecting from dropdown round-trips through collect_values."""
+    poses = {"pose_a": [0] * 6, "pose_b": [0] * 6}
+    form = MoveToForm({"task_type": "move_to"}, 0, poses)
+    form.mode_combo.setCurrentText("Named target")
+    form.target.setCurrentText("pose_b")
+    result = form.collect_values()
+    assert result["target"] == "pose_b"
+
+
+def test_named_target_arbitrary_text_collects():
+    """Typing a value not in the list still round-trips (editable combo)."""
+    form = MoveToForm({"task_type": "move_to"}, 0, {})
+    form.mode_combo.setCurrentText("Named target")
+    form.target.setEditText("custom_srdf_state")
+    result = form.collect_values()
+    assert result["target"] == "custom_srdf_state"
+
+
+def test_named_target_dropdown_fires_preview():
+    """Changing combo to a known pose fires the preview callback."""
+    calls = []
+    poses = {"scan": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}
+    form = MoveToForm({"task_type": "move_to"}, 0, poses,
+                      preview_cb=calls.append, end_preview_cb=lambda: None)
+    form.mode_combo.setCurrentText("Named target")
+    calls.clear()
+    form.target.setCurrentText("scan")
+    assert len(calls) >= 1
+    assert calls[-1] == [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
 
 
 if __name__ == "__main__":
