@@ -304,3 +304,54 @@ class TestEdgeCases:
         task = _task("moveto", target="home", planning_type="joint", distance=0.1)
         result = group_into_batches([task])
         assert result[0][1][0] is task  # Same object reference
+
+
+# ---------------------------------------------------------------------------
+# Trajectory-cache eligibility (mirrors the orchestrator gate)
+# ---------------------------------------------------------------------------
+
+def _cache_eligible(batches) -> bool:
+    """The orchestrator's gate: cache ONLY a single batched batch.
+
+    Kept in lockstep with orchestrator._execute (see #97 review). A goal that
+    splits into >1 batch shares one per-goal key across distinct moves and must
+    never be cached.
+    """
+    return len(batches) == 1 and batches[0][0] == "batched"
+
+
+class TestCacheEligibility:
+
+    def test_single_moveto_is_eligible(self):
+        assert _cache_eligible(group_into_batches([_task("moveto")]))
+
+    def test_consecutive_movetos_one_batch_eligible(self):
+        # A->B as two batchable moves fuse into ONE batched batch.
+        assert _cache_eligible(
+            group_into_batches([_task("moveto"), _task("end_effector")])
+        )
+
+    def test_breaker_splits_make_ineligible(self):
+        # moveto, vision_moveto, moveto -> [batched, single, batched]: NOT cacheable.
+        batches = group_into_batches(
+            [_task("moveto"), _task("vision_moveto"), _task("moveto")]
+        )
+        assert len(batches) > 1
+        assert not _cache_eligible(batches)
+
+    def test_tool_exchange_makes_ineligible(self):
+        # A mid-goal tool exchange (gripper change) must never be cached.
+        batches = group_into_batches(
+            [_task("moveto"), _task("tool_exchange"), _task("moveto")]
+        )
+        assert not _cache_eligible(batches)
+
+    def test_batching_disabled_makes_ineligible(self):
+        # enable_batching=False -> every task is its own "single" batch.
+        batches = group_into_batches(
+            [_task("moveto"), _task("moveto")], enabled=False
+        )
+        assert not _cache_eligible(batches)
+
+    def test_single_nonbatchable_is_ineligible(self):
+        assert not _cache_eligible(group_into_batches([_task("pick_sample")]))

@@ -130,6 +130,23 @@ class MoveItLifecycleManager:
             if name in self.ARM_JOINTS:
                 self._joint_positions[name] = pos
 
+    def current_arm_joints(self):
+        """Latest arm joint positions (radians) in canonical group order, or None.
+
+        Used as the start-state component of the trajectory-cache key. Returns
+        None when not all 6 joints are known yet (startup) or under mock
+        hardware (no /joint_states subscription is created) — the cache then
+        keys on goal+gripper only, which fails toward re-planning rather than a
+        wrong replay. Re-maps name->position into the canonical
+        arm_joint_names() order (the live /joint_states order differs and
+        interleaves a gripper joint).
+        """
+        from beambot.config_loader import arm_joint_names
+        positions = [self._joint_positions.get(n) for n in arm_joint_names()]
+        if len(positions) != 6 or any(p is None for p in positions):
+            return None
+        return positions
+
     def launch_moveit_with_gripper(self, gripper: str) -> bool:
         """Launch MoveIt for the specified gripper, verifying hardware is live.
 

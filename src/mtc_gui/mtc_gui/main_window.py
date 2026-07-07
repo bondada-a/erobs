@@ -1091,8 +1091,10 @@ class MTCMainWindow(QMainWindow):
                 self._set_plan_cached(True)
             else:
                 self._log(f"Task completed: {completed}/{total} steps")
-                # A successful execute drops the cache server-side; keep
-                # the GUI in sync.
+                # Clear the GUI "previewed" pill after execute. The orchestrator
+                # may still hold this trajectory in its multi-entry cache and
+                # replay it, but this pill specifically tracks "a fresh Dry Run
+                # preview is staged" — reset it for the next action.
                 self._set_plan_cached(False)
         elif status == GoalStatus.STATUS_CANCELED:
             self.step_list.finish_execution("cancelled", completed)

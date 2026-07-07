@@ -25,6 +25,8 @@ from moveit_msgs.msg import (
     OrientationConstraint, RobotState, RobotTrajectory,
 )
 from moveit_msgs.srv import GetPositionIK
+from moveit_task_constructor_msgs.action import ExecuteTaskSolution
+from rclpy.action import ActionClient
 from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from tf_transformations import quaternion_from_euler
@@ -381,6 +383,11 @@ class BaseStages:
         self.ik_frame = ik_frame if ik_frame else DEFAULT_IK_FRAME
         self.logger = rclpy_node.get_logger()
         self._preview_pub = None  # Lazily created on first dry-run publish
+        # Serialized Solution msg of the most recent successful plan, captured
+        # for the trajectory cache (orchestrator reads it after init_and_plan /
+        # load_plan_execute returns). Holds no RobotModel reference, so it is
+        # safe to cache and replay after a MoveIt relaunch — unlike the live Task.
+        self.last_sol_msg = None
 
         # Velocity/acceleration scaling: read once from the active beamline
         # YAML so per-beamline safety profiles stick without code edits. Falls
@@ -395,6 +402,10 @@ class BaseStages:
         except Exception:
             self._velocity_scaling = VELOCITY_SCALING
             self._acceleration_scaling = ACCELERATION_SCALING
+
+        # OMPL planning budget per stage (RRTstar runs to it, never early-exits).
+        # ponytail: hardcoded; move to YAML if a beamline needs a different budget.
+        self._ompl_timeout = 5.0
 
         # Per-task planner cache. MTC solvers are meant to be built once and
         # shared across all stages of a task (see the official MTC demos); a
@@ -461,15 +472,16 @@ class BaseStages:
         """Create OMPL pipeline planner with standard configuration.
 
         Returns:
-            Configured PipelinePlanner using OMPL with RRTConnect (default)
+            Configured PipelinePlanner using OMPL with RRTstar.
         """
         cached = self._task_planner_cache.get(("ompl",))
         if cached is not None:
             return cached
-        # Don't set planner.planner_id — OMPL defaults to RRTConnect, and
-        # setting it explicitly triggers "Cannot find planning configuration"
-        # warnings unless the config lists the named planner.
-        planner = core.PipelinePlanner(self._mtc_node, "ompl")
+        # RRTstar (cached+replayed, so quality > speed). "RRTstar" matches the yaml
+        # key; LBTRRT also in the yaml for A/B — flip planner_id to compare.
+        # ponytail: never informed_sampling — its DirectInfSampler needs start+goal
+        # at construction, which MTC sets too late (crashes).
+        planner = core.PipelinePlanner(self._mtc_node, "ompl", planner_id="RRTstar")
         planner.goal_joint_tolerance = 1e-4
         planner.max_velocity_scaling_factor = self._velocity_scaling
         planner.max_acceleration_scaling_factor = self._acceleration_scaling
@@ -657,6 +669,7 @@ class BaseStages:
         Returns:
             None on successful planning, error string otherwise
         """
+        self.last_sol_msg = None  # cleared per plan; set below on success
         try:
             self.logger.info(f"Initializing task: {task.name}")
             try:
@@ -697,6 +710,11 @@ class BaseStages:
                         self.logger.info(f"Planned [{i}]: {joint_str}")
             except Exception as e:
                 self.logger.warning(f"Could not extract planned joints: {e}")
+
+            # Stash the serialized solution for the trajectory cache: this is
+            # the exact msg /execute_task_solution replays, and it carries no
+            # RobotModel reference, so caching it survives a MoveIt relaunch.
+            self.last_sol_msg = sol_msg
 
             if dry_run and sol_msg is not None:
                 self._publish_preview_trajectory(sol_msg, task.name)
@@ -742,6 +760,70 @@ class BaseStages:
             self.logger.error(f"Task execution failed: {task.name} - {e}")
             self.logger.error(traceback.format_exc())
             return f"Task execution exception for '{task.name}': {e}"
+
+    def execute_solution_msg(self, sol_msg) -> str | None:
+        """Replay a stored Solution msg WITHOUT a live MTC Task.
+
+        Sends the cached ``moveit_task_constructor_msgs/Solution`` to
+        move_group's ``execute_task_solution`` action server — exactly what
+        ``Task.execute()`` does internally, minus the live Task. The server
+        runs every ``sub_trajectory`` in order and applies each ``scene_diff``
+        (attach/detach), so batched moveto+end_effector solutions replay
+        faithfully. No re-planning, no IK; start-state safety is enforced
+        downstream by ``allowed_start_tolerance`` (rejects a stale start before
+        motion). Used by the orchestrator on a trajectory-cache hit.
+
+        Returns None on success. On failure returns an error string: a
+        ``REPLAY_TIMEOUT:`` prefix means the goal may still be ACTIVE and the
+        caller must NOT re-dispatch motion (abort instead); any other string is
+        a pre-/post-terminal failure that dispatched no lingering motion, so the
+        caller may safely re-plan.
+        """
+        try:
+            # One ActionClient for the whole process, cached on the long-lived
+            # orchestrator node (self.rclpy_node). MoveToStages is rebuilt per
+            # batch, so a per-instance client would leak a node waitable on
+            # every replay; the node-cached client is created once and warmed.
+            client = getattr(self.rclpy_node, "_exec_task_solution_client", None)
+            if client is None:
+                client = ActionClient(
+                    self.rclpy_node, ExecuteTaskSolution, "execute_task_solution"
+                )
+                self.rclpy_node._exec_task_solution_client = client
+            if not client.wait_for_server(timeout_sec=5.0):
+                return "EXECUTION_FAILED: execute_task_solution server unavailable (5s)"
+
+            goal = ExecuteTaskSolution.Goal()
+            goal.solution = sol_msg
+
+            send_future = client.send_goal_async(goal)
+            if not wait_for_future(send_future, timeout=10.0):
+                return "EXECUTION_FAILED: replay goal acceptance timed out (10s)"
+            gh = send_future.result()
+            if not gh.accepted:
+                return "EXECUTION_FAILED: execute_task_solution goal rejected"
+
+            result_future = gh.get_result_async()
+            if not wait_for_future(result_future, timeout=120.0):
+                # No terminal result: the goal may still be ACTIVE on the
+                # controller. Request cancel and wait for it to confirm before
+                # returning REPLAY_TIMEOUT, so the caller aborts rather than
+                # re-dispatching a fresh trajectory into an uncertain robot
+                # state (two overlapping goals on one controller).
+                cancel_future = gh.cancel_goal_async()
+                wait_for_future(cancel_future, timeout=5.0)
+                return "REPLAY_TIMEOUT: replay execution timed out (120s); aborted"
+
+            ec = result_future.result().result.error_code
+            if ec.val != MoveItErrorCodes.SUCCESS:
+                name = MOVEIT_ERROR_NAMES.get(ec.val, "UNKNOWN")
+                return f"EXECUTION_FAILED: replay failed: {name} (error code: {ec.val})"
+            self.logger.info("Cached trajectory replayed successfully")
+            return None
+        except Exception as e:
+            self.logger.error(f"Replay execution failed: {e}")
+            self.logger.error(traceback.format_exc())
+            return f"Replay execution exception: {e}"
 
     def _publish_preview_trajectory(self, sol_msg, task_name: str) -> None:
         """Publish a planned MTC solution as a DisplayTrajectory for previewing.
@@ -890,6 +972,8 @@ class BaseStages:
             self._set_ik_frame(stage)
             stage.setGoal(joint_goal)
             apply_constraints(stage, constraints)
+            if suffix == "OMPL":
+                stage.timeout = self._ompl_timeout  # RRTstar optimization budget
             fb.add(stage)
         return fb
 

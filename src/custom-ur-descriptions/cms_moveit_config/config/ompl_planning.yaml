@@ -17,6 +17,14 @@ planner_configs:
   RRTstar:
     type: geometric::RRTstar
     range: 1.0
+    # Uncomment to optimize clearance over path length (slower; RRTstar-only):
+    # optimization_objective: MaximizeMinClearanceObjective
+  LBTRRT:
+    # (1+epsilon)-optimal, converges faster than RRTstar. epsilon = suboptimality
+    # bound (0.2 = within ~20% of optimal); raise for faster/looser, lower for tighter.
+    type: geometric::LBTRRT
+    range: 1.0
+    epsilon: 0.2
   PRMkConfigDefault:
     type: geometric::PRM
     range: 0.0
@@ -47,9 +55,13 @@ planner_configs:
 
 ur_arm:
   default_planner_config: RRTConnectkConfigDefault
+  # Collision-check resolution (default 0.05). Finer = fewer grazes that pass the
+  # planner but fail ValidateSolution, but slower planning. Raise toward 0.005 if too slow.
+  longest_valid_segment_fraction: 0.001
   planner_configs:
     - RRTConnectkConfigDefault
     - RRTstar
+    - LBTRRT
     - PRMkConfigDefault
     - RRTkConfigDefault
     - ESTkConfigDefault

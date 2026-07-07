@@ -279,6 +279,8 @@ class MoveToStages(BaseStages):
                         self._set_ik_frame(s)
                         s.setGoal(goal.target)
                         apply_constraints(s, constraints)
+                        if suffix == "OMPL":
+                            s.timeout = self._ompl_timeout  # RRTstar budget
                         fb.add(s)
                     task.add(fb)
                 else:

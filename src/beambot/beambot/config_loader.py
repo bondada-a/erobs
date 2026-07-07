@@ -257,20 +257,25 @@ _PLANNING_PIPELINE_FILES = {
     "ompl": "ompl_planning.yaml",
     "pilz_industrial_motion_planner": "pilz_industrial_motion_planner_planning.yaml",
 }
-# planner_configs / capabilities / defaults are move_group-only and irrelevant
-# to the PipelinePlanner these nodes run, so they are not forwarded.
-_PIPELINE_PARAM_KEYS = ("planning_plugins", "request_adapters", "response_adapters")
+
+
+def _emit_param(prefix: str, value, args: list) -> None:
+    """Recurse dicts to dotted param names; json.dumps renders leaves in -p syntax."""
+    if isinstance(value, dict):
+        for k, v in value.items():
+            _emit_param(f"{prefix}.{k}", v, args)
+    else:
+        rendered = json.dumps(value).replace('"', "'")
+        args += ["-p", f"{prefix}:={rendered}"]
 
 
 def build_pipeline_param_args() -> list:
-    """Emit OMPL+Pilz pipeline ``-p`` pairs from the moveit config *_planning.yaml.
+    """Emit OMPL+Pilz pipeline ``-p`` pairs for nodes that can't use
+    MoveItConfigsBuilder (the MTC node, action servers).
 
-    MoveItConfigsBuilder nests each file under its pipeline id (``ompl.*``,
-    ``pilz_industrial_motion_planner.*``) for move_group; nodes that can't use
-    the builder (the MTC rclcpp node, the action servers) read the same YAMLs
-    here and emit the pipeline-prefixed params they expect. Returns a flat
-    ``["-p", "ompl.planning_plugins:=[...]", ...]`` list ready to splice into a
-    node's ``arguments``/``--ros-args``.
+    Forwards EVERY top-level key (nested dicts flattened) — incl. planner_configs
+    and the ur_arm block, which MTC's PipelinePlanner needs to resolve non-default
+    planners; without them a planner_id silently falls back to RRTConnect.
     """
     from ament_index_python.packages import get_package_share_directory
 
@@ -281,13 +286,8 @@ def build_pipeline_param_args() -> list:
     for pipeline, filename in _PLANNING_PIPELINE_FILES.items():
         with open(os.path.join(cfg_root, filename)) as f:
             data = yaml.safe_load(f) or {}
-        for key in _PIPELINE_PARAM_KEYS:
-            if key not in data:
-                continue
-            # JSON renders a YAML string list as ['a','b'] — the ros2 -p array
-            # syntax — once double quotes are swapped for single.
-            value = json.dumps(data[key]).replace('"', "'")
-            args += ["-p", f"{pipeline}.{key}:={value}"]
+        for key, value in data.items():
+            _emit_param(f"{pipeline}.{key}", value, args)
     return args
 
 

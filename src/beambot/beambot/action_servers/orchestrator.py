@@ -90,12 +90,14 @@ class MTCOrchestratorServer(Node):
         self._last_detected_position = None  # [x, y, z] from detect_only vision
         self._last_detected_orientation = None  # [x, y, z, w] from detect_only vision
 
-        # Plan cache: a dry-run stashes its planned task; the next matching
-        # non-dry-run goal replays it instead of re-planning (see PlanCache).
+        # Trajectory cache: multi-entry, keyed on (start joints, goal, gripper).
+        # A planned move is stored as a serialized Solution msg; a later goal
+        # with the same key replays it instead of re-planning (see PlanCache).
         self._plan_cache = PlanCache(self.get_logger())
-        # Set by _execute_batch in dry_run mode so _execute() can capture
-        # the freshly-planned MTC task into the plan cache.
-        self._last_planned_task = None
+        # Set by _execute_batch after a successful plan so _execute() can store
+        # the serialized Solution msg (not the live Task — it dangles after a
+        # MoveIt relaunch) into the trajectory cache.
+        self._last_planned_sol_msg = None
 
         # Pause/Resume state
         self._pause_requested = False
@@ -452,11 +454,12 @@ class MTCOrchestratorServer(Node):
             poses_json: JSON string with pose definitions
             dry_run: If True, plan only and publish the trajectory for the
                 GUI viewer; do not move the robot. On success, the planned
-                task is stashed in the plan cache so a subsequent execute can
-                replay the same plan.
-            cached_plan: If provided, skip the build+plan step and execute
-                cached_plan["task"] directly. Used when an Execute goal hits
-                a valid cache populated by a prior dry-run.
+                solution is captured (self._last_planned_sol_msg) so the
+                caller can store it in the trajectory cache.
+            cached_plan: If provided, skip the build+plan step and replay
+                cached_plan["sol_msg"] directly via /execute_task_solution.
+                Used when an Execute goal's (start, goal, gripper) key hits
+                the cache.
 
         Returns:
             True if all tasks succeeded, False on any failure
@@ -476,13 +479,27 @@ class MTCOrchestratorServer(Node):
         endeffector_stage = EndEffectorStages(self, self._arm_group)
 
         # Replay path: skip task construction and planning, run the cached
-        # solution directly.
+        # solution directly. On a SAFE replay failure (server gone after a
+        # relaunch, goal rejected, or a terminal start-tolerance/control error —
+        # no motion left active) we do NOT dead-end the move: fall through to a
+        # fresh plan+execute so the cache is never worse than no cache. But on
+        # REPLAY_TIMEOUT the goal may still be ACTIVE on the controller, so we
+        # abort instead of re-dispatching a second overlapping trajectory.
+        # ponytail: replay is collision-blind — it does NOT re-check the cached
+        # path against the live scene. Safe for a static cell; if the scene can
+        # change between identical moves, gate this on a PlanningScene
+        # isPathValid check (MTC issue #198 pattern) before replaying.
         if cached_plan is not None:
-            error = moveto_stage.execute_solution(cached_plan["task"])
-            if error is not None:
+            error = moveto_stage.execute_solution_msg(cached_plan["sol_msg"])
+            if error is None:
+                return True
+            if error.startswith("REPLAY_TIMEOUT"):
                 self._last_error = error
                 return False
-            return True
+            self.get_logger().warning(
+                f"Cached replay failed ({error}); re-planning fresh"
+            )
+            # fall through to build + plan + execute below
 
         # Create single MTC Task for the batch
         task = moveto_stage.create_task_template(f"Batch ({len(batch_tasks)} tasks)")
@@ -511,17 +528,16 @@ class MTCOrchestratorServer(Node):
                 return False
 
         if dry_run:
-            # Plan only — caller stashes (task, stage) into the plan cache
-            # so the next execute can replay this exact solution.
+            # Plan only — caller stores the serialized solution into the
+            # trajectory cache so the next matching execute replays it.
             error = moveto_stage.init_and_plan(task, dry_run=True)
             if error is not None:
                 self._last_error = error
                 return False
-            # Stash the planned task on the instance so _execute() can read
-            # it after the call returns. Using a private attribute since
-            # _execute_batch's bool return type is load-bearing for callers
-            # that don't care about caching.
-            self._last_planned_task = task
+            # Stash the serialized Solution msg (not the live Task — it holds a
+            # RobotModel reference and dangles after a MoveIt relaunch) so
+            # _execute() can cache it after this bool-returning call returns.
+            self._last_planned_sol_msg = moveto_stage.last_sol_msg
             return True
 
         # Normal path: plan + execute end-to-end
@@ -529,6 +545,9 @@ class MTCOrchestratorServer(Node):
         if error is not None:
             self._last_error = error
             return False
+        # Capture the freshly-planned solution so _execute() caches it for a
+        # future identical move to replay instead of re-planning.
+        self._last_planned_sol_msg = moveto_stage.last_sol_msg
         return True
 
     def _create_moveto_goal(
@@ -606,34 +625,23 @@ class MTCOrchestratorServer(Node):
                 f"without moving the robot"
             )
 
-        # Compute the plan-cache key from the raw goal payload + gripper.
-        # On dry-run we'll write the cache; on execute we'll check it.
-        goal_key = PlanCache.compute_key(goal_handle.request.full_json, start_gripper)
+        # Compute the trajectory-cache key from (current start joints, goal
+        # payload, gripper). Current joints come from the live /joint_states
+        # cache (None under mock hardware / before the first message → key
+        # degrades to goal+gripper). The robot is at rest here, so these joints
+        # are the move's start state; the same key recomputed on a later
+        # identical move from the same start hits this entry.
+        goal_key = PlanCache.compute_key(
+            goal_handle.request.full_json,
+            start_gripper,
+            self._moveit_manager.current_arm_joints(),
+        )
 
-        # Cache validation for non-dry-run goals: if we have a cache and it
-        # matches the goal, we'll replay it; if we have a cache that DOESN'T
-        # match, refuse so the operator sees the staleness instead of
-        # silently executing a different (re-planned) trajectory.
+        # The cache lookup is deferred until after batching (below): only a goal
+        # that groups into exactly ONE batched batch is cacheable, because a
+        # single per-goal key cannot distinguish multiple batches' distinct
+        # start/goal states.
         cached_plan_for_replay: dict | None = None
-        if not dry_run and self._plan_cache.has_entry():
-            valid, reason = self._plan_cache.validate(goal_key, start_gripper)
-            if valid:
-                cached_plan_for_replay = self._plan_cache.get()
-                self.get_logger().info(
-                    "Plan cache hit — executing previewed plan without re-planning"
-                )
-            elif not reason.startswith("CACHE_MISS"):
-                # Stale cache that doesn't match this goal: refuse.
-                # CACHE_MISS just means "no cache yet" → fall through and
-                # plan fresh, preserving Execute-without-Dry-Run behavior.
-                result.error_message = reason
-                self._plan_cache.clear("stale on execute")
-                goal_handle.abort()
-                return result
-
-        # On a fresh dry-run, drop any prior cache before planning the new one.
-        if dry_run:
-            self._plan_cache.clear("new dry-run starting")
 
         # Initialize gripper state
         self._current_gripper = start_gripper
@@ -677,6 +685,24 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info(
             f"Grouped {task_count} tasks into {len(batches)} batches"
         )
+
+        # Trajectory-cache eligibility: cache ONLY when the whole goal is a
+        # single batched batch. A goal with any breaker (vision, pick/place,
+        # pipettor, tool_exchange) or with batching disabled splits into
+        # multiple batches that would all share this one per-goal key — storing
+        # under it would let the last batch overwrite the first and replay the
+        # wrong move (see #97 review). Those goals skip the cache and plan
+        # fresh. This still covers the repeated single-move case (A->B->A) the
+        # cache exists for. A single batched batch also implies no mid-goal tool
+        # exchange, so start_gripper == _current_gripper throughout — the key's
+        # gripper and the stored solution's gripper can't desync.
+        cache_eligible = len(batches) == 1 and batches[0][0] == "batched"
+        if cache_eligible and not dry_run:
+            cached_plan_for_replay = self._plan_cache.get(goal_key)
+            if cached_plan_for_replay is not None:
+                self.get_logger().info(
+                    "Trajectory cache hit — replaying stored plan without re-planning"
+                )
 
         # Track overall task index for feedback
         completed_tasks = 0
@@ -750,7 +776,7 @@ class MTCOrchestratorServer(Node):
                 # and was removed — re-add only with connection-drop recovery
                 # stress-tested on Jazzy.
 
-                self._last_planned_task = None
+                self._last_planned_sol_msg = None
                 ok = self._execute_batch(
                     batch_tasks,
                     poses_json,
@@ -763,18 +789,20 @@ class MTCOrchestratorServer(Node):
                     goal_handle.abort()
                     return result
 
-                # On a successful dry-run, stash the planned task so the
-                # next non-dry-run goal with the same key can replay it.
-                if dry_run and self._last_planned_task is not None:
+                # Cache the planned trajectory (serialized Solution msg) under
+                # this key so a future identical move replays it instead of
+                # re-planning. Only when cache_eligible (single batched batch),
+                # so a multi-batch goal can never store distinct moves under one
+                # shared key. Applies to both a dry-run preview and a fresh
+                # execute. A cache *hit* replays without planning, leaving
+                # _last_planned_sol_msg None, so this correctly skips re-storing
+                # an entry that already exists — and never evicts it on execute.
+                if cache_eligible and self._last_planned_sol_msg is not None:
                     self._plan_cache.store(
-                        goal_key, self._last_planned_task, self._current_gripper
+                        goal_key, self._last_planned_sol_msg, self._current_gripper
                     )
-                    self.get_logger().info("Plan cached for next execute")
-                    self._last_planned_task = None
-                # On a successful non-dry-run execute, drop the cache so the
-                # next goal plans fresh from the new robot state.
-                elif not dry_run:
-                    self._plan_cache.clear("after successful execute")
+                    self.get_logger().info("Trajectory cached for replay")
+                    self._last_planned_sol_msg = None
 
                 if not dry_run:
                     self._vacuum.update_after_tasks(batch_tasks, self._current_gripper)
@@ -797,10 +825,9 @@ class MTCOrchestratorServer(Node):
                 # types, but if batching is disabled by parameter, even
                 # supported types fall through to this single-task path which
                 # would actually execute. Route them through _execute_batch
-                # instead so dry_run is honored. Note: caching with batching
-                # disabled is best-effort — if a goal contains multiple
-                # batches, we cache only the last one. In practice batching
-                # is on by default; this is a safety fallback.
+                # instead so dry_run is honored. This path is NOT cache_eligible
+                # (a single/non-batched batch), so no trajectory is stored here —
+                # the cache only operates on single-batched-batch goals.
                 if dry_run:
                     self._update_feedback(
                         feedback,
@@ -809,7 +836,7 @@ class MTCOrchestratorServer(Node):
                         task_count,
                         task_type,
                     )
-                    self._last_planned_task = None
+                    self._last_planned_sol_msg = None
                     if not self._execute_batch([task], poses_json, dry_run=True):
                         result.error_message = (
                             f"{task_type} preview failed: {self._last_error}"
@@ -817,11 +844,6 @@ class MTCOrchestratorServer(Node):
                         result.completed_steps = completed_tasks
                         goal_handle.abort()
                         return result
-                    if self._last_planned_task is not None:
-                        self._plan_cache.store(
-                            goal_key, self._last_planned_task, self._current_gripper
-                        )
-                        self._last_planned_task = None
                     completed_tasks += 1
                     result.completed_steps = completed_tasks
                     continue
