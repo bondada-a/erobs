@@ -111,6 +111,13 @@ class MoveToStages(BaseStages):
         Returns:
             None if stages were added successfully, error string on failure
         """
+        # Reset the goal-pin target per move (#97): only a NAMED joint-pose move
+        # re-sets it below (via make_move_to_named_stage). This way it reflects
+        # ONLY the last move added — so _pin_endpoints pins the final waypoint to
+        # the exact goal iff the last move is named, and never pins a later
+        # cartesian/relative move's endpoint to a stale earlier named goal.
+        self._pin_goal_joints = None
+
         planning_type = goal.planning_type if goal.planning_type else ""
         # "joint" routes through the same Pilz-PTP → OMPL fallback as auto/"":
         # joint-space point-to-point is exactly what Pilz PTP is for, with OMPL

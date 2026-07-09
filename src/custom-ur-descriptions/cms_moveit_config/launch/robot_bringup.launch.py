@@ -144,7 +144,7 @@ def launch_setup(context, *args, **kwargs):
             publish_robot_description_semantic=True,
         )
         .planning_pipelines(
-            pipelines=["ompl", "pilz_industrial_motion_planner"]
+            pipelines=["ompl", "pilz_industrial_motion_planner", "stomp"]
         )
         .to_moveit_configs()
     )

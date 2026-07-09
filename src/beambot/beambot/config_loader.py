@@ -256,6 +256,7 @@ def gripper_urdf_file(gripper: str, default: str = "ur_standalone.urdf") -> str:
 _PLANNING_PIPELINE_FILES = {
     "ompl": "ompl_planning.yaml",
     "pilz_industrial_motion_planner": "pilz_industrial_motion_planner_planning.yaml",
+    "stomp": "stomp_planning.yaml",
 }
 
 

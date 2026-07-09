@@ -41,6 +41,9 @@ PLANNERS = [
     ("RRTConnect", "ompl", "RRTConnectkConfigDefault", "tab:red"),
     ("RRTstar", "ompl", "RRTstar", "tab:blue"),
     ("LBTRRT", "ompl", "LBTRRT", "tab:orange"),
+    # STOMP has one planner, no yaml config key -> empty planner_id. Needs
+    # "stomp" in the move_group launch pipelines list (robot_bringup.launch.py).
+    ("STOMP", "stomp", "", "tab:purple"),
 ]
 PLAN_TIME = 10.0  # RRT*/LBTRRT are anytime — give them time to converge.
 

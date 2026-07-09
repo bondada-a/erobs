@@ -1225,10 +1225,14 @@ class MTCOrchestratorServer(Node):
             )
             self._current_gripper = new_gripper
             self._publish_gripper(new_gripper)
-            # Any cached dry-run plan was for the previous gripper's SRDF /
-            # collision model — invalidate it so the next execute can't
-            # silently replay a plan against the wrong robot model.
-            self._plan_cache.clear("tool exchange")
+            # NOTE: cache is NOT cleared on tool exchange (#97). Gripper is part
+            # of the cache key, so an entry planned for gripper X can only be
+            # replayed when gripper==X — a hande key never hits an epick entry.
+            # Keeping entries lets a swap-away-and-back (epick A->B, swap hande,
+            # swap back epick, A->B) REPLAY instead of replan. The stored msg is
+            # pure data (survives the MoveIt relaunch); the gripper config is
+            # deterministic, so X's trajectory stays valid for X. Same static-cell
+            # replay assumption as within-session already applies (scene-blind).
 
             if not self._moveit_manager.launch_moveit_with_gripper(new_gripper):
                 self._last_error = (

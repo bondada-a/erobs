@@ -135,10 +135,9 @@ def _load_joint_accel_limits() -> dict[str, float]:
     TOTG only consults the limits of joints actually in a trajectory, so the
     extra entries are inert.
 
-    If two configs ever declare different max_acceleration values for the same
-    joint, a WARN is printed — that's the trip-wire indicating this union
-    approach has stopped being valid and beambot_mtc should become
-    gripper-aware (load only the active gripper's yaml instead).
+    If two configs declare different max_acceleration for the same joint, a WARN
+    is printed — the trip-wire that this union approach has stopped being valid
+    and beambot_mtc should become gripper-aware (load only the active gripper's).
     """
     try:
         from beambot.config_loader import moveit_config_package
@@ -407,6 +406,16 @@ class BaseStages:
         # ponytail: hardcoded; move to YAML if a beamline needs a different budget.
         self._ompl_timeout = 5.0
 
+        # Pipeline for make_pipeline_planner(): "stomp" (optimization-based,
+        # smooth non-grazing paths — #97) or "ompl" (RRTstar). Flip to A/B.
+        self._pipeline = "stomp"
+
+        # Final joint goal (name->rad) of the most recent named-pose move, stashed
+        # so _pin_endpoints() can snap the trajectory's LAST waypoint to the exact
+        # goal (STOMP drifts it ~0.5°, #97). None for non-named moves -> end-pin
+        # skipped. Set in make_move_to_named_stage; consumed in init_and_plan.
+        self._pin_goal_joints = None
+
         # Per-task planner cache. MTC solvers are meant to be built once and
         # shared across all stages of a task (see the official MTC demos); a
         # PipelinePlanner's first init() loads its pluginlib pipeline (Pilz
@@ -469,23 +478,32 @@ class BaseStages:
         return task
 
     def make_pipeline_planner(self) -> core.PipelinePlanner:
-        """Create OMPL pipeline planner with standard configuration.
+        """Create the pipeline planner (STOMP or OMPL) with standard config.
+
+        Pipeline chosen by ``self._pipeline``. STOMP is optimization-based:
+        smooth, non-grazing paths worth caching (#97). OMPL uses RRTstar.
 
         Returns:
-            Configured PipelinePlanner using OMPL with RRTstar.
+            Configured PipelinePlanner.
         """
-        cached = self._task_planner_cache.get(("ompl",))
+        cached = self._task_planner_cache.get((self._pipeline,))
         if cached is not None:
             return cached
-        # RRTstar (cached+replayed, so quality > speed). "RRTstar" matches the yaml
-        # key; LBTRRT also in the yaml for A/B — flip planner_id to compare.
-        # ponytail: never informed_sampling — its DirectInfSampler needs start+goal
-        # at construction, which MTC sets too late (crashes).
-        planner = core.PipelinePlanner(self._mtc_node, "ompl", planner_id="RRTstar")
+        if self._pipeline == "ompl":
+            # RRTstar (cached+replayed, so quality > speed). "RRTstar" matches the
+            # yaml key; LBTRRT also in the yaml for A/B — flip planner_id to compare.
+            # ponytail: never informed_sampling — its DirectInfSampler needs
+            # start+goal at construction, which MTC sets too late (crashes).
+            planner = core.PipelinePlanner(self._mtc_node, "ompl", planner_id="RRTstar")
+        else:
+            # stomp: single-planner optimization pipeline, no planner_id. Knobs
+            # live in stomp_planning.yaml (forwarded to the MTC node like the
+            # OMPL yaml via build_pipeline_param_args).
+            planner = core.PipelinePlanner(self._mtc_node, self._pipeline)
         planner.goal_joint_tolerance = 1e-4
         planner.max_velocity_scaling_factor = self._velocity_scaling
         planner.max_acceleration_scaling_factor = self._acceleration_scaling
-        self._task_planner_cache[("ompl",)] = planner
+        self._task_planner_cache[(self._pipeline,)] = planner
         return planner
 
     def make_cartesian_planner(self) -> core.CartesianPath:
@@ -716,6 +734,12 @@ class BaseStages:
             # RobotModel reference, so caching it survives a MoveIt relaunch.
             self.last_sol_msg = sol_msg
 
+            # Pin endpoints to exact start/goal (#97): STOMP drifts both ~0.2-0.5deg
+            # and never re-pins. Bake it into last_sol_msg BEFORE it's cached/executed
+            # so both fresh execute and cached replay run the pinned trajectory.
+            if sol_msg is not None:
+                self._pin_endpoints(sol_msg)
+
             if dry_run and sol_msg is not None:
                 self._publish_preview_trajectory(sol_msg, task.name)
                 self.logger.info(f"Dry-run preview complete: {task.name}")
@@ -734,6 +758,12 @@ class BaseStages:
         Used by the orchestrator to replay a cached dry-run plan without
         re-planning (which would risk picking a different OMPL path).
 
+        Routes through execute_solution_msg(last_sol_msg) so fresh executes run
+        the ENDPOINT-PINNED serialized msg (init_and_plan pinned it) — the live
+        task.solutions[0] is unpinned. Same execute_task_solution server as
+        Task.execute() under the hood. Falls back to Task.execute() only if the
+        serialized msg wasn't captured.
+
         Returns:
             None on successful execution, error string otherwise
         """
@@ -743,6 +773,10 @@ class BaseStages:
                 self.logger.error(error)
                 return error
 
+            if self.last_sol_msg is not None:
+                return self.execute_solution_msg(self.last_sol_msg)
+
+            # Fallback: no serialized msg — execute the live (unpinned) solution.
             result = task.execute(task.solutions[0])
             if result.val != MoveItErrorCodes.SUCCESS:
                 error_name = MOVEIT_ERROR_NAMES.get(result.val, "UNKNOWN")
@@ -760,6 +794,56 @@ class BaseStages:
             self.logger.error(f"Task execution failed: {task.name} - {e}")
             self.logger.error(traceback.format_exc())
             return f"Task execution exception for '{task.name}': {e}"
+
+    def _pin_endpoints(self, sol_msg) -> None:
+        """Snap the trajectory's first waypoint to the live start and its last to
+        the exact goal, both mapped BY NAME into each trajectory's joint order.
+
+        STOMP is an optimizer: its smoothing drifts BOTH endpoints off the exact
+        boundary (start ~0.2 deg off the actual pose, goal ~0.5 deg off the
+        requested joints — measured, #97) and it never re-pins or goal-tolerance-
+        checks. So:
+          - start-pin: first sub-trajectory pt0 = current joints -> the robot
+            doesn't snap from its actual pose to STOMP's offset start at t=0.
+          - goal-pin:  last sub-trajectory last pt = self._pin_goal_joints -> the
+            arm lands the exact commanded pose (PILZ already does; this gives
+            STOMP the same). Skipped when the goal wasn't stashed (non-named move).
+        Endpoint velocity/accel are zeroed (start/stop from rest). The <=0.5 deg
+        shift lives entirely in the first/last segment, far under joint velocity
+        limits and MoveIt's allowed_start_tolerance.
+        Baked into last_sol_msg (init_and_plan) so the cached copy replays pinned.
+        No-ops safely if live joints unavailable.
+        """
+        try:
+            mgr = getattr(self.rclpy_node, "_moveit_manager", None)
+            cur = getattr(mgr, "_joint_positions", None) if mgr else None
+            subs = [s for s in sol_msg.sub_trajectory
+                    if s.trajectory.joint_trajectory.joint_names
+                    and s.trajectory.joint_trajectory.points]
+            if not subs:
+                return
+
+            def _set(pt, names, targets):
+                pos = list(pt.positions)
+                for i, nm in enumerate(names):
+                    if nm in targets:
+                        pos[i] = targets[nm]
+                pt.positions = pos
+                if pt.velocities:
+                    pt.velocities = [0.0] * len(pt.velocities)
+                if pt.accelerations:
+                    pt.accelerations = [0.0] * len(pt.accelerations)
+
+            # start-pin: first sub-trajectory's first point -> current joints
+            if cur:
+                jt = subs[0].trajectory.joint_trajectory
+                _set(jt.points[0], jt.joint_names, cur)
+            # goal-pin: last sub-trajectory's last point -> exact requested goal
+            if self._pin_goal_joints:
+                jt = subs[-1].trajectory.joint_trajectory
+                _set(jt.points[-1], jt.joint_names, self._pin_goal_joints)
+        except Exception as e:  # never let a pin failure block motion
+            self.logger.warning(f"endpoint-pin skipped: {e}")
 
     def execute_solution_msg(self, sol_msg) -> str | None:
         """Replay a stored Solution msg WITHOUT a live MTC Task.
@@ -951,6 +1035,9 @@ class BaseStages:
             return None
 
         joint_goal = joints_from_degrees(joint_pose)
+        # Stash exact goal (name->rad) so _pin_endpoints snaps the final waypoint
+        # to it (STOMP drifts the goal ~0.5deg, #97). Last named move in a batch wins.
+        self._pin_goal_joints = joint_goal
 
         if planner is not None:
             stage = stages.MoveTo(label, planner)
