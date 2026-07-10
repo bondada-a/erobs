@@ -60,7 +60,7 @@ class MoveItLifecycleManager:
         return cached
 
     def __init__(self, node: Node, grippers: dict, robot_ip: str, callback_group=None,
-                 use_mock_hardware: bool = False):
+                 use_mock_hardware: bool = False, enable_joystick: bool = False):
         """Initialize the lifecycle manager.
 
         Args:
@@ -69,6 +69,7 @@ class MoveItLifecycleManager:
             robot_ip: Robot IP address (constant for beamline)
             callback_group: Optional callback group for service clients
             use_mock_hardware: If True, launch MoveIt in simulation mode (no real robot)
+            enable_joystick: If True, launch MoveIt Servo gamepad control
         """
         self._node = node
         self._logger = node.get_logger()
@@ -76,6 +77,7 @@ class MoveItLifecycleManager:
         self._robot_ip = robot_ip
         self._callback_group = callback_group
         self._use_mock_hardware = use_mock_hardware
+        self._enable_joystick = enable_joystick
 
         self._moveit_process: subprocess.Popen | None = None
         self._current_gripper: str = ""
@@ -209,6 +211,7 @@ class MoveItLifecycleManager:
                 "ros2", "launch", config["moveit_package"], "robot_bringup.launch.py",
                 f"robot_ip:={self._robot_ip}",
                 f"use_mock_hardware:={'true' if self._use_mock_hardware else 'false'}",
+                f"enable_joystick:={'true' if self._enable_joystick else 'false'}",
                 f"gripper:={gripper_arg}",
             ]
 

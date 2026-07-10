@@ -132,6 +132,8 @@
       state_publish_rate: 100.0
       action_monitor_rate: 20.0
       allow_partial_joints_goal: false
+      # MoveIt Servo streams rolling trajectories whose final point is still moving.
+      allow_nonzero_velocity_at_trajectory_end: true
       constraints:
         stopped_velocity_tolerance: 0.2
         goal_time: 0.0
@@ -212,4 +214,3 @@
   tool_contact_controller:
     ros__parameters:
       tf_prefix: "$(var tf_prefix)"
-

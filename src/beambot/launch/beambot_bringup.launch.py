@@ -66,6 +66,12 @@ def generate_launch_description():
         description="Use fake hardware (simulation mode, no real robot)",
     )
 
+    declare_enable_joystick = DeclareLaunchArgument(
+        "enable_joystick",
+        default_value="false",
+        description="Enable gamepad control when MoveIt starts",
+    )
+
     declare_enable_batching = DeclareLaunchArgument(
         "enable_batching",
         default_value="true",
@@ -99,6 +105,7 @@ def generate_launch_description():
     enable_vision = LaunchConfiguration("enable_vision")
     enable_pipettor = LaunchConfiguration("enable_pipettor")
     use_mock_hardware = LaunchConfiguration("use_mock_hardware")
+    enable_joystick = LaunchConfiguration("enable_joystick")
     enable_batching = LaunchConfiguration("enable_batching")
     enable_tracing = LaunchConfiguration("enable_tracing")
     trace_session_name = LaunchConfiguration("trace_session_name")
@@ -244,6 +251,7 @@ def generate_launch_description():
         parameters=action_server_parameters
         + [
             {"use_mock_hardware": use_mock_hardware},
+            {"enable_joystick": enable_joystick},
             {"enable_batching": enable_batching},
         ],
         arguments=ompl_args
@@ -260,6 +268,7 @@ def generate_launch_description():
             declare_enable_vision,
             declare_enable_pipettor,
             declare_use_mock_hardware,
+            declare_enable_joystick,
             declare_enable_batching,
             declare_enable_tracing,
             declare_trace_session_name,

@@ -109,6 +109,7 @@ class MTCOrchestratorServer(Node):
         from beambot.config_loader import load_beamline_config, resolve_beamline_path
 
         self.declare_parameter("use_mock_hardware", False)
+        self.declare_parameter("enable_joystick", False)
         self.declare_parameter("enable_batching", True)
         self.declare_parameter(
             "cup_profile", ""
@@ -157,6 +158,7 @@ class MTCOrchestratorServer(Node):
             self._robot_ip,
             self._callback_group,
             use_mock_hardware=self._use_mock_hardware,
+            enable_joystick=self.get_parameter("enable_joystick").value,
         )
 
         # Create action server

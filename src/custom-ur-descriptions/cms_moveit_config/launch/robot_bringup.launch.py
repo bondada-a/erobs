@@ -16,16 +16,19 @@ publications with subtly different kinematic models (#51).
 """
 
 from moveit_configs_utils import MoveItConfigsBuilder
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import FindExecutable, LaunchConfiguration
 from launch_ros.actions import Node
 from launch.actions import (
     DeclareLaunchArgument,
+    ExecuteProcess,
     IncludeLaunchDescription,
     OpaqueFunction,
     TimerAction,
 )
+from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch import LaunchDescription
+from launch_param_builder import ParameterBuilder
 from ament_index_python.packages import get_package_share_directory
 import os
 
@@ -201,6 +204,80 @@ def launch_setup(context, *args, **kwargs):
     actions.append(run_move_group_node)
     actions.append(rviz_node)
 
+    # Optional 8BitDo/Xbox-compatible Cartesian teleoperation. SDL supplies a
+    # stable gamepad mapping; MoveIt Servo supplies limits and collision stops.
+    joystick_enabled = IfCondition(LaunchConfiguration("enable_joystick"))
+    joystick_config = os.path.join(pkg_share, "config", "joystick_teleop.yaml")
+    servo_params = {
+        "moveit_servo": ParameterBuilder("cms_moveit_config")
+        .yaml("config/servo.yaml")
+        .to_dict()
+    }
+    actions.extend([
+        Node(
+            package="joy",
+            executable="game_controller_node",
+            name="game_controller_node",
+            parameters=[{
+                "device_id": LaunchConfiguration("joystick_device_id"),
+                "deadzone": 0.12,
+                "autorepeat_rate": 50.0,
+            }],
+            condition=joystick_enabled,
+        ),
+        Node(
+            package="teleop_twist_joy",
+            executable="teleop_node",
+            name="translation_teleop",
+            parameters=[joystick_config],
+            remappings=[("/cmd_vel", "/joystick/servo_node/delta_twist_cmds")],
+            condition=joystick_enabled,
+        ),
+        Node(
+            package="teleop_twist_joy",
+            executable="teleop_node",
+            name="rotation_teleop",
+            parameters=[joystick_config],
+            remappings=[("/cmd_vel", "/joystick/servo_node/delta_twist_cmds")],
+            condition=joystick_enabled,
+        ),
+        Node(
+            package="cms_moveit_config",
+            executable="cms_servo_node",
+            name="servo_node",
+            namespace="joystick",
+            parameters=[
+                servo_params,
+                # AccelerationLimitedPlugin requires these unnamespaced params.
+                {"update_period": 0.01},
+                {"planning_group_name": "ur_arm"},
+                moveit_config.robot_description,
+                moveit_config.robot_description_semantic,
+                moveit_config.robot_description_kinematics,
+                moveit_config.joint_limits,
+            ],
+            output="screen",
+            condition=joystick_enabled,
+        ),
+        # Select Cartesian twist input after Servo has initialized.
+        TimerAction(
+            period=12.0,
+            actions=[
+                ExecuteProcess(
+                    cmd=[
+                        FindExecutable(name="ros2"),
+                        "service", "call",
+                        "/joystick/servo_node/switch_command_type",
+                        "moveit_msgs/srv/ServoCommandType",
+                        "{command_type: 1}",
+                    ],
+                    output="screen",
+                )
+            ],
+            condition=joystick_enabled,
+        ),
+    ])
+
     # ── Gripper-specific nodes ──────────────────────────────────────────
     # Gripper controllers are NOT in the shared base controllers file; each
     # spawner carries its controller's type+params via --param-file overlay
@@ -284,6 +361,14 @@ def generate_launch_description():
         DeclareLaunchArgument(
             "tf_prefix", default_value="",
             description="Joint/link name prefix; must match controllers' $(var tf_prefix).",
+        ),
+        DeclareLaunchArgument(
+            "enable_joystick", default_value="false",
+            description="Start 8BitDo/Xbox-compatible gamepad teleoperation",
+        ),
+        DeclareLaunchArgument(
+            "joystick_device_id", default_value="0",
+            description="SDL game-controller device ID from joy_enumerate_devices",
         ),
         # ePick cup profile (only used when gripper:=epick).
         # Profile name resolves to dimensions via suction_cups.yaml in the xacro.
