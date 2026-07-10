@@ -228,6 +228,16 @@ _options.arguments = [
 ]
 _mtc_node = rclcpp.Node("beambot_mtc", _options)
 
+# Cache one RobotModel per gripper, shared across goals (#97 latency follow-up).
+# task.loadRobotModel() re-parses URDF/SRDF and yields a NEW model pointer every
+# call; MTC's PipelinePlanner caches loaded pipelines in a static cache keyed by
+# (model, pipeline), so a fresh model per goal = cache miss = ~0.5s pluginlib
+# reload per pipeline. The model only changes on a MoveIt relaunch (gripper
+# change), so reuse it via task.setRobotModel() and reload only per gripper.
+# Process-global: the _mtc_node is a singleton (never relaunched), gripper configs
+# are deterministic, so a cached model stays valid across gripper swap-and-back.
+_model_cache: dict = {}
+
 
 def joints_from_degrees(degrees: list[float]) -> dict[str, float]:
     """Convert joint angles from degrees to radians dict.
@@ -471,7 +481,24 @@ class BaseStages:
         task = core.Task()
         task.enableIntrospection(False)
         task.name = name
-        task.loadRobotModel(self._mtc_node)
+
+        # Reuse a cached RobotModel per gripper instead of re-loading (re-parsing
+        # URDF/SRDF) every goal — the fresh-model-per-goal is what forced the
+        # ~1-2s pipeline reload (static PlannerCache is keyed by model). MTC's
+        # sanctioned pattern for reusing a pipeline planner across tasks is
+        # setRobotModel (its init() throws otherwise, naming this fix). Key on the
+        # ACTUALLY-loaded gripper (_moveit_manager._current_gripper, set only after
+        # a successful launch); "default" fallback keeps tests/mock working.
+        gripper = getattr(
+            getattr(self.rclpy_node, "_moveit_manager", None),
+            "_current_gripper", "",
+        ) or "default"
+        model = _model_cache.get(gripper)
+        if model is not None:
+            task.setRobotModel(model)
+        else:
+            task.loadRobotModel(self._mtc_node)
+            _model_cache[gripper] = task.getRobotModel()
 
         # Add current state as first stage
         task.add(stages.CurrentState("current_state"))
