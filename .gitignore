@@ -136,21 +136,20 @@ yolov8n.pt
 *.ply
 *.pcd
 
-# OMC / Claude Code state
+# Claude Code state
 .claude/worktrees/
 .claude/*.backup*
-state/
-**/.omc/
 
 # Per-dev local Claude Code state — not shared.
 .claude/settings.json
 .claude/settings.local.json
 .claude/memory.db
-# Keep .claude/skills/omc-reference/ tracked (pre-existing) and robot-operation/
-# (project-owned skill pointing at src/beambot/beambot/agent/robot_operation.md);
-# ignore any other locally-installed skills.
+# Keep robot-operation/ tracked (the project-owned skill pointing at
+# src/beambot/beambot/agent/robot_operation.md); ignore any other locally-installed
+# skills.
+.agents/*
+skills-lock.json
 .claude/skills/*/
-!.claude/skills/omc-reference/
 !.claude/skills/robot-operation/
 
 # Training data (large files)
