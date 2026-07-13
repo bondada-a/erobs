@@ -1,6 +1,10 @@
-"""Tests for beambot.batch_planner.group_into_batches()."""
+"""Tests for beambot.core.batch_planner.group_into_batches()."""
 
-from beambot.batch_planner import group_into_batches, BATCHABLE_TYPES, BATCH_BREAKERS
+from beambot.core.batch_planner import (
+    BATCHABLE_TYPES,
+    BATCH_BREAKERS,
+    group_into_batches,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -148,9 +152,8 @@ class TestRealWorldSequences:
 # ---------------------------------------------------------------------------
 # Breaker actions — the planner can demote a named end_effector_action to a
 # single-task batch. NOTE: the orchestrator currently passes NO breakers
-# (_grasp_breaker_actions returns set()), so ePick vacuum_on is batched in
-# practice. These tests cover the planner mechanism itself, which is retained
-# so grasp-breaking (or a dwell-stage variant) can be re-enabled cheaply.
+# so ePick vacuum_on is batched in practice. These tests cover the planner
+# mechanism itself.
 # ---------------------------------------------------------------------------
 
 class TestBreakerActions:

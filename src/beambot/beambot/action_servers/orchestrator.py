@@ -13,12 +13,10 @@ overhead (~1.5s per task saved).
 
 import json
 import math
-import os
 import threading
 import time
 from typing import Any
 
-import yaml
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, ActionClient
@@ -33,7 +31,6 @@ from beambot_interfaces.action import (
     EndEffectorAction,
     PickSampleAction,
     PlaceSampleAction,
-    ToolExchangeAction,
     VisionScanAction,
     VisionTaskAction,
     PipettorAction,
@@ -44,10 +41,12 @@ from std_msgs.msg import String
 from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
 from beambot.core.vacuum_monitor import VacuumMonitor
 from beambot.core.plan_cache import PlanCache
+from beambot.core.tool_exchange_manager import ToolExchangeManager
 from beambot.stages.move_to_stages import MoveToStages
 from beambot.stages.end_effector_stages import EndEffectorStages
-from beambot.batch_planner import group_into_batches
+from beambot.core.batch_planner import group_into_batches
 from beambot.stages.base_stages import wait_for_future
+from beambot.core.task_script import parse_task_script
 
 
 class MTCOrchestratorServer(Node):
@@ -58,12 +57,6 @@ class MTCOrchestratorServer(Node):
 
     Supports beamline-agnostic deployment via beamline configuration files.
     """
-
-    # Task types supported in dry_run (plan-only) mode. v1 only previews the
-    # task types the orchestrator already plans in-process via the batched
-    # path; everything else dispatches to a remote action server and is out of
-    # scope for plan-only previewing.
-    DRY_RUN_SUPPORTED_TYPES = {"moveto", "end_effector"}
 
     # Default timeouts for each action type (seconds)
     # Can be overridden via ROS parameters: timeout.moveto, timeout.end_effector, etc.
@@ -182,12 +175,6 @@ class MTCOrchestratorServer(Node):
             "beambot_endeffector",
             callback_group=self._callback_group,
         )
-        self._toolexchange_client = ActionClient(
-            self,
-            ToolExchangeAction,
-            "beambot_toolexchange",
-            callback_group=self._callback_group,
-        )
         # Unified vision pipeline (issue #88). vision_moveto routes here,
         # replacing the retired beambot_vision_moveto server.
         self._vision_task_client = ActionClient(
@@ -221,15 +208,14 @@ class MTCOrchestratorServer(Node):
             callback_group=self._callback_group,
         )
 
-        # Vision server TF reset services (called after tool exchange). Both the
-        # legacy vision server (vision_scan) and the unified vision_task server
-        # hold their own TF buffers; both must drop stale transforms after the
-        # URDF changes, or they auto-detect the wrong gripper IK frame.
-        self._vision_reset_tf_client = self.create_client(
-            Trigger, "beambot_vision_reset_tf", callback_group=self._callback_group
-        )
-        self._vision_task_reset_tf_client = self.create_client(
-            Trigger, "beambot_vision_task_reset_tf", callback_group=self._callback_group
+        self._tool_exchange_manager = ToolExchangeManager(
+            self,
+            self._grippers,
+            self._moveit_manager,
+            self._callback_group,
+            use_mock_hardware=self._use_mock_hardware,
+            send_and_wait=self._send_and_wait,
+            on_gripper_changed=self._set_current_gripper,
         )
 
         # Pause/Resume services
@@ -301,6 +287,7 @@ class MTCOrchestratorServer(Node):
             if self._executing:
                 self.get_logger().warning("Goal rejected: another task is executing")
                 return GoalResponse.REJECT
+            self._executing = True
         return GoalResponse.ACCEPT
 
     def _cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
@@ -375,6 +362,10 @@ class MTCOrchestratorServer(Node):
         msg.data = gripper
         self._gripper_publisher.publish(msg)
 
+    def _set_current_gripper(self, gripper: str):
+        self._current_gripper = gripper
+        self._publish_gripper(gripper)
+
     def _handle_pause(
         self,
         feedback: MTCExecution.Feedback,
@@ -417,27 +408,6 @@ class MTCOrchestratorServer(Node):
         # Resumed
         self.get_logger().info("Execution resumed")
         self._publish_state("RUNNING")
-
-    # _group_into_batches extracted to beambot.batch_planner.group_into_batches
-
-    def _grasp_breaker_actions(self, gripper: str) -> set[str]:
-        """Return end_effector_action values that must NOT be batched for this gripper.
-
-        Currently empty for every gripper: ePick's grasp (vacuum_on) is now
-        batched alongside surrounding moves, just like vacuum_off already is.
-        The drop-detection watchdog that originally motivated breaking the
-        batch is disabled (the 3mm sample is too small to give a reliable
-        ObjectDetectionStatus seal signal), so a per-grasp step boundary no
-        longer protects anything.
-
-        The plumbing is retained for two reasons: (1) re-adding ePick grasp as
-        a breaker is a one-line change here (return the grasp state name read
-        from grippers.<gripper>.states.grasp), and (2) if fused grasps drop the
-        sample because the suction seal hasn't formed before the arm departs,
-        the fix is a short dwell stage after the vacuum_on MoveTo — not
-        reverting to per-step execution.
-        """
-        return set()
 
     def _execute_batch(
         self,
@@ -582,13 +552,6 @@ class MTCOrchestratorServer(Node):
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute the orchestration goal."""
-        with self._lock:
-            if self._executing:
-                result = MTCExecution.Result()
-                result.error_message = "Server busy"
-                return result
-            self._executing = True
-
         try:
             return self._execute(goal_handle)
         finally:
@@ -596,9 +559,7 @@ class MTCOrchestratorServer(Node):
                 self._executing = False
             # Every terminal exit of _execute (success, abort, cancel, or an
             # uncaught exception) leaves the goal finished → publish IDLE here so
-            # no return path can forget it. The "Server busy" early-return above
-            # is outside this try, so a rejected concurrent goal won't reset the
-            # running goal's state.
+            # no return path can forget it.
             self._publish_state("IDLE")
 
     def _execute(self, goal_handle: ServerGoalHandle) -> MTCExecution.Result:
@@ -614,8 +575,17 @@ class MTCOrchestratorServer(Node):
         feedback = MTCExecution.Feedback()
 
         # Parse and validate goal
-        parsed = self._parse_goal(goal_handle.request, result)
-        if parsed is None:
+        try:
+            parsed = parse_task_script(
+                goal_handle.request.full_json,
+                dry_run=bool(getattr(goal_handle.request, "dry_run", False)),
+                grippers=self._grippers,
+                poses_file=self._poses_file,
+                on_info=self.get_logger().info,
+                on_warning=self.get_logger().warning,
+            )
+        except ValueError as error:
+            result.error_message = str(error)
             goal_handle.abort()
             return result
 
@@ -646,8 +616,7 @@ class MTCOrchestratorServer(Node):
         cached_plan_for_replay: dict | None = None
 
         # Initialize gripper state
-        self._current_gripper = start_gripper
-        self._publish_gripper(start_gripper)
+        self._set_current_gripper(start_gripper)
 
         # Apply cup_profile override if parameter was changed via MCP. Set it
         # on the MoveIt manager instead of writing into self._grippers, which
@@ -671,18 +640,11 @@ class MTCOrchestratorServer(Node):
         # Publish running state before starting task execution
         self._publish_state("RUNNING")
 
-        # Group tasks into batches for optimized execution. All end_effector
-        # actions (including ePick vacuum_on/off) currently batch with adjacent
-        # moves — _grasp_breaker_actions returns no breakers (see its docstring
-        # for the rationale and the dwell-stage fallback). The breaker_actions
-        # plumbing is retained so grasp-breaking can be re-enabled cheaply.
-        # Dry-run and live runs share this same grouping so a previewed plan
-        # replays against an identical batch structure.
-        breaker_actions = self._grasp_breaker_actions(start_gripper)
+        # Dry-run and live runs share grouping so previews replay against the
+        # same batch structure.
         batches = group_into_batches(
             tasks,
             enabled=self._enable_batching,
-            breaker_actions=breaker_actions,
         )
         self.get_logger().info(
             f"Grouped {task_count} tasks into {len(batches)} batches"
@@ -891,109 +853,6 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Orchestration goal completed successfully")
         return result
 
-    def _load_poses_registry(self) -> dict:
-        """Read the poses YAML registry file. Returns empty dict on failure."""
-        if not os.path.exists(self._poses_file):
-            return {}
-        try:
-            with open(self._poses_file, "r") as f:
-                return yaml.safe_load(f) or {}
-        except Exception as e:
-            self.get_logger().warning(f"Failed to read poses registry: {e}")
-            return {}
-
-    def _parse_goal(self, goal: MTCExecution.Goal, result: MTCExecution.Result):
-        """Parse and validate the goal JSON.
-
-        Returns:
-            (start_gripper, tasks, poses_json, dry_run) if valid,
-            None if invalid (result populated with error)
-        """
-        if not goal.full_json:
-            result.error_message = "Goal missing required full_json"
-            return None
-
-        try:
-            script = json.loads(goal.full_json)
-        except json.JSONDecodeError as e:
-            result.error_message = f"Invalid JSON: {e}"
-            return None
-
-        if "start_gripper" not in script:
-            result.error_message = "Task script missing 'start_gripper'"
-            return None
-
-        if "tasks" not in script:
-            result.error_message = "Task script missing 'tasks'"
-            return None
-
-        # Validate gripper exists in config
-        start_gripper = script["start_gripper"]
-        if start_gripper not in self._grippers:
-            result.error_message = f"Unknown gripper: {start_gripper} (available: {', '.join(self._grippers.keys())})"
-            return None
-
-        # Dry-run validation: only moveto + end_effector are previewable in v1.
-        # Reject upfront so the operator gets a clear message instead of a
-        # half-finished preview.
-        dry_run = bool(getattr(goal, "dry_run", False))
-        if dry_run:
-            unsupported = [
-                (i, t.get("task_type", "?"))
-                for i, t in enumerate(script["tasks"])
-                if t.get("task_type", "") not in self.DRY_RUN_SUPPORTED_TYPES
-            ]
-            if unsupported:
-                bad = ", ".join(f"step {i + 1} ({t})" for i, t in unsupported)
-                allowed = ", ".join(sorted(self.DRY_RUN_SUPPORTED_TYPES))
-                result.error_message = (
-                    f"Dry-run not supported for: {bad}. "
-                    f"v1 supports only: {allowed}. "
-                    f"Run without dry_run (or with use_mock_hardware) for full task types."
-                )
-                return None
-
-        # Auto-resolve named poses from the registry when not supplied in the goal
-        poses = script.get("poses", {})
-        pose_keys_needed = set()
-        for task in script["tasks"]:
-            target = task.get("target", "")
-            if target and target not in poses:
-                pose_keys_needed.add(target)
-            for key in task.get("scan_positions", []):
-                if key not in poses:
-                    pose_keys_needed.add(key)
-            for field in (
-                "scan_pose",
-                "approach_pose",
-                "target_pose",
-                "place_pose",
-                "pickup_pose",
-            ):
-                val = task.get(field)
-                if val and val not in poses:
-                    pose_keys_needed.add(val)
-
-        if pose_keys_needed:
-            registry = self._load_poses_registry()
-            resolved = 0
-            for key in pose_keys_needed:
-                if key in registry:
-                    poses[key] = registry[key]
-                    resolved += 1
-            if resolved:
-                self.get_logger().info(
-                    f"Auto-resolved {resolved} pose(s) from registry: "
-                    f"{[k for k in pose_keys_needed if k in registry]}"
-                )
-
-        return (
-            start_gripper,
-            script["tasks"],
-            json.dumps(poses),
-            dry_run,
-        )
-
     # ------------------------------------------------------------------
     def _execute_step(
         self, task_type: str, step: dict[str, Any], poses_json: str
@@ -1092,23 +951,6 @@ class MTCOrchestratorServer(Node):
             self._timeouts["end_effector"],
         )
 
-    def _call_toolexchange(self, step: dict[str, Any], poses_json: str) -> bool:
-        """Call the ToolExchange action server."""
-        goal = ToolExchangeAction.Goal()
-        goal.operation = step.get("operation", "")
-        goal.gripper = step.get("gripper", "")
-        goal.current_attached_gripper = self._current_gripper
-        goal.dock_number = int(step.get("dock_number", 0))
-        goal.approach_pose = step.get("approach_pose", "")
-        goal.poses_json = poses_json
-
-        return self._send_and_wait(
-            self._toolexchange_client,
-            goal,
-            "tool_exchange",
-            self._timeouts["tool_exchange"],
-        )
-
     def _gripper_ik_frame(self) -> str:
         """Return the IK tip frame for the currently attached gripper.
 
@@ -1124,130 +966,16 @@ class MTCOrchestratorServer(Node):
         """Default Z offset for the currently attached gripper (meters)."""
         return float(self._grippers.get(self._current_gripper, {}).get("z_offset", 0.0))
 
-    def _set_tool_voltage_via_io(self, voltage: int) -> bool:
-        """Set tool voltage via UR driver's set_io service.
-
-        Unlike the raw socket approach, this doesn't stop the external_control
-        program — safe to call while the robot is ready for trajectories.
-        """
-        from ur_msgs.srv import SetIO
-
-        client = self.create_client(
-            SetIO,
-            "/io_and_status_controller/set_io",
-            callback_group=self._callback_group,
-        )
-        if not client.wait_for_service(timeout_sec=3.0):
-            self.get_logger().error("set_io service not available")
-            self.destroy_client(client)
-            return False
-
-        request = SetIO.Request()
-        request.fun = SetIO.Request.FUN_SET_TOOL_VOLTAGE
-        request.pin = 0
-        request.state = float(voltage)
-
-        future = client.call_async(request)
-        done = wait_for_future(future, timeout=5.0, poll_interval=0.05)
-
-        self.destroy_client(client)
-        if done and future.result().success:
-            self.get_logger().info(f"Tool voltage set to {voltage}V via set_io")
-            return True
-        self.get_logger().error(f"Failed to set tool voltage to {voltage}V")
-        return False
-
-    def _reset_vision_tf(self):
-        """Reset both vision servers' TF buffers after tool exchange.
-
-        Clears stale static transforms from the old URDF so each server's
-        gripper auto-detection picks up the correct IK frame. Covers the
-        legacy vision server (vision_scan) and the unified vision_task server.
-        """
-        for name, client in (
-            ("vision", self._vision_reset_tf_client),
-            ("vision_task", self._vision_task_reset_tf_client),
-        ):
-            if not client.wait_for_service(timeout_sec=3.0):
-                self.get_logger().warning(
-                    f"{name} TF reset service not available — "
-                    f"server may detect wrong gripper frame"
-                )
-                continue
-            future = client.call_async(Trigger.Request())
-            done = wait_for_future(future, timeout=5.0, poll_interval=0.05)
-            if done and future.result().success:
-                self.get_logger().info(f"{name} server TF buffer reset")
-            else:
-                self.get_logger().warning(f"{name} TF reset did not complete")
-
     def _handle_tool_exchange(self, step: dict[str, Any], poses_json: str) -> bool:
-        """Handle tool exchange with gripper state tracking and MoveIt restart.
-
-        Like the C++ version, this restarts MoveIt with the new gripper config
-        after a tool exchange operation completes.
-        """
-        operation = step.get("operation", "")
-
-        # For dock: turn off tool voltage BEFORE the motion so the
-        # Quick Changer releases (de-energizes the lock).
-        # Uses the UR driver's set_io service (doesn't stop external_control,
-        # unlike the raw socket approach via secondary interface).
-        if operation == "dock" and not self._use_mock_hardware:
-            self.get_logger().info("Setting tool voltage to 0V for dock (QC release)")
-            self._set_tool_voltage_via_io(0)
-            self._moveit_manager.notify_voltage_change(0)
-            time.sleep(0.5)  # Wait for QC to release
-
-        # Execute the physical exchange motion
-        if not self._call_toolexchange(step, poses_json):
-            # _last_error already set by _send_and_wait
-            return False
-
-        # Update gripper state based on operation
-        new_gripper = self._current_gripper
-
-        if operation == "dock":
-            new_gripper = "none"
-        elif operation == "load":
-            new_gripper = step.get("gripper", self._current_gripper)
-            # Validate gripper exists
-            if new_gripper not in self._grippers:
-                self._last_error = (
-                    f"Unknown gripper '{new_gripper}' in tool_exchange "
-                    f"(available: {', '.join(self._grippers.keys())})"
-                )
-                self.get_logger().error(self._last_error)
-                return False
-
-        # If gripper changed, restart MoveIt with new configuration
-        if new_gripper != self._current_gripper:
-            self.get_logger().info(
-                f"Gripper changed: {self._current_gripper} → {new_gripper}, restarting MoveIt"
-            )
-            self._current_gripper = new_gripper
-            self._publish_gripper(new_gripper)
-            # NOTE: cache is NOT cleared on tool exchange (#97). Gripper is part
-            # of the cache key, so an entry planned for gripper X can only be
-            # replayed when gripper==X — a hande key never hits an epick entry.
-            # Keeping entries lets a swap-away-and-back (epick A->B, swap hande,
-            # swap back epick, A->B) REPLAY instead of replan. The stored msg is
-            # pure data (survives the MoveIt relaunch); the gripper config is
-            # deterministic, so X's trajectory stays valid for X. Same static-cell
-            # replay assumption as within-session already applies (scene-blind).
-
-            if not self._moveit_manager.launch_moveit_with_gripper(new_gripper):
-                self._last_error = (
-                    f"Failed to restart MoveIt after tool exchange "
-                    f"({self._current_gripper} → {new_gripper})"
-                )
-                self.get_logger().error(self._last_error)
-                return False
-
-            # Reset vision server TF buffer so it picks up the new URDF frames
-            self._reset_vision_tf()
-
-        return True
+        success = self._tool_exchange_manager.exchange(
+            step,
+            poses_json,
+            self._current_gripper,
+            self._timeouts["tool_exchange"],
+        )
+        if not success and self._tool_exchange_manager.last_error:
+            self._last_error = self._tool_exchange_manager.last_error
+        return success
 
     def _call_vision_scan(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the VisionScan action server to batch-scan all markers.
