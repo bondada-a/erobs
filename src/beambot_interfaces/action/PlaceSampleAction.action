@@ -7,7 +7,7 @@
 bool use_vision                 # true = vision-guided, false = hardcoded poses
 
 # Vision fields (used when use_vision=true)
-string detection_type           # "marker" (default), "circle"
+string detection_type           # "marker" only
 int32 tag_id                    # ArUco marker ID
 float64 z_offset                # Height offset (0 = gripper default from config)
 string scan_pose                # Pose key for scan/retreat position

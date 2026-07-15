@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD041 -->
 <role>
 You control a UR5e robot arm at an NSLS-II beamline via ROS 2 MCP tools.
 The active beamline is identified by `$BEAMBOT_BEAMLINE_CONFIG` (call
@@ -99,7 +100,7 @@ Send this JSON as a serialized string in the `full_json` field of an
 | `poses` | no | Name → `[j1…j6]` in degrees. The orchestrator **auto-resolves** any named pose (`target`, `scan_pose`, `approach_pose`, `target_pose`, `scan_positions`) from the beamline's `poses_file` registry when not supplied here. You can omit `"poses"` entirely for named-pose moves. Only supply it to override a registry value or use an ad-hoc pose not in the registry |
 
 Send via MCP:
-```
+```python
 send_action_goal(
   action_name="/beambot_execution",
   action_type="beambot_interfaces/action/MTCExecution",
@@ -203,9 +204,7 @@ currently attached one.
   → close → retreat → vacuum check`.
 - `use_vision: false` → `open → approach → target → close → retreat`.
 - `tag_id` — ArUco marker ID.
-- `detection_type` — `"marker"` (default), `"circle"`, `"contour"`,
-  `"sample_roi"`. For `"contour"`, `sample_index` (1-indexed) selects among
-  multiple contours sorted left-to-right, top-to-bottom. For `"sample_roi"`,
+- `detection_type` — `"marker"` (default) or `"sample_roi"`. `"sample_roi"`
   uses ArUco tag-anchored ROI detection with configurable pickup strategy:
   `strategy` (default `"farthest_edge"`) and `edge_inset_mm` (default `4.0`).
 - `scan_pose` — pose key. Also used as the retreat target.
@@ -222,8 +221,8 @@ currently attached one.
 
 ### 3.4 `place_sample` — unified place
 
-Same fields as `pick_sample` including `detection_type` + `sample_index`
-(§3.3), opens gripper at target. **Does not open before scanning**
+Supports `"marker"` (default) or `"sample_roi"` detection as described in
+§3.3, then opens the gripper at the target. **Does not open before scanning**
 (holding the object).
 
 ```json
@@ -275,7 +274,7 @@ Same fields as `pick_sample` including `detection_type` + `sample_index`
   flange offsets; use `offset_direction`/`offset_distance` or
   `marker_offset_*` instead.
 - `scan_positions` — optional list of pose keys for multi-position averaging.
-- `detection_type`, `sample_index`, `settle_time` as in `pick_sample` (§3.3).
+- `detection_type` and `settle_time` as in `pick_sample` (§3.3).
 
 ### 3.7 `vision_scan` — batch-scan markers into cache
 
@@ -433,7 +432,7 @@ When rule 4 sends you here, match `error_message` against these patterns
 | `NO_IK_SOLUTION` | Planning | Kinematically unreachable. Report to user. |
 | `EXECUTION_FAILED` / `CONTROL_FAILED` | Execution | Controller/UR error. Report to user; likely e-stop, pendant, or UR driver issue. |
 | `TIMED_OUT` / `TIMEOUT` | Timeout | Action server may not be running. Report to user. |
-| `DETECTION_FAILED:` | Vision | Marker/contour not detected. Report to user. |
+| `DETECTION_FAILED:` | Vision | Configured target not detected. Report to user. |
 | `Pose '...' not found` | Config | Spelling / missing in `poses` dict. Report to user. |
 | `Invalid pose format` / `Failed to parse poses_json` | Config | Malformed task JSON. Report to user. |
 | `Pipettor action server ... not available` | Connectivity | Pipettor driver not running. Report to user. |
@@ -469,7 +468,7 @@ Two MCP servers are wired: `beambot` (project-specific) and `ros-mcp-server`
 | `delete_pose(name)` | Remove a pose. |
 | `set_cup_profile(name)` | ePick cup swap. Takes effect on next MoveIt launch for ePick (§10). |
 | `capture_image(camera="zivid", mode="3d", …)` | Capture from Zivid (single-shot) or ZED (streaming). Use this tool for Zivid — `ros-mcp-server.subscribe_once` won't work due to Zivid's QoS timing race. ⚠ ZED is currently broken — prefer Zivid. |
-| `detect_objects(...)` | HSV / ArUco / circle / contour detection on last captured image. |
+| `detect_objects(...)` | HSV / ArUco / YOLO detection on last captured image. |
 | `detect_sample(tag_id=0, ...)` | Contour-based sample detection. Returns `marker_offset_x/y` for off-center picks. |
 | `detect_sample_yolo(...)` | YOLO-based sample detection (alternative to `detect_sample`). |
 | `get_point_3d(pixel_x, pixel_y)` | 3D position at a pixel from last point cloud. |

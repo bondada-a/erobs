@@ -2,14 +2,14 @@
 #
 # Two modes:
 #   use_vision=false: Hardcoded joint poses (approach → target → close → retreat)
-#   use_vision=true:  Vision-guided (detect marker → deterministic IK → close → retreat)
+#   use_vision=true:  Vision-guided (detect target → deterministic IK → close → retreat)
 
 bool use_vision                 # true = vision-guided, false = hardcoded poses
 
 # Vision fields (used when use_vision=true)
-string detection_type           # "marker" (default), "circle", "contour", "sample_roi"
+string detection_type           # "marker" (default) or "sample_roi"
 int32 tag_id                    # ArUco marker ID
-int32 sample_index              # For contour detection (1-indexed, default: 1)
+int32 sample_index              # Reserved for compatibility; currently unused
 float64 z_offset                # Height offset (0 = gripper default from config)
 string scan_pose                # Pose key for scan/retreat position
 float64 marker_offset_x         # Marker-frame X offset (meters)
