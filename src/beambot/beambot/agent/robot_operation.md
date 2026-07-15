@@ -242,8 +242,8 @@ Supports `"marker"` (default) or `"sample_roi"` detection as described in
 
 - `operation` — `"dock"` or `"load"`.
 - `gripper` — the gripper being docked or loaded (any config key).
-- `dock_number` — **look up from `grippers.<name>.dock_number` in the
-  active beamline YAML (`$BEAMBOT_BEAMLINE_CONFIG`)**, don't hardcode.
+- `dock_number` — the dock selected for this exchange. For `load`, use the
+  dock currently holding the tool; for `dock`, use the dock that will receive it.
 - `approach_pose` — use `"dock_approach"` for dock, `"load_approach"` for
   load. They are different poses tuned for each direction; swapping causes
   collisions.
