@@ -9,10 +9,12 @@ Invariant: the running MoveIt always matches the currently-attached gripper.
 """
 
 import atexit
+import math
 import os
 import signal
 import socket
 import subprocess
+import threading
 import time
 import traceback
 
@@ -91,7 +93,14 @@ class MoveItLifecycleManager:
 
         # Persistent joint state subscription for hardware verification.
         # Created once to avoid create/destroy races with MultiThreadedExecutor.
+        self._joint_state_lock = threading.Lock()
         self._joint_positions: dict = {}
+        self._joint_attempt_started_ns: int | None = None
+        self._joint_state_errors = {
+            "stale": set(),
+            "malformed": set(),
+            "non_finite": set(),
+        }
         # Tracks the UR external_control program running state. The
         # subscription is created per-launch inside _restart_external_control
         # (not persistent) because a persistent subscription misses the True
@@ -127,10 +136,35 @@ class MoveItLifecycleManager:
         self._current_voltage = voltage
 
     def _joint_state_cb(self, msg):
-        """Cache arm joint positions from /joint_states."""
-        for name, pos in zip(msg.name, msg.position):
-            if name in self.ARM_JOINTS:
-                self._joint_positions[name] = pos
+        """Cache valid arm positions, enforcing freshness during readiness."""
+        required = self.ARM_JOINTS
+        with self._joint_state_lock:
+            if len(msg.name) != len(msg.position):
+                self._joint_state_errors["malformed"].update(
+                    required.intersection(msg.name)
+                )
+                return
+
+            boundary_ns = self._joint_attempt_started_ns
+            stamp_ns = (
+                msg.header.stamp.sec * 1_000_000_000
+                + msg.header.stamp.nanosec
+            )
+            required_in_message = required.intersection(msg.name)
+            if boundary_ns is not None and (
+                stamp_ns == 0 or stamp_ns < boundary_ns
+            ):
+                self._joint_state_errors["stale"].update(required_in_message)
+                return
+
+            for name, position in zip(msg.name, msg.position):
+                if name not in required:
+                    continue
+                if math.isfinite(position):
+                    self._joint_positions[name] = position
+                else:
+                    self._joint_positions.pop(name, None)
+                    self._joint_state_errors["non_finite"].add(name)
 
     def current_arm_joints(self):
         """Latest arm joint positions (radians) in canonical group order, or None.
@@ -144,8 +178,10 @@ class MoveItLifecycleManager:
         interleaves a gripper joint).
         """
         from beambot.config_loader import arm_joint_names
-        positions = [self._joint_positions.get(n) for n in arm_joint_names()]
-        if len(positions) != 6 or any(p is None for p in positions):
+        names = arm_joint_names()
+        with self._joint_state_lock:
+            positions = [self._joint_positions.get(name) for name in names]
+        if any(position is None for position in positions):
             return None
         return positions
 
@@ -374,23 +410,39 @@ class MoveItLifecycleManager:
         to avoid create/destroy subscription races with MultiThreadedExecutor.
         """
         self._logger.info("Verifying hardware interface connection...")
-        self._joint_positions.clear()
+        with self._joint_state_lock:
+            self._joint_attempt_started_ns = (
+                self._node.get_clock().now().nanoseconds
+            )
+            self._joint_positions.clear()
+            for errors in self._joint_state_errors.values():
+                errors.clear()
 
-        deadline = time.time() + timeout_sec
-        while time.time() < deadline:
-            if (len(self._joint_positions) == 6 and
-                    sum(abs(v) for v in self._joint_positions.values()) > 0.01):
+        deadline = time.monotonic() + timeout_sec
+        while time.monotonic() < deadline:
+            with self._joint_state_lock:
+                ready = self.ARM_JOINTS.issubset(self._joint_positions)
+                if ready:
+                    self._joint_attempt_started_ns = None
+            if ready:
                 self._logger.info("Hardware connected (joint states verified)")
                 return True
             time.sleep(0.1)
 
-        if not self._joint_positions:
-            self._logger.error("No joint states received — hardware interface is dead")
-        else:
-            self._logger.error(
-                f"Joint states suspect (got {len(self._joint_positions)}/6 joints, "
-                f"sum(abs)={sum(abs(v) for v in self._joint_positions.values()):.4f})"
-            )
+        with self._joint_state_lock:
+            missing = sorted(self.ARM_JOINTS.difference(self._joint_positions))
+            errors = {
+                kind: sorted(values)
+                for kind, values in self._joint_state_errors.items()
+            }
+            self._joint_attempt_started_ns = None
+
+        self._logger.error(
+            "Joint state readiness timed out: "
+            f"missing={missing}, stale={errors['stale']}, "
+            f"malformed={errors['malformed']}, "
+            f"non_finite={errors['non_finite']}"
+        )
         return False
 
     def _load_collision_obstacles(self) -> bool:
