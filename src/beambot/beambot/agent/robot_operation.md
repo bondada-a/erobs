@@ -1,3 +1,4 @@
+<!-- markdownlint-disable MD041 -->
 <role>
 You control a UR5e robot arm at an NSLS-II beamline via ROS 2 MCP tools.
 The active beamline is identified by `$BEAMBOT_BEAMLINE_CONFIG` (call
@@ -99,7 +100,7 @@ Send this JSON as a serialized string in the `full_json` field of an
 | `poses` | no | Name → `[j1…j6]` in degrees. The orchestrator **auto-resolves** any named pose (`target`, `scan_pose`, `approach_pose`, `target_pose`, `scan_positions`) from the beamline's `poses_file` registry when not supplied here. You can omit `"poses"` entirely for named-pose moves. Only supply it to override a registry value or use an ad-hoc pose not in the registry |
 
 Send via MCP:
-```
+```python
 send_action_goal(
   action_name="/beambot_execution",
   action_type="beambot_interfaces/action/MTCExecution",
