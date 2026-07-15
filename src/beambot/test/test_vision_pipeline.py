@@ -8,6 +8,7 @@ gated by hardware verification, by design.
 """
 
 import types
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -51,6 +52,84 @@ def test_duplicate_registration_rejected():
         @register_detector("marker")  # already taken
         def _dupe(ctx):
             return None
+
+
+def test_collision_object_update_is_acknowledged_by_move_group():
+    from moveit_msgs.msg import CollisionObject
+
+    from beambot.pipeline.vision_engine import VisionEngine
+
+    future = MagicMock()
+    future.done.return_value = True
+    future.result.return_value = types.SimpleNamespace(success=True)
+    client = MagicMock()
+    client.wait_for_service.return_value = True
+    client.call_async.return_value = future
+    vision = VisionEngine.__new__(VisionEngine)
+    vision._apply_scene_client = client
+
+    obj = CollisionObject(id="sample")
+    vision._apply_collision_object(obj)
+
+    request = client.call_async.call_args.args[0]
+    assert request.scene.world.collision_objects == [obj]
+
+
+def test_collision_object_update_fails_when_service_is_unavailable():
+    from beambot.pipeline.vision_engine import VisionEngine
+
+    vision = VisionEngine.__new__(VisionEngine)
+    vision._apply_scene_client = MagicMock()
+    vision._apply_scene_client.wait_for_service.return_value = False
+
+    with pytest.raises(RuntimeError, match="service unavailable"):
+        vision._apply_collision_object(object())
+
+
+def test_collision_object_update_fails_when_service_call_times_out(monkeypatch):
+    from beambot.pipeline import vision_engine
+    from beambot.pipeline.vision_engine import VisionEngine
+
+    client = MagicMock()
+    client.wait_for_service.return_value = True
+    vision = VisionEngine.__new__(VisionEngine)
+    vision._apply_scene_client = client
+    monkeypatch.setattr(vision_engine, "wait_for_future", lambda *_args, **_kw: False)
+
+    with pytest.raises(RuntimeError, match="call timed out"):
+        vision._apply_collision_object(object())
+
+
+def test_collision_object_update_fails_when_move_group_rejects_it():
+    from beambot.pipeline.vision_engine import VisionEngine
+
+    future = MagicMock()
+    future.done.return_value = True
+    future.result.return_value = types.SimpleNamespace(success=False)
+    client = MagicMock()
+    client.wait_for_service.return_value = True
+    client.call_async.return_value = future
+    vision = VisionEngine.__new__(VisionEngine)
+    vision._apply_scene_client = client
+
+    with pytest.raises(RuntimeError, match="rejected collision-object update"):
+        vision._apply_collision_object(object())
+
+
+def test_collision_object_removal_is_one_idempotent_remove_request():
+    from moveit_msgs.msg import CollisionObject
+
+    from beambot.pipeline.vision_engine import VisionEngine
+
+    vision = VisionEngine.__new__(VisionEngine)
+    vision._apply_collision_object = MagicMock()
+
+    vision._remove_collision_object("sample")
+
+    obj = vision._apply_collision_object.call_args.args[0]
+    assert obj.id == "sample"
+    assert obj.operation == CollisionObject.REMOVE
+    vision._apply_collision_object.assert_called_once()
 
 
 def test_cartesian_target_carries_pose_and_frame():

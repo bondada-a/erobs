@@ -27,8 +27,7 @@ import rclpy
 from geometry_msgs.msg import Pose, PoseStamped, TransformStamped
 from moveit.task_constructor import stages
 from moveit_msgs.msg import CollisionObject, PlanningScene
-from moveit_msgs.srv import GetPlanningScene
-from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
+from moveit_msgs.srv import ApplyPlanningScene
 from shape_msgs.msg import SolidPrimitive
 from tf2_geometry_msgs import do_transform_pose_stamped
 from tf2_ros import Buffer, TransformListener, TransformBroadcaster, TransformException
@@ -159,19 +158,8 @@ class VisionEngine(BaseStages):
         self._camera = get_camera(self._camera_type)
         self._capture_client = self._camera.create_client(rclpy_node)
 
-        # Planning scene publisher (same pattern as moveit_lifecycle_manager)
-        scene_qos = QoSProfile(
-            depth=10,
-            durability=DurabilityPolicy.VOLATILE,
-            reliability=ReliabilityPolicy.RELIABLE,
-        )
-        self._planning_scene_pub = rclpy_node.create_publisher(
-            PlanningScene, "/planning_scene", scene_qos
-        )
-
-        # Service client for querying known objects
-        self._get_scene_client = rclpy_node.create_client(
-            GetPlanningScene, "/get_planning_scene"
+        self._apply_scene_client = rclpy_node.create_client(
+            ApplyPlanningScene, "/apply_planning_scene"
         )
 
         # Parameters
@@ -1117,9 +1105,6 @@ class VisionEngine(BaseStages):
 
         info = self._object_database[tag_id]
 
-        # Remove existing object with same name
-        self._remove_collision_object(info.name)
-
         # Calculate object pose with offset
         object_pose = self._calculate_object_pose(tag_pose, info.tag_offset)
 
@@ -1138,17 +1123,12 @@ class VisionEngine(BaseStages):
             primitive.type = SolidPrimitive.CYLINDER
             primitive.dimensions = info.dimensions
         else:
-            self.logger.error(f"Invalid shape: {info.shape}")
-            return
+            raise ValueError(f"Invalid collision-object shape: {info.shape}")
 
         obj.primitives.append(primitive)
         obj.primitive_poses.append(object_pose.pose)
 
-        # Publish to planning scene as diff
-        scene_msg = PlanningScene()
-        scene_msg.is_diff = True
-        scene_msg.world.collision_objects.append(obj)
-        self._planning_scene_pub.publish(scene_msg)
+        self._apply_collision_object(obj)
         self.logger.info(f"Added collision object '{info.name}'")
 
     def _calculate_object_pose(
@@ -1185,37 +1165,26 @@ class VisionEngine(BaseStages):
 
         return result
 
-    def _remove_collision_object(self, name: str):
-        """Remove a collision object if it exists.
+    def _apply_collision_object(self, obj: CollisionObject) -> None:
+        """Transactionally apply one collision-object change or fail the task."""
+        if not self._apply_scene_client.wait_for_service(timeout_sec=2.0):
+            raise RuntimeError("/apply_planning_scene service unavailable")
 
-        Args:
-            name: Object ID to remove
-        """
-        # Query current planning scene to check if object exists
-        if not self._get_scene_client.wait_for_service(timeout_sec=1.0):
-            self.logger.warning(
-                "GetPlanningScene service not available, skipping removal check"
-            )
-            # Publish removal anyway - it's safe if object doesn't exist
-        else:
-            request = GetPlanningScene.Request()
-            request.components.components = request.components.WORLD_OBJECT_NAMES
-            future = self._get_scene_client.call_async(request)
-            wait_for_future(future, timeout=2.0)
+        scene = PlanningScene()
+        scene.is_diff = True
+        scene.world.collision_objects.append(obj)
+        request = ApplyPlanningScene.Request()
+        request.scene = scene
+        future = self._apply_scene_client.call_async(request)
+        if not wait_for_future(future, timeout=2.0):
+            raise RuntimeError("/apply_planning_scene call timed out")
+        response = future.result()
+        if response is None or not response.success:
+            raise RuntimeError("MoveGroup rejected collision-object update")
 
-            if future.done() and future.result() is not None:
-                known_names = [
-                    obj.id for obj in future.result().scene.world.collision_objects
-                ]
-                if name not in known_names:
-                    return  # Object doesn't exist, nothing to remove
-
-        # Publish removal
+    def _remove_collision_object(self, name: str) -> None:
+        """Idempotently remove a collision object through MoveGroup."""
         obj = CollisionObject()
         obj.id = name
         obj.operation = CollisionObject.REMOVE
-
-        scene_msg = PlanningScene()
-        scene_msg.is_diff = True
-        scene_msg.world.collision_objects.append(obj)
-        self._planning_scene_pub.publish(scene_msg)
+        self._apply_collision_object(obj)
