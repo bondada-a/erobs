@@ -9,6 +9,7 @@ import yaml
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 from functools import partial
+from urllib.parse import unquote, urlsplit
 
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QPushButton, QLabel
 from PyQt6.QtCore import Qt, QUrl, QTimer
@@ -194,27 +195,36 @@ class _MeshRequestHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, **kwargs)
 
     def translate_path(self, path):
+        path = unquote(urlsplit(path).path)
+
         # Static resources (viewer.html, JS files)
         if path.startswith("/__static__/"):
             rel = path[len("/__static__/"):]
-            return str(self.resources_dir / rel)
+            return self._resolve_under(self.resources_dir, rel)
 
         # URDF files
         if path.startswith("/__urdf__/"):
             rel = path[len("/__urdf__/"):]
-            return str(self.urdf_dir / rel)
+            return self._resolve_under(self.urdf_dir, rel)
 
         # Package mesh files: /package_name/rest/of/path
         parts = path.strip("/").split("/", 1)
         if len(parts) >= 1 and parts[0] in self.package_map:
             pkg_dir = self.package_map[parts[0]]
             rel = parts[1] if len(parts) > 1 else ""
-            return str(Path(pkg_dir) / rel)
+            return self._resolve_under(pkg_dir, rel)
 
-        return str(self.resources_dir / path.lstrip("/"))
+        return self._resolve_under(self.resources_dir, path.lstrip("/"))
+
+    @staticmethod
+    def _resolve_under(root, relative):
+        root = Path(root).resolve()
+        candidate = (root / relative).resolve()
+        if not candidate.is_relative_to(root):
+            return str(root / ".beambot-path-denied")
+        return str(candidate)
 
     def end_headers(self):
-        self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Cache-Control", "public, max-age=3600")
         super().end_headers()
 
@@ -241,6 +251,8 @@ class _MeshServer:
 
     def stop(self):
         self.server.shutdown()
+        self.server.server_close()
+        self._thread.join(timeout=1)
 
 
 class VisualizationPanel(QWidget):
