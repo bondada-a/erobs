@@ -37,6 +37,7 @@ class SampleActionServer(BaseActionServer):
             PlaceSampleAction,
             "beambot_place_sample",
             execute_callback=self._execute_place,
+            goal_callback=self._goal_callback,
         )
         self.get_logger().info("PlaceSample action server started: beambot_place_sample")
 
@@ -96,30 +97,34 @@ class SampleActionServer(BaseActionServer):
         so it must call goal_handle.succeed()/abort() explicitly
         (unlike _execute which goes through base class _execute_callback).
         """
-        goal = goal_handle.request
-        error = self._place_stages.run(goal)
+        try:
+            goal = goal_handle.request
+            error = self._place_stages.run(goal)
 
-        result = PlaceSampleAction.Result()
-        if error is not None:
-            result.success = False
-            result.error_message = error
-            goal_handle.abort()
-        else:
-            result.success = True
+            result = PlaceSampleAction.Result()
+            if error is not None:
+                result.success = False
+                result.error_message = error
+                goal_handle.abort()
+            else:
+                result.success = True
 
-            if self._place_stages.last_detected_pose is not None:
-                pose = self._place_stages.last_detected_pose.pose
-                result.detected_position = [
-                    pose.position.x, pose.position.y, pose.position.z,
-                ]
-                result.detected_orientation = [
-                    pose.orientation.x, pose.orientation.y,
-                    pose.orientation.z, pose.orientation.w,
-                ]
+                if self._place_stages.last_detected_pose is not None:
+                    pose = self._place_stages.last_detected_pose.pose
+                    result.detected_position = [
+                        pose.position.x, pose.position.y, pose.position.z,
+                    ]
+                    result.detected_orientation = [
+                        pose.orientation.x, pose.orientation.y,
+                        pose.orientation.z, pose.orientation.w,
+                    ]
 
-            goal_handle.succeed()
+                goal_handle.succeed()
 
-        return result
+            return result
+        finally:
+            with self._lock:
+                self._executing = False
 
 
 def main(args=None):

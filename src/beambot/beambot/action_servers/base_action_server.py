@@ -58,14 +58,12 @@ class BaseActionServer(Node):
             if self._executing:
                 self.get_logger().warning("Rejecting goal: server busy")
                 return GoalResponse.REJECT
+            self._executing = True
         self.get_logger().info("Received goal request")
         return GoalResponse.ACCEPT
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute goal with error handling and state management."""
-        with self._lock:
-            self._executing = True
-
         try:
             result = self._execute(goal_handle)
 
