@@ -57,6 +57,6 @@ string error_message
 bool vacuum_ok                  # ePick reports object detected after grasp (true for non-ePick)
 float64[] detected_position     # [x, y, z] in base_link (detect_only)
 float64[] detected_orientation  # [x, y, z, w] in base_link (detect_only)
-string motion_kind              # which MotionTarget variant ran (telemetry / migration parity)
+string motion_kind              # "none", "cartesian", or "joints"
 ---
 # Feedback
