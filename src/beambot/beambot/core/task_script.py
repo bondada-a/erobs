@@ -9,6 +9,19 @@ import yaml
 
 
 DRY_RUN_SUPPORTED_TYPES = {"moveto", "end_effector"}
+SUPPORTED_TASK_TYPES = {
+    "moveto",
+    "end_effector",
+    "tool_exchange",
+    "vision_task",
+    "vision_moveto",
+    "vision_scan",
+    "pick_sample",
+    "place_sample",
+    "pick_spincoater",
+    "place_spincoater",
+    "pipettor",
+}
 
 
 def _load_poses_registry(
@@ -44,19 +57,31 @@ def parse_task_script(
     except json.JSONDecodeError as error:
         raise ValueError(f"Invalid JSON: {error}") from error
 
+    if not isinstance(script, Mapping):
+        raise ValueError("Task script root must be an object")
     if "start_gripper" not in script:
         raise ValueError("Task script missing 'start_gripper'")
     if "tasks" not in script:
         raise ValueError("Task script missing 'tasks'")
 
     start_gripper = script["start_gripper"]
+    if not isinstance(start_gripper, str):
+        raise ValueError("start_gripper must be a string")
     if start_gripper not in grippers:
         available = ", ".join(grippers)
-        raise ValueError(
-            f"Unknown gripper: {start_gripper} (available: {available})"
-        )
+        raise ValueError(f"Unknown gripper: {start_gripper} (available: {available})")
 
     tasks = script["tasks"]
+    if not isinstance(tasks, list) or not tasks:
+        raise ValueError("tasks must be a non-empty list")
+    allowed = ", ".join(sorted(SUPPORTED_TASK_TYPES))
+    for index, task in enumerate(tasks):
+        if not isinstance(task, Mapping):
+            raise ValueError(f"tasks[{index}] must be an object")
+        task_type = task.get("task_type")
+        if not isinstance(task_type, str) or task_type not in SUPPORTED_TASK_TYPES:
+            raise ValueError(f"tasks[{index}].task_type must be one of: {allowed}")
+
     if dry_run:
         unsupported = [
             (index, task.get("task_type", "?"))
@@ -65,8 +90,7 @@ def parse_task_script(
         ]
         if unsupported:
             bad = ", ".join(
-                f"step {index + 1} ({task_type})"
-                for index, task_type in unsupported
+                f"step {index + 1} ({task_type})" for index, task_type in unsupported
             )
             allowed = ", ".join(sorted(DRY_RUN_SUPPORTED_TYPES))
             raise ValueError(
