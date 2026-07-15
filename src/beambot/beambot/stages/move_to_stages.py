@@ -15,6 +15,7 @@ from moveit.task_constructor import core, stages
 from tf2_ros import Buffer, TransformListener
 from tf_transformations import quaternion_from_euler, euler_from_quaternion
 
+from beambot.core.task_script import moveto_goal_error
 from beambot.stages.base_stages import (
     BaseStages, parse_constraints, apply_constraints,
 )
@@ -111,6 +112,17 @@ class MoveToStages(BaseStages):
         Returns:
             None if stages were added successfully, error string on failure
         """
+        error = moveto_goal_error(
+            target=goal.target,
+            direction=goal.direction,
+            distance=goal.distance,
+            cartesian_target=goal.cartesian_target,
+            planning_type=goal.planning_type,
+        )
+        if error:
+            self.logger.error(error)
+            return error
+
         # Reset the goal-pin target per move (#97): only a NAMED joint-pose move
         # re-sets it below (via make_move_to_named_stage). This way it reflects
         # ONLY the last move added — so _pin_endpoints pins the final waypoint to

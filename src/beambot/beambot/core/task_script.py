@@ -1,7 +1,9 @@
 """Parse orchestrator task scripts and resolve named poses."""
 
 import json
-from collections.abc import Callable, Mapping
+import math
+from collections.abc import Callable, Mapping, Sequence
+from numbers import Real
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +24,68 @@ SUPPORTED_TASK_TYPES = {
     "place_spincoater",
     "pipettor",
 }
+MOVETO_DIRECTIONS = (
+    "forward",
+    "backward",
+    "left",
+    "right",
+    "up",
+    "down",
+    "x",
+    "-x",
+    "y",
+    "-y",
+    "z",
+    "-z",
+)
+MOVETO_PLANNERS = ("", "auto", "joint", "cartesian", "pilz", "pilz_ptp")
+
+
+def moveto_goal_error(
+    *,
+    target: Any = "",
+    direction: Any = "",
+    distance: Any = 0.0,
+    cartesian_target: Any = (),
+    planning_type: Any = "",
+) -> str | None:
+    """Return why a MoveTo goal is invalid, or None when it is valid."""
+    if not isinstance(planning_type, str) or planning_type not in MOVETO_PLANNERS:
+        return f"Unknown MoveTo planning_type: {planning_type!r}"
+
+    named = bool(target)
+    relative = bool(direction) or distance != 0.0
+    cartesian = bool(cartesian_target)
+    if sum((named, relative, cartesian)) != 1:
+        return (
+            "MoveTo goal must specify exactly one of target, "
+            "direction/distance, or cartesian_target"
+        )
+
+    if named and (not isinstance(target, str) or not target.strip()):
+        return "MoveTo target must be a non-empty string"
+    if relative:
+        if not isinstance(direction, str) or direction not in MOVETO_DIRECTIONS:
+            return f"Unknown MoveTo direction: {direction!r}"
+        if (
+            isinstance(distance, bool)
+            or not isinstance(distance, Real)
+            or not math.isfinite(distance)
+            or distance <= 0.0
+        ):
+            return "MoveTo distance must be a finite number greater than zero"
+    if cartesian and (
+        not isinstance(cartesian_target, Sequence)
+        or len(cartesian_target) not in (3, 6)
+        or any(
+            isinstance(value, bool)
+            or not isinstance(value, Real)
+            or not math.isfinite(value)
+            for value in cartesian_target
+        )
+    ):
+        return "MoveTo cartesian_target must contain exactly 3 or 6 finite numbers"
+    return None
 
 
 def _load_poses_registry(
@@ -81,6 +145,16 @@ def parse_task_script(
         task_type = task.get("task_type")
         if not isinstance(task_type, str) or task_type not in SUPPORTED_TASK_TYPES:
             raise ValueError(f"tasks[{index}].task_type must be one of: {allowed}")
+        if task_type == "moveto":
+            error = moveto_goal_error(
+                target=task.get("target", ""),
+                direction=task.get("direction", ""),
+                distance=task.get("distance", 0.0),
+                cartesian_target=task.get("cartesian_target", ()),
+                planning_type=task.get("planning_type", ""),
+            )
+            if error:
+                raise ValueError(f"tasks[{index}]: {error}")
 
     if dry_run:
         unsupported = [

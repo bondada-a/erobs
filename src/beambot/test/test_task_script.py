@@ -1,11 +1,12 @@
 """Task-script validation tests."""
 
 import json
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
 
-from beambot.core.task_script import parse_task_script
+from beambot.core.task_script import moveto_goal_error, parse_task_script
 
 
 GRIPPERS = {"epick": {}}
@@ -33,6 +34,16 @@ def _parse(document, *, dry_run=False):
     )
 
 
+def _moveto_error(task):
+    return moveto_goal_error(
+        target=task.get("target", ""),
+        direction=task.get("direction", ""),
+        distance=task.get("distance", 0.0),
+        cartesian_target=task.get("cartesian_target", ()),
+        planning_type=task.get("planning_type", ""),
+    )
+
+
 @pytest.mark.parametrize(
     ("document", "path"),
     [
@@ -43,7 +54,10 @@ def _parse(document, *, dry_run=False):
         ({"start_gripper": "epick", "tasks": "moveto"}, "tasks"),
         ({"start_gripper": "epick", "tasks": []}, "tasks"),
         (
-            {"start_gripper": "epick", "tasks": [{"task_type": "moveto"}, 3]},
+            {
+                "start_gripper": "epick",
+                "tasks": [{"task_type": "moveto", "target": "home"}, 3],
+            },
             "tasks[1]",
         ),
         (
@@ -53,7 +67,10 @@ def _parse(document, *, dry_run=False):
         (
             {
                 "start_gripper": "epick",
-                "tasks": [{"task_type": "moveto"}, {"task_type": "unknown"}],
+                "tasks": [
+                    {"task_type": "moveto", "target": "home"},
+                    {"task_type": "unknown"},
+                ],
             },
             "tasks[1].task_type",
         ),
@@ -68,11 +85,86 @@ def test_invalid_document_is_a_path_specific_value_error(document, path):
 
 @pytest.mark.parametrize("task_type", SUPPORTED_TYPES)
 def test_live_run_accepts_supported_task_types(task_type):
-    _, tasks, _, _ = _parse(
-        {"start_gripper": "epick", "tasks": [{"task_type": task_type}]}
-    )
+    task = {"task_type": task_type}
+    if task_type == "moveto":
+        task["target"] = "home"
+    _, tasks, _, _ = _parse({"start_gripper": "epick", "tasks": [task]})
 
     assert tasks[0]["task_type"] == task_type
+
+
+@pytest.mark.parametrize(
+    "goal",
+    [
+        {"target": "home"},
+        {"target": "home", "planning_type": "auto"},
+        {"target": "home", "planning_type": "joint"},
+        {"direction": "backward", "distance": 0.1, "planning_type": "cartesian"},
+        {"cartesian_target": [0.3, -0.2, 0.15], "planning_type": "pilz"},
+        {
+            "cartesian_target": [0.3, -0.2, 0.15, 180, 0, 0],
+            "planning_type": "pilz_ptp",
+        },
+    ],
+)
+def test_valid_moveto_goal_modes(goal):
+    assert moveto_goal_error(**goal) is None
+
+
+@pytest.mark.parametrize(
+    ("goal", "message"),
+    [
+        ({}, "exactly one"),
+        (
+            {"target": "home", "direction": "backward", "distance": 0.1},
+            "exactly one",
+        ),
+        (
+            {"direction": "backward", "distance": 0.1, "cartesian_target": [0, 0, 0]},
+            "exactly one",
+        ),
+        ({"direction": "backward"}, "distance"),
+        ({"distance": 0.1}, "direction"),
+        ({"direction": "diagonal", "distance": 0.1}, "direction"),
+        ({"direction": "backward", "distance": 0.0}, "distance"),
+        ({"direction": "backward", "distance": -0.1}, "distance"),
+        ({"direction": "backward", "distance": float("nan")}, "distance"),
+        ({"direction": "backward", "distance": float("inf")}, "distance"),
+        ({"cartesian_target": [0, 0, 0, 0]}, "cartesian_target"),
+        ({"cartesian_target": [0, 0, float("nan")]}, "cartesian_target"),
+        ({"cartesian_target": [0, 0, float("inf")]}, "cartesian_target"),
+        ({"planning_type": "unknown", "target": "home"}, "planning_type"),
+        ({"target": "   "}, "target"),
+    ],
+)
+def test_invalid_moveto_goals(goal, message):
+    assert message in moveto_goal_error(**goal)
+
+
+def test_task_script_rejects_ambiguous_moveto():
+    with pytest.raises(ValueError, match=r"tasks\[0\].*exactly one"):
+        _parse(
+            {
+                "start_gripper": "epick",
+                "tasks": [
+                    {
+                        "task_type": "moveto",
+                        "target": "home",
+                        "direction": "backward",
+                        "distance": 0.1,
+                    }
+                ],
+            }
+        )
+
+
+def test_checked_in_moveto_tasks_satisfy_contract():
+    cms = Path(__file__).parents[3] / "src" / "cms"
+    for path in cms.rglob("*.json"):
+        document = json.loads(path.read_text())
+        for index, task in enumerate(document.get("tasks", [])):
+            if task.get("task_type") == "moveto":
+                assert _moveto_error(task) is None, f"{path}: tasks[{index}]"
 
 
 def test_dry_run_remains_limited_to_moveto_and_end_effector():
@@ -96,7 +188,7 @@ def test_unknown_final_task_has_zero_robot_side_effects():
                 {
                     "start_gripper": "epick",
                     "tasks": [
-                        {"task_type": "moveto"},
+                        {"task_type": "moveto", "target": "home"},
                         {"task_type": "vision_scan"},
                         {"task_type": "unknown"},
                     ],
