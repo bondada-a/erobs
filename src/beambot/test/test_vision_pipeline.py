@@ -132,6 +132,27 @@ def test_collision_object_removal_is_one_idempotent_remove_request():
     vision._apply_collision_object.assert_called_once()
 
 
+def test_flange_offset_fails_instead_of_returning_unshifted_pose():
+    from beambot.pipeline.vision_engine import VisionEngine
+
+    vision = VisionEngine.__new__(VisionEngine)
+    with pytest.raises(ValueError, match="Unknown flange offset direction"):
+        vision._apply_flange_offset(object(), "sideways", 0.1)
+
+
+def test_flange_offset_fails_when_tf_is_unavailable():
+    from tf2_ros import TransformException
+
+    from beambot.pipeline.vision_engine import VisionEngine
+
+    vision = VisionEngine.__new__(VisionEngine)
+    vision._tf_buffer = MagicMock()
+    vision._tf_buffer.lookup_transform.side_effect = TransformException("missing")
+
+    with pytest.raises(RuntimeError, match="Failed to look up flange TF"):
+        vision._apply_flange_offset(object(), "forward", 0.1)
+
+
 def test_cartesian_target_carries_pose_and_frame():
     """The only v1 motion variant: a pose + ik_frame, tagged 'cartesian'."""
     sentinel = object()
@@ -354,6 +375,40 @@ def test_invalid_sample_roi_config_stops_before_detection_and_motion(
     assert err is not None and "PIPELINE_CONFIG_ERROR" in err
     assert not hasattr(fake, "sample_roi_calls")
     assert not getattr(fake, "named_stages", [])
+
+
+def test_invalid_flange_offset_stops_before_detection_and_motion():
+    fake = _FakeVision()
+    stages = _make_stages(fake)
+    err = stages.run(
+        _goal(
+            offset_direction="sideways",
+            offset_distance=0.1,
+            scan_pose="sample_scan",
+            poses_json='{"sample_scan": [0, 0, 0, 0, 0, 0]}',
+        )
+    )
+
+    assert err is not None and "PIPELINE_CONFIG_ERROR" in err
+    assert not getattr(fake, "named_stages", [])
+    assert fake.moved_to is None
+
+
+@pytest.mark.parametrize("stage_name", ["PickSampleStages", "PlaceSampleStages"])
+def test_legacy_sample_actions_reject_invalid_flange_offset(stage_name):
+    from beambot.stages import pick_sample_stages, place_sample_stages
+
+    stage_type = getattr(
+        pick_sample_stages if stage_name == "PickSampleStages" else place_sample_stages,
+        stage_name,
+    )
+    stage = stage_type.__new__(stage_type)
+
+    error = stage.run(
+        types.SimpleNamespace(offset_direction="sideways", offset_distance=0.1)
+    )
+
+    assert "Unknown flange offset direction" in error
 
 
 def test_scan_positions_parsed_when_valid():
