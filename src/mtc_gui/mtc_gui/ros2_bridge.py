@@ -60,6 +60,7 @@ class ROS2Bridge(QObject):
     action_feedback_received = pyqtSignal(float, int, str, str, str)  # progress, step, action, gripper, msg
     action_result_received = pyqtSignal(int, str, int, int)  # status, error_msg, completed, total
     preview_trajectory_received = pyqtSignal(list, list)  # joint_names, waypoints[(positions, t_from_start_sec)]
+    execution_state_changed = pyqtSignal(str)
     log = pyqtSignal(str)                        # thread-safe logging
 
     def __init__(self, parent=None):
@@ -96,6 +97,12 @@ class ROS2Bridge(QObject):
                                      reliability=ReliabilityPolicy.RELIABLE)
             self.node.create_subscription(
                 RosString, "/beambot/current_gripper", self._on_gripper, latched_qos)
+            self.node.create_subscription(
+                RosString,
+                "/beambot/execution_state",
+                lambda msg: self.execution_state_changed.emit(msg.data),
+                10,
+            )
 
             # Dry-run preview trajectory: latched so the GUI sees the latest
             # preview even if it subscribes after the orchestrator publishes.

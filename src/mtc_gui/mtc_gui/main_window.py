@@ -647,6 +647,7 @@ class MTCMainWindow(QMainWindow):
         self.ros2.joint_state_received.connect(self._on_joint_state)
         self.ros2.action_feedback_received.connect(self._on_feedback)
         self.ros2.action_result_received.connect(self._on_result)
+        self.ros2.execution_state_changed.connect(self._on_execution_state)
 
         # 3D visualization panel
         if WEBENGINE_AVAILABLE and hasattr(self, "viz_panel"):
@@ -943,13 +944,18 @@ class MTCMainWindow(QMainWindow):
         self._last_goal_was_dry_run = dry_run
         self.exec_btn.setEnabled(False)
         self.stop_btn.setEnabled(True)
-        self.pause_btn.setEnabled(not dry_run)
         self.task_toolbar.setEnabled(False)
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(True)
         self.step_list.start_execution(len(self.config["tasks"]))
 
         self.ros2.execute_task(json.dumps(self.config), dry_run=dry_run)
+
+    def _on_execution_state(self, state):
+        self.pause_btn.setEnabled(
+            state == "RUNNING" and not self._last_goal_was_dry_run
+        )
+        self.resume_btn.setEnabled(state == "PAUSED")
 
     def _on_feedback(self, progress, step, action, gripper, msg):
         self.progress_bar.setValue(int(progress))
@@ -963,6 +969,7 @@ class MTCMainWindow(QMainWindow):
         self.resume_btn.setEnabled(False)
         self.task_toolbar.setEnabled(True)
         was_dry_run = self._last_goal_was_dry_run
+        self._last_goal_was_dry_run = False
 
         if status == GoalStatus.STATUS_SUCCEEDED:
             self.progress_bar.setValue(100)
