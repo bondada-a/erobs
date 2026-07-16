@@ -54,10 +54,7 @@ def _build_task_defaults(beamline_config: dict) -> dict:
     actuated = [g for g, c in grippers.items() if c.get("states")]
 
     default_tool_gripper = swappable[0] if swappable else ""
-    default_dock = (
-        grippers.get(default_tool_gripper, {}).get("dock_number", 0)
-        if default_tool_gripper else 0
-    )
+    default_dock = beamline_config.get("tool_exchange", {}).get("reference_dock", 1)
     default_ee_gripper = actuated[0] if actuated else ""
     default_ee_action = (
         grippers.get(default_ee_gripper, {}).get("states", {}).get("grasp", "")
