@@ -125,7 +125,6 @@
   "tasks": [
     {
       "task_type": "moveto",
-      "target": "moveit_home",
       "planning_type": "cartesian",
       "direction": "forward",
       "distance": 0.03
@@ -137,7 +136,6 @@
     },
     {
       "task_type": "moveto",
-      "target": "moveit_home",
       "planning_type": "cartesian",
       "direction": "backward",
       "distance": 0.05

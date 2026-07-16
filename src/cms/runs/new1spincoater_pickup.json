@@ -130,7 +130,6 @@
     },
     {
       "task_type": "moveto",
-      "target": "moveit_home",
       "planning_type": "joint",
       "direction": "forward",
       "distance": 0.003
@@ -147,7 +146,6 @@
     },
     {
       "task_type": "moveto",
-      "target": "moveit_home",
       "planning_type": "joint",
       "direction": "backward",
       "distance": 0.047
