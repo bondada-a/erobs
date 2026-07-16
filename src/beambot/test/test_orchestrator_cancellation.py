@@ -6,6 +6,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock
 
 import pytest
+from action_msgs.msg import GoalStatus
 from moveit_task_constructor_msgs.msg import Solution
 from rclpy.action import GoalResponse
 
@@ -44,6 +45,7 @@ def make_orchestrator(states):
     server._faulted = False
     server._lock = threading.Lock()
     server._grippers = {"epick": {}}
+    server._vision_targets = {}
     server._poses_file = "/nonexistent"
     server._current_gripper = "unknown"
     server._enable_batching = True
@@ -147,19 +149,24 @@ def test_failed_active_task_while_canceling_latches_fault():
 def test_missing_child_terminal_result_latches_fault(monkeypatch):
     server = MTCOrchestratorServer.__new__(MTCOrchestratorServer)
     server._faulted = False
+    server._publish_state = Mock()
     server.get_logger = lambda: Mock()
 
+    result_future = SimpleNamespace(done=lambda: False)
+    cancel_future = SimpleNamespace(
+        result=lambda: SimpleNamespace(goals_canceling=[])
+    )
     child_goal = SimpleNamespace(
         accepted=True,
-        get_result_async=Mock(return_value=object()),
-        cancel_goal_async=Mock(),
+        get_result_async=Mock(return_value=result_future),
+        cancel_goal_async=Mock(return_value=cancel_future),
     )
     send_future = SimpleNamespace(result=lambda: child_goal)
     client = SimpleNamespace(
         wait_for_server=lambda timeout_sec: True,
         send_goal_async=lambda _goal: send_future,
     )
-    completions = iter((True, False))
+    completions = iter((True, False, True))
     monkeypatch.setattr(
         orchestrator_module, "wait_for_future", lambda *_args, **_kwargs: next(completions)
     )
@@ -167,6 +174,100 @@ def test_missing_child_terminal_result_latches_fault(monkeypatch):
     assert not server._send_and_wait(client, object(), "child", 1.0)
     assert server._faulted
     child_goal.cancel_goal_async.assert_called_once_with()
+    server._publish_state.assert_called_once_with("CANCELING")
+
+
+def test_end_to_end_deadline_shrinks_across_action_admission(monkeypatch):
+    server = MTCOrchestratorServer.__new__(MTCOrchestratorServer)
+    server._faulted = False
+    server.get_logger = lambda: Mock()
+
+    now = [2.0]
+    server_waits = []
+    future_waits = []
+    monkeypatch.setattr(orchestrator_module.time, "monotonic", lambda: now[0])
+
+    result_future = SimpleNamespace(
+        result=lambda: SimpleNamespace(result=SimpleNamespace(success=True))
+    )
+    child_goal = SimpleNamespace(
+        accepted=True,
+        get_result_async=lambda: result_future,
+    )
+    send_future = SimpleNamespace(result=lambda: child_goal)
+
+    def wait_for_server(timeout_sec):
+        server_waits.append(timeout_sec)
+        now[0] += 1.0
+        return True
+
+    def wait_for_future(future, timeout):
+        future_waits.append(timeout)
+        if future is send_future:
+            now[0] += 2.0
+        return True
+
+    client = SimpleNamespace(
+        wait_for_server=wait_for_server,
+        send_goal_async=lambda _goal: send_future,
+    )
+    monkeypatch.setattr(orchestrator_module, "wait_for_future", wait_for_future)
+    goal = SimpleNamespace(timeout=10.0)
+
+    assert server._send_and_wait(
+        client, goal, "vision_task", 10.0, deadline=10.0
+    )
+    assert server_waits == pytest.approx([8.0])
+    assert goal.timeout == pytest.approx(7.0)
+    assert future_waits == pytest.approx([7.0, 5.0])
+
+
+@pytest.mark.parametrize(
+    ("status", "child_error", "faulted"),
+    [
+        (GoalStatus.STATUS_CANCELED, "CANCELED: stage=execution", False),
+        (GoalStatus.STATUS_ABORTED, "CANCELED: stage=execution", True),
+        (GoalStatus.STATUS_CANCELED, "EXECUTION_FAILED: controller", True),
+    ],
+)
+def test_timeout_waits_for_accepted_child_cancellation(
+    monkeypatch, status, child_error, faulted
+):
+    server = MTCOrchestratorServer.__new__(MTCOrchestratorServer)
+    server._faulted = False
+    server._publish_state = Mock()
+    server.get_logger = lambda: Mock()
+
+    completions = iter((True, False, True))
+    monkeypatch.setattr(
+        orchestrator_module,
+        "wait_for_future",
+        lambda *_args, **_kwargs: next(completions),
+    )
+    done = iter((False, True))
+    result_future = SimpleNamespace(
+        done=lambda: next(done),
+        result=lambda: SimpleNamespace(
+            status=status,
+            result=SimpleNamespace(error_message=child_error),
+        ),
+    )
+    cancel_future = SimpleNamespace(
+        result=lambda: SimpleNamespace(goals_canceling=[object()])
+    )
+    child_goal = SimpleNamespace(
+        accepted=True,
+        get_result_async=lambda: result_future,
+        cancel_goal_async=lambda: cancel_future,
+    )
+    client = SimpleNamespace(
+        wait_for_server=lambda timeout_sec: True,
+        send_goal_async=lambda _goal: SimpleNamespace(result=lambda: child_goal),
+    )
+
+    assert not server._send_and_wait(client, object(), "child", 1.0)
+    assert server._faulted is faulted
+    server._publish_state.assert_called_once_with("CANCELING")
 
 
 def test_unknown_moveit_goal_acceptance_is_not_safe_to_retry(monkeypatch):

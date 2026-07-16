@@ -9,7 +9,7 @@ import traceback
 
 import rclpy
 from rclpy.action import ActionServer, GoalResponse
-from rclpy.action.server import ServerGoalHandle
+from rclpy.action.server import CancelResponse, ServerGoalHandle
 from rclpy.executors import MultiThreadedExecutor
 from rclpy.node import Node
 
@@ -22,24 +22,30 @@ class BaseActionServer(Node):
     failure. Optionally override _execute() for custom goal handling.
     """
 
-    def __init__(self, node_name: str, action_name: str, action_type):
+    def __init__(
+        self,
+        node_name: str,
+        action_name: str,
+        action_type,
+        *,
+        accept_cancel: bool = False,
+    ):
         super().__init__(node_name)
 
         self._executing = False
         self._lock = threading.Lock()
         self._action_type = action_type
+        self._accept_cancel = accept_cancel
 
         self._stages = self.create_stages()
 
-        # Note: cancel_callback is omitted - defaults to REJECT. Individual action
-        # servers cannot safely cancel mid-execution (MTC/MoveIt is controlling the
-        # robot). Cancellation is handled at the orchestrator level (between tasks).
         self._action_server = ActionServer(
             self,
             action_type,
             action_name,
             execute_callback=self._execute_callback,
             goal_callback=self._goal_callback,
+            cancel_callback=self._cancel_callback,
         )
 
         self.get_logger().info(f"{node_name} started on '{action_name}'")
@@ -62,12 +68,21 @@ class BaseActionServer(Node):
         self.get_logger().info("Received goal request")
         return GoalResponse.ACCEPT
 
+    def _cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
+        """Accept only servers that cooperatively stop between hardware units."""
+        return (
+            CancelResponse.ACCEPT if self._accept_cancel else CancelResponse.REJECT
+        )
+
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute goal with error handling and state management."""
         try:
             result = self._execute(goal_handle)
 
-            if result.success:
+            if goal_handle.is_cancel_requested:
+                goal_handle.canceled()
+                self.get_logger().info("Goal canceled after active execution unit")
+            elif result.success:
                 goal_handle.succeed()
                 self.get_logger().info("Goal succeeded")
             else:

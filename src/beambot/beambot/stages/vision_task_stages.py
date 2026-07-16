@@ -18,8 +18,9 @@ Wires three migrations:
 import json
 import math
 import threading
+import time
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
@@ -38,12 +39,22 @@ class VisionTaskContext:
 
     goal: Any
     vision: VisionEngine
+    started_at: float = 0.0
+    deadline: float = float("inf")
+    cancel_requested: Callable[[], bool] = field(
+        default=lambda: False, repr=False
+    )
     scan_positions: list | None = None
     # Set by a goal_computer when detect_only short-circuits; read back by run().
     detect_only_pose: Any = field(default=None)
     # Set by a goal_computer to report a hard failure (distinct from a None
     # target meaning "cache-only / detect_only, succeed without moving").
     error: str | None = field(default=None)
+
+    def remaining(self) -> float:
+        if self.cancel_requested():
+            return 0.0
+        return max(0.0, self.deadline - time.monotonic())
 
 
 class VisionTaskStages:
@@ -57,18 +68,43 @@ class VisionTaskStages:
         self.last_detected_pose = None
         self.vacuum_ok = True
         self.goal = None  # current goal, set per-run for executor helpers
+        self._started_at = 0.0
+        self._deadline = 0.0
+        self._cancel_requested = lambda: False
+
+    def _remaining(self) -> float:
+        return max(0.0, self._deadline - time.monotonic())
+
+    def _stop_error(self, stage: str) -> "str | None":
+        if self._cancel_requested():
+            return f"CANCELED: stage={stage}"
+        remaining = self._remaining()
+        if remaining > 0:
+            return None
+        return (
+            f"TIMEOUT: stage={stage} "
+            f"elapsed={time.monotonic() - self._started_at:.3f}s "
+            f"remaining={remaining:.3f}s"
+        )
 
     # ----- TF reset passthrough (parity with VisionActionServer) -------------
     def reset_tf(self):
         self._vision.reset_tf()
 
     # ----- pipeline ----------------------------------------------------------
-    def run(self, goal) -> "str | None":
+    def run(
+        self, goal, cancel_requested: Callable[[], bool] | None = None
+    ) -> "str | None":
         """Execute the pipeline. Returns None on success, an error string else."""
         self.last_detected_pose = None
         self.vacuum_ok = True
         self.goal = goal
+        self._cancel_requested = cancel_requested or (lambda: False)
         vision = self._vision
+        if not math.isfinite(goal.timeout) or goal.timeout <= 0:
+            return "PIPELINE_CONFIG_ERROR: timeout must be positive and finite"
+        self._started_at = time.monotonic()
+        self._deadline = self._started_at + float(goal.timeout)
 
         error = flange_offset_error(
             direction=goal.offset_direction,
@@ -99,8 +135,12 @@ class VisionTaskStages:
         # Stage 0a: optional pre-scan move (pick/place fuse open-gripper + move
         # to scan pose here; vision_moveto/spincoater leave scan_pose empty
         # because the orchestrator already positioned the arm).
+        if error := self._stop_error("move_to_scan"):
+            return error
         error = self._move_to_scan(goal)
         if error is not None:
+            return error
+        if error := self._stop_error("move_to_scan"):
             return error
 
         # Stage 0b: settle (vibration damping before capture).
@@ -108,12 +148,18 @@ class VisionTaskStages:
             self.logger.info(
                 f"Waiting {vision._settle_time:.2f}s for robot to settle..."
             )
-            import time
-
-            time.sleep(vision._settle_time)
+            time.sleep(min(vision._settle_time, self._remaining()))
+            if error := self._stop_error("settle"):
+                return error
             self.logger.info("Settle complete, starting detection")
 
-        ctx = VisionTaskContext(goal=goal, vision=vision)
+        ctx = VisionTaskContext(
+            goal=goal,
+            vision=vision,
+            started_at=self._started_at,
+            deadline=self._deadline,
+            cancel_requested=self._cancel_requested,
+        )
         ctx.scan_positions = self._parse_scan_positions(goal)
 
         # Stage 1: DETECT (plugin)
@@ -124,7 +170,11 @@ class VisionTaskStages:
         except KeyError as e:
             return f"PIPELINE_CONFIG_ERROR: {e}"
 
+        if error := self._stop_error("detection"):
+            return error
         detection = detector(ctx)
+        if error := self._stop_error("detection"):
+            return error
         if detection is None:
             return (
                 f"DETECTION_FAILED: detector '{detector_name}' found nothing "
@@ -132,7 +182,11 @@ class VisionTaskStages:
             )
 
         # Stage 2: COMPUTE-GOAL (plugin) -> MotionTarget | None
+        if error := self._stop_error("target_computation"):
+            return error
         target = goal_computer(detection, ctx)
+        if error := self._stop_error("target_computation"):
+            return error
 
         if ctx.error is not None:
             return f"GOAL_COMPUTE_FAILED: {ctx.error}"
@@ -144,15 +198,24 @@ class VisionTaskStages:
             return None  # cache-only / nothing to execute
 
         # Stage 3: EXECUTE — one dispatch over the MotionTarget union.
+        if error := self._stop_error("execution"):
+            return error
         error = self._execute_motion_target(target)
         if error is not None:
+            if stop_error := self._stop_error("execution"):
+                if "TIMEOUT:" in error or "CANCELED:" in error:
+                    return stop_error
+            return error
+        if error := self._stop_error("execution"):
             return error
 
         # Stage 4: post-grasp vacuum check (pick only — when a grasp happened on
         # an ePick). Mirrors PickSampleStages: never aborts, just reports.
         if isinstance(target, CartesianTarget) and target.grasp_state:
-            self.vacuum_ok = self._check_vacuum()
+            self.vacuum_ok = self._check_vacuum(self._remaining())
             self.logger.info(f"vacuum_ok={self.vacuum_ok}")
+            if error := self._stop_error("vacuum_check"):
+                return error
         return None
 
     def _execute_motion_target(self, target) -> "str | None":
@@ -190,7 +253,13 @@ class VisionTaskStages:
         if stage is None:
             return "PIPELINE_ERROR: failed to build joint move stage"
         task.add(stage)
-        error = vision.load_plan_execute(task)
+        if error := self._stop_error("corrected_joint_move"):
+            return error
+        error = vision.load_plan_execute(
+            task,
+            deadline=self._deadline,
+            cancel_requested=self._cancel_requested,
+        )
         if error:
             return f"corrected joint move failed: {error}"
 
@@ -204,7 +273,13 @@ class VisionTaskStages:
                 target.forward_distance,
             )
             fwd_task.add(fwd_stage)
-            error = vision.load_plan_execute(fwd_task)
+            if error := self._stop_error("forward_move"):
+                return error
+            error = vision.load_plan_execute(
+                fwd_task,
+                deadline=self._deadline,
+                cancel_requested=self._cancel_requested,
+            )
             if error:
                 return f"forward move failed: {error}"
 
@@ -220,7 +295,13 @@ class VisionTaskStages:
             )
             if term_stage:
                 term_task.add(term_stage)
-                error = vision.load_plan_execute(term_task)
+                if error := self._stop_error("terminal_action"):
+                    return error
+                error = vision.load_plan_execute(
+                    term_task,
+                    deadline=self._deadline,
+                    cancel_requested=self._cancel_requested,
+                )
                 if error:
                     return f"terminal action failed: {error}"
 
@@ -247,10 +328,19 @@ class VisionTaskStages:
         # Bare approach (vision_moveto): no gripper, no retreat — delegate to the
         # exact existing path so behavior is byte-for-byte unchanged.
         if not target.grasp_state and not target.retreat_pose_key:
-            return vision._move_to_approach(target.pose, ik_frame=target.ik_frame)
+            return vision._move_to_approach(
+                target.pose,
+                ik_frame=target.ik_frame,
+                timeout=self._remaining(),
+                cancel_requested=self._cancel_requested,
+            )
 
         # Fused task: approach + gripper + retreat (pick/place).
-        joint_goal = vision.compute_deterministic_ik(target.pose, target.ik_frame)
+        joint_goal = vision.compute_deterministic_ik(
+            target.pose, target.ik_frame, timeout=self._remaining()
+        )
+        if error := self._stop_error("inverse_kinematics"):
+            return error
         task = vision.create_task_template("Vision Task Grasp")
 
         approach_fb = core.Fallbacks("approach")
@@ -295,7 +385,13 @@ class VisionTaskStages:
                 )
             task.add(retreat)
 
-        return vision.load_plan_execute(task)
+        if error := self._stop_error("execution"):
+            return error
+        return vision.load_plan_execute(
+            task,
+            deadline=self._deadline,
+            cancel_requested=self._cancel_requested,
+        )
 
     def _move_to_scan(self, goal) -> "str | None":
         """Optional pre-detection move: open gripper (pick) then move to scan.
@@ -341,10 +437,16 @@ class VisionTaskStages:
         if not scan_stage:
             return f"Pose '{scan_pose}' not found or invalid (scan position)"
         task.add(scan_stage)
-        error = vision.load_plan_execute(task)
+        if error := self._stop_error("move_to_scan"):
+            return error
+        error = vision.load_plan_execute(
+            task,
+            deadline=self._deadline,
+            cancel_requested=self._cancel_requested,
+        )
         return f"Position failed: {error}" if error else None
 
-    def _check_vacuum(self) -> bool:
+    def _check_vacuum(self, timeout: float = 1.0) -> bool:
         """Lifted from PickSampleStages: one-shot /object_detection_status read.
 
         Returns True if an object is detected or no ePick is connected.
@@ -367,7 +469,7 @@ class VisionTaskStages:
             _on_status,
             10,
         )
-        event.wait(timeout=1.0)
+        event.wait(timeout=min(1.0, max(0.0, timeout)))
         self.rclpy_node.destroy_subscription(sub)
 
         if msg_holder[0] is None:

@@ -132,7 +132,6 @@
       "task_type": "vision_moveto",
       "detection_type": "marker",
       "tag_id": 0,
-      "timeout": 10.0,
       "z_offset": 0.0,
       "marker_dictionary": "aruco4x4_50",
       "detect_only": false,

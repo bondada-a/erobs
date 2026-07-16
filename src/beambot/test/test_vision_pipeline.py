@@ -153,6 +153,72 @@ def test_flange_offset_fails_when_tf_is_unavailable():
         vision._apply_flange_offset(object(), "forward", 0.1)
 
 
+def test_detection_retries_share_one_deadline(monkeypatch):
+    from beambot.camera import DetectionResult
+    from beambot.pipeline import vision_engine
+
+    now = [0.0]
+    budgets = []
+    monkeypatch.setattr(vision_engine.time, "monotonic", lambda: now[0])
+    monkeypatch.setattr(
+        vision_engine.time, "sleep", lambda seconds: now.__setitem__(0, now[0] + seconds)
+    )
+
+    vision = vision_engine.VisionEngine.__new__(vision_engine.VisionEngine)
+    vision._retry_count = 3
+    vision._retry_delay = 0.5
+    vision._settle_time = 0.0
+    vision._capture_client = object()
+    vision.rclpy_node = object()
+    vision._marker_dictionary = "aruco4x4_50"
+    vision.logger = MagicMock()
+
+    def detect_markers(*_args, timeout, **_kwargs):
+        budgets.append(timeout)
+        now[0] += 2.0
+        return DetectionResult(markers=[], capture_stamp=None)
+
+    vision._camera = types.SimpleNamespace(detect_markers=detect_markers)
+
+    assert vision.detect_and_transform_tag(5, 10.0, deadline=10.0) is None
+    assert budgets == pytest.approx([10.0, 7.5, 5.0, 2.5])
+    assert budgets == sorted(budgets, reverse=True)
+
+
+def test_multiposition_stops_starting_motion_at_deadline(monkeypatch):
+    from beambot.pipeline import vision_engine
+
+    now = [0.0]
+    moves = []
+    monkeypatch.setattr(vision_engine.time, "monotonic", lambda: now[0])
+
+    vision = vision_engine.VisionEngine.__new__(vision_engine.VisionEngine)
+    vision.logger = MagicMock()
+
+    def move(joints, **_kwargs):
+        moves.append(joints)
+        now[0] += 3.0
+        return True
+
+    def detect(*_args, **_kwargs):
+        now[0] += 2.0
+        return None
+
+    vision._move_to_joint_pose = move
+    vision.detect_and_transform_tag = detect
+
+    result = vision.detect_tag_multiposition(
+        5,
+        [[0.0] * 6, [1.0] * 6],
+        timeout=5.0,
+        settle_time=0.0,
+        deadline=5.0,
+    )
+
+    assert result is None
+    assert moves == [[0.0] * 6]
+
+
 def test_cartesian_target_carries_pose_and_frame():
     """The only v1 motion variant: a pose + ik_frame, tagged 'cartesian'."""
     sentinel = object()
@@ -189,7 +255,7 @@ class _FakeVision:
     def get_cached_pose(self, tag_id):
         return None
 
-    def detect_and_transform_tag(self, tag_id, timeout):
+    def detect_and_transform_tag(self, tag_id, timeout, **_kwargs):
         return self.detect_return
 
     def detect_and_transform_sample_roi(self, **kwargs):
@@ -200,18 +266,18 @@ class _FakeVision:
     def compute_approach_pose(self, detection, z_offset, **kw):
         return self.approach_return
 
-    def _apply_flange_offset(self, approach, direction, distance):
+    def _apply_flange_offset(self, approach, direction, distance, **_kwargs):
         return approach
 
     # cartesian executor delegate (bare approach path)
-    def _move_to_approach(self, pose, ik_frame=""):
+    def _move_to_approach(self, pose, ik_frame="", **_kwargs):
         self.moved_to = (pose, ik_frame)
         return None  # success
 
     # fused-task executor delegates (pick/place grasp+retreat path)
     arm_group = "ur_arm"
 
-    def compute_deterministic_ik(self, pose, ik_frame):
+    def compute_deterministic_ik(self, pose, ik_frame, **_kwargs):
         return {"shoulder_pan_joint": 0.0}  # non-None -> PTP arm added
 
     def make_pilz_planner(self, mode):
@@ -249,7 +315,7 @@ class _FakeVision:
         self.named_stages.append((label, pose_key))
         return object()  # non-None stage
 
-    def load_plan_execute(self, task):
+    def load_plan_execute(self, task, **_kwargs):
         return None  # success
 
 
@@ -272,6 +338,9 @@ def _make_stages(fake):
     s.last_detected_pose = None
     s.vacuum_ok = True
     s.goal = None
+    s._started_at = 0.0
+    s._deadline = float("inf")
+    s._cancel_requested = lambda: False
     return s
 
 
@@ -344,6 +413,30 @@ def test_run_unknown_detector_is_config_error():
     stages = _make_stages(fake)
     err = stages.run(_goal(detector="bogus"))
     assert err is not None and "PIPELINE_CONFIG_ERROR" in err
+    assert fake.moved_to is None
+
+
+def test_run_rejects_nonpositive_timeout():
+    stages = _make_stages(_FakeVision())
+    assert stages.run(_goal(timeout=0.0)).startswith("PIPELINE_CONFIG_ERROR")
+
+
+def test_cancel_after_detection_prevents_motion():
+    canceled = [False]
+    fake = _FakeVision()
+    original_detect = fake.detect_and_transform_tag
+
+    def detect(*args, **kwargs):
+        result = original_detect(*args, **kwargs)
+        canceled[0] = True
+        return result
+
+    fake.detect_and_transform_tag = detect
+    stages = _make_stages(fake)
+
+    error = stages.run(_goal(), cancel_requested=lambda: canceled[0])
+
+    assert error == "CANCELED: stage=detection"
     assert fake.moved_to is None
 
 
@@ -540,6 +633,7 @@ def test_approach_pose_bare_when_no_terminal():
         vision=_FakeVision(),
         error=None,
         detect_only_pose=None,
+        remaining=lambda: 5.0,
     )
     target = compute_approach_pose("DET", ctx)
     assert isinstance(target, CartesianTarget)
@@ -563,6 +657,7 @@ def test_approach_pose_carries_grasp_tail_for_pick():
         vision=_FakeVision(),
         error=None,
         detect_only_pose=None,
+        remaining=lambda: 5.0,
     )
     target = compute_approach_pose("DET", ctx)
     assert target.grasp_state == "vacuum_on"  # resolved via gripper_states_json
@@ -700,6 +795,7 @@ def _orchestrator():
 
     o = MTCOrchestratorServer.__new__(MTCOrchestratorServer)
     o._current_gripper = "epick"
+    o._timeouts = {"vision_task": 60.0}
     o._grippers = {
         "epick": {
             "gripper_group": "epick_gripper",
@@ -733,6 +829,7 @@ def test_preset_pick_sample_expands_to_grasp_goal():
     assert g.terminal_action == "grasp"
     assert g.tag_id == 5
     assert g.pre_open is True
+    assert g.timeout == pytest.approx(60.0)
     assert g.gripper_group == "epick_gripper"
     assert g.retreat_pose == ""  # retreat_from_scan but no scan_pose given here
 

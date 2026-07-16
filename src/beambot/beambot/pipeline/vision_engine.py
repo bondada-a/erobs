@@ -21,6 +21,7 @@ are retired so the split isn't done on hardware-unverified paths.
 import math
 import time
 from dataclasses import dataclass
+from typing import Callable
 
 import numpy as np
 import rclpy
@@ -63,6 +64,20 @@ class GripperDetection:
 
     ik_frame: str
     z_offset: float
+
+
+def _remaining(
+    deadline: float | None,
+    timeout: float,
+    cancel_requested: Callable[[], bool] | None = None,
+) -> float:
+    if cancel_requested is not None and cancel_requested():
+        return 0.0
+    return (
+        max(0.0, deadline - time.monotonic())
+        if deadline is not None
+        else timeout
+    )
 
 
 class VisionEngine(BaseStages):
@@ -352,7 +367,12 @@ class VisionEngine(BaseStages):
     # hardcoded pick/place paths). It is no longer a task "stage".
 
     def detect_and_transform_tag(
-        self, tag_id: int, timeout: float = 45.0
+        self,
+        tag_id: int,
+        timeout: float = 45.0,
+        *,
+        deadline: float | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
     ) -> PoseStamped | None:
         """Detect an ArUco marker and transform to base_link frame.
 
@@ -369,18 +389,30 @@ class VisionEngine(BaseStages):
         last_error = "Unknown error"
 
         for attempt in range(total_attempts):
+            attempt_timeout = _remaining(deadline, timeout, cancel_requested)
+            if attempt_timeout <= 0:
+                break
+
             if attempt > 0:
                 self.logger.info(
                     f"Retry {attempt}/{self._retry_count} for tag {tag_id} "
                     f"(waiting {self._retry_delay}s...)"
                 )
-                time.sleep(self._retry_delay)
+                time.sleep(min(self._retry_delay, attempt_timeout))
+                attempt_timeout = _remaining(deadline, timeout, cancel_requested)
+                if attempt_timeout <= 0:
+                    break
 
-            result = self._single_detection_attempt(tag_id, timeout)
+            result = self._single_detection_attempt(tag_id, attempt_timeout)
 
             if result is not None:
                 # Success - process the detection
-                pose_base = self._process_detection_result(tag_id, result)
+                pose_base = self._process_detection_result(
+                    tag_id,
+                    result,
+                    deadline=deadline,
+                    cancel_requested=cancel_requested,
+                )
                 if pose_base is not None:
                     if attempt > 0:
                         self.logger.info(f"Tag {tag_id} detected on retry {attempt}")
@@ -426,7 +458,12 @@ class VisionEngine(BaseStages):
         return result
 
     def _process_detection_result(
-        self, tag_id: int, detection_result: DetectionResult
+        self,
+        tag_id: int,
+        detection_result: DetectionResult,
+        *,
+        deadline: float | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
     ) -> PoseStamped | None:
         """Process detection result and transform to base_link.
 
@@ -440,6 +477,8 @@ class VisionEngine(BaseStages):
         Returns:
             PoseStamped in base_link frame, or None if tag not found
         """
+        if cancel_requested is not None and cancel_requested():
+            return None
         # Find the requested marker in results
         for marker_id, marker_pose in detection_result.markers:
             if marker_id == tag_id:
@@ -452,9 +491,13 @@ class VisionEngine(BaseStages):
                 # Transform to base_link using capture timestamp
                 # This ensures we use the TF at the exact moment the image was captured
                 pose_base = self._transform_to_base_link(
-                    marker_pose, capture_stamp=detection_result.capture_stamp
+                    marker_pose,
+                    capture_stamp=detection_result.capture_stamp,
+                    deadline=deadline,
                 )
                 if pose_base is None:
+                    return None
+                if cancel_requested is not None and cancel_requested():
                     return None
 
                 self.logger.info(
@@ -472,7 +515,9 @@ class VisionEngine(BaseStages):
                     self._broadcast_detection_tf(f"aruco_{tag_id}", pose_base)
 
                 # Add collision object if configured
-                self._add_collision_object_for_tag(tag_id, pose_base)
+                self._add_collision_object_for_tag(
+                    tag_id, pose_base, deadline=deadline
+                )
 
                 return pose_base
 
@@ -505,6 +550,9 @@ class VisionEngine(BaseStages):
         strategy: str = "farthest_edge",
         edge_inset_mm: float = 6.5,
         timeout: float = 45.0,
+        *,
+        deadline: float | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
     ) -> PoseStamped | None:
         """Detect a sample in an ROI anchored to an ArUco tag.
 
@@ -524,12 +572,19 @@ class VisionEngine(BaseStages):
         total_attempts = 1 + self._retry_count
 
         for attempt in range(total_attempts):
+            attempt_timeout = _remaining(deadline, timeout, cancel_requested)
+            if attempt_timeout <= 0:
+                break
+
             if attempt > 0:
                 self.logger.info(
                     f"Retry {attempt}/{self._retry_count} for sample_roi tag {tag_id} "
                     f"(waiting {self._retry_delay}s...)"
                 )
-                time.sleep(self._retry_delay)
+                time.sleep(min(self._retry_delay, attempt_timeout))
+                attempt_timeout = _remaining(deadline, timeout, cancel_requested)
+                if attempt_timeout <= 0:
+                    break
 
             result = self._camera.detect_sample_roi(
                 self.rclpy_node,
@@ -537,7 +592,7 @@ class VisionEngine(BaseStages):
                 strategy=strategy,
                 edge_inset_mm=edge_inset_mm,
                 dictionary=self._marker_dictionary,
-                timeout=timeout,
+                timeout=attempt_timeout,
             )
 
             if result is None:
@@ -552,7 +607,9 @@ class VisionEngine(BaseStages):
             )
 
             pose_base = self._transform_to_base_link(
-                pickup_pose, capture_stamp=capture_stamp
+                pickup_pose,
+                capture_stamp=capture_stamp,
+                deadline=deadline,
             )
             if pose_base is None:
                 continue
@@ -577,6 +634,9 @@ class VisionEngine(BaseStages):
     def _move_to_joint_pose(
         self,
         joint_positions: list[float],
+        *,
+        deadline: float | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
     ) -> bool:
         """Move to joint configuration using MTC with Pilz PTP.
 
@@ -609,7 +669,11 @@ class VisionEngine(BaseStages):
         stage.setGoal(joint_dict)
         task.add(stage)
 
-        error = self.load_plan_execute(task)
+        error = self.load_plan_execute(
+            task,
+            deadline=deadline,
+            cancel_requested=cancel_requested,
+        )
         if error:
             self.logger.error(f"Scan position move failed: {error}")
             return False
@@ -686,6 +750,9 @@ class VisionEngine(BaseStages):
         scan_positions: list[list[float]],
         timeout: float = 45.0,
         settle_time: float = 0.3,
+        *,
+        deadline: float | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
     ) -> PoseStamped | None:
         """Detect tag from multiple positions and average results.
 
@@ -710,22 +777,43 @@ class VisionEngine(BaseStages):
         )
 
         for i, joint_pose in enumerate(scan_positions):
+            if _remaining(deadline, timeout, cancel_requested) <= 0:
+                break
             position_name = f"position {i + 1}/{len(scan_positions)}"
 
             # Move to scan position
             self.logger.info(f"Moving to {position_name}...")
-            if not self._move_to_joint_pose(joint_pose):
+            if not self._move_to_joint_pose(
+                joint_pose,
+                deadline=deadline,
+                cancel_requested=cancel_requested,
+            ):
                 self.logger.warning(f"Failed to reach {position_name}, skipping")
                 position_results.append((i + 1, False, "move_failed"))
                 continue
 
+            if _remaining(deadline, timeout, cancel_requested) <= 0:
+                break
+
             # Wait for robot to settle (vibration damping)
             if settle_time > 0:
                 self.logger.debug(f"Settling for {settle_time:.2f}s...")
-                time.sleep(settle_time)
+                time.sleep(
+                    min(
+                        settle_time,
+                        _remaining(deadline, timeout, cancel_requested),
+                    )
+                )
+                if _remaining(deadline, timeout, cancel_requested) <= 0:
+                    break
 
             # Detect tag at this position
-            pose = self.detect_and_transform_tag(tag_id, timeout)
+            pose = self.detect_and_transform_tag(
+                tag_id,
+                timeout,
+                deadline=deadline,
+                cancel_requested=cancel_requested,
+            )
 
             if pose is not None:
                 detected_poses.append(pose)
@@ -772,7 +860,11 @@ class VisionEngine(BaseStages):
         return averaged_pose
 
     def _transform_to_base_link(
-        self, pose_camera: Pose, capture_stamp=None
+        self,
+        pose_camera: Pose,
+        capture_stamp=None,
+        *,
+        deadline: float | None = None,
     ) -> PoseStamped | None:
         """Transform a pose from camera frame to base_link.
 
@@ -803,11 +895,12 @@ class VisionEngine(BaseStages):
                 self.logger.debug("Using latest TF (no capture timestamp provided)")
 
             # Check if transform is available at the requested time
-            if not self._tf_buffer.can_transform(
+            tf_timeout = min(2.0, _remaining(deadline, 2.0))
+            if tf_timeout <= 0 or not self._tf_buffer.can_transform(
                 "base_link",
                 self._camera_frame,
                 lookup_time,
-                timeout=rclpy.duration.Duration(seconds=2.0),
+                timeout=rclpy.duration.Duration(seconds=tf_timeout),
             ):
                 self.logger.error(
                     f"TF {self._camera_frame} -> base_link not available "
@@ -825,11 +918,14 @@ class VisionEngine(BaseStages):
             pose_in.pose = pose_camera
 
             # Transform using the capture timestamp
+            tf_timeout = min(2.0, _remaining(deadline, 2.0))
+            if tf_timeout <= 0:
+                return None
             transform = self._tf_buffer.lookup_transform(
                 "base_link",
                 self._camera_frame,
                 lookup_time,
-                timeout=rclpy.duration.Duration(seconds=2.0),
+                timeout=rclpy.duration.Duration(seconds=tf_timeout),
             )
             pose_out = do_transform_pose_stamped(pose_in, transform)
             pose_out.header.frame_id = "base_link"
@@ -859,6 +955,7 @@ class VisionEngine(BaseStages):
         marker_offset_y: float = 0.0,
         marker_offset_z: float = 0.0,
         ik_frame_override: str = "",
+        timeout: float | None = None,
     ) -> tuple[PoseStamped, str]:
         """Compute the final approach pose from a detected target.
 
@@ -891,7 +988,7 @@ class VisionEngine(BaseStages):
             active_ik_frame = self.ik_frame
             active_z_offset = self._z_offset_for_frame(active_ik_frame)
         else:
-            detection = self._detect_current_gripper()
+            detection = self._detect_current_gripper(timeout=timeout)
             active_ik_frame = detection.ik_frame
             active_z_offset = detection.z_offset
             self.logger.info(
@@ -959,7 +1056,12 @@ class VisionEngine(BaseStages):
         return approach, active_ik_frame
 
     def _apply_flange_offset(
-        self, pose: PoseStamped, direction: str, distance: float
+        self,
+        pose: PoseStamped,
+        direction: str,
+        distance: float,
+        *,
+        timeout: float = 2.0,
     ) -> PoseStamped:
         """Apply a directional offset in the flange frame to a base_link pose.
 
@@ -987,7 +1089,7 @@ class VisionEngine(BaseStages):
                 "base_link",
                 "flange",
                 rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=2.0),
+                timeout=rclpy.duration.Duration(seconds=max(0.0, timeout)),
             )
         except TransformException as e:
             raise RuntimeError(f"Failed to look up flange TF for offset: {e}") from e
@@ -1020,7 +1122,12 @@ class VisionEngine(BaseStages):
     # compute_deterministic_ik() is inherited from BaseStages (#55)
 
     def _move_to_approach(
-        self, approach: PoseStamped, ik_frame: str = ""
+        self,
+        approach: PoseStamped,
+        ik_frame: str = "",
+        *,
+        timeout: float | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
     ) -> "str | None":
         """Execute MoveIt move to a pre-computed approach pose.
 
@@ -1033,8 +1140,16 @@ class VisionEngine(BaseStages):
         Returns:
             None if successful, error string describing failure otherwise
         """
+        deadline = time.monotonic() + timeout if timeout is not None else None
+
         if not ik_frame:
-            detection = self._detect_current_gripper()
+            detection = self._detect_current_gripper(
+                timeout=(
+                    _remaining(deadline, 1.0, cancel_requested)
+                    if deadline is not None
+                    else None
+                )
+            )
             ik_frame = detection.ik_frame
 
         # Pre-compute IK for deterministic joint goal.
@@ -1043,7 +1158,20 @@ class VisionEngine(BaseStages):
         # By computing IK once via /compute_ik (which is deterministic for a
         # given seed) and sending the result as a joint goal, we bypass the
         # non-determinism entirely. (#51)
-        joint_goal = self.compute_deterministic_ik(approach, ik_frame)
+        joint_goal = self.compute_deterministic_ik(
+            approach,
+            ik_frame,
+            timeout=(
+                _remaining(deadline, 8.0, cancel_requested)
+                if deadline is not None
+                else None
+            ),
+        )
+        if (cancel_requested is not None and cancel_requested()) or (
+            deadline is not None
+            and _remaining(deadline, 0.0, cancel_requested) <= 0
+        ):
+            return "TIMEOUT: approach deadline expired before motion"
         if joint_goal is None:
             self.logger.warning(
                 "Deterministic IK failed, falling back to Cartesian goal"
@@ -1067,9 +1195,20 @@ class VisionEngine(BaseStages):
             stage.setGoal(joint_goal)
             task.add(stage)
 
-        return self.load_plan_execute(task)
+        if (cancel_requested is not None and cancel_requested()) or (
+            deadline is not None
+            and _remaining(deadline, 0.0, cancel_requested) <= 0
+        ):
+            return "TIMEOUT: approach deadline expired before motion"
+        return self.load_plan_execute(
+            task,
+            deadline=deadline,
+            cancel_requested=cancel_requested,
+        )
 
-    def _detect_current_gripper(self) -> GripperDetection:
+    def _detect_current_gripper(
+        self, timeout: float | None = None
+    ) -> GripperDetection:
         """Auto-detect the current gripper by checking TF frames.
 
         Returns:
@@ -1078,12 +1217,16 @@ class VisionEngine(BaseStages):
         # Check for known gripper tip frames in TF (sourced from YAML)
         from beambot.config_loader import configured_tip_frames
 
+        deadline = time.monotonic() + timeout if timeout is not None else None
         for frame in configured_tip_frames():
+            tf_timeout = min(1.0, _remaining(deadline, 1.0))
+            if tf_timeout <= 0:
+                break
             if self._tf_buffer.can_transform(
                 "base_link",
                 frame,
                 rclpy.time.Time(),
-                timeout=rclpy.duration.Duration(seconds=1.0),
+                timeout=rclpy.duration.Duration(seconds=tf_timeout),
             ):
                 return GripperDetection(frame, self._z_offset_for_frame(frame))
 
@@ -1091,7 +1234,13 @@ class VisionEngine(BaseStages):
         self.logger.info("No gripper detected, using flange")
         return GripperDetection("flange", 0.0)
 
-    def _add_collision_object_for_tag(self, tag_id: int, tag_pose: PoseStamped):
+    def _add_collision_object_for_tag(
+        self,
+        tag_id: int,
+        tag_pose: PoseStamped,
+        *,
+        deadline: float | None = None,
+    ):
         """Add a collision object for a detected tag.
 
         Args:
@@ -1126,7 +1275,7 @@ class VisionEngine(BaseStages):
         obj.primitives.append(primitive)
         obj.primitive_poses.append(object_pose.pose)
 
-        self._apply_collision_object(obj)
+        self._apply_collision_object(obj, deadline=deadline)
         self.logger.info(f"Added collision object '{info.name}'")
 
     def _calculate_object_pose(
@@ -1163,9 +1312,14 @@ class VisionEngine(BaseStages):
 
         return result
 
-    def _apply_collision_object(self, obj: CollisionObject) -> None:
+    def _apply_collision_object(
+        self, obj: CollisionObject, *, deadline: float | None = None
+    ) -> None:
         """Transactionally apply one collision-object change or fail the task."""
-        if not self._apply_scene_client.wait_for_service(timeout_sec=2.0):
+        service_timeout = min(2.0, _remaining(deadline, 2.0))
+        if service_timeout <= 0 or not self._apply_scene_client.wait_for_service(
+            timeout_sec=service_timeout
+        ):
             raise RuntimeError("/apply_planning_scene service unavailable")
 
         scene = PlanningScene()
@@ -1174,7 +1328,10 @@ class VisionEngine(BaseStages):
         request = ApplyPlanningScene.Request()
         request.scene = scene
         future = self._apply_scene_client.call_async(request)
-        if not wait_for_future(future, timeout=2.0):
+        result_timeout = min(2.0, _remaining(deadline, 2.0))
+        if result_timeout <= 0 or not wait_for_future(
+            future, timeout=result_timeout
+        ):
             raise RuntimeError("/apply_planning_scene call timed out")
         response = future.result()
         if response is None or not response.success:

@@ -12,7 +12,7 @@ import sys
 import threading
 import time
 import traceback
-from typing import Any
+from typing import Any, Callable
 
 import rclcpp
 import yaml
@@ -678,7 +678,14 @@ class BaseStages:
             fb.add(stage)
         return fb
 
-    def load_plan_execute(self, task: core.Task, dry_run: bool = False) -> str | None:
+    def load_plan_execute(
+        self,
+        task: core.Task,
+        dry_run: bool = False,
+        *,
+        deadline: float | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
+    ) -> str | None:
         """Initialize, plan, and (optionally) execute the task.
 
         Runs init() -> plan() -> execute(), logs the planned end-state joint
@@ -701,7 +708,15 @@ class BaseStages:
         error = self.init_and_plan(task, dry_run=dry_run)
         if error is not None or dry_run:
             return error
-        return self.execute_solution(task)
+        if (cancel_requested is not None and cancel_requested()) or (
+            deadline is not None and time.monotonic() >= deadline
+        ):
+            return "TIMEOUT: deadline expired before motion execution"
+        return self.execute_solution(
+            task,
+            deadline=deadline,
+            cancel_requested=cancel_requested,
+        )
 
     def init_and_plan(self, task: core.Task, dry_run: bool = False) -> str | None:
         """Initialize the task, plan, log + (if dry_run) publish a preview.
@@ -778,7 +793,13 @@ class BaseStages:
             self.logger.error(traceback.format_exc())
             return f"Task planning exception for '{task.name}': {e}"
 
-    def execute_solution(self, task: core.Task) -> str | None:
+    def execute_solution(
+        self,
+        task: core.Task,
+        *,
+        deadline: float | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
+    ) -> str | None:
         """Execute the first solution of a previously-planned task.
 
         Pairs with init_and_plan(): assumes task.solutions is populated.
@@ -801,7 +822,16 @@ class BaseStages:
                 return error
 
             if self.last_sol_msg is not None:
-                return self.execute_solution_msg(self.last_sol_msg)
+                return self.execute_solution_msg(
+                    self.last_sol_msg,
+                    deadline=deadline,
+                    cancel_requested=cancel_requested,
+                )
+
+            if (cancel_requested is not None and cancel_requested()) or (
+                deadline is not None and time.monotonic() >= deadline
+            ):
+                return "TIMEOUT: deadline expired before motion execution"
 
             # Fallback: no serialized msg — execute the live (unpinned) solution.
             result = task.execute(task.solutions[0])
@@ -872,7 +902,13 @@ class BaseStages:
         except Exception as e:  # never let a pin failure block motion
             self.logger.warning(f"endpoint-pin skipped: {e}")
 
-    def execute_solution_msg(self, sol_msg) -> str | None:
+    def execute_solution_msg(
+        self,
+        sol_msg,
+        *,
+        deadline: float | None = None,
+        cancel_requested: Callable[[], bool] | None = None,
+    ) -> str | None:
         """Replay a stored Solution msg WITHOUT a live MTC Task.
 
         Sends the cached ``moveit_task_constructor_msgs/Solution`` to
@@ -891,6 +927,15 @@ class BaseStages:
         caller may safely re-plan.
         """
         try:
+            def remaining(default: float) -> float:
+                if cancel_requested is not None and cancel_requested():
+                    return 0.0
+                return (
+                    max(0.0, deadline - time.monotonic())
+                    if deadline is not None
+                    else default
+                )
+
             # One ActionClient for the whole process, cached on the long-lived
             # orchestrator node (self.rclpy_node). MoveToStages is rebuilt per
             # batch, so a per-instance client would leak a node waitable on
@@ -901,14 +946,20 @@ class BaseStages:
                     self.rclpy_node, ExecuteTaskSolution, "execute_task_solution"
                 )
                 self.rclpy_node._exec_task_solution_client = client
-            if not client.wait_for_server(timeout_sec=5.0):
+            server_timeout = min(5.0, remaining(5.0))
+            if server_timeout <= 0 or not client.wait_for_server(
+                timeout_sec=server_timeout
+            ):
                 return "EXECUTION_FAILED: execute_task_solution server unavailable (5s)"
 
             goal = ExecuteTaskSolution.Goal()
             goal.solution = sol_msg
 
             send_future = client.send_goal_async(goal)
-            if not wait_for_future(send_future, timeout=10.0):
+            acceptance_timeout = min(10.0, remaining(10.0))
+            if acceptance_timeout <= 0 or not wait_for_future(
+                send_future, timeout=acceptance_timeout
+            ):
                 # Acceptance is unknown: the server may accept this goal late,
                 # so the caller must fault rather than dispatch another motion.
                 return "REPLAY_TIMEOUT: replay goal acceptance timed out (10s)"
@@ -1121,7 +1172,11 @@ class BaseStages:
         return stage
 
     def compute_deterministic_ik(
-        self, approach: PoseStamped, ik_frame: str
+        self,
+        approach: PoseStamped,
+        ik_frame: str,
+        *,
+        timeout: float | None = None,
     ) -> dict[str, float] | None:
         """Compute IK via /compute_ik service for a deterministic joint goal.
 
@@ -1133,6 +1188,15 @@ class BaseStages:
         Returns:
             Joint dict {name: radians} for the arm group, or None on failure.
         """
+        deadline = time.monotonic() + timeout if timeout is not None else None
+
+        def remaining(default: float) -> float:
+            return (
+                max(0.0, deadline - time.monotonic())
+                if deadline is not None
+                else default
+            )
+
         js_holder = [None]
         js_event = threading.Event()
 
@@ -1141,7 +1205,7 @@ class BaseStages:
             js_event.set()
 
         js_sub = self.rclpy_node.create_subscription(JointState, '/joint_states', _on_js, 10)
-        js_event.wait(timeout=1.0)
+        js_event.wait(timeout=min(1.0, remaining(1.0)))
         self.rclpy_node.destroy_subscription(js_sub)
 
         if not js_holder[0]:
@@ -1156,7 +1220,10 @@ class BaseStages:
 
         try:
             ik_client = self.rclpy_node.create_client(GetPositionIK, '/compute_ik')
-            if not ik_client.wait_for_service(timeout_sec=2.0):
+            service_timeout = min(2.0, remaining(2.0))
+            if service_timeout <= 0 or not ik_client.wait_for_service(
+                timeout_sec=service_timeout
+            ):
                 self.logger.warning("/compute_ik service not available")
                 return None
 
@@ -1169,7 +1236,10 @@ class BaseStages:
             req.ik_request.timeout.sec = 1
 
             future = ik_client.call_async(req)
-            if not wait_for_future(future, timeout=5.0):
+            result_timeout = min(5.0, remaining(5.0))
+            if result_timeout <= 0 or not wait_for_future(
+                future, timeout=result_timeout
+            ):
                 self.logger.warning("/compute_ik timed out")
                 self.rclpy_node.destroy_client(ik_client)
                 return None
@@ -1191,4 +1261,3 @@ class BaseStages:
         except Exception as e:
             self.logger.warning(f"Deterministic IK error: {e}")
             return None
-
