@@ -61,8 +61,9 @@ Unified place operation — supports hardcoded poses or vision-guided placement.
 ```
 - `operation`: `"dock"` (put gripper away) or `"load"` (pick up gripper)
 - `gripper`: Which gripper to dock/load
-- `dock_number`: Physical dock slot selected for this exchange
+- `dock_number`: Physical dock slot number
 - `approach_pose`: Joint pose name for approaching the dock
+- `dock_number`: Physical dock slot. **Look up from `default_beamline.yaml` `grippers.<name>.dock_number`** — do NOT hardcode.
 - **ALWAYS move to `safe_tool_exchange` BEFORE and AFTER any tool exchange operation.** This pose provides clearance for all gripper lengths (including pipettor). Move there before docking to avoid collisions on approach, and after loading to ensure safe departure.
 - **ALWAYS use `"dock_approach"` for dock operations and `"load_approach"` for load operations.** These are different poses tuned for each operation direction. Using the wrong approach pose causes collisions or failed exchanges.
 
