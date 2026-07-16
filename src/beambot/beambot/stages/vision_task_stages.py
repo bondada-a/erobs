@@ -16,6 +16,7 @@ Wires three migrations:
 """
 
 import json
+import math
 import threading
 from dataclasses import dataclass, field
 from typing import Any
@@ -68,6 +69,25 @@ class VisionTaskStages:
         self.goal = goal
         vision = self._vision
 
+        detector_name = goal.detector or "marker"
+        if detector_name == "sample_roi":
+            strategy = goal.strategy or "farthest_edge"
+            if strategy not in {
+                "center",
+                "farthest_edge",
+                "nearest_edge",
+                "farthest_corner",
+                "nearest_corner",
+            }:
+                return (
+                    f"PIPELINE_CONFIG_ERROR: invalid sample_roi strategy '{strategy}'"
+                )
+            if not math.isfinite(goal.edge_inset_mm) or goal.edge_inset_mm < 0:
+                return (
+                    "PIPELINE_CONFIG_ERROR: edge_inset_mm must be finite and "
+                    "nonnegative"
+                )
+
         # Stage 0a: optional pre-scan move (pick/place fuse open-gripper + move
         # to scan pose here; vision_moveto/spincoater leave scan_pose empty
         # because the orchestrator already positioned the arm).
@@ -89,7 +109,6 @@ class VisionTaskStages:
         ctx.scan_positions = self._parse_scan_positions(goal)
 
         # Stage 1: DETECT (plugin)
-        detector_name = goal.detector or "marker"
         goal_computer_name = goal.goal_computer or "approach_pose"
         try:
             detector = get_detector(detector_name)
