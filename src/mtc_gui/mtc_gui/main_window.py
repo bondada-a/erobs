@@ -191,6 +191,18 @@ def task_summary(step):
     return t
 
 
+def _execution_controls(state, goal_pending=False):
+    """Return Execute, Pause, Resume, Stop, editing, and paused states."""
+    if goal_pending:
+        return False, False, False, True, False, False
+    return {
+        "IDLE": (True, False, False, False, True, False),
+        "RUNNING": (False, True, False, True, False, False),
+        "COMPLETING_TASK": (False, False, False, True, False, False),
+        "PAUSED": (False, False, True, True, False, True),
+    }.get(state, (False, False, False, False, False, False))
+
+
 class MTCMainWindow(QMainWindow):
     def __init__(self, ros2: ROS2Bridge):
         super().__init__()
@@ -200,6 +212,8 @@ class MTCMainWindow(QMainWindow):
         # "human" or "agent" — tells _on_result whether to notify the bridge
         self._execution_initiator = "human"
         self._last_goal_was_dry_run = False
+        self._execution_state = None
+        self._goal_pending = False
 
         # Load beamline YAML once, before _build_central uses fields from it.
         # Soft-fail: GUI can still open as a JSON inspector when no robot is
@@ -647,6 +661,11 @@ class MTCMainWindow(QMainWindow):
         self.ros2.joint_state_received.connect(self._on_joint_state)
         self.ros2.action_feedback_received.connect(self._on_feedback)
         self.ros2.action_result_received.connect(self._on_result)
+        self.ros2.execution_state_changed.connect(self._on_execution_state)
+        if self.ros2.execution_state is not None:
+            self._on_execution_state(self.ros2.execution_state)
+        else:
+            self._project_execution_state()
 
         # 3D visualization panel
         if WEBENGINE_AVAILABLE and hasattr(self, "viz_panel"):
@@ -941,15 +960,42 @@ class MTCMainWindow(QMainWindow):
 
         self.config["start_gripper"] = self.gripper_combo.currentText()
         self._last_goal_was_dry_run = dry_run
-        self.exec_btn.setEnabled(False)
-        self.stop_btn.setEnabled(True)
-        self.pause_btn.setEnabled(not dry_run)
-        self.task_toolbar.setEnabled(False)
+        self._goal_pending = True
+        self._project_execution_state()
         self.progress_bar.setValue(0)
         self.progress_bar.setVisible(True)
         self.step_list.start_execution(len(self.config["tasks"]))
 
         self.ros2.execute_task(json.dumps(self.config), dry_run=dry_run)
+
+    def _on_execution_state(self, state):
+        self._execution_state = state
+        if state in {"RUNNING", "COMPLETING_TASK", "PAUSED"}:
+            self._goal_pending = False
+        elif state != "IDLE":
+            self._log(f"Unknown execution state: {state}")
+        self._project_execution_state()
+
+    def _project_execution_state(self):
+        execute, pause, resume, stop, editing, paused = _execution_controls(
+            self._execution_state, self._goal_pending
+        )
+        self.exec_btn.setEnabled(execute)
+        self.pause_btn.setEnabled(pause)
+        self.resume_btn.setEnabled(resume)
+        self.stop_btn.setEnabled(stop)
+        for control in (
+            self.task_toolbar,
+            self.up_step_btn,
+            self.down_step_btn,
+            self.remove_step_btn,
+            self.clear_steps_btn,
+            self.gripper_combo,
+            self.dry_run_check,
+        ):
+            control.setEnabled(editing)
+        self.step_list.set_editing_enabled(editing)
+        self.step_list.set_paused(paused)
 
     def _on_feedback(self, progress, step, action, gripper, msg):
         self.progress_bar.setValue(int(progress))
@@ -957,12 +1003,9 @@ class MTCMainWindow(QMainWindow):
         self._log(f"[{progress:.0f}%] Step {step}: {action} | {gripper} | {msg}")
 
     def _on_result(self, status, error_msg, completed, total):
-        self.exec_btn.setEnabled(True)
-        self.stop_btn.setEnabled(False)
-        self.pause_btn.setEnabled(False)
-        self.resume_btn.setEnabled(False)
-        self.task_toolbar.setEnabled(True)
+        self._goal_pending = False
         was_dry_run = self._last_goal_was_dry_run
+        self._last_goal_was_dry_run = False
 
         if status == GoalStatus.STATUS_SUCCEEDED:
             self.progress_bar.setValue(100)
@@ -1014,6 +1057,7 @@ class MTCMainWindow(QMainWindow):
                 success, error_msg, completed, total
             )
         self._execution_initiator = "human"
+        self._project_execution_state()
 
     def _on_joint_state(self, pose):
         self.current_robot_pose = pose
