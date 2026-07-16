@@ -22,6 +22,7 @@ def _cache(max_entries: int = MAX_ENTRIES) -> PlanCache:
 
 
 _SIX = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+_REVISION = "model-one"
 
 
 # ---- normalize_joints / _wrap_to_pi -------------------------------------
@@ -63,37 +64,56 @@ def test_normalize_rejects_wrong_length_and_none():
 def test_key_stable_across_whitespace_and_field_order():
     a = '{"start_gripper": "epick", "tasks": []}'
     b = '{"tasks": [],    "start_gripper":"epick"}'  # reordered + spaces
-    assert PlanCache.compute_key(a, "epick") == PlanCache.compute_key(b, "epick")
+    assert PlanCache.compute_key(a, "epick", _REVISION) == PlanCache.compute_key(
+        b, "epick", _REVISION
+    )
 
 
 def test_key_differs_by_gripper():
     j = '{"tasks": []}'
-    assert PlanCache.compute_key(j, "epick") != PlanCache.compute_key(j, "hande")
+    assert PlanCache.compute_key(j, "epick", _REVISION) != PlanCache.compute_key(
+        j, "hande", _REVISION
+    )
+
+
+def test_key_differs_by_model_revision():
+    j = '{"tasks": []}'
+    assert PlanCache.compute_key(j, "epick", "one") != PlanCache.compute_key(
+        j, "epick", "two"
+    )
 
 
 def test_key_falls_back_on_unparseable_json():
-    assert PlanCache.compute_key("not json", "x") == PlanCache.compute_key("not json", "x")
+    assert PlanCache.compute_key(
+        "not json", "x", _REVISION
+    ) == PlanCache.compute_key("not json", "x", _REVISION)
 
 
 def test_key_differs_by_start_state():
     j = '{"tasks": []}'
-    at_a = PlanCache.compute_key(j, "epick", _SIX)
-    at_b = PlanCache.compute_key(j, "epick", [1.0, 0, 0, 0, 0, 0])
+    at_a = PlanCache.compute_key(j, "epick", _REVISION, _SIX)
+    at_b = PlanCache.compute_key(
+        j, "epick", _REVISION, [1.0, 0, 0, 0, 0, 0]
+    )
     assert at_a != at_b
 
 
 def test_key_same_when_start_within_tolerance():
     j = '{"tasks": []}'
-    k1 = PlanCache.compute_key(j, "epick", [0.0, 0, 0, 0, 0, 0])
-    k2 = PlanCache.compute_key(j, "epick", [0.004, 0, 0, 0, 0, 0])
+    k1 = PlanCache.compute_key(j, "epick", _REVISION, [0.0, 0, 0, 0, 0, 0])
+    k2 = PlanCache.compute_key(j, "epick", _REVISION, [0.004, 0, 0, 0, 0, 0])
     assert k1 == k2
 
 
 def test_key_degrades_when_start_missing():
-    # No start state (mock hardware) → stable key, just goal+gripper.
+    # No start state (mock hardware) → stable key from goal+gripper+revision.
     j = '{"tasks": []}'
-    assert PlanCache.compute_key(j, "epick", None) == PlanCache.compute_key(j, "epick", None)
-    assert PlanCache.compute_key(j, "epick", None) != PlanCache.compute_key(j, "epick", _SIX)
+    assert PlanCache.compute_key(j, "epick", _REVISION, None) == PlanCache.compute_key(
+        j, "epick", _REVISION, None
+    )
+    assert PlanCache.compute_key(
+        j, "epick", _REVISION, None
+    ) != PlanCache.compute_key(j, "epick", _REVISION, _SIX)
 
 
 # ---- store / get / has_entry / clear ------------------------------------

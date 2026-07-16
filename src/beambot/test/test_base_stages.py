@@ -1,15 +1,74 @@
 """Tests for pure functions in beambot.stages.base_stages."""
 
 import math
+from types import SimpleNamespace
 
 import pytest
 
+import beambot.stages.base_stages as base_stages
 from beambot.stages.base_stages import (
+    BaseStages,
     joints_from_degrees,
     parse_constraints,
     DIRECTION_VECTORS,
     DEFAULT_JOINT_NAMES,
 )
+
+
+def test_robot_model_cache_is_revision_aware(monkeypatch):
+    created = []
+    loads = []
+
+    class _Node:
+        _robot_model_revision = "one"
+
+    class _Task:
+        def __init__(self):
+            self.model = None
+            created.append(self)
+
+        def enableIntrospection(self, _enabled):
+            pass
+
+        def loadRobotModel(self, _node):
+            self.model = object()
+            loads.append(self.model)
+
+        def getRobotModel(self):
+            return self.model
+
+        def setRobotModel(self, model):
+            self.model = model
+
+        def add(self, _stage):
+            pass
+
+    monkeypatch.setattr(base_stages, "_model_cache", {})
+    monkeypatch.setattr(base_stages.core, "Task", _Task)
+    monkeypatch.setattr(base_stages.stages, "CurrentState", lambda _name: object())
+
+    instance = BaseStages.__new__(BaseStages)
+    instance.rclpy_node = _Node()
+    instance._task_planner_cache = {}
+    instance._mtc_node = object()
+
+    instance.create_task_template("one")
+    instance.create_task_template("two")
+    instance.rclpy_node._robot_model_revision = "two"
+    instance.create_task_template("three")
+    instance.rclpy_node._robot_model_revision = ""
+    instance.create_task_template("unversioned-one")
+    instance.create_task_template("unversioned-two")
+    instance.rclpy_node._moveit_manager = SimpleNamespace(model_revision="three")
+    instance.create_task_template("orchestrator-one")
+    instance.create_task_template("orchestrator-two")
+
+    assert len(loads) == 5
+    assert created[0].model is created[1].model
+    assert created[2].model is not created[1].model
+    assert created[3].model is not created[2].model
+    assert created[4].model is not created[3].model
+    assert created[5].model is created[6].model
 
 
 # ---------------------------------------------------------------------------

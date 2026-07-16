@@ -228,14 +228,12 @@ _options.arguments = [
 ]
 _mtc_node = rclcpp.Node("beambot_mtc", _options)
 
-# Cache one RobotModel per gripper, shared across goals (#97 latency follow-up).
+# Cache the current RobotModel across goals (#97 latency follow-up).
 # task.loadRobotModel() re-parses URDF/SRDF and yields a NEW model pointer every
 # call; MTC's PipelinePlanner caches loaded pipelines in a static cache keyed by
 # (model, pipeline), so a fresh model per goal = cache miss = ~0.5s pluginlib
-# reload per pipeline. The model only changes on a MoveIt relaunch (gripper
-# change), so reuse it via task.setRobotModel() and reload only per gripper.
-# Process-global: the _mtc_node is a singleton (never relaunched), gripper configs
-# are deterministic, so a cached model stays valid across gripper swap-and-back.
+# reload per pipeline. The orchestrator supplies a UUID that changes after each
+# successful MoveIt relaunch, so persistent servers can invalidate this safely.
 _model_cache: dict = {}
 
 
@@ -432,12 +430,10 @@ class BaseStages:
         # PTP/LIN/CIRC, OMPL), which costs ~0.5s — so rebuilding one per stage
         # made an N-move batch pay N× that load (the dominant planning cost).
         # The cache is keyed by (kind, mode) and CLEARED at the top of every
-        # create_task_template() call: each MTC task gets a fresh RobotModel
-        # pointer, and PipelinePlanner.init() throws if a cached planner is
-        # reused against a different model. Resetting per task makes the cache
-        # lifetime exactly one task, so the planners and the task's model are
-        # always born and discarded together — never stale across a tool
-        # exchange or any task boundary.
+        # create_task_template() call. Planner instances retain task/model init
+        # state, and PipelinePlanner.init() throws if one crosses a model
+        # revision. Keeping them task-scoped avoids stale planner state while
+        # the RobotModel itself can still be reused safely by revision below.
         self._task_planner_cache: dict = {}
 
     def create_task_template(self, name: str) -> core.Task:
@@ -449,10 +445,7 @@ class BaseStages:
         Returns:
             Configured MTC Task with robot model loaded and CurrentState added
         """
-        # New task → fresh RobotModel pointer. Any planner cached for a prior
-        # task is bound to that task's (now-superseded) model and would throw in
-        # PipelinePlanner.init() if reused here, so drop the cache before any
-        # make_*_planner() call for this task can repopulate it.
+        # Planner objects remain task-scoped even when the RobotModel is reused.
         self._task_planner_cache.clear()
 
         # MTC introspection publishes solutions to RViz's Motion Planning Tasks
@@ -482,23 +475,25 @@ class BaseStages:
         task.enableIntrospection(False)
         task.name = name
 
-        # Reuse a cached RobotModel per gripper instead of re-loading (re-parsing
-        # URDF/SRDF) every goal — the fresh-model-per-goal is what forced the
-        # ~1-2s pipeline reload (static PlannerCache is keyed by model). MTC's
-        # sanctioned pattern for reusing a pipeline planner across tasks is
-        # setRobotModel (its init() throws otherwise, naming this fix). Key on the
-        # ACTUALLY-loaded gripper (_moveit_manager._current_gripper, set only after
-        # a successful launch); "default" fallback keeps tests/mock working.
-        gripper = getattr(
-            getattr(self.rclpy_node, "_moveit_manager", None),
-            "_current_gripper", "",
-        ) or "default"
-        model = _model_cache.get(gripper)
+        # Standalone servers receive the revision with each action goal. Batched
+        # tasks run in the orchestrator process and read it from the manager.
+        # Without either source, fail safe and do not reuse across calls.
+        model_revision = getattr(self.rclpy_node, "_robot_model_revision", "")
+        if not model_revision:
+            model_revision = getattr(
+                getattr(self.rclpy_node, "_moveit_manager", None),
+                "model_revision",
+                "",
+            )
+
+        model = _model_cache.get(model_revision) if model_revision else None
         if model is not None:
             task.setRobotModel(model)
         else:
             task.loadRobotModel(self._mtc_node)
-            _model_cache[gripper] = task.getRobotModel()
+            if model_revision:
+                _model_cache.clear()
+                _model_cache[model_revision] = task.getRobotModel()
 
         # Add current state as first stage
         task.add(stages.CurrentState("current_state"))
@@ -1189,4 +1184,3 @@ class BaseStages:
         except Exception as e:
             self.logger.warning(f"Deterministic IK error: {e}")
             return None
-

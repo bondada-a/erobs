@@ -15,6 +15,7 @@ import socket
 import subprocess
 import time
 import traceback
+import uuid
 
 import yaml
 from geometry_msgs.msg import Pose
@@ -81,6 +82,8 @@ class MoveItLifecycleManager:
 
         self._moveit_process: subprocess.Popen | None = None
         self._current_gripper: str = ""
+        self._current_cup_profile: str = ""
+        self._model_revision: str = ""
         self._current_voltage: int | None = None
 
         # Runtime ePick cup-profile override (set by the orchestrator from the
@@ -112,6 +115,11 @@ class MoveItLifecycleManager:
         if self._moveit_process is None:
             return False
         return self._moveit_process.poll() is None
+
+    @property
+    def model_revision(self) -> str:
+        """Unique revision for the currently running MoveIt RobotModel."""
+        return self._model_revision if self.is_moveit_alive() else ""
 
     def get_moveit_exit_info(self) -> str:
         """Get exit info if MoveIt has died. Empty string if still running."""
@@ -152,31 +160,45 @@ class MoveItLifecycleManager:
     def launch_moveit_with_gripper(self, gripper: str) -> bool:
         """Launch MoveIt for the specified gripper, verifying hardware is live.
 
-        Reuses the running process if the gripper matches; otherwise kills it
-        and relaunches. On real hardware, retries once — ur_ros2_control_node
-        occasionally crashes silently on startup (stale TCP socket to the
-        robot) and the launch parent stays alive with dead joint states.
+        Reuses the running process if its gripper and cup profile match;
+        otherwise kills it and relaunches. On real hardware, retries once —
+        ur_ros2_control_node occasionally crashes silently on startup (stale
+        TCP socket to the robot) and the launch parent stays alive with dead
+        joint states.
 
         Returns True if MoveIt is up and the hardware interface is connected.
         """
+        config = self._grippers[gripper]
+        cup_profile = self.cup_override or config.get("cup_profile") or ""
+
         if self._moveit_process:
-            if self._current_gripper == gripper and self._moveit_process.poll() is None:
+            if (
+                self._current_gripper == gripper
+                and self._current_cup_profile == cup_profile
+                and self._moveit_process.poll() is None
+                and self._model_revision
+            ):
                 self._logger.info(f"MoveIt already running for {gripper}, reusing")
                 return True
-            self._logger.info(f"Switching gripper: {self._current_gripper} → {gripper}")
+            self._logger.info(
+                f"Restarting MoveIt model: {self._current_gripper} → {gripper}"
+            )
             self.kill_current_process()
 
-        if self._attempt_launch(gripper):
-            return True
+        launched = self._attempt_launch(gripper, cup_profile)
+        if not launched and not self._use_mock_hardware:
+            self._logger.error("Launch failed, retrying once")
+            self.kill_current_process()
+            launched = self._attempt_launch(gripper, cup_profile)
 
-        if self._use_mock_hardware:
-            return False
+        if launched:
+            self._current_gripper = gripper
+            self._current_cup_profile = cup_profile
+            self._model_revision = uuid.uuid4().hex
+            self._logger.info(f"Robot ready with {gripper} configuration")
+        return launched
 
-        self._logger.error("Launch failed, retrying once")
-        self.kill_current_process()
-        return self._attempt_launch(gripper)
-
-    def _attempt_launch(self, gripper: str) -> bool:
+    def _attempt_launch(self, gripper: str, cup_profile: str) -> bool:
         """Single launch attempt: voltage → MoveIt → verify hardware.
 
         Returns True if MoveIt is up and hardware interface is connected.
@@ -218,7 +240,6 @@ class MoveItLifecycleManager:
             # Runtime override (cup_override) wins over the gripper's YAML value.
             # Only ePick's launch consumes cup_profile:=; it's an inert,
             # default-valued arg for every other gripper's launch.
-            cup_profile = self.cup_override or config.get("cup_profile")
             if cup_profile:
                 cmd.append(f"cup_profile:={cup_profile}")
 
@@ -248,8 +269,6 @@ class MoveItLifecycleManager:
             # gated on the service, not a fixed launch-time timer.
             self._set_payload(config)
 
-        self._current_gripper = gripper
-        self._logger.info(f"Robot ready with {gripper} configuration")
         return True
 
     def _set_payload(self, config: dict) -> None:
@@ -302,6 +321,9 @@ class MoveItLifecycleManager:
         hit a not-yet-ready move_group.
         """
         if not self._moveit_process:
+            self._current_gripper = ""
+            self._current_cup_profile = ""
+            self._model_revision = ""
             return
 
         self._logger.info("Stopping MoveIt process...")
@@ -318,6 +340,8 @@ class MoveItLifecycleManager:
 
         self._moveit_process = None
         self._current_gripper = ""
+        self._current_cup_profile = ""
+        self._model_revision = ""
 
         self._drain_stale_execute_trajectory()
 

@@ -50,6 +50,7 @@ string ik_frame             # IK frame override (orchestrator sets after tool ex
 string poses_json           # Pose registry from task
 string constraints_json     # Optional MoveIt path constraints (JSON; "" = none)
 bool detect_only            # Detect + return pose, do not move
+string robot_model_revision # Orchestrator-managed; empty disables cross-goal model reuse
 ---
 # Result
 bool success

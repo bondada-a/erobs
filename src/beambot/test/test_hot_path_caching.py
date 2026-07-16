@@ -22,7 +22,8 @@ __new__ to exercise the property without running __init__ (which needs a live
 rclpy Node and creates subscriptions).
 """
 
-from unittest.mock import patch
+from types import SimpleNamespace
+from unittest.mock import Mock, patch
 
 import pytest
 
@@ -106,6 +107,63 @@ class TestArmJointsCaching:
         assert "shoulder_pan_joint" in joints
         assert "wrist_3_joint" in joints
         assert len(joints) == 6
+
+
+def test_model_revision_changes_only_when_model_configuration_changes():
+    manager = MoveItLifecycleManager.__new__(MoveItLifecycleManager)
+    manager._grippers = {"epick": {"cup_profile": "small"}}
+    manager.cup_override = ""
+    manager._moveit_process = None
+    manager._current_gripper = ""
+    manager._current_cup_profile = ""
+    manager._model_revision = ""
+    manager._use_mock_hardware = True
+    manager._logger = Mock()
+
+    process = SimpleNamespace(poll=lambda: None)
+
+    def launch(_gripper, _cup_profile):
+        manager._moveit_process = process
+        return True
+
+    def kill():
+        manager._moveit_process = None
+        manager._current_gripper = ""
+        manager._current_cup_profile = ""
+        manager._model_revision = ""
+
+    manager._attempt_launch = Mock(side_effect=launch)
+    manager.kill_current_process = Mock(side_effect=kill)
+
+    assert manager.launch_moveit_with_gripper("epick")
+    first_revision = manager.model_revision
+    assert first_revision
+
+    assert manager.launch_moveit_with_gripper("epick")
+    assert manager.model_revision == first_revision
+    assert manager._attempt_launch.call_count == 1
+
+    manager.cup_override = "large"
+    assert manager.launch_moveit_with_gripper("epick")
+    assert manager.model_revision != first_revision
+    assert manager.kill_current_process.call_count == 1
+    assert manager._attempt_launch.call_count == 2
+
+
+def test_failed_model_launch_has_no_revision():
+    manager = MoveItLifecycleManager.__new__(MoveItLifecycleManager)
+    manager._grippers = {"epick": {}}
+    manager.cup_override = ""
+    manager._moveit_process = None
+    manager._current_gripper = ""
+    manager._current_cup_profile = ""
+    manager._model_revision = ""
+    manager._use_mock_hardware = True
+    manager._logger = Mock()
+    manager._attempt_launch = Mock(return_value=False)
+
+    assert not manager.launch_moveit_with_gripper("epick")
+    assert manager.model_revision == ""
 
 
 class TestConfigLoaderContract:
