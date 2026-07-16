@@ -377,8 +377,76 @@ def parse_task_script(
         raise ValueError("vision_targets configuration must be an object")
     tasks = _expand_task_macros(tasks, vision_targets)
 
+    current_gripper = start_gripper
+    terminal_defaults = {
+        "pick_sample": "grasp",
+        "place_sample": "release",
+        "pick_spincoater": "vacuum_on",
+        "place_spincoater": "vacuum_off",
+    }
     for index, task in enumerate(tasks):
         task_type = task["task_type"]
+
+        if task_type == "tool_exchange":
+            operation = task.get("operation")
+            if operation == "dock":
+                current_gripper = "none"
+            elif operation == "load":
+                current_gripper = task.get("gripper", "")
+
+        requested_states: list[tuple[Any, bool]] = []
+        tool_field = "gripper"
+        if task_type == "end_effector":
+            tool_field = "end_effector_type"
+            requested_states.append((task.get("end_effector_action", ""), False))
+        elif task_type == "pick_sample" and not task.get("use_vision", True):
+            requested_states.extend((("release", True), ("grasp", True)))
+        elif task_type == "place_sample" and not task.get("use_vision", True):
+            requested_states.append(("release", True))
+        elif task_type in {
+            "vision_task",
+            "vision_moveto",
+            "pick_sample",
+            "place_sample",
+            "pick_spincoater",
+            "place_spincoater",
+        }:
+            terminal = task.get("terminal_action", terminal_defaults.get(task_type, ""))
+            if terminal or task_type in terminal_defaults:
+                requested_states.append((terminal, True))
+            if task.get("pre_open", task_type == "pick_sample"):
+                requested_states.append(("release", True))
+
+        if requested_states:
+            required_gripper = task.get(tool_field, current_gripper)
+            if required_gripper != current_gripper:
+                raise ValueError(
+                    f"tasks[{index}] requires gripper {required_gripper!r}, "
+                    f"but current gripper is {current_gripper!r}"
+                )
+            gripper = grippers.get(required_gripper, {})
+            if not gripper.get("gripper_group"):
+                raise ValueError(
+                    f"tasks[{index}]: gripper {required_gripper!r} has no "
+                    "configured gripper group"
+                )
+            states = gripper.get("states", {})
+            if not isinstance(states, Mapping):
+                states = {}
+            for requested_state, allow_key in requested_states:
+                if not isinstance(requested_state, str) or not requested_state:
+                    raise ValueError(f"tasks[{index}]: gripper state is required")
+                state_name = (
+                    states.get(requested_state, requested_state)
+                    if allow_key
+                    else requested_state
+                )
+                if state_name not in states.values():
+                    raise ValueError(
+                        f"tasks[{index}]: unknown gripper state "
+                        f"{requested_state!r} for {required_gripper!r}"
+                    )
+
         error = flange_offset_error(
             direction=task.get("offset_direction", ""),
             distance=task.get("offset_distance", 0.0),

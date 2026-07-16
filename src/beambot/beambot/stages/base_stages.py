@@ -1099,21 +1099,24 @@ class BaseStages:
         planner,
         gripper_group: str,
         state_name: str
-    ) -> stages.MoveTo | None:
+    ) -> stages.MoveTo:
         """Create a gripper stage for a specific state.
 
         Args:
             label: Stage name
-            planner: Planner to use
+            planner: Planner to use, or None for JointInterpolation
             gripper_group: MoveIt group name (from config)
             state_name: SRDF state name to move to
 
         Returns:
-            Configured MoveTo stage for gripper, or None if no gripper/state
+            Configured MoveTo stage for the requested gripper state
         """
-        if not gripper_group or not state_name:
-            self.logger.info(f"No gripper group or state for '{label}' - skipping")
-            return None
+        if not gripper_group:
+            raise ValueError(f"No gripper group configured for '{label}'")
+        if not state_name:
+            raise ValueError(f"No gripper state configured for '{label}'")
+        if planner is None:
+            planner = self.make_joint_interpolation_planner()
 
         stage = stages.MoveTo(label, planner)
         stage.group = gripper_group
@@ -1191,4 +1194,3 @@ class BaseStages:
         except Exception as e:
             self.logger.warning(f"Deterministic IK error: {e}")
             return None
-

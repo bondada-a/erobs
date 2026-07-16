@@ -1,15 +1,52 @@
 """Tests for pure functions in beambot.stages.base_stages."""
 
 import math
+from types import SimpleNamespace
 
 import pytest
 
 from beambot.stages.base_stages import (
+    BaseStages,
     joints_from_degrees,
     parse_constraints,
     DIRECTION_VECTORS,
     DEFAULT_JOINT_NAMES,
 )
+from beambot.stages.end_effector_stages import EndEffectorStages
+
+
+@pytest.mark.parametrize(
+    ("group", "state", "message"),
+    [
+        ("", "vacuum_on", "No gripper group configured"),
+        ("epick_gripper", "", "No gripper state configured"),
+    ],
+)
+def test_invalid_requested_gripper_does_not_plan_or_execute(
+    group, state, message
+):
+    base = BaseStages.__new__(BaseStages)
+    with pytest.raises(ValueError, match=message):
+        base.make_gripper_stage("grasp", None, group, state)
+
+    effects = {"planner": 0, "executor": 0}
+    instance = EndEffectorStages.__new__(EndEffectorStages)
+    instance.logger = SimpleNamespace(error=lambda *_: None)
+    instance.create_task_template = lambda _name: object()
+
+    def planner():
+        effects["planner"] += 1
+
+    def execute(_task):
+        effects["executor"] += 1
+
+    instance.make_joint_interpolation_planner = planner
+    instance.load_plan_execute = execute
+
+    error = instance.run(SimpleNamespace(gripper_group=group, end_effector_action=state))
+
+    assert message in error
+    assert effects == {"planner": 0, "executor": 0}
 
 
 # ---------------------------------------------------------------------------
