@@ -1,15 +1,20 @@
 """Task-script validation tests."""
 
+import copy
 import json
 from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 
-from beambot.core.task_script import moveto_goal_error, parse_task_script
+from beambot.core.task_script import TASK_MACROS, moveto_goal_error, parse_task_script
 
 
-GRIPPERS = {"epick": {}}
+GRIPPERS = {"epick": {}, "pipettor": {}}
+VISION_TARGETS = yaml.safe_load(
+    (Path(__file__).parents[1] / "config" / "cms_beamline.yaml").read_text()
+)["vision_targets"]
 SUPPORTED_TYPES = [
     "moveto",
     "end_effector",
@@ -25,12 +30,13 @@ SUPPORTED_TYPES = [
 ]
 
 
-def _parse(document, *, dry_run=False):
+def _parse(document, *, dry_run=False, vision_targets=VISION_TARGETS):
     return parse_task_script(
         json.dumps(document),
         dry_run=dry_run,
         grippers=GRIPPERS,
         poses_file="/nonexistent",
+        vision_targets=vision_targets,
     )
 
 
@@ -175,6 +181,106 @@ def test_dry_run_remains_limited_to_moveto_and_end_effector():
         )
 
 
+def test_pickup_macros_expand_to_supported_steps_with_vial_operation_before_retreat():
+    _, tasks, _, _ = _parse(
+        {
+            "start_gripper": "pipettor",
+            "tasks": [
+                {"task_type": "pickup_tip", "row": 0, "col": 3},
+                {
+                    "task_type": "pickup_vial",
+                    "row": 0,
+                    "col": 1,
+                    "pipettor_operation": "SUCK",
+                    "volume_pct": 0.5,
+                },
+            ],
+        }
+    )
+
+    task_types = [task["task_type"] for task in tasks]
+    assert TASK_MACROS.keys().isdisjoint(task_types)
+    assert task_types.count("vision_moveto") == 2
+    pipettor_index = task_types.index("pipettor")
+    assert tasks[pipettor_index - 1]["direction"] == "forward"
+    assert tasks[pipettor_index + 1]["direction"] == "backward"
+
+
+def test_element_index_and_row_column_addressing_expand_identically():
+    base = {"start_gripper": "pipettor"}
+    _, indexed, _, _ = _parse(
+        {**base, "tasks": [{"task_type": "pickup_tip", "element_index": 13}]}
+    )
+    _, addressed, _, _ = _parse(
+        {**base, "tasks": [{"task_type": "pickup_tip", "row": 1, "col": 1}]}
+    )
+
+    assert indexed == addressed
+
+
+@pytest.mark.parametrize(
+    "task",
+    [
+        {"task_type": "pickup_tip", "row": 8, "col": 0},
+        {"task_type": "pickup_tip", "row": 0, "col": 12},
+        {"task_type": "pickup_tip", "element_index": 96},
+    ],
+)
+def test_pickup_macro_rejects_out_of_range_grid_addresses(task):
+    with pytest.raises(ValueError, match="out of range"):
+        _parse({"start_gripper": "pipettor", "tasks": [task]})
+
+
+@pytest.mark.parametrize(
+    ("field_path", "value", "message"),
+    [
+        (("mode",), "offset", "mode"),
+        (("grid", "col_direction"), "sideways", "col_direction"),
+        (("moves", 0, "distance"), float("nan"), "finite number"),
+    ],
+)
+def test_pickup_macro_rejects_bad_target_configuration(field_path, value, message):
+    targets = copy.deepcopy(VISION_TARGETS)
+    current = targets["tip_rack"]
+    for field in field_path[:-1]:
+        current = current[field]
+    current[field_path[-1]] = value
+
+    with pytest.raises(ValueError, match=message):
+        _parse(
+            {
+                "start_gripper": "pipettor",
+                "tasks": [{"task_type": "pickup_tip", "row": 0, "col": 0}],
+            },
+            vision_targets=targets,
+        )
+
+
+def test_pickup_macro_rejects_missing_target_configuration():
+    with pytest.raises(ValueError, match="missing or invalid"):
+        _parse(
+            {
+                "start_gripper": "pipettor",
+                "tasks": [{"task_type": "pickup_tip", "row": 0, "col": 0}],
+            },
+            vision_targets={},
+        )
+
+
+def test_checked_in_pickup_tasks_parse_to_primitive_steps():
+    cms = Path(__file__).parents[3] / "src" / "cms"
+    paths = [
+        cms / "runs" / "anti_solvent_hold.json",
+        cms / "runs" / "first_solution_dispense.json",
+        cms / "runs" / "hold_anti_solvent_notip.json",
+        cms / "tasks" / "pipettor_tip_to_spincoater.json",
+    ]
+
+    for path in paths:
+        _, tasks, _, _ = _parse(json.loads(path.read_text()))
+        assert TASK_MACROS.keys().isdisjoint(task["task_type"] for task in tasks), path
+
+
 def test_unknown_final_task_has_zero_robot_side_effects():
     orchestrator_module = pytest.importorskip(
         "beambot.action_servers.orchestrator", reason="requires ROS"
@@ -227,6 +333,7 @@ def test_unknown_final_task_has_zero_robot_side_effects():
     orchestrator.get_parameter = lambda _name: SimpleNamespace(value="")
     orchestrator._grippers = GRIPPERS
     orchestrator._poses_file = "/nonexistent"
+    orchestrator._vision_targets = VISION_TARGETS
     orchestrator._vacuum = SimpleNamespace(
         reset=lambda: None, update_after_tasks=lambda *_: None
     )
