@@ -475,10 +475,16 @@ def detect_sample_roi(
             return None
 
         # Extract pixel corners from MarkerShape message
-        marker_corners = np.array([
-            [p.x, p.y]
-            for p in target_marker.corners_in_pixel_coordinates
-        ])
+        marker_corners = np.array(
+            [[p.x, p.y] for p in target_marker.corners_in_pixel_coordinates],
+            dtype=float,
+        )
+        if (
+            marker_corners.shape != (4, 2)
+            or not np.isfinite(marker_corners).all()
+        ):
+            logger.warning(f"Tag {tag_id} returned invalid pixel geometry")
+            return None
 
         # Compute px_per_mm from marker corner side lengths
         side_lengths = [
@@ -568,5 +574,4 @@ def detect_sample_roi(
             node.destroy_subscription(cloud_sub)
         if marker_client is not None:
             node.destroy_client(marker_client)
-
 

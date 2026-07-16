@@ -171,6 +171,10 @@ class _FakeVision:
     def detect_and_transform_tag(self, tag_id, timeout):
         return self.detect_return
 
+    def detect_and_transform_sample_roi(self, **kwargs):
+        self.sample_roi_calls = getattr(self, "sample_roi_calls", 0) + 1
+        return self.detect_return
+
     # computer delegates
     def compute_approach_pose(self, detection, z_offset, **kw):
         return self.approach_return
@@ -320,6 +324,36 @@ def test_run_unknown_detector_is_config_error():
     err = stages.run(_goal(detector="bogus"))
     assert err is not None and "PIPELINE_CONFIG_ERROR" in err
     assert fake.moved_to is None
+
+
+@pytest.mark.parametrize(
+    ("strategy", "edge_inset_mm"),
+    [
+        ("centre", 6.5),
+        ("nearest", 6.5),
+        ("nearest_edge", -1.0),
+        ("nearest_edge", float("nan")),
+        ("nearest_edge", float("inf")),
+    ],
+)
+def test_invalid_sample_roi_config_stops_before_detection_and_motion(
+    strategy, edge_inset_mm
+):
+    fake = _FakeVision()
+    stages = _make_stages(fake)
+    err = stages.run(
+        _goal(
+            detector="sample_roi",
+            strategy=strategy,
+            edge_inset_mm=edge_inset_mm,
+            scan_pose="sample_scan",
+            poses_json='{"sample_scan": [0, 0, 0, 0, 0, 0]}',
+        )
+    )
+
+    assert err is not None and "PIPELINE_CONFIG_ERROR" in err
+    assert not hasattr(fake, "sample_roi_calls")
+    assert not getattr(fake, "named_stages", [])
 
 
 def test_scan_positions_parsed_when_valid():

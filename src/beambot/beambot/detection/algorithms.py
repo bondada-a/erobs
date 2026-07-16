@@ -151,24 +151,76 @@ def detect_sample_in_roi(
     if params is None:
         params = SampleRoiDetectionParams()
 
+    if strategy not in {
+        "center",
+        "farthest_edge",
+        "nearest_edge",
+        "farthest_corner",
+        "nearest_corner",
+    }:
+        return None
+
+    try:
+        marker_corners = np.asarray(marker_corners, dtype=float)
+        geometry = np.asarray(
+            (
+                px_per_mm,
+                edge_inset_mm,
+                params.roi_offset_x_mm,
+                params.roi_offset_y_mm,
+                params.roi_width_mm,
+                params.roi_height_mm,
+            ),
+            dtype=float,
+        )
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+    (
+        px_per_mm,
+        edge_inset_mm,
+        roi_offset_x_mm,
+        roi_offset_y_mm,
+        roi_width_mm,
+        roi_height_mm,
+    ) = geometry
+    if (
+        marker_corners.shape != (4, 2)
+        or not np.isfinite(marker_corners).all()
+        or not np.isfinite(geometry).all()
+        or px_per_mm <= 0
+        or edge_inset_mm < 0
+        or roi_width_mm <= 0
+        or roi_height_mm <= 0
+    ):
+        return None
+
     # Marker axes in pixel space
     top_left, top_right = marker_corners[0], marker_corners[1]
     bottom_left = marker_corners[3]
     marker_x = top_right - top_left
-    marker_x = marker_x / np.linalg.norm(marker_x)
     marker_y = bottom_left - top_left
-    marker_y = marker_y / np.linalg.norm(marker_y)
+    marker_x_norm = np.linalg.norm(marker_x)
+    marker_y_norm = np.linalg.norm(marker_y)
+    if not np.isfinite((marker_x_norm, marker_y_norm)).all() or min(
+        marker_x_norm, marker_y_norm
+    ) <= 0:
+        return None
+    marker_x = marker_x / marker_x_norm
+    marker_y = marker_y / marker_y_norm
     tag_center = marker_corners.mean(axis=0)
 
     # ROI center in pixel space
     roi_center = (
         tag_center
-        + marker_x * (params.roi_offset_x_mm * px_per_mm)
-        + marker_y * (params.roi_offset_y_mm * px_per_mm)
+        + marker_x * (roi_offset_x_mm * px_per_mm)
+        + marker_y * (roi_offset_y_mm * px_per_mm)
     )
 
-    half_w = (params.roi_width_mm * px_per_mm) / 2
-    half_h = (params.roi_height_mm * px_per_mm) / 2
+    half_w = (roi_width_mm * px_per_mm) / 2
+    half_h = (roi_height_mm * px_per_mm) / 2
+    if not np.isfinite((*roi_center, half_w, half_h)).all():
+        return None
 
     h, w = rgb_image.shape[:2]
     roi_x1 = max(0, int(roi_center[0] - half_w))
