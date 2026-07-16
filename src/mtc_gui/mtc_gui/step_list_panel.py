@@ -607,6 +607,12 @@ class StepListPanel(QWidget):
 
         self._exec_toolbar.hide()
 
+    def set_editing_enabled(self, enabled: bool):
+        self._editing_enabled = enabled
+
+    def set_paused(self, paused: bool):
+        self._exec_toolbar.set_paused(paused)
+
     def reset_execution_state(self):
         """Return all steps to PENDING (edit mode)."""
         self._execution_active = False

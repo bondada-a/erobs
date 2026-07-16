@@ -76,6 +76,7 @@ class ROS2Bridge(QObject):
         self._resume_client = None
         self._current_goal_handle = None
         self._stop_execution = False
+        self.execution_state = None
 
     @property
     def available(self):
@@ -100,8 +101,8 @@ class ROS2Bridge(QObject):
             self.node.create_subscription(
                 RosString,
                 "/beambot/execution_state",
-                lambda msg: self.execution_state_changed.emit(msg.data),
-                10,
+                self._on_execution_state,
+                latched_qos,
             )
 
             # Dry-run preview trajectory: latched so the GUI sees the latest
@@ -173,6 +174,10 @@ class ROS2Bridge(QObject):
 
     def _on_gripper(self, msg):
         self.gripper_changed.emit(msg.data)
+
+    def _on_execution_state(self, msg):
+        self.execution_state = msg.data
+        self.execution_state_changed.emit(msg.data)
 
     def _on_preview_trajectory(self, msg):
         """Forward a DisplayTrajectory to the viz panel as a flat waypoint list.

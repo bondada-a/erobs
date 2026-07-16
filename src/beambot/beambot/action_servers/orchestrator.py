@@ -23,7 +23,7 @@ from rclpy.action import ActionServer, ActionClient
 from rclpy.action.server import ServerGoalHandle, GoalResponse, CancelResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.qos import QoSProfile, DurabilityPolicy
+from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 
 from beambot_interfaces.action import (
     MTCExecution,
@@ -233,13 +233,19 @@ class MTCOrchestratorServer(Node):
             callback_group=self._callback_group,
         )
 
-        # Execution state publisher
-        self._state_publisher = self.create_publisher(
-            String, "beambot/execution_state", 10
+        latched_qos = QoSProfile(
+            depth=1,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            reliability=ReliabilityPolicy.RELIABLE,
         )
 
+        # Execution state publisher
+        self._state_publisher = self.create_publisher(
+            String, "beambot/execution_state", latched_qos
+        )
+        self._publish_state("IDLE")
+
         # Current gripper publisher (latched so late subscribers get last value)
-        latched_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self._gripper_publisher = self.create_publisher(
             String, "beambot/current_gripper", latched_qos
         )
