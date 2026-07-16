@@ -231,6 +231,9 @@ class ROS2Bridge(QObject):
             try:
                 if not self._action_client:
                     self.log.emit("ERROR: Action client not available")
+                    self.action_result_received.emit(
+                        0, "Action client unavailable", 0, 0
+                    )
                     return
                 self.log.emit("Waiting for beambot_execution action server...")
                 if not self._action_client.wait_for_server(timeout_sec=10.0):
