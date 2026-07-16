@@ -164,17 +164,24 @@ class MoveItLifecycleManager:
                 self._logger.info(f"MoveIt already running for {gripper}, reusing")
                 return True
             self._logger.info(f"Switching gripper: {self._current_gripper} → {gripper}")
-            self.kill_current_process()
+            if not self.kill_current_process():
+                return False
 
-        if self._attempt_launch(gripper):
-            return True
+        attempts = 1 if self._use_mock_hardware else 2
+        for attempt in range(attempts):
+            try:
+                if self._attempt_launch(gripper):
+                    return True
+            except Exception as error:
+                self._logger.error(f"MoveIt launch attempt raised: {error}")
+                self._logger.error(traceback.format_exc())
 
-        if self._use_mock_hardware:
-            return False
+            if not self.kill_current_process():
+                return False
+            if attempt + 1 < attempts:
+                self._logger.error("Launch failed, retrying once")
 
-        self._logger.error("Launch failed, retrying once")
-        self.kill_current_process()
-        return self._attempt_launch(gripper)
+        return False
 
     def _attempt_launch(self, gripper: str) -> bool:
         """Single launch attempt: voltage → MoveIt → verify hardware.
@@ -291,7 +298,7 @@ class MoveItLifecycleManager:
         finally:
             self._node.destroy_client(client)
 
-    def kill_current_process(self):
+    def kill_current_process(self) -> bool:
         """Kill the current MoveIt process and wait for its servers to drop
         from DDS discovery.
 
@@ -301,43 +308,62 @@ class MoveItLifecycleManager:
         entry — and subsequent calls (e.g. /apply_planning_scene) would then
         hit a not-yet-ready move_group.
         """
-        if not self._moveit_process:
-            return
-
-        self._logger.info("Stopping MoveIt process...")
-
+        process = self._moveit_process
+        teardown_ok = True
         try:
-            pgid = os.getpgid(self._moveit_process.pid)
-            os.killpg(pgid, signal.SIGTERM)
-            self._moveit_process.wait(timeout=3.0)
-        except subprocess.TimeoutExpired:
-            os.killpg(pgid, signal.SIGKILL)
-            self._moveit_process.wait()
-        except (ProcessLookupError, OSError):
-            pass  # Process already dead
+            if process:
+                self._logger.info("Stopping MoveIt process...")
+                # start_new_session=True makes the launch PID its process-group
+                # ID, so this still addresses surviving children if the launch
+                # parent has already exited.
+                pgid = process.pid
+                try:
+                    os.killpg(pgid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                try:
+                    process.wait(timeout=3.0)
+                except subprocess.TimeoutExpired:
+                    try:
+                        os.killpg(pgid, signal.SIGKILL)
+                    except ProcessLookupError:
+                        pass
+                    process.wait()
+        except Exception as error:
+            teardown_ok = False
+            self._logger.error(f"Failed to fully stop MoveIt process group: {error}")
+        finally:
+            self._moveit_process = None
+            self._current_gripper = ""
 
-        self._moveit_process = None
-        self._current_gripper = ""
+        if not process:
+            return True
+        return teardown_ok and self._drain_stale_execute_trajectory()
 
-        self._drain_stale_execute_trajectory()
-
-    def _drain_stale_execute_trajectory(self, max_wait_sec: float = 10.0):
+    def _drain_stale_execute_trajectory(self, max_wait_sec: float = 10.0) -> bool:
         """Wait until /execute_trajectory is not advertised to our node."""
         deadline = time.monotonic() + max_wait_sec
         while time.monotonic() < deadline:
-            probe = ActionClient(
-                self._node, ExecuteTrajectory, "/execute_trajectory",
-                callback_group=self._callback_group,
-            )
             try:
-                if not probe.wait_for_server(timeout_sec=0.5):
-                    return
-            finally:
-                probe.destroy()
-        self._logger.warning(
+                probe = ActionClient(
+                    self._node, ExecuteTrajectory, "/execute_trajectory",
+                    callback_group=self._callback_group,
+                )
+                try:
+                    if not probe.wait_for_server(timeout_sec=0.5):
+                        return True
+                finally:
+                    probe.destroy()
+            except Exception as error:
+                self._logger.error(
+                    f"Failed while draining stale /execute_trajectory: {error}"
+                )
+                return False
+        self._logger.error(
             "Stale /execute_trajectory still advertised after "
-            f"{max_wait_sec:.0f}s drain; readiness check may fire early"
+            f"{max_wait_sec:.0f}s drain; refusing to relaunch"
         )
+        return False
 
     def _wait_for_moveit_ready(self, timeout_sec: float = 45.0) -> bool:
         """Wait for MoveIt to be ready to accept trajectories.
