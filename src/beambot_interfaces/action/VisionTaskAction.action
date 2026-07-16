@@ -20,7 +20,7 @@ string goal_computer        # registry key: "approach_pose" (default) | "j6_snap
 # ---- detection inputs ----
 int32 tag_id                # ArUco marker ID (marker detector); ROI anchor (sample_roi)
 int32 sample_index          # Reserved for compatibility; no detector consumes this field
-float64 timeout             # Detection timeout in seconds
+float64 timeout             # Remaining end-to-end operation budget in seconds
 string strategy             # sample_roi pickup strategy (default: "farthest_edge")
 float64 edge_inset_mm       # sample_roi inset from edge in mm (default: 6.5)
 float64[] scan_positions_flat  # Multi-position averaging: flattened [j1..j6, ...] (radians)

@@ -72,6 +72,7 @@ def capture_2d(node: Node, timeout: float = 15.0) -> np.ndarray | None:
     Returns:
         BGR numpy array, or None on failure.
     """
+    deadline = time.monotonic() + max(0.0, timeout)
     bridge = CvBridge()
     received: list[Image | None] = [None]
 
@@ -88,18 +89,25 @@ def capture_2d(node: Node, timeout: float = 15.0) -> np.ndarray | None:
     )
 
     try:
-        if not client.wait_for_service(timeout_sec=2.0):
+        remaining = max(0.0, deadline - time.monotonic())
+        if remaining <= 0 or not client.wait_for_service(
+            timeout_sec=min(2.0, remaining)
+        ):
             node.get_logger().error(
                 f"Service '{CAPTURE_2D_SERVICE}' not available"
             )
             return None
 
         # Clear stale image
-        time.sleep(0.5)
+        time.sleep(min(0.5, max(0.0, deadline - time.monotonic())))
+        if time.monotonic() >= deadline:
+            return None
         received[0] = None
 
         future = client.call_async(Trigger.Request())
-        if not _wait_for_future(future, timeout):
+        if not _wait_for_future(
+            future, max(0.0, deadline - time.monotonic())
+        ):
             node.get_logger().error("2D capture service timed out")
             return None
 
@@ -110,7 +118,6 @@ def capture_2d(node: Node, timeout: float = 15.0) -> np.ndarray | None:
 
         # Wait for image on topic — poll with short sleeps to allow
         # the executor to deliver the subscription callback
-        deadline = time.monotonic() + timeout
         while received[0] is None and time.monotonic() < deadline:
             time.sleep(0.1)
 
@@ -168,16 +175,22 @@ def detect_markers(
         - capture_stamp: Timestamp captured BEFORE service call (for accurate TF lookup)
         Returns empty markers list if detection failed.
     """
+    deadline = time.monotonic() + max(0.0, timeout)
     logger = node.get_logger()
 
-    if not client.wait_for_service(timeout_sec=2.0):
+    remaining = max(0.0, deadline - time.monotonic())
+    if remaining <= 0 or not client.wait_for_service(
+        timeout_sec=min(2.0, remaining)
+    ):
         logger.error(f"Zivid service '{SERVICE_NAME}' not available")
         return DetectionResult(markers=[], capture_stamp=None)
 
     # Settle: wait for robot vibration to dampen before capturing timestamp
     if settle_time > 0:
         logger.debug(f"Settling for {settle_time:.2f}s before capture...")
-        time.sleep(settle_time)
+        time.sleep(min(settle_time, max(0.0, deadline - time.monotonic())))
+        if time.monotonic() >= deadline:
+            return DetectionResult(markers=[], capture_stamp=None)
 
     # TIMESTAMP FIX: Capture timestamp BEFORE calling Zivid service
     pre_capture_stamp = node.get_clock().now().to_msg()
@@ -207,7 +220,9 @@ def detect_markers(
     request.marker_dictionary = dictionary
 
     future = client.call_async(request)
-    if not _wait_for_future(future, timeout):
+    if not _wait_for_future(
+        future, max(0.0, deadline - time.monotonic())
+    ):
         logger.warning("Zivid detection service timeout")
         return DetectionResult(markers=[], capture_stamp=None)
 
@@ -404,6 +419,7 @@ def detect_sample_roi(
         (pickup_pose_in_camera_frame, capture_stamp) on success, or None.
         The pose is in the Zivid optical frame (same as image/cloud).
     """
+    deadline = time.monotonic() + max(0.0, timeout)
     if params is None:
         params = SampleRoiDetectionParams()
 
@@ -429,13 +445,19 @@ def detect_sample_roi(
         cloud_sub = node.create_subscription(PointCloud2, CLOUD_TOPIC, on_cloud, _ZIVID_QOS)
         marker_client = node.create_client(CaptureAndDetectMarkers, SERVICE_NAME)
 
-        if not marker_client.wait_for_service(timeout_sec=2.0):
+        remaining = max(0.0, deadline - time.monotonic())
+        if remaining <= 0 or not marker_client.wait_for_service(
+            timeout_sec=min(2.0, remaining)
+        ):
             logger.error(f"Zivid service '{SERVICE_NAME}' not available")
             return None
 
         # Wait for subscriptions to discover the publisher
         for i in range(20):
-            time.sleep(0.1)
+            remaining = max(0.0, deadline - time.monotonic())
+            if remaining <= 0:
+                return None
+            time.sleep(min(0.1, remaining))
             if received_image[0] is not None or received_cloud[0] is not None:
                 break
 
@@ -454,7 +476,9 @@ def detect_sample_roi(
         logger.info(f"Triggering Zivid capture for sample_roi detection (tag {tag_id})...")
         future = marker_client.call_async(request)
 
-        if not _wait_for_future(future, timeout):
+        if not _wait_for_future(
+            future, max(0.0, deadline - time.monotonic())
+        ):
             logger.error(f"Zivid service timeout after {timeout}s")
             return None
 
@@ -495,10 +519,9 @@ def detect_sample_roi(
 
         # Wait for image + cloud from topics
         logger.info("Waiting for image and point cloud data...")
-        max_wait = 20.0
-        start_wait = time.time()
-        while time.time() - start_wait < max_wait:
-            time.sleep(0.1)
+        data_deadline = min(deadline, time.monotonic() + 20.0)
+        while time.monotonic() < data_deadline:
+            time.sleep(min(0.1, max(0.0, data_deadline - time.monotonic())))
             if received_image[0] is not None and received_cloud[0] is not None:
                 break
 
@@ -574,4 +597,3 @@ def detect_sample_roi(
             node.destroy_subscription(cloud_sub)
         if marker_client is not None:
             node.destroy_client(marker_client)
-

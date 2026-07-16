@@ -18,6 +18,7 @@ import time
 from typing import Any
 
 import rclpy
+from action_msgs.msg import GoalStatus
 from rclpy.node import Node
 from rclpy.action import ActionServer, ActionClient
 from rclpy.action.server import ServerGoalHandle, GoalResponse, CancelResponse
@@ -838,7 +839,7 @@ class MTCOrchestratorServer(Node):
                     if (
                         goal_handle.is_cancel_requested
                         or self._faulted
-                        or self._last_error.startswith(("TIMEOUT:", "REPLAY_TIMEOUT:"))
+                        or self._last_error.startswith("REPLAY_TIMEOUT:")
                     ):
                         self._faulted = True
                     result.error_message = f"{task_type} failed: {self._last_error}"
@@ -917,7 +918,13 @@ class MTCOrchestratorServer(Node):
             return False
 
     def _send_and_wait(
-        self, client: ActionClient, goal, name: str, timeout: float
+        self,
+        client: ActionClient,
+        goal,
+        name: str,
+        timeout: float,
+        *,
+        deadline: float | None = None,
     ) -> bool:
         """Send a goal to an action client and wait for result.
 
@@ -929,18 +936,44 @@ class MTCOrchestratorServer(Node):
         to the orchestrator result.
         """
         self._last_error = ""
+        started_at = deadline - timeout if deadline is not None else None
+
+        def remaining(default: float) -> float:
+            return (
+                max(0.0, deadline - time.monotonic())
+                if deadline is not None
+                else default
+            )
+
+        def timeout_error(stage: str) -> str:
+            elapsed = (
+                time.monotonic() - started_at if started_at is not None else timeout
+            )
+            return f"TIMEOUT: {name} stage={stage} elapsed={elapsed:.3f}s"
 
         # Wait for server
-        if not client.wait_for_server(timeout_sec=5.0):
-            self._last_error = f"TIMEOUT: {name} action server unavailable (waited 5s)"
+        server_timeout = remaining(5.0)
+        if server_timeout <= 0 or not client.wait_for_server(
+            timeout_sec=server_timeout
+        ):
+            self._last_error = timeout_error("server_discovery")
             self.get_logger().error(self._last_error)
             return False
 
         # Send goal and wait for acceptance
+        if deadline is not None and hasattr(goal, "timeout"):
+            goal.timeout = remaining(timeout)
+            if goal.timeout <= 0:
+                self._last_error = timeout_error("goal_submission")
+                self.get_logger().error(self._last_error)
+                return False
         send_future = client.send_goal_async(goal)
-        if not wait_for_future(send_future, timeout=10.0):
+        acceptance_timeout = remaining(10.0)
+        if acceptance_timeout <= 0 or not wait_for_future(
+            send_future, timeout=acceptance_timeout
+        ):
             self._faulted = True
-            self._last_error = f"TIMEOUT: {name} goal acceptance timed out (10s)"
+            self._last_error = timeout_error("goal_acceptance")
             self.get_logger().error(self._last_error)
             return False
 
@@ -953,11 +986,47 @@ class MTCOrchestratorServer(Node):
 
         # Wait for result with caller-provided timeout
         result_future = goal_handle.get_result_async()
-        if not wait_for_future(result_future, timeout=timeout):
-            self._faulted = True
-            self._last_error = f"TIMEOUT: {name} timed out after {timeout}s"
+        result_timeout = remaining(timeout)
+        if result_timeout <= 0 or not wait_for_future(
+            result_future, timeout=result_timeout
+        ):
+            self._last_error = timeout_error("result_wait")
             self.get_logger().error(self._last_error)
-            goal_handle.cancel_goal_async()
+            self._publish_state("CANCELING")
+
+            cancel_future = goal_handle.cancel_goal_async()
+            if not wait_for_future(cancel_future, timeout=5.0):
+                self._faulted = True
+                self._last_error += "; cancellation acceptance timed out"
+                return False
+
+            canceling = getattr(cancel_future.result(), "goals_canceling", [])
+            if not canceling and not result_future.done():
+                self._faulted = True
+                self._last_error += "; cancellation rejected while child active"
+                return False
+
+            # Cleanup is allowed to exceed the operation deadline. Once
+            # cancellation is accepted, retain ownership until the child is
+            # terminal instead of reporting IDLE while hardware is active.
+            while not result_future.done():
+                time.sleep(0.01)
+            terminal = result_future.result()
+            safe_statuses = {GoalStatus.STATUS_CANCELED}
+            if not canceling:
+                safe_statuses.add(GoalStatus.STATUS_SUCCEEDED)
+            status = getattr(terminal, "status", None)
+            if status is not None and status not in safe_statuses:
+                self._faulted = True
+                self._last_error += f"; child terminal status={status}"
+            child_error = getattr(
+                getattr(terminal, "result", None), "error_message", ""
+            )
+            if canceling and child_error and not any(
+                marker in child_error for marker in ("TIMEOUT:", "CANCELED:")
+            ):
+                self._faulted = True
+                self._last_error += f"; child cleanup failed: {child_error}"
             return False
 
         result = result_future.result()
@@ -1147,15 +1216,36 @@ class MTCOrchestratorServer(Node):
         # Merge: preset defaults < explicit task-JSON fields.
         cfg = {**preset, **step}
 
+        goal = self._build_vision_goal(cfg, poses_json)
+        timeout = goal.timeout
+        if not math.isfinite(timeout) or timeout <= 0:
+            self._last_error = (
+                "PIPELINE_CONFIG_ERROR: timeout must be positive and finite"
+            )
+            self.get_logger().error(self._last_error)
+            return False
+        started_at = time.monotonic()
+        deadline = started_at + timeout
+
         # Settle (orchestrator-side, before any server motion), capped at 10s.
         settle_time = min(float(cfg.get("settle_time", 1.0)), 10.0)
         if settle_time > 0:
             self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
-            time.sleep(settle_time)
+            time.sleep(min(settle_time, max(0.0, deadline - time.monotonic())))
+            if time.monotonic() >= deadline:
+                self._last_error = (
+                    "TIMEOUT: vision_task stage=orchestrator_settle "
+                    f"elapsed={time.monotonic() - started_at:.3f}s"
+                )
+                self.get_logger().error(self._last_error)
+                return False
 
-        goal = self._build_vision_goal(cfg, poses_json)
         success = self._send_and_wait(
-            self._vision_task_client, goal, task_type, self._timeouts["vision_task"]
+            self._vision_task_client,
+            goal,
+            task_type,
+            timeout,
+            deadline=deadline,
         )
 
         if success and self._last_result is not None:
@@ -1199,7 +1289,7 @@ class MTCOrchestratorServer(Node):
         # Detection inputs.
         goal.tag_id = int(cfg.get("tag_id", 0))
         goal.sample_index = int(cfg.get("sample_index", 1))
-        goal.timeout = float(cfg.get("timeout", 10.0))
+        goal.timeout = float(cfg.get("timeout", self._timeouts["vision_task"]))
         goal.strategy = cfg.get("strategy", "")
         goal.edge_inset_mm = float(cfg.get("edge_inset_mm", 0.0))
         # Goal-computation inputs.

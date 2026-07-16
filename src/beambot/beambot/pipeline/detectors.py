@@ -38,9 +38,16 @@ def detect_marker(ctx):
             scan_positions=ctx.scan_positions,
             timeout=goal.timeout,
             settle_time=vision._settle_time,
+            deadline=ctx.deadline,
+            cancel_requested=ctx.cancel_requested,
         )
 
-    return vision.detect_and_transform_tag(goal.tag_id, goal.timeout)
+    return vision.detect_and_transform_tag(
+        goal.tag_id,
+        goal.timeout,
+        deadline=ctx.deadline,
+        cancel_requested=ctx.cancel_requested,
+    )
 
 
 @register_detector("sample_roi")
@@ -59,6 +66,8 @@ def detect_sample_roi(ctx):
         strategy=strategy,
         edge_inset_mm=edge_inset_mm,
         timeout=goal.timeout,
+        deadline=ctx.deadline,
+        cancel_requested=ctx.cancel_requested,
     )
 
 
@@ -75,7 +84,12 @@ def _capture_2d_for_spincoater(ctx):
     from beambot.camera.zivid import capture_2d
 
     ctx.vision.logger.info("spincoater: capturing 2D image...")
-    return capture_2d(ctx.vision.rclpy_node, timeout=15.0)
+    remaining = ctx.remaining()
+    return (
+        capture_2d(ctx.vision.rclpy_node, timeout=min(15.0, remaining))
+        if remaining > 0
+        else None
+    )
 
 
 @register_detector("spincoater_pocket")

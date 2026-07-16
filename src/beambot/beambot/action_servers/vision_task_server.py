@@ -21,6 +21,7 @@ class VisionTaskActionServer(BaseActionServer):
             node_name="beambot_vision_task_server",
             action_name="beambot_vision_task",
             action_type=VisionTaskAction,
+            accept_cancel=True,
         )
 
         # Service to reset TF buffer after tool exchange (URDF change), parity
@@ -50,7 +51,9 @@ class VisionTaskActionServer(BaseActionServer):
     def _execute(self, goal_handle):
         """Run the pipeline and populate the result (incl. detect_only pose)."""
         goal = goal_handle.request
-        error = self._stages.run(goal)
+        error = self._stages.run(
+            goal, cancel_requested=lambda: goal_handle.is_cancel_requested
+        )
 
         result = VisionTaskAction.Result()
         if error is not None:

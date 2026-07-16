@@ -34,11 +34,17 @@ def compute_approach_pose(detection, ctx):
         marker_offset_y=goal.marker_offset_y,
         marker_offset_z=goal.marker_offset_z,
         ik_frame_override=goal.ik_frame or "",
+        timeout=ctx.remaining(),
     )
 
     if goal.offset_direction and goal.offset_distance > 0:
+        if ctx.remaining() <= 0:
+            return None
         approach = vision._apply_flange_offset(
-            approach, goal.offset_direction, goal.offset_distance
+            approach,
+            goal.offset_direction,
+            goal.offset_distance,
+            timeout=ctx.remaining(),
         )
 
     if goal.detect_only:
