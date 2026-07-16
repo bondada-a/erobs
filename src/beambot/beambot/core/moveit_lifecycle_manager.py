@@ -9,6 +9,7 @@ Invariant: the running MoveIt always matches the currently-attached gripper.
 """
 
 import atexit
+import math
 import os
 import signal
 import socket
@@ -16,6 +17,7 @@ import subprocess
 import time
 import traceback
 import uuid
+from numbers import Real
 
 import yaml
 from geometry_msgs.msg import Pose
@@ -204,6 +206,8 @@ class MoveItLifecycleManager:
         Returns True if MoveIt is up and hardware interface is connected.
         """
         config = self._grippers[gripper]
+        if not self._validate_payload(config):
+            return False
         self._logger.info(f"Launching MoveIt for {gripper} ({config['moveit_package']})")
 
         # Set tool voltage BEFORE MoveIt launches so ur_ros2_control_node
@@ -267,33 +271,57 @@ class MoveItLifecycleManager:
                 return False
             # Set the arm payload now that io_and_status_controller is up —
             # gated on the service, not a fixed launch-time timer.
-            self._set_payload(config)
+            if not self._set_payload(config):
+                return False
 
         return True
 
-    def _set_payload(self, config: dict) -> None:
-        """Set the arm payload via io_and_status_controller (best-effort).
+    def _validate_payload(self, config: dict) -> bool:
+        """Require a finite positive mass and finite three-axis CoG."""
+        try:
+            values = (
+                config["payload_mass"],
+                config["payload_cog"]["x"],
+                config["payload_cog"]["y"],
+                config["payload_cog"]["z"],
+            )
+            valid = (
+                all(
+                    not isinstance(value, bool)
+                    and isinstance(value, Real)
+                    and math.isfinite(value)
+                    for value in values
+                )
+                and values[0] > 0
+            )
+        except (KeyError, TypeError, ValueError, OverflowError):
+            valid = False
 
-        Replaces the launch-time TimerAction(5.0)+service-call guess with a
-        readiness-gated client. Best-effort: a failure warns but does not abort
-        the launch (matches the prior fire-and-forget behavior).
-        """
-        mass = config.get("payload_mass")
-        cog = config.get("payload_cog")
-        if mass is None or cog is None:
-            return
+        if not valid:
+            self._logger.error(
+                "Payload requires a finite positive payload_mass and finite numeric "
+                "payload_cog x, y, and z values"
+            )
+            return False
+        return True
+
+    def _set_payload(self, config: dict) -> bool:
+        """Set the validated arm payload before declaring the robot ready."""
+        mass = config["payload_mass"]
+        cog = config["payload_cog"]
 
         from ur_msgs.srv import SetPayload
         from geometry_msgs.msg import Vector3
 
-        client = self._node.create_client(
-            SetPayload, "/io_and_status_controller/set_payload",
-            callback_group=self._callback_group,
-        )
+        client = None
         try:
+            client = self._node.create_client(
+                SetPayload, "/io_and_status_controller/set_payload",
+                callback_group=self._callback_group,
+            )
             if not client.wait_for_service(timeout_sec=5.0):
-                self._logger.warning("set_payload service not available — payload not set")
-                return
+                self._logger.error("set_payload service not available")
+                return False
             request = SetPayload.Request()
             request.mass = float(mass)
             request.center_of_gravity = Vector3(
@@ -303,12 +331,23 @@ class MoveItLifecycleManager:
             deadline = time.monotonic() + 5.0
             while not future.done() and time.monotonic() < deadline:
                 time.sleep(0.05)
-            if future.done() and future.result().success:
-                self._logger.info(f"Payload set to {mass}kg")
-            else:
-                self._logger.warning("set_payload call failed or timed out")
+            if not future.done():
+                self._logger.error("set_payload call timed out")
+                return False
+
+            response = future.result()
+            if response is None or not response.success:
+                self._logger.error("set_payload call failed")
+                return False
+
+            self._logger.info(f"Payload set to {mass}kg")
+            return True
+        except Exception as error:
+            self._logger.error(f"set_payload failed: {error}")
+            return False
         finally:
-            self._node.destroy_client(client)
+            if client is not None:
+                self._node.destroy_client(client)
 
     def kill_current_process(self):
         """Kill the current MoveIt process and wait for its servers to drop

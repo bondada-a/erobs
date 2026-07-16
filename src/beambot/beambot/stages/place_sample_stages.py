@@ -15,6 +15,7 @@ import json
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 
+from beambot.core.task_script import flange_offset_error
 from beambot.stages.base_stages import (
     BaseStages,
     parse_constraints,
@@ -54,6 +55,13 @@ class PlaceSampleStages(BaseStages):
             None if successful, error string on failure.
         """
         self.last_detected_pose = None
+
+        error = flange_offset_error(
+            direction=goal.offset_direction,
+            distance=goal.offset_distance,
+        )
+        if error:
+            return error
 
         poses = self.parse_poses(goal.poses_json)
         if poses is None:

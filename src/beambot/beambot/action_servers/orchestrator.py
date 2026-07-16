@@ -23,7 +23,7 @@ from rclpy.action import ActionServer, ActionClient
 from rclpy.action.server import ServerGoalHandle, GoalResponse, CancelResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.executors import MultiThreadedExecutor
-from rclpy.qos import QoSProfile, DurabilityPolicy
+from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 
 from beambot_interfaces.action import (
     MTCExecution,
@@ -76,6 +76,7 @@ class MTCOrchestratorServer(Node):
         super().__init__("beambot_orchestrator")
 
         self._executing = False
+        self._faulted = False
         self._lock = threading.Lock()
         self._current_gripper = "unknown"
         self._last_error = ""  # Error from last failed action/batch
@@ -233,13 +234,19 @@ class MTCOrchestratorServer(Node):
             callback_group=self._callback_group,
         )
 
-        # Execution state publisher
-        self._state_publisher = self.create_publisher(
-            String, "beambot/execution_state", 10
+        latched_qos = QoSProfile(
+            depth=1,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            reliability=ReliabilityPolicy.RELIABLE,
         )
 
+        # Execution state publisher
+        self._state_publisher = self.create_publisher(
+            String, "beambot/execution_state", latched_qos
+        )
+        self._publish_state("IDLE")
+
         # Current gripper publisher (latched so late subscribers get last value)
-        latched_qos = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         self._gripper_publisher = self.create_publisher(
             String, "beambot/current_gripper", latched_qos
         )
@@ -285,6 +292,9 @@ class MTCOrchestratorServer(Node):
     def _goal_callback(self, goal_request) -> GoalResponse:
         """Handle incoming goal requests."""
         with self._lock:
+            if self._faulted:
+                self.get_logger().error("Goal rejected: orchestrator is faulted")
+                return GoalResponse.REJECT
             if self._executing:
                 self.get_logger().warning("Goal rejected: another task is executing")
                 return GoalResponse.REJECT
@@ -293,7 +303,10 @@ class MTCOrchestratorServer(Node):
 
     def _cancel_callback(self, goal_handle: ServerGoalHandle) -> CancelResponse:
         """Handle cancel requests."""
-        self.get_logger().info("Cancel request received - will stop after current task")
+        self.get_logger().info(
+            "Cancel request received - will stop after active execution unit"
+        )
+        self._publish_state("CANCELING")
         return CancelResponse.ACCEPT
 
     def _pause_callback(self, request, response):
@@ -351,7 +364,7 @@ class MTCOrchestratorServer(Node):
     def _publish_state(self, state: str):
         """Publish current execution state to the state topic.
 
-        States: IDLE, RUNNING, PAUSED, COMPLETING_TASK
+        States: IDLE, RUNNING, PAUSED, COMPLETING_TASK, CANCELING, FAULTED
         """
         msg = String()
         msg.data = state
@@ -554,13 +567,14 @@ class MTCOrchestratorServer(Node):
         """Execute the orchestration goal."""
         try:
             return self._execute(goal_handle)
+        except Exception:
+            self._faulted = True
+            raise
         finally:
             with self._lock:
-                self._executing = False
-            # Every terminal exit of _execute (success, abort, cancel, or an
-            # uncaught exception) leaves the goal finished → publish IDLE here so
-            # no return path can forget it.
-            self._publish_state("IDLE")
+                if not self._faulted:
+                    self._executing = False
+            self._publish_state("FAULTED" if self._faulted else "IDLE")
 
     def _execute(self, goal_handle: ServerGoalHandle) -> MTCExecution.Result:
         """Main execution logic."""
@@ -746,6 +760,10 @@ class MTCOrchestratorServer(Node):
                     cached_plan=cached_plan_for_replay,
                 )
                 if not ok:
+                    if goal_handle.is_cancel_requested or self._last_error.startswith(
+                        ("TIMEOUT:", "REPLAY_TIMEOUT:")
+                    ):
+                        self._faulted = True
                     result.error_message = f"Batch failed at step {completed_tasks + 1}: {self._last_error}"
                     result.completed_steps = completed_tasks
                     goal_handle.abort()
@@ -808,6 +826,10 @@ class MTCOrchestratorServer(Node):
                         return result
                     completed_tasks += 1
                     result.completed_steps = completed_tasks
+                    if goal_handle.is_cancel_requested:
+                        result.error_message = "Task was canceled"
+                        goal_handle.canceled()
+                        return result
                     continue
 
                 self._update_feedback(
@@ -815,6 +837,12 @@ class MTCOrchestratorServer(Node):
                 )
 
                 if not self._execute_step(task_type, task, poses_json):
+                    if (
+                        goal_handle.is_cancel_requested
+                        or self._faulted
+                        or self._last_error.startswith(("TIMEOUT:", "REPLAY_TIMEOUT:"))
+                    ):
+                        self._faulted = True
                     result.error_message = f"{task_type} failed: {self._last_error}"
                     result.completed_steps = completed_tasks
                     goal_handle.abort()
@@ -824,6 +852,17 @@ class MTCOrchestratorServer(Node):
                 completed_tasks += 1
 
             result.completed_steps = completed_tasks
+
+            # Graceful cancellation finishes the active execution unit, then
+            # stops before dispatching more work. This post-check is required
+            # for the final batch, where there is no next boundary check.
+            if goal_handle.is_cancel_requested:
+                self.get_logger().warning(
+                    f"Task cancelled after step {completed_tasks}/{task_count}"
+                )
+                result.error_message = "Task was canceled"
+                goal_handle.canceled()
+                return result
 
         # Final vacuum-loss abort DISABLED — a drop during the last step no
         # longer aborts; the sequence is reported complete regardless.
@@ -910,6 +949,7 @@ class MTCOrchestratorServer(Node):
         # Send goal and wait for acceptance
         send_future = client.send_goal_async(goal)
         if not wait_for_future(send_future, timeout=10.0):
+            self._faulted = True
             self._last_error = f"TIMEOUT: {name} goal acceptance timed out (10s)"
             self.get_logger().error(self._last_error)
             return False
@@ -924,6 +964,7 @@ class MTCOrchestratorServer(Node):
         # Wait for result with caller-provided timeout
         result_future = goal_handle.get_result_async()
         if not wait_for_future(result_future, timeout=timeout):
+            self._faulted = True
             self._last_error = f"TIMEOUT: {name} timed out after {timeout}s"
             self.get_logger().error(self._last_error)
             goal_handle.cancel_goal_async()

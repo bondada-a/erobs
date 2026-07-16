@@ -147,6 +147,43 @@ def test_invalid_moveto_goals(goal, message):
     assert message in moveto_goal_error(**goal)
 
 
+@pytest.mark.parametrize(
+    "offset",
+    [
+        {"offset_direction": "right"},
+        {"offset_distance": 0.1},
+        {"offset_direction": "right", "offset_distance": -0.1},
+        {"offset_direction": "right", "offset_distance": float("nan")},
+        {"offset_direction": "sideways", "offset_distance": 0.1},
+    ],
+)
+def test_task_script_rejects_invalid_flange_offsets(offset):
+    with pytest.raises(ValueError, match="offset"):
+        _parse(
+            {
+                "start_gripper": "epick",
+                "tasks": [{"task_type": "vision_moveto", **offset}],
+            }
+        )
+
+
+def test_task_script_accepts_valid_flange_offset():
+    _, tasks, _, _ = _parse(
+        {
+            "start_gripper": "epick",
+            "tasks": [
+                {
+                    "task_type": "vision_moveto",
+                    "offset_direction": "right",
+                    "offset_distance": 0.1,
+                }
+            ],
+        }
+    )
+
+    assert tasks[0]["offset_direction"] == "right"
+
+
 def test_task_script_rejects_ambiguous_moveto():
     with pytest.raises(ValueError, match=r"tasks\[0\].*exactly one"):
         _parse(

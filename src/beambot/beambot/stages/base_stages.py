@@ -904,7 +904,9 @@ class BaseStages:
 
             send_future = client.send_goal_async(goal)
             if not wait_for_future(send_future, timeout=10.0):
-                return "EXECUTION_FAILED: replay goal acceptance timed out (10s)"
+                # Acceptance is unknown: the server may accept this goal late,
+                # so the caller must fault rather than dispatch another motion.
+                return "REPLAY_TIMEOUT: replay goal acceptance timed out (10s)"
             gh = send_future.result()
             if not gh.accepted:
                 return "EXECUTION_FAILED: execute_task_solution goal rejected"
