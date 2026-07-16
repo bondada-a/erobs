@@ -109,6 +109,7 @@ class ToolExchangeStages(BaseStages):
         task = self.create_task_template(task_name)
         sampling = self.make_pipeline_planner()
         cartesian = self.make_cartesian_planner()
+        cartesian.min_fraction = 1.0
 
         # 1. Move to approach pose
         joint_pose = self.get_joint_pose(poses, goal.approach_pose)
