@@ -25,6 +25,7 @@ from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 
 import beambot.pipeline  # noqa: F401 — registers built-in plugins on import
+from beambot.core.task_script import flange_offset_error
 from beambot.pipeline.motion_target import CartesianTarget, JointTarget
 from beambot.pipeline.registry import get_detector, get_goal_computer
 from beambot.pipeline.vision_engine import VisionEngine
@@ -68,6 +69,13 @@ class VisionTaskStages:
         self.vacuum_ok = True
         self.goal = goal
         vision = self._vision
+
+        error = flange_offset_error(
+            direction=goal.offset_direction,
+            distance=goal.offset_distance,
+        )
+        if error:
+            return f"PIPELINE_CONFIG_ERROR: {error}"
 
         detector_name = goal.detector or "marker"
         if detector_name == "sample_roi":

@@ -97,6 +97,25 @@ def moveto_goal_error(
     return None
 
 
+def flange_offset_error(*, direction: Any = "", distance: Any = 0.0) -> str | None:
+    """Return why a flange offset is invalid, or None when it is valid/absent."""
+    if not isinstance(direction, str):
+        return "Flange offset direction must be a string"
+    if (
+        isinstance(distance, bool)
+        or not isinstance(distance, Real)
+        or not math.isfinite(distance)
+    ):
+        return "Flange offset distance must be a finite number greater than zero"
+    if not direction and distance == 0.0:
+        return None
+    if direction not in MOVETO_DIRECTIONS:
+        return f"Unknown flange offset direction: {direction!r}"
+    if distance <= 0.0:
+        return "Flange offset distance must be a finite number greater than zero"
+    return None
+
+
 def _load_poses_registry(
     poses_file: str, on_warning: Callable[[str], None] | None
 ) -> dict[str, Any]:
@@ -360,6 +379,12 @@ def parse_task_script(
 
     for index, task in enumerate(tasks):
         task_type = task["task_type"]
+        error = flange_offset_error(
+            direction=task.get("offset_direction", ""),
+            distance=task.get("offset_distance", 0.0),
+        )
+        if error:
+            raise ValueError(f"tasks[{index}]: {error}")
         if task_type == "moveto":
             error = moveto_goal_error(
                 target=task.get("target", ""),

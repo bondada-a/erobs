@@ -976,11 +976,10 @@ class VisionEngine(BaseStages):
             The pose with offset applied
         """
         if direction not in DIRECTION_VECTORS:
-            self.logger.warning(
-                f"Unknown offset direction '{direction}', skipping. "
-                f"Valid: {list(DIRECTION_VECTORS.keys())}"
+            raise ValueError(
+                f"Unknown flange offset direction: {direction!r} "
+                f"(valid: {list(DIRECTION_VECTORS)})"
             )
-            return pose
 
         # Get the flange orientation in base_link from TF
         try:
@@ -991,8 +990,7 @@ class VisionEngine(BaseStages):
                 timeout=rclpy.duration.Duration(seconds=2.0),
             )
         except TransformException as e:
-            self.logger.error(f"Failed to look up flange TF for offset: {e}")
-            return pose
+            raise RuntimeError(f"Failed to look up flange TF for offset: {e}") from e
 
         # Build rotation matrix from flange quaternion
         q = [
