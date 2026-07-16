@@ -118,6 +118,7 @@ class MTCOrchestratorServer(Node):
         self._grippers = config[
             "grippers"
         ]  # Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group, states}
+        self._vision_targets = config.get("vision_targets", {})
         self._robot_ip = config["robot"]["ip"]  # Single source: config file
         self._arm_group = config.get("robot", {}).get(
             "arm_group", "ur_arm"
@@ -581,6 +582,7 @@ class MTCOrchestratorServer(Node):
                 dry_run=bool(getattr(goal_handle.request, "dry_run", False)),
                 grippers=self._grippers,
                 poses_file=self._poses_file,
+                vision_targets=self._vision_targets,
                 on_info=self.get_logger().info,
                 on_warning=self.get_logger().warning,
             )
