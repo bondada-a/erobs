@@ -122,7 +122,7 @@ def test_mock_hardware_validates_without_payload_service():
     manager = _attempt_manager(mock_hardware=True)
 
     with patch.object(lifecycle.subprocess, "Popen", return_value=MagicMock()):
-        assert manager._attempt_launch("epick")
+        assert manager._attempt_launch("epick", "")
 
     manager._node.create_client.assert_not_called()
 
@@ -131,7 +131,7 @@ def test_mock_hardware_rejects_invalid_payload_before_launch():
     manager = _attempt_manager(mock_hardware=True, config={"moveit_package": "test"})
 
     with patch.object(lifecycle.subprocess, "Popen") as popen:
-        assert not manager._attempt_launch("epick")
+        assert not manager._attempt_launch("epick", "")
 
     popen.assert_not_called()
     manager._node.create_client.assert_not_called()
@@ -142,7 +142,7 @@ def test_payload_failure_never_reports_ready():
     manager._set_payload = MagicMock(return_value=False)
 
     with patch.object(lifecycle.subprocess, "Popen", return_value=MagicMock()):
-        assert not manager._attempt_launch("epick")
+        assert not manager._attempt_launch("epick", "")
 
     assert manager._current_gripper == ""
     assert not any(

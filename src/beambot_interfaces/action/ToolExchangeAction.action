@@ -5,6 +5,7 @@ string current_attached_gripper  # "hande", "epick", or "none" - what's currentl
 int32 dock_number           # Dock position (1-5)
 string approach_pose        # Approach pose name
 string poses_json           # Pose definitions from task
+string robot_model_revision # Orchestrator-managed; empty disables cross-goal model reuse
 ---
 # Result
 bool success

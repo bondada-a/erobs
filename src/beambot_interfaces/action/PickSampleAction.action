@@ -30,6 +30,7 @@ string gripper_group            # MoveIt group name: "hande_gripper", "epick_gri
 string gripper_states_json      # JSON dict: {"grasp": "vacuum_on", "release": "vacuum_off"}
 string poses_json               # Pose definitions from task
 string constraints_json         # Optional: JSON path constraints (empty = none)
+string robot_model_revision     # Orchestrator-managed; empty disables cross-goal model reuse
 ---
 # Result
 bool success

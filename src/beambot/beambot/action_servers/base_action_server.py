@@ -6,6 +6,7 @@ and standard error handling for all MTC action servers.
 
 import threading
 import traceback
+import uuid
 
 import rclpy
 from rclpy.action import ActionServer, GoalResponse
@@ -28,6 +29,7 @@ class BaseActionServer(Node):
         self._executing = False
         self._lock = threading.Lock()
         self._action_type = action_type
+        self._robot_model_revision = ""
 
         self._stages = self.create_stages()
 
@@ -59,6 +61,10 @@ class BaseActionServer(Node):
                 self.get_logger().warning("Rejecting goal: server busy")
                 return GoalResponse.REJECT
             self._executing = True
+            if hasattr(goal_request, "robot_model_revision"):
+                self._robot_model_revision = (
+                    goal_request.robot_model_revision or uuid.uuid4().hex
+                )
         self.get_logger().info("Received goal request")
         return GoalResponse.ACCEPT
 

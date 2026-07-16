@@ -84,7 +84,7 @@ class MTCOrchestratorServer(Node):
         self._last_detected_position = None  # [x, y, z] from detect_only vision
         self._last_detected_orientation = None  # [x, y, z, w] from detect_only vision
 
-        # Trajectory cache: multi-entry, keyed on (start joints, goal, gripper).
+        # Trajectory cache: keyed on (start joints, goal, gripper, model revision).
         # A planned move is stored as a serialized Solution msg; a later goal
         # with the same key replays it instead of re-planning (see PlanCache).
         self._plan_cache = PlanCache(self.get_logger())
@@ -444,8 +444,7 @@ class MTCOrchestratorServer(Node):
                 caller can store it in the trajectory cache.
             cached_plan: If provided, skip the build+plan step and replay
                 cached_plan["sol_msg"] directly via /execute_task_solution.
-                Used when an Execute goal's (start, goal, gripper) key hits
-                the cache.
+                Used when an Execute goal's model-aware cache key hits.
 
         Returns:
             True if all tasks succeeded, False on any failure
@@ -613,18 +612,6 @@ class MTCOrchestratorServer(Node):
                 f"without moving the robot"
             )
 
-        # Compute the trajectory-cache key from (current start joints, goal
-        # payload, gripper). Current joints come from the live /joint_states
-        # cache (None under mock hardware / before the first message → key
-        # degrades to goal+gripper). The robot is at rest here, so these joints
-        # are the move's start state; the same key recomputed on a later
-        # identical move from the same start hits this entry.
-        goal_key = PlanCache.compute_key(
-            goal_handle.request.full_json,
-            start_gripper,
-            self._moveit_manager.current_arm_joints(),
-        )
-
         # The cache lookup is deferred until after batching (below): only a goal
         # that groups into exactly ONE batched batch is cacheable, because a
         # single per-goal key cannot distinguish multiple batches' distinct
@@ -652,6 +639,15 @@ class MTCOrchestratorServer(Node):
             result.error_message = "Failed to initialize MoveIt stack"
             goal_handle.abort()
             return result
+
+        # Include the active model revision so a tool/cup change cannot replay
+        # a trajectory planned against different collision geometry.
+        goal_key = PlanCache.compute_key(
+            goal_handle.request.full_json,
+            start_gripper,
+            self._moveit_manager.model_revision,
+            self._moveit_manager.current_arm_joints(),
+        )
 
         # Publish running state before starting task execution
         self._publish_state("RUNNING")
@@ -935,6 +931,14 @@ class MTCOrchestratorServer(Node):
         to the orchestrator result.
         """
         self._last_error = ""
+
+        if hasattr(goal, "robot_model_revision"):
+            revision = self._moveit_manager.model_revision
+            if not revision:
+                self._last_error = f"Cannot send {name}: no active RobotModel revision"
+                self.get_logger().error(self._last_error)
+                return False
+            goal.robot_model_revision = revision
 
         # Wait for server
         if not client.wait_for_server(timeout_sec=5.0):

@@ -1,4 +1,4 @@
-"""Trajectory cache: multi-entry, keyed on (start joints, goal, gripper).
+"""Trajectory cache: keyed on (start joints, goal, gripper, model revision).
 
 Stores a planned MTC solution as a serialized
 ``moveit_task_constructor_msgs/Solution`` msg (NOT a live ``core.Task`` — that
@@ -33,7 +33,7 @@ from collections import OrderedDict
 
 # ponytail: FIFO/LRU cap so a long session of one-off moves can't grow the
 # cache without bound. Bump if a workflow legitimately has more distinct
-# (start, goal, gripper) triples in flight than this.
+# (start, goal, gripper, model revision) tuples in flight than this.
 MAX_ENTRIES = 64
 
 _TWO_PI = 2.0 * math.pi
@@ -67,8 +67,8 @@ def normalize_joints(positions_rad):
     live /joint_states order differs from the kinematic order). Wrap to (-pi,pi]
     FIRST (collapse 2*pi branches), THEN round to ~0.01 rad buckets (matches
     allowed_start_tolerance). Returns None when fewer/more than 6 values are
-    available (startup, mock hardware) so the caller keys on goal+gripper only —
-    which fails toward re-planning, never toward a wrong replay.
+    available (startup, mock hardware) so the caller omits only the start-state
+    component; goal, gripper, and model revision remain in the key.
     """
     if positions_rad is None:
         return None
@@ -79,13 +79,13 @@ def normalize_joints(positions_rad):
 
 
 class PlanCache:
-    """Thread-safe multi-entry trajectory cache keyed on (start, goal, gripper).
+    """Thread-safe cache keyed on (start, goal, gripper, model revision).
 
     Values are opaque to this class: it stores whatever ``sol_msg`` object the
     caller hands it (a ``moveit_task_constructor_msgs/Solution`` msg in
     production, a sentinel in tests) and only keys, stores, fetches, and
-    evicts. The (start, goal, gripper) triple is folded into the key, so a key
-    hit IS a valid match — there is no separate validate step.
+    evicts. Every component is folded into the key, so a key hit IS a valid
+    match — there is no separate validate step.
     """
 
     def __init__(self, logger, max_entries: int = MAX_ENTRIES):
@@ -96,8 +96,13 @@ class PlanCache:
         self._entries: "OrderedDict[str, dict]" = OrderedDict()
 
     @staticmethod
-    def compute_key(full_json: str, gripper: str, start_joints_rad=None) -> str:
-        """Stable key from normalized start joints + goal JSON + gripper.
+    def compute_key(
+        full_json: str,
+        gripper: str,
+        model_revision: str,
+        start_joints_rad=None,
+    ) -> str:
+        """Stable key from start joints, goal, gripper, and model revision.
 
         The GOAL is keyed on ``full_json`` text — the task script already
         uniquely describes named / relative / cartesian goals — so no
@@ -109,7 +114,7 @@ class PlanCache:
 
         The START component is the current arm joints, wrapped+quantized via
         ``normalize_joints``. When unavailable (mock hardware, not-yet-received)
-        it is ``None`` and the key degrades to goal+gripper.
+        it is ``None`` and the key omits only the start state.
         """
         try:
             normalized = json.dumps(json.loads(full_json), sort_keys=True)
@@ -120,6 +125,8 @@ class PlanCache:
         h.update(normalized.encode("utf-8"))
         h.update(b"|")
         h.update(gripper.encode("utf-8"))
+        h.update(b"|")
+        h.update(model_revision.encode("utf-8"))
         h.update(b"|")
         h.update(repr(start).encode("utf-8"))
         return h.hexdigest()
