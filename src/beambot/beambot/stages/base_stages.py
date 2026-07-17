@@ -31,6 +31,7 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from tf_transformations import quaternion_from_euler
 
+from beambot.core import MODEL_REVISION_PREFIX, VERIFIED_MODEL_DESCRIPTION
 
 # MoveIt error code → name, reflected from the message so it can't drift.
 MOVEIT_ERROR_NAMES: dict[int, str] = {
@@ -174,13 +175,39 @@ def _load_joint_accel_limits() -> dict[str, float]:
     return limits
 
 
-def _build_joint_limit_args(limits: dict[str, float]) -> list[str]:
+def _build_joint_limit_args(
+    limits: dict[str, float], robot_description: str = "robot_description"
+) -> list[str]:
     args: list[str] = []
     for joint, accel in limits.items():
+        prefix = f"{robot_description}_planning.joint_limits.{joint}"
         args += [
-            "-p", f"robot_description_planning.joint_limits.{joint}.has_acceleration_limits:=true",
-            "-p", f"robot_description_planning.joint_limits.{joint}.max_acceleration:={accel}",
+            "-p", f"{prefix}.has_acceleration_limits:=true",
+            "-p", f"{prefix}.max_acceleration:={accel}",
         ]
+    return args
+
+
+def _build_kinematics_args(robot_description: str) -> list[str]:
+    """Load kinematics.yaml under a RobotModelLoader description root."""
+    try:
+        from beambot.config_loader import moveit_config_package
+        pkg_name = moveit_config_package()
+    except Exception:
+        pkg_name = "cms_moveit_config"
+    path = os.path.join(
+        get_package_share_directory(pkg_name), "config", "kinematics.yaml"
+    )
+    with open(path) as f:
+        kinematics = yaml.safe_load(f) or {}
+    args: list[str] = []
+    for group, settings in kinematics.items():
+        for key, value in settings.items():
+            rendered = json.dumps(value).replace('"', "'")
+            args += [
+                "-p",
+                f"{robot_description}_kinematics.{group}.{key}:={rendered}",
+            ]
     return args
 
 
@@ -210,6 +237,7 @@ _options = rclcpp.NodeOptions()
 _options.automatically_declare_parameters_from_overrides = True
 _options.allow_undeclared_parameters = True
 _options.enable_rosout = False
+_joint_accel_limits = _load_joint_accel_limits()
 _options.arguments = [
     "--ros-args",
     "-r", "__node:=beambot_mtc",
@@ -219,12 +247,16 @@ _options.arguments = [
     *build_pipeline_param_args(),
     # OMPL start-state tolerance — MTC-specific, not in the shared YAML.
     "-p", "ompl.start_state_max_bounds_error:=0.1",
+    # Managed models use one fixed description root so their associated
+    # kinematics and joint-limit namespaces can be declared once.
+    *_build_kinematics_args(VERIFIED_MODEL_DESCRIPTION),
     # Pilz cartesian limits — read from pilz_cartesian_limits.yaml (same file
     # move_group loads), not duplicated here.
     *_build_cartesian_limit_args(),
     # Pilz PTP / TOTG joint acceleration limits — union across all gripper
     # joint_limits.yaml files under cms_moveit_config/config/<gripper>/.
-    *_build_joint_limit_args(_load_joint_accel_limits()),
+    *_build_joint_limit_args(_joint_accel_limits),
+    *_build_joint_limit_args(_joint_accel_limits, VERIFIED_MODEL_DESCRIPTION),
 ]
 _mtc_node = rclcpp.Node("beambot_mtc", _options)
 
@@ -232,11 +264,10 @@ _mtc_node = rclcpp.Node("beambot_mtc", _options)
 # task.loadRobotModel() re-parses URDF/SRDF and yields a NEW model pointer every
 # call; MTC's PipelinePlanner caches loaded pipelines in a static cache keyed by
 # (model, pipeline), so a fresh model per goal = cache miss = ~0.5s pluginlib
-# reload per pipeline. The orchestrator supplies a unique description topic
-# after each successful MoveIt relaunch, so persistent servers load the exact
-# verified model once and then reuse it safely.
+# reload per pipeline. The orchestrator supplies a unique revision after each
+# successful MoveIt relaunch and publishes the exact verified model on the
+# fixed, fully configured description root above.
 _model_cache: dict = {}
-_MODEL_TOPIC_PREFIX = "beambot_robot_models__"
 
 
 def joints_from_degrees(degrees: list[float]) -> dict[str, float]:
@@ -492,15 +523,17 @@ class BaseStages:
         if model is not None:
             task.setRobotModel(model)
         else:
-            managed_model = model_revision.startswith(_MODEL_TOPIC_PREFIX)
+            managed_model = model_revision.startswith(MODEL_REVISION_PREFIX)
             if managed_model:
-                task.loadRobotModel(self._mtc_node, model_revision)
+                task.loadRobotModel(self._mtc_node, VERIFIED_MODEL_DESCRIPTION)
             else:
                 task.loadRobotModel(self._mtc_node)
             if model_revision:
                 model = task.getRobotModel()
                 if managed_model:
-                    gripper = model_revision.removeprefix(_MODEL_TOPIC_PREFIX).split("__", 1)[0]
+                    gripper = model_revision.removeprefix(
+                        MODEL_REVISION_PREFIX
+                    ).split("__", 1)[0]
                     from beambot.config_loader import load_beamline_config
                     config, _ = load_beamline_config()
                     expected = config["grippers"][gripper]

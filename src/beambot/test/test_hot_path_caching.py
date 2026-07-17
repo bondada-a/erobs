@@ -121,8 +121,8 @@ def test_model_revision_changes_only_when_model_configuration_changes():
     manager._use_mock_hardware = True
     manager._logger = Mock()
     manager._publish_verified_model = Mock(side_effect=[
-        "beambot_robot_models__epick__one__robot_description",
-        "beambot_robot_models__epick__two__robot_description",
+        "beambot_robot_models__epick__one",
+        "beambot_robot_models__epick__two",
     ])
 
     process = SimpleNamespace(poll=lambda: None)
@@ -223,7 +223,7 @@ def test_model_content_validation_covers_hande_none_epick_and_pipettor():
     )
 
 
-def test_verified_descriptions_are_published_unchanged_on_revision_topics():
+def test_verified_descriptions_are_published_unchanged_on_managed_topics():
     urdf = "<robot><link name=\"epick_tip\"/></robot>"
     srdf = "<robot><group name=\"epick_gripper\"/></robot>"
 
@@ -254,7 +254,8 @@ def test_verified_descriptions_are_published_unchanged_on_revision_topics():
 
     assert revision.startswith("beambot_robot_models__epick__")
     assert [publisher.topic for publisher in manager._node.publishers] == [
-        revision, f"{revision}_semantic"
+        lifecycle_manager.VERIFIED_MODEL_DESCRIPTION,
+        f"{lifecycle_manager.VERIFIED_MODEL_DESCRIPTION}_semantic",
     ]
     assert manager._node.publishers[0].messages == [urdf]
     assert manager._node.publishers[1].messages == [srdf]

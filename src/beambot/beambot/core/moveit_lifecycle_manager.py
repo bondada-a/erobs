@@ -36,6 +36,8 @@ from std_msgs.msg import Bool, String
 from std_srvs.srv import Trigger
 from tf_transformations import quaternion_from_euler
 
+from beambot.core import MODEL_REVISION_PREFIX, VERIFIED_MODEL_DESCRIPTION
+
 
 class MoveItLifecycleManager:
     """Manages MoveIt move_group lifecycle for gripper-specific configurations."""
@@ -96,7 +98,7 @@ class MoveItLifecycleManager:
         # Read the exact descriptions used by move_group. MTC must not load its
         # model from the shared /robot_description topics at a relaunch boundary:
         # URDF and SRDF arrive independently there and can come from different
-        # launches. The verified pair is republished below on a unique topic.
+        # launches. The verified pair is republished below on a managed topic.
         self._move_group_parameters = AsyncParameterClient(
             node, "/move_group", callback_group=callback_group
         )
@@ -217,30 +219,28 @@ class MoveItLifecycleManager:
         return bool(revision)
 
     def _publish_verified_model(self, gripper: str) -> str:
-        """Publish move_group's verified URDF/SRDF pair on a unique topic."""
+        """Publish move_group's verified URDF/SRDF pair on the managed topics."""
         descriptions = self._wait_for_verified_model(gripper)
         if descriptions is None:
             return ""
 
         robot_description, semantic_description = descriptions
-        # RDFLoader embeds this value in a temporary ROS node name, so it must
-        # be flat (slashes make the node name invalid).
-        revision = (
-            f"beambot_robot_models__{gripper}__{uuid.uuid4().hex}__robot_description"
-        )
+        revision = f"{MODEL_REVISION_PREFIX}{gripper}__{uuid.uuid4().hex}"
         qos = QoSProfile(
             depth=1,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
             reliability=ReliabilityPolicy.RELIABLE,
         )
         publishers = (
-            self._node.create_publisher(String, revision, qos),
-            self._node.create_publisher(String, f"{revision}_semantic", qos),
+            self._node.create_publisher(String, VERIFIED_MODEL_DESCRIPTION, qos),
+            self._node.create_publisher(
+                String, f"{VERIFIED_MODEL_DESCRIPTION}_semantic", qos
+            ),
         )
         publishers[0].publish(String(data=robot_description))
         publishers[1].publish(String(data=semantic_description))
         self._model_description_publishers = publishers
-        self._logger.info(f"Published verified {gripper} model as {revision}")
+        self._logger.info(f"Published verified {gripper} model for revision {revision}")
         return revision
 
     def _wait_for_verified_model(

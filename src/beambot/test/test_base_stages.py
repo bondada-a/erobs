@@ -72,13 +72,13 @@ def test_robot_model_cache_is_revision_aware(monkeypatch):
     assert created[5].model is created[6].model
 
 
-def test_persistent_server_loads_each_managed_revision_from_its_bound_topic(monkeypatch):
-    topics = {
-        "beambot_robot_models__hande__one__robot_description": (
+def test_persistent_server_loads_managed_revisions_from_verified_root(monkeypatch):
+    revisions = {
+        "beambot_robot_models__hande__one": (
             "hande_gripper", {"robotiq_hande_end"}
         ),
-        "beambot_robot_models__none__two__robot_description": ("", set()),
-        "beambot_robot_models__epick__three__robot_description": (
+        "beambot_robot_models__none__two": ("", set()),
+        "beambot_robot_models__epick__three": (
             "epick_gripper", {"epick_tip", "epick_suction_cup"}
         ),
     }
@@ -105,7 +105,7 @@ def test_persistent_server_loads_each_managed_revision_from_its_bound_topic(monk
 
         def loadRobotModel(self, _node, description="robot_description"):
             loads.append(description)
-            self.model = _Model(*topics[description])
+            self.model = _Model(*revisions[instance.rclpy_node._robot_model_revision])
 
         def getRobotModel(self):
             return self.model
@@ -131,17 +131,35 @@ def test_persistent_server_loads_each_managed_revision_from_its_bound_topic(monk
     instance._task_planner_cache = {}
     instance._mtc_node = object()
 
-    for revision in topics:
+    for revision in revisions:
         instance.rclpy_node._robot_model_revision = revision
         instance.create_task_template(revision)
 
-    assert loads == list(topics)
-    assert base_stages._model_cache.keys() == {loads[-1]}
-    assert base_stages._model_cache[loads[-1]].has_joint_model_group("epick_gripper")
+    assert loads == [base_stages.VERIFIED_MODEL_DESCRIPTION] * len(revisions)
+    assert base_stages._model_cache.keys() == {list(revisions)[-1]}
+    assert base_stages._model_cache[list(revisions)[-1]].has_joint_model_group(
+        "epick_gripper"
+    )
+
+
+def test_verified_model_root_has_kinematics_and_acceleration_limits():
+    root = base_stages.VERIFIED_MODEL_DESCRIPTION
+    args = base_stages._options.arguments
+
+    assert any(
+        arg.startswith(f"{root}_kinematics.ur_arm.kinematics_solver:=")
+        for arg in args
+    )
+    assert any(
+        arg.startswith(
+            f"{root}_planning.joint_limits.shoulder_pan_joint.max_acceleration:="
+        )
+        for arg in args
+    )
 
 
 def test_mismatched_managed_model_is_not_cached(monkeypatch):
-    revision = "beambot_robot_models__epick__wrong__robot_description"
+    revision = "beambot_robot_models__epick__wrong"
 
     class _WrongModel:
         def has_joint_model_group(self, group):
