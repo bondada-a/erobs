@@ -232,9 +232,11 @@ _mtc_node = rclcpp.Node("beambot_mtc", _options)
 # task.loadRobotModel() re-parses URDF/SRDF and yields a NEW model pointer every
 # call; MTC's PipelinePlanner caches loaded pipelines in a static cache keyed by
 # (model, pipeline), so a fresh model per goal = cache miss = ~0.5s pluginlib
-# reload per pipeline. The orchestrator supplies a UUID that changes after each
-# successful MoveIt relaunch, so persistent servers can invalidate this safely.
+# reload per pipeline. The orchestrator supplies a unique description topic
+# after each successful MoveIt relaunch, so persistent servers load the exact
+# verified model once and then reuse it safely.
 _model_cache: dict = {}
+_MODEL_TOPIC_PREFIX = "beambot_robot_models__"
 
 
 def joints_from_degrees(degrees: list[float]) -> dict[str, float]:
@@ -490,10 +492,32 @@ class BaseStages:
         if model is not None:
             task.setRobotModel(model)
         else:
-            task.loadRobotModel(self._mtc_node)
+            managed_model = model_revision.startswith(_MODEL_TOPIC_PREFIX)
+            if managed_model:
+                task.loadRobotModel(self._mtc_node, model_revision)
+            else:
+                task.loadRobotModel(self._mtc_node)
             if model_revision:
+                model = task.getRobotModel()
+                if managed_model:
+                    gripper = model_revision.removeprefix(_MODEL_TOPIC_PREFIX).split("__", 1)[0]
+                    from beambot.config_loader import load_beamline_config
+                    config, _ = load_beamline_config()
+                    expected = config["grippers"][gripper]
+                    group = expected.get("gripper_group", "")
+                    if group and not model.has_joint_model_group(group):
+                        raise RuntimeError(
+                            f"Robot model revision for {gripper} is missing group '{group}'"
+                        )
+                    if group:
+                        tip = expected.get("tip_frame", "")
+                        links = set(model.get_joint_model_group(group).link_model_names)
+                        if tip and tip not in links:
+                            raise RuntimeError(
+                                f"Robot model revision for {gripper} is missing link '{tip}'"
+                            )
                 _model_cache.clear()
-                _model_cache[model_revision] = task.getRobotModel()
+                _model_cache[model_revision] = model
 
         # Add current state as first stage
         task.add(stages.CurrentState("current_state"))

@@ -17,6 +17,7 @@ import subprocess
 import time
 import traceback
 import uuid
+import xml.etree.ElementTree as ET
 from numbers import Real
 
 import yaml
@@ -26,9 +27,12 @@ from moveit_msgs.msg import CollisionObject, PlanningScene
 from moveit_msgs.srv import ApplyPlanningScene
 from rclpy.action import ActionClient
 from rclpy.node import Node
+from rclpy.parameter import parameter_value_to_python
+from rclpy.parameter_client import AsyncParameterClient
+from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
 from sensor_msgs.msg import JointState
 from shape_msgs.msg import SolidPrimitive
-from std_msgs.msg import Bool
+from std_msgs.msg import Bool, String
 from std_srvs.srv import Trigger
 from tf_transformations import quaternion_from_euler
 
@@ -86,7 +90,16 @@ class MoveItLifecycleManager:
         self._current_gripper: str = ""
         self._current_cup_profile: str = ""
         self._model_revision: str = ""
+        self._model_description_publishers: tuple = ()
         self._current_voltage: int | None = None
+
+        # Read the exact descriptions used by move_group. MTC must not load its
+        # model from the shared /robot_description topics at a relaunch boundary:
+        # URDF and SRDF arrive independently there and can come from different
+        # launches. The verified pair is republished below on a unique topic.
+        self._move_group_parameters = AsyncParameterClient(
+            node, "/move_group", callback_group=callback_group
+        )
 
         # Runtime ePick cup-profile override (set by the orchestrator from the
         # cup_profile ROS param). Kept here as instance state rather than
@@ -187,18 +200,167 @@ class MoveItLifecycleManager:
             )
             self.kill_current_process()
 
-        launched = self._attempt_launch(gripper, cup_profile)
-        if not launched and not self._use_mock_hardware:
+        revision = ""
+        if self._attempt_launch(gripper, cup_profile):
+            revision = self._publish_verified_model(gripper)
+        if not revision and not self._use_mock_hardware:
             self._logger.error("Launch failed, retrying once")
             self.kill_current_process()
-            launched = self._attempt_launch(gripper, cup_profile)
+            if self._attempt_launch(gripper, cup_profile):
+                revision = self._publish_verified_model(gripper)
 
-        if launched:
+        if revision:
             self._current_gripper = gripper
             self._current_cup_profile = cup_profile
-            self._model_revision = uuid.uuid4().hex
+            self._model_revision = revision
             self._logger.info(f"Robot ready with {gripper} configuration")
-        return launched
+        return bool(revision)
+
+    def _publish_verified_model(self, gripper: str) -> str:
+        """Publish move_group's verified URDF/SRDF pair on a unique topic."""
+        descriptions = self._wait_for_verified_model(gripper)
+        if descriptions is None:
+            return ""
+
+        robot_description, semantic_description = descriptions
+        # RDFLoader embeds this value in a temporary ROS node name, so it must
+        # be flat (slashes make the node name invalid).
+        revision = (
+            f"beambot_robot_models__{gripper}__{uuid.uuid4().hex}__robot_description"
+        )
+        qos = QoSProfile(
+            depth=1,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            reliability=ReliabilityPolicy.RELIABLE,
+        )
+        publishers = (
+            self._node.create_publisher(String, revision, qos),
+            self._node.create_publisher(String, f"{revision}_semantic", qos),
+        )
+        publishers[0].publish(String(data=robot_description))
+        publishers[1].publish(String(data=semantic_description))
+        self._model_description_publishers = publishers
+        self._logger.info(f"Published verified {gripper} model as {revision}")
+        return revision
+
+    def _wait_for_verified_model(
+        self, gripper: str, timeout_sec: float = 10.0
+    ) -> tuple[str, str] | None:
+        """Wait until move_group exposes descriptions for the requested tool."""
+        deadline = time.monotonic() + timeout_sec
+        if not self._move_group_parameters.wait_for_services(timeout_sec=timeout_sec):
+            self._logger.error("move_group parameter services are not available")
+            return None
+
+        last_error = "move_group returned no robot descriptions"
+        while time.monotonic() < deadline:
+            future = self._move_group_parameters.get_parameters(
+                ["robot_description", "robot_description_semantic"]
+            )
+            while not future.done() and time.monotonic() < deadline:
+                time.sleep(0.05)
+            if not future.done():
+                break
+
+            try:
+                values = future.result().values
+                descriptions = tuple(parameter_value_to_python(v) for v in values)
+                if len(descriptions) != 2 or not all(
+                    isinstance(value, str) and value for value in descriptions
+                ):
+                    last_error = "move_group returned empty robot descriptions"
+                else:
+                    last_error = self._model_content_error(
+                        gripper, descriptions[0], descriptions[1]
+                    )
+                    if not last_error:
+                        return descriptions
+            except Exception as error:
+                last_error = f"could not read move_group descriptions: {error}"
+            time.sleep(0.05)
+
+        self._logger.error(
+            f"Robot model for {gripper} not ready within {timeout_sec:.0f}s: "
+            f"{last_error}"
+        )
+        return None
+
+    def _model_content_error(self, gripper: str, urdf: str, srdf: str) -> str:
+        """Return why descriptions do not match the configured tool, or empty."""
+        try:
+            urdf_root = ET.fromstring(urdf)
+            srdf_root = ET.fromstring(srdf)
+        except ET.ParseError as error:
+            return f"invalid robot description XML: {error}"
+
+        config = self._grippers[gripper]
+        links = {link.get("name"): link for link in urdf_root.findall("link")}
+        expected_tip = config.get("tip_frame", "")
+        if expected_tip and expected_tip not in links:
+            return f"expected link '{expected_tip}' is missing"
+
+        known_tips = {
+            item.get("tip_frame")
+            for item in self._grippers.values()
+            if item.get("tip_frame") and item.get("tip_frame") != "flange"
+        }
+        expected_tips = {expected_tip} if expected_tip != "flange" else set()
+        if known_tips & links.keys() != expected_tips:
+            return (
+                f"tool links do not match {gripper}: expected "
+                f"{sorted(expected_tips)}, got {sorted(known_tips & links.keys())}"
+            )
+
+        groups = {group.get("name"): group for group in srdf_root.findall("group")}
+        known_groups = {
+            item.get("gripper_group")
+            for item in self._grippers.values()
+            if item.get("gripper_group")
+        }
+        expected_group = config.get("gripper_group", "")
+        expected_groups = {expected_group} if expected_group else set()
+        if known_groups & groups.keys() != expected_groups:
+            return (
+                f"tool groups do not match {gripper}: expected "
+                f"{sorted(expected_groups)}, got {sorted(known_groups & groups.keys())}"
+            )
+
+        expected_states = set((config.get("states") or {}).values())
+        actual_states = {
+            state.get("name")
+            for state in srdf_root.findall("group_state")
+            if state.get("group") == expected_group
+        }
+        if not expected_states <= actual_states:
+            return f"expected named states are missing: {sorted(expected_states - actual_states)}"
+
+        if expected_group:
+            tool_links = {
+                link.get("name") for link in groups[expected_group].findall("link")
+            }
+            missing_links = tool_links - links.keys()
+            if missing_links:
+                return f"SRDF tool links are missing from URDF: {sorted(missing_links)}"
+        elif expected_tip and expected_tip != "flange":
+            parents = {
+                joint.find("child").get("link"): joint.find("parent").get("link")
+                for joint in urdf_root.findall("joint")
+                if joint.find("child") is not None and joint.find("parent") is not None
+            }
+            tool_links = set()
+            link = expected_tip
+            while link and link != "flange" and link not in tool_links:
+                tool_links.add(link)
+                link = parents.get(link)
+        else:
+            tool_links = set()
+
+        if tool_links and not any(
+            links[name].find("collision/geometry") is not None
+            for name in tool_links
+        ):
+            return f"tool collision geometry is missing for {gripper}"
+        return ""
 
     def _attempt_launch(self, gripper: str, cup_profile: str) -> bool:
         """Single launch attempt: voltage → MoveIt → verify hardware.
@@ -363,6 +525,7 @@ class MoveItLifecycleManager:
             self._current_gripper = ""
             self._current_cup_profile = ""
             self._model_revision = ""
+            self._clear_model_description_publishers()
             return
 
         self._logger.info("Stopping MoveIt process...")
@@ -381,8 +544,15 @@ class MoveItLifecycleManager:
         self._current_gripper = ""
         self._current_cup_profile = ""
         self._model_revision = ""
+        self._clear_model_description_publishers()
 
         self._drain_stale_execute_trajectory()
+
+    def _clear_model_description_publishers(self):
+        """Stop serving the description pair for the retired revision."""
+        for publisher in getattr(self, "_model_description_publishers", ()):
+            self._node.destroy_publisher(publisher)
+        self._model_description_publishers = ()
 
     def _drain_stale_execute_trajectory(self, max_wait_sec: float = 10.0):
         """Wait until /execute_trajectory is not advertised to our node."""
