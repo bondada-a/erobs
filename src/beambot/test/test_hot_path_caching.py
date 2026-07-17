@@ -28,6 +28,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 import beambot.config_loader as config_loader
+import beambot.core.moveit_lifecycle_manager as lifecycle_manager
 from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
 
 
@@ -119,6 +120,10 @@ def test_model_revision_changes_only_when_model_configuration_changes():
     manager._model_revision = ""
     manager._use_mock_hardware = True
     manager._logger = Mock()
+    manager._publish_verified_model = Mock(side_effect=[
+        "beambot_robot_models__epick__one__robot_description",
+        "beambot_robot_models__epick__two__robot_description",
+    ])
 
     process = SimpleNamespace(poll=lambda: None)
 
@@ -142,12 +147,14 @@ def test_model_revision_changes_only_when_model_configuration_changes():
     assert manager.launch_moveit_with_gripper("epick")
     assert manager.model_revision == first_revision
     assert manager._attempt_launch.call_count == 1
+    assert manager._publish_verified_model.call_count == 1
 
     manager.cup_override = "large"
     assert manager.launch_moveit_with_gripper("epick")
     assert manager.model_revision != first_revision
     assert manager.kill_current_process.call_count == 1
     assert manager._attempt_launch.call_count == 2
+    assert manager._publish_verified_model.call_count == 2
 
 
 def test_failed_model_launch_has_no_revision():
@@ -164,6 +171,122 @@ def test_failed_model_launch_has_no_revision():
 
     assert not manager.launch_moveit_with_gripper("epick")
     assert manager.model_revision == ""
+
+
+def test_model_content_validation_covers_hande_none_epick_and_pipettor():
+    manager = MoveItLifecycleManager.__new__(MoveItLifecycleManager)
+    manager._grippers = {
+        "hande": {
+            "gripper_group": "hande_gripper",
+            "tip_frame": "robotiq_hande_end",
+            "states": {"grasp": "hande_closed", "release": "hande_open"},
+        },
+        "none": {"gripper_group": "", "tip_frame": "flange", "states": {}},
+        "epick": {
+            "gripper_group": "epick_gripper",
+            "tip_frame": "epick_tip",
+            "states": {"grasp": "vacuum_on", "release": "vacuum_off"},
+        },
+        "pipettor": {
+            "gripper_group": "", "tip_frame": "pipette_tip_link", "states": {}
+        },
+    }
+    descriptions = {
+        "hande": (
+            """<robot><link name="flange"/><link name="hande_body"><collision><geometry><box size="1 1 1"/></geometry></collision></link><link name="robotiq_hande_end"/></robot>""",
+            """<robot><group name="ur_arm"/><group name="hande_gripper"><link name="hande_body"/><link name="robotiq_hande_end"/></group><group_state name="hande_open" group="hande_gripper"/><group_state name="hande_closed" group="hande_gripper"/></robot>""",
+        ),
+        "none": (
+            "<robot><link name=\"flange\"/></robot>",
+            "<robot><group name=\"ur_arm\"/></robot>",
+        ),
+        "epick": (
+            """<robot><link name="flange"/><link name="epick_suction_cup"><collision><geometry><cylinder radius="0.0015" length="0.003"/></geometry></collision></link><link name="epick_tip"/></robot>""",
+            """<robot><group name="ur_arm"/><group name="epick_gripper"><link name="epick_suction_cup"/><link name="epick_tip"/></group><group_state name="vacuum_on" group="epick_gripper"/><group_state name="vacuum_off" group="epick_gripper"/></robot>""",
+        ),
+        "pipettor": (
+            """<robot><link name="flange"/><link name="pipette_body_link"><collision><geometry><box size="1 1 1"/></geometry></collision></link><link name="pipette_tip_link"/><joint name="body" type="fixed"><parent link="flange"/><child link="pipette_body_link"/></joint><joint name="tip" type="fixed"><parent link="pipette_body_link"/><child link="pipette_tip_link"/></joint></robot>""",
+            "<robot><group name=\"ur_arm\"/></robot>",
+        ),
+    }
+
+    for gripper, (urdf, srdf) in descriptions.items():
+        assert manager._model_content_error(gripper, urdf, srdf) == ""
+
+    assert manager._model_content_error("epick", *descriptions["hande"])
+    assert "collision geometry" in manager._model_content_error(
+        "epick",
+        descriptions["epick"][0].replace("<collision>", "<!--").replace(
+            "</collision>", "-->"
+        ),
+        descriptions["epick"][1],
+    )
+
+
+def test_verified_descriptions_are_published_unchanged_on_revision_topics():
+    urdf = "<robot><link name=\"epick_tip\"/></robot>"
+    srdf = "<robot><group name=\"epick_gripper\"/></robot>"
+
+    class _Publisher:
+        def __init__(self, topic):
+            self.topic = topic
+            self.messages = []
+
+        def publish(self, message):
+            self.messages.append(message.data)
+
+    class _Node:
+        def __init__(self):
+            self.publishers = []
+
+        def create_publisher(self, _message_type, topic, _qos):
+            publisher = _Publisher(topic)
+            self.publishers.append(publisher)
+            return publisher
+
+    manager = MoveItLifecycleManager.__new__(MoveItLifecycleManager)
+    manager._node = _Node()
+    manager._logger = Mock()
+    manager._model_description_publishers = ()
+    manager._wait_for_verified_model = Mock(return_value=(urdf, srdf))
+
+    revision = manager._publish_verified_model("epick")
+
+    assert revision.startswith("beambot_robot_models__epick__")
+    assert [publisher.topic for publisher in manager._node.publishers] == [
+        revision, f"{revision}_semantic"
+    ]
+    assert manager._node.publishers[0].messages == [urdf]
+    assert manager._node.publishers[1].messages == [srdf]
+
+
+def test_model_readiness_reports_content_mismatch(monkeypatch):
+    class _Future:
+        def done(self):
+            return True
+
+        def result(self):
+            return SimpleNamespace(values=[
+                "<robot><link name=\"flange\"/></robot>",
+                "<robot><group name=\"ur_arm\"/></robot>",
+            ])
+
+    client = SimpleNamespace(
+        wait_for_services=lambda timeout_sec: True,
+        get_parameters=lambda _names: _Future(),
+    )
+    manager = MoveItLifecycleManager.__new__(MoveItLifecycleManager)
+    manager._move_group_parameters = client
+    manager._logger = Mock()
+    manager._grippers = {
+        "epick": {
+            "gripper_group": "epick_gripper", "tip_frame": "epick_tip", "states": {}
+        }
+    }
+    monkeypatch.setattr(lifecycle_manager, "parameter_value_to_python", lambda value: value)
+
+    assert manager._wait_for_verified_model("epick", timeout_sec=0.01) is None
+    assert "expected link 'epick_tip' is missing" in manager._logger.error.call_args.args[0]
 
 
 class TestConfigLoaderContract:

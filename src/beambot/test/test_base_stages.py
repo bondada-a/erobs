@@ -5,6 +5,7 @@ from types import SimpleNamespace
 
 import pytest
 
+import beambot.config_loader as config_loader
 import beambot.stages.base_stages as base_stages
 from beambot.stages.base_stages import (
     BaseStages,
@@ -30,7 +31,7 @@ def test_robot_model_cache_is_revision_aware(monkeypatch):
         def enableIntrospection(self, _enabled):
             pass
 
-        def loadRobotModel(self, _node):
+        def loadRobotModel(self, _node, _description="robot_description"):
             self.model = object()
             loads.append(self.model)
 
@@ -69,6 +70,114 @@ def test_robot_model_cache_is_revision_aware(monkeypatch):
     assert created[3].model is not created[2].model
     assert created[4].model is not created[3].model
     assert created[5].model is created[6].model
+
+
+def test_persistent_server_loads_each_managed_revision_from_its_bound_topic(monkeypatch):
+    topics = {
+        "beambot_robot_models__hande__one__robot_description": (
+            "hande_gripper", {"robotiq_hande_end"}
+        ),
+        "beambot_robot_models__none__two__robot_description": ("", set()),
+        "beambot_robot_models__epick__three__robot_description": (
+            "epick_gripper", {"epick_tip", "epick_suction_cup"}
+        ),
+    }
+    loads = []
+
+    class _Group:
+        def __init__(self, links):
+            self.link_model_names = links
+
+    class _Model:
+        def __init__(self, group, links):
+            self.group = group
+            self.links = links
+
+        def has_joint_model_group(self, group):
+            return group == self.group
+
+        def get_joint_model_group(self, _group):
+            return _Group(self.links)
+
+    class _Task:
+        def enableIntrospection(self, _enabled):
+            pass
+
+        def loadRobotModel(self, _node, description="robot_description"):
+            loads.append(description)
+            self.model = _Model(*topics[description])
+
+        def getRobotModel(self):
+            return self.model
+
+        def setRobotModel(self, model):
+            self.model = model
+
+        def add(self, _stage):
+            pass
+
+    grippers = {
+        "hande": {"gripper_group": "hande_gripper", "tip_frame": "robotiq_hande_end"},
+        "none": {"gripper_group": "", "tip_frame": "flange"},
+        "epick": {"gripper_group": "epick_gripper", "tip_frame": "epick_tip"},
+    }
+    monkeypatch.setattr(config_loader, "load_beamline_config", lambda: ({"grippers": grippers}, ""))
+    monkeypatch.setattr(base_stages, "_model_cache", {})
+    monkeypatch.setattr(base_stages.core, "Task", _Task)
+    monkeypatch.setattr(base_stages.stages, "CurrentState", lambda _name: object())
+
+    instance = BaseStages.__new__(BaseStages)
+    instance.rclpy_node = SimpleNamespace(_robot_model_revision="")
+    instance._task_planner_cache = {}
+    instance._mtc_node = object()
+
+    for revision in topics:
+        instance.rclpy_node._robot_model_revision = revision
+        instance.create_task_template(revision)
+
+    assert loads == list(topics)
+    assert base_stages._model_cache.keys() == {loads[-1]}
+    assert base_stages._model_cache[loads[-1]].has_joint_model_group("epick_gripper")
+
+
+def test_mismatched_managed_model_is_not_cached(monkeypatch):
+    revision = "beambot_robot_models__epick__wrong__robot_description"
+
+    class _WrongModel:
+        def has_joint_model_group(self, group):
+            return group == "hande_gripper"
+
+    class _Task:
+        def enableIntrospection(self, _enabled):
+            pass
+
+        def loadRobotModel(self, _node, _description="robot_description"):
+            self.model = _WrongModel()
+
+        def getRobotModel(self):
+            return self.model
+
+        def add(self, _stage):
+            pass
+
+    monkeypatch.setattr(
+        config_loader,
+        "load_beamline_config",
+        lambda: ({"grippers": {"epick": {
+            "gripper_group": "epick_gripper", "tip_frame": "epick_tip"
+        }}}, ""),
+    )
+    monkeypatch.setattr(base_stages, "_model_cache", {})
+    monkeypatch.setattr(base_stages.core, "Task", _Task)
+
+    instance = BaseStages.__new__(BaseStages)
+    instance.rclpy_node = SimpleNamespace(_robot_model_revision=revision)
+    instance._task_planner_cache = {}
+    instance._mtc_node = object()
+
+    with pytest.raises(RuntimeError, match="missing group 'epick_gripper'"):
+        instance.create_task_template("wrong")
+    assert base_stages._model_cache == {}
 
 
 # ---------------------------------------------------------------------------
