@@ -1156,6 +1156,9 @@ class MTCOrchestratorServer(Node):
 
         # Merge: preset defaults < explicit task-JSON fields.
         cfg = {**preset, **step}
+        # Legacy detection_type is an explicit task selector, not a preset default.
+        if "detector" not in step and "detection_type" in step:
+            cfg["detector"] = step["detection_type"]
 
         # Settle (orchestrator-side, before any server motion), capped at 10s.
         settle_time = min(float(cfg.get("settle_time", 1.0)), 10.0)

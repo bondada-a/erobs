@@ -756,6 +756,30 @@ def test_explicit_step_overrides_preset():
     assert g.detector == "sample_roi"  # step won over preset's "marker"
 
 
+@pytest.mark.parametrize(
+    ("step", "detector"),
+    [
+        ({"settle_time": 0}, "marker"),
+        ({"detection_type": "sample_roi", "settle_time": 0}, "sample_roi"),
+        (
+            {"detector": "marker", "detection_type": "sample_roi", "settle_time": 0},
+            "marker",
+        ),
+    ],
+)
+def test_vision_moveto_selector_precedence(step, detector):
+    """Legacy task fields override presets; canonical fields override legacy ones."""
+    o = _orchestrator()
+    sent = []
+    o._vision_task_client = object()
+    o._timeouts = {"vision_task": 0}
+    o._send_and_wait = lambda client, goal, *args: sent.append(goal) or False
+
+    o._call_vision_task("vision_moveto", step, "")
+
+    assert sent[0].detector == detector
+
+
 def test_canonical_vision_task_needs_no_preset():
     """task_type='vision_task' builds straight from explicit fields."""
     o = _orchestrator()
