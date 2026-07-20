@@ -31,6 +31,13 @@ cups:
     suction_cup_height: 0.003
     suction_cup_radius: 0.0015
 
+  3mm_dia_external_air:
+    description: "3mm diameter cup with external-air blow-out adapter"
+    extension_length: 0.030
+    extension_radius: 0.009
+    suction_cup_height: 0.003
+    suction_cup_radius: 0.0015
+
   default:
     description: "Stock ePick suction cup (no extension)"
     extension_length: 0.0
