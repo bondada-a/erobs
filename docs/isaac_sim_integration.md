@@ -39,6 +39,7 @@ colcon build --packages-select cms_moveit_config beambot --symlink-install
 source install/setup.bash
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 export ROS_DOMAIN_ID=0
+export BEAMBOT_BEAMLINE_CONFIG=$(realpath src/beambot/config/cms_beamline.yaml)
 ros2 launch beambot beambot_bringup.launch.py \
   use_isaac_sim:=true enable_vision:=false enable_pipettor:=false
 ```
@@ -51,6 +52,17 @@ exchange, Isaac swaps to the matching `none`, `hande`, `epick`, `2fg7`, or
 `pipettor` model, recreates the action graph, and preserves the arm pose.
 The trajectory adapter also exposes the Hand-E, ePick, and 2FG7 gripper action
 types/names already configured in MoveIt.
+
+
+Send a goal via action server 
+```bash
+cd /path/to/erobs
+source install/setup.bash
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export ROS_DOMAIN_ID=0
+export GOAL="$(cat src/cms/tasks/spincoat_to_hotplate.json)"
+ros2 action send_goal /beambot_execution beambot_interfaces/action/MTCExecution "{full_json: '$GOAL'}" --feedback
+```
 
 Check the connection with:
 
