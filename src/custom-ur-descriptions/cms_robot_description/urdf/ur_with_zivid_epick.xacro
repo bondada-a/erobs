@@ -144,7 +144,7 @@
        Available profiles: see epick_config/config/suction_cups.yaml -->
   <xacro:property name="cups_yaml_path" value="$(find epick_config)/config/suction_cups.yaml"/>
   <xacro:property name="cups_config" value="${xacro.load_yaml(cups_yaml_path)}"/>
-  <xacro:arg name="cup_profile" default="3mm_dia"/>
+  <xacro:arg name="cup_profile" default="3mm_dia_external_air"/>
   <xacro:property name="cup_profile_name" value="$(arg cup_profile)"/>
   <xacro:property name="cup" value="${cups_config['cups'][cup_profile_name]}"/>
 
@@ -168,7 +168,6 @@
                   suction_cup_height="${cup['suction_cup_height']}"
                   suction_cup_radius="${cup['suction_cup_radius']}"/>
 </robot>
-
 
 
 
