@@ -384,8 +384,9 @@ class MTCOrchestratorServer(Node):
         self,
         feedback: MTCExecution.Feedback,
         goal_handle: ServerGoalHandle,
-        current_step: int,
+        completed_steps: int,
         total_steps: int,
+        active_step: int | None = None,
     ):
         """Block execution until resumed or cancelled.
 
@@ -398,11 +399,24 @@ class MTCOrchestratorServer(Node):
             self._pause_event.clear()  # Block the event
 
         self._publish_state("PAUSED")
-        self.get_logger().info(f"Paused after step {current_step}/{total_steps}")
+        if active_step is None:
+            self.get_logger().info(
+                f"Paused after step {completed_steps}/{total_steps}"
+            )
+        else:
+            self.get_logger().info(
+                f"Paused at step {active_step}/{total_steps}; "
+                f"completed {completed_steps}/{total_steps}"
+            )
 
         # Update feedback to show paused state
+        if active_step is not None:
+            feedback.current_step = active_step
+        feedback.progress_percentage = (
+            completed_steps / total_steps * 100.0 if total_steps else 0.0
+        )
         feedback.status_message = (
-            f"PAUSED - completed {current_step}/{total_steps}, waiting for resume"
+            f"PAUSED - completed {completed_steps}/{total_steps}, waiting for resume"
         )
         goal_handle.publish_feedback(feedback)
 
@@ -835,6 +849,40 @@ class MTCOrchestratorServer(Node):
                 self._update_feedback(
                     feedback, goal_handle, completed_tasks + 1, task_count, task_type
                 )
+
+                if task_type == "pause":
+                    self.get_logger().info(
+                        f"Pause step {completed_tasks + 1}/{task_count}: entering paused state"
+                    )
+                    self._handle_pause(
+                        feedback,
+                        goal_handle,
+                        completed_tasks,
+                        task_count,
+                        active_step=completed_tasks + 1,
+                    )
+
+                    if goal_handle.is_cancel_requested:
+                        self.get_logger().warning(
+                            f"Task cancelled while paused at step {completed_tasks + 1}/{task_count}"
+                        )
+                        result.error_message = "Task was cancelled while paused"
+                        result.completed_steps = completed_tasks
+                        goal_handle.canceled()
+                        return result
+
+                    completed_tasks += 1
+                    result.completed_steps = completed_tasks
+                    if completed_tasks < task_count:
+                        self.get_logger().info(
+                            f"Resumed from pause, continuing with step "
+                            f"{completed_tasks + 1}/{task_count}"
+                        )
+                    else:
+                        self.get_logger().info(
+                            f"Resumed from final pause step {completed_tasks}/{task_count}"
+                        )
+                    continue
 
                 if not self._execute_step(task_type, task, poses_json):
                     if (

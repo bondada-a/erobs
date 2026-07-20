@@ -2,6 +2,7 @@
 
 import json
 import threading
+import time
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -27,6 +28,7 @@ class GoalHandle:
         self.canceled_count = 0
         self.succeeded_count = 0
         self.aborted_count = 0
+        self.feedback = []
 
     def canceled(self):
         self.canceled_count += 1
@@ -37,6 +39,15 @@ class GoalHandle:
     def abort(self):
         self.aborted_count += 1
 
+    def publish_feedback(self, feedback):
+        self.feedback.append(
+            (
+                feedback.current_step,
+                feedback.progress_percentage,
+                feedback.status_message,
+            )
+        )
+
 
 def make_orchestrator(states):
     server = MTCOrchestratorServer.__new__(MTCOrchestratorServer)
@@ -45,16 +56,18 @@ def make_orchestrator(states):
     server._lock = threading.Lock()
     server._grippers = {"epick": {}}
     server._poses_file = "/nonexistent"
+    server._vision_targets = {}
     server._current_gripper = "unknown"
     server._enable_batching = True
     server._pause_requested = False
+    server._is_paused = False
+    server._pause_event = threading.Event()
     server._last_error = ""
     server._last_planned_sol_msg = None
-    server._vacuum = SimpleNamespace(
-        reset=lambda: None, update_after_tasks=lambda *_: None
-    )
+    server._vacuum = SimpleNamespace(reset=Mock(), update_after_tasks=Mock())
     server._moveit_manager = SimpleNamespace(
         cup_override="",
+        model_revision="test-model",
         current_arm_joints=lambda: None,
         launch_moveit_with_gripper=lambda _gripper: True,
         is_moveit_alive=lambda: True,
@@ -142,6 +155,58 @@ def test_failed_active_task_while_canceling_latches_fault():
     assert server._executing
     assert server._goal_callback(None) == GoalResponse.REJECT
     assert states == ["RUNNING", "CANCELING", "FAULTED"]
+
+
+def test_automatic_pause_waits_for_resume_without_robot_dispatch():
+    states = []
+    server = make_orchestrator(states)
+    server._execute_step = Mock(side_effect=AssertionError("pause dispatched"))
+    goal = GoalHandle([{"task_type": "pause"}])
+    resume_response = SimpleNamespace(success=False, message="")
+
+    def resume():
+        while not server._is_paused:
+            time.sleep(0.001)
+        server._resume_callback(None, resume_response)
+
+    thread = threading.Thread(target=resume, daemon=True)
+    thread.start()
+    result = server._execute_callback(goal)
+    thread.join(timeout=1)
+
+    assert not thread.is_alive()
+    assert resume_response.success
+    assert result.success
+    assert result.completed_steps == 1
+    assert goal.succeeded_count == 1
+    assert goal.feedback[-1][0] == 1
+    assert "completed 0/1" in goal.feedback[-1][2]
+    server._execute_step.assert_not_called()
+    server._vacuum.update_after_tasks.assert_not_called()
+
+
+def test_cancel_while_automatic_pause_does_not_count_pause_complete():
+    states = []
+    server = make_orchestrator(states)
+    server._execute_step = Mock(side_effect=AssertionError("pause dispatched"))
+    goal = GoalHandle([{"task_type": "pause"}])
+
+    def cancel():
+        while not server._is_paused:
+            time.sleep(0.001)
+        goal.is_cancel_requested = True
+
+    thread = threading.Thread(target=cancel, daemon=True)
+    thread.start()
+    result = server._execute_callback(goal)
+    thread.join(timeout=1)
+
+    assert not thread.is_alive()
+    assert not result.success
+    assert result.completed_steps == 0
+    assert goal.canceled_count == 1
+    server._execute_step.assert_not_called()
+    server._vacuum.update_after_tasks.assert_not_called()
 
 
 def test_missing_child_terminal_result_latches_fault(monkeypatch):

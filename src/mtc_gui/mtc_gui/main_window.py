@@ -130,6 +130,7 @@ def _build_task_defaults(beamline_config: dict) -> dict:
             "forward_distance": 0.003,
             "k_offset": 0.0,
         },
+        "pause": {"task_type": "pause"},
     }
 
 
@@ -188,6 +189,8 @@ def task_summary(step):
         op = step.get("pipettor_operation", "")
         suffix = f" → {op} {step.get('volume_pct', 0) * 100:.0f}%" if op else ""
         return f"Vial @ {pos}{suffix}"
+    elif t == "pause":
+        return "Wait for operator to resume"
     return t
 
 
@@ -394,6 +397,7 @@ class MTCMainWindow(QMainWindow):
             ("Pipettor", "pipettor"),
             ("Pickup Tip", "pickup_tip"),
             ("Vial Rack", "pickup_vial"),
+            ("Pause", "pause"),
         ]
         item_height = 32
         for label, task_type in palette_items:
@@ -865,6 +869,8 @@ class MTCMainWindow(QMainWindow):
         if idx < 0 or idx >= len(self.config["tasks"]):
             return
         step = self.config["tasks"][idx]
+        if step.get("task_type") == "pause":
+            return
 
         from .task_forms import open_task_form
 
@@ -1014,8 +1020,6 @@ class MTCMainWindow(QMainWindow):
                 self._log(
                     f"Dry-run preview complete: {completed}/{total} steps planned"
                 )
-                # Plan is now cached on the orchestrator. Mirror that in the
-                # GUI so the operator knows Execute will replay the preview.
                 self._set_plan_cached(True)
             else:
                 self._log(f"Task completed: {completed}/{total} steps")

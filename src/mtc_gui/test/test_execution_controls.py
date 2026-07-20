@@ -12,7 +12,12 @@ except ImportError:
     sys.modules["action_msgs"] = action_msgs
     sys.modules["action_msgs.msg"] = action_msgs_msg
 
-from mtc_gui.main_window import MTCMainWindow, _execution_controls
+from mtc_gui.main_window import (
+    MTCMainWindow,
+    _build_task_defaults,
+    _execution_controls,
+    task_summary,
+)
 from mtc_gui.ros2_bridge import ROS2Bridge
 
 
@@ -52,6 +57,12 @@ def _window():
         lambda: MTCMainWindow._project_execution_state(window)
     )
     return window
+
+
+def test_pause_step_default_summary_and_preview_boundary():
+    assert _build_task_defaults({})["pause"] == {"task_type": "pause"}
+    assert task_summary({"task_type": "pause"}) == "Wait for operator to resume"
+    assert "pause" not in MTCMainWindow._DRY_RUN_SUPPORTED
 
 
 def test_execution_state_projects_every_control():

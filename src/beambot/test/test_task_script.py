@@ -27,6 +27,7 @@ SUPPORTED_TYPES = [
     "pick_spincoater",
     "place_spincoater",
     "pipettor",
+    "pause",
 ]
 
 
@@ -210,10 +211,11 @@ def test_checked_in_moveto_tasks_satisfy_contract():
                 assert _moveto_error(task) is None, f"{path}: tasks[{index}]"
 
 
-def test_dry_run_remains_limited_to_moveto_and_end_effector():
+@pytest.mark.parametrize("task_type", ["vision_scan", "pause"])
+def test_dry_run_remains_limited_to_moveto_and_end_effector(task_type):
     with pytest.raises(ValueError, match="Dry-run not supported"):
         _parse(
-            {"start_gripper": "epick", "tasks": [{"task_type": "vision_scan"}]},
+            {"start_gripper": "epick", "tasks": [{"task_type": task_type}]},
             dry_run=True,
         )
 
