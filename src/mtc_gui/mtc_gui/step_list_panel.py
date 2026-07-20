@@ -515,6 +515,17 @@ class StepListPanel(QWidget):
         self._list_widget.setUpdatesEnabled(True)
         self._update_empty_state()
 
+    def select_range(self, start: int, count: int):
+        """Select and reveal a contiguous row range."""
+        self._list_widget.clearSelection()
+        first = self._list_widget.item(start) if count > 0 else None
+        if first is None:
+            return
+        self._list_widget.setCurrentItem(first)
+        for row in range(start, min(start + count, self._list_widget.count())):
+            self._list_widget.item(row).setSelected(True)
+        self._list_widget.scrollToItem(first)
+
     # --- Empty-state overlay helpers ---
 
     def _update_empty_state(self):
