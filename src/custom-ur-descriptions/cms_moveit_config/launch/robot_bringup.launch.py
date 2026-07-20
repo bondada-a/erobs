@@ -80,6 +80,13 @@ def launch_setup(context, *args, **kwargs):
         "ur_type": ur_type,
         "tf_prefix": tf_prefix,
         "robot_ip": robot_ip,
+        # Use the per-robot calibrated kinematics so move_group's planning model
+        # matches the UR driver's robot_state_publisher (which gets the same file
+        # via kinematics_params_file below). Without this the wrapper xacro falls
+        # back to nominal default_kinematics.yaml and every IK/Cartesian goal lands
+        # ~2.5mm off the commanded pose (calibration delta).
+        "kinematics_params": os.path.join(
+            desc_share, "config", "ur5e_calibration.yaml"),
     }
 
     # Gripper-specific xacro args
