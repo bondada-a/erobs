@@ -69,7 +69,8 @@ class MoveItLifecycleManager:
         return cached
 
     def __init__(self, node: Node, grippers: dict, robot_ip: str, callback_group=None,
-                 use_mock_hardware: bool = False, enable_joystick: bool = False):
+                 use_mock_hardware: bool = False, enable_joystick: bool = False,
+                 use_isaac_sim: bool = False):
         """Initialize the lifecycle manager.
 
         Args:
@@ -79,6 +80,7 @@ class MoveItLifecycleManager:
             callback_group: Optional callback group for service clients
             use_mock_hardware: If True, launch MoveIt in simulation mode (no real robot)
             enable_joystick: If True, launch MoveIt Servo gamepad control
+            use_isaac_sim: If True, use Isaac Sim instead of the UR hardware layer
         """
         self._node = node
         self._logger = node.get_logger()
@@ -87,6 +89,7 @@ class MoveItLifecycleManager:
         self._callback_group = callback_group
         self._use_mock_hardware = use_mock_hardware
         self._enable_joystick = enable_joystick
+        self._use_isaac_sim = use_isaac_sim
 
         self._moveit_process: subprocess.Popen | None = None
         self._current_gripper: str = ""
@@ -118,7 +121,7 @@ class MoveItLifecycleManager:
         # edge after a ros2_control_node restart — DDS discovery for the new
         # publisher lags and the 5s gate can time out on a good run.
         self._robot_program_running: bool = False
-        if not use_mock_hardware:
+        if not use_mock_hardware or use_isaac_sim:
             self._node.create_subscription(
                 JointState, "/joint_states", self._joint_state_cb, 10,
                 callback_group=self._callback_group,
@@ -399,6 +402,7 @@ class MoveItLifecycleManager:
                 "ros2", "launch", config["moveit_package"], "robot_bringup.launch.py",
                 f"robot_ip:={self._robot_ip}",
                 f"use_mock_hardware:={'true' if self._use_mock_hardware else 'false'}",
+                f"use_isaac_sim:={'true' if self._use_isaac_sim else 'false'}",
                 f"enable_joystick:={'true' if self._enable_joystick else 'false'}",
                 f"gripper:={gripper_arg}",
             ]

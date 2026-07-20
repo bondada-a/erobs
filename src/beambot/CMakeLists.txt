@@ -45,6 +45,7 @@ install(PROGRAMS
   # Utility nodes
   beambot/pointcloud_relay.py
   beambot/octomap_to_planning_scene.py
+  beambot/isaac_trajectory_adapter.py
   # Client utilities
   scripts/beambot_client.py
   # Perf / tracing utilities (ros2_tracing wrapper + report)

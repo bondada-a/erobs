@@ -1,20 +1,85 @@
 # Isaac Sim Integration
 
-## URDF Import for Isaac Sim
+## Programmatic GUI Integration (Isaac Sim 6)
 
-URDFs using `package://` URIs don't work directly in Isaac Sim because it doesn't have access to `ROS_PACKAGE_PATH`.
+The reproducible integration does not require manually editing a stage. Source
+your ROS 2 installation, then set the repository and Isaac Sim locations for
+your machine:
 
-**Solution**: Convert to absolute paths using the conversion script.
-
-**Files**:
-- `cms_robot_description/urdf/convert_urdf_for_isaac.sh` - Conversion script
-- `cms_robot_description/urdf/*_isaac.urdf` - Converted URDFs with absolute paths
-
-**Usage**:
 ```bash
-cd src/custom-ur-descriptions/cms_robot_description/urdf/
-./convert_urdf_for_isaac.sh ur_with_zivid_hande.urdf ur_with_zivid_hande_isaac.urdf
+cd /path/to/erobs
+export EROBS_ROOT="$(git rev-parse --show-toplevel)"
+export ISAACSIM_ROOT=/path/to/isaacsim
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export ROS_DOMAIN_ID=0
+"$ISAACSIM_ROOT/isaac-sim.streaming.sh" \
+  --exec "$EROBS_ROOT/scripts/isaac_sim/start_erobs_sim.py"
 ```
+
+Connect with the Isaac Sim WebRTC Streaming Client using this machine's host
+address. The default signaling port is `49100`; only one livestream client is
+supported at a time.
+
+The launcher loads the EROBS robot asset, discovers its articulation root,
+starts physics, and constructs a ROS 2 graph that publishes `/joint_states`
+and `/clock` and consumes `/isaac_joint_commands`. It starts at
+`safe_sample_transport`; override that pose with six joint angles in degrees:
+
+```bash
+"$ISAACSIM_ROOT/isaac-sim.streaming.sh" --exec \
+  "$EROBS_ROOT/scripts/isaac_sim/start_erobs_sim.py --initial-arm-degrees J1 J2 J3 J4 J5 J6"
+```
+
+Build the changed ROS packages, then start EROBS in a second terminal:
+
+```bash
+cd /path/to/erobs
+export EROBS_ROOT="$(git rev-parse --show-toplevel)"
+colcon build --packages-select cms_moveit_config beambot --symlink-install
+source install/setup.bash
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+export ROS_DOMAIN_ID=0
+ros2 launch beambot beambot_bringup.launch.py \
+  use_isaac_sim:=true enable_vision:=false enable_pipettor:=false
+```
+
+`use_isaac_sim` prevents the Universal Robots driver from starting, launches a
+`FollowJointTrajectory` adapter at MoveIt's existing controller action name,
+and treats physical peripherals as mock hardware. Isaac subscribes to the
+existing latched `beambot/current_gripper` topic. When EROBS completes a tool
+exchange, Isaac swaps to the matching `none`, `hande`, `epick`, `2fg7`, or
+`pipettor` model, recreates the action graph, and preserves the arm pose.
+The trajectory adapter also exposes the Hand-E, ePick, and 2FG7 gripper action
+types/names already configured in MoveIt.
+
+Check the connection with:
+
+```bash
+ros2 topic hz /joint_states
+ros2 topic echo /joint_states --once
+ros2 topic echo /clock --once
+ros2 action list | grep scaled_joint_trajectory_controller
+```
+
+`/joint_states` must contain the six UR joint names and non-empty positions.
+
+## Automatic URDF Import
+
+Manual URDF loading and conversion are not part of the runtime workflow.
+Isaac Sim 6 supports explicit `ros_package_paths`; the launcher supplies the
+EROBS package mappings when it needs to import a model that has no cached USD.
+
+Install the UR mesh package before first-time imports:
+
+```bash
+sudo apt install "ros-${ROS_DISTRO}-ur-description"
+```
+
+Generated assets are cached under
+`cms_robot_description/urdf/generated_isaac/`. The old
+`convert_urdf_for_isaac.sh`, `*_isaac.urdf`, and prebuilt `*_isaac/` USD
+directories remain only for legacy Isaac Sim 4.5 imports; the launcher does
+not load them.
 
 ## URDF Import Settings
 

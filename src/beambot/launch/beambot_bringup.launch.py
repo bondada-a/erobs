@@ -66,6 +66,12 @@ def generate_launch_description():
         description="Use fake hardware (simulation mode, no real robot)",
     )
 
+    declare_use_isaac_sim = DeclareLaunchArgument(
+        "use_isaac_sim",
+        default_value="false",
+        description="Use Isaac Sim for arm joint state and trajectory execution",
+    )
+
     declare_enable_joystick = DeclareLaunchArgument(
         "enable_joystick",
         default_value="false",
@@ -105,6 +111,7 @@ def generate_launch_description():
     enable_vision = LaunchConfiguration("enable_vision")
     enable_pipettor = LaunchConfiguration("enable_pipettor")
     use_mock_hardware = LaunchConfiguration("use_mock_hardware")
+    use_isaac_sim = LaunchConfiguration("use_isaac_sim")
     enable_joystick = LaunchConfiguration("enable_joystick")
     enable_batching = LaunchConfiguration("enable_batching")
     enable_tracing = LaunchConfiguration("enable_tracing")
@@ -138,7 +145,7 @@ def generate_launch_description():
         _robot_description_kinematics = yaml.safe_load(_f)
 
     action_server_parameters = [
-        {"use_sim_time": False},
+        {"use_sim_time": use_isaac_sim},
         {"robot_description_kinematics": _robot_description_kinematics},
     ]
 
@@ -251,6 +258,7 @@ def generate_launch_description():
         parameters=action_server_parameters
         + [
             {"use_mock_hardware": use_mock_hardware},
+            {"use_isaac_sim": use_isaac_sim},
             {"enable_joystick": enable_joystick},
             {"enable_batching": enable_batching},
         ],
@@ -268,6 +276,7 @@ def generate_launch_description():
             declare_enable_vision,
             declare_enable_pipettor,
             declare_use_mock_hardware,
+            declare_use_isaac_sim,
             declare_enable_joystick,
             declare_enable_batching,
             declare_enable_tracing,

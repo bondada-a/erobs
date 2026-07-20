@@ -62,6 +62,7 @@ def launch_setup(context, *args, **kwargs):
     robot_ip = LaunchConfiguration("robot_ip").perform(context)
     ur_type = LaunchConfiguration("ur_type").perform(context)
     use_mock_hardware = LaunchConfiguration("use_mock_hardware").perform(context)
+    use_isaac_sim = LaunchConfiguration("use_isaac_sim").perform(context) == "true"
     tf_prefix = LaunchConfiguration("tf_prefix").perform(context)
 
     if gripper not in SUPPORTED_GRIPPERS:
@@ -88,36 +89,44 @@ def launch_setup(context, *args, **kwargs):
     elif gripper == "hande":
         xacro_args["socat_ip_address"] = robot_ip
 
-    # ── UR driver ───────────────────────────────────────────────────────
-    ur_launch_args = {
-        "ur_type": ur_type,
-        "robot_ip": robot_ip,
-        "tf_prefix": tf_prefix,
-        "use_mock_hardware": use_mock_hardware,
-        "launch_rviz": "false",
-        "description_package": "ur_description",
-        "description_file": os.path.join(desc_share, "urdf", config["urdf_xacro"]),
-        "controllers_file": os.path.join(pkg_share, "config", _BASE_CONTROLLERS),
-        "kinematics_params_file": os.path.join(
-            desc_share, "config", "ur5e_calibration.yaml"),
-        "use_tool_communication": config["use_tool_communication"],
-        "tool_voltage": config["tool_voltage"],
-        # Jazzy: hardware loads async, so spawners need longer timeout to avoid
-        # retry cycles while controller_manager is busy initializing.
-        "controller_spawner_timeout": "30",
-    }
-    # RS485 params (2fg7 needs 1Mbps/Even)
-    ur_launch_args.update(config["tool_comm_params"])
+    robot_description_file = os.path.join(desc_share, "urdf", config["urdf_xacro"])
+    if use_isaac_sim:
+        # Isaac owns hardware, so use the already-expanded URDF that matches
+        # the selected gripper without loading ur_robot_driver's xacro macros.
+        robot_description_file = os.path.join(
+            desc_share, "urdf", config["urdf_xacro"].replace(".xacro", ".urdf"))
 
-    ur_control_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("ur_robot_driver"),
-                "launch", "ur_control.launch.py",
-            )
-        ),
-        launch_arguments=ur_launch_args.items(),
-    )
+    # ── UR driver ───────────────────────────────────────────────────────
+    ur_control_launch = None
+    if not use_isaac_sim:
+        ur_launch_args = {
+            "ur_type": ur_type,
+            "robot_ip": robot_ip,
+            "tf_prefix": tf_prefix,
+            "use_mock_hardware": use_mock_hardware,
+            "launch_rviz": "false",
+            "description_package": "ur_description",
+            "description_file": robot_description_file,
+            "controllers_file": os.path.join(pkg_share, "config", _BASE_CONTROLLERS),
+            "kinematics_params_file": os.path.join(
+                desc_share, "config", "ur5e_calibration.yaml"),
+            "use_tool_communication": config["use_tool_communication"],
+            "tool_voltage": config["tool_voltage"],
+            # Jazzy: async hardware needs a longer controller-manager timeout.
+            "controller_spawner_timeout": "30",
+        }
+        # RS485 params (2fg7 needs 1Mbps/Even)
+        ur_launch_args.update(config["tool_comm_params"])
+
+        ur_control_launch = IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(
+                    get_package_share_directory("ur_robot_driver"),
+                    "launch", "ur_control.launch.py",
+                )
+            ),
+            launch_arguments=ur_launch_args.items(),
+        )
 
     # ── MoveIt config ───────────────────────────────────────────────────
     # joint_limits and trajectory_execution use absolute paths because
@@ -126,7 +135,7 @@ def launch_setup(context, *args, **kwargs):
     moveit_config = (
         MoveItConfigsBuilder("ur_moveit", package_name="cms_moveit_config")
         .robot_description(
-            file_path=os.path.join(desc_share, "urdf", config["urdf_xacro"]),
+            file_path=robot_description_file,
             mappings=xacro_args,
         )
         .robot_description_semantic(
@@ -164,6 +173,7 @@ def launch_setup(context, *args, **kwargs):
             moveit_config.robot_description_kinematics,
             moveit_config.to_dict(),
             move_group_capabilities,
+            {"use_sim_time": use_isaac_sim},
             # Wait for joint_states before declaring ready (controllers load async in Jazzy)
             {"planning_scene_monitor_options.wait_for_initial_state_timeout": 30.0},
         ],
@@ -183,6 +193,7 @@ def launch_setup(context, *args, **kwargs):
             moveit_config.robot_description_kinematics,
             moveit_config.planning_pipelines,
             moveit_config.joint_limits,
+            {"use_sim_time": use_isaac_sim},
         ],
         # The orchestrator imports cv2 (YOLO warm-up) before launching this
         # subprocess. opencv-python's config-3.py forcibly sets
@@ -198,7 +209,24 @@ def launch_setup(context, *args, **kwargs):
     # (readiness-gated via the set_payload service), not here.
 
     # ── Build launch actions list ───────────────────────────────────────
-    actions = [ur_control_launch]
+    if use_isaac_sim:
+        actions = [
+            Node(
+                package="robot_state_publisher",
+                executable="robot_state_publisher",
+                output="screen",
+                parameters=[moveit_config.robot_description, {"use_sim_time": True}],
+            ),
+            Node(
+                package="beambot",
+                executable="isaac_trajectory_adapter.py",
+                name="isaac_trajectory_adapter",
+                output="screen",
+                parameters=[{"use_sim_time": True, "gripper": gripper}],
+            ),
+        ]
+    else:
+        actions = [ur_control_launch]
 
     # Common nodes
     actions.append(run_move_group_node)
@@ -284,7 +312,10 @@ def launch_setup(context, *args, **kwargs):
     # (config/<gripper>_controllers.yaml). The spawner reads the overlay with
     # plain yaml.safe_load — no $(var ...) expansion — so overlays use literal
     # values. See #86.
-    if gripper == "epick":
+    if use_isaac_sim:
+        # The Isaac adapter supplies the configured gripper action server.
+        pass
+    elif gripper == "epick":
         # One spawner for both ePick controllers (native mode takes multiple
         # names) — shares a single load/switch and removes any ordering ambiguity.
         actions.append(Node(
@@ -357,6 +388,10 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             "use_mock_hardware", default_value="false",
+        ),
+        DeclareLaunchArgument(
+            "use_isaac_sim", default_value="false",
+            description="Use Isaac joint bridge instead of the UR driver",
         ),
         DeclareLaunchArgument(
             "tf_prefix", default_value="",

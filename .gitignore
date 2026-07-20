@@ -168,3 +168,9 @@ latency_analysis/
 
 # Debug capture images (keep root clean)
 marker_sheet_detections*.png
+
+# Regenerable Isaac Sim URDF import cache
+src/custom-ur-descriptions/cms_robot_description/urdf/generated_isaac/
+
+# Isaac Sim livestream traces
+/NvStreamer-*.etli

@@ -103,12 +103,17 @@ class MTCOrchestratorServer(Node):
         from beambot.config_loader import load_beamline_config, resolve_beamline_path
 
         self.declare_parameter("use_mock_hardware", False)
+        self.declare_parameter("use_isaac_sim", False)
         self.declare_parameter("enable_joystick", False)
         self.declare_parameter("enable_batching", True)
         self.declare_parameter(
             "cup_profile", ""
         )  # Override cup profile (empty = use beamline config default)
         self._use_mock_hardware = self.get_parameter("use_mock_hardware").value
+        self._use_isaac_sim = self.get_parameter("use_isaac_sim").value
+        # Isaac replaces the real arm and all physical peripheral operations
+        # must retain the same safety behavior as mock mode.
+        self._use_mock_hardware = self._use_mock_hardware or self._use_isaac_sim
         self._enable_batching = self.get_parameter("enable_batching").value
 
         config, config_file = load_beamline_config()
@@ -129,6 +134,8 @@ class MTCOrchestratorServer(Node):
         )
         if self._use_mock_hardware:
             self.get_logger().info("Using FAKE HARDWARE (simulation mode)")
+        if self._use_isaac_sim:
+            self.get_logger().info("Using ISAAC SIM arm hardware bridge")
         if not self._enable_batching:
             self.get_logger().info(
                 "Batching DISABLED - each task executes via action server"
@@ -154,6 +161,7 @@ class MTCOrchestratorServer(Node):
             self._callback_group,
             use_mock_hardware=self._use_mock_hardware,
             enable_joystick=self.get_parameter("enable_joystick").value,
+            use_isaac_sim=self._use_isaac_sim,
         )
 
         # Create action server
