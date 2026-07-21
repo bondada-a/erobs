@@ -108,7 +108,8 @@ def launch_setup(context, *args, **kwargs):
         "kinematics_params_file": os.path.join(
             desc_share, "config", "ur5e_calibration.yaml"),
         "use_tool_communication": (
-            config["use_tool_communication"] and use_mock_hardware != "true"
+            "false" if use_mock_hardware == "true"
+            else config["use_tool_communication"]
         ),
         "tool_voltage": config["tool_voltage"],
         # Jazzy: hardware loads async, so spawners need longer timeout to avoid
