@@ -93,14 +93,13 @@ RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
     cd erobs && \
     colcon build --packages-select zivid_interfaces pipette_driver"
 
-# Build remaining packages (skip ZED and incompatible packages)
+# Build remaining packages (skip ZED and MoveIt Studio)
 RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
     cd erobs && \
     source install/setup.bash && \
     colcon build --packages-skip \
       zed_components zed_ros2 zed_wrapper zed_debug \
       epick_moveit_studio \
-      epick_driver epick_description epick_controllers epick_hardware_tests epick_moveit_plugin \
       onrobot_2fg7_driver onrobot_2fg7_description"
 
 # Install Claude Code CLI
