@@ -27,8 +27,8 @@ from PyQt6.QtWidgets import (
     QFrame,
     QSizePolicy,
 )
-from PyQt6.QtCore import Qt, QSize
-from PyQt6.QtGui import QFont
+from PyQt6.QtCore import Qt, QSize, QMimeData
+from PyQt6.QtGui import QFont, QKeySequence
 from action_msgs.msg import GoalStatus
 
 from .ros2_bridge import ROS2Bridge, ROS2_AVAILABLE
@@ -39,6 +39,10 @@ from .chat_panel import ChatPanel
 from .agent_bridge import AgentBridge
 from .step_list_panel import StepListPanel, TASK_TYPE_CONFIG
 from . import theme
+
+STEP_CLIPBOARD_MIME = "application/x-erobs-task-steps+json"
+STEP_CLIPBOARD_MAX_BYTES = 1_000_000
+STEP_CLIPBOARD_MAX_STEPS = 1_000
 
 try:
     from .visualization_panel import VisualizationPanel, WEBENGINE_AVAILABLE
@@ -264,6 +268,19 @@ class MTCMainWindow(QMainWindow):
         file_menu.addSeparator()
         exit_action = file_menu.addAction("Exit", self.close)
         exit_action.setShortcut("Ctrl+Q")
+
+        edit_menu = mb.addMenu("Edit")
+        self.copy_action = edit_menu.addAction("Copy", self._copy_steps)
+        self.copy_action.setShortcuts(QKeySequence.StandardKey.Copy)
+        self.copy_action.setShortcutContext(
+            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+        self.paste_action = edit_menu.addAction("Paste", self._paste_steps)
+        self.paste_action.setShortcuts(QKeySequence.StandardKey.Paste)
+        self.paste_action.setShortcutContext(
+            Qt.ShortcutContext.WidgetWithChildrenShortcut
+        )
+
         view_menu = mb.addMenu("View")
         self.dark_mode_action = view_menu.addAction("Dark Mode")
         self.dark_mode_action.setCheckable(True)
@@ -576,6 +593,7 @@ class MTCMainWindow(QMainWindow):
 
         # Step list
         self.step_list = StepListPanel()
+        self.step_list.addActions([self.copy_action, self.paste_action])
         self.step_list.item_double_clicked.connect(self._edit_task_by_index)
         # Drop a pose onto the step list to append a Move To step targeting it.
         self.step_list.pose_dropped.connect(self._add_moveto_for_pose)
@@ -759,6 +777,68 @@ class MTCMainWindow(QMainWindow):
         self.config["tasks"].clear()
         self._refresh_tree()
         self._log(f"Cleared {n} step{'s' if n != 1 else ''}")
+
+    def _copy_steps(self):
+        """Copy selected steps to clipboard as JSON."""
+        indices = self.step_list.selected_indices()
+        if not indices:
+            return
+        selected = [self.config["tasks"][i] for i in indices]
+        payload = json.dumps(selected)
+        encoded = payload.encode("utf-8")
+        if len(encoded) > STEP_CLIPBOARD_MAX_BYTES:
+            self._log("Selection is too large to copy")
+            return
+        from PyQt6.QtWidgets import QApplication
+        mime = QMimeData()
+        mime.setData(STEP_CLIPBOARD_MIME, encoded)
+        mime.setText(payload)
+        QApplication.clipboard().setMimeData(mime)
+        self._log(f"Copied {len(selected)} step{'s' if len(selected) != 1 else ''}")
+
+    def _paste_steps(self):
+        """Paste steps copied from this editor."""
+        if not self.step_list.editing_enabled:
+            return
+        from PyQt6.QtWidgets import QApplication
+        mime = QApplication.clipboard().mimeData()
+        if mime is None or not mime.hasFormat(STEP_CLIPBOARD_MIME):
+            return
+        clip = mime.data(STEP_CLIPBOARD_MIME)
+        if clip.isEmpty() or clip.size() > STEP_CLIPBOARD_MAX_BYTES:
+            return
+        try:
+            data = json.loads(bytes(clip))
+        except (ValueError, RecursionError):
+            return
+        if (
+            not isinstance(data, list)
+            or not data
+            or len(data) > STEP_CLIPBOARD_MAX_STEPS
+        ):
+            return
+        # Validate before mutating; task_summary is also the tree render path.
+        for item in data:
+            if not isinstance(item, dict):
+                return
+            tt = item.get("task_type")
+            if not isinstance(tt, str) or (
+                tt not in self._task_defaults and tt != "vision_task"
+            ):
+                return
+            try:
+                task_summary(item)
+            except (KeyError, TypeError, ValueError, IndexError, OverflowError):
+                return
+        indices = self.step_list.selected_indices()
+        if indices:
+            insert_at = max(indices) + 1
+        else:
+            insert_at = len(self.config["tasks"])
+        self.config["tasks"][insert_at:insert_at] = data
+        self._refresh_tree()
+        self.step_list.select_range(insert_at, len(data))
+        self._log(f"Pasted {len(data)} step{'s' if len(data) != 1 else ''}")
 
     # --- Agent-driven queue updates (Plan/Run mode) ---
 
