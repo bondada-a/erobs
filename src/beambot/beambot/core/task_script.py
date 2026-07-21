@@ -24,6 +24,7 @@ SUPPORTED_TASK_TYPES = {
     "pick_spincoater",
     "place_spincoater",
     "pipettor",
+    "pause",
 }
 MOVETO_DIRECTIONS = (
     "forward",

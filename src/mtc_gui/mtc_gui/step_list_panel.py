@@ -40,6 +40,7 @@ TASK_TYPE_CONFIG = {
     "pickup_vial": {"icon": "◈", "color": "#e6855c", "title": "Vial Rack"},
     "place_spincoater": {"icon": "⬇", "color": "#e65c8a", "title": "Place Spincoater"},
     "pick_spincoater": {"icon": "⬆", "color": "#e65c8a", "title": "Pick Spincoater"},
+    "pause": {"icon": "⏸", "color": "#e6a832", "title": "Pause"},
 }
 
 STATUS_CONFIG = {
