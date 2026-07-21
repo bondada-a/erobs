@@ -107,7 +107,9 @@ def launch_setup(context, *args, **kwargs):
         "controllers_file": os.path.join(pkg_share, "config", _BASE_CONTROLLERS),
         "kinematics_params_file": os.path.join(
             desc_share, "config", "ur5e_calibration.yaml"),
-        "use_tool_communication": config["use_tool_communication"],
+        "use_tool_communication": (
+            config["use_tool_communication"] and use_mock_hardware != "true"
+        ),
         "tool_voltage": config["tool_voltage"],
         # Jazzy: hardware loads async, so spawners need longer timeout to avoid
         # retry cycles while controller_manager is busy initializing.
