@@ -610,6 +610,7 @@ class MTCMainWindow(QMainWindow):
         self.step_list.selection_changed.connect(self._update_execute_from_selected)
         # Drop a pose onto the step list to append a Move To step targeting it.
         self.step_list.pose_dropped.connect(self._add_moveto_for_pose)
+        self.step_list.steps_reordered.connect(self._reorder_steps)
         self.step_list.setSizePolicy(
             QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
         )
@@ -935,6 +936,23 @@ class MTCMainWindow(QMainWindow):
         tasks[idx], tasks[idx + 1] = tasks[idx + 1], tasks[idx]
         self._refresh_tree()
         self.step_list.set_current_row(idx + 1)
+
+    def _reorder_steps(self, order: list, moved_rows: list):
+        """Apply the list widget's drag order to the task sequence."""
+        tasks = self.config["tasks"]
+        if (
+            not self.step_list.editing_enabled
+            or len(order) != len(tasks)
+            or set(order) != set(range(len(tasks)))
+        ):
+            self._refresh_tree()
+            return
+        self.config["tasks"] = [tasks[i] for i in order]
+        self._refresh_tree()
+        moved = set(moved_rows)
+        self.step_list.select_indices(
+            i for i, original_row in enumerate(order) if original_row in moved
+        )
 
     def _detach_viz_for_form(self):
         """Remove the 3D viewer from its tab so the form can embed it."""

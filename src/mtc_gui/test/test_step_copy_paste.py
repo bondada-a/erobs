@@ -108,6 +108,20 @@ def test_paste_after_selection(window):
     ]
 
 
+def test_drag_reorder_updates_tasks_and_preserves_group_selection(window):
+    window.config["tasks"] = [
+        {"task_type": "moveto", "target": name}
+        for name in ("a", "b", "c", "d")
+    ]
+    window._refresh_tree()
+
+    # Simulate Qt moving original rows 1 and 3 ahead of row 0.
+    window._reorder_steps([1, 3, 0, 2], [1, 3])
+
+    assert [step["target"] for step in window.config["tasks"]] == ["b", "d", "a", "c"]
+    assert window.step_list.selected_indices() == [0, 1]
+
+
 def test_execute_from_selected_dispatches_remaining_steps(window):
     window.config["tasks"] = [
         {"task_type": "moveto", "target": "a"},
