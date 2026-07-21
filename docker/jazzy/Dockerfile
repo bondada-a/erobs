@@ -71,7 +71,7 @@ RUN chmod +x /root/start-vnc.sh
 
 # Clone erobs and import all repos
 ARG CACHEBUST=1
-RUN git clone https://github.com/bondada-a/erobs.git -b jazzy_dev
+RUN test -n "$CACHEBUST" && git clone https://github.com/bondada-a/erobs.git -b jazzy_dev
 
 WORKDIR /root/ws/erobs/
 RUN /bin/bash -c "set -e && \
