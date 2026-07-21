@@ -221,6 +221,7 @@ class MTCMainWindow(QMainWindow):
         self._last_goal_was_dry_run = False
         self._execution_state = None
         self._goal_pending = False
+        self._execution_start_index = 0
 
         # Load beamline YAML once, before _build_central uses fields from it.
         # Soft-fail: GUI can still open as a JSON inspector when no robot is
@@ -549,6 +550,17 @@ class MTCMainWindow(QMainWindow):
         self.exec_btn.setProperty("class", "primary")
         self.exec_btn.clicked.connect(self._execute)
         run_layout.addWidget(self.exec_btn)
+        self.execute_from_btn = QPushButton("From Selected")
+        self.execute_from_btn.setIcon(
+            theme.icon("mdi6.play-skip-forward", color=theme.ON_SURFACE_DIM)
+        )
+        self.execute_from_btn.setEnabled(False)
+        self.execute_from_btn.setToolTip(
+            "Run the selected step and all following steps. "
+            "Set Start Gripper to the tool currently on the robot first."
+        )
+        self.execute_from_btn.clicked.connect(self._execute_from_selected)
+        run_layout.addWidget(self.execute_from_btn)
         self.pause_btn = QPushButton("Pause")
         self.pause_btn.setIcon(theme.icon("mdi6.pause", color=theme.ON_SURFACE_DIM))
         self.pause_btn.setEnabled(False)
@@ -595,6 +607,7 @@ class MTCMainWindow(QMainWindow):
         self.step_list = StepListPanel()
         self.step_list.addActions([self.copy_action, self.paste_action])
         self.step_list.item_double_clicked.connect(self._edit_task_by_index)
+        self.step_list.selection_changed.connect(self._update_execute_from_selected)
         # Drop a pose onto the step list to append a Move To step targeting it.
         self.step_list.pose_dropped.connect(self._add_moveto_for_pose)
         self.step_list.setSizePolicy(
@@ -684,6 +697,7 @@ class MTCMainWindow(QMainWindow):
         self.ros2.action_feedback_received.connect(self._on_feedback)
         self.ros2.action_result_received.connect(self._on_result)
         self.ros2.execution_state_changed.connect(self._on_execution_state)
+        self.ros2.gripper_changed.connect(self._on_gripper_changed)
         if self.ros2.execution_state is not None:
             self._on_execution_state(self.ros2.execution_state)
         else:
@@ -1021,16 +1035,26 @@ class MTCMainWindow(QMainWindow):
     # an immediate, friendly message instead of a goal rejection.
     _DRY_RUN_SUPPORTED = {"moveto", "end_effector"}
 
-    def _execute(self):
+    def _execute_from_selected(self):
+        indices = self.step_list.selected_indices()
+        if len(indices) == 1:
+            self._execute(indices[0])
+
+    def _execute(self, start_index: int = 0):
         if not self.config["tasks"]:
             QMessageBox.warning(self, "Warning", "No tasks defined")
             return
 
+        if not 0 <= start_index < len(self.config["tasks"]):
+            return
+
+        tasks = self.config["tasks"][start_index:]
+
         dry_run = self.dry_run_check.isChecked()
         if dry_run:
             unsupported = [
-                (i + 1, t.get("task_type", "?"))
-                for i, t in enumerate(self.config["tasks"])
+                (start_index + i + 1, t.get("task_type", "?"))
+                for i, t in enumerate(tasks)
                 if t.get("task_type", "") not in self._DRY_RUN_SUPPORTED
             ]
             if unsupported:
@@ -1045,14 +1069,16 @@ class MTCMainWindow(QMainWindow):
                 return
 
         self.config["start_gripper"] = self.gripper_combo.currentText()
+        execution_config = {**self.config, "tasks": tasks}
         self._last_goal_was_dry_run = dry_run
+        self._execution_start_index = start_index
         self._goal_pending = True
         self._project_execution_state()
-        self.progress_bar.setValue(0)
+        self.progress_bar.setValue(int(start_index / len(self.config["tasks"]) * 100))
         self.progress_bar.setVisible(True)
-        self.step_list.start_execution(len(self.config["tasks"]))
+        self.step_list.start_execution(len(self.config["tasks"]), start_index)
 
-        self.ros2.execute_task(json.dumps(self.config), dry_run=dry_run)
+        self.ros2.execute_task(json.dumps(execution_config), dry_run=dry_run)
 
     def _on_execution_state(self, state):
         self._execution_state = state
@@ -1067,6 +1093,7 @@ class MTCMainWindow(QMainWindow):
             self._execution_state, self._goal_pending
         )
         self.exec_btn.setEnabled(execute)
+        self._update_execute_from_selected()
         self.pause_btn.setEnabled(pause)
         self.resume_btn.setEnabled(resume)
         self.stop_btn.setEnabled(stop)
@@ -1083,10 +1110,28 @@ class MTCMainWindow(QMainWindow):
         self.step_list.set_editing_enabled(editing)
         self.step_list.set_paused(paused)
 
+    def _update_execute_from_selected(self, _=None):
+        self.execute_from_btn.setEnabled(
+            self.exec_btn.isEnabled() and len(self.step_list.selected_indices()) == 1
+        )
+
     def _on_feedback(self, progress, step, action, gripper, msg):
-        self.progress_bar.setValue(int(progress))
+        total = len(self.config["tasks"])
+        remaining = total - self._execution_start_index
+        self.progress_bar.setValue(
+            int(
+                (self._execution_start_index + progress / 100 * remaining)
+                / total
+                * 100
+            )
+            if total
+            else 0
+        )
         self.step_list.update_step(step, progress, action)
-        self._log(f"[{progress:.0f}%] Step {step}: {action} | {gripper} | {msg}")
+        self._log(
+            f"[{progress:.0f}%] Step {self._execution_start_index + step}: "
+            f"{action} | {gripper} | {msg}"
+        )
 
     def _on_result(self, status, error_msg, completed, total):
         self._goal_pending = False
@@ -1141,10 +1186,16 @@ class MTCMainWindow(QMainWindow):
                 success, error_msg, completed, total
             )
         self._execution_initiator = "human"
+        self._execution_start_index = 0
         self._project_execution_state()
 
     def _on_joint_state(self, pose):
         self.current_robot_pose = pose
+
+    def _on_gripper_changed(self, gripper: str):
+        index = self.gripper_combo.findText(gripper)
+        if index >= 0:
+            self.gripper_combo.setCurrentIndex(index)
 
     # --- JSON I/O ---
 

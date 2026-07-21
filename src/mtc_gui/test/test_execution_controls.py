@@ -25,6 +25,9 @@ class _Control:
     def setEnabled(self, enabled):
         self.enabled = enabled
 
+    def isEnabled(self):
+        return self.enabled
+
 
 class _StepList:
     def set_editing_enabled(self, enabled):
@@ -33,21 +36,25 @@ class _StepList:
     def set_paused(self, paused):
         self.paused = paused
 
+    def selected_indices(self):
+        return []
+
 
 def _window():
-    controls = [_Control() for _ in range(11)]
+    controls = [_Control() for _ in range(12)]
     window = SimpleNamespace(
         exec_btn=controls[0],
-        pause_btn=controls[1],
-        resume_btn=controls[2],
-        stop_btn=controls[3],
-        task_toolbar=controls[4],
-        up_step_btn=controls[5],
-        down_step_btn=controls[6],
-        remove_step_btn=controls[7],
-        clear_steps_btn=controls[8],
-        gripper_combo=controls[9],
-        dry_run_check=controls[10],
+        execute_from_btn=controls[1],
+        pause_btn=controls[2],
+        resume_btn=controls[3],
+        stop_btn=controls[4],
+        task_toolbar=controls[5],
+        up_step_btn=controls[6],
+        down_step_btn=controls[7],
+        remove_step_btn=controls[8],
+        clear_steps_btn=controls[9],
+        gripper_combo=controls[10],
+        dry_run_check=controls[11],
         step_list=_StepList(),
         _execution_state=None,
         _goal_pending=False,
@@ -55,6 +62,9 @@ def _window():
     )
     window._project_execution_state = (
         lambda: MTCMainWindow._project_execution_state(window)
+    )
+    window._update_execute_from_selected = (
+        lambda _=None: MTCMainWindow._update_execute_from_selected(window, _)
     )
     return window
 

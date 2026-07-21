@@ -315,11 +315,11 @@ class ExecutionToolbar(QFrame):
 
         self._start_time = None
 
-    def start(self, total_steps: int):
+    def start(self, total_steps: int, start_index: int = 0):
         self._start_time = time.monotonic()
         self._progress.setMaximum(100)
-        self._progress.setValue(0)
-        self._step_label.setText(f"Step 1/{total_steps}")
+        self._progress.setValue(int(start_index / total_steps * 100) if total_steps else 0)
+        self._step_label.setText(f"Step {start_index + 1}/{total_steps}")
         self._task_label.setText("")
         self._elapsed_label.setText("00:00")
 
@@ -402,6 +402,7 @@ class StepListPanel(QWidget):
         self._step_rows: list[StepRowWidget] = []
         self._total_steps = 0
         self._current_step = -1
+        self._execution_start_index = 0
         self._execution_active = False
         self._editing_enabled = True
 
@@ -546,35 +547,39 @@ class StepListPanel(QWidget):
             self._update_empty_state()
         return super().eventFilter(obj, event)
 
-    def start_execution(self, total_steps: int):
+    def start_execution(self, total_steps: int, start_index: int = 0):
         """Enter execution mode."""
         self._execution_active = True
         self._editing_enabled = False
         self._total_steps = total_steps
         self._current_step = -1
+        self._execution_start_index = start_index
 
-        # Reset all rows to PENDING
+        # Keep skipped rows as-is; reset only the part being run.
         for row in self._step_rows:
-            row.set_state(StepState.PENDING)
             row.set_is_next(False)
+        for row in self._step_rows[start_index:]:
+            row.set_state(StepState.PENDING)
 
-        # Mark first step as next
-        if self._step_rows:
-            self._step_rows[0].set_is_next(True)
+        # Mark the first run step as next.
+        if start_index < len(self._step_rows):
+            self._step_rows[start_index].set_is_next(True)
 
         # Show toolbar and start timer
-        self._exec_toolbar.start(total_steps)
+        self._exec_toolbar.start(total_steps, start_index)
         self._exec_toolbar.show()
         self._elapsed_timer.start()
 
     def update_step(self, current_step: int, progress: float, action_name: str):
         """Called on feedback. current_step is 1-indexed from orchestrator."""
-        step_idx = current_step - 1
+        if current_step <= 0:
+            return
+        step_idx = self._execution_start_index + current_step - 1
         if step_idx < 0 or step_idx >= len(self._step_rows):
             return
 
         # Mark all previous steps as DONE
-        for i in range(step_idx):
+        for i in range(self._execution_start_index, step_idx):
             if self._step_rows[i]._state != StepState.DONE:
                 self._step_rows[i].set_state(StepState.DONE)
                 self._step_rows[i].set_is_next(False)
@@ -592,7 +597,10 @@ class StepListPanel(QWidget):
 
         # Update toolbar
         self._exec_toolbar.update_progress(
-            current_step, self._total_steps, action_name, progress
+            step_idx + 1,
+            self._total_steps,
+            action_name,
+            (step_idx + 1) / self._total_steps * 100 if self._total_steps else 0,
         )
 
         # Auto-scroll to active step
@@ -606,11 +614,14 @@ class StepListPanel(QWidget):
         self._editing_enabled = True
         self._elapsed_timer.stop()
 
+        completed_end = self._execution_start_index + completed_steps
         for i, row in enumerate(self._step_rows):
             row.set_is_next(False)
-            if i < completed_steps:
+            if i < self._execution_start_index:
+                continue
+            if i < completed_end:
                 row.set_state(StepState.DONE)
-            elif i == completed_steps and status != "success":
+            elif i == completed_end and status != "success":
                 row.set_state(StepState.FAILED)
             elif status == "success":
                 row.set_state(StepState.DONE)

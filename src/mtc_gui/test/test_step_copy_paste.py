@@ -108,6 +108,34 @@ def test_paste_after_selection(window):
     ]
 
 
+def test_execute_from_selected_dispatches_remaining_steps(window):
+    window.config["tasks"] = [
+        {"task_type": "moveto", "target": "a"},
+        {"task_type": "moveto", "target": "b"},
+        {"task_type": "moveto", "target": "c"},
+        {"task_type": "moveto", "target": "d"},
+    ]
+    window._refresh_tree()
+    window.step_list.set_current_row(2)
+    sent = {}
+    window.ros2.execute_task = lambda config_json, dry_run=False: sent.update(
+        config=json.loads(config_json), dry_run=dry_run
+    )
+
+    window._execute_from_selected()
+
+    assert [step["target"] for step in sent["config"]["tasks"]] == ["c", "d"]
+    assert window.step_list._exec_toolbar._step_label.text() == "Step 3/4"
+
+    window._on_feedback(0, 0, "Initializing MoveIt", "", "")
+    assert window.step_list._step_rows[2]._state.name == "PENDING"
+
+    window._on_feedback(50, 1, "moveto", "", "")
+    assert window.step_list._step_rows[0]._state.name == "PENDING"
+    assert window.step_list._step_rows[2]._state.name == "RUNNING"
+    assert window.progress_bar.value() == 75
+
+
 def test_paste_invalid_clipboard_ignores(window):
     original = [{"task_type": "moveto"}]
     window.config["tasks"] = original.copy()
