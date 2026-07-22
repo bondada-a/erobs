@@ -1,12 +1,15 @@
-from ophyd import Device, Component as Cpt, EpicsSignal, EpicsSignalRO
+from ophyd import Device, Signal
+from ophyd import Component as Cpt
+
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
-from sensor_msgs.msg import JoinState
+from sensor_msgs.msg import JointState
 import time
 
 class ROS_Node(Node):
-    def __init__(self):
+
+    def __init__(self, joint_state_callback):
         super().__init__("arm_node")
 
         self._joint_state_subscription = self.create_subscription(
@@ -16,13 +19,13 @@ class ROS_Node(Node):
             qos_profile_sensor_data,
         )
 
+        self.get_logger().info("Subscribed to /joint_states")
+
 
     def list_topics(self):
         return self.get_topic_names_and_types()
     
 class Joint(Device):
-    def __init__(self, device, **kwargs):
-        super().__init__(device, **kwargs)
 
     # read from /joint_states topic
     readback = Cpt(Signal, value=None)
@@ -69,6 +72,9 @@ class Robotic_Arm(Device):
             message.effort[i]
         all describe the same joint.
         """
+
+        updated_joints = []
+
         for index, ros_joint_name in enumerate(message.name):
             joint = self._joint_name_map.get(ros_joint_name)
 
@@ -77,6 +83,8 @@ class Robotic_Arm(Device):
                     f"Unrecognized joint: {ros_joint_name}"
                 )
                 continue
+
+            # edge case: position, velocity, and effort arrays may be empty
 
             if index < len(message.position):
                 joint.readback.put(message.position[index])
@@ -87,6 +95,19 @@ class Robotic_Arm(Device):
             if index < len(message.effort):
                 joint.effort.put(message.effort[index])
 
+            updated_joints.append(ros_joint_name)
+
+        if updated_joints:
+            self.print_joint_states(updated_joints)
+
+
+    def process_ros_events(self, timeout_sec: float = 0.1) -> None:
+        if rclpy.ok():
+            rclpy.spin_once(
+                self._ros_node,
+                timeout_sec = timeout_sec
+            )
+
     def list_topics(self):
         topics = self._ros_node.list_topics()
 
@@ -95,13 +116,20 @@ class Robotic_Arm(Device):
 
         return topics
     
-    def print_joint_states(self):
-        for joint_name, joint in self._joint_name_map.items():
+    def print_joint_states(self, joint_names=None) -> None:
+        if joint_names is None:
+            joint_names = self._joint_name_map.keys()
+
+        print("-" * 78)
+
+        for joint_name in joint_names:
+            joint = self._joint_name_map[joint_name]
+
             print(
-                f"{joint_name:10} "
-                f"position={joint.readback.get()}  "
-                f"velocity={joint.velocity.get()}  "
-                f"effort={joint.effort.get()}"
+                f"{joint_name:<10} "
+                f"position={joint.readback.get():>12.6f}  "
+                f"velocity={joint.velocity.get():>12.6f}  "
+                f"effort={joint.effort.get():>12.6f}"
             )
 
     def close(self):
@@ -117,12 +145,11 @@ if __name__ == "__main__":
 
     try:
         print("Listening to /joint_states. Press Ctrl+C to stop.")
+        print("Expected joint names:", ", ".join(arm._joint_name_map))
 
         while rclpy.ok():
             arm.process_ros_events(timeout_sec=0.1)
-            arm.print_joint_states()
-            print("-" * 70)
-
+ 
     except KeyboardInterrupt:
         print("\nStopping.")
 
