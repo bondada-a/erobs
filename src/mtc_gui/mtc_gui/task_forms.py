@@ -746,8 +746,8 @@ class VisionMoveToForm(BaseTaskForm):
             "Detection Type:", "detection_type", ["marker", "sample_roi"]
         )
 
-        # Marker options
-        marker_sec = self.add_section("ArUco Marker Options")
+        # Tag options (the tag anchors both detector types)
+        marker_sec = self.add_section("ArUco Tag Options")
         self.tag_id = QSpinBox()
         self.tag_id.setRange(0, 999)
         self.tag_id.setValue(int(self.step.get("tag_id", 0)))
@@ -769,7 +769,31 @@ class VisionMoveToForm(BaseTaskForm):
         self.marker_dict.setCurrentText(
             self.step.get("marker_dictionary", "aruco4x4_50")
         )
-        marker_sec.addRow("Dictionary:", self.marker_dict)
+        self.marker_dict_label = QLabel("Dictionary:")
+        marker_sec.addRow(self.marker_dict_label, self.marker_dict)
+
+        # Sample ROI options
+        self.sample_roi_group = QGroupBox("Sample ROI Options")
+        sample_roi = QFormLayout(self.sample_roi_group)
+        self.form.addRow(self.sample_roi_group)
+        self.strategy = QComboBox()
+        self.strategy.addItems(
+            [
+                "center",
+                "farthest_edge",
+                "nearest_edge",
+                "farthest_corner",
+                "nearest_corner",
+            ]
+        )
+        self.strategy.setCurrentText(self.step.get("strategy", "farthest_edge"))
+        sample_roi.addRow("Strategy:", self.strategy)
+        self.edge_inset = QDoubleSpinBox()
+        self.edge_inset.setRange(0.0, 999.0)
+        self.edge_inset.setDecimals(2)
+        self.edge_inset.setSuffix(" mm")
+        self.edge_inset.setValue(float(self.step.get("edge_inset_mm", 6.5)))
+        sample_roi.addRow("Edge Inset:", self.edge_inset)
 
         # Common options
         common = self.add_section("Common Options")
@@ -805,11 +829,27 @@ class VisionMoveToForm(BaseTaskForm):
         self.offset_dist.setValue(float(self.step.get("offset_distance", 0.0)))
         common.addRow("Flange Distance (m):", self.offset_dist)
 
+        self.det_type.currentTextChanged.connect(self._apply_detection_type)
+        self._apply_detection_type(self.det_type.currentText())
+
+    def _apply_detection_type(self, detection_type):
+        sample_roi = detection_type == "sample_roi"
+        self.marker_dict_label.setVisible(not sample_roi)
+        self.marker_dict.setVisible(not sample_roi)
+        self.sample_roi_group.setVisible(sample_roi)
+
     def collect_values(self):
         s = {**self.step}
         s["detection_type"] = self.det_type.currentText()
         s["tag_id"] = self.tag_id.value()
-        s["marker_dictionary"] = self.marker_dict.currentText()
+        if s["detection_type"] == "sample_roi":
+            s["strategy"] = self.strategy.currentText()
+            s["edge_inset_mm"] = self.edge_inset.value()
+            s.pop("marker_dictionary", None)
+        else:
+            s["marker_dictionary"] = self.marker_dict.currentText()
+            s.pop("strategy", None)
+            s.pop("edge_inset_mm", None)
         s["z_offset"] = self.z_offset.value()
         s["timeout"] = self.timeout.value()
         s["detect_only"] = self.detect_only.isChecked()
