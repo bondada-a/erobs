@@ -356,13 +356,25 @@ class ExecutionToolbar(QFrame):
 
 
 class _DropTargetListWidget(QListWidget):
-    """QListWidget that accepts pose drops from PosesPanel."""
+    """QListWidget that accepts pose drops and internally reorders steps."""
 
     pose_dropped = pyqtSignal(str)  # pose name
+    steps_reordered = pyqtSignal(list, list)  # original row order, moved rows
 
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setAcceptDrops(True)
+        self.setDragEnabled(True)
+        self.setDragDropMode(QAbstractItemView.DragDropMode.DragDrop)
+        self.setDefaultDropAction(Qt.DropAction.MoveAction)
+        self.setDropIndicatorShown(True)
+        self._reordering_enabled = True
+
+    def set_reordering_enabled(self, enabled: bool):
+        """Allow edits only while the task queue is idle."""
+        self._reordering_enabled = enabled
+        self.setDragEnabled(enabled)
+        self.setAcceptDrops(enabled)
 
     def dragEnterEvent(self, event):
         if event.mimeData().hasFormat(POSE_MIME_TYPE):
@@ -378,11 +390,27 @@ class _DropTargetListWidget(QListWidget):
 
     def dropEvent(self, event):
         md = event.mimeData()
-        if md.hasFormat(POSE_MIME_TYPE):
+        if md.hasFormat(POSE_MIME_TYPE) and self._reordering_enabled:
             pose_name = bytes(md.data(POSE_MIME_TYPE)).decode("utf-8")
             if pose_name:
                 self.pose_dropped.emit(pose_name)
             event.acceptProposedAction()
+        elif event.source() is self and self._reordering_enabled:
+            moved_rows = [
+                item.data(Qt.ItemDataRole.UserRole)
+                for item in self.selectedItems()
+            ]
+            old_order = [
+                self.item(i).data(Qt.ItemDataRole.UserRole)
+                for i in range(self.count())
+            ]
+            super().dropEvent(event)
+            new_order = [
+                self.item(i).data(Qt.ItemDataRole.UserRole)
+                for i in range(self.count())
+            ]
+            if new_order != old_order:
+                self.steps_reordered.emit(new_order, moved_rows)
         else:
             super().dropEvent(event)
 
@@ -396,6 +424,7 @@ class StepListPanel(QWidget):
     item_double_clicked = pyqtSignal(int)
     selection_changed = pyqtSignal(list)
     pose_dropped = pyqtSignal(str)  # forwarded from inner list widget
+    steps_reordered = pyqtSignal(list, list)  # original row order, moved rows
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -429,6 +458,7 @@ class StepListPanel(QWidget):
         self._list_widget.itemSelectionChanged.connect(self._on_selection_changed)
         self._list_widget.setVerticalScrollMode(QAbstractItemView.ScrollMode.ScrollPerPixel)
         self._list_widget.pose_dropped.connect(self.pose_dropped)
+        self._list_widget.steps_reordered.connect(self.steps_reordered)
         self._list_widget.setStyleSheet(
             "QListWidget { background-color: #161B24; border: 1px solid #2C3448;"
             " border-radius: 6px; outline: none; padding: 4px; }"
@@ -495,6 +525,7 @@ class StepListPanel(QWidget):
             for i, step in enumerate(tasks):
                 task_type = step.get("task_type", "?")
                 detail = summary_fn(step)
+                self._list_widget.item(i).setData(Qt.ItemDataRole.UserRole, i)
                 self._step_rows[i].update_content(i, task_type, detail)
             self._current_step = -1
         else:
@@ -510,6 +541,7 @@ class StepListPanel(QWidget):
                 item = QListWidgetItem(self._list_widget)
                 item.setSizeHint(QSize(0, _ROW_HEIGHT))
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
+                item.setData(Qt.ItemDataRole.UserRole, i)
                 self._list_widget.setItemWidget(item, row_widget)
                 self._step_rows.append(row_widget)
 
@@ -519,14 +551,22 @@ class StepListPanel(QWidget):
 
     def select_range(self, start: int, count: int):
         """Select and reveal a contiguous row range."""
+        self.select_indices(range(start, start + count))
+
+    def select_indices(self, indices):
+        """Select and reveal step rows by index."""
         self._list_widget.clearSelection()
-        first = self._list_widget.item(start) if count > 0 else None
-        if first is None:
-            return
-        self._list_widget.setCurrentItem(first)
-        for row in range(start, min(start + count, self._list_widget.count())):
-            self._list_widget.item(row).setSelected(True)
-        self._list_widget.scrollToItem(first)
+        items = [
+            self._list_widget.item(row)
+            for row in indices
+            if self._list_widget.item(row) is not None
+        ]
+        first = items[0] if items else None
+        if first is not None:
+            self._list_widget.setCurrentItem(first)
+            for item in items:
+                item.setSelected(True)
+            self._list_widget.scrollToItem(first)
 
     # --- Empty-state overlay helpers ---
 
@@ -632,6 +672,7 @@ class StepListPanel(QWidget):
 
     def set_editing_enabled(self, enabled: bool):
         self._editing_enabled = enabled
+        self._list_widget.set_reordering_enabled(enabled)
 
     def set_paused(self, paused: bool):
         self._exec_toolbar.set_paused(paused)
