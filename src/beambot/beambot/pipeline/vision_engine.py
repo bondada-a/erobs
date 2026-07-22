@@ -503,7 +503,7 @@ class VisionEngine(BaseStages):
         self,
         tag_id: int,
         strategy: str = "farthest_edge",
-        edge_inset_mm: float = 6.5,
+        edge_inset_mm: float = 0.0,
         timeout: float = 45.0,
     ) -> PoseStamped | None:
         """Detect a sample in an ROI anchored to an ArUco tag.
