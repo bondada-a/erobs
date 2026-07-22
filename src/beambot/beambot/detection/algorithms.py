@@ -125,7 +125,7 @@ def detect_sample_in_roi(
     marker_corners: np.ndarray,
     px_per_mm: float,
     strategy: str = "farthest_edge",
-    edge_inset_mm: float = 6.5,
+    edge_inset_mm: float = 0.0,
     params: SampleRoiDetectionParams | None = None,
 ) -> dict[str, Any] | None:
     """Detect a sample contour in a fixed ROI relative to an ArUco marker.
@@ -318,7 +318,7 @@ def detect_sample_in_roi(
     offset_from_center_mm = np.linalg.norm(pickup - center_pt) / px_per_mm
 
     return {
-        "pickup_px": (int(pickup[0]), int(pickup[1])),
+        "pickup_px": (int(round(pickup[0])), int(round(pickup[1]))),
         "center_px": (int(center_pt[0]), int(center_pt[1])),
         "sample_size_mm": (
             round(rect_size[0] / px_per_mm, 1),

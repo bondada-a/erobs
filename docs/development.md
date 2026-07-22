@@ -109,7 +109,8 @@ vision accuracy degrades.
 
 | Date | xyz (m) | rpy (rad) | Notes |
 |---|---|---|---|
-| **2026-03-27** | 0.05635 0.10228 0.06025 | -0.03622 0.05218 3.13437 | Current. Beamline recalibration, 12 poses (pose 4 excluded). Residuals: rot < 0.33°, trans < 1.53 mm |
+| **2026-07-22** | 0.05594 0.10469 0.05890 | -0.03511 0.05081 3.13360 | Current. Zivid Studio GUI hand-eye recalibration (Y +2.4 mm, Z -1.35 mm vs prior). Pending touch-test verification. 20-pose scripted set in `src/cms/handeye_cal_poses.yaml` as fallback |
+| 2026-03-27 | 0.05635 0.10228 0.06025 | -0.03622 0.05218 3.13437 | Beamline recalibration, 12 poses (pose 4 excluded). Residuals: rot < 0.33°, trans < 1.53 mm |
 | 2026-03-25 | 0.05475 0.10491 0.06013 | -0.03489 0.05317 3.13637 | After URDF chain changes. Residuals: rot < 0.15°, trans < 1.0 mm |
 | 2026-01-15 | 0.05675 0.10322 0.05489 | -0.00615 0.04362 3.13541 | Residuals: rot < 0.22°, trans < 0.47 mm |
 | 2026-01-13 | 0.05646 0.10182 0.05680 | -0.03542 0.04745 3.13222 | Robot moved to new room |

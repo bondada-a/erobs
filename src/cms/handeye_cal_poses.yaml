@@ -1,0 +1,31 @@
+# Hand-eye calibration poses — eye-in-hand, Zivid checkerboard flat at workspace CENTER (top-down scene).
+# Collected 2026-07-21. Joint order: [shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2, wrist_3], degrees.
+#
+# Diversity target (why: a good hand-eye solve needs varied CAMERA orientation, not just position):
+#   - tilt the wrist so the camera views the flat board obliquely, ±20-30° in several directions
+#   - wide wrist_3 (roll) range across poses
+#   - vary standoff height ±10-15cm (stay in focus range)
+#   - orbit the board — approach from different sides
+#   - EVERY pose: whole board in FOV + detected (verify in Zivid Studio)
+# Aim for 15-20 poses. The calibration is only valid over the volume you sample.
+poses:
+  - [41.71, -83.83, -66.23, -120.35, -272.04, -226.94]  # cal_00
+  - [30.84, -106.04, -39.56, -132.03, -267.22, -238.17]  # cal_01
+  - [26.54, -120.01, -24.81, -137.09, -265.82, -242.82]  # cal_02
+  - [46.43, -116.01, -40.15, -133.52, -268.39, -221.88]  # cal_03
+  - [59.40, -110.50, -42.17, -135.23, -273.59, -205.56]  # cal_04
+  - [9.59, -80.36, -79.28, -114.76, -253.53, -257.16]  # cal_05
+  - [40.37, -57.31, -78.54, -123.09, -268.72, -215.28]  # cal_06
+  - [14.03, -47.09, -108.43, -95.01, -254.60, -233.38]  # cal_07
+  - [73.15, -52.95, -86.60, -122.30, -278.93, -144.09]  # cal_08
+  - [125.18, -56.12, -78.33, -147.66, -284.79, -134.59]  # cal_09
+  - [150.57, -64.99, -84.31, -152.97, -280.29, -108.37]  # cal_10
+  - [81.37, -61.95, -90.90, -118.78, -286.66, -170.63]  # cal_11
+  - [93.27, -87.70, -68.71, -137.44, -290.16, -168.79]  # cal_12
+  - [92.22, -106.61, -52.82, -146.82, -290.40, -169.59]  # cal_13
+  - [75.62, -108.59, -46.44, -138.87, -287.67, -189.58]  # cal_14
+  - [55.87, -83.05, -71.14, -118.93, -280.26, -216.09]  # cal_15
+  - [55.93, -78.00, -75.41, -118.24, -272.01, -146.05]  # cal_16
+  - [52.41, -84.74, -59.52, -127.23, -267.08, -149.53]  # cal_17
+  - [40.70, -75.82, -68.43, -121.07, -269.26, -223.81]  # cal_18
+  - [54.68, -47.10, -104.26, -95.64, -278.05, -224.87]  # cal_19
