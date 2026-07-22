@@ -331,3 +331,91 @@ def detect_sample_in_roi(
         "strategy": strategy,
         "edge_inset_mm": edge_inset_mm,
     }
+
+
+def sample_roi_pickup_camera_xyz(
+    pickup_px: tuple[float, float],
+    marker_corners: np.ndarray,
+    marker_position: tuple[float, float, float],
+    marker_quat_xyzw: tuple[float, float, float, float],
+    px_per_mm: float,
+    sample_thickness_mm: float = 0.0,
+) -> tuple[float, float, float] | None:
+    """Depth-free 3D pickup point, projected onto the marker's PnP plane.
+
+    This is the SINGLE source of truth for turning a detected pickup pixel into
+    a 3D point for sample_roi. It deliberately does NOT touch the point cloud:
+    low-reflectivity sample surfaces return sparse/absent depth, which made the
+    old ``get_3d_position*`` lookup wander up to ~18mm capture-to-capture. The
+    ArUco marker's solvePnP pose (``marker_*`` args) is the same reliable pose
+    the plain marker-move path uses, so the result inherits that path's
+    sub-mm repeatability regardless of the sample's own depth return.
+
+    Method: express the pickup pixel's offset from the marker centre in the
+    marker's in-image edge axes, scale by ``px_per_mm`` to recover the physical
+    offset ALONG the marker surface (``px_per_mm`` is itself foreshortened by
+    the same view tilt, so this stays self-consistent for near-top-down views),
+    then rotate+translate that marker-frame offset into the camera frame with
+    the marker pose.
+
+    Args:
+        pickup_px: (u, v) pickup pixel, e.g. from ``detect_sample_in_roi``.
+        marker_corners: (4, 2) pixel corners ordered [TL, TR, BR, BL].
+        marker_position: marker origin (x, y, z) in the camera frame (metres).
+        marker_quat_xyzw: marker orientation quaternion (x, y, z, w), camera frame.
+        px_per_mm: pixel-to-mm scale from the marker edge length.
+        sample_thickness_mm: sample height above the marker plane (seal-height
+            calibration); applied along the marker normal. 0 = coplanar.
+
+    Returns:
+        (x, y, z) pickup point in the camera frame (metres), or None on
+        degenerate input.
+    """
+    corners = np.asarray(marker_corners, dtype=float)
+    pickup = np.asarray(pickup_px, dtype=float)
+    if (
+        corners.shape != (4, 2)
+        or not np.isfinite(corners).all()
+        or not np.isfinite(pickup).all()
+        or not np.isfinite(px_per_mm)
+        or px_per_mm <= 0
+    ):
+        return None
+
+    # Marker in-image unit axes from corner edges: +x = TL->TR, +y = TL->BL.
+    top_left, top_right, bottom_left = corners[0], corners[1], corners[3]
+    ax = top_right - top_left
+    ay = bottom_left - top_left
+    ax_n, ay_n = np.linalg.norm(ax), np.linalg.norm(ay)
+    if min(ax_n, ay_n) <= 0:
+        return None
+    ax = ax / ax_n
+    ay = ay / ay_n
+
+    # Pickup offset from marker centre, projected onto marker axes -> mm -> m.
+    tag_center = corners.mean(axis=0)
+    d = pickup - tag_center
+    # ponytail: assumes the marker pose's x/y axes align with the pixel edges
+    # TL->TR / TL->BL. If the first hardware test lands mirrored or 90deg-rotated,
+    # flip a sign / swap these two components here (1-line) — geometry only.
+    offset_marker_m = np.array([
+        float(np.dot(d, ax)) / px_per_mm / 1000.0,
+        float(np.dot(d, ay)) / px_per_mm / 1000.0,
+        -sample_thickness_mm / 1000.0,
+    ])
+
+    qx, qy, qz, qw = (float(v) for v in marker_quat_xyzw)
+    norm_sq = qx * qx + qy * qy + qz * qz + qw * qw
+    if not np.isfinite(norm_sq) or norm_sq <= 0:
+        return None
+    s = 2.0 / norm_sq
+    # Quaternion -> rotation matrix (camera <- marker).
+    rot = np.array([
+        [1 - s * (qy * qy + qz * qz), s * (qx * qy - qz * qw), s * (qx * qz + qy * qw)],
+        [s * (qx * qy + qz * qw), 1 - s * (qx * qx + qz * qz), s * (qy * qz - qx * qw)],
+        [s * (qx * qz - qy * qw), s * (qy * qz + qx * qw), 1 - s * (qx * qx + qy * qy)],
+    ])
+    cam = rot @ offset_marker_m + np.asarray(marker_position, dtype=float)
+    if not np.isfinite(cam).all():
+        return None
+    return (float(cam[0]), float(cam[1]), float(cam[2]))

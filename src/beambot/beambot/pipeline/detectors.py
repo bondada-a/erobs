@@ -49,7 +49,10 @@ def detect_sample_roi(ctx):
     vision = ctx.vision
     goal = ctx.goal
     strategy = goal.strategy or "farthest_edge"
-    edge_inset_mm = goal.edge_inset_mm or 6.5
+    # Honor the configured inset verbatim, including 0.0 (grip at the true
+    # farthest edge). vision_task_stages already validated it as finite and
+    # >= 0, so no `or <default>` — that would silently force 0.0 back up.
+    edge_inset_mm = goal.edge_inset_mm
     vision.logger.info(
         f"Using sample_roi detection (tag {goal.tag_id}, "
         f"strategy={strategy}, inset={edge_inset_mm}mm)"

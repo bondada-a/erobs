@@ -20,3 +20,7 @@ class SampleRoiDetectionParams:
     max_aspect_ratio: float = 3.0
     # Physical marker size for px_per_mm calculation
     marker_size_mm: float = 14.9
+    # Sample height above the marker plane (mm). Used by the depth-free pickup
+    # projection as the Z offset along the marker normal — tune on hardware for
+    # the suction-cup seal height. 0 = sample top coplanar with the marker.
+    sample_thickness_mm: float = 0.0

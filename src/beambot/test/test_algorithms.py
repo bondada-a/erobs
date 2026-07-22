@@ -6,8 +6,63 @@ from unittest.mock import MagicMock
 import numpy as np
 import pytest
 
-from beambot.detection.algorithms import detect_sample_in_roi, get_3d_position
+from beambot.detection.algorithms import (
+    detect_sample_in_roi,
+    get_3d_position,
+    sample_roi_pickup_camera_xyz,
+)
 from beambot.detection.params import SampleRoiDetectionParams
+
+
+# A unit square marker in pixels: [TL, TR, BR, BL], 100px per edge.
+_SQUARE = np.array([[100, 100], [200, 100], [200, 200], [100, 200]], dtype=float)
+_IDENTITY_Q = (0.0, 0.0, 0.0, 1.0)
+
+
+def test_pickup_at_marker_center_returns_marker_position():
+    # pickup == marker centre -> zero offset -> exactly the marker origin.
+    xyz = sample_roi_pickup_camera_xyz(
+        (150, 150), _SQUARE, (0.5, -0.1, 0.3), _IDENTITY_Q, px_per_mm=10.0
+    )
+    assert xyz == pytest.approx((0.5, -0.1, 0.3))
+
+
+def test_pixel_offset_maps_to_metres_along_marker_x():
+    # +20px along the TL->TR axis at 10 px/mm -> 2.0mm -> 0.002m in camera x.
+    xyz = sample_roi_pickup_camera_xyz(
+        (170, 150), _SQUARE, (0.5, -0.1, 0.3), _IDENTITY_Q, px_per_mm=10.0
+    )
+    assert xyz == pytest.approx((0.502, -0.1, 0.3))
+
+
+def test_marker_yaw_rotates_offset_into_camera_frame():
+    # 90deg about +z maps the marker x-offset onto camera +y.
+    q_z90 = (0.0, 0.0, 0.70710678, 0.70710678)
+    xyz = sample_roi_pickup_camera_xyz(
+        (170, 150), _SQUARE, (0.5, -0.1, 0.3), q_z90, px_per_mm=10.0
+    )
+    assert xyz == pytest.approx((0.5, -0.098, 0.3), abs=1e-6)
+
+
+def test_sample_thickness_offsets_along_marker_normal():
+    # thickness lifts the point along -z of the marker frame (identity -> cam -z).
+    xyz = sample_roi_pickup_camera_xyz(
+        (150, 150), _SQUARE, (0.5, -0.1, 0.3), _IDENTITY_Q,
+        px_per_mm=10.0, sample_thickness_mm=5.0,
+    )
+    assert xyz == pytest.approx((0.5, -0.1, 0.295))
+
+
+def test_degenerate_input_returns_none():
+    assert sample_roi_pickup_camera_xyz(
+        (150, 150), _SQUARE[:3], (0, 0, 0), _IDENTITY_Q, px_per_mm=10.0
+    ) is None
+    assert sample_roi_pickup_camera_xyz(
+        (150, 150), _SQUARE, (0, 0, 0), _IDENTITY_Q, px_per_mm=0.0
+    ) is None
+    assert sample_roi_pickup_camera_xyz(
+        (150, 150), _SQUARE, (0, 0, 0), (0, 0, 0, 0), px_per_mm=10.0
+    ) is None
 
 
 # ---------------------------------------------------------------------------

@@ -244,9 +244,12 @@ Replaced `pick_and_place` + `vision_pick_place` with unified
 - include a vacuum-status check after pick (retreat-then-check);
 - run inside a single dual action server (`sample_server.py`),
   following the `vision_server.py` pattern;
-- support contour detection via the MCP `detect_sample` tool, which
-  returns `marker_offset_x / y` that get passed back into the same
-  `pick_sample` goal — not a separate MCP step.
+- support contour detection via the `sample_roi` vision detector
+  (`detector="sample_roi"`), which locates the sample in a tag-anchored ROI
+  and projects the pickup onto the marker's PnP plane (depth-free) inside the
+  same `pick_sample` goal — not a separate MCP step. (The old MCP
+  `detect_sample` tool was removed; its pickup math now lives once in
+  `beambot.detection.sample_roi_pickup_camera_xyz`.)
 
 ### ePick batching disabled
 

@@ -215,9 +215,10 @@ currently attached one.
 - `settle_time` — seconds to wait for robot vibrations before capture
   (default 1.0, capped 10.0).
 - Result includes `vacuum_ok` and `detected_position`.
-- For off-center contour picks: call `detect_sample` first to get
-  `marker_offset_x/y`, then pass them here. A single `pick_sample` call
-  handles detect → approach → vacuum → retreat.
+- For off-center contour picks: use the `sample_roi` vision detector
+  (`detector="sample_roi"`, `strategy=…`), which locates the sample in an
+  ROI anchored to the tag and projects the pickup onto the marker plane. A
+  single `pick_sample` call handles detect → approach → vacuum → retreat.
 
 ### 3.4 `place_sample` — unified place
 
@@ -469,8 +470,7 @@ Two MCP servers are wired: `beambot` (project-specific) and `ros-mcp-server`
 | `set_cup_profile(name)` | ePick cup swap. Takes effect on next MoveIt launch for ePick (§10). |
 | `capture_image(camera="zivid", mode="3d", …)` | Capture from Zivid (single-shot) or ZED (streaming). Use this tool for Zivid — `ros-mcp-server.subscribe_once` won't work due to Zivid's QoS timing race. ⚠ ZED is currently broken — prefer Zivid. |
 | `detect_objects(...)` | HSV / ArUco / YOLO detection on last captured image. |
-| `detect_sample(tag_id=0, ...)` | Contour-based sample detection. Returns `marker_offset_x/y` for off-center picks. |
-| `detect_sample_yolo(...)` | YOLO-based sample detection (alternative to `detect_sample`). |
+| `detect_sample_yolo(...)` | YOLO-based sample detection. |
 | `get_point_3d(pixel_x, pixel_y)` | 3D position at a pixel from last point cloud. |
 | `get_tf_transform(source_frame, target_frame="base_link", …)` | TF lookup. |
 | `get_recent_logs(severity="ERROR", count=30)` | Tail of `/tmp/beambot_launch.log`. Primary tool for unknown errors. |

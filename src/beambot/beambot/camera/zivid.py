@@ -26,8 +26,7 @@ from beambot.camera import DetectionResult
 from beambot.detection import (
     SampleRoiDetectionParams,
     detect_sample_in_roi,
-    get_3d_position,
-    get_3d_position_averaged,
+    sample_roi_pickup_camera_xyz,
 )
 
 
@@ -378,7 +377,7 @@ def detect_sample_roi(
     node: Node,
     tag_id: int,
     strategy: str = "farthest_edge",
-    edge_inset_mm: float = 6.5,
+    edge_inset_mm: float = 0.0,
     dictionary: str = "aruco4x4_50",
     timeout: float = 45.0,
     params: SampleRoiDetectionParams | None = None,
@@ -386,9 +385,10 @@ def detect_sample_roi(
     """Detect a sample in an ROI anchored to an ArUco tag and return 3D pickup pose.
 
     Self-contained: triggers a Zivid capture, detects the specified ArUco tag
-    (extracting pixel corners from the service response), subscribes to
-    image + point cloud topics, runs ROI-based sample detection, and looks up
-    the 3D pickup position from the point cloud.
+    (extracting pixel corners AND the solvePnP pose from the service response),
+    subscribes to the image topic, runs ROI-based sample detection, and
+    projects the pickup pixel onto the marker's PnP plane (depth-free — the
+    sample surface's own point-cloud depth is too sparse to trust).
 
     Args:
         node: ROS2 node for subscriptions and service calls
@@ -511,7 +511,9 @@ def detect_sample_roi(
             return None
 
         bgr = bridge.imgmsg_to_cv2(received_image[0], desired_encoding='bgr8')
-        cloud = received_cloud[0]
+        # ponytail: sample_roi is now depth-free (marker-pose projection), so the
+        # point cloud is unused here. Left the cloud subscription/wait in place;
+        # drop it for a latency win if this path ever needs to be faster.
 
         # Run ROI-based sample detection
         detection = detect_sample_in_roi(
@@ -531,28 +533,23 @@ def detect_sample_roi(
             f"size={detection['sample_size_mm']}mm, strategy={strategy}"
         )
 
-        # Get 3D position at pickup pixel (wide search for dark surfaces)
-        pickup_xyz = get_3d_position_averaged(
-            cloud, pickup_px[0], pickup_px[1], search_radius=20
+        # Depth-free 3D: project the pickup pixel onto the marker's PnP plane
+        # (target_marker.pose) — the SAME reliable pose the marker-move path
+        # uses. The sample surface's own point-cloud depth is intermittent on
+        # low-reflectivity wafers, which made the old cloud lookup wander up to
+        # ~18mm capture-to-capture; the marker pose does not.
+        mp = target_marker.pose
+        pickup_xyz = sample_roi_pickup_camera_xyz(
+            pickup_px,
+            marker_corners,
+            (mp.position.x, mp.position.y, mp.position.z),
+            (mp.orientation.x, mp.orientation.y, mp.orientation.z, mp.orientation.w),
+            px_per_mm,
+            sample_thickness_mm=params.sample_thickness_mm,
         )
-
-        # Tag Z fallback: dark samples lack depth — use tag center's Z
         if pickup_xyz is None:
-            tag_cx = int(marker_corners[:, 0].mean())
-            tag_cy = int(marker_corners[:, 1].mean())
-            tag_xyz = get_3d_position(cloud, tag_cx, tag_cy, search_radius=10)
-            if tag_xyz is None:
-                logger.error(f"No valid depth at tag center ({tag_cx}, {tag_cy})")
-                return None
-
-            pickup_xyz_xy = get_3d_position(
-                cloud, pickup_px[0], pickup_px[1], search_radius=30
-            )
-            if pickup_xyz_xy is None:
-                logger.error("No valid depth near pickup pixel")
-                return None
-            pickup_xyz = (pickup_xyz_xy[0], pickup_xyz_xy[1], tag_xyz[2])
-            logger.info(f"Used tag Z fallback: z={tag_xyz[2]:.4f}m")
+            logger.error("Failed to compute pickup point from marker pose")
+            return None
 
         pose = Pose()
         pose.position.x = pickup_xyz[0]
