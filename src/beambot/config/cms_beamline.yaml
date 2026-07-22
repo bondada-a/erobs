@@ -169,11 +169,11 @@ vision_targets:
     scan_pose: "pipettor_scan"
     start_gripper: "pipettor"
     # Offset from marker center to first element (A1) in marker local frame (meters)
-    marker_offset: {x: 0.0, y: -0.059}
+    marker_offset: {x: 0.0, y: -0.062}
     grid:
       rows: 8                    # A-H
       cols: 12                   # 1-12
-      pitch: 0.009               # 9mm between wells
+      pitch: 0.0091              # 9mm between wells
       row_direction: "up"        # flange direction toward A1 row (marker -Y)
       col_direction: "left"      # flange direction toward A1 col (marker -X)
     # Sequential moves after vision alignment (flange frame)
@@ -196,7 +196,7 @@ vision_targets:
       col_pitch: 0.022           # 22mm between columns (A1→A2)
       row_pitch: 0.044           # 44mm between rows (A→B)
       col_offset: 0.003          # A1 offset from tag: 3mm right
-      row_offset: 0.080          # A1 offset from tag: 80mm up
+      row_offset: 0.083       # A1 offset from tag: 80mm up
       col_direction: "right"     # flange direction toward A1 col
       col_increasing: "right"   # columns increase going right (same as A1)
       row_direction: "up"        # flange direction toward A1 row
