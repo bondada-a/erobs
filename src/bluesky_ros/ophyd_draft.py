@@ -5,8 +5,12 @@ import rclpy
 from rclpy.node import Node
 from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import JointState
-import time
 
+'''
+ROS_Node
+Creates and subscribes a ROS Node to /joint_states 
+to obtain joint data
+'''
 class ROS_Node(Node):
 
     def __init__(self, joint_state_callback):
@@ -22,9 +26,16 @@ class ROS_Node(Node):
         self.get_logger().info("Subscribed to /joint_states")
 
 
-    def list_topics(self):
-        return self.get_topic_names_and_types()
+    # def list_topics(self):
+    #     return self.get_topic_names_and_types()
     
+'''
+Joint Class
+Each joint stores three values:
+    - Readback: joint position (rad)
+    - Velocity: speed at which the joint is moving (rad/s)
+    - Effort: load/ mechanical output at arm joint (N*m)
+'''
 class Joint(Device):
 
     # read from /joint_states topic
@@ -32,15 +43,20 @@ class Joint(Device):
     velocity = Cpt(Signal, value=None)
     effort = Cpt(Signal, value=None)
 
+'''
+Robotic_Arm Class
+Converts ROS messages into Ophyd signals.
+Has 6 components that are Joint Devices.
+'''
 class Robotic_Arm(Device):
 
     # Joint components
-    base = Cpt(Joint, "base")
-    shoulder = Cpt(Joint, "shoulder")
-    elbow = Cpt(Joint, "elbow")
-    w1 = Cpt(Joint, "w1")
-    w2 = Cpt(Joint, "w2")
-    w3 = Cpt(Joint, "w3")
+    Base = Cpt(Joint, "Base")
+    Shoulder = Cpt(Joint, "Shoulder")
+    Elbow = Cpt(Joint, "Elbow")
+    Wrist_1 = Cpt(Joint, "Wrist_1")
+    Wrist_2 = Cpt(Joint, "Wrist_2")
+    Wrist_3 = Cpt(Joint, "Wrist_3")
 
     def __init__(self, prefix="", *, name, **kwargs):
         super().__init__(prefix=prefix, name=name, **kwargs)
@@ -48,17 +64,16 @@ class Robotic_Arm(Device):
         if not rclpy.ok():
             rclpy.init()
 
-        # Change the keys if /joint_states uses different joint names.
+        # Change the keys if /joint_states uses different joint names
         self._joint_name_map = {
-            "base": self.base,
-            "shoulder": self.shoulder,
-            "elbow": self.elbow,
-            "w1": self.w1,
-            "w2": self.w2,
-            "w3": self.w3,
+            "Base": self.Base,
+            "Shoulder": self.Shoulder,
+            "Elbow": self.Elbow,
+            "Wrist_1": self.Wrist_1,
+            "Wrist_2": self.Wrist_2,
+            "Wrist_3": self.Wrist_3,
         }
 
-        # ROS node calls self._joint_state_callback when data arrives.
         self._ros_node = ROS_Node(self._joint_state_callback)
 
     def _joint_state_callback(self, message):
@@ -84,8 +99,6 @@ class Robotic_Arm(Device):
                 )
                 continue
 
-            # edge case: position, velocity, and effort arrays may be empty
-
             if index < len(message.position):
                 joint.readback.put(message.position[index])
 
@@ -102,21 +115,27 @@ class Robotic_Arm(Device):
 
 
     def process_ros_events(self, timeout_sec: float = 0.1) -> None:
+        '''
+        Waits and processes ROS events.
+        '''
         if rclpy.ok():
             rclpy.spin_once(
                 self._ros_node,
                 timeout_sec = timeout_sec
             )
 
-    def list_topics(self):
-        topics = self._ros_node.list_topics()
+    # def list_topics(self):
+    #     topics = self._ros_node.list_topics()
 
-        for topic_name, topic_types in topics:
-            print(f"{topic_name}: {topic_types}")
+    #     for topic_name, topic_types in topics:
+    #         print(f"{topic_name}: {topic_types}")
 
-        return topics
+    #     return topics
     
     def print_joint_states(self, joint_names=None) -> None:
+        '''
+        Prints current values of each Ophyd joint.
+        '''
         if joint_names is None:
             joint_names = self._joint_name_map.keys()
 
