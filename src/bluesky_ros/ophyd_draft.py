@@ -53,7 +53,7 @@ class Robotic_Arm(Device):
     # Joint components
     shoulder_pan_joint = Cpt(Joint, "shoulder_pan_joint")
     shoulder_lift_joint = Cpt(Joint, "shoulder_lift_joint")
-    elbow_join = Cpt(Joint, "elbow_join")
+    elbow_joint = Cpt(Joint, "elbow_joint")
     wrist_1_joint = Cpt(Joint, "wrist_1_joint")
     wrist_2_joint = Cpt(Joint, "wrist_2_joint")
     wrist_3_joint = Cpt(Joint, "wrist_3_joint")
@@ -68,7 +68,7 @@ class Robotic_Arm(Device):
         self._joint_name_map = {
             "shoulder_pan_joint": self.shoulder_pan_joint, # shoulder_pan
             "shoulder_lift_joint": self.shoulder_lift_joint, # shoulder_lift
-            "elbow_join": self.elbow_join,
+            "elbow_joint": self.elbow_joint,
             "wrist_1_joint": self.wrist_1_joint,
             "wrist_2_joint": self.wrist_2_joint,
             "wrist_3_joint": self.wrist_3_joint,
