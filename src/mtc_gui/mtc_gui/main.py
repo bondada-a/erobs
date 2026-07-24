@@ -2,6 +2,17 @@
 """MTC GUI Client — PyQt6 entry point."""
 
 import sys
+
+# Import OpenCV before PyQt6. cv2's (conda) libgobject needs GLib 2.80+
+# (g_pointer_bit_unlock_and_set); the PyQt6-Qt6 pip wheel bundles an older
+# libglib that would otherwise load first and win the process's global symbol
+# table, breaking the cv2 import. Loading cv2 first pulls conda's newer glib in
+# first; Qt is backward-compatible with it.
+try:
+    import cv2  # noqa: F401
+except Exception:
+    pass
+
 from PyQt6.QtWidgets import QApplication
 from PyQt6.QtCore import Qt
 
