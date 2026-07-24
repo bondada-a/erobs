@@ -1,0 +1,32 @@
+{
+  "start_gripper": "epick",
+  "poses": {
+    "spincoater_place": [
+      65.65,
+      -108.61,
+      -73.67,
+      -87.72,
+      -269.77,
+      -205.9
+    ]
+  },
+  "tasks": [
+    {
+      "task_type": "moveto",
+      "target": "spincoater_place",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "planning_type": "joint",
+      "direction": "forward",
+      "distance": 0.003
+    },
+    {
+      "task_type": "moveto",
+      "planning_type": "joint",
+      "direction": "backward",
+      "distance": 0.047
+    }
+  ]
+}
