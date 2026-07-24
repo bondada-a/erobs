@@ -51,12 +51,12 @@ Has 6 components that are Joint Devices.
 class Robotic_Arm(Device):
 
     # Joint components
-    Base = Cpt(Joint, "Base")
-    Shoulder = Cpt(Joint, "Shoulder")
-    Elbow = Cpt(Joint, "Elbow")
-    Wrist_1 = Cpt(Joint, "Wrist_1")
-    Wrist_2 = Cpt(Joint, "Wrist_2")
-    Wrist_3 = Cpt(Joint, "Wrist_3")
+    shoulder_pan_joint = Cpt(Joint, "shoulder_pan_joint")
+    shoulder_lift_joint = Cpt(Joint, "shoulder_lift_joint")
+    elbow_join = Cpt(Joint, "elbow_join")
+    wrist_1_joint = Cpt(Joint, "wrist_1_joint")
+    wrist_2_joint = Cpt(Joint, "wrist_2_joint")
+    wrist_3_joint = Cpt(Joint, "wrist_3_joint")
 
     def __init__(self, prefix="", *, name, **kwargs):
         super().__init__(prefix=prefix, name=name, **kwargs)
@@ -66,12 +66,12 @@ class Robotic_Arm(Device):
 
         # Change the keys if /joint_states uses different joint names
         self._joint_name_map = {
-            "Base": self.Base,
-            "Shoulder": self.Shoulder,
-            "Elbow": self.Elbow,
-            "Wrist_1": self.Wrist_1,
-            "Wrist_2": self.Wrist_2,
-            "Wrist_3": self.Wrist_3,
+            "shoulder_pan_joint": self.shoulder_pan_joint, # shoulder_pan
+            "shoulder_lift_joint": self.shoulder_lift_joint, # shoulder_lift
+            "elbow_join": self.elbow_join,
+            "wrist_1_joint": self.wrist_1_joint,
+            "wrist_2_joint": self.wrist_2_joint,
+            "wrist_3_joint": self.wrist_3_joint,
         }
 
         self._ros_node = ROS_Node(self._joint_state_callback)
