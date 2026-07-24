@@ -142,6 +142,10 @@ def _resolve_packages(required: set[str] | None = None):
         ])
         candidates_per_pkg["zivid_description"].insert(0,
             ws / "install" / "zivid_description" / "share" / "zivid_description")
+        # Source-tree fallback (thin clients don't build zivid_description; its
+        # meshes come from the vcs-imported subtree). Mirrors the epick pattern.
+        candidates_per_pkg["zivid_description"].append(
+            ws / "src" / "vision" / "zivid-ros" / "zivid_description")
         candidates_per_pkg["epick_description"].extend([
             ws / "install" / "epick_description" / "share" / "epick_description",
             ws / "src" / "end_effectors" / "ros2_epick_gripper" / "epick_description",
