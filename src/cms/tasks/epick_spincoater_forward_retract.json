@@ -8,6 +8,14 @@
       -87.72,
       -269.77,
       -205.9
+    ],
+    "safe_sample_transport": [
+      79.72,
+      -69.5,
+      -81.91,
+      -117.92,
+      -268.05,
+      -157.15
     ]
   },
   "tasks": [
@@ -27,6 +35,11 @@
       "planning_type": "joint",
       "direction": "backward",
       "distance": 0.047
+    },
+    {
+      "task_type": "moveto",
+      "target": "safe_sample_transport",
+      "planning_type": "joint"
     }
   ]
 }
