@@ -32,6 +32,10 @@ websocket-client = ">=1.9.0,<2"
 ros-jazzy-ros2run = ">=0.32.9,<0.33"
 ros-jazzy-demo-nodes-cpp = ">=0.33.10,<0.34"
 pyqt6 = "*"
+ros-jazzy-sensor-msgs = ">=5.3.7,<6"
+ros-jazzy-std-srvs = ">=5.3.7,<6"
+ros-jazzy-cv-bridge = ">=4.1.0,<5"
+ros-jazzy-moveit-msgs = ">=2.6.0,<3"
 
 [feature.profile.dependencies]
 bluesky-base = "==1.14.6"
