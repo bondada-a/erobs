@@ -35,6 +35,12 @@ ros-jazzy-sensor-msgs = ">=5.3.7,<6"
 ros-jazzy-std-srvs = ">=5.3.7,<6"
 ros-jazzy-cv-bridge = ">=4.1.0,<5"
 ros-jazzy-moveit-msgs = ">=2.6.0,<3"
+# Force the headless OpenCV build (no highgui → no Qt linkage). cv-bridge pulls
+# py-opencv/libopencv; the GUI build variant links conda Qt6, which then collides
+# with the pip PyQt6 6.9 needed for QtWebEngine (two Qt in one process → xcb
+# plugin version mismatch). Headless keeps a single Qt in the process.
+libopencv = { version = "*", build = "headless*" }
+py-opencv = { version = "*", build = "headless*" }
 
 [feature.ros.pypi-dependencies]
 pyqt6 = ">=6.9.1, <7"
