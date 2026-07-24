@@ -27,6 +27,8 @@ ros-jazzy-geometry-msgs = ">=5.3.7,<6"
 ros-jazzy-std-msgs = ">=5.3.7,<6"
 colcon-common-extensions = ">=0.3.0,<0.4"
 vcstool = ">=0.3.0,<0.4"
+# vcstool imports pkg_resources; setuptools >=81 drops it. Pin below that.
+setuptools = ">=68,<81"
 ros-jazzy-rmw-cyclonedds-cpp = ">=2.2.3,<3"
 ros-jazzy-ros2doctor = ">=0.32.9,<0.33"
 websocket-client = ">=1.9.0,<2"
