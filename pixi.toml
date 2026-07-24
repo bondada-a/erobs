@@ -31,6 +31,7 @@ ros-jazzy-ros2doctor = ">=0.32.9,<0.33"
 websocket-client = ">=1.9.0,<2"
 ros-jazzy-ros2run = ">=0.32.9,<0.33"
 ros-jazzy-demo-nodes-cpp = ">=0.33.10,<0.34"
+pyqt6 = "*"
 
 [feature.profile.dependencies]
 bluesky-base = "==1.14.6"
@@ -60,6 +61,5 @@ pvxslibs = ">=1.3.2, <2"
 
 [environments]
 ros2 = {features=["profile", "ros"], solve-group="profile"}
-
 
 
