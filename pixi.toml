@@ -35,6 +35,9 @@ ros-jazzy-sensor-msgs = ">=5.3.7,<6"
 ros-jazzy-std-srvs = ">=5.3.7,<6"
 ros-jazzy-cv-bridge = ">=4.1.0,<5"
 ros-jazzy-moveit-msgs = ">=2.6.0,<3"
+# UR5e meshes for the GUI's 3D view. Thin clients have no /opt/ros install;
+# this puts ur_description in the pixi env so ament_index resolves its meshes.
+ros-jazzy-ur-description = ">=3.1.0,<4"
 # Force the headless OpenCV build (no highgui → no Qt linkage). cv-bridge pulls
 # py-opencv/libopencv; the GUI build variant links conda Qt6, which then collides
 # with the pip PyQt6 6.9 needed for QtWebEngine (two Qt in one process → xcb
