@@ -245,6 +245,110 @@ def test_pickup_macros_expand_to_supported_steps_with_vial_operation_before_retr
     assert tasks[pipettor_index + 1]["direction"] == "backward"
 
 
+def test_vial_rinse_expands_to_cycles_then_final_suck_before_retreat():
+    _, tasks, _, _ = _parse(
+        {
+            "start_gripper": "pipettor",
+            "tasks": [
+                {
+                    "task_type": "pickup_vial",
+                    "row": 0,
+                    "col": 1,
+                    "pipettor_operation": "RINSE",
+                    "rinse_count": 2,
+                    "volume_pct": 0.4,
+                }
+            ],
+        }
+    )
+
+    operations = [
+        task["operation"] for task in tasks if task["task_type"] == "pipettor"
+    ]
+    assert operations == ["SUCK", "EXPEL", "SUCK", "EXPEL", "SUCK"]
+    assert all(
+        task["volume_pct"] == 0.4
+        for task in tasks
+        if task["task_type"] == "pipettor"
+    )
+    assert tasks[-1]["direction"] == "backward"
+
+
+@pytest.mark.parametrize("rinse_count", [0, -1, 1.5, True])
+def test_vial_rinse_rejects_invalid_cycle_count(rinse_count):
+    with pytest.raises(ValueError, match="rinse_count"):
+        _parse(
+            {
+                "start_gripper": "pipettor",
+                "tasks": [
+                    {
+                        "task_type": "pickup_vial",
+                        "row": 0,
+                        "col": 0,
+                        "pipettor_operation": "RINSE",
+                        "rinse_count": rinse_count,
+                    }
+                ],
+            }
+        )
+
+
+def test_pickup_task_config_overrides_grid_and_moves():
+    _, tasks, _, _ = _parse(
+        {
+            "start_gripper": "pipettor",
+            "tasks": [
+                {
+                    "task_type": "pickup_tip",
+                    "row": 1,
+                    "col": 1,
+                    "config": {
+                        "marker_id": 42,
+                        "scan_pose": "custom_scan",
+                        "grid": {
+                            "row_pitch": 0.02,
+                            "col_pitch": 0.03,
+                            "row_offset": 0.01,
+                            "col_offset": 0.01,
+                        },
+                        "moves": [
+                            "column_offset",
+                            "row_offset",
+                            {"direction": "forward", "distance": 0.04},
+                        ],
+                    },
+                }
+            ],
+        }
+    )
+
+    assert tasks == [
+        {"task_type": "moveto", "target": "custom_scan"},
+        {"task_type": "vision_moveto", "tag_id": 42},
+        {
+            "task_type": "moveto",
+            "target": "",
+            "planning_type": "cartesian",
+            "direction": "right",
+            "distance": 0.02,
+        },
+        {
+            "task_type": "moveto",
+            "target": "",
+            "planning_type": "cartesian",
+            "direction": "down",
+            "distance": 0.01,
+        },
+        {
+            "task_type": "moveto",
+            "target": "",
+            "planning_type": "cartesian",
+            "direction": "forward",
+            "distance": 0.04,
+        },
+    ]
+
+
 def test_element_index_and_row_column_addressing_expand_identically():
     base = {"start_gripper": "pipettor"}
     _, indexed, _, _ = _parse(

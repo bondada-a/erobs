@@ -191,6 +191,8 @@ def task_summary(step):
     elif t == "pickup_vial":
         pos = step.get("position", f"{chr(65 + step.get('row', 0))}{step.get('col', 0) + 1}")
         op = step.get("pipettor_operation", "")
+        if op == "RINSE":
+            op = f"RINSE ×{step.get('rinse_count', 2)}"
         suffix = f" → {op} {step.get('volume_pct', 0) * 100:.0f}%" if op else ""
         return f"Vial @ {pos}{suffix}"
     elif t == "pause":

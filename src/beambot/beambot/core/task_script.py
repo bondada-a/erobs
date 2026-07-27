@@ -166,9 +166,18 @@ def _expand_pickup_macro(
     task_type = task["task_type"]
     target_name = TASK_MACROS[task_type]
     target_path = f"vision_targets.{target_name}"
-    config = vision_targets.get(target_name)
-    if not isinstance(config, Mapping):
+    base_config = vision_targets.get(target_name)
+    if not isinstance(base_config, Mapping):
         raise ValueError(f"{task_path}: missing or invalid {target_path} configuration")
+    override = task.get("config", {})
+    if not isinstance(override, Mapping):
+        raise ValueError(f"{task_path}.config must be an object")
+    override_grid = override.get("grid", {})
+    if not isinstance(override_grid, Mapping):
+        raise ValueError(f"{task_path}.config.grid must be an object")
+    config = {**base_config, **override}
+    if isinstance(base_config.get("grid"), Mapping):
+        config["grid"] = {**base_config["grid"], **override_grid}
     if config.get("mode") != "grid":
         raise ValueError(f"{target_path}.mode must be 'grid'")
 
@@ -301,13 +310,23 @@ def _expand_pickup_macro(
     if task_type == "pickup_vial" and operation:
         if not isinstance(operation, str):
             raise ValueError(f"{task_path}.pipettor_operation must be a string")
+        if operation not in {"SUCK", "EXPEL", "RINSE"}:
+            raise ValueError(
+                f"{task_path}.pipettor_operation must be SUCK, EXPEL, or RINSE"
+            )
         if not move_tasks or not isinstance(moves[-1], Mapping):
             raise ValueError(f"{target_path}.moves must end with a retreat move")
         volume = _finite_number(task.get("volume_pct", 0.5), f"{task_path}.volume_pct")
-        move_tasks.insert(
-            -1,
-            {"task_type": "pipettor", "operation": operation, "volume_pct": volume},
-        )
+        operations = [operation]
+        if operation == "RINSE":
+            count = _positive_int(
+                task.get("rinse_count", 2), f"{task_path}.rinse_count"
+            )
+            operations = ["SUCK", "EXPEL"] * count + ["SUCK"]
+        move_tasks[-1:-1] = [
+            {"task_type": "pipettor", "operation": op, "volume_pct": volume}
+            for op in operations
+        ]
 
     expanded = []
     if scan_pose:

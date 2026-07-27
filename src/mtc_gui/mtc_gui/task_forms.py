@@ -22,6 +22,11 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QPushButton,
     QSizePolicy,
+    QTabWidget,
+    QTableWidget,
+    QAbstractItemView,
+    QHeaderView,
+    QLayout,
 )
 from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
@@ -81,14 +86,14 @@ def _end_effector_actions() -> list[str]:
         return []
 
 
-def _vision_target_grid(target_name: str) -> dict:
-    """Load grid config for a vision target (rows, cols)."""
+def _vision_target_config(target_name: str) -> dict:
+    """Load a vision target config."""
     try:
         from beambot.config_loader import load_beamline_config
 
         config, _ = load_beamline_config()
         targets = config.get("vision_targets", {})
-        return targets.get(target_name, {}).get("grid", {})
+        return targets.get(target_name, {})
     except Exception:
         return {}
 
@@ -96,8 +101,16 @@ def _vision_target_grid(target_name: str) -> dict:
 # --- Dispatch ---
 
 
-def open_task_form(step, step_index, poses, parent=None, current_pose=None,
-                   preview_cb=None, end_preview_cb=None, viz_widget=None):
+def open_task_form(
+    step,
+    step_index,
+    poses,
+    parent=None,
+    current_pose=None,
+    preview_cb=None,
+    end_preview_cb=None,
+    viz_widget=None,
+):
     """Open the edit dialog for a task step. Returns edited step dict or None if cancelled."""
     task_type = step.get("task_type", "")
     form_cls = _FORMS.get(task_type)
@@ -105,9 +118,16 @@ def open_task_form(step, step_index, poses, parent=None, current_pose=None,
         QMessageBox.warning(parent, "Unknown", f"No form for task type: {task_type}")
         return None
     if form_cls is MoveToForm:
-        dialog = form_cls(step, step_index, poses, parent, current_pose=current_pose,
-                          preview_cb=preview_cb, end_preview_cb=end_preview_cb,
-                          viz_widget=viz_widget)
+        dialog = form_cls(
+            step,
+            step_index,
+            poses,
+            parent,
+            current_pose=current_pose,
+            preview_cb=preview_cb,
+            end_preview_cb=end_preview_cb,
+            viz_widget=viz_widget,
+        )
     else:
         dialog = form_cls(step, step_index, poses, parent)
     if dialog.exec() == QDialog.DialogCode.Accepted:
@@ -251,8 +271,12 @@ class MoveToForm(BaseTaskForm):
     _MODES = ["Named target", "Relative move", "Cartesian target", "Joint values"]
 
     _JOINT_NAMES = [
-        "Shoulder Pan", "Shoulder Lift", "Elbow",
-        "Wrist 1", "Wrist 2", "Wrist 3",
+        "Shoulder Pan",
+        "Shoulder Lift",
+        "Elbow",
+        "Wrist 1",
+        "Wrist 2",
+        "Wrist 3",
     ]
     _JOINT_PRESETS = {
         "Home": [0.0, -90.0, -90.0, -90.0, 90.0, 0.0],
@@ -260,8 +284,17 @@ class MoveToForm(BaseTaskForm):
         "All Zero": [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
     }
 
-    def __init__(self, step, step_index, poses, parent=None, current_pose=None,
-                 preview_cb=None, end_preview_cb=None, viz_widget=None):
+    def __init__(
+        self,
+        step,
+        step_index,
+        poses,
+        parent=None,
+        current_pose=None,
+        preview_cb=None,
+        end_preview_cb=None,
+        viz_widget=None,
+    ):
         self._current_pose = current_pose
         self._step_index = step_index
         self._preview_cb = preview_cb
@@ -933,64 +966,302 @@ class _GridSelectorForm(BaseTaskForm):
     """Base form with a clickable grid for selecting A1, A2, B1, etc."""
 
     TARGET_NAME = ""  # Override in subclasses
+    _DIRECTIONS = ["forward", "backward", "left", "right", "up", "down"]
+    _OPPOSITE = {
+        "forward": "backward",
+        "backward": "forward",
+        "left": "right",
+        "right": "left",
+        "up": "down",
+        "down": "up",
+    }
 
     def build_form(self):
-        grid_cfg = _vision_target_grid(self.TARGET_NAME)
-        self._rows = grid_cfg.get("rows", 1)
-        self._cols = grid_cfg.get("cols", 1)
+        loaded = _vision_target_config(self.TARGET_NAME)
+        target_cfg = copy.deepcopy(loaded) if isinstance(loaded, dict) else {}
+        override = self.step.get("config", {})
+        if isinstance(override, dict):
+            base_grid = target_cfg.get("grid", {})
+            override_grid = override.get("grid", {})
+            target_cfg.update({k: v for k, v in override.items() if k != "grid"})
+            target_cfg["grid"] = {
+                **(base_grid if isinstance(base_grid, dict) else {}),
+                **(override_grid if isinstance(override_grid, dict) else {}),
+            }
+        grid_cfg = target_cfg.get("grid", {})
+        self._rows = int(grid_cfg.get("rows", 1))
+        self._cols = int(grid_cfg.get("cols", 1))
 
-        self.add_hint(f"Select a position on the {self._rows}×{self._cols} grid.")
+        self._tabs = QTabWidget()
+        self._tabs.setMinimumHeight(470)
+        self.form.addRow(self._tabs)
 
-        # Grid of buttons
+        position_tab = QWidget()
+        self._position_form = QFormLayout(position_tab)
+        self._tabs.addTab(position_tab, "Position")
+        self._add_layout_hint(
+            self._position_form,
+            f"Select a position on the {self._rows}×{self._cols} grid.",
+        )
+
         grid_group = QGroupBox("Position")
-        grid_layout = QGridLayout(grid_group)
-        grid_layout.setSpacing(2)
+        self._grid_layout = QGridLayout(grid_group)
+        self._grid_layout.setSpacing(3)
+        self._position_form.addRow(grid_group)
 
         self._grid_buttons: dict[tuple[int, int], QPushButton] = {}
         self._selected_row = int(self.step.get("row", 0))
         self._selected_col = int(self.step.get("col", 0))
+        self._build_grid()
 
-        # Column headers (1, 2, 3, ...)
-        for c in range(self._cols):
-            lbl = QLabel(str(c + 1))
-            lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            lbl.setFont(QFont("Monospace", 8))
-            lbl.setStyleSheet("color: #888;")
-            grid_layout.addWidget(lbl, 0, c + 1)
-
-        # Row headers (A, B, C, ...) and buttons
-        for r in range(self._rows):
-            row_lbl = QLabel(chr(ord("A") + r))
-            row_lbl.setAlignment(Qt.AlignmentFlag.AlignCenter)
-            row_lbl.setFont(QFont("Monospace", 9, QFont.Weight.Bold))
-            row_lbl.setStyleSheet("color: #aaa;")
-            grid_layout.addWidget(row_lbl, r + 1, 0)
-
-            for c in range(self._cols):
-                btn = QPushButton(f"{chr(ord('A') + r)}{c + 1}")
-                btn.setFixedSize(36, 28)
-                btn.setFont(QFont("Monospace", 8))
-                btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
-                btn.setCheckable(True)
-                btn.clicked.connect(
-                    lambda checked, row=r, col=c: self._select_cell(row, col)
-                )
-                grid_layout.addWidget(btn, r + 1, c + 1)
-                self._grid_buttons[(r, c)] = btn
-
-        self.form.addRow(grid_group)
-
-        # Highlight initial selection
-        self._update_selection()
-
-        # Show selected label
         self._sel_label = QLabel(
             self._cell_name(self._selected_row, self._selected_col)
         )
         self._sel_label.setStyleSheet(
             "font-size: 13px; font-weight: bold; color: #5ce68a;"
         )
-        self.form.addRow("Selected:", self._sel_label)
+        self._position_form.addRow("Selected:", self._sel_label)
+
+        config_tab = QScrollArea()
+        config_tab.setWidgetResizable(True)
+        config_widget = QWidget()
+        self._config_form = QFormLayout(config_widget)
+        self._config_form.setSizeConstraint(QLayout.SizeConstraint.SetMinAndMaxSize)
+        config_tab.setWidget(config_widget)
+        self._tabs.addTab(config_tab, "Config")
+        self._build_config(target_cfg, grid_cfg)
+
+        self._row_count.valueChanged.connect(self._resize_grid)
+        self._col_count.valueChanged.connect(self._resize_grid)
+        self.setMinimumWidth(max(800, self._cols * 55 + 140))
+        self.setMinimumHeight(600)
+
+    @staticmethod
+    def _add_layout_hint(layout, text):
+        label = QLabel(text)
+        label.setStyleSheet("color: gray; font-size: 10px;")
+        label.setWordWrap(True)
+        layout.addRow(label)
+
+    def _build_grid(self):
+        while self._grid_layout.count():
+            item = self._grid_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+        self._grid_buttons.clear()
+        self._selected_row = min(max(self._selected_row, 0), self._rows - 1)
+        self._selected_col = min(max(self._selected_col, 0), self._cols - 1)
+
+        for c in range(self._cols):
+            label = QLabel(str(c + 1))
+            label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            label.setFont(QFont("Monospace", 10, QFont.Weight.Bold))
+            label.setStyleSheet("color: #aab2c0;")
+            self._grid_layout.addWidget(label, 0, c + 1)
+
+        for r in range(self._rows):
+            row_label = QLabel(chr(ord("A") + r))
+            row_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            row_label.setFont(QFont("Monospace", 10, QFont.Weight.Bold))
+            row_label.setStyleSheet("color: #c3cad5;")
+            self._grid_layout.addWidget(row_label, r + 1, 0)
+            for c in range(self._cols):
+                btn = QPushButton(self._cell_name(r, c))
+                btn.setFixedSize(52, 36)
+                btn.setFont(QFont("Monospace", 10, QFont.Weight.Bold))
+                btn.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+                btn.setCheckable(True)
+                btn.clicked.connect(
+                    lambda checked, row=r, col=c: self._select_cell(row, col)
+                )
+                self._grid_layout.addWidget(btn, r + 1, c + 1)
+                self._grid_buttons[(r, c)] = btn
+        self._update_selection()
+
+    def _resize_grid(self):
+        self._rows = self._row_count.value()
+        self._cols = self._col_count.value()
+        self._build_grid()
+        self._sel_label.setText(self._cell_name(self._selected_row, self._selected_col))
+
+    @staticmethod
+    def _distance_spin(value, *, positive=False):
+        spin = QDoubleSpinBox()
+        spin.setRange(0.000001 if positive else -2.0, 2.0)
+        spin.setDecimals(6)
+        spin.setSingleStep(0.001)
+        spin.setValue(float(value))
+        return spin
+
+    def _direction_combo(self, value):
+        combo = QComboBox()
+        combo.addItems(self._DIRECTIONS)
+        combo.setCurrentText(value)
+        return combo
+
+    def _build_config(self, target_cfg, grid_cfg):
+        detection = QGroupBox("Vision")
+        detection_form = QFormLayout(detection)
+        self._marker_id = QSpinBox()
+        self._marker_id.setRange(0, 999)
+        self._marker_id.setValue(int(target_cfg.get("marker_id", 0)))
+        detection_form.addRow("Marker ID:", self._marker_id)
+        self._scan_pose = QLineEdit(str(target_cfg.get("scan_pose", "")))
+        detection_form.addRow("Scan pose:", self._scan_pose)
+        self._config_form.addRow(detection)
+
+        grid_group = QGroupBox("Grid")
+        grid_form = QFormLayout(grid_group)
+        dimensions = QHBoxLayout()
+        self._row_count = QSpinBox()
+        self._row_count.setRange(1, 26)
+        self._row_count.setValue(self._rows)
+        self._col_count = QSpinBox()
+        self._col_count.setRange(1, 99)
+        self._col_count.setValue(self._cols)
+        dimensions.addWidget(QLabel("Rows:"))
+        dimensions.addWidget(self._row_count)
+        dimensions.addWidget(QLabel("Columns:"))
+        dimensions.addWidget(self._col_count)
+        grid_form.addRow("Dimensions:", dimensions)
+
+        default_pitch = float(grid_cfg.get("pitch", 0.009))
+        self._row_pitch = self._distance_spin(
+            grid_cfg.get("row_pitch", default_pitch), positive=True
+        )
+        self._col_pitch = self._distance_spin(
+            grid_cfg.get("col_pitch", default_pitch), positive=True
+        )
+        grid_form.addRow("Row pitch (m):", self._row_pitch)
+        grid_form.addRow("Column pitch (m):", self._col_pitch)
+
+        marker_offset = target_cfg.get("marker_offset") or {}
+        self._row_offset = self._distance_spin(
+            grid_cfg.get("row_offset", abs(float(marker_offset.get("y", 0.0))))
+        )
+        self._col_offset = self._distance_spin(
+            grid_cfg.get("col_offset", abs(float(marker_offset.get("x", 0.0))))
+        )
+        grid_form.addRow("A1 row offset (m):", self._row_offset)
+        grid_form.addRow("A1 column offset (m):", self._col_offset)
+
+        row_direction = grid_cfg.get("row_direction", "up")
+        col_direction = grid_cfg.get("col_direction", "left")
+        self._row_direction = self._direction_combo(row_direction)
+        self._col_direction = self._direction_combo(col_direction)
+        self._row_increasing = self._direction_combo(
+            grid_cfg.get("row_increasing", self._OPPOSITE[row_direction])
+        )
+        self._col_increasing = self._direction_combo(
+            grid_cfg.get("col_increasing", self._OPPOSITE[col_direction])
+        )
+        grid_form.addRow("A1 row direction:", self._row_direction)
+        grid_form.addRow("A1 column direction:", self._col_direction)
+        grid_form.addRow("Rows increase:", self._row_increasing)
+        grid_form.addRow("Columns increase:", self._col_increasing)
+        self._config_form.addRow(grid_group)
+
+        moves_group = QGroupBox("Movement Steps")
+        moves_layout = QVBoxLayout(moves_group)
+        self._move_table = QTableWidget(0, 3)
+        self._move_table.setHorizontalHeaderLabels(
+            ["Step", "Direction", "Distance (m)"]
+        )
+        self._move_table.setSelectionBehavior(
+            QAbstractItemView.SelectionBehavior.SelectRows
+        )
+        self._move_table.setSelectionMode(
+            QAbstractItemView.SelectionMode.SingleSelection
+        )
+        header = self._move_table.horizontalHeader()
+        header.setSectionResizeMode(0, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(1, QHeaderView.ResizeMode.Stretch)
+        header.setSectionResizeMode(2, QHeaderView.ResizeMode.ResizeToContents)
+        self._move_table.verticalHeader().setDefaultSectionSize(38)
+        self._move_table.setMinimumHeight(180)
+        moves_layout.addWidget(self._move_table)
+
+        controls = QHBoxLayout()
+        for label, callback in (
+            ("Add", self._add_move),
+            ("Remove", self._remove_move),
+            ("Up", lambda: self._move_selected(-1)),
+            ("Down", lambda: self._move_selected(1)),
+        ):
+            button = QPushButton(label)
+            button.clicked.connect(callback)
+            controls.addWidget(button)
+        controls.addStretch()
+        moves_layout.addLayout(controls)
+        self._config_form.addRow(moves_group)
+
+        for move in target_cfg.get("moves", []):
+            self._add_move(move)
+        if not self._move_table.rowCount():
+            self._add_move()
+        self._move_table.setCurrentCell(0, 0)
+
+    def _add_move(self, move=None):
+        row = self._move_table.rowCount()
+        self._move_table.insertRow(row)
+        kind = QComboBox()
+        kind.addItems(["Fixed move", "Column offset", "Row offset"])
+        direction = self._direction_combo("forward")
+        distance = self._distance_spin(0.01, positive=True)
+        if move == "column_offset":
+            kind.setCurrentText("Column offset")
+        elif move == "row_offset":
+            kind.setCurrentText("Row offset")
+        elif isinstance(move, dict):
+            direction.setCurrentText(move.get("direction", "forward"))
+            distance.setValue(float(move.get("distance", 0.01)))
+        self._move_table.setCellWidget(row, 0, kind)
+        self._move_table.setCellWidget(row, 1, direction)
+        self._move_table.setCellWidget(row, 2, distance)
+
+        def toggle_fixed(text):
+            fixed = text == "Fixed move"
+            direction.setEnabled(fixed)
+            distance.setEnabled(fixed)
+
+        kind.currentTextChanged.connect(toggle_fixed)
+        toggle_fixed(kind.currentText())
+        self._move_table.setCurrentCell(row, 0)
+
+    def _move_value(self, row):
+        kind = self._move_table.cellWidget(row, 0).currentText()
+        if kind == "Column offset":
+            return "column_offset"
+        if kind == "Row offset":
+            return "row_offset"
+        return {
+            "direction": self._move_table.cellWidget(row, 1).currentText(),
+            "distance": self._move_table.cellWidget(row, 2).value(),
+        }
+
+    def _set_moves(self, moves):
+        self._move_table.setRowCount(0)
+        for move in moves:
+            self._add_move(move)
+
+    def _remove_move(self):
+        if self._move_table.rowCount() <= 1:
+            return
+        row = max(self._move_table.currentRow(), 0)
+        self._move_table.removeRow(row)
+        self._move_table.setCurrentCell(min(row, self._move_table.rowCount() - 1), 0)
+
+    def _move_selected(self, delta):
+        row = self._move_table.currentRow()
+        destination = row + delta
+        if row < 0 or not 0 <= destination < self._move_table.rowCount():
+            return
+        moves = [
+            self._move_value(index) for index in range(self._move_table.rowCount())
+        ]
+        moves[row], moves[destination] = moves[destination], moves[row]
+        self._set_moves(moves)
+        self._move_table.setCurrentCell(destination, 0)
 
     def _cell_name(self, row, col):
         return f"{chr(ord('A') + row)}{col + 1}"
@@ -1006,18 +1277,47 @@ class _GridSelectorForm(BaseTaskForm):
             if r == self._selected_row and c == self._selected_col:
                 btn.setChecked(True)
                 btn.setStyleSheet(
-                    "background-color: #2a6b3a; color: white; border: 1px solid #5ce68a;"
+                    "background-color: #2a6b3a; color: white;"
+                    "border: 1px solid #5ce68a; padding: 0;"
                 )
             else:
                 btn.setChecked(False)
-                btn.setStyleSheet("")
+                btn.setStyleSheet("color: #e6eaf2; padding: 0;")
 
     def collect_values(self):
+        row_direction = self._row_direction.currentText()
+        col_direction = self._col_direction.currentText()
+        row_increasing = self._row_increasing.currentText()
+        col_increasing = self._col_increasing.currentText()
+        if row_increasing not in (row_direction, self._OPPOSITE[row_direction]):
+            raise ValueError("Rows must increase along the selected row axis")
+        if col_increasing not in (col_direction, self._OPPOSITE[col_direction]):
+            raise ValueError("Columns must increase along the selected column axis")
         return {
             **self.step,
             "row": self._selected_row,
             "col": self._selected_col,
             "position": self._cell_name(self._selected_row, self._selected_col),
+            "config": {
+                "mode": "grid",
+                "marker_id": self._marker_id.value(),
+                "scan_pose": self._scan_pose.text(),
+                "grid": {
+                    "rows": self._row_count.value(),
+                    "cols": self._col_count.value(),
+                    "row_pitch": self._row_pitch.value(),
+                    "col_pitch": self._col_pitch.value(),
+                    "row_offset": self._row_offset.value(),
+                    "col_offset": self._col_offset.value(),
+                    "row_direction": row_direction,
+                    "col_direction": col_direction,
+                    "row_increasing": row_increasing,
+                    "col_increasing": col_increasing,
+                },
+                "moves": [
+                    self._move_value(row) for row in range(self._move_table.rowCount())
+                ],
+            },
         }
 
 
@@ -1027,9 +1327,10 @@ class PickupTipForm(_GridSelectorForm):
 
     def build_form(self):
         super().build_form()
-        self.add_hint(
+        self._add_layout_hint(
+            self._position_form,
             "Tip rack: 8 rows (A-H) × 12 columns (1-12). "
-            "Uses vision to align with marker, then moves to selected position."
+            "Uses vision to align with marker, then moves to selected position.",
         )
 
 
@@ -1045,7 +1346,7 @@ class PickupVialForm(_GridSelectorForm):
         op_layout = QFormLayout(op_group)
 
         self._vial_operation = QComboBox()
-        self._vial_operation.addItems(["None", "SUCK", "EXPEL"])
+        self._vial_operation.addItems(["None", "SUCK", "EXPEL", "RINSE"])
         self._vial_operation.setCurrentText(self.step.get("pipettor_operation", "None"))
         op_layout.addRow("Operation:", self._vial_operation)
 
@@ -1056,16 +1357,31 @@ class PickupVialForm(_GridSelectorForm):
         self._vial_volume.setValue(float(self.step.get("volume_pct", 0.5)))
         op_layout.addRow("Volume %:", self._vial_volume)
 
+        self._rinse_count = QSpinBox()
+        self._rinse_count.setRange(1, 100)
+        self._rinse_count.setValue(int(self.step.get("rinse_count", 2)))
+        self._rinse_count.setToolTip(
+            "Each rinse sucks and expels once; the final suck keeps the requested volume."
+        )
+        op_layout.addRow("Rinse cycles:", self._rinse_count)
+        self._add_layout_hint(
+            op_layout,
+            "RINSE repeats SUCK/EXPEL for each cycle, then SUCKs once more "
+            "before leaving the vial.",
+        )
+
         def _toggle_volume(text):
             self._vial_volume.setEnabled(text != "None")
+            self._rinse_count.setEnabled(text == "RINSE")
 
         self._vial_operation.currentTextChanged.connect(_toggle_volume)
         _toggle_volume(self._vial_operation.currentText())
 
-        self.form.addRow(op_group)
-        self.add_hint(
+        self._config_form.addRow(op_group)
+        self._add_layout_hint(
+            self._position_form,
             "Vial rack: 2 rows (A-B) × 5 columns (1-5). "
-            "Select SUCK to aspirate or EXPEL to dispense after insertion."
+            "Configure the pipettor action and movement in the Config tab.",
         )
 
     def collect_values(self):
@@ -1074,9 +1390,14 @@ class PickupVialForm(_GridSelectorForm):
         if op != "None":
             s["pipettor_operation"] = op
             s["volume_pct"] = self._vial_volume.value()
+            if op == "RINSE":
+                s["rinse_count"] = self._rinse_count.value()
+            else:
+                s.pop("rinse_count", None)
         else:
             s.pop("pipettor_operation", None)
             s.pop("volume_pct", None)
+            s.pop("rinse_count", None)
         return s
 
 
