@@ -155,10 +155,9 @@ class PlanCache:
     def clear(self, reason: str = "") -> None:
         """Flush ALL entries.
 
-        Called on tool-exchange: every cached Solution was planned against the
-        old gripper's RobotModel / SRDF / collision model, so none survive a
-        relaunch. (Gripper is in the key too, but flushing everything is the
-        safe move when the robot model itself is replaced.)
+        Not wired to any caller — tool/cup changes invalidate via
+        ``model_revision`` in the key. Escape hatch for a scene change that
+        invalidates cached paths without bumping the revision.
         """
         with self._lock:
             n = len(self._entries)

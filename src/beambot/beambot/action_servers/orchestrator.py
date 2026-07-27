@@ -489,7 +489,9 @@ class MTCOrchestratorServer(Node):
         # change between identical moves, gate this on a PlanningScene
         # isPathValid check (MTC issue #198 pattern) before replaying.
         if cached_plan is not None:
-            error = moveto_stage.execute_solution_msg(cached_plan["sol_msg"])
+            error = moveto_stage.execute_solution_msg(
+                cached_plan["sol_msg"], is_replay=True
+            )
             if error is None:
                 return True
             if error.startswith("REPLAY_TIMEOUT"):

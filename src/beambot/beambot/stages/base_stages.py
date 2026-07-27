@@ -924,17 +924,21 @@ class BaseStages:
         except Exception as e:  # never let a pin failure block motion
             self.logger.warning(f"endpoint-pin skipped: {e}")
 
-    def execute_solution_msg(self, sol_msg) -> str | None:
-        """Replay a stored Solution msg WITHOUT a live MTC Task.
+    def execute_solution_msg(self, sol_msg, is_replay: bool = False) -> str | None:
+        """Execute a serialized Solution msg WITHOUT a live MTC Task.
 
-        Sends the cached ``moveit_task_constructor_msgs/Solution`` to
-        move_group's ``execute_task_solution`` action server — exactly what
-        ``Task.execute()`` does internally, minus the live Task. The server
-        runs every ``sub_trajectory`` in order and applies each ``scene_diff``
-        (attach/detach), so batched moveto+end_effector solutions replay
+        Sends the ``moveit_task_constructor_msgs/Solution`` to move_group's
+        ``execute_task_solution`` action server — exactly what ``Task.execute()``
+        does internally, minus the live Task. The server runs every
+        ``sub_trajectory`` in order and applies each ``scene_diff``
+        (attach/detach), so batched moveto+end_effector solutions run
         faithfully. No re-planning, no IK; start-state safety is enforced
         downstream by ``allowed_start_tolerance`` (rejects a stale start before
-        motion). Used by the orchestrator on a trajectory-cache hit.
+        motion).
+
+        Shared by fresh-plan execute and cache replay. ``is_replay`` only gates
+        the success log — True on a replay; fresh executes leave it False since
+        move_group already logs execution success.
 
         Returns None on success. On failure returns an error string: a
         ``REPLAY_TIMEOUT:`` prefix means the goal may still be ACTIVE and the
@@ -983,7 +987,8 @@ class BaseStages:
             if ec.val != MoveItErrorCodes.SUCCESS:
                 name = MOVEIT_ERROR_NAMES.get(ec.val, "UNKNOWN")
                 return f"EXECUTION_FAILED: replay failed: {name} (error code: {ec.val})"
-            self.logger.info("Cached trajectory replayed successfully")
+            if is_replay:
+                self.logger.info("Cached trajectory replayed successfully")
             return None
         except Exception as e:
             self.logger.error(f"Replay execution failed: {e}")
