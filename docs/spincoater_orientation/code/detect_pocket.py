@@ -60,7 +60,7 @@ def detect(img, cx, cy, half):
         asp = max(rw, rh) / (min(rw, rh) + 1e-6)
         sol = a / (cv2.contourArea(cv2.convexHull(c)) + 1e-6)
         if asp < 1.25 and sol > 0.85:
-            return dict(cx=rx + x0, cy=ry + y0, angle=ang % 90,
+            return dict(cx=rx + x0, cy=ry + y0, angle=ang % 90, raw_angle=ang,
                         w=rw, h=rh, asp=asp, sol=sol, area=a)
     return None
 
