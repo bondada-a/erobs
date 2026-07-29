@@ -25,7 +25,7 @@ from geometry_msgs.msg import Pose
 from moveit_msgs.action import ExecuteTrajectory
 from moveit_msgs.msg import CollisionObject, PlanningScene
 from moveit_msgs.srv import ApplyPlanningScene
-from rclpy.action import ActionClient
+from rclpy.action import ActionClient, get_action_names_and_types
 from rclpy.node import Node
 from rclpy.parameter import parameter_value_to_python
 from rclpy.parameter_client import AsyncParameterClient
@@ -560,18 +560,20 @@ class MoveItLifecycleManager:
         self._model_description_publishers = ()
 
     def _drain_stale_execute_trajectory(self, max_wait_sec: float = 10.0):
-        """Wait until /execute_trajectory is not advertised to our node."""
+        """Wait until /execute_trajectory is not advertised to our node.
+
+        Reads the discovery graph instead of constructing an ActionClient:
+        allocating DDS endpoints here races move_group's post-SIGKILL
+        endpoint purge on the shared DDS entity mutex and can wedge inside
+        the C-extension construct (past node.handle, so unbounded). A graph
+        read only touches the discovery cache — no endpoint allocation.
+        """
         deadline = time.monotonic() + max_wait_sec
         while time.monotonic() < deadline:
-            probe = ActionClient(
-                self._node, ExecuteTrajectory, "/execute_trajectory",
-                callback_group=self._callback_group,
-            )
-            try:
-                if not probe.wait_for_server(timeout_sec=0.5):
-                    return
-            finally:
-                probe.destroy()
+            names = [n for n, _ in get_action_names_and_types(self._node)]
+            if "/execute_trajectory" not in names:
+                return
+            time.sleep(0.1)
         self._logger.warning(
             "Stale /execute_trajectory still advertised after "
             f"{max_wait_sec:.0f}s drain; readiness check may fire early"
