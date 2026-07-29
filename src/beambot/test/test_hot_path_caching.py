@@ -223,7 +223,7 @@ def test_model_content_validation_covers_hande_none_epick_and_pipettor():
     )
 
 
-def test_verified_descriptions_are_published_unchanged_on_managed_topics():
+def test_verified_descriptions_reuse_managed_publishers():
     urdf = "<robot><link name=\"epick_tip\"/></robot>"
     srdf = "<robot><group name=\"epick_gripper\"/></robot>"
 
@@ -247,7 +247,16 @@ def test_verified_descriptions_are_published_unchanged_on_managed_topics():
     manager = MoveItLifecycleManager.__new__(MoveItLifecycleManager)
     manager._node = _Node()
     manager._logger = Mock()
-    manager._model_description_publishers = ()
+    manager._model_description_publishers = (
+        manager._node.create_publisher(
+            object, lifecycle_manager.VERIFIED_MODEL_DESCRIPTION, object()
+        ),
+        manager._node.create_publisher(
+            object,
+            f"{lifecycle_manager.VERIFIED_MODEL_DESCRIPTION}_semantic",
+            object(),
+        ),
+    )
     manager._wait_for_verified_model = Mock(return_value=(urdf, srdf))
 
     revision = manager._publish_verified_model("epick")

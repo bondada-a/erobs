@@ -92,8 +92,19 @@ class MoveItLifecycleManager:
         self._current_gripper: str = ""
         self._current_cup_profile: str = ""
         self._model_revision: str = ""
-        self._model_description_publishers: tuple = ()
         self._current_voltage: int | None = None
+
+        model_qos = QoSProfile(
+            depth=1,
+            durability=DurabilityPolicy.TRANSIENT_LOCAL,
+            reliability=ReliabilityPolicy.RELIABLE,
+        )
+        self._model_description_publishers = (
+            node.create_publisher(String, VERIFIED_MODEL_DESCRIPTION, model_qos),
+            node.create_publisher(
+                String, f"{VERIFIED_MODEL_DESCRIPTION}_semantic", model_qos
+            ),
+        )
 
         # Read the exact descriptions used by move_group. MTC must not load its
         # model from the shared /robot_description topics at a relaunch boundary:
@@ -226,20 +237,8 @@ class MoveItLifecycleManager:
 
         robot_description, semantic_description = descriptions
         revision = f"{MODEL_REVISION_PREFIX}{gripper}__{uuid.uuid4().hex}"
-        qos = QoSProfile(
-            depth=1,
-            durability=DurabilityPolicy.TRANSIENT_LOCAL,
-            reliability=ReliabilityPolicy.RELIABLE,
-        )
-        publishers = (
-            self._node.create_publisher(String, VERIFIED_MODEL_DESCRIPTION, qos),
-            self._node.create_publisher(
-                String, f"{VERIFIED_MODEL_DESCRIPTION}_semantic", qos
-            ),
-        )
-        publishers[0].publish(String(data=robot_description))
-        publishers[1].publish(String(data=semantic_description))
-        self._model_description_publishers = publishers
+        self._model_description_publishers[0].publish(String(data=robot_description))
+        self._model_description_publishers[1].publish(String(data=semantic_description))
         self._logger.info(f"Published verified {gripper} model for revision {revision}")
         return revision
 
@@ -530,7 +529,6 @@ class MoveItLifecycleManager:
             self._current_gripper = ""
             self._current_cup_profile = ""
             self._model_revision = ""
-            self._clear_model_description_publishers()
             return
 
         self._logger.info("Stopping MoveIt process...")
@@ -549,15 +547,8 @@ class MoveItLifecycleManager:
         self._current_gripper = ""
         self._current_cup_profile = ""
         self._model_revision = ""
-        self._clear_model_description_publishers()
 
         self._drain_stale_execute_trajectory()
-
-    def _clear_model_description_publishers(self):
-        """Stop serving the description pair for the retired revision."""
-        for publisher in getattr(self, "_model_description_publishers", ()):
-            self._node.destroy_publisher(publisher)
-        self._model_description_publishers = ()
 
     def _drain_stale_execute_trajectory(self, max_wait_sec: float = 10.0):
         """Wait until /execute_trajectory is not advertised to our node.
