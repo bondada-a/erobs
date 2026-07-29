@@ -98,7 +98,7 @@ def test_payload_timeout_fails():
     manager, _, future = _payload_call()
     future.done.return_value = False
 
-    with patch.object(lifecycle.time, "monotonic", side_effect=[0.0, 6.0]):
+    with patch.object(lifecycle.time, "monotonic", side_effect=[0.0, 21.0]):
         assert not manager._set_payload(VALID_CONFIG)
 
 

@@ -490,7 +490,12 @@ class MoveItLifecycleManager:
                 x=float(cog["x"]), y=float(cog["y"]), z=float(cog["z"])
             )
             future = client.call_async(request)
-            deadline = time.monotonic() + 5.0
+            # 20s ceiling (not a fixed wait — loop exits the instant the future
+            # resolves). Raised from 5s: on the VM the UR driver's executor is
+            # congested by slow network reads (~8-10ms/cycle vs 2ms budget), so
+            # the set_payload response lags past 5s. Laptop runs still return in
+            # ~200ms; only genuinely-slow VM runs use the extra headroom.
+            deadline = time.monotonic() + 20.0
             while not future.done() and time.monotonic() < deadline:
                 time.sleep(0.05)
             if not future.done():
