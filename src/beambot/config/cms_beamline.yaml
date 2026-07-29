@@ -196,7 +196,7 @@ vision_targets:
       col_pitch: 0.022           # 22mm between columns (A1→A2)
       row_pitch: 0.044           # 44mm between rows (A→B)
       col_offset: 0.003          # A1 offset from tag: 3mm right
-      row_offset: 0.084       # A1 offset from tag: 80mm up
+      row_offset: 0.082       # A1 offset from tag: 80mm up
       col_direction: "right"     # flange direction toward A1 col
       col_increasing: "right"   # columns increase going right (same as A1)
       row_direction: "up"        # flange direction toward A1 row
