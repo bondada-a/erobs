@@ -7,8 +7,6 @@
   <maintainer email="nsls2-software@bnl.gov">NSLS-II</maintainer>
   <license>BSD-3-Clause</license>
 
-  <buildtool_depend>ament_python</buildtool_depend>
-
   <!-- ROS2 dependencies -->
   <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
