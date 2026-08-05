@@ -98,12 +98,12 @@
       -147.61
     ],
     "pipettor_pre_dispense": [
-      63.82,
-      -117.93,
-      -28.7,
-      -123.22,
-      -268.0,
-      -173.16
+      63.87,
+      -119.77,
+      -24.47,
+      -125.65,
+      -268.01,
+      -173.12
     ],
     "pipettor_dispense": [
       63.61,
@@ -131,10 +131,43 @@
     {
       "task_type": "pickup_vial",
       "row": 0,
-      "col": 2,
-      "position": "A3",
+      "col": 0,
+      "position": "A1",
       "pipettor_operation": "SUCK",
-      "volume_pct": 0.5
+      "volume_pct": 0.5,
+      "config": {
+        "mode": "grid",
+        "marker_id": 25,
+        "scan_pose": "pipettor_scan",
+        "grid": {
+          "rows": 2,
+          "cols": 5,
+          "row_pitch": 0.044,
+          "col_pitch": 0.022,
+          "row_offset": 0.082,
+          "col_offset": 0.003,
+          "row_direction": "up",
+          "col_direction": "right",
+          "row_increasing": "down",
+          "col_increasing": "right"
+        },
+        "moves": [
+          {
+            "direction": "backward",
+            "distance": 0.02
+          },
+          "column_offset",
+          "row_offset",
+          {
+            "direction": "forward",
+            "distance": 0.063
+          },
+          {
+            "direction": "backward",
+            "distance": 0.073
+          }
+        ]
+      }
     },
     {
       "task_type": "moveto",
@@ -148,8 +181,8 @@
     },
     {
       "task_type": "moveto",
-      "target": "pipettor_dispense",
-      "planning_type": "joint"
+      "direction": "forward",
+      "distance": 0.02
     }
   ],
   "run_name": "2.HOLD_ANTI_SOLVENT_NOTIP"
