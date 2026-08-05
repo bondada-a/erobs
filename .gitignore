@@ -109,6 +109,9 @@ src/vision/zivid-ros/
 src/vision/zed-ros2-wrapper/
 src/vision/zivid-python-samples/
 
+# EPICS bridge (imported via vcs)
+src/epics_ros2_bridge/
+
 # Debug outputs (keep root clean)
 *.gv
 frames_*.pdf

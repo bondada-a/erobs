@@ -20,8 +20,9 @@ import os
 import yaml
 from ament_index_python.packages import get_package_share_directory
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
+from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -102,6 +103,13 @@ def generate_launch_description():
         'latency?). Default "info" preserves normal behavior.',
     )
 
+    declare_enable_epics = DeclareLaunchArgument(
+        "enable_epics",
+        default_value="false",
+        description="Bring up the EPICS bridge + action-status PV adapter "
+        "(beamline only; needs EPICS env + CMS network)",
+    )
+
     enable_vision = LaunchConfiguration("enable_vision")
     enable_pipettor = LaunchConfiguration("enable_pipettor")
     use_mock_hardware = LaunchConfiguration("use_mock_hardware")
@@ -110,6 +118,7 @@ def generate_launch_description():
     enable_tracing = LaunchConfiguration("enable_tracing")
     trace_session_name = LaunchConfiguration("trace_session_name")
     orchestrator_log_level = LaunchConfiguration("orchestrator_log_level")
+    enable_epics = LaunchConfiguration("enable_epics")
 
     # ros2_tracing: opt-in via enable_tracing:=true. Instruments every rclcpp
     # callback, publish, take, and executor event across all nodes launched
@@ -262,6 +271,18 @@ def generate_launch_description():
         ],
     )
 
+    # EPICS integration (opt-in). Includes the vcs-imported bridge + the
+    # action-status->PV adapter from erob_epics. Read-only observer of the
+    # orchestrator's action status; does NOT touch the control path.
+    epics_stack = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            PathJoinSubstitution(
+                [FindPackageShare("erob_epics"), "launch", "epics.launch.py"]
+            )
+        ),
+        condition=IfCondition(enable_epics),
+    )
+
     return LaunchDescription(
         [
             # Launch arguments
@@ -273,6 +294,7 @@ def generate_launch_description():
             declare_enable_tracing,
             declare_trace_session_name,
             declare_orchestrator_log_level,
+            declare_enable_epics,
             # Tracing (conditional - must come BEFORE any Node so tracepoints
             # in those processes are captured from process start)
             trace_action,
@@ -290,5 +312,7 @@ def generate_launch_description():
             pipettor_server,
             # Orchestrator (always launched)
             orchestrator,
+            # EPICS bridge + adapter (conditional)
+            epics_stack,
         ]
     )

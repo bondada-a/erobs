@@ -1,0 +1,16 @@
+epics:
+  addr_list: "10.68.83.255"     # EPICS_CA_ADDR_LIST for CMS
+  auto_addr_list: false
+
+macros:
+  P: "XF:11BM-ES:CMX{EPICS}"
+
+pvs:
+  # Robot execution status, driven by action_status_to_pv.
+  # mbbo states (live 2026-08-05): 0 Idle 1 Running 2 Succeeded 3 Failed 4 Canceled
+  # Bridge does ca_put(DBR_ENUM, int_value) -- adapter supplies the index.
+  - name: "$(P)erob:Status"
+    topic: "epics/erob_status"
+    direction: write
+    type: enum
+    confirm: false
