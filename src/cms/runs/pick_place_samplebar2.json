@@ -1,0 +1,56 @@
+{
+  "start_gripper": "hande",
+  "poses": {
+    "home": [
+      0.0,
+      -90.0,
+      -90.0,
+      -90.0,
+      90.0,
+      0.0
+    ]
+  },
+  "tasks": [
+    {
+      "task_type": "moveto",
+      "target": "above_sampleholder2",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "direction": "down",
+      "distance": 0.05
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "hande",
+      "end_effector_action": "hande_closed"
+    },
+    {
+      "task_type": "moveto",
+      "direction": "up",
+      "distance": 0.05
+    },
+    {
+      "task_type": "moveto",
+      "target": "safe_samplebar_pos",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "direction": "forward",
+      "distance": 0.4
+    },
+    {
+      "task_type": "moveto",
+      "direction": "down",
+      "distance": 0.05
+    },
+    {
+      "task_type": "end_effector",
+      "end_effector_type": "hande",
+      "end_effector_action": "hande_open"
+    }
+  ],
+  "run_name": "pick_place_samplebar2"
+}
