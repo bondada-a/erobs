@@ -24,12 +24,9 @@ def test_robot_model_cache_is_revision_aware(monkeypatch):
         _robot_model_revision = "one"
 
     class _Task:
-        def __init__(self):
+        def __init__(self, *_a, **_k):
             self.model = None
             created.append(self)
-
-        def enableIntrospection(self, _enabled):
-            pass
 
         def loadRobotModel(self, _node, _description="robot_description"):
             self.model = object()
@@ -100,7 +97,7 @@ def test_persistent_server_loads_managed_revisions_from_verified_root(monkeypatc
             return _Group(self.links)
 
     class _Task:
-        def enableIntrospection(self, _enabled):
+        def __init__(self, *_a, **_k):
             pass
 
         def loadRobotModel(self, _node, description="robot_description"):
@@ -166,7 +163,7 @@ def test_mismatched_managed_model_is_not_cached(monkeypatch):
             return group == "hande_gripper"
 
     class _Task:
-        def enableIntrospection(self, _enabled):
+        def __init__(self, *_a, **_k):
             pass
 
         def loadRobotModel(self, _node, _description="robot_description"):

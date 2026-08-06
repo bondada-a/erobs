@@ -481,31 +481,14 @@ class BaseStages:
         # Planner objects remain task-scoped even when the RobotModel is reused.
         self._task_planner_cache.clear()
 
-        # MTC introspection publishes solutions to RViz's Motion Planning Tasks
-        # panel. It creates/destroys an Introspection node per task, which
-        # poisons rcl's rosout hashmap (unfixed rcl bug ros2/rcl#984): the
-        # introspection node collides on the 'beambot_orchestrator' name and on
-        # teardown unregisters the rosout publisher. The symptom in the logs is
-        #   "Publisher already registered for node name: 'beambot_orchestrator'"
-        #   "Failed to get logger entry ... logging_rosout.c:416"
-        # and the CONSEQUENCE is that every subsequent logger.info() stalls for
-        # ~0.5-1 s on the broken hashmap — measured as multi-second wall time
-        # with ~0.01 s CPU across stage-building and planning. enable_rosout is
-        # already False on the MTC node (see ~line 221) to avoid this, but
-        # enableIntrospection(True) re-introduced the offending node and undid
-        # that protection.
-        #
-        # DISABLED for performance. Cost: the RViz "Motion Planning Tasks" panel
-        # no longer shows the live MTC stage tree. Robot motion, planning, and
-        # RViz itself are unaffected. Set back to True if you need that panel.
-        # MTC logs "...does not have any controllers specified..." per moving
-        # sub-trajectory because we never set controller_names. Benign on our
-        # single UR5e (one arm + one gripper controller, disjoint joints →
-        # move_group auto-selects unambiguously). No Python fix exists: the
-        # setter (Stage::setTrajectoryExecutionInfo) isn't exposed in the
-        # bindings. Revisit only if a controller ever overlaps the arm joints.
-        task = core.Task()
-        task.enableIntrospection(False)
+        # Introspection OFF. Its per-task node create/destroy poisons rcl's
+        # rosout hashmap (ros2/rcl#984, ~0.5-1s log stalls) and churns discovery
+        # under ROS_DISCOVERY_SERVER. Task() defaults introspection=True and
+        # creates the node even when disabled after — so pass False at construct.
+        # Cost: no live RViz task panel; motion/planning unaffected.
+        # (MTC's per-subtrajectory "no controllers specified" log is benign —
+        # one arm + one gripper, disjoint joints; setter isn't in the bindings.)
+        task = core.Task("", False)
         task.name = name
 
         # Standalone servers receive the revision with each action goal. Batched
