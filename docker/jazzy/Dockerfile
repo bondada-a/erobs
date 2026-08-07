@@ -1,12 +1,16 @@
 FROM osrf/ros:jazzy-desktop-full
 
-# Set display for RViz/GUI tools
-ENV DISPLAY=:1
+# Set display for RViz/GUI tools (VNC/GUI — disabled while VNC is off)
+# ENV DISPLAY=:1
 
 # Fix APT sandboxing issues for container environments
 RUN echo 'APT::Sandbox::User "root";' > /etc/apt/apt.conf.d/99sandboxdisable
 
-# Install system dependencies
+# Install system dependencies.
+# ROS packages (rclpy, ur, moveit, MTC, rosbridge) are NOT listed here —
+# they are declared in each package.xml and installed by the rosdep call
+# below, keeping the workspace's package.xml the single source of truth.
+# Only non-rosdep-resolvable system libs are pinned here.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     wget \
     curl \
@@ -22,16 +26,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3-venv \
     python3-colcon-common-extensions \
     python3-vcstool \
-    ros-${ROS_DISTRO}-rclpy \
-    ros-${ROS_DISTRO}-ur \
-    ros-${ROS_DISTRO}-moveit \
-    ros-${ROS_DISTRO}-moveit-task-constructor-core \
-    ros-${ROS_DISTRO}-moveit-task-constructor-msgs \
-    ros-${ROS_DISTRO}-moveit-task-constructor-capabilities \
-    ros-${ROS_DISTRO}-moveit-task-constructor-visualization \
-    ros-${ROS_DISTRO}-rosbridge-server \
-    x11vnc \
-    xvfb \
     gnupg2 \
     ca-certificates \
     socat \
@@ -43,6 +37,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/*
+# VNC deps (x11vnc, xvfb) removed from the install list above — VNC is
+# currently disabled. Re-add them to the apt list to bring VNC back.
 
 # Pin numpy<2 for cv_bridge / tf_transformations compatibility (compiled against NumPy 1.x)
 RUN pip3 install --break-system-packages 'numpy<2' rosdep && \
@@ -59,15 +55,15 @@ RUN mkdir -p /tmp/zivid && cd /tmp/zivid && \
     apt-get clean -y && rm -rf /var/lib/apt/lists/*
 
 # Setup NVIDIA OpenCL ICD for GPU mode
-RUN mkdir -p /etc/OpenCL/vendors && \
-    echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd
+# RUN mkdir -p /etc/OpenCL/vendors && \
+#     echo "libnvidia-opencl.so.1" > /etc/OpenCL/vendors/nvidia.icd
 
 RUN mkdir -p /root/ws
 WORKDIR /root/ws
 
 # Copy and setup VNC startup script
-COPY docker/jazzy/start-vnc.sh /root/start-vnc.sh
-RUN chmod +x /root/start-vnc.sh
+# COPY docker/jazzy/start-vnc.sh /root/start-vnc.sh
+# RUN chmod +x /root/start-vnc.sh
 
 # Clone erobs and import all repos
 ARG CACHEBUST=1
@@ -102,28 +98,26 @@ RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
       epick_moveit_studio \
       onrobot_2fg7_driver onrobot_2fg7_description"
 
-# Install Claude Code CLI
-RUN curl -fsSL https://claude.ai/install.sh | bash
-ENV PATH="/root/.claude/local/bin:${PATH}"
-
 # Pre-configure Zivid network camera
-RUN mkdir -p /root/.config/Zivid/API && \
-    printf '__version__: 1\nCameras:\n  NetworkCameras:\n    - NetworkCamera:\n        Host: 10.68.81.25\n' \
-    > /root/.config/Zivid/API/Cameras.yml
+# RUN mkdir -p /root/.config/Zivid/API && \
+#     printf '__version__: 1\nCameras:\n  NetworkCameras:\n    - NetworkCamera:\n        Host: 10.68.81.25\n' \
+#     > /root/.config/Zivid/API/Cameras.yml
 
 # DDS / discovery server configuration (FastRTPS with discovery server on VM)
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-ENV ROS_DISCOVERY_SERVER="10.68.82.42:11811"
+ENV ROS_DISCOVERY_SERVER="10.65.2.151:11811"
 ENV ROS_DOMAIN_ID=0
-
-ENV ROBOT_IP=10.68.82.41
+ENV ROS_SUPER_CLIENT=TRUE
+ENV FASTDDS_BUILTIN_TRANSPORTS=UDPv4
 ENV UR_TYPE="ur5e"
 ENV LAUNCH_RVIZ="false"
 
 # VNC viewer port
-EXPOSE 5901
+# EXPOSE 5901
 
 # Source workspace in all shells (docker exec, interactive, etc.)
 RUN echo "source /root/ws/erobs/install/setup.bash" >> /root/.bashrc
 
-CMD ["/bin/bash", "-c", "source /root/ws/erobs/install/setup.bash && /root/start-vnc.sh && exec /bin/bash"]
+# VNC-enabled entrypoint — re-enable the COPY start-vnc.sh lines above to use this:
+# CMD ["/bin/bash", "-c", "source /root/ws/erobs/install/setup.bash && /root/start-vnc.sh && exec /bin/bash"]
+CMD ["/bin/bash", "-c", "source /root/ws/erobs/install/setup.bash && exec /bin/bash"]
