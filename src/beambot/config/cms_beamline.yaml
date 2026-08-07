@@ -8,7 +8,7 @@ poses_file: "src/cms/poses.yaml"                          # Relative to workspac
 scene_file: "src/beambot/config/beamline_scene.yaml"      # Static planning-scene obstacles
 
 robot:
-  ip: "192.168.1.101"          # Default IP from current launch files
+  ip: "10.68.82.41"            # CMS beamline robot IP
   arm_group: "ur_arm"
   ik_frame: "flange"           # Matches SRDF chain (common.srdf.xacro: base_link → flange)
   velocity_scaling: 0.2        # 20% of joint limits — per-beamline safety profile
