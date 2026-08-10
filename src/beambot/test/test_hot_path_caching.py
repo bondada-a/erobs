@@ -138,6 +138,7 @@ def test_model_revision_changes_only_when_model_configuration_changes():
         manager._model_revision = ""
 
     manager._attempt_launch = Mock(side_effect=launch)
+    manager._wait_for_required_controllers = Mock(return_value=True)
     manager.kill_current_process = Mock(side_effect=kill)
 
     assert manager.launch_moveit_with_gripper("epick")

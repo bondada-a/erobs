@@ -1,4 +1,4 @@
-"""Payload readiness checks that do not need a robot."""
+"""Payload and controller readiness checks that do not need a robot."""
 
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
@@ -37,6 +37,7 @@ def _attempt_manager(*, mock_hardware=False, config=None):
     manager._wait_for_moveit_ready = MagicMock(return_value=True)
     manager._load_collision_obstacles = MagicMock(return_value=True)
     manager._restart_external_control = MagicMock(return_value=True)
+    manager._wait_for_required_controllers = MagicMock(return_value=True)
     manager._verify_hardware_connected = MagicMock(return_value=True)
     return manager
 
@@ -148,3 +149,42 @@ def test_payload_failure_never_reports_ready():
     assert not any(
         "Robot ready" in str(call) for call in manager._logger.info.call_args_list
     )
+
+
+def test_inactive_controller_never_reports_ready():
+    manager = _attempt_manager()
+    manager._wait_for_required_controllers.return_value = False
+
+    with patch.object(lifecycle.subprocess, "Popen", return_value=MagicMock()):
+        assert not manager._attempt_launch("epick", "")
+
+    manager._verify_hardware_connected.assert_not_called()
+
+
+def test_controller_readiness_requires_arm_and_gripper():
+    manager = _manager()
+    manager._grippers = {
+        "hande": {"controller_name": "gripper_action_controller"}
+    }
+    client = manager._node.create_client.return_value
+    client.wait_for_service.return_value = True
+    future = client.call_async.return_value
+    future.done.return_value = True
+    active_arm = SimpleNamespace(
+        controller=[
+            SimpleNamespace(
+                name="scaled_joint_trajectory_controller", state="active"
+            )
+        ]
+    )
+    active_all = SimpleNamespace(
+        controller=active_arm.controller
+        + [SimpleNamespace(name="gripper_action_controller", state="active")]
+    )
+    future.result.side_effect = [active_arm, active_all]
+
+    with patch.object(lifecycle.time, "sleep"):
+        assert manager._wait_for_required_controllers("hande", timeout_sec=1.0)
+
+    assert client.call_async.call_count == 2
+    manager._node.destroy_client.assert_called_once_with(client)

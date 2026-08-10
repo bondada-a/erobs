@@ -20,7 +20,7 @@ import uuid
 import xml.etree.ElementTree as ET
 from numbers import Real
 
-import yaml
+from controller_manager_msgs.srv import ListControllers
 from geometry_msgs.msg import Pose
 from moveit_msgs.action import ExecuteTrajectory
 from moveit_msgs.msg import CollisionObject, PlanningScene
@@ -35,6 +35,7 @@ from shape_msgs.msg import SolidPrimitive
 from std_msgs.msg import Bool, String
 from std_srvs.srv import Trigger
 from tf_transformations import quaternion_from_euler
+import yaml
 
 from beambot.core import MODEL_REVISION_PREFIX, VERIFIED_MODEL_DESCRIPTION
 
@@ -206,8 +207,12 @@ class MoveItLifecycleManager:
                 and self._moveit_process.poll() is None
                 and self._model_revision
             ):
-                self._logger.info(f"MoveIt already running for {gripper}, reusing")
-                return True
+                if self._use_mock_hardware or self._wait_for_required_controllers(gripper):
+                    self._logger.info(f"MoveIt already running for {gripper}, reusing")
+                    return True
+                self._logger.warning(
+                    f"MoveIt controllers are not ready for {gripper}; relaunching"
+                )
             self._logger.info(
                 f"Restarting MoveIt model: {self._current_gripper} → {gripper}"
             )
@@ -428,6 +433,8 @@ class MoveItLifecycleManager:
         if not self._use_mock_hardware:
             if not self._restart_external_control():
                 return False
+            if not self._wait_for_required_controllers(gripper):
+                return False
             if not self._verify_hardware_connected():
                 return False
             # Set the arm payload now that io_and_status_controller is up —
@@ -436,6 +443,64 @@ class MoveItLifecycleManager:
                 return False
 
         return True
+
+    def _wait_for_required_controllers(
+        self, gripper: str, timeout_sec: float = 10.0
+    ) -> bool:
+        """Wait until controller_manager reports every motion controller active."""
+        # ponytail: This gates orchestrated motion only. Overlay ur_robot_driver
+        # if direct controller clients need hard stopper serialization.
+        required = {"scaled_joint_trajectory_controller"}
+        controller_name = self._grippers[gripper].get("controller_name", "")
+        # 2FG7 exposes the same action name from a standalone driver, not ros2_control.
+        if controller_name and gripper != "2fg7":
+            required.add(controller_name)
+
+        client = self._node.create_client(
+            ListControllers,
+            "/controller_manager/list_controllers",
+            callback_group=self._callback_group,
+        )
+        deadline = time.monotonic() + timeout_sec
+        states = {}
+        missing = sorted(required)
+        try:
+            remaining = max(0.0, deadline - time.monotonic())
+            if not client.wait_for_service(timeout_sec=remaining):
+                self._logger.error("/controller_manager/list_controllers unavailable")
+                return False
+
+            while time.monotonic() < deadline:
+                future = client.call_async(ListControllers.Request())
+                while not future.done() and time.monotonic() < deadline:
+                    time.sleep(0.05)
+                if not future.done():
+                    break
+
+                states = {
+                    controller.name: controller.state
+                    for controller in future.result().controller
+                }
+                missing = sorted(
+                    name for name in required if states.get(name) != "active"
+                )
+                if not missing:
+                    self._logger.info(
+                        f"Controllers ready: {', '.join(sorted(required))}"
+                    )
+                    return True
+                time.sleep(0.1)
+
+            self._logger.error(
+                f"Controllers not active within {timeout_sec:.0f}s: {missing}; "
+                f"states={states}"
+            )
+            return False
+        except Exception as exc:
+            self._logger.error(f"Failed to verify controller readiness: {exc}")
+            return False
+        finally:
+            self._node.destroy_client(client)
 
     def _validate_payload(self, config: dict) -> bool:
         """Require a finite positive mass and finite three-axis CoG."""
