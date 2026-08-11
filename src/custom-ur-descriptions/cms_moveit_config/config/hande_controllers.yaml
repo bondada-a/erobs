@@ -22,7 +22,7 @@
       action_monitor_rate: 20.0 # Hz
       joint: robotiq_hande_left_finger_joint
       goal_tolerance: 0.01 # m
-      allow_stalling: false
+      allow_stalling: true
       stall_velocity_threshold: 0.001 # m/s
       stall_timeout: 1.0 # s
       max_effort_interface: ""
