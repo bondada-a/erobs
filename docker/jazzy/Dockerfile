@@ -104,7 +104,7 @@ RUN /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
 
 # DDS / discovery server configuration (FastRTPS with discovery server on VM)
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
-ENV ROS_DISCOVERY_SERVER="10.65.2.151:11811;10.65.2.152:11888"
+ENV ROS_DISCOVERY_SERVER="ros1.nsls2.bnl.gov:11811;ros2.nsls2.bnl.gov:11888"
 ENV ROS_DOMAIN_ID=0
 ENV ROS_SUPER_CLIENT=TRUE
 ENV FASTDDS_BUILTIN_TRANSPORTS=UDPv4

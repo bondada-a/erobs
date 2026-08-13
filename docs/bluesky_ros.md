@@ -8,7 +8,7 @@ podman run -it --rm --network host --ipc=host --pid=host ghcr.io/bondada-a/erobs
 
 ### Discovery server env
 ```bash
-export ROS_DISCOVERY_SERVER=10.65.2.151:11811
+export ROS_DISCOVERY_SERVER=ros1.nsls2.bnl.gov:11811
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 export ROS_SUPER_CLIENT=TRUE   
 export ROS_DOMAIN_ID=0
@@ -42,7 +42,7 @@ colcon build --packages-select beambot_interfaces
 
 ### Discovery server env
 ```bash
-export ROS_DISCOVERY_SERVER=10.65.2.151:11811
+export ROS_DISCOVERY_SERVER=ros1.nsls2.bnl.gov:11811
 export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 export ROS_SUPER_CLIENT=TRUE 
 export ROS_DOMAIN_ID=0
