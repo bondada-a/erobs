@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-"""MTC Orchestrator - coordinates multi-step robot tasks.
-
-Receives task scripts (JSON) and dispatches steps to specialized action servers.
-Manages MoveIt lifecycle based on gripper configuration.
-
-Supports beamline-agnostic deployment via beamline configuration files.
-
-Batching optimization: Consecutive simple tasks (moveto, end_effector) are
-grouped into a single MTC Task with multiple stages, reducing planning
-overhead (~1.5s per task saved).
-"""
+"""Coordinate task scripts across MoveIt action servers."""
 
 import json
 import math
@@ -17,14 +7,13 @@ import threading
 import time
 from typing import Any
 
-import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, ActionClient
 from rclpy.action.server import ServerGoalHandle, GoalResponse, CancelResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
-from rclpy.executors import MultiThreadedExecutor
 from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 
+from beambot.action_servers.base_action_server import run_server
 from beambot_interfaces.action import (
     MTCExecution,
     MoveToAction,
@@ -50,16 +39,9 @@ from beambot.core.task_script import parse_task_script
 
 
 class MTCOrchestratorServer(Node):
-    """Action server that coordinates multi-step robot tasks.
+    """Coordinate and execute multi-step robot tasks."""
 
-    Receives task scripts in JSON format and dispatches individual
-    steps to specialized MTC action servers (MoveTo, EndEffector, etc.)
-
-    Supports beamline-agnostic deployment via beamline configuration files.
-    """
-
-    # Default timeouts for each action type (seconds)
-    # Can be overridden via ROS parameters: timeout.moveto, timeout.end_effector, etc.
+    # Defaults are overridable through timeout.<action> ROS parameters.
     DEFAULT_TIMEOUTS = {
         "moveto": 120.0,
         "end_effector": 30.0,
@@ -84,22 +66,17 @@ class MTCOrchestratorServer(Node):
         self._last_detected_position = None  # [x, y, z] from detect_only vision
         self._last_detected_orientation = None  # [x, y, z, w] from detect_only vision
 
-        # Trajectory cache: keyed on (start joints, goal, gripper, model revision).
-        # A planned move is stored as a serialized Solution msg; a later goal
-        # with the same key replays it instead of re-planning (see PlanCache).
+        # Cache serialized plans by start state, goal, gripper, and model revision.
         self._plan_cache = PlanCache(self.get_logger())
-        # Set by _execute_batch after a successful plan so _execute() can store
-        # the serialized Solution msg (not the live Task — it dangles after a
-        # MoveIt relaunch) into the trajectory cache.
+        # Live MTC Tasks become invalid after MoveIt relaunches.
         self._last_planned_sol_msg = None
 
-        # Pause/Resume state
         self._pause_requested = False
         self._is_paused = False
         self._pause_event = threading.Event()
         self._pause_event.set()  # Start in "go" state (not blocked)
 
-        # Load beamline configuration (single source of truth, BEAMBOT_BEAMLINE_CONFIG env var)
+        # BEAMBOT_BEAMLINE_CONFIG selects the beamline configuration.
         from beambot.config_loader import load_beamline_config, resolve_beamline_path
 
         self.declare_parameter("use_mock_hardware", False)
@@ -134,7 +111,6 @@ class MTCOrchestratorServer(Node):
                 "Batching DISABLED - each task executes via action server"
             )
 
-        # Declare timeout parameters (configurable at launch)
         self._timeouts = {}
         for action_type, default_timeout in self.DEFAULT_TIMEOUTS.items():
             param_name = f"timeout.{action_type}"
@@ -143,10 +119,8 @@ class MTCOrchestratorServer(Node):
 
         self.get_logger().info(f"Timeouts configured: {self._timeouts}")
 
-        # Callback group for concurrent operations
         self._callback_group = ReentrantCallbackGroup()
 
-        # MoveIt lifecycle manager - launches MoveIt based on gripper config
         self._moveit_manager = MoveItLifecycleManager(
             self,
             self._grippers,
@@ -156,7 +130,6 @@ class MTCOrchestratorServer(Node):
             enable_joystick=self.get_parameter("enable_joystick").value,
         )
 
-        # Create action server
         self._action_server = ActionServer(
             self,
             MTCExecution,
@@ -167,7 +140,6 @@ class MTCOrchestratorServer(Node):
             callback_group=self._callback_group,
         )
 
-        # Create action clients for specialized servers
         self._moveto_client = ActionClient(
             self, MoveToAction, "beambot_moveto", callback_group=self._callback_group
         )
@@ -177,8 +149,7 @@ class MTCOrchestratorServer(Node):
             "beambot_endeffector",
             callback_group=self._callback_group,
         )
-        # Unified vision pipeline (issue #88). vision_moveto routes here,
-        # replacing the retired beambot_vision_moveto server.
+        # Legacy vision_moveto tasks use the unified vision server.
         self._vision_task_client = ActionClient(
             self,
             VisionTaskAction,
@@ -220,7 +191,6 @@ class MTCOrchestratorServer(Node):
             on_gripper_changed=self._set_current_gripper,
         )
 
-        # Pause/Resume services
         self._pause_service = self.create_service(
             Trigger,
             "beambot/pause",
@@ -240,19 +210,17 @@ class MTCOrchestratorServer(Node):
             reliability=ReliabilityPolicy.RELIABLE,
         )
 
-        # Execution state publisher
         self._state_publisher = self.create_publisher(
             String, "beambot/execution_state", latched_qos
         )
         self._publish_state("IDLE")
 
-        # Current gripper publisher (latched so late subscribers get last value)
+        # Latched for late subscribers.
         self._gripper_publisher = self.create_publisher(
             String, "beambot/current_gripper", latched_qos
         )
         self._publish_gripper(self._current_gripper)
 
-        # Vacuum monitoring (ePick grasp verification)
         self._vacuum = VacuumMonitor(self, self._grippers, self._callback_group)
 
         self.get_logger().info(
@@ -261,33 +229,6 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info(
             "Pause/Resume services available: beambot/pause, beambot/resume"
         )
-
-        # Warm up the spincoater YOLO model in the background so torch/CUDA init
-        # happens during idle startup, not on the executor thread mid-task (which
-        # starves the 500Hz control loop and balloons load time from ~9s to ~70s).
-        self._warmup_spincoater_model()
-
-    def _warmup_spincoater_model(self):
-        """Pre-load the spincoater sample YOLO model in a background daemon thread."""
-
-        def _warmup():
-            try:
-                import numpy as np
-                from beambot.detection.spincoater import _get_sample_model
-
-                self.get_logger().info(
-                    "Warming up spincoater sample model (background)..."
-                )
-                model = _get_sample_model()
-                # Dummy inference to trigger CUDA kernel compilation / graph build
-                # so the first real detection is instant.
-                dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-                model(dummy, conf=0.5, verbose=False)
-                self.get_logger().info("Spincoater sample model ready")
-            except Exception as e:  # noqa: BLE001 — warmup is best-effort
-                self.get_logger().warning(f"Spincoater model warmup skipped: {e}")
-
-        threading.Thread(target=_warmup, daemon=True).start()
 
     def _goal_callback(self, goal_request) -> GoalResponse:
         """Handle incoming goal requests."""
@@ -310,10 +251,7 @@ class MTCOrchestratorServer(Node):
         return CancelResponse.ACCEPT
 
     def _pause_callback(self, request, response):
-        """Handle pause service request.
-
-        Sets a flag to pause execution after the current task completes.
-        """
+        """Request a pause after the active execution unit."""
         with self._lock:
             if not self._executing:
                 response.success = False
@@ -343,10 +281,7 @@ class MTCOrchestratorServer(Node):
         return response
 
     def _resume_callback(self, request, response):
-        """Handle resume service request.
-
-        Signals the paused execution to continue.
-        """
+        """Resume paused execution."""
         with self._lock:
             if not self._is_paused:
                 response.success = False
@@ -362,10 +297,7 @@ class MTCOrchestratorServer(Node):
         return response
 
     def _publish_state(self, state: str):
-        """Publish current execution state to the state topic.
-
-        States: IDLE, RUNNING, PAUSED, COMPLETING_TASK, CANCELING, FAULTED
-        """
+        """Publish execution state."""
         msg = String()
         msg.data = state
         self._state_publisher.publish(msg)
@@ -388,11 +320,7 @@ class MTCOrchestratorServer(Node):
         total_steps: int,
         active_step: int | None = None,
     ):
-        """Block execution until resumed or cancelled.
-
-        Called when _pause_requested is True. Updates state, publishes feedback,
-        and waits for resume signal or cancel request.
-        """
+        """Wait for resume or cancellation."""
         with self._lock:
             self._pause_requested = False
             self._is_paused = True
@@ -400,16 +328,13 @@ class MTCOrchestratorServer(Node):
 
         self._publish_state("PAUSED")
         if active_step is None:
-            self.get_logger().info(
-                f"Paused after step {completed_steps}/{total_steps}"
-            )
+            self.get_logger().info(f"Paused after step {completed_steps}/{total_steps}")
         else:
             self.get_logger().info(
                 f"Paused at step {active_step}/{total_steps}; "
                 f"completed {completed_steps}/{total_steps}"
             )
 
-        # Update feedback to show paused state
         if active_step is not None:
             feedback.current_step = active_step
         feedback.progress_percentage = (
@@ -420,9 +345,8 @@ class MTCOrchestratorServer(Node):
         )
         goal_handle.publish_feedback(feedback)
 
-        # Wait loop - check for cancel periodically, keep publishing feedback
+        # Poll for cancellation while paused.
         while not self._pause_event.wait(timeout=0.5):
-            # Check for cancel during pause
             if goal_handle.is_cancel_requested:
                 self.get_logger().info("Cancel received while paused")
                 with self._lock:
@@ -430,10 +354,8 @@ class MTCOrchestratorServer(Node):
                     self._pause_event.set()
                 return
 
-            # Keep publishing feedback so client knows we're alive
             goal_handle.publish_feedback(feedback)
 
-        # Resumed
         self.get_logger().info("Execution resumed")
         self._publish_state("RUNNING")
 
@@ -444,50 +366,24 @@ class MTCOrchestratorServer(Node):
         dry_run: bool = False,
         cached_plan: dict | None = None,
     ) -> bool:
-        """Execute a batch of tasks as a single MTC Task.
-
-        Creates one MTC Task, adds stages from each task, then plans and
-        executes once. This reduces planning overhead (~1.5s per task saved).
-
-        Args:
-            batch_tasks: List of batchable task dictionaries
-            poses_json: JSON string with pose definitions
-            dry_run: If True, plan only and publish the trajectory for the
-                GUI viewer; do not move the robot. On success, the planned
-                solution is captured (self._last_planned_sol_msg) so the
-                caller can store it in the trajectory cache.
-            cached_plan: If provided, skip the build+plan step and replay
-                cached_plan["sol_msg"] directly via /execute_task_solution.
-                Used when an Execute goal's model-aware cache key hits.
-
-        Returns:
-            True if all tasks succeeded, False on any failure
-        """
+        """Plan or execute one batch; cached plans bypass planning."""
         if not batch_tasks:
             return True
 
-        # Log batch info
         task_types = [t.get("task_type", "?") for t in batch_tasks]
         self.get_logger().info(
             f"{'Replaying cached plan for' if cached_plan else 'Executing'} "
             f"batch of {len(batch_tasks)} tasks: {task_types}"
         )
 
-        # Create stage instances (they share MTC node via module-level singleton)
+        # Stages share the module-level MTC node.
         moveto_stage = MoveToStages(self, self._arm_group)
         endeffector_stage = EndEffectorStages(self, self._arm_group)
 
-        # Replay path: skip task construction and planning, run the cached
-        # solution directly. On a SAFE replay failure (server gone after a
-        # relaunch, goal rejected, or a terminal start-tolerance/control error —
-        # no motion left active) we do NOT dead-end the move: fall through to a
-        # fresh plan+execute so the cache is never worse than no cache. But on
-        # REPLAY_TIMEOUT the goal may still be ACTIVE on the controller, so we
-        # abort instead of re-dispatching a second overlapping trajectory.
-        # ponytail: replay is collision-blind — it does NOT re-check the cached
-        # path against the live scene. Safe for a static cell; if the scene can
-        # change between identical moves, gate this on a PlanningScene
-        # isPathValid check (MTC issue #198 pattern) before replaying.
+        # Replan after terminal replay failures. A timeout may leave motion active,
+        # so never dispatch a second trajectory after REPLAY_TIMEOUT.
+        # ponytail: replay skips live-scene collision checks; add isPathValid for
+        # dynamic scenes (MTC #198).
         if cached_plan is not None:
             error = moveto_stage.execute_solution_msg(
                 cached_plan["sol_msg"], is_replay=True
@@ -500,12 +396,8 @@ class MTCOrchestratorServer(Node):
             self.get_logger().warning(
                 f"Cached replay failed ({error}); re-planning fresh"
             )
-            # fall through to build + plan + execute below
-
-        # Create single MTC Task for the batch
         task = moveto_stage.create_task_template(f"Batch ({len(batch_tasks)} tasks)")
 
-        # Add stages from each task
         for i, batch_task in enumerate(batch_tasks):
             task_type = batch_task.get("task_type", "")
             error = None
@@ -529,25 +421,19 @@ class MTCOrchestratorServer(Node):
                 return False
 
         if dry_run:
-            # Plan only — caller stores the serialized solution into the
-            # trajectory cache so the next matching execute replays it.
             error = moveto_stage.init_and_plan(task, dry_run=True)
             if error is not None:
                 self._last_error = error
                 return False
-            # Stash the serialized Solution msg (not the live Task — it holds a
-            # RobotModel reference and dangles after a MoveIt relaunch) so
-            # _execute() can cache it after this bool-returning call returns.
+            # Cache the serialized solution; live Tasks cannot survive relaunches.
             self._last_planned_sol_msg = moveto_stage.last_sol_msg
             return True
 
-        # Normal path: plan + execute end-to-end
         error = moveto_stage.load_plan_execute(task)
         if error is not None:
             self._last_error = error
             return False
-        # Capture the freshly-planned solution so _execute() caches it for a
-        # future identical move to replay instead of re-planning.
+        # Save the fresh solution for later replay.
         self._last_planned_sol_msg = moveto_stage.last_sol_msg
         return True
 
@@ -570,7 +456,6 @@ class MTCOrchestratorServer(Node):
 
     def _create_endeffector_goal(self, step: dict[str, Any]) -> EndEffectorAction.Goal:
         """Create an EndEffectorAction.Goal from task dict."""
-        # Use current gripper if not specified in task
         gripper_type = step.get("end_effector_type", self._current_gripper)
         gripper_config = self._grippers.get(gripper_type, {})
 
@@ -596,7 +481,6 @@ class MTCOrchestratorServer(Node):
         """Main execution logic."""
         self.get_logger().info("Executing orchestration goal")
 
-        # Reset state for new goal
         self._vacuum.reset()
         self._last_detected_position = None
         self._last_detected_orientation = None
@@ -604,7 +488,6 @@ class MTCOrchestratorServer(Node):
         result = MTCExecution.Result()
         feedback = MTCExecution.Feedback()
 
-        # Parse and validate goal
         try:
             parsed = parse_task_script(
                 goal_handle.request.full_json,
@@ -622,31 +505,23 @@ class MTCOrchestratorServer(Node):
 
         start_gripper, tasks, poses_json, dry_run = parsed
         task_count = len(tasks)
+        result.total_steps = task_count
         if dry_run:
             self.get_logger().info(
                 f"DRY-RUN preview enabled — planning {task_count} step(s) "
                 f"without moving the robot"
             )
 
-        # The cache lookup is deferred until after batching (below): only a goal
-        # that groups into exactly ONE batched batch is cacheable, because a
-        # single per-goal key cannot distinguish multiple batches' distinct
-        # start/goal states.
         cached_plan_for_replay: dict | None = None
 
-        # Initialize gripper state
         self._set_current_gripper(start_gripper)
 
-        # Apply cup_profile override if parameter was changed via MCP. Set it
-        # on the MoveIt manager instead of writing into self._grippers, which
-        # is a reference into the shared, cached beamline config (see
-        # config_loader.load_beamline_config). Empty/cleared param falls back to
-        # the gripper's YAML cup_profile.
+        # Avoid mutating shared beamline config; empty override uses YAML default.
         self._moveit_manager.cup_override = (
             self.get_parameter("cup_profile").value or ""
         )
 
-        # Step 1: Launch MoveIt for the gripper configuration
+        # Start MoveIt with the requested gripper.
         self._update_feedback(
             feedback, goal_handle, 0, task_count, "Initializing MoveIt"
         )
@@ -656,8 +531,7 @@ class MTCOrchestratorServer(Node):
             goal_handle.abort()
             return result
 
-        # Include the active model revision so a tool/cup change cannot replay
-        # a trajectory planned against different collision geometry.
+        # Model revision prevents replay across collision-geometry changes.
         goal_key = PlanCache.compute_key(
             goal_handle.request.full_json,
             start_gripper,
@@ -665,11 +539,9 @@ class MTCOrchestratorServer(Node):
             self._moveit_manager.current_arm_joints(),
         )
 
-        # Publish running state before starting task execution
         self._publish_state("RUNNING")
 
-        # Dry-run and live runs share grouping so previews replay against the
-        # same batch structure.
+        # Keep dry-run and live batch boundaries identical.
         batches = group_into_batches(
             tasks,
             enabled=self._enable_batching,
@@ -678,16 +550,7 @@ class MTCOrchestratorServer(Node):
             f"Grouped {task_count} tasks into {len(batches)} batches"
         )
 
-        # Trajectory-cache eligibility: cache ONLY when the whole goal is a
-        # single batched batch. A goal with any breaker (vision, pick/place,
-        # pipettor, tool_exchange) or with batching disabled splits into
-        # multiple batches that would all share this one per-goal key — storing
-        # under it would let the last batch overwrite the first and replay the
-        # wrong move (see #97 review). Those goals skip the cache and plan
-        # fresh. This still covers the repeated single-move case (A->B->A) the
-        # cache exists for. A single batched batch also implies no mid-goal tool
-        # exchange, so start_gripper == _current_gripper throughout — the key's
-        # gripper and the stored solution's gripper can't desync.
+        # Cache only one-batch goals; one key cannot represent multiple starts.
         cache_eligible = len(batches) == 1 and batches[0][0] == "batched"
         if cache_eligible and not dry_run:
             cached_plan_for_replay = self._plan_cache.get(goal_key)
@@ -696,14 +559,11 @@ class MTCOrchestratorServer(Node):
                     "Trajectory cache hit — replaying stored plan without re-planning"
                 )
 
-        # Track overall task index for feedback
         completed_tasks = 0
 
-        # Execute each batch
         for batch_type, batch_tasks in batches:
             batch_size = len(batch_tasks)
 
-            # Check for cancellation at batch boundary
             if goal_handle.is_cancel_requested:
                 self.get_logger().warning(
                     f"Task cancelled after step {completed_tasks}/{task_count}"
@@ -713,11 +573,9 @@ class MTCOrchestratorServer(Node):
                 goal_handle.canceled()
                 return result
 
-            # Check for pause request at batch boundary
             if self._pause_requested:
                 self._handle_pause(feedback, goal_handle, completed_tasks, task_count)
 
-                # Check if cancelled DURING pause
                 if goal_handle.is_cancel_requested:
                     self.get_logger().warning(
                         f"Task cancelled while paused at step {completed_tasks}/{task_count}"
@@ -727,8 +585,7 @@ class MTCOrchestratorServer(Node):
                     goal_handle.canceled()
                     return result
 
-            # Vacuum-loss abort DISABLED — even if the ePick reports a dropped
-            # object, the sequence continues instead of aborting.
+            # Vacuum loss is telemetry-only; abort logic remains disabled.
             # if not dry_run:
             #     vacuum_error = self._vacuum.check_lost()
             #     if vacuum_error:
@@ -738,7 +595,7 @@ class MTCOrchestratorServer(Node):
             #         self._publish_state("IDLE")
             #         return result
 
-            # Check if MoveIt subprocess is still alive before dispatching
+            # Verify MoveIt before dispatch.
             if not self._moveit_manager.is_moveit_alive():
                 exit_info = self._moveit_manager.get_moveit_exit_info()
                 result.error_message = (
@@ -750,7 +607,6 @@ class MTCOrchestratorServer(Node):
                 return result
 
             if batch_type == "batched":
-                # Execute batch of batchable tasks as single MTC Task
                 batch_desc = ", ".join(t.get("task_type", "?") for t in batch_tasks)
                 self._update_feedback(
                     feedback,
@@ -760,13 +616,8 @@ class MTCOrchestratorServer(Node):
                     f"batch[{batch_size}]: {batch_desc}",
                 )
 
-                # Controller activation is intentionally NOT done here: the
-                # ur_control.launch.py spawner and the UR driver's
-                # controller_stopper_node (which restarts controllers it stopped
-                # on a connection drop) own it. An earlier in-orchestrator
-                # activation helper raced the spawner ("already active" failures)
-                # and was removed — re-add only with connection-drop recovery
-                # stress-tested on Jazzy.
+                # UR launch infrastructure owns controller activation. Previous
+                # orchestrator activation raced the spawner.
 
                 self._last_planned_sol_msg = None
                 ok = self._execute_batch(
@@ -785,14 +636,8 @@ class MTCOrchestratorServer(Node):
                     goal_handle.abort()
                     return result
 
-                # Cache the planned trajectory (serialized Solution msg) under
-                # this key so a future identical move replays it instead of
-                # re-planning. Only when cache_eligible (single batched batch),
-                # so a multi-batch goal can never store distinct moves under one
-                # shared key. Applies to both a dry-run preview and a fresh
-                # execute. A cache *hit* replays without planning, leaving
-                # _last_planned_sol_msg None, so this correctly skips re-storing
-                # an entry that already exists — and never evicts it on execute.
+                # Store fresh single-batch plans. Replays leave
+                # _last_planned_sol_msg unset, avoiding redundant writes.
                 if cache_eligible and self._last_planned_sol_msg is not None:
                     self._plan_cache.store(
                         goal_key, self._last_planned_sol_msg, self._current_gripper
@@ -805,7 +650,6 @@ class MTCOrchestratorServer(Node):
                 completed_tasks += batch_size
 
             else:
-                # Execute single task via action server (non-batchable)
                 task = batch_tasks[0]
                 task_type = task.get("task_type", "")
 
@@ -817,13 +661,8 @@ class MTCOrchestratorServer(Node):
                     goal_handle.abort()
                     return result
 
-                # Dry-run safety net: the parser already rejects unsupported
-                # types, but if batching is disabled by parameter, even
-                # supported types fall through to this single-task path which
-                # would actually execute. Route them through _execute_batch
-                # instead so dry_run is honored. This path is NOT cache_eligible
-                # (a single/non-batched batch), so no trajectory is stored here —
-                # the cache only operates on single-batched-batch goals.
+                # With batching disabled, route dry runs through planning to avoid
+                # hardware motion. Single-task dry runs are not cached.
                 if dry_run:
                     self._update_feedback(
                         feedback,
@@ -903,9 +742,7 @@ class MTCOrchestratorServer(Node):
 
             result.completed_steps = completed_tasks
 
-            # Graceful cancellation finishes the active execution unit, then
-            # stops before dispatching more work. This post-check is required
-            # for the final batch, where there is no next boundary check.
+            # Catch cancellation during the final execution unit.
             if goal_handle.is_cancel_requested:
                 self.get_logger().warning(
                     f"Task cancelled after step {completed_tasks}/{task_count}"
@@ -914,8 +751,7 @@ class MTCOrchestratorServer(Node):
                 goal_handle.canceled()
                 return result
 
-        # Final vacuum-loss abort DISABLED — a drop during the last step no
-        # longer aborts; the sequence is reported complete regardless.
+        # Final vacuum loss does not change successful completion.
         # if not dry_run:
         #     vacuum_error = self._vacuum.check_lost()
         #     if vacuum_error:
@@ -925,11 +761,8 @@ class MTCOrchestratorServer(Node):
         #         self._publish_state("IDLE")
         #         return result
 
-        # Success
         result.success = True
-        result.total_steps = task_count
 
-        # Propagate detected pose from detect_only vision_moveto
         if self._last_detected_position is not None:
             result.detected_position = self._last_detected_position
         if self._last_detected_orientation is not None:
@@ -940,14 +773,11 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Orchestration goal completed successfully")
         return result
 
-    # ------------------------------------------------------------------
     def _execute_step(
         self, task_type: str, step: dict[str, Any], poses_json: str
     ) -> bool:
         """Execute a single step by dispatching to the appropriate action server."""
-        # Controller activation is intentionally NOT done here — owned by the
-        # ur_control.launch.py spawner + UR driver controller_stopper_node
-        # (see the batched-execution path in _execute for the full rationale).
+        # UR launch infrastructure owns controller activation.
 
         self.get_logger().info(f"Executing step: {task_type}")
 
@@ -971,15 +801,7 @@ class MTCOrchestratorServer(Node):
     def _send_and_wait(
         self, client: ActionClient, goal, name: str, timeout: float
     ) -> bool:
-        """Send a goal to an action client and wait for result.
-
-        Uses polling instead of spin_until_future_complete to avoid
-        executor conflicts (this callback is already being spun by
-        the MultiThreadedExecutor).
-
-        On failure, stores error_message in self._last_error for propagation
-        to the orchestrator result.
-        """
+        """Send a child goal and poll without re-entering the executor."""
         self._last_error = ""
 
         if hasattr(goal, "robot_model_revision"):
@@ -990,13 +812,11 @@ class MTCOrchestratorServer(Node):
                 return False
             goal.robot_model_revision = revision
 
-        # Wait for server
         if not client.wait_for_server(timeout_sec=5.0):
             self._last_error = f"TIMEOUT: {name} action server unavailable (waited 5s)"
             self.get_logger().error(self._last_error)
             return False
 
-        # Send goal and wait for acceptance
         send_future = client.send_goal_async(goal)
         if not wait_for_future(send_future, timeout=10.0):
             self._faulted = True
@@ -1011,7 +831,6 @@ class MTCOrchestratorServer(Node):
             self.get_logger().error(self._last_error)
             return False
 
-        # Wait for result with caller-provided timeout
         result_future = goal_handle.get_result_async()
         if not wait_for_future(result_future, timeout=timeout):
             self._faulted = True
@@ -1023,7 +842,6 @@ class MTCOrchestratorServer(Node):
         result = result_future.result()
         self._last_result = result.result
         if not result.result.success:
-            # Capture the real error_message from the action server
             self._last_error = (
                 getattr(result.result, "error_message", "")
                 or f"{name} failed (no details)"
@@ -1049,12 +867,7 @@ class MTCOrchestratorServer(Node):
         )
 
     def _gripper_ik_frame(self) -> str:
-        """Return the IK tip frame for the currently attached gripper.
-
-        Reads grippers.<name>.tip_frame from the active beamline YAML. The
-        single source of truth lives there so adding a gripper at a new
-        beamline is a YAML edit, not a code change.
-        """
+        """Return configured IK tip frame for the current gripper."""
         from beambot.config_loader import gripper_tip_frame
 
         return gripper_tip_frame(self._current_gripper, default="flange")
@@ -1075,29 +888,16 @@ class MTCOrchestratorServer(Node):
         return success
 
     def _call_vision_scan(self, step: dict[str, Any], poses_json: str) -> bool:
-        """Call the VisionScan action server to batch-scan all markers.
-
-        Scans from multiple positions, detects ALL visible markers at each
-        position (with multiple captures per position), averages the poses,
-        and caches them. Subsequent vision_moveto calls will use cached poses.
-
-        Task JSON format:
-        {
-            "task_type": "vision_scan",
-            "scan_positions": ["pose_key_1", "pose_key_2", "pose_key_3"],
-            "scans_per_position": 3,  // optional, default: 3
-            "timeout": 10.0           // optional, per-capture timeout
-        }
-        """
+        """Scan configured poses and cache detected marker poses."""
         goal = VisionScanAction.Goal()
         goal.scans_per_position = int(step.get("scans_per_position", 3))
         goal.timeout = float(step.get("timeout", 10.0))
         goal.poses_json = poses_json
 
-        # Parse scan positions from pose keys
         scan_position_keys = step.get("scan_positions", [])
         if not scan_position_keys:
-            self.get_logger().error("vision_scan requires 'scan_positions' list")
+            self._last_error = "vision_scan requires 'scan_positions' list"
+            self.get_logger().error(self._last_error)
             return False
 
         poses = json.loads(poses_json)
@@ -1106,7 +906,7 @@ class MTCOrchestratorServer(Node):
 
         for key in scan_position_keys:
             if key in poses:
-                # Convert degrees to radians (poses in JSON are in degrees)
+                # Pose files store joint angles in degrees.
                 joints_deg = poses[key]
                 joints_rad = [math.radians(j) for j in joints_deg]
                 scan_positions_flat.extend(joints_rad)
@@ -1117,7 +917,8 @@ class MTCOrchestratorServer(Node):
                 )
 
         if valid_positions == 0:
-            self.get_logger().error("No valid scan positions found")
+            self._last_error = "No valid scan positions found"
+            self.get_logger().error(self._last_error)
             return False
 
         goal.scan_positions_flat = scan_positions_flat
@@ -1132,13 +933,8 @@ class MTCOrchestratorServer(Node):
             self._vision_scan_client, goal, "vision_scan", self._timeouts["vision_scan"]
         )
 
-    # Preset aliases (issue #88): each legacy vision task_type expands to a set
-    # of VisionTask params. The task JSON's own fields override the preset (merge
-    # order in _call_vision_task), so {"task_type":"pick_sample","tag_id":5} works
-    # the same as the fully-explicit {"task_type":"vision_task","detector":
-    # "marker","goal_computer":"approach_pose","terminal_action":"grasp",...}.
-    # Adding a vision task type is one entry here — no new handler.
-    #   watchdog: "arm" after a successful grasp / "disarm" after release / "".
+    # Legacy task names map to VisionTask defaults; explicit fields override them.
+    # Watchdog preserves ePick vacuum state across goals.
     _VISION_PRESETS = {
         "vision_moveto": {"detector": "marker", "goal_computer": "approach_pose"},
         "pick_sample": {
@@ -1174,27 +970,16 @@ class MTCOrchestratorServer(Node):
         },
     }
 
-    # Task types routed to the unified vision pipeline: the canonical
-    # "vision_task" (params straight from the JSON) plus the preset aliases.
+    # Route canonical and preset names through VisionTask.
     _VISION_TASK_TYPES = frozenset({"vision_task", *_VISION_PRESETS})
 
     def _call_vision_task(
         self, task_type: str, step: dict[str, Any], poses_json: str
     ) -> bool:
-        """Single handler for every vision-guided task (issue #88).
-
-        Builds one VisionTask goal from the preset for `task_type` (or, for
-        task_type=="vision_task", straight from the step), sends it to the one
-        vision_task server, then runs the only two things that must stay
-        orchestrator-side: detect_only pose caching and the cross-task vacuum
-        watchdog (it outlives the goal — armed at pick, checked through
-        transport, disarmed at place). ALL motion is server-side.
-        """
+        """Dispatch vision tasks and retain cross-goal pose and vacuum state."""
         preset = self._VISION_PRESETS.get(task_type, {})
 
-        # Hardcoded (non-vision) pick/place is a detection-free joint sequence —
-        # it doesn't fit the detect-first pipeline, so it stays on the legacy
-        # sample server.
+        # Non-vision pick/place stays on the sample server.
         if task_type in ("pick_sample", "place_sample") and not step.get(
             "use_vision", True
         ):
@@ -1204,13 +989,13 @@ class MTCOrchestratorServer(Node):
                 else self._call_place_sample_hardcoded
             )(step, poses_json)
 
-        # Merge: preset defaults < explicit task-JSON fields.
+        # Explicit fields override preset defaults.
         cfg = {**preset, **step}
-        # Legacy detection_type is an explicit task selector, not a preset default.
+        # Canonical detector overrides legacy detection_type.
         if "detector" not in step and "detection_type" in step:
             cfg["detector"] = step["detection_type"]
 
-        # Settle (orchestrator-side, before any server motion), capped at 10s.
+        # Cap pre-motion settling at 10 seconds.
         settle_time = min(float(cfg.get("settle_time", 1.0)), 10.0)
         if settle_time > 0:
             self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
@@ -1231,9 +1016,7 @@ class MTCOrchestratorServer(Node):
                     f"Stored detected pose: [{pos[0]:.4f}, {pos[1]:.4f}, {pos[2]:.4f}]"
                 )
 
-        # Cross-task vacuum watchdog (ePick only). The server reports vacuum_ok;
-        # the watchdog state persists across the transport steps between pick and
-        # place, so it must live here, not in the per-goal server.
+        # ePick watchdog spans goals, so its state remains in the orchestrator.
         watchdog = preset.get("watchdog", "")
         if success and watchdog and self._current_gripper == "epick":
             if watchdog == "arm" and getattr(self._last_result, "vacuum_ok", True):
@@ -1246,11 +1029,7 @@ class MTCOrchestratorServer(Node):
         return success
 
     def _build_vision_goal(self, cfg: dict[str, Any], poses_json: str):
-        """Assemble a VisionTask goal from a merged preset+step config dict.
-
-        Orchestrator-owned fields (gripper config, IK frame) are filled here;
-        everything else comes from cfg with sane defaults.
-        """
+        """Build a VisionTask goal from merged preset and task fields."""
         gripper_config = self._grippers.get(
             cfg.get("gripper", self._current_gripper), {}
         )
@@ -1272,7 +1051,7 @@ class MTCOrchestratorServer(Node):
         goal.marker_offset_z = float(cfg.get("marker_offset_z", 0.0))
         goal.offset_direction = cfg.get("offset_direction", "")
         goal.offset_distance = float(cfg.get("offset_distance", 0.0))
-        # j6_snap (spincoater): accept legacy place_pose/pickup_pose for target.
+        # Preserve legacy spincoater target fields.
         goal.target_pose = (
             cfg.get("target_pose")
             or cfg.get("place_pose")
@@ -1285,7 +1064,7 @@ class MTCOrchestratorServer(Node):
         goal.scan_pose = cfg.get("scan_pose", "")
         goal.terminal_action = cfg.get("terminal_action", "")
         goal.pre_open = bool(cfg.get("pre_open", False))
-        # retreat_from_scan: pick/place retreat to the scan pose after the action.
+        # Pick/place may retreat to the scan pose.
         if cfg.get("retreat_from_scan"):
             goal.retreat_pose = cfg.get("scan_pose", "")
         else:
@@ -1300,7 +1079,7 @@ class MTCOrchestratorServer(Node):
             json.dumps(cfg["constraints"]) if "constraints" in cfg else ""
         )
 
-        # Multi-position scan averaging (vision_moveto): flatten pose keys -> radians.
+        # Flatten multi-position joint poses in radians.
         scan_keys = cfg.get("scan_positions", [])
         if scan_keys:
             poses = json.loads(poses_json) if poses_json else {}
@@ -1378,7 +1157,6 @@ class MTCOrchestratorServer(Node):
         goal.volume_pct = float(step.get("volume_pct", 0.0))
         goal.poses_json = poses_json
 
-        # Parse LED color if provided
         if "led_color" in step:
             led = step["led_color"]
             goal.led_color = ColorRGBA()
@@ -1415,20 +1193,7 @@ class MTCOrchestratorServer(Node):
 
 def main(args=None):
     """Run the MTC Orchestrator server."""
-    rclpy.init(args=args)
-    node = MTCOrchestratorServer()
-
-    # Use multithreaded executor for concurrent action client calls
-    executor = MultiThreadedExecutor()
-    executor.add_node(node)
-
-    try:
-        executor.spin()
-    except KeyboardInterrupt:
-        node.get_logger().info("Shutting down MTC Orchestrator...")
-    finally:
-        node.destroy_node()
-        rclpy.shutdown()
+    run_server(MTCOrchestratorServer, args)
 
 
 if __name__ == "__main__":

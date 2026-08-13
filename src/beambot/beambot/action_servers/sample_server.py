@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""PickSampleAction and PlaceSampleAction server.
-
-Dual action server hosting both pick and place operations. Both share
-the same camera config but use separate stages instances.
-
-Replaces pick_place_server.py and vision_pick_place_server.py.
-"""
+"""Serve pick and place sample actions with shared camera configuration."""
 
 from rclpy.action import ActionServer
 
@@ -16,22 +10,16 @@ from beambot_interfaces.action import PickSampleAction, PlaceSampleAction
 
 
 class SampleActionServer(BaseActionServer):
-    """Action server for pick and place sample operations.
-
-    Hosts two actions:
-    - PickSampleAction: Unified pick with optional vision guidance + vacuum check
-    - PlaceSampleAction: Unified place with optional vision guidance
-    """
+    """Host PickSampleAction and PlaceSampleAction."""
 
     def __init__(self):
-        """Initialize the Sample action server."""
         super().__init__(
             node_name="beambot_sample_server",
             action_name="beambot_pick_sample",
             action_type=PickSampleAction,
         )
 
-        # Second action server for place_sample
+        # Base class owns pick; register place separately.
         self._place_action_server = ActionServer(
             self,
             PlaceSampleAction,
@@ -39,16 +27,14 @@ class SampleActionServer(BaseActionServer):
             execute_callback=self._execute_place,
             goal_callback=self._goal_callback,
         )
-        self.get_logger().info("PlaceSample action server started: beambot_place_sample")
+        self.get_logger().info(
+            "PlaceSample action server started: beambot_place_sample"
+        )
 
     def create_stages(self):
-        """Build PickSampleStages (returned) and PlaceSampleStages (side effect).
-
-        Both stages share the same camera config. The base class owns
-        self._stages; the place-side lives on self._place_stages, set here
-        because place shares the same config load.
-        """
+        """Create pick and place stages with shared camera settings."""
         from beambot.config_loader import load_beamline_config
+
         config, _ = load_beamline_config()
         camera_config = config.get("camera", {})
         self.get_logger().info(
@@ -66,7 +52,7 @@ class SampleActionServer(BaseActionServer):
         return PickSampleStages(self, **cam_kwargs)
 
     def _execute(self, goal_handle):
-        """Execute PickSampleAction."""
+        """Run pick stages."""
         goal = goal_handle.request
         error = self._stages.run(goal)
 
@@ -81,22 +67,21 @@ class SampleActionServer(BaseActionServer):
             if self._stages.last_detected_pose is not None:
                 pose = self._stages.last_detected_pose.pose
                 result.detected_position = [
-                    pose.position.x, pose.position.y, pose.position.z,
+                    pose.position.x,
+                    pose.position.y,
+                    pose.position.z,
                 ]
                 result.detected_orientation = [
-                    pose.orientation.x, pose.orientation.y,
-                    pose.orientation.z, pose.orientation.w,
+                    pose.orientation.x,
+                    pose.orientation.y,
+                    pose.orientation.z,
+                    pose.orientation.w,
                 ]
 
         return result
 
     def _execute_place(self, goal_handle):
-        """Execute PlaceSampleAction.
-
-        This is the direct execute_callback for the second ActionServer,
-        so it must call goal_handle.succeed()/abort() explicitly
-        (unlike _execute which goes through base class _execute_callback).
-        """
+        """Run place stages and finalize its directly registered goal."""
         try:
             goal = goal_handle.request
             error = self._place_stages.run(goal)
@@ -112,11 +97,15 @@ class SampleActionServer(BaseActionServer):
                 if self._place_stages.last_detected_pose is not None:
                     pose = self._place_stages.last_detected_pose.pose
                     result.detected_position = [
-                        pose.position.x, pose.position.y, pose.position.z,
+                        pose.position.x,
+                        pose.position.y,
+                        pose.position.z,
                     ]
                     result.detected_orientation = [
-                        pose.orientation.x, pose.orientation.y,
-                        pose.orientation.z, pose.orientation.w,
+                        pose.orientation.x,
+                        pose.orientation.y,
+                        pose.orientation.z,
+                        pose.orientation.w,
                     ]
 
                 goal_handle.succeed()
@@ -131,5 +120,5 @@ def main(args=None):
     run_server(SampleActionServer, args)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
