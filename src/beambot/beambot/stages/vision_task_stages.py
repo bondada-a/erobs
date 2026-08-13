@@ -55,6 +55,7 @@ class VisionTaskStages:
         self._vision = VisionEngine(rclpy_node, **vision_kwargs)
         # Surfaced to the server's _execute for result population.
         self.last_detected_pose = None
+        self.last_motion_kind = "none"
         self.vacuum_ok = True
         self.goal = None  # current goal, set per-run for executor helpers
 
@@ -66,6 +67,7 @@ class VisionTaskStages:
     def run(self, goal) -> "str | None":
         """Execute the pipeline. Returns None on success, an error string else."""
         self.last_detected_pose = None
+        self.last_motion_kind = "none"
         self.vacuum_ok = True
         self.goal = goal
         vision = self._vision
@@ -144,6 +146,7 @@ class VisionTaskStages:
             return None  # cache-only / nothing to execute
 
         # Stage 3: EXECUTE — one dispatch over the MotionTarget union.
+        self.last_motion_kind = target.kind
         error = self._execute_motion_target(target)
         if error is not None:
             return error

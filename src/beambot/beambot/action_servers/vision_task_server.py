@@ -60,9 +60,7 @@ class VisionTaskActionServer(BaseActionServer):
 
         result.success = True
         result.vacuum_ok = self._stages.vacuum_ok
-        result.motion_kind = (
-            "NONE" if self._stages.last_detected_pose else "CARTESIAN_POSE"
-        )
+        result.motion_kind = self._stages.last_motion_kind
         if self._stages.last_detected_pose is not None:
             pose = self._stages.last_detected_pose.pose
             result.detected_position = [

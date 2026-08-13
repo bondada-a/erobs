@@ -270,6 +270,7 @@ def _make_stages(fake):
         destroy_subscription=lambda *a, **k: None,
     )
     s.last_detected_pose = None
+    s.last_motion_kind = "none"
     s.vacuum_ok = True
     s.goal = None
     return s
@@ -319,6 +320,7 @@ def test_run_happy_path_executes_cartesian():
         fake.approach_pose,
         "epick_tip",
     )  # executor lifted the pose
+    assert stages.last_motion_kind == "cartesian"
 
 
 def test_run_detection_failed_does_not_move():
@@ -336,7 +338,22 @@ def test_run_detect_only_returns_pose_without_moving():
     err = stages.run(_goal(detect_only=True))
     assert err is None
     assert stages.last_detected_pose is fake.approach_pose
+    assert stages.last_motion_kind == "none"
     assert fake.moved_to is None  # no motion on detect_only
+
+
+def test_run_joint_target_reports_joint(monkeypatch):
+    from beambot.pipeline import registry
+
+    monkeypatch.setitem(
+        registry.GOAL_COMPUTERS,
+        "test_joint",
+        lambda detection, ctx: JointTarget(joints_deg=[0.0] * 6),
+    )
+    stages = _make_stages(_FakeVision())
+
+    assert stages.run(_goal(goal_computer="test_joint")) is None
+    assert stages.last_motion_kind == "joints"
 
 
 def test_run_unknown_detector_is_config_error():
