@@ -47,9 +47,9 @@ EROBS uses a two-container architecture for separating concerns:
 │  │  ┌─────────────────────────────▼───────────────────────────┐    │   │
 │  │  │  Specialized Action Servers                             │    │   │
 │  │  │  - MoveToActionServer      (joint/cartesian moves)      │    │   │
-│  │  │  - PickPlaceActionServer   (pick and place sequences)   │    │   │
+│  │  │  - SampleActionServer      (pick and place sequences)   │    │   │
 │  │  │  - EndEffectorActionServer (gripper control)            │    │   │
-│  │  │  - VisionMoveToActionServer (ArUco-guided moves)        │    │   │
+│  │  │  - VisionTaskActionServer  (vision-guided pipeline)     │    │   │
 │  │  │  - ToolExchangeActionServer (gripper swapping)          │    │   │
 │  │  │  - PipettorActionServer    (liquid handling)            │    │   │
 │  │  └─────────────────────────────┬───────────────────────────┘    │   │

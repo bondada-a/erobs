@@ -71,7 +71,6 @@ RUN test -n "$CACHEBUST" && git clone https://github.com/bondada-a/erobs.git -b 
 
 WORKDIR /root/ws/erobs/
 RUN /bin/bash -c "set -e && \
-    vcs import < src/ros2.repos src && \
     vcs import < src/end_effectors/end_effectors.repos src/end_effectors && \
     vcs import < src/vision/vision.repos src/vision && \
     rm -rf src/vision/zed-ros2-wrapper"

@@ -294,25 +294,6 @@ def joints_from_degrees(degrees: list[float]) -> dict[str, float]:
     }
 
 
-def create_wrist3_level_constraint() -> Constraints:
-    """Create a path constraint to keep wrist_3_joint level.
-
-    Used during pick operations to maintain tool orientation.
-
-    Returns:
-        Constraints message with wrist_3_joint locked at 0.0
-    """
-    constraint = Constraints()
-    jc = JointConstraint()
-    jc.joint_name = "wrist_3_joint"
-    jc.position = 0.0
-    jc.tolerance_above = 0.01
-    jc.tolerance_below = 0.01
-    jc.weight = 1.0
-    constraint.joint_constraints.append(jc)
-    return constraint
-
-
 def parse_constraints(constraints_dict: dict[str, Any] | None) -> Constraints | None:
     """Parse a constraints dict from task JSON into a Constraints msg.
 

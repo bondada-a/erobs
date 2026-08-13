@@ -239,12 +239,6 @@ class VisionEngine(BaseStages):
     # Tag Pose Cache Methods
     # =========================================================================
 
-    def clear_cache(self):
-        """Clear the tag pose cache."""
-        count = len(self._tag_pose_cache)
-        self._tag_pose_cache.clear()
-        self.logger.info(f"Tag pose cache cleared ({count} entries)")
-
     def get_cached_pose(self, tag_id: int) -> PoseStamped | None:
         """Get cached pose for tag, or None if not cached."""
         return self._tag_pose_cache.get(tag_id)
