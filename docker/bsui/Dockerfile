@@ -54,7 +54,6 @@ RUN git clone https://github.com/bondada-a/erobs.git -b jazzy_dev
 WORKDIR /root/ws/erobs/
 # Import all repos including vision and end_effectors
 RUN /bin/bash -c "set -e && \
-  vcs import < src/ros2.repos src && \
   vcs import < src/end_effectors/end_effectors.repos src/end_effectors && \
   vcs import < src/vision/vision.repos src/vision && \
   apt-get update && \

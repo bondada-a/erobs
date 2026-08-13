@@ -29,8 +29,3 @@ docker build -f docker/jazzy/Dockerfile \
   --build-arg CACHEBUST=$(date +%s) \
   -t erobs-jazzy:latest .
 ```
-
-## Smoke test
-
-After building, run [`scripts/jazzy-smoke-test.sh`](../scripts/jazzy-smoke-test.sh)
-to verify the image has a working ROS 2 environment and all erobs packages.

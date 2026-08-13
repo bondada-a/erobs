@@ -32,7 +32,7 @@ authored manually, driven by an LLM over MCP, or — eventually — orchestrated
 
 Four entry points — honest labels:
 
-1. **PyQt5 GUI** — *primary manual interface.* `ros2 run mtc_gui mtc_gui_client`.
+1. **PyQt6 GUI** — *primary manual interface.* `ros2 run mtc_gui mtc_gui_client`.
    Per-task dialogs, camera overlays, pose editor, experiment runner. Also hosts an
    **experimental** chat panel backed by the `beambot.agent` module.
 2. **MCP + Claude Code** — *LLM-assisted operation.* `./start_mcp.sh` launches
@@ -51,12 +51,12 @@ Four entry points — honest labels:
 | Path | What it contains |
 |------|------------------|
 | [`src/beambot`](./src/beambot) | Orchestrator, per-task action servers, MTC stages, MCP server, beambot.agent, detection algorithms, batch planner |
-| [`src/beambot_interfaces`](./src/beambot_interfaces) | 9 ROS 2 action definitions (MTCExecution, MoveTo, EndEffector, PickSample, PlaceSample, ToolExchange, VisionMoveTo, VisionScan, Pipettor) |
-| [`src/mtc_gui`](./src/mtc_gui) | PyQt5 operator GUI (see its [README](./src/mtc_gui/README.md)) |
+| [`src/beambot_interfaces`](./src/beambot_interfaces) | 9 ROS 2 action definitions (MTCExecution, MoveTo, EndEffector, PickSample, PlaceSample, ToolExchange, VisionTask, VisionScan, Pipettor) |
+| [`src/mtc_gui`](./src/mtc_gui) | PyQt6 operator GUI (see its [README](./src/mtc_gui/README.md)) |
 | [`src/custom-ur-descriptions`](./src/custom-ur-descriptions) | UR5e URDF/xacro and MoveIt configs (one generic config that branches per gripper) |
 | [`src/end_effectors`](./src/end_effectors) | Gripper drivers + `epick_config` overlay ([README](./src/end_effectors/README.md)) |
 | [`src/vision`](./src/vision) | External vision repos (Zivid; ZED listed but not currently launched) |
-| [`src/cms`](./src/cms) | CMS beamline assets — `poses.yaml`, `beamtime_poses.yaml`, `experiments.md`, task JSONs. CMS is the live beamline; some paths are hardcoded here today |
+| [`src/cms`](./src/cms) | CMS beamline assets — `poses.yaml`, `experiments.md`, task JSONs. CMS is the live beamline; some paths are hardcoded here today |
 | [`src/lix`](./src/lix) | Placeholder for LIX beamline |
 | [`src/demos`](./src/demos) | `hello_orchestrator_py` tutorial package |
 | [`src/bluesky_ros`](./src/bluesky_ros) | Ophyd + Bluesky integration (see "How to interact" — currently broken) |
@@ -70,7 +70,6 @@ git clone https://github.com/bondada-a/erobs.git
 cd erobs
 
 # Import external dependencies
-vcs import src           < src/ros2.repos
 vcs import src/end_effectors < src/end_effectors/end_effectors.repos
 vcs import src/vision    < src/vision/vision.repos
 
@@ -103,20 +102,18 @@ ros2 run mtc_gui mtc_gui_client
 
 `beambot_bringup.launch.py` starts all action servers and the Zivid camera
 (conditionally); the orchestrator launches MoveIt lazily on the first goal based on the
-attached gripper. See [`docs/development.md`](./docs/development.md) for the full
-architecture, calibration history, and troubleshooting guide.
+attached gripper. See [`CLAUDE.md`](./CLAUDE.md) for development architecture and
+[`robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md) for task and
+robot-side troubleshooting details.
 
 ## Further reading
 
 - [`CLAUDE.md`](./CLAUDE.md) — development brief auto-loaded by Claude Code
   (repo layout, build/test commands, invariants)
-- [`docs/development.md`](./docs/development.md) — architecture, build, calibration
-  history, known issues
 - [`src/beambot/beambot/agent/robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md)
   — authoritative robot-operation reference: task JSON schema, MCP tool inventory,
   error taxonomy, gotchas (also loaded by the `robot-operation` skill)
 - [`src/cms/experiments.md`](./src/cms/experiments.md) — active experiment protocols
-- [`docs/archive/`](./docs/archive) — historical diagrams, PDFs, and prior-design notes
 
 ## License
 

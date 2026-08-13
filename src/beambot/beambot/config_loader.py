@@ -155,20 +155,6 @@ def gripper_tip_frame(gripper: str, default: str = "flange") -> str:
         return default
 
 
-def gripper_z_offset(gripper: str, default: float = 0.0) -> float:
-    """Return the default Z offset (meters) for a configured gripper.
-
-    Used by vision approach to push or pull the IK target along the gripper's
-    Z axis (e.g. -0.02 for Hand-E to clear finger thickness).
-    """
-    try:
-        config, _ = load_beamline_config()
-        val = config.get("grippers", {}).get(gripper, {}).get("z_offset", default)
-        return float(val)
-    except Exception:
-        return default
-
-
 def z_offset_for_tip_frame(tip_frame: str, default: float = 0.0) -> float:
     """Return the z_offset associated with a tip frame.
 
