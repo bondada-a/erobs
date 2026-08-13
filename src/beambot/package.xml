@@ -24,7 +24,6 @@
 
   <!-- MoveIt and MTC -->
   <depend>moveit_task_constructor_core</depend>
-  <depend>moveit_ros_planning_interface</depend>
 
   <!-- TF2 -->
   <depend>tf2_ros</depend>
@@ -65,7 +64,6 @@
   <depend>std_srvs</depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
-  <exec_depend>controller_manager_msgs</exec_depend>
 
   <test_depend>python3-pytest</test_depend>
 

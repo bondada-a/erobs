@@ -20,6 +20,7 @@ on:
           - all
           - beambot_bsui
           - erobs-jazzy
+          - jazzy_epics
       tag:
         description: 'Image tag (default: latest)'
         required: false
@@ -110,6 +111,50 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/erobs-jazzy:${{ github.event.inputs.tag }}
             ${{ env.REGISTRY }}/${{ github.repository_owner }}/erobs-jazzy:${{ github.sha }}
+          build-args: |
+            CACHEBUST=${{ github.run_id }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-jazzy-epics:
+    # EPICS bridge image (docker/epics/Dockerfile) — clones the epics_bridge
+    # branch internally, so only rebuild on explicit selection.
+    if: ${{ github.event.inputs.image == 'jazzy_epics' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/boost
+          df -h
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push jazzy_epics
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/epics/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/jazzy_epics:${{ github.event.inputs.tag }}
+            ${{ env.REGISTRY }}/${{ github.repository_owner }}/jazzy_epics:${{ github.sha }}
           build-args: |
             CACHEBUST=${{ github.run_id }}
           cache-from: type=gha

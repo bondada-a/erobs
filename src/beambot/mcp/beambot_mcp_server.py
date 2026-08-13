@@ -1418,7 +1418,7 @@ def _get_yolo_model():
         if not os.path.exists(model_path):
             raise FileNotFoundError(
                 f"YOLO model not found at {model_path}. "
-                "Train with scripts/collect_training_data.py + ultralytics."
+                "Provide a trained model at that path."
             )
         _yolo_model = YOLO(model_path)
         logger.info(f"YOLO model loaded from {model_path}")
