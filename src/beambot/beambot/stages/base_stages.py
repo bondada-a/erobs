@@ -878,7 +878,8 @@ class BaseStages:
         """
         try:
             mgr = getattr(self.rclpy_node, "_moveit_manager", None)
-            cur = getattr(mgr, "_joint_positions", None) if mgr else None
+            cur_values = mgr.current_arm_joints() if mgr else None
+            cur = dict(zip(DEFAULT_JOINT_NAMES, cur_values)) if cur_values else None
             subs = [s for s in sol_msg.sub_trajectory
                     if s.trajectory.joint_trajectory.joint_names
                     and s.trajectory.joint_trajectory.points]
