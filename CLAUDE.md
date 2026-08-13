@@ -34,7 +34,7 @@ the live-robot step to the ops skill.
 | `src/beambot/beambot/detection/` | Shared OpenCV detection (ArUco, Hough circles, contours, YOLO). **Single source of truth** — do not re-duplicate into `camera/zivid.py` or the MCP server |
 | `src/beambot/beambot/camera/` | Camera drivers — `zivid.py` (active), `zed.py` (broken, don't trust) |
 | `src/beambot/beambot/agent/` | **Experimental** direct Claude API + MCP loop. Reused by the GUI chat panel. Not production |
-| `src/beambot/mcp/beambot_mcp_server.py` | FastMCP server exposing ops tools (vision, pose registry, robot state). Entry for the `beambot` MCP server in `.mcp.json` |
+| `src/beambot/mcp_server/beambot_mcp_server.py` | FastMCP server exposing ops tools (vision, pose registry, robot state). Entry for the `beambot` MCP server in `.mcp.json` |
 | `src/beambot/config/cms_beamline.yaml` | Single config source (active beamline selected at runtime via `$BEAMBOT_BEAMLINE_CONFIG`): gripper list, MoveIt packages, tool voltages, dock numbers, vision targets, camera frames, `poses_file` path |
 | `src/beambot/launch/beambot_bringup.launch.py` | Launches all action servers + Zivid + orchestrator. Takes `enable_vision`, `enable_pipettor`, `use_mock_hardware`, `enable_batching` |
 | `src/beambot_interfaces/action/` | 9 `.action` definitions. When adding fields, update the corresponding `_create_*_goal` / `_call_*` method in `orchestrator.py` |
