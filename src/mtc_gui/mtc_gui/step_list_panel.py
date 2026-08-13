@@ -677,17 +677,6 @@ class StepListPanel(QWidget):
     def set_paused(self, paused: bool):
         self._exec_toolbar.set_paused(paused)
 
-    def reset_execution_state(self):
-        """Return all steps to PENDING (edit mode)."""
-        self._execution_active = False
-        self._editing_enabled = True
-        self._current_step = -1
-        self._elapsed_timer.stop()
-        self._exec_toolbar.hide()
-        for row in self._step_rows:
-            row.set_state(StepState.PENDING)
-            row.set_is_next(False)
-
     def selected_indices(self) -> list:
         """Return sorted list of selected step indices."""
         indices = []

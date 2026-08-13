@@ -1,7 +1,7 @@
 # EROBS — Development Reference
 
 This file is Claude Code's persistent brief for **developing** the EROBS stack
-(ROS 2 / MoveIt / Python orchestrator + PyQt5 GUI that controls a UR5e at the
+(ROS 2 / MoveIt / Python orchestrator + PyQt6 GUI that controls a UR5e at the
 NSLS-II CMS beamline). For **operating** the robot — task JSON, error
 recovery, gripper conventions — use the `robot-operation` skill instead
 (auto-loads on operator prompts, or invoke `/robot-operation`). Don't
@@ -10,8 +10,8 @@ duplicate ops content here.
 ## Routing: dev vs. ops
 
 - **Dev** (edit Python/C++/launch/config, run tests, review PRs, update
-  docs): you're in the right place. Read this file, use `docs/development.md`
-  for architecture + setup. For action field details, read the `.action`
+  docs): you're in the right place. This file is the architecture + setup
+  reference. For action field details, read the `.action`
   files in `src/beambot_interfaces/action/` and the corresponding `_call_*`
   methods in `orchestrator.py` — those are authoritative.
 - **Ops** (send `/beambot_execution` goals, author task JSON, diagnose a
@@ -38,14 +38,12 @@ the live-robot step to the ops skill.
 | `src/beambot/config/cms_beamline.yaml` | Single config source (active beamline selected at runtime via `$BEAMBOT_BEAMLINE_CONFIG`): gripper list, MoveIt packages, tool voltages, dock numbers, vision targets, camera frames, `poses_file` path |
 | `src/beambot/launch/beambot_bringup.launch.py` | Launches all action servers + Zivid + orchestrator. Takes `enable_vision`, `enable_pipettor`, `use_mock_hardware`, `enable_batching` |
 | `src/beambot_interfaces/action/` | 9 `.action` definitions. When adding fields, update the corresponding `_create_*_goal` / `_call_*` method in `orchestrator.py` |
-| `src/mtc_gui/` | PyQt5 operator cockpit (primary manual interface). `main_window.py` is the entry; task dialogs in `task_forms.py`; chat panel in `chat_panel.py` + `agent_bridge.py` (wires RobotAgent into Qt) |
+| `src/mtc_gui/` | PyQt6 operator cockpit (primary manual interface). `main_window.py` is the entry; task dialogs in `task_forms.py`; chat panel in `chat_panel.py` + `agent_bridge.py` (wires RobotAgent into Qt) |
 | `src/custom-ur-descriptions/cms_moveit_config/` | URDF / SRDF / MoveIt configs. SRDF has a separate xacro per gripper (`hande.srdf.xacro`, `epick.srdf.xacro`, `2fg7.srdf.xacro`, `pipettor.srdf.xacro`, `none.srdf.xacro`) stitched by `ur.srdf.xacro` |
-| `src/cms/` | CMS beamline assets: `poses.yaml` (pose registry — referenced by `poses_file` in `cms_beamline.yaml`, auto-resolved by the orchestrator), `beamtime_poses.yaml`, `experiments.md` (session protocols), `tasks/` (JSON task sequences) |
+| `src/cms/` | CMS beamline assets: `poses.yaml` (pose registry — referenced by `poses_file` in `cms_beamline.yaml`, auto-resolved by the orchestrator), `experiments.md` (session protocols), `tasks/` (JSON task sequences) |
 | `src/bluesky_ros/` | Ophyd wrapper for `/beambot_execution`. **Currently broken / not kept in sync with PickSample/PlaceSample split.** Don't assume it works |
 | `src/end_effectors/`, `src/vision/` | `vcs import`ed subtrees — gitignored. Edits here don't commit at this repo level |
 | `.claude/skills/robot-operation/SKILL.md` | Skill that pulls `src/beambot/beambot/agent/robot_operation.md` into context when a robot-ops prompt matches. The source file is the single truth |
-| `docs/development.md` | Architecture overview, calibration history, known issues |
-| `docs/archive/` | Historical audits, legacy plans, and the retired `mcp_ros_reference.md` (content now lives in `robot_operation.md`) |
 | `docs/robot_operation.md` | **Does not exist.** The ops reference lives at `src/beambot/beambot/agent/robot_operation.md` |
 
 ## Build, test, lint
@@ -68,12 +66,9 @@ ruff check --fix && ruff format
 ```
 
 **Build gotcha**: `ament_python_install_package(beambot)` copies only `.py`
-files from `src/beambot/beambot/` into `install/`. Non-`.py` data files
-(e.g. `robot_operation.md`) are NOT copied unless explicitly installed. If
-the agent loader breaks after a fresh build, that's why — resolve the
-path from the repo root via `git rev-parse --show-toplevel` rather than
-relying on `__file__` walk-up (matches the pattern `.mcp.json` already
-uses).
+files automatically. `src/beambot/CMakeLists.txt` explicitly installs
+`robot_operation.md` next to `beambot.agent`; keep that install rule aligned
+with `_PROMPT_PATH` in `robot_agent.py`.
 
 ## Invariants — don't silently change these
 
@@ -97,7 +92,7 @@ uses).
   dict in `orchestrator.py:909`. Forgetting any of these fails silently
   (wrong IK frame, missing SRDF state, no controller).
 - **`src/beambot/beambot/agent/robot_operation.md` is the shared ops
-  prompt** read by (a) the `robot-operation` skill, (b) `system_prompt.py`
+  prompt** read by (a) the `robot-operation` skill, (b) `robot_agent.py`
   for the agent CLI, (c) the GUI chat panel (via RobotAgent). Renaming
   or moving it breaks all three. If you need to change its content,
   edit it directly — there's no generated-from-source mirror.
@@ -132,9 +127,8 @@ outdated JSON.
 **Editing `beambot.agent`** (the direct Claude API loop): this is
 experimental; don't assume it's stable. The GUI chat panel imports the
 same `RobotAgent` class via `mtc_gui/agent_bridge.py`, so changes ripple
-to both surfaces. The system prompt is loaded by `system_prompt.py` from
-`robot_operation.md` — see the build-gotcha above about non-`.py` install
-paths.
+to both surfaces. `robot_agent.py` loads `robot_operation.md` from the
+same installed package directory.
 
 **Editing `.claude/skills/robot-operation/SKILL.md`**: the body is a
 `!`cat ${CLAUDE_SKILL_DIR}/...`` injection of the ops doc. To change what
@@ -147,6 +141,4 @@ or `src/vision/zivid-ros` — they're `vcs import`ed from
 
 ## Further reading
 
-- [`docs/development.md`](./docs/development.md) — full architecture, calibration history, known issues
 - [`src/beambot/beambot/agent/robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md) — robot-operation reference (consumed by the skill + agent CLI + GUI chat; don't read directly unless you're editing it)
-- [`docs/archive/`](./docs/archive) — historical diagrams, PDFs, prior-design notes, retired audits
