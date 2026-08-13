@@ -31,28 +31,19 @@ def _load_system_prompt() -> str:
 
 
 def _create_client():
-    """Create the right Anthropic client based on environment.
+    """Create an Anthropic client pointed at the NSLS-II Hermes gateway.
 
-    Bedrock: uses default AWS credential provider chain (~/.aws/credentials
-    or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY env vars). Region from
-    AWS_REGION env var or defaults to us-east-1.
-
-    Direct API: uses ANTHROPIC_API_KEY env var.
+    Auth via AIFAPIM_API_KEY (sent as the x-api-key header). Endpoint
+    overridable with HERMES_ENDPOINT; model with BEAMBOT_MODEL.
     """
-    if os.environ.get("CLAUDE_CODE_USE_BEDROCK") == "1":
-        from anthropic import AnthropicBedrock
+    from anthropic import Anthropic
 
-        region = os.environ.get(
-            "AWS_REGION", os.environ.get("AWS_DEFAULT_REGION", "us-east-1")
-        )
-        client = AnthropicBedrock(aws_region=region)
-        # Use regional model ID (us. prefix). For global routing use "global." prefix instead.
-        default_model = "us.anthropic.claude-opus-4-6-v1"
-        return client, default_model
-    else:
-        from anthropic import Anthropic
-
-        return Anthropic(), "claude-sonnet-4-5-20250514"
+    endpoint = os.environ.get("HERMES_ENDPOINT", "https://hermes.nsls2.bnl.gov")
+    client = Anthropic(
+        base_url=f"{endpoint}/anthropic",
+        api_key=os.environ["AIFAPIM_API_KEY"],
+    )
+    return client, os.environ.get("BEAMBOT_MODEL", "claude-sonnet-4-6")
 
 
 class RobotAgent:

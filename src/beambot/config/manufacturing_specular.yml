@@ -3,7 +3,7 @@
 # Serialized from the Zivid SDK 2.17.1 for model zivid2PlusMR60 (the camera at
 # this beamline). Presets are coupled to SDK versions, so this file pins the
 # values. Re-extract with the same SDK if the camera/SDK changes.
-# Used by scripts/trigger_zivid_capture.py (default --settings-file).
+# Used by scripts/survey_mapping/run_survey.py.
 __version__: 27
 Settings:
   Acquisitions:

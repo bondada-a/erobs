@@ -50,8 +50,6 @@ install(PROGRAMS
   # Perf / tracing utilities (ros2_tracing wrapper + report)
   scripts/perf_trace_run.sh
   scripts/perf_trace_summarize.py
-  # Rosbag helper: periodic Zivid capture trigger
-  scripts/trigger_zivid_capture.py
   # Octomap capture run: move through scan poses + capture to build a map
   scripts/capture_run.py
   DESTINATION lib/${PROJECT_NAME}

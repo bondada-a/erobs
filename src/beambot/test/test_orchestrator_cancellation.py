@@ -111,6 +111,7 @@ def test_cancel_finishes_active_batch_and_skips_remaining_work():
     result = server._execute_callback(goal)
 
     assert result.completed_steps == 2
+    assert result.total_steps == 3
     assert goal.canceled_count == 1
     assert goal.succeeded_count == 0
     assert admissions == [GoalResponse.REJECT]
@@ -226,12 +227,29 @@ def test_missing_child_terminal_result_latches_fault(monkeypatch):
     )
     completions = iter((True, False))
     monkeypatch.setattr(
-        orchestrator_module, "wait_for_future", lambda *_args, **_kwargs: next(completions)
+        orchestrator_module,
+        "wait_for_future",
+        lambda *_args, **_kwargs: next(completions),
     )
 
     assert not server._send_and_wait(client, object(), "child", 1.0)
     assert server._faulted
     child_goal.cancel_goal_async.assert_called_once_with()
+
+
+@pytest.mark.parametrize(
+    ("step", "message"),
+    [
+        ({}, "vision_scan requires 'scan_positions' list"),
+        ({"scan_positions": ["missing"]}, "No valid scan positions found"),
+    ],
+)
+def test_vision_scan_validation_propagates_error(step, message):
+    server = MTCOrchestratorServer.__new__(MTCOrchestratorServer)
+    server.get_logger = lambda: Mock()
+
+    assert not server._call_vision_scan(step, "{}")
+    assert server._last_error == message
 
 
 def test_unknown_moveit_goal_acceptance_is_not_safe_to_retry(monkeypatch):

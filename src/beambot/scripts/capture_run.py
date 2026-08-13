@@ -18,9 +18,8 @@ The map itself is built by the separate octomap pipeline
 octomap_to_planning_scene pushes it into MoveIt. This script only sequences
 move→capture and then saves the accumulated .bt.
 
-Capture trigger: `/capture` (std_srvs/srv/Trigger) — the plain 3D capture, no
-markers/detection. (trigger_zivid_capture.py uses /capture_and_detect_markers
-for an unrelated rosbag workflow; for raw-cloud mapping /capture is simpler.)
+Capture trigger: `/capture` (std_srvs/srv/Trigger) — the plain 3D capture
+without marker detection.
 
 Usage
 -----

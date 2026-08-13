@@ -6,6 +6,8 @@ vision-guided tasks: vision_moveto, vision-mode pick/place, and pick/place
 spincoater. The orchestrator routes them all here via VisionTask goals.
 """
 
+import threading
+
 from std_srvs.srv import Trigger
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
@@ -29,6 +31,30 @@ class VisionTaskActionServer(BaseActionServer):
             Trigger, "beambot_vision_task_reset_tf", self._reset_tf_callback
         )
         self.get_logger().info("TF reset service: beambot_vision_task_reset_tf")
+
+        # Warm torch/CUDA in the process that performs spincoater inference.
+        self._warmup_spincoater_model()
+
+    def _warmup_spincoater_model(self):
+        """Pre-load the spincoater sample YOLO model in a background daemon thread."""
+
+        def _warmup():
+            try:
+                import numpy as np
+                from beambot.detection.spincoater import _get_sample_model
+
+                self.get_logger().info(
+                    "Warming up spincoater sample model (background)..."
+                )
+                model = _get_sample_model()
+                # Dummy inference triggers CUDA kernel compilation / graph build.
+                dummy = np.zeros((640, 640, 3), dtype=np.uint8)
+                model(dummy, conf=0.5, verbose=False)
+                self.get_logger().info("Spincoater sample model ready")
+            except Exception as e:  # noqa: BLE001 — warmup is best-effort
+                self.get_logger().warning(f"Spincoater model warmup skipped: {e}")
+
+        threading.Thread(target=_warmup, daemon=True).start()
 
     def create_stages(self):
         """Build VisionTaskStages with camera config from the beamline YAML."""
