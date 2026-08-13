@@ -3,7 +3,7 @@
 Handles gripper open/close operations using SRDF-defined group states.
 """
 
-from moveit.task_constructor import core, stages
+from moveit.task_constructor import core
 from beambot.stages.base_stages import BaseStages
 
 
@@ -26,24 +26,16 @@ class EndEffectorStages(BaseStages):
         Returns:
             None if stages were added successfully, error string on failure
         """
-        if not goal.gripper_group:
-            self.logger.info("No gripper group - treating as no-op success")
-            return None  # No-op success for "none" or "pipettor" gripper
-
-        # Validate we have an action to perform
-        if not goal.end_effector_action:
-            error = "No end_effector_action specified"
-            self.logger.error(error)
-            return error
-
-        # Select planner if not provided
-        if planner is None:
-            planner = self.make_joint_interpolation_planner()
-
-        # Create MoveTo stage for gripper
-        stage = stages.MoveTo(f"gripper_{goal.end_effector_action}", planner)
-        stage.group = goal.gripper_group
-        stage.setGoal(goal.end_effector_action)
+        try:
+            stage = self.make_gripper_stage(
+                f"gripper_{goal.end_effector_action}",
+                planner,
+                goal.gripper_group,
+                goal.end_effector_action,
+            )
+        except ValueError as error:
+            self.logger.error(str(error))
+            return str(error)
 
         task.add(stage)
 
@@ -64,10 +56,6 @@ class EndEffectorStages(BaseStages):
         Returns:
             None if successful, error string describing failure otherwise
         """
-        if not goal.gripper_group:
-            self.logger.info("No gripper group - treating as no-op success")
-            return None  # No-op success for "none" or "pipettor" gripper
-
         task = self.create_task_template("EndEffector Task")
 
         error = self.add_to_task(task, goal)

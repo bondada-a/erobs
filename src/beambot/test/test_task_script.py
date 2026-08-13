@@ -11,10 +11,11 @@ import yaml
 from beambot.core.task_script import TASK_MACROS, moveto_goal_error, parse_task_script
 
 
-GRIPPERS = {"epick": {}, "pipettor": {}}
-VISION_TARGETS = yaml.safe_load(
+CMS_CONFIG = yaml.safe_load(
     (Path(__file__).parents[1] / "config" / "cms_beamline.yaml").read_text()
-)["vision_targets"]
+)
+GRIPPERS = CMS_CONFIG["grippers"]
+VISION_TARGETS = CMS_CONFIG["vision_targets"]
 SUPPORTED_TYPES = [
     "moveto",
     "end_effector",
@@ -31,11 +32,13 @@ SUPPORTED_TYPES = [
 ]
 
 
-def _parse(document, *, dry_run=False, vision_targets=VISION_TARGETS):
+def _parse(
+    document, *, dry_run=False, grippers=GRIPPERS, vision_targets=VISION_TARGETS
+):
     return parse_task_script(
         json.dumps(document),
         dry_run=dry_run,
-        grippers=GRIPPERS,
+        grippers=grippers,
         poses_file="/nonexistent",
         vision_targets=vision_targets,
     )
@@ -95,9 +98,67 @@ def test_live_run_accepts_supported_task_types(task_type):
     task = {"task_type": task_type}
     if task_type == "moveto":
         task["target"] = "home"
+    elif task_type == "end_effector":
+        task["end_effector_action"] = "vacuum_on"
     _, tasks, _, _ = _parse({"start_gripper": "epick", "tasks": [task]})
 
     assert tasks[0]["task_type"] == task_type
+
+
+@pytest.mark.parametrize(
+    ("task", "message"),
+    [
+        ({"task_type": "end_effector"}, "state is required"),
+        (
+            {"task_type": "end_effector", "end_effector_action": "missing"},
+            "unknown gripper state",
+        ),
+        (
+            {
+                "task_type": "end_effector",
+                "end_effector_type": "hande",
+                "end_effector_action": "hande_open",
+            },
+            "current gripper",
+        ),
+    ],
+)
+def test_task_script_rejects_invalid_requested_gripper_states(task, message):
+    with pytest.raises(ValueError, match=message):
+        _parse({"start_gripper": "epick", "tasks": [task]})
+
+
+def test_task_script_tracks_gripper_across_tool_exchange():
+    _, tasks, _, _ = _parse(
+        {
+            "start_gripper": "epick",
+            "tasks": [
+                {"task_type": "tool_exchange", "operation": "dock"},
+                {
+                    "task_type": "tool_exchange",
+                    "operation": "load",
+                    "gripper": "hande",
+                },
+                {
+                    "task_type": "end_effector",
+                    "end_effector_action": "hande_open",
+                },
+            ],
+        }
+    )
+
+    assert tasks[-1]["end_effector_action"] == "hande_open"
+
+
+def test_passive_tool_without_requested_gripper_operation_is_unchanged():
+    _, tasks, _, _ = _parse(
+        {
+            "start_gripper": "pipettor",
+            "tasks": [{"task_type": "vision_moveto", "tag_id": 1}],
+        }
+    )
+
+    assert tasks[0]["task_type"] == "vision_moveto"
 
 
 @pytest.mark.parametrize(
@@ -424,7 +485,7 @@ def test_checked_in_pickup_tasks_parse_to_primitive_steps():
         assert TASK_MACROS.keys().isdisjoint(task["task_type"] for task in tasks), path
 
 
-def test_unknown_final_task_has_zero_robot_side_effects():
+def _execute_with_effect_counters(document):
     orchestrator_module = pytest.importorskip(
         "beambot.action_servers.orchestrator", reason="requires ROS"
     )
@@ -432,19 +493,7 @@ def test_unknown_final_task_has_zero_robot_side_effects():
     effects = {"gripper": 0, "moveit": 0, "capture": 0, "motion": 0}
 
     class GoalHandle:
-        request = SimpleNamespace(
-            full_json=json.dumps(
-                {
-                    "start_gripper": "epick",
-                    "tasks": [
-                        {"task_type": "moveto", "target": "home"},
-                        {"task_type": "vision_scan"},
-                        {"task_type": "unknown"},
-                    ],
-                }
-            ),
-            dry_run=False,
-        )
+        request = SimpleNamespace(full_json=json.dumps(document), dry_run=False)
         is_cancel_requested = False
         abort_count = 0
 
@@ -495,7 +544,41 @@ def test_unknown_final_task_has_zero_robot_side_effects():
 
     goal_handle = GoalHandle()
     result = orchestrator._execute(goal_handle)
+    return result, goal_handle, effects
+
+
+def test_unknown_final_task_has_zero_robot_side_effects():
+    result, goal_handle, effects = _execute_with_effect_counters(
+        {
+            "start_gripper": "epick",
+            "tasks": [
+                {"task_type": "moveto", "target": "home"},
+                {"task_type": "vision_scan"},
+                {"task_type": "unknown"},
+            ],
+        }
+    )
 
     assert "tasks[2].task_type" in result.error_message
+    assert goal_handle.abort_count == 1
+    assert effects == {"gripper": 0, "moveit": 0, "capture": 0, "motion": 0}
+
+
+@pytest.mark.parametrize(
+    "task",
+    [
+        {"task_type": "end_effector", "end_effector_action": "vacuum_on"},
+        {"task_type": "pick_sample"},
+        {"task_type": "place_sample"},
+        {"task_type": "vision_task", "terminal_action": "release"},
+    ],
+    ids=("direct", "pick", "place", "vision"),
+)
+def test_invalid_gripper_operation_has_zero_robot_side_effects(task):
+    result, goal_handle, effects = _execute_with_effect_counters(
+        {"start_gripper": "pipettor", "tasks": [task]}
+    )
+
+    assert "configured gripper group" in result.error_message
     assert goal_handle.abort_count == 1
     assert effects == {"gripper": 0, "moveit": 0, "capture": 0, "motion": 0}
