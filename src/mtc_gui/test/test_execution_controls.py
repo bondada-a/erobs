@@ -1,24 +1,6 @@
 """Execution controls follow the orchestrator's published state."""
 
-import sys
-from types import ModuleType, SimpleNamespace
-
-try:
-    from action_msgs.msg import GoalStatus  # noqa: F401
-except ImportError:
-    action_msgs = ModuleType("action_msgs")
-    action_msgs_msg = ModuleType("action_msgs.msg")
-    action_msgs_msg.GoalStatus = object
-    sys.modules["action_msgs"] = action_msgs
-    sys.modules["action_msgs.msg"] = action_msgs_msg
-
-from mtc_gui.main_window import (
-    MTCMainWindow,
-    _build_task_defaults,
-    _execution_controls,
-    task_summary,
-)
-from mtc_gui.ros2_bridge import ROS2Bridge
+from types import SimpleNamespace
 
 
 class _Control:
@@ -40,7 +22,7 @@ class _StepList:
         return []
 
 
-def _window():
+def _window(MTCMainWindow):
     controls = [_Control() for _ in range(12)]
     window = SimpleNamespace(
         exec_btn=controls[0],
@@ -69,13 +51,13 @@ def _window():
     return window
 
 
-def test_pause_step_default_summary_and_preview_boundary():
-    assert _build_task_defaults({})["pause"] == {"task_type": "pause"}
-    assert task_summary({"task_type": "pause"}) == "Wait for operator to resume"
-    assert "pause" not in MTCMainWindow._DRY_RUN_SUPPORTED
+def test_pause_step_default_summary_and_preview_boundary(main_window):
+    assert main_window._build_task_defaults({})["pause"] == {"task_type": "pause"}
+    assert main_window.task_summary({"task_type": "pause"}) == "Wait for operator to resume"
+    assert "pause" not in main_window.MTCMainWindow._DRY_RUN_SUPPORTED
 
 
-def test_execution_state_projects_every_control():
+def test_execution_state_projects_every_control(main_window):
     expected = {
         "IDLE": (True, False, False, False, True, False),
         "RUNNING": (False, True, False, True, False, False),
@@ -84,15 +66,16 @@ def test_execution_state_projects_every_control():
         "UNKNOWN": (False, False, False, False, False, False),
     }
     for state, controls in expected.items():
-        assert _execution_controls(state) == controls
+        assert main_window._execution_controls(state) == controls
 
-    assert _execution_controls("IDLE", goal_pending=True) == (
+    assert main_window._execution_controls("IDLE", goal_pending=True) == (
         False, False, False, True, False, False
     )
 
 
-def test_active_state_clears_pending_goal_and_updates_widgets():
-    window = _window()
+def test_active_state_clears_pending_goal_and_updates_widgets(main_window):
+    MTCMainWindow = main_window.MTCMainWindow
+    window = _window(MTCMainWindow)
     window._goal_pending = True
 
     MTCMainWindow._on_execution_state(window, "IDLE")
@@ -107,7 +90,9 @@ def test_active_state_clears_pending_goal_and_updates_widgets():
     assert window.step_list.paused
 
 
-def test_bridge_caches_and_forwards_execution_state():
+def test_bridge_caches_and_forwards_execution_state(qapp):
+    from mtc_gui.ros2_bridge import ROS2Bridge
+
     bridge = ROS2Bridge()
     states = []
     bridge.execution_state_changed.connect(states.append)

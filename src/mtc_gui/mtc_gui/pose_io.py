@@ -11,15 +11,16 @@ Qt-free on purpose so the safety logic is unit-testable without a display.
 
 import os
 import tempfile
+from pathlib import Path
 
 import yaml
 
 
 def read_poses(path):
     """Return the pose registry dict, keeping only 6-element list entries."""
-    if not path or not os.path.exists(path):
+    if not path or not Path(path).exists():
         return {}
-    with open(path) as f:
+    with Path(path).open() as f:
         data = yaml.safe_load(f)
     if not isinstance(data, dict):
         return {}
@@ -27,15 +28,16 @@ def read_poses(path):
 
 
 def write_poses(path, poses):
-    """Atomically write ``poses`` to ``path`` (temp file then os.replace)."""
-    dir_path = os.path.dirname(os.path.realpath(path))
-    os.makedirs(dir_path, exist_ok=True)
+    """Atomically write ``poses`` to ``path`` (temp file then Path.replace)."""
+    dir_path = Path(path).resolve().parent
+    dir_path.mkdir(parents=True, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(dir=dir_path, suffix=".yaml.tmp")
+    tmp_path = Path(tmp_path)
     try:
         with os.fdopen(fd, "w") as f:
             yaml.dump(poses, f, default_flow_style=None, width=200)
-        os.replace(tmp_path, path)
+        tmp_path.replace(path)
     except BaseException:
-        if os.path.exists(tmp_path):
-            os.unlink(tmp_path)
+        if tmp_path.exists():
+            tmp_path.unlink()
         raise

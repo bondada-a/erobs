@@ -1,4 +1,4 @@
-"""Task edit form dialogs — base class + all 8 task type forms."""
+"""Task-editing dialogs for Beambot tasks."""
 
 import copy
 
@@ -33,9 +33,7 @@ from PyQt6.QtGui import QFont
 
 
 # --- Beamline-driven enumerations -----------------------------------------
-# Read fresh on each dialog open so the YAML is the single source. Soft-fails
-# to empty lists if BEAMBOT_BEAMLINE_CONFIG isn't set — operator sees an
-# empty dropdown and the GUI's startup banner already explains why.
+# Use the cached beamline configuration; unavailable settings return empty values.
 
 
 def _configured_grippers() -> list[str]:
@@ -695,8 +693,8 @@ class VisionScanForm(BaseTaskForm):
 
     def build_form(self):
         self.add_hint(
-            "Scans markers from multiple positions and caches averaged poses.\n"
-            "Subsequent vision_moveto tasks use the cache for faster detection."
+            "Scans markers from multiple positions and caches averaged poses "
+            "in the scan server."
         )
         self.form.addRow(QLabel("Scan Positions (one pose name per line):"))
         self.positions_text = QTextEdit()
@@ -1329,7 +1327,6 @@ class PickupTipForm(_GridSelectorForm):
         super().build_form()
         self._add_layout_hint(
             self._position_form,
-            "Tip rack: 8 rows (A-H) × 12 columns (1-12). "
             "Uses vision to align with marker, then moves to selected position.",
         )
 
@@ -1380,7 +1377,6 @@ class PickupVialForm(_GridSelectorForm):
         self._config_form.addRow(op_group)
         self._add_layout_hint(
             self._position_form,
-            "Vial rack: 2 rows (A-B) × 5 columns (1-5). "
             "Configure the pipettor action and movement in the Config tab.",
         )
 

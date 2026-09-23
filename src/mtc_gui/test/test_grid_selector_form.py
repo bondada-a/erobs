@@ -1,20 +1,12 @@
 """Headless checks for configurable rack task forms."""
 
-import os
-import sys
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-import pytest  # noqa: E402
+import pytest
 
 pytest.importorskip("PyQt6.QtWidgets", reason="PyQt6 not installed")
 
-from PyQt6.QtWidgets import QApplication  # noqa: E402
-
 import mtc_gui.task_forms as task_forms  # noqa: E402
 
-_app = QApplication.instance() or QApplication([])
+pytestmark = pytest.mark.usefixtures("qapp")
 
 
 TIP_CONFIG = {

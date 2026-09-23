@@ -49,9 +49,7 @@ try:
 except ImportError:
     WEBENGINE_AVAILABLE = False
 
-# Default task step templates. The grippers and end-effector action used as
-# placeholders are picked from the active beamline YAML so a fresh task on a
-# non-CMS beamline doesn't preselect grippers/states that don't exist locally.
+# Use the active beamline's tools and states for new task defaults.
 def _build_task_defaults(beamline_config: dict) -> dict:
     grippers = beamline_config.get("grippers", {}) if beamline_config else {}
     swappable = [g for g in grippers if g != "none"] or list(grippers.keys())
@@ -138,9 +136,7 @@ def _build_task_defaults(beamline_config: dict) -> dict:
     }
 
 
-# Module-level fallback for code that imports TASK_DEFAULTS without a config
-# (test paths). Populated with empty strings — a live GUI overrides this with
-# _build_task_defaults(self._beamline_config) after the YAML is loaded.
+# Fallback defaults without a beamline configuration.
 TASK_DEFAULTS = _build_task_defaults({})
 
 
@@ -218,22 +214,17 @@ class MTCMainWindow(QMainWindow):
         self.ros2 = ros2
         self.current_json_file = None
         self.current_robot_pose = None
-        # "human" or "agent" — tells _on_result whether to notify the bridge
+        # Agent-initiated runs must report their result to the agent bridge.
         self._execution_initiator = "human"
         self._last_goal_was_dry_run = False
         self._execution_state = None
         self._goal_pending = False
         self._execution_start_index = 0
 
-        # Load beamline YAML once, before _build_central uses fields from it.
-        # Soft-fail: GUI can still open as a JSON inspector when no robot is
-        # configured; operator can type the IP into the QLineEdit by hand.
+        # Load configuration before building the UI; missing YAML leaves fields empty.
         self._beamline_config, self._beamline_config_path = self._load_beamline_yaml()
 
-        # Default start_gripper: prefer the no-gripper "none" entry if declared
-        # so a fresh task doesn't preselect a tool the operator hasn't loaded.
-        # Otherwise fall back to the first declared gripper, then to "" if no
-        # YAML is loaded (test/inspector mode).
+        # Prefer "none", then the first configured gripper, or empty if unconfigured.
         grippers = self._beamline_config.get("grippers", {})
         if "none" in grippers:
             default_start_gripper = "none"
@@ -301,7 +292,7 @@ class MTCMainWindow(QMainWindow):
         layout = QVBoxLayout(central)
         layout.setContentsMargins(8, 8, 8, 8)
 
-        # Config bar (top) — flat header strip, no QGroupBox frame
+        # Robot configuration
         config_header = QLabel("ROBOT CONFIGURATION")
         config_header.setProperty("role", "section")
         layout.addWidget(config_header)
@@ -314,10 +305,7 @@ class MTCMainWindow(QMainWindow):
         config_layout.setSpacing(8)
         config_layout.addWidget(QLabel("Robot IP"))
         default_ip = self._beamline_config.get("robot", {}).get("ip", "")
-        # Read-only: the IP comes from $BEAMBOT_BEAMLINE_CONFIG (YAML is the
-        # single source of truth). Displayed here for operator awareness;
-        # not editable from the GUI to avoid silently diverging from what
-        # the orchestrator actually connects to.
+        # Display the configured IP without overriding the orchestrator's connection.
         self.robot_ip_edit = QLineEdit(default_ip)
         self.robot_ip_edit.setMaximumWidth(150)
         self.robot_ip_edit.setReadOnly(True)
@@ -331,7 +319,7 @@ class MTCMainWindow(QMainWindow):
         config_layout.addWidget(QLabel("Start Gripper"))
         self.gripper_combo = QComboBox()
         self.gripper_combo.addItems(list(self._beamline_config.get("grippers", {}).keys()))
-        # Changing gripper invalidates any cached dry-run plan (different SRDF).
+        # A different gripper requires a different robot model and preview.
         self.gripper_combo.currentTextChanged.connect(
             lambda _: self._set_plan_cached(False)
         )
@@ -349,7 +337,7 @@ class MTCMainWindow(QMainWindow):
         config_layout.addStretch()
         layout.addWidget(config_box)
 
-        # Main splitter — three panes: sidebar | center (steps) | right tabs
+        # Sidebar, task sequence and monitoring panels
         self.main_splitter = QSplitter(Qt.Orientation.Horizontal)
         layout.addWidget(self.main_splitter, stretch=1)
 
@@ -357,7 +345,7 @@ class MTCMainWindow(QMainWindow):
         self.main_splitter.addWidget(self._build_center_pane())
         self.main_splitter.addWidget(self._build_right_tabs())
 
-        # Sidebar narrow, center pane gets the room, right tabs middling
+        # Give the task sequence most of the available width.
         self.main_splitter.setStretchFactor(0, 0)
         self.main_splitter.setStretchFactor(1, 3)
         self.main_splitter.setStretchFactor(2, 2)
@@ -371,7 +359,7 @@ class MTCMainWindow(QMainWindow):
         self.left_tabs.setMinimumWidth(220)
         self.left_tabs.setMaximumWidth(320)
 
-        # --- TASKS tab: vertical add-task palette + templates section ---
+        # Task palette
         tasks_tab = QWidget()
         tasks_layout = QVBoxLayout(tasks_tab)
         tasks_layout.setContentsMargins(6, 6, 6, 6)
@@ -381,8 +369,6 @@ class MTCMainWindow(QMainWindow):
         add_label.setProperty("role", "section")
         tasks_layout.addWidget(add_label)
 
-        # The vertical task palette doubles as our self.task_toolbar so
-        # _execute / _on_result can still disable it during runs.
         self.task_toolbar = QListWidget()
         self.task_toolbar.setSelectionMode(QListWidget.SelectionMode.NoSelection)
         self.task_toolbar.setFocusPolicy(Qt.FocusPolicy.NoFocus)
@@ -430,7 +416,7 @@ class MTCMainWindow(QMainWindow):
         self.task_toolbar.itemClicked.connect(
             lambda it: self._add_task(it.data(Qt.ItemDataRole.UserRole))
         )
-        # Pin the palette to exactly fit all items so nothing is hidden behind a scrollbar.
+        # Keep every task type visible without scrolling.
         palette_h = (
             item_height * len(palette_items)
             + 2 * self.task_toolbar.spacing() * len(palette_items)
@@ -462,22 +448,20 @@ class MTCMainWindow(QMainWindow):
 
         self.left_tabs.addTab(tasks_tab, "Tasks")
 
-        # --- POSES tab ---
+        # Poses
         self.poses_panel = PosesPanel()
         self.poses_panel.poses_loaded.connect(self._on_poses_loaded)
-        # Double-click a pose to append a Move To step targeting it.
         self.poses_panel.pose_activated.connect(
             lambda name, _values: self._add_moveto_for_pose(name)
         )
         self.left_tabs.addTab(self.poses_panel, "Poses")
 
-        # --- RUNS tab ---
+        # Saved runs
         runs_tab = QWidget()
         runs_layout = QVBoxLayout(runs_tab)
         runs_layout.setContentsMargins(6, 6, 6, 6)
         runs_layout.setSpacing(6)
 
-        # Button row: Save + Rename + Delete + Refresh
         runs_btn_row = QHBoxLayout()
         self._save_run_btn = QPushButton("Save")
         self._save_run_btn.setToolTip("Save the current task sequence as a named run")
@@ -501,7 +485,6 @@ class MTCMainWindow(QMainWindow):
         runs_btn_row.addWidget(self._refresh_runs_btn)
         runs_layout.addLayout(runs_btn_row)
 
-        # Runs list
         self._runs_list = QListWidget()
         self._runs_list.setStyleSheet(
             "QListWidget { background-color: #161B24; border: 1px solid #2C3448;"
@@ -531,14 +514,13 @@ class MTCMainWindow(QMainWindow):
         center_layout.setContentsMargins(4, 4, 4, 4)
         center_layout.setSpacing(4)
 
-        # Top execution toolbar — Execute / Pause / Resume / Stop + progress
+        # Execution controls
         exec_bar = QFrame()
         exec_bar.setFrameShape(QFrame.Shape.NoFrame)
         exec_layout = QHBoxLayout(exec_bar)
         exec_layout.setContentsMargins(4, 4, 4, 4)
         exec_layout.setSpacing(8)
 
-        # Segmented run-control group — Execute | Pause | Resume | Stop
         run_bar = QFrame()
         run_bar.setObjectName("runBar")
         run_bar.setFrameShape(QFrame.Shape.NoFrame)
@@ -598,7 +580,6 @@ class MTCMainWindow(QMainWindow):
         exec_layout.addWidget(self.plan_cached_label)
 
         exec_layout.addSpacing(8)
-        # Hide the progress bar in idle state — empty bars look broken.
         self.progress_bar = QProgressBar()
         self.progress_bar.setVisible(False)
         exec_layout.addWidget(self.progress_bar, stretch=1)
@@ -610,7 +591,6 @@ class MTCMainWindow(QMainWindow):
         self.step_list.addActions([self.copy_action, self.paste_action])
         self.step_list.item_double_clicked.connect(self._edit_task_by_index)
         self.step_list.selection_changed.connect(self._update_execute_from_selected)
-        # Drop a pose onto the step list to append a Move To step targeting it.
         self.step_list.pose_dropped.connect(self._add_moveto_for_pose)
         self.step_list.steps_reordered.connect(self._reorder_steps)
         self.step_list.setSizePolicy(
@@ -618,7 +598,7 @@ class MTCMainWindow(QMainWindow):
         )
         center_layout.addWidget(self.step_list, stretch=1)
 
-        # Step reorder / remove controls — sit just under the step list
+        # Step editing controls
         step_ops_bar = QFrame()
         step_ops_bar.setFrameShape(QFrame.Shape.NoFrame)
         step_ops = QHBoxLayout(step_ops_bar)
@@ -643,14 +623,12 @@ class MTCMainWindow(QMainWindow):
             self.remove_step_btn,
             self.clear_steps_btn,
         ):
-            # Don't use setFlat — Fusion paints flat buttons natively and
-            # ignores QSS chrome. Keep them styled but secondary.
             b.setCursor(Qt.CursorShape.PointingHandCursor)
             step_ops.addWidget(b)
         step_ops.addStretch(1)
         center_layout.addWidget(step_ops_bar)
 
-        # Status log (bottom)
+        # Activity log
         log_label = QLabel("ACTIVITY LOG")
         log_label.setProperty("role", "section")
         center_layout.addWidget(log_label)
@@ -673,7 +651,7 @@ class MTCMainWindow(QMainWindow):
         return center
 
     def _build_right_tabs(self) -> QWidget:
-        """Right panel: Chat / Camera / 3D View tabs (unchanged from before)."""
+        """Build the chat, camera and optional 3D-view tabs."""
         self.right_tabs = QTabWidget()
 
         self.chat_panel = ChatPanel()
@@ -714,7 +692,7 @@ class MTCMainWindow(QMainWindow):
                 self.viz_panel.play_trajectory
             )
 
-        # Chat panel ↔ Agent bridge
+        # Agent messages and connection status
         self.chat_panel.message_submitted.connect(self._on_chat_message)
         self.agent_bridge.response_received.connect(self.chat_panel.append_assistant)
         self.agent_bridge.tool_called.connect(self.chat_panel.append_tool_call)
@@ -727,21 +705,21 @@ class MTCMainWindow(QMainWindow):
             lambda n: self.chat_panel.set_status(f"Connected ({n} tools)")
         )
 
-        # Agent → GUI task queue (Plan/Run mode)
+        # Agent task queue
         self.agent_bridge.tasks_proposed.connect(self._on_tasks_proposed)
         self.agent_bridge.tasks_cleared.connect(self._on_agent_tasks_cleared)
         self.agent_bridge.execution_requested.connect(self._on_agent_execute_requested)
 
-        # Mode toggle: chat panel ↔ bridge
+        # Agent mode
         self.chat_panel.mode_change_requested.connect(self.agent_bridge.set_mode)
         self.agent_bridge.mode_changed.connect(self._on_agent_mode_changed)
 
-        # Render execution result as a chat bubble for the agent's surface
+        # Show agent-initiated execution results in chat.
         self.agent_bridge.execution_outcome.connect(
             self.chat_panel.append_execution_outcome
         )
 
-        # Auto-connect agent on startup
+        # Connect the agent after wiring its signals.
         self.agent_bridge.set_config_getter(lambda: self.config)
         self.agent_bridge.connect_agent()
 
@@ -860,15 +838,13 @@ class MTCMainWindow(QMainWindow):
     # --- Agent-driven queue updates (Plan/Run mode) ---
 
     def _on_tasks_proposed(self, tasks: list, options: dict):
-        """Agent emitted propose_tasks. Populate the queue for human review."""
+        """Apply the agent's proposed tasks to the visible queue."""
         replace = options.get("replace", True)
         if replace:
             self.config["tasks"] = list(tasks)
         else:
             self.config["tasks"].extend(tasks)
-        # start_gripper must update the combobox — _execute snapshots from
-        # gripper_combo.currentText() at dispatch time, so writing only to
-        # config["start_gripper"] would be silently overwritten.
+        # Execution reads the combobox, so update it along with the proposed tasks.
         sg = options.get("start_gripper")
         if sg:
             idx = self.gripper_combo.findText(sg)
@@ -883,14 +859,14 @@ class MTCMainWindow(QMainWindow):
         )
 
     def _on_agent_tasks_cleared(self):
-        """Agent emitted clear_proposed_tasks."""
+        """Clear the task queue at the agent's request."""
         n = len(self.config["tasks"])
         self.config["tasks"] = []
         self._refresh_tree()
         self._log(f"Agent cleared the task queue ({n} step(s) removed)")
 
     def _on_agent_execute_requested(self):
-        """Agent emitted execute_queue (Run mode). Reuse the human Execute path."""
+        """Execute the agent's queue through the normal execution path."""
         if self.ros2._current_goal_handle is not None:
             self.agent_bridge.notify_execution_complete(
                 False, "Another goal is already executing", 0, 0
@@ -988,8 +964,7 @@ class MTCMainWindow(QMainWindow):
 
         from .task_forms import open_task_form
 
-        # Dropdowns show the UNION: registry poses first, inline poses on top
-        # (inline overrides a same-named registry pose for display only).
+        # Include registry poses without storing them inline; inline names take precedence.
         merged_poses = {**self.poses_panel.get_poses(), **self.config.get("poses", {})}
         preview_cb = self.viz_panel.preview_pose if (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")) else None
         end_preview_cb = self.viz_panel.end_preview if (WEBENGINE_AVAILABLE and hasattr(self, "viz_panel")) else None
@@ -1014,10 +989,7 @@ class MTCMainWindow(QMainWindow):
 
     def _refresh_tree(self):
         self.step_list.refresh(self.config["tasks"], task_summary)
-        # Any task list change invalidates the cached dry-run plan on the
-        # orchestrator (different goal JSON = different cache key). Mirror
-        # that on the client so the operator doesn't see "plan cached" for
-        # a task they just edited.
+        # Task edits make the displayed preview indicator stale.
         self._set_plan_cached(False)
 
     def _set_plan_cached(self, cached: bool, reason: str = ""):
@@ -1050,9 +1022,7 @@ class MTCMainWindow(QMainWindow):
 
     # --- Execution ---
 
-    # Task types previewable in v1 dry-run (must match orchestrator's
-    # DRY_RUN_SUPPORTED_TYPES). Mirrored client-side so the operator gets
-    # an immediate, friendly message instead of a goal rejection.
+    # Match the orchestrator's DRY_RUN_SUPPORTED_TYPES for immediate GUI validation.
     _DRY_RUN_SUPPORTED = {"moveto", "end_effector"}
 
     def _execute_from_selected(self):
@@ -1168,19 +1138,15 @@ class MTCMainWindow(QMainWindow):
                 self._set_plan_cached(True)
             else:
                 self._log(f"Task completed: {completed}/{total} steps")
-                # Clear the GUI "previewed" pill after execute. The orchestrator
-                # may still hold this trajectory in its multi-entry cache and
-                # replay it, but this pill specifically tracks "a fresh Dry Run
-                # preview is staged" — reset it for the next action.
+                # Clear the preview indicator; the server may still retain the cached plan.
                 self._set_plan_cached(False)
         elif status == GoalStatus.STATUS_CANCELED:
             self.step_list.finish_execution("cancelled", completed)
             self._log(f"Task cancelled: {error_msg}")
         else:
             self.step_list.finish_execution("failed", completed)
-            # Friendly message for cached-plan invalidation refusals.
             if error_msg.startswith("CACHE_"):
-                # Format: "CACHE_<REASON>: <human message>"
+                # Extract the message from "CACHE_<REASON>: <message>".
                 reason = (
                     error_msg.split(":", 1)[1].strip()
                     if ":" in error_msg
@@ -1198,8 +1164,7 @@ class MTCMainWindow(QMainWindow):
             else:
                 self._log(f"Task failed: {error_msg} ({completed}/{total} steps)")
 
-        # Notify the agent bridge if this run was agent-initiated; resolves
-        # the pending execute_queue future so the agent can continue.
+        # Resolve the agent's pending execute_queue request.
         if self._execution_initiator == "agent":
             success = status == GoalStatus.STATUS_SUCCEEDED
             self.agent_bridge.notify_execution_complete(
@@ -1309,7 +1274,7 @@ class MTCMainWindow(QMainWindow):
             return
         display_name = display_name.strip()
 
-        # Derive a filename from the display name (sanitized)
+        # Suggest a filename from the display name.
         default_filename = display_name.lower().replace(" ", "_").replace("/", "_")
         filename, ok = QInputDialog.getText(
             self, "Save Run", "Filename (without .json):",
@@ -1333,8 +1298,7 @@ class MTCMainWindow(QMainWindow):
 
         try:
             import copy
-            # Runs store registry poses BY NAME (resolved live at exec); only
-            # genuine inline poses are embedded here. See #94.
+            # Keep registry poses as name references; embed only inline poses (#94).
             save_data = copy.deepcopy(self.config)
             save_data["start_gripper"] = self.gripper_combo.currentText()
             save_data["run_name"] = display_name
@@ -1418,9 +1382,7 @@ class MTCMainWindow(QMainWindow):
         self.status_log.append(f"[{ts}] {msg}")
 
     def _toggle_dark_mode(self, enabled):
-        from .main import toggle_dark_mode
-
-        toggle_dark_mode(self._app(), enabled)
+        theme.toggle_dark_mode(self._app(), enabled)
 
     def _app(self):
         from PyQt6.QtWidgets import QApplication as _QApp
@@ -1442,13 +1404,7 @@ class MTCMainWindow(QMainWindow):
     # --- Pose Management ---
 
     def _load_beamline_yaml(self) -> tuple[dict, str | None]:
-        """Read $BEAMBOT_BEAMLINE_CONFIG once at startup.
-
-        Returns ({}, None) instead of raising so the GUI still opens for
-        operators who only want to inspect a JSON file. Hardware-touching
-        consumers (action servers, MCP) fail loudly; this UI surface
-        deliberately doesn't.
-        """
+        """Load the beamline YAML; return ({}, None) on failure to allow JSON inspection."""
         import os
         import yaml
         raw = os.environ.get("BEAMBOT_BEAMLINE_CONFIG", "").strip()
@@ -1458,17 +1414,18 @@ class MTCMainWindow(QMainWindow):
                 "registry will be empty until you set it and restart."
             )
             return {}, None
-        path = os.path.abspath(os.path.expanduser(raw))
-        if not os.path.isfile(path):
+        # Preserve unknown '~user' handling and normalize '..' without following symlinks.
+        path = Path(os.path.abspath(os.path.expanduser(raw)))
+        if not path.is_file():
             self._pending_log = f"BEAMBOT_BEAMLINE_CONFIG points at missing file: {path}"
             return {}, None
         try:
-            with open(path, "r") as f:
+            with path.open() as f:
                 data = yaml.safe_load(f) or {}
             if not isinstance(data, dict):
                 self._pending_log = f"{path}: expected a YAML mapping at root"
                 return {}, None
-            return data, path
+            return data, str(path)
         except Exception as e:
             self._pending_log = f"Failed to parse {path}: {e}"
             return {}, None
@@ -1482,13 +1439,7 @@ class MTCMainWindow(QMainWindow):
             del self._pending_log
 
     def _on_poses_loaded(self, poses: dict):
-        """Registry poses loaded into the panel — log only.
-
-        The panel owns the registry; we deliberately do NOT merge into
-        config["poses"] (that bag is for INLINE poses only). Merging here
-        was the root cause of #94 — it polluted the inline bag, which then
-        got frozen into saved runs.
-        """
+        """Log registry loading without copying poses inline into saved runs (#94)."""
         self._log(f"Loaded {len(poses)} poses from registry")
 
     def _manage_poses(self):
@@ -1526,5 +1477,4 @@ class MTCMainWindow(QMainWindow):
 
     def closeEvent(self, event):
         self.agent_bridge.disconnect()
-        self.ros2.shutdown()
         event.accept()

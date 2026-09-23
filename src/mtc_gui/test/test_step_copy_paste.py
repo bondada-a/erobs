@@ -1,11 +1,6 @@
 """Tests for step copy/paste."""
 
 import json
-import os
-import sys
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 import pytest
 
@@ -15,36 +10,31 @@ from PyQt6.QtCore import QMimeData, Qt
 from PyQt6.QtTest import QTest
 from PyQt6.QtWidgets import QApplication
 
-from mtc_gui.main_window import (
-    MTCMainWindow,
-    STEP_CLIPBOARD_MAX_BYTES,
-    STEP_CLIPBOARD_MAX_STEPS,
-    STEP_CLIPBOARD_MIME,
-)
 
-_app = QApplication.instance() or QApplication([])
+@pytest.fixture
+def set_steps_clipboard(main_window):
+    def set_clipboard(data):
+        payload = json.dumps(data)
+        mime = QMimeData()
+        mime.setData(main_window.STEP_CLIPBOARD_MIME, payload.encode("utf-8"))
+        mime.setText(payload)
+        QApplication.clipboard().setMimeData(mime)
 
-
-def _set_steps_clipboard(data):
-    payload = json.dumps(data)
-    mime = QMimeData()
-    mime.setData(STEP_CLIPBOARD_MIME, payload.encode("utf-8"))
-    mime.setText(payload)
-    QApplication.clipboard().setMimeData(mime)
+    return set_clipboard
 
 
 @pytest.fixture
-def window():
+def window(main_window):
     from mtc_gui.ros2_bridge import ROS2Bridge
 
     ros2 = ROS2Bridge()
-    win = MTCMainWindow(ros2)
+    win = main_window.MTCMainWindow(ros2)
     win.step_list.set_editing_enabled(True)
     yield win
     win.close()
 
 
-def test_copy_single_step(window):
+def test_copy_single_step(window, main_window):
     window.config["tasks"] = [{"task_type": "moveto", "target": "home"}]
     window._refresh_tree()
     window.step_list.set_current_row(0)
@@ -52,7 +42,7 @@ def test_copy_single_step(window):
     window._copy_steps()
 
     mime = QApplication.clipboard().mimeData()
-    assert mime.hasFormat(STEP_CLIPBOARD_MIME)
+    assert mime.hasFormat(main_window.STEP_CLIPBOARD_MIME)
     assert json.loads(mime.text()) == [
         {"task_type": "moveto", "target": "home"}
     ]
@@ -74,10 +64,10 @@ def test_copy_multiple_steps(window):
     assert [step["task_type"] for step in data] == ["moveto", "place_sample"]
 
 
-def test_paste_at_end(window):
+def test_paste_at_end(window, set_steps_clipboard):
     window.config["tasks"] = [{"task_type": "moveto", "target": "home"}]
     window._refresh_tree()
-    _set_steps_clipboard(
+    set_steps_clipboard(
         [{"task_type": "end_effector", "end_effector_type": "hande"}]
     )
 
@@ -90,14 +80,14 @@ def test_paste_at_end(window):
     assert window.step_list.selected_indices() == [1]
 
 
-def test_paste_after_selection(window):
+def test_paste_after_selection(window, set_steps_clipboard):
     window.config["tasks"] = [
         {"task_type": "moveto", "target": "a"},
         {"task_type": "moveto", "target": "b"},
     ]
     window._refresh_tree()
     window.step_list.set_current_row(0)
-    _set_steps_clipboard([{"task_type": "tool_exchange", "gripper": "epick"}])
+    set_steps_clipboard([{"task_type": "tool_exchange", "gripper": "epick"}])
 
     window._paste_steps()
 
@@ -150,26 +140,26 @@ def test_execute_from_selected_dispatches_remaining_steps(window):
     assert window.progress_bar.value() == 75
 
 
-def test_paste_invalid_clipboard_ignores(window):
+def test_paste_invalid_clipboard_ignores(window, set_steps_clipboard):
     original = [{"task_type": "moveto"}]
     window.config["tasks"] = original.copy()
     window._refresh_tree()
 
     QApplication.clipboard().setText("not editor data")
     window._paste_steps()
-    _set_steps_clipboard({"wrong": "structure"})
+    set_steps_clipboard({"wrong": "structure"})
     window._paste_steps()
-    _set_steps_clipboard([{"no_task_type": True}])
+    set_steps_clipboard([{"no_task_type": True}])
     window._paste_steps()
-    _set_steps_clipboard([{"task_type": "not_a_real_task"}])
+    set_steps_clipboard([{"task_type": "not_a_real_task"}])
     window._paste_steps()
 
     assert window.config["tasks"] == original
 
 
-def test_paste_produces_independent_copy(window):
+def test_paste_produces_independent_copy(window, set_steps_clipboard):
     window.config["tasks"] = []
-    _set_steps_clipboard(
+    set_steps_clipboard(
         [{"task_type": "moveto", "target": {"pose": [1, 2, 3]}}]
     )
 
@@ -181,23 +171,23 @@ def test_paste_produces_independent_copy(window):
     assert window.config["tasks"][1]["target"]["pose"][0] == 1
 
 
-def test_paste_rejects_non_string_task_type(window):
+def test_paste_rejects_non_string_task_type(window, set_steps_clipboard):
     original = [{"task_type": "moveto"}]
     window.config["tasks"] = original.copy()
     window._refresh_tree()
 
     for task_type in ([], 123, None):
-        _set_steps_clipboard([{"task_type": task_type}])
+        set_steps_clipboard([{"task_type": task_type}])
         window._paste_steps()
 
     assert window.config["tasks"] == original
 
 
-def test_paste_rejects_malformed_known_task_atomically(window):
+def test_paste_rejects_malformed_known_task_atomically(window, set_steps_clipboard):
     original = [{"task_type": "moveto", "target": "home"}]
     window.config["tasks"] = original.copy()
     window._refresh_tree()
-    _set_steps_clipboard(
+    set_steps_clipboard(
         [{"task_type": "pipettor", "operation": "SUCK", "volume_pct": {}}]
     )
 
@@ -206,11 +196,14 @@ def test_paste_rejects_malformed_known_task_atomically(window):
     assert window.config["tasks"] == original
 
 
-def test_paste_rejects_oversize_payload(window):
+def test_paste_rejects_oversize_payload(window, main_window):
     window.config["tasks"] = [{"task_type": "moveto"}]
     window._refresh_tree()
     mime = QMimeData()
-    mime.setData(STEP_CLIPBOARD_MIME, b" " * (STEP_CLIPBOARD_MAX_BYTES + 1))
+    mime.setData(
+        main_window.STEP_CLIPBOARD_MIME,
+        b" " * (main_window.STEP_CLIPBOARD_MAX_BYTES + 1),
+    )
     QApplication.clipboard().setMimeData(mime)
 
     window._paste_steps()
@@ -218,11 +211,11 @@ def test_paste_rejects_oversize_payload(window):
     assert window.config["tasks"] == [{"task_type": "moveto"}]
 
 
-def test_paste_rejects_excessive_step_count(window):
+def test_paste_rejects_excessive_step_count(window, main_window, set_steps_clipboard):
     window.config["tasks"] = [{"task_type": "moveto"}]
     window._refresh_tree()
-    _set_steps_clipboard(
-        [{"task_type": "moveto"}] * (STEP_CLIPBOARD_MAX_STEPS + 1)
+    set_steps_clipboard(
+        [{"task_type": "moveto"}] * (main_window.STEP_CLIPBOARD_MAX_STEPS + 1)
     )
 
     window._paste_steps()
@@ -230,9 +223,9 @@ def test_paste_rejects_excessive_step_count(window):
     assert window.config["tasks"] == [{"task_type": "moveto"}]
 
 
-def test_paste_accepts_core_vision_task(window):
+def test_paste_accepts_core_vision_task(window, set_steps_clipboard):
     window.config["tasks"] = []
-    _set_steps_clipboard([{"task_type": "vision_task", "target_type": "sample"}])
+    set_steps_clipboard([{"task_type": "vision_task", "target_type": "sample"}])
 
     window._paste_steps()
 
@@ -241,10 +234,10 @@ def test_paste_accepts_core_vision_task(window):
     ]
 
 
-def test_paste_disabled_during_execution(window):
+def test_paste_disabled_during_execution(window, set_steps_clipboard):
     window.config["tasks"] = [{"task_type": "moveto"}]
     window._refresh_tree()
-    _set_steps_clipboard([{"task_type": "end_effector"}])
+    set_steps_clipboard([{"task_type": "end_effector"}])
 
     window.step_list.set_editing_enabled(False)
     window._paste_steps()
@@ -255,12 +248,12 @@ def test_paste_disabled_during_execution(window):
     assert len(window.config["tasks"]) == 2
 
 
-def test_shortcuts_only_apply_inside_step_list(window):
+def test_shortcuts_only_apply_inside_step_list(window, set_steps_clipboard, qapp):
     window.config["tasks"] = [{"task_type": "moveto", "target": "home"}]
     window._refresh_tree()
-    _set_steps_clipboard([{"task_type": "end_effector"}])
+    set_steps_clipboard([{"task_type": "end_effector"}])
     window.show()
-    _app.processEvents()
+    qapp.processEvents()
 
     window._save_run_btn.setFocus()
     QTest.keyClick(

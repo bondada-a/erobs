@@ -1,20 +1,12 @@
 """Headless check for VisionMoveTo detector-specific options."""
 
-import os
-import sys
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-import pytest  # noqa: E402
+import pytest
 
 pytest.importorskip("PyQt6.QtWidgets", reason="PyQt6 not installed")
 
-from PyQt6.QtWidgets import QApplication  # noqa: E402
-
 from mtc_gui.task_forms import VisionMoveToForm  # noqa: E402
 
-_app = QApplication.instance() or QApplication([])
+pytestmark = pytest.mark.usefixtures("qapp")
 
 
 def test_sample_roi_options_are_shown_and_saved_exclusively():

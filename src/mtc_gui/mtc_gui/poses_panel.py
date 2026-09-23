@@ -218,9 +218,6 @@ class PosesPanel(QWidget):
         Reads the current file (cross-process truth), merges the entry, and
         writes it back atomically. Returns False if no registry file is set.
         """
-        # ponytail: cross-process truth is the file, so we re-read before each
-        # write rather than holding a watched in-memory mirror (no
-        # QFileSystemWatcher — deferred upgrade; the reload button covers it).
         if self._poses_file is None:
             return False
         poses = read_poses(self._poses_file)

@@ -1,5 +1,9 @@
 import http.client
 
+import pytest
+
+pytest.importorskip("PyQt6.QtWidgets")
+
 from mtc_gui.visualization_panel import _MeshServer
 
 
@@ -13,6 +17,7 @@ def _get(port, path):
     return response.status, body, headers
 
 
+@pytest.mark.loopback
 def test_mesh_server_contains_every_mounted_root(tmp_path):
     resources = tmp_path / "resources"
     urdf = tmp_path / "urdf"

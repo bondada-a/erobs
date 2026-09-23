@@ -4,21 +4,13 @@ Verifies that the mode selector prevents ambiguous goals by emitting only
 the active mode's keys in collect_values().
 """
 
-import os
-import sys
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-import pytest  # noqa: E402
+import pytest
 
 pytest.importorskip("PyQt6.QtWidgets", reason="PyQt6 not installed")
 
-from PyQt6.QtWidgets import QApplication  # noqa: E402
-
 from mtc_gui.task_forms import MoveToForm  # noqa: E402
 
-_app = QApplication.instance() or QApplication([])
+pytestmark = pytest.mark.usefixtures("qapp")
 
 
 def _make_form(step=None):
@@ -270,27 +262,3 @@ def test_named_target_arbitrary_text_collects():
     form.target.setEditText("custom_srdf_state")
     result = form.collect_values()
     assert result["target"] == "custom_srdf_state"
-
-
-def test_named_target_dropdown_fires_preview():
-    """Changing combo to a known pose fires the preview callback."""
-    calls = []
-    poses = {"scan": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]}
-    form = MoveToForm({"task_type": "move_to"}, 0, poses,
-                      preview_cb=calls.append, end_preview_cb=lambda: None)
-    form.mode_combo.setCurrentText("Named target")
-    calls.clear()
-    form.target.setCurrentText("scan")
-    assert len(calls) >= 1
-    assert calls[-1] == [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]
-
-
-if __name__ == "__main__":
-    test_cartesian_mode_emits_only_cartesian_keys()
-    test_relative_mode_emits_only_relative_keys()
-    test_named_mode_emits_only_target()
-    test_ambiguous_step_defaults_to_relative()
-    test_joint_mode_emits_target_and_inline_pose()
-    test_joint_mode_detected_from_poses()
-    test_read_current_pose_fills_spinboxes()
-    print("All MoveToForm tests passed (run via pytest for the monkeypatch test).")

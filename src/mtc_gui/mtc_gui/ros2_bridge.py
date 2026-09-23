@@ -240,6 +240,11 @@ class ROS2Bridge(QObject):
                     self.log.emit("ERROR: Action server not available")
                     self.action_result_received.emit(0, "Action server unavailable", 0, 0)
                     return
+                if self._stop_execution:
+                    self.action_result_received.emit(
+                        GoalStatus.STATUS_CANCELED, "Stopped before sending goal", 0, 0
+                    )
+                    return
 
                 goal = MTCExecution.Goal()
                 goal.full_json = config_json
@@ -252,10 +257,6 @@ class ROS2Bridge(QObject):
                     goal, feedback_callback=self._on_action_feedback
                 )
                 while not send_future.done():
-                    if self._stop_execution:
-                        self.log.emit("Stopped before goal accepted")
-                        self.action_result_received.emit(0, "Stopped", 0, 0)
-                        return
                     time.sleep(0.1)
 
                 self._current_goal_handle = send_future.result()
@@ -264,16 +265,18 @@ class ROS2Bridge(QObject):
                     self.action_result_received.emit(0, "Goal rejected", 0, 0)
                     return
 
-                self.log.emit("Goal accepted, executing...")
+                self.log.emit("Goal accepted")
                 result_future = self._current_goal_handle.get_result_async()
+                cancel_sent = False
                 while not result_future.done():
-                    if self._stop_execution:
-                        self.log.emit("Cancelling...")
-                        self._current_goal_handle.cancel_goal_async()
-                        self.action_result_received.emit(
-                            GoalStatus.STATUS_CANCELED, "Cancelled by user", 0, 0
-                        )
-                        return
+                    if self._stop_execution and not cancel_sent:
+                        cancel_sent = True
+                        try:
+                            self._current_goal_handle.cancel_goal_async()
+                        except Exception as error:
+                            self.log.emit(
+                                f"Cancellation request failed: {error}; waiting for task result"
+                            )
                     time.sleep(0.1)
 
                 result = result_future.result()
@@ -291,6 +294,7 @@ class ROS2Bridge(QObject):
 
     def stop_execution(self):
         self._stop_execution = True
+        self.log.emit("Stopping... waiting for task completion")
 
     def _on_action_feedback(self, feedback_msg):
         fb = feedback_msg.feedback
