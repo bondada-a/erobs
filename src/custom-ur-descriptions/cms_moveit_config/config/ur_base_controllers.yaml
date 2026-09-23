@@ -62,6 +62,8 @@
 
   speed_scaling_state_broadcaster:
     ros__parameters:
+      is_async: true
+      update_rate: 100
       state_publish_rate: 100.0
       tf_prefix: "$(var tf_prefix)"
 

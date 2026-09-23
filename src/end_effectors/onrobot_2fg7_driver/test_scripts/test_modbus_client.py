@@ -14,11 +14,12 @@ Usage:
 import subprocess
 import time
 import os
+from pathlib import Path
 import sys
 import argparse
 
 # Add driver package to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+sys.path.insert(0, str(Path(__file__).absolute().parents[1]))
 
 from onrobot_2fg7_driver.modbus_client import OnRobot2FG7Client
 
@@ -29,7 +30,7 @@ def start_socat(robot_ip):
     os.system('pkill -f "socat.*ttyUR" 2>/dev/null')
     time.sleep(1)
     try:
-        os.remove(SOCAT_PTY)
+        Path(SOCAT_PTY).unlink()
     except OSError:
         pass
 
@@ -38,7 +39,7 @@ def start_socat(robot_ip):
         stdout=subprocess.DEVNULL, stderr=subprocess.PIPE
     )
     time.sleep(3)
-    if not os.path.exists(SOCAT_PTY):
+    if not Path(SOCAT_PTY).exists():
         print('[FAIL] socat failed')
         proc.terminate()
         return None

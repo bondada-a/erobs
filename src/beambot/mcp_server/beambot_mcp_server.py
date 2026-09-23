@@ -1,18 +1,8 @@
 #!/usr/bin/env python3
-"""Beambot MCP Server — Custom tools for Zivid camera, detection, and TF.
+"""Beambot MCP tools for robot state, poses, camera data, TF and task generation.
 
-Runs alongside ros-mcp-server to provide beambot-specific tools that handle
-Zivid's single-shot capture quirks (QoS timing, large point cloud transfer)
-and wrap multi-step vision workflows into single tool calls.
-
-Architecture:
-    FastMCP (async, stdio) → ROS2Bridge (background thread) → ROS2 topics/services/TF
-
-The ROS2Bridge runs a persistent node with:
-    - RELIABLE+VOLATILE subscriptions to Zivid image/cloud topics
-    - A TF buffer that fills continuously
-    - Service client for /capture trigger
-This avoids the QoS timing race that makes subscribe_once fail with Zivid.
+A background ROS executor maintains subscriptions and TF for async MCP tools.
+Persistent Zivid subscriptions are established before single-shot captures.
 """
 
 import asyncio
@@ -25,6 +15,7 @@ import re
 import sys
 import threading
 import time
+from pathlib import Path
 from typing import Any
 
 import cv2
@@ -37,8 +28,8 @@ from beambot.vision.detection import (
     YoloDetectionParams,
     get_yolo_detector,
 )
+from beambot.vision.detection.image_detection import detect_aruco_markers
 
-# ROS2 imports — these require a sourced ROS2 environment
 import rclpy
 from rclpy.node import Node
 from rclpy.executors import MultiThreadedExecutor
@@ -56,17 +47,9 @@ from action_msgs.srv import CancelGoal
 from tf2_ros import Buffer, TransformListener, TransformException
 from tf_transformations import quaternion_matrix
 
-# Zivid native marker detection (optional — only when zivid_interfaces is available)
-try:
-    from zivid_interfaces.srv import CaptureAndDetectMarkers
-    _ZIVID_MARKER_AVAILABLE = True
-except ImportError:
-    _ZIVID_MARKER_AVAILABLE = False
 from cv_bridge import CvBridge
 
-# epick_msgs is optional — only required on beamlines that use the ePick
-# vacuum gripper. Beamlines without it still get full MCP functionality
-# minus vacuum-status reporting.
+# Vacuum status is available only when epick_msgs is installed.
 try:
     from epick_msgs.msg import ObjectDetectionStatus
     _EPICK_MSGS_AVAILABLE = True
@@ -75,20 +58,18 @@ except ImportError:
     _EPICK_MSGS_AVAILABLE = False
 
 from beambot.stages.base_stages import wait_for_future
+from beambot.core.task_script import expand_grid_target
 
 logger = logging.getLogger("beambot-mcp")
 
-# ---------------------------------------------------------------------------
-# Constants
-# ---------------------------------------------------------------------------
-# Zivid topics (single-shot, triggered)
+# Camera and robot interfaces.
+# Zivid single-shot capture.
 ZIVID_IMAGE_TOPIC = "/color/image_color"
 ZIVID_CLOUD_TOPIC = "/points/xyzrgba"
 ZIVID_CAPTURE_SERVICE = "/capture"
-ZIVID_MARKER_SERVICE = "/capture_and_detect_markers"
 ZIVID_FRAME = "zivid_optical_frame"
 
-# ZED topics (continuous streaming)
+# ZED continuous streaming.
 ZED_IMAGE_TOPIC = "/zed/zed_node/rgb/color/rect/image"
 ZED_CLOUD_TOPIC = "/zed/zed_node/point_cloud/cloud_registered"
 ZED_FRAME = "zed_left_camera_optical_frame"
@@ -114,7 +95,7 @@ EXECUTION_STATE_TOPIC = "/beambot/execution_state"
 EPICK_STATUS_TOPIC = "/object_detection_status"
 BEAMBOT_EXECUTION_ACTION = "/beambot_execution"
 
-# ePick ObjectDetectionStatus integer → human-readable string
+# ePick ObjectDetectionStatus labels.
 EPICK_STATUS_NAMES = {
     0: "UNKNOWN",
     1: "OBJECT_DETECTED_AT_MIN_PRESSURE",
@@ -122,14 +103,8 @@ EPICK_STATUS_NAMES = {
     3: "NO_OBJECT_DETECTED",
 }
 
-# Pose registry — resolved at call time from $BEAMBOT_BEAMLINE_CONFIG → poses_file
 def _poses_file_path() -> str:
-    """Resolve the poses YAML path via the active beamline config.
-
-    Reads BEAMBOT_BEAMLINE_CONFIG, parses its poses_file field, and resolves
-    that against the workspace root. Returns "" if unset/unresolvable, so
-    callers can present a helpful error rather than crashing at import time.
-    """
+    """Resolve poses_file from the active beamline config; return "" on failure."""
     try:
         from beambot.config_loader import load_beamline_config, resolve_beamline_path
         config, config_path = load_beamline_config()
@@ -138,23 +113,17 @@ def _poses_file_path() -> str:
         logger.error(f"Failed to resolve poses_file: {e}")
         return ""
 
-# Default save locations
 DEFAULT_IMAGE_PATH = "/tmp/beambot_capture.jpg"
 DEFAULT_ANNOTATED_PATH = "/tmp/beambot_detection.jpg"
 
 
 def _detect_display() -> tuple[str, str]:
-    """Detect DISPLAY and XAUTHORITY for GUI subprocess.
-
-    Claude Code strips DISPLAY from MCP server environments. We detect
-    the active X11 display by checking the environment first, then
-    falling back to querying the system.
-    """
+    """Resolve GUI display credentials when the MCP environment omits them."""
     display = os.environ.get("DISPLAY", "")
     xauth = os.environ.get("XAUTHORITY", "")
 
     if not display:
-        # Try to find DISPLAY from any running user process
+        # Try the desktop session when DISPLAY is unset.
         import subprocess as _sp
         try:
             result = _sp.run(
@@ -166,13 +135,12 @@ def _detect_display() -> tuple[str, str]:
             display = ":1"
 
     if not xauth:
-        # Common locations
         for candidate in [
-            f"/run/user/{os.getuid()}/gdm/Xauthority",
-            os.path.expanduser("~/.Xauthority"),
+            Path(f"/run/user/{os.getuid()}/gdm/Xauthority"),
+            Path.home() / ".Xauthority",
         ]:
-            if os.path.exists(candidate):
-                xauth = candidate
+            if candidate.exists():
+                xauth = str(candidate)
                 break
 
     return display, xauth
@@ -190,12 +158,11 @@ def _detect_hsv_color(
     val_min: int = 80,
     min_area: int = 200,
 ) -> list[tuple[int, int, int]] | None:
-    """Detect objects by HSV color range. Returns list of (cx, cy, area)."""
+    """Return HSV detections as (cx, cy, area), largest first, or None."""
     hsv = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2HSV)
     lower = np.array([hue_low, sat_min, val_min])
     upper = np.array([hue_high, 255, 255])
     mask = cv2.inRange(hsv, lower, upper)
-    # Morphological open to remove noise
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (7, 7))
     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -212,7 +179,6 @@ def _detect_hsv_color(
         result.append((cx, cy, int(area)))
     if not result:
         return None
-    # Sort by area descending (largest first)
     result.sort(key=lambda x: x[2], reverse=True)
     return result
 
@@ -222,8 +188,7 @@ def _detect_aruco_markers(
     marker_ids: list[int] | None = None,
     dictionary_name: str = "DICT_4X4_50",
 ) -> list[tuple[int, int, int, list]] | None:
-    """Detect ArUco markers in image. Returns list of (cx, cy, marker_id, corners)."""
-    # Map string name to OpenCV constant
+    """Return (cx, cy, marker_id, corners) detections from an RGB image, or None."""
     aruco_dicts = {
         "DICT_4X4_50": cv2.aruco.DICT_4X4_50,
         "DICT_4X4_100": cv2.aruco.DICT_4X4_100,
@@ -233,16 +198,7 @@ def _detect_aruco_markers(
         "DICT_6X6_250": cv2.aruco.DICT_6X6_250,
     }
     dict_id = aruco_dicts.get(dictionary_name, cv2.aruco.DICT_4X4_50)
-    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
-    try:
-        aruco_dict = cv2.aruco.getPredefinedDictionary(dict_id)
-        aruco_params = cv2.aruco.DetectorParameters()
-        detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
-        corners_list, ids, _ = detector.detectMarkers(gray)
-    except AttributeError:
-        aruco_dict = cv2.aruco.Dictionary_get(dict_id)
-        aruco_params = cv2.aruco.DetectorParameters_create()
-        corners_list, ids, _ = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=aruco_params)
+    corners_list, ids = detect_aruco_markers(rgb_image, dict_id)
 
     if ids is None or len(ids) == 0:
         return None
@@ -262,9 +218,8 @@ def _detect_aruco_markers(
 def _annotate_image(
     rgb_image: np.ndarray,
     detections: list[dict[str, Any]],
-    method: str,
 ) -> np.ndarray:
-    """Draw detection results on image. Returns annotated BGR image for saving."""
+    """Return a BGR image annotated with detection labels and positions."""
     annotated = cv2.cvtColor(rgb_image.copy(), cv2.COLOR_RGB2BGR)
     for i, det in enumerate(detections):
         px, py = det["pixel_x"], det["pixel_y"]
@@ -279,12 +234,10 @@ def _annotate_image(
             label_parts.append(f"cam({cx:.3f},{cy:.3f},{cz:.3f})")
         label = " ".join(label_parts)
 
-        # Draw marker
         color = (0, 255, 0)
         cv2.circle(annotated, (px, py), 8, color, -1)
         cv2.circle(annotated, (px, py), 3, (0, 0, 255), -1)  # Red center dot
 
-        # Label above
         cv2.putText(
             annotated, label, (px - 10, py - 15),
             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2,
@@ -296,19 +249,17 @@ def _annotate_image(
     return annotated
 
 
-# ---------------------------------------------------------------------------
-# ROS2 Bridge — persistent node running in background thread
-# ---------------------------------------------------------------------------
+# Background ROS bridge.
 
 class ROS2BridgeNode(Node):
-    """Persistent ROS2 node with Zivid subscriptions and TF buffer."""
+    """Maintain camera data, robot state, service clients and TF."""
 
     def __init__(self):
         super().__init__("beambot_mcp_bridge")
         self._cb_group = ReentrantCallbackGroup()
         self._bridge = CvBridge()
 
-        # Zivid subscriptions (persistent — avoids QoS timing race)
+        # Subscribe before triggering single-shot captures.
         self._image_sub = self.create_subscription(
             Image, ZIVID_IMAGE_TOPIC, self._on_zivid_image, ZIVID_QOS,
             callback_group=self._cb_group,
@@ -318,20 +269,11 @@ class ROS2BridgeNode(Node):
             callback_group=self._cb_group,
         )
 
-        # Zivid capture service client
         self._capture_client = self.create_client(
             Trigger, ZIVID_CAPTURE_SERVICE, callback_group=self._cb_group,
         )
 
-        # Zivid native marker detection client
-        self._marker_detect_client = None
-        if _ZIVID_MARKER_AVAILABLE:
-            self._marker_detect_client = self.create_client(
-                CaptureAndDetectMarkers, ZIVID_MARKER_SERVICE,
-                callback_group=self._cb_group,
-            )
-
-        # ZED subscriptions (streaming — always has latest frame)
+        # Latest ZED stream data.
         self._zed_image_sub = self.create_subscription(
             Image, ZED_IMAGE_TOPIC, self._on_zed_image, ZED_QOS,
             callback_group=self._cb_group,
@@ -341,16 +283,11 @@ class ROS2BridgeNode(Node):
             callback_group=self._cb_group,
         )
 
-        # TF buffer (fills continuously via background executor)
+        # TF updates are processed by the background executor.
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self)
 
-        # Note: /rosout subscription removed — unreliable due to DDS discovery
-        # timing with 50+ publishers. get_recent_logs now reads from the launch
-        # output file (/tmp/beambot_launch.log) written by start_mcp.sh.
-
-        # Cancel service client for stopping orchestrator goals
-        # Uses the action's cancel service directly (cancel-all with empty request)
+        # An empty CancelGoal request cancels all orchestrator goals.
         self._cancel_client = self.create_client(
             CancelGoal, f"{BEAMBOT_EXECUTION_ACTION}/_action/cancel_goal",
             callback_group=self._cb_group,
@@ -372,7 +309,7 @@ class ROS2BridgeNode(Node):
             callback_group=self._cb_group,
         )
 
-        # ePick vacuum object detection status (only if epick_msgs is installed)
+        # Optional ePick status subscription.
         if _EPICK_MSGS_AVAILABLE:
             self._epick_status_sub = self.create_subscription(
                 ObjectDetectionStatus, EPICK_STATUS_TOPIC,
@@ -382,26 +319,24 @@ class ROS2BridgeNode(Node):
         else:
             self._epick_status_sub = None
 
-        # Robot state (updated by callbacks, None = no data received yet)
+        # Cached robot state; None means no data received.
         self.joint_names: list[str] | None = None
         self.joint_positions: list[float] | None = None
         self.current_gripper: str | None = None
         self.execution_state: str | None = None
-        self.epick_status: int | None = None  # Raw status int from ObjectDetectionStatus
+        self.epick_status: int | None = None
 
         # Zivid state
         self.last_rgb: np.ndarray | None = None
         self.last_cloud: PointCloud2 | None = None
-        self.last_image_msg: Image | None = None
         self.capture_stamp = None  # Pre-capture timestamp for TF accuracy
 
-        # ZED state (continuously updated by streaming callbacks)
+        # ZED streaming state.
         self.zed_rgb: np.ndarray | None = None
         self.zed_cloud: PointCloud2 | None = None
-        self.zed_image_msg: Image | None = None
         self.zed_stamp = None
 
-        # Synchronization events (for blocking Zivid capture)
+        # Events used by the blocking Zivid capture worker.
         self._image_event = threading.Event()
         self._cloud_event = threading.Event()
         self._waiting_for_capture = False
@@ -409,15 +344,10 @@ class ROS2BridgeNode(Node):
         self.get_logger().info("ROS2BridgeNode initialized")
 
     def cancel_all_goals(self) -> str:
-        """Cancel all active goals on the beambot execution action server.
-
-        Sends an empty CancelGoal request which cancels ALL active goals.
-        Returns a status message.
-        """
+        """Request cancellation of all orchestrator goals and report acceptance."""
         if not self._cancel_client.wait_for_service(timeout_sec=2.0):
             return "Cancel service not available (orchestrator not running?)"
         request = CancelGoal.Request()
-        # Empty goal_info = cancel all goals
         future = self._cancel_client.call_async(request)
         if not wait_for_future(future, timeout=5.0, poll_interval=0.05):
             return "Cancel request timed out"
@@ -430,7 +360,6 @@ class ROS2BridgeNode(Node):
         return "Cancel sent but no response received"
 
     def _on_zivid_image(self, msg: Image):
-        self.last_image_msg = msg
         try:
             self.last_rgb = self._bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
         except Exception as e:
@@ -445,7 +374,6 @@ class ROS2BridgeNode(Node):
             self._cloud_event.set()
 
     def _on_zed_image(self, msg: Image):
-        self.zed_image_msg = msg
         self.zed_stamp = msg.header.stamp
         try:
             self.zed_rgb = self._bridge.imgmsg_to_cv2(msg, desired_encoding="rgb8")
@@ -469,15 +397,11 @@ class ROS2BridgeNode(Node):
         self.epick_status = int(msg.status)
 
     def trigger_capture(self, timeout: float = 30.0, need_cloud: bool = True) -> bool:
-        """Trigger Zivid capture and wait for data. Called from executor thread.
-
-        Returns True if data received within timeout.
-        """
+        """Trigger Zivid capture from a worker and wait for image/cloud callbacks."""
         if not self._capture_client.wait_for_service(timeout_sec=3.0):
             self.get_logger().error(f"Capture service '{ZIVID_CAPTURE_SERVICE}' not available")
             return False
 
-        # Clear events and mark that we're waiting
         self._image_event.clear()
         self._cloud_event.clear()
         self._waiting_for_capture = True
@@ -485,13 +409,10 @@ class ROS2BridgeNode(Node):
         # Record pre-capture timestamp for TF accuracy
         self.capture_stamp = self.get_clock().now().to_msg()
 
-        # Send capture request (async — executor processes the response)
         request = Trigger.Request()
         future = self._capture_client.call_async(request)
 
-        # Deadline is shared with the image/cloud event.wait() calls below so
-        # the total capture budget stays bounded — keep it as a wall-clock
-        # reference and compute the per-step remaining as needed.
+        # Service and data waits share one monotonic deadline.
         deadline = time.monotonic() + timeout
         if not wait_for_future(future, timeout=timeout, poll_interval=0.05):
             self.get_logger().error("Capture service call timed out")
@@ -506,14 +427,13 @@ class ROS2BridgeNode(Node):
 
         self.get_logger().info("Capture triggered, waiting for data...")
 
-        # Wait for image
         remaining = max(0.1, deadline - time.monotonic())
         if not self._image_event.wait(timeout=remaining):
             self.get_logger().error("Timeout waiting for image after capture")
             self._waiting_for_capture = False
             return False
 
-        # Wait for point cloud (takes 3-4s longer due to ~40MB transfer)
+        # The point cloud can arrive later than the image.
         if need_cloud:
             remaining = max(0.1, deadline - time.monotonic())
             if not self._cloud_event.wait(timeout=remaining):
@@ -525,87 +445,10 @@ class ROS2BridgeNode(Node):
         self.get_logger().info("Capture complete — image and cloud received")
         return True
 
-    def detect_marker(self, marker_id: int, dictionary: str = "aruco4x4_50",
-                      timeout: float = 30.0) -> dict | None:
-        """Detect an ArUco marker using Zivid native detection and transform to base_link.
-
-        Returns dict with 'position' [x,y,z], 'orientation' [x,y,z,w], or None on failure.
-        """
-        if self._marker_detect_client is None:
-            self.get_logger().error("Zivid marker detection not available")
-            return None
-
-        # Wait for service with extended timeout (DDS discovery can be slow)
-        service_ready = False
-        for _ in range(10):
-            if self._marker_detect_client.service_is_ready():
-                service_ready = True
-                break
-            time.sleep(0.5)
-        if not service_ready:
-            self.get_logger().error(
-                f"Zivid marker service '{ZIVID_MARKER_SERVICE}' not available after 5s"
-            )
-            return None
-
-        # Record pre-capture timestamp for TF accuracy
-        pre_capture_stamp = self.get_clock().now().to_msg()
-
-        request = CaptureAndDetectMarkers.Request()
-        request.marker_ids = [marker_id]
-        request.marker_dictionary = dictionary
-
-        self.get_logger().info(f"Calling marker detection for ID {marker_id}...")
-        future = self._marker_detect_client.call_async(request)
-        if not wait_for_future(future, timeout=timeout, poll_interval=0.05):
-            self.get_logger().error("Marker detection timed out")
-            return None
-
-        result = future.result()
-        if not result.success or not result.detection_result.detected_markers:
-            self.get_logger().warning(f"Marker {marker_id} not detected: {result.message}")
-            return None
-
-        marker = result.detection_result.detected_markers[0]
-        cam_pos = marker.pose.position
-        self.get_logger().info(
-            f"Marker {marker_id} in camera: ({cam_pos.x*1000:.1f}, "
-            f"{cam_pos.y*1000:.1f}, {cam_pos.z*1000:.1f}) mm"
-        )
-
-        # Transform to base_link using pre-capture timestamp
-        tf = self.lookup_transform("base_link", ZIVID_FRAME, stamp=pre_capture_stamp)
-        if tf is None:
-            self.get_logger().error("Failed to get TF for marker transform")
-            return None
-
-        # Apply transform: rotate position, then translate
-        from geometry_msgs.msg import PoseStamped
-        from tf2_geometry_msgs import do_transform_pose_stamped
-
-        pose_in = PoseStamped()
-        pose_in.header.frame_id = ZIVID_FRAME
-        pose_in.header.stamp = pre_capture_stamp
-        pose_in.pose = marker.pose
-
-        pose_out = do_transform_pose_stamped(pose_in, tf)
-
-        pos = pose_out.pose.position
-        ori = pose_out.pose.orientation
-        self.get_logger().info(
-            f"Marker {marker_id} in base_link: ({pos.x*1000:.1f}, "
-            f"{pos.y*1000:.1f}, {pos.z*1000:.1f}) mm"
-        )
-
-        return {
-            "position": [pos.x, pos.y, pos.z],
-            "orientation": [ori.x, ori.y, ori.z, ori.w],
-        }
-
     def lookup_transform(
         self, target_frame: str, source_frame: str, stamp=None, timeout_sec: float = 2.0,
     ):
-        """Look up TF transform. Returns TransformStamped or None."""
+        """Return a timestamped or latest TransformStamped, or None on failure."""
         try:
             if stamp is not None:
                 lookup_time = rclpy.time.Time.from_msg(stamp)
@@ -638,11 +481,7 @@ class ROS2BridgeNode(Node):
 
 
 class ROS2Bridge:
-    """Manages ROS2 node lifecycle in a background thread.
-
-    Lazy-initialized on first tool call so the MCP server starts fast
-    even if ROS2 isn't running yet.
-    """
+    """Start the bridge node and background executor on first use."""
 
     def __init__(self):
         self._node: ROS2BridgeNode | None = None
@@ -652,7 +491,6 @@ class ROS2Bridge:
         self._initialized = False
 
     def _ensure_initialized(self):
-        """Initialize ROS2 + node + executor on first use."""
         if self._initialized:
             return
         with self._lock:
@@ -672,7 +510,6 @@ class ROS2Bridge:
             logger.info("ROS2 bridge running in background thread")
 
     def _spin(self):
-        """Run executor in background thread."""
         try:
             self._executor.spin()
         except Exception as e:
@@ -692,9 +529,7 @@ class ROS2Bridge:
             rclpy.shutdown()
 
 
-# ---------------------------------------------------------------------------
-# Camera state resolution
-# ---------------------------------------------------------------------------
+# Camera state.
 
 def _resolve_camera_state(
     node: ROS2BridgeNode,
@@ -709,33 +544,25 @@ def _resolve_camera_state(
         raise ValueError(f"Unknown camera '{camera}'. Use 'zivid' or 'zed'.")
 
 
-# ---------------------------------------------------------------------------
-# MCP Server
-# ---------------------------------------------------------------------------
+# MCP tools.
 
 mcp = FastMCP("beambot")
 
-# Global bridge instance (lazy-initialized)
+# The bridge node is initialized on first access.
 bridge = ROS2Bridge()
 
 
 @mcp.tool()
 async def ping() -> str:
-    """Test connectivity to the EROBS MCP server.
-
-    Returns 'pong' if the server is running. Use this to verify the server
-    is reachable before calling other tools.
-    """
+    """Return pong if the MCP server is reachable."""
     return "pong"
 
 
 @mcp.tool()
 async def stop_robot() -> str:
-    """Emergency stop: cancel all active goals on the beambot orchestrator.
+    """Request cancellation of all /beambot_execution goals; no goal ID needed.
 
-    Sends a cancel-all request to /beambot_execution. The orchestrator will
-    finish the current motion step and then stop (does not interrupt mid-motion).
-    Use this when the robot needs to be stopped and you don't have the goal ID.
+    Stops after the active task or batch, not mid-motion. This is not an emergency stop.
     """
     node = bridge.node
     result = await asyncio.get_event_loop().run_in_executor(
@@ -746,20 +573,12 @@ async def stop_robot() -> str:
 
 @mcp.tool()
 async def get_robot_state() -> str:
-    """Get the current state of the robot system.
+    """Return beamline identity and cached gripper, execution state and joints_deg.
 
-    Returns a JSON object with:
-    - beamline: active beamline name from $BEAMBOT_BEAMLINE_CONFIG (e.g. "cms")
-    - system_running: whether the robot system (MoveIt, action servers) is up
-    - gripper: currently attached gripper name, or "unknown" if system not running
-    - execution_state: IDLE, EXECUTING, or PAUSED (null if system not running)
-    - joints_deg: current joint positions in degrees (matches task JSON convention),
-      or null if system not running. Keys are joint names.
-
-    Call this BEFORE constructing task JSON to know:
-    1. Whether the system is running (if not, your first goal will launch it)
-    2. Which gripper is attached (so you can set start_gripper correctly)
-    3. Current robot pose (to judge if a move is feasible)
+    Joint values are degrees keyed by name; missing data is null or "unknown".
+    Check the gripper before choosing start_gripper. system_running only means
+    joint data was received, not that MoveIt or action servers are currently ready.
+    Includes cached vacuum status when ePick is selected.
     """
     node = bridge.node
 
@@ -774,7 +593,6 @@ async def get_robot_state() -> str:
             for name, pos in zip(node.joint_names, node.joint_positions)
         }
 
-    # Include ePick vacuum status when ePick is the active gripper
     vacuum_status = None
     if gripper == "epick" and node.epick_status is not None:
         status_int = node.epick_status
@@ -783,7 +601,6 @@ async def get_robot_state() -> str:
             "object_detected": status_int in (1, 2),
         }
 
-    # Read beamline identity from config (safe even if robot isn't running)
     beamline_name = None
     try:
         from beambot.config_loader import load_beamline_config
@@ -806,23 +623,12 @@ async def get_robot_state() -> str:
 
 @mcp.tool()
 async def get_vacuum_status() -> str:
-    """Get the ePick vacuum gripper's object detection status.
+    """Return cached ePick status, object_detected and availability.
 
-    Returns a JSON object with:
-    - status: one of "UNKNOWN", "OBJECT_DETECTED_AT_MIN_PRESSURE",
-      "OBJECT_DETECTED_AT_MAX_PRESSURE", "NO_OBJECT_DETECTED"
-    - object_detected: boolean — true if vacuum seal confirms an object is held
-    - available: whether the ePick status topic is being published
-
-    Use this AFTER a vacuum pick operation to verify the object was grasped.
-    If object_detected is false after closing the vacuum, the pick failed —
-    do NOT proceed to transport.
-
-    Status meanings:
-    - OBJECT_DETECTED_AT_MIN_PRESSURE: Object held with minimum vacuum (light seal)
-    - OBJECT_DETECTED_AT_MAX_PRESSURE: Object held with maximum vacuum (strong seal)
-    - NO_OBJECT_DETECTED: No vacuum seal — nothing picked up, or object dropped
-    - UNKNOWN: Regulating toward target vacuum, status not yet determined
+    MIN/MAX_PRESSURE indicate detection; NO_OBJECT_DETECTED means no seal.
+    UNKNOWN means detection is not established. available means data was received,
+    not that it is fresh. Verify current status after picking; do not transport
+    when object_detected is false or current grasp status is unconfirmed.
     """
     node = bridge.node
     gripper = node.current_gripper or "unknown"
@@ -846,48 +652,39 @@ async def get_vacuum_status() -> str:
 
 
 def _read_poses_file() -> dict:
-    """Read the poses YAML file. Returns empty dict if file doesn't exist."""
-    path = os.path.realpath(_poses_file_path())
-    if not os.path.exists(path):
+    """Read saved poses; return an empty dict if the file is missing."""
+    path = Path(_poses_file_path()).resolve()
+    if not path.exists():
         return {}
-    with open(path, "r") as f:
+    with path.open() as f:
         data = yaml.safe_load(f) or {}
     return data
 
 
 def _write_poses_file(poses: dict):
-    """Write poses dict to the YAML file atomically.
-
-    Writes to a temp file first, then renames — prevents corruption
-    if the process is killed mid-write.
-    """
+    """Atomically replace the poses YAML to avoid partial writes."""
     import tempfile
 
-    path = os.path.realpath(_poses_file_path())
-    dir_path = os.path.dirname(path)
-    os.makedirs(dir_path, exist_ok=True)
+    path = Path(_poses_file_path()).resolve()
+    dir_path = path.parent
+    dir_path.mkdir(parents=True, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(dir=dir_path, suffix=".yaml.tmp")
+    tmp_path = Path(tmp_path)
     try:
         with os.fdopen(fd, "w") as f:
             yaml.dump(poses, f, default_flow_style=None, width=200)
-        os.replace(tmp_path, path)
+        tmp_path.replace(path)
     except BaseException:
-        os.unlink(tmp_path)
+        tmp_path.unlink()
         raise
 
 
 @mcp.tool()
 async def get_saved_poses(filter: str = "") -> str:
-    """Get saved robot poses from the pose registry.
+    """Return saved joint angles in degrees and their count.
 
-    Returns a JSON object mapping pose names to joint angle arrays (degrees).
-    The orchestrator auto-resolves these names from the registry, so you do NOT
-    need to call this before sending a move. Use it to discover available poses
-    or verify joint values.
-
-    Args:
-        filter: Optional substring to filter pose names (case-insensitive).
-            Example: filter="hotplate" returns all poses with "hotplate" in the name.
+    filter is a case-insensitive name substring. Use for discovery or inspection;
+    the orchestrator resolves saved pose names without this call.
     """
     poses = _read_poses_file()
 
@@ -895,7 +692,7 @@ async def get_saved_poses(filter: str = "") -> str:
         return json.dumps({
             "poses": {},
             "count": 0,
-            "message": f"No poses file found at {os.path.realpath(_poses_file_path())}. "
+            "message": f"No poses file found at {Path(_poses_file_path()).resolve()}. "
                        "Use save_pose to create one.",
         })
 
@@ -912,16 +709,11 @@ async def save_pose(
     joints_deg: list = None,
     description: str = "",
 ) -> str:
-    """Save a robot pose to the pose registry.
+    """Save or overwrite a named pose in the registry.
 
-    If joints_deg is omitted, saves the robot's current joint positions
-    (the robot system must be running).
-
-    Args:
-        name: Pose name (e.g., "hotplate", "sample_scan_1").
-        joints_deg: 6-element list of joint angles in degrees.
-            If omitted, reads current position from the robot.
-        description: Optional note — saved as a YAML comment above the entry.
+    joints_deg: Six joint angles in degrees, in configured arm-joint order.
+        If omitted, copies cached joint positions in their received order.
+    description: Accepted but currently ignored.
     """
     if joints_deg is not None:
         if len(joints_deg) != 6:
@@ -951,11 +743,7 @@ async def save_pose(
 
 @mcp.tool()
 async def delete_pose(name: str) -> str:
-    """Delete a pose from the pose registry.
-
-    Args:
-        name: Pose name to delete.
-    """
+    """Delete the named pose from the registry."""
     poses = _read_poses_file()
 
     if name not in poses:
@@ -975,16 +763,10 @@ async def delete_pose(name: str) -> str:
 
 @mcp.tool()
 async def set_cup_profile(name: str) -> str:
-    """Set the active ePick suction cup profile.
+    """Set the orchestrator's ePick cup_profile parameter.
 
-    Changes which suction cup dimensions are used when MoveIt launches
-    for the ePick gripper. Takes effect on the next MoveIt launch (next goal
-    with start_gripper="epick", or after a tool exchange to ePick).
-
-    Available profiles are defined in epick_config/config/suction_cups.yaml.
-
-    Args:
-        name: Cup profile name (e.g., "pen_vacuum", "7mm_dia", "default").
+    name selects a profile from epick_config/config/suction_cups.yaml.
+    Takes effect on the next ePick MoveIt launch, not the running model.
     """
     import subprocess as _sp
 
@@ -1014,38 +796,26 @@ async def capture_image(
     save_path: str = DEFAULT_IMAGE_PATH,
     timeout: float = 30.0,
 ) -> str:
-    """Capture an image (and optionally point cloud) from a camera.
+    """Save a camera image; return its path, dimensions, frame and cloud availability.
 
-    Supports two cameras:
-        - "zivid": Eye-in-hand 3D camera. Single-shot triggered capture.
-          High accuracy, narrow FOV. Use for precise positioning.
-        - "zed": Fixed external ZED 2i stereo camera. Continuous streaming.
-          Wide FOV, covers full workspace. Use for scene overview, finding
-          objects, and guiding the robot to the right area.
+    camera: "zivid" triggers a capture; "zed" reads the latest streaming data.
+    mode: For Zivid, "3d" waits for image and cloud; "2d" waits only for the image.
+    save_path: Output image path.
+    timeout: Capture wait budget in seconds; ZED's initial-frame wait is at most 5s.
 
-    The image is saved to disk so Claude can view it with the Read tool.
-
-    Args:
-        camera: Which camera to use — "zivid" or "zed". Default "zivid".
-        mode: "2d" for image only, "3d" for image + point cloud (needed for
-              detect_objects 3D positions). Default "3d".
-        save_path: Where to save the captured image. Default /tmp/beambot_capture.jpg.
-        timeout: Max seconds to wait for capture. Default 30.
-
-    Returns:
-        JSON with image_path, width, height, has_pointcloud, camera_frame.
+    Use mode="3d" before requesting 3D detection or pixel positions.
     """
     node = bridge.node
 
     if camera == "zed":
-        # ZED streams continuously — just grab whatever's latest
+        # Use the latest ZED stream data.
         rgb = node.zed_rgb
         cloud = node.zed_cloud
         stamp = node.zed_stamp
         frame = ZED_FRAME
 
         if rgb is None:
-            # Wait briefly for first frame if ZED just started
+            # Allow up to five seconds for the first ZED frame.
             loop = asyncio.get_event_loop()
             def _wait_for_zed():
                 deadline = time.monotonic() + min(timeout, 5.0)
@@ -1063,7 +833,6 @@ async def capture_image(
             stamp = node.zed_stamp
 
     elif camera == "zivid":
-        # Zivid requires explicit trigger
         need_cloud = mode == "3d"
         loop = asyncio.get_event_loop()
         success = await loop.run_in_executor(
@@ -1084,9 +853,8 @@ async def capture_image(
     if rgb is None:
         return json.dumps({"error": f"No image data received from {camera}"})
 
-    # Save image (convert RGB → BGR for OpenCV)
     bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-    os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
+    Path(save_path).parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(save_path, bgr)
 
     h, w = rgb.shape[:2]
@@ -1118,41 +886,22 @@ async def detect_objects(
     transform_to_base: bool = True,
     save_path: str = DEFAULT_ANNOTATED_PATH,
 ) -> str:
-    """Detect objects in the last captured image.
+    """Detect objects in cached camera data and save an annotated image.
 
-    IMPORTANT: Call capture_image() first! This operates on the most
-    recent capture data from the specified camera.
+    Call capture_image with the same camera first; use mode="3d" for XYZ results.
+    Returns pixel detections and available camera/base_link coordinates in metres.
 
-    Detection methods:
-        - "hsv_color": Find objects by color in HSV space. Good for colored balls,
-          samples with distinctive hues. Tune hue_low/hue_high for your target color.
-          Common ranges: blue=100-130, red=0-10 or 170-180, green=35-85, yellow=20-35.
-        - "marker": ArUco marker detection (2D image-based, not Zivid native).
-        - "yolo": Deep learning object detection (Ultralytics YOLOv8/v11). Most robust
-          method — detects objects by class with bounding boxes. Works well regardless
-          of lighting/contrast. Use yolo_model for custom weights, yolo_classes to filter.
-
-    Args:
-        method: Detection method — "hsv_color", "marker", or "yolo".
-        camera: Which camera's data to use — "zivid" or "zed". Default "zivid".
-            Must match the camera used in the preceding capture_image() call.
-        hue_low: HSV hue lower bound (0-180). Only for hsv_color.
-        hue_high: HSV hue upper bound (0-180). Only for hsv_color.
-        sat_min: Min saturation (0-255). Only for hsv_color.
-        val_min: Min value/brightness (0-255). Only for hsv_color.
-        min_area: Min object area in pixels for hsv_color.
-        marker_ids: Comma-separated ArUco marker IDs to find (empty=all). Only for marker.
-        yolo_model: YOLO model weights — "yolov8n.pt" (nano/fast), "yolov8s.pt" (small),
-            "yolov8m.pt" (medium), or path to custom fine-tuned weights. Only for yolo.
-        yolo_confidence: Min detection confidence 0-1. Lower = more detections. Only for yolo.
-        yolo_classes: Comma-separated class names or IDs to filter (e.g. "book,cell phone"
-            or "73,67"). Empty = detect all classes. Only for yolo.
-        transform_to_base: If True, transform 3D positions from camera frame to base_link.
-        save_path: Where to save annotated image. Default /tmp/beambot_detection.jpg.
-
-    Returns:
-        JSON with list of detections, each containing pixel coords, 3D position
-        (camera and/or base frame), and an annotated image path.
+    method: "hsv_color", "marker" (OpenCV ArUco), or "yolo".
+    camera: "zivid" or "zed".
+    hue_low/hue_high: HSV hue bounds, 0-180.
+    sat_min/val_min: HSV saturation/brightness thresholds, 0-255.
+    min_area: Minimum HSV contour area in pixels squared.
+    marker_ids: Comma-separated ArUco IDs; empty selects all.
+    yolo_model: Model name or custom weights path.
+    yolo_confidence: Minimum confidence, 0-1.
+    yolo_classes: Comma-separated class names or IDs; empty selects all.
+    transform_to_base: Also resolve XYZ in base_link using TF.
+    save_path: Output annotated image path.
     """
     node = bridge.node
 
@@ -1166,7 +915,6 @@ async def detect_objects(
             "error": f"No image data from {camera}. Call capture_image(camera='{camera}') first.",
         })
 
-    # Run detection
     raw_detections = None
     if method == "hsv_color":
         raw = _detect_hsv_color(
@@ -1188,12 +936,10 @@ async def detect_objects(
             ]
 
     elif method == "yolo":
-        # Parse class filter (names or IDs)
         class_ids = None
         class_filter_names = []
         if yolo_classes.strip():
             parts = [c.strip() for c in yolo_classes.split(",")]
-            # Check if they're numeric (class IDs) or names
             if all(p.isdigit() for p in parts):
                 class_ids = [int(p) for p in parts]
             else:
@@ -1205,16 +951,15 @@ async def detect_objects(
             classes=class_ids,
         )
         detector = get_yolo_detector(yolo_model)
-        raw = detector.detect(rgb, params)
+        bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
+        raw = detector.detect(bgr, params)
 
-        # Filter by class name if specified as strings
         if class_filter_names:
             raw = [d for d in raw if d[0].lower() in class_filter_names]
 
         if raw:
-            # Annotate with YOLO-specific visualization
-            annotated_yolo = detector.annotate(rgb, raw)
-            os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
+            annotated_yolo = detector.annotate(bgr, raw)
+            Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             cv2.imwrite(save_path, annotated_yolo)
 
             raw_detections = [
@@ -1237,7 +982,7 @@ async def detect_objects(
             "message": f"No objects detected with method '{method}'",
         })
 
-    # Add 3D positions from point cloud
+    # Resolve pixel detections to camera and base coordinates.
     for det in raw_detections:
         det["camera_xyz"] = None
         det["base_xyz"] = None
@@ -1247,7 +992,6 @@ async def detect_objects(
             if xyz is not None:
                 det["camera_xyz"] = list(xyz)
 
-                # Transform to base_link if requested
                 if transform_to_base:
                     base_xyz = await _transform_point_to_base(
                         node, xyz, camera_frame, stamp,
@@ -1255,17 +999,11 @@ async def detect_objects(
                     if base_xyz is not None:
                         det["base_xyz"] = list(base_xyz)
 
-    # Annotate and save image (YOLO handles its own annotation above)
+    # YOLO annotations are saved in the detection branch.
     if method != "yolo":
-        annotated = _annotate_image(rgb, raw_detections, method)
-        os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
+        annotated = _annotate_image(rgb, raw_detections)
+        Path(save_path).parent.mkdir(parents=True, exist_ok=True)
         cv2.imwrite(save_path, annotated)
-
-    # Clean up non-serializable fields
-    for det in raw_detections:
-        if "corners" in det:
-            # corners are already lists from _detect_aruco_markers
-            pass
 
     result = {
         "detections": raw_detections,
@@ -1284,16 +1022,10 @@ async def _transform_point_to_base(
     camera_frame: str,
     capture_stamp=None,
 ) -> tuple[float, float, float] | None:
-    """Transform a 3D point from camera frame to base_link using TF.
-
-    Tries capture_stamp first for accuracy (matches robot pose at capture time),
-    then falls back to latest transform if the timestamped lookup fails (e.g.,
-    TF buffer hasn't accumulated enough data yet).
-    """
+    """Transform a camera point to base_link, falling back from capture-time to latest TF."""
     loop = asyncio.get_event_loop()
 
     def _do_transform():
-        # Try timestamped lookup first
         transform = None
         if capture_stamp is not None:
             transform = node.lookup_transform(
@@ -1304,7 +1036,6 @@ async def _transform_point_to_base(
                     "TF lookup at capture_stamp failed, falling back to latest transform"
                 )
 
-        # Fallback: latest available transform
         if transform is None:
             transform = node.lookup_transform(
                 "base_link", camera_frame, stamp=None,
@@ -1337,24 +1068,18 @@ async def _confirm_point_via_gui(
     pixel_y: int,
     timeout: float = 120.0,
 ) -> dict[str, Any] | None:
-    """Launch the point selector GUI as a subprocess and wait for the result.
-
-    Returns:
-        Dict with confirmed point, None if cancelled, or dict with error key.
-    """
-    gui_script = os.path.join(os.path.dirname(__file__), "point_selector_gui.py")
-    if not os.path.exists(gui_script):
+    """Run point confirmation; return selected pixels, None on cancel, or an error dict."""
+    gui_script = Path(__file__).with_name("point_selector_gui.py")
+    if not gui_script.exists():
         return {"error": f"GUI script not found: {gui_script}"}
 
     cmd = [
-        sys.executable, gui_script, image_path,
+        sys.executable, str(gui_script), image_path,
         "--x", str(pixel_x), "--y", str(pixel_y),
         "--title", "Confirm Point — Click to adjust, Enter to confirm",
     ]
 
-    # Ensure X11 env vars are available for the GUI subprocess.
-    # Claude Code strips DISPLAY when spawning MCP servers, so we detect
-    # the active display at launch and inject it here.
+    # Supply detected X11 credentials when absent from the subprocess environment.
     env = os.environ.copy()
     env.setdefault("DISPLAY", _DETECTED_DISPLAY)
     env.setdefault("XAUTHORITY", _DETECTED_XAUTHORITY)
@@ -1380,7 +1105,7 @@ async def _confirm_point_via_gui(
         logger.info(f"GUI stderr: {stderr_text}")
 
     if proc.returncode != 0:
-        # Still try to parse stdout — the script outputs error JSON before exit(1)
+        # The GUI may return error JSON even when it exits unsuccessfully.
         try:
             result = json.loads(stdout.decode().strip())
             if stderr_text:
@@ -1395,32 +1120,28 @@ async def _confirm_point_via_gui(
         return {"error": f"Failed to parse GUI output: {e}. stderr: {stderr_text}"}
 
     if not result.get("confirmed", False):
-        return None  # User cancelled
+        return None
 
     return result
 
 
 
-# YOLO model singleton (loaded on first use)
+# Sample model loaded on first use.
 _yolo_model = None
 
 
 def _get_yolo_model():
-    """Load YOLO model on first call, cache for subsequent calls."""
+    """Load and cache the sample detector weights."""
     global _yolo_model
     if _yolo_model is None:
         from ultralytics import YOLO
-        import os
-        model_path = os.path.join(
-            os.path.dirname(os.path.dirname(__file__)),
-            "models", "sample_detector.pt"
-        )
-        if not os.path.exists(model_path):
+        model_path = Path(__file__).parents[1] / "models" / "sample_detector.pt"
+        if not model_path.exists():
             raise FileNotFoundError(
                 f"YOLO model not found at {model_path}. "
                 "Provide a trained model at that path."
             )
-        _yolo_model = YOLO(model_path)
+        _yolo_model = YOLO(str(model_path))
         logger.info(f"YOLO model loaded from {model_path}")
     return _yolo_model
 
@@ -1431,27 +1152,12 @@ async def detect_sample_yolo(
     confidence: float = 0.5,
     save_path: str = "/tmp/sample_detection_yolo.jpg",
 ) -> str:
-    """Detect a sample using YOLO object detection and return its 3D position.
+    """Return the highest-confidence sample detection using sample_detector.pt.
 
-    IMPORTANT: Call capture_image(mode='3d') first!
-
-    Uses a fine-tuned YOLOv8 model to detect samples in the camera image.
-    Unlike detect_sample (which uses ArUco tags + contour detection), this
-    works without markers — suitable for the spincoater and other locations
-    where tag placement isn't practical.
-
-    Args:
-        camera: Camera to use ("zivid" or "zed"). Default "zivid".
-        confidence: Minimum detection confidence (0-1). Default 0.5.
-        save_path: Where to save annotated detection image.
-
-    Returns:
-        JSON with:
-        - pickup_base_xyz: [x, y, z] detection center in base_link
-        - detection_pixel: [x, y] center pixel in image
-        - confidence: detection confidence score
-        - bbox: [x1, y1, x2, y2] bounding box in pixels
-        - bbox_size_px: [width, height] of detection in pixels
+    First call capture_image(camera=..., mode="3d") with the same camera.
+    camera is "zivid" or "zed"; confidence is the minimum score, 0-1.
+    Saves annotations to save_path. Returns the pixel center, bounding box,
+    confidence and pickup_base_xyz in metres, or null if depth/TF is unavailable.
     """
     node = bridge.node
 
@@ -1466,13 +1172,11 @@ async def detect_sample_yolo(
                      f"Call capture_image(camera='{camera}', mode='3d') first."
         })
 
-    # Load model
     try:
         model = _get_yolo_model()
     except FileNotFoundError as e:
         return json.dumps({"error": str(e)})
 
-    # Run inference on BGR image
     bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
     results = model(bgr, conf=confidence, verbose=False)
 
@@ -1492,7 +1196,7 @@ async def detect_sample_yolo(
             })
 
     if not detections:
-        # Save annotated image even on failure (for debugging)
+        # Preserve the annotated frame when no sample is detected.
         if results:
             annotated = results[0].plot()
             cv2.imwrite(save_path, annotated)
@@ -1502,17 +1206,14 @@ async def detect_sample_yolo(
             "annotated_image_path": save_path,
         })
 
-    # Use highest confidence detection
     best = max(detections, key=lambda d: d["conf"])
     cx, cy = best["cx"], best["cy"]
 
-    # 3D lookup from point cloud
     pickup_xyz = get_3d_position(cloud, cx, cy, search_radius=20)
     pickup_base = None
     if pickup_xyz is not None:
         pickup_base = await _transform_point_to_base(node, pickup_xyz, camera_frame, stamp)
 
-    # Save annotated image
     if results:
         annotated = results[0].plot()
         cv2.imwrite(save_path, annotated)
@@ -1540,33 +1241,17 @@ async def get_point_3d(
     confirm: bool = True,
     save_path: str = "/tmp/beambot_point3d.jpg",
 ) -> str:
-    """Get the 3D position of a pixel from the last captured point cloud.
+    """Resolve an image pixel using cached camera depth and optionally confirm it in a GUI.
 
-    IMPORTANT: Call capture_image() first! This uses the most recent
-    point cloud data from the specified camera.
+    First call capture_image(camera=..., mode="3d") with the same camera.
+    pixel_x/pixel_y: Image column/row, in pixels.
+    camera: "zivid" or "zed".
+    search_radius: Pixel radius to search when the selected pixel has no depth.
+    transform_to_base: Also resolve the point in base_link using TF.
+    confirm: Show point selection; Enter confirms, Esc cancels.
+    save_path: Output annotated image path.
 
-    Use this when you can see something in the camera image and want to know
-    its real-world 3D position — e.g., "what are the 3D coordinates of the
-    object at pixel (500, 300)?" This is useful for planning robot moves to
-    arbitrary points visible in the image without needing a specific detector.
-
-    Args:
-        pixel_x: X coordinate (column) in the image.
-        pixel_y: Y coordinate (row) in the image.
-        camera: Which camera's data to use — "zivid" or "zed". Default "zivid".
-            Must match the camera used in the preceding capture_image() call.
-        transform_to_base: If True, return position in base_link frame.
-            If False, return in the camera's optical frame.
-        search_radius: If the exact pixel has no depth, search nearby pixels
-            within this radius. Default 10.
-        confirm: If True, open a GUI window showing the image with the
-            suggested point. The user can click to adjust the position,
-            then press Enter to confirm or Esc to cancel. Default True.
-        save_path: Where to save annotated image showing the queried point.
-
-    Returns:
-        JSON with camera_xyz, base_xyz (if transform_to_base), and an
-        annotated image showing the queried point.
+    Returns camera_xyz and available base_xyz in metres, or a cancellation/error.
     """
     node = bridge.node
 
@@ -1585,7 +1270,6 @@ async def get_point_3d(
             "error": f"No image data from {camera}. Call capture_image(camera='{camera}', mode='3d') first.",
         })
 
-    # Bounds check
     h, w = rgb.shape[:2]
     if pixel_x < 0 or pixel_x >= w or pixel_y < 0 or pixel_y >= h:
         return json.dumps({
@@ -1593,11 +1277,10 @@ async def get_point_3d(
                      f"Image size: {w}x{h}.",
         })
 
-    # GUI confirmation step
     if confirm:
-        # Use the saved capture image, or save current frame as fallback
+        # Reuse the saved capture image if present.
         image_path = DEFAULT_IMAGE_PATH
-        if not os.path.exists(image_path):
+        if not Path(image_path).exists():
             bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
             cv2.imwrite(image_path, bgr)
 
@@ -1612,18 +1295,16 @@ async def get_point_3d(
         if "error" in gui_result:
             return json.dumps(gui_result)
 
-        # Override with user's confirmed coordinates
         pixel_x = gui_result["pixel_x"]
         pixel_y = gui_result["pixel_y"]
 
-        # Re-check bounds after user adjustment
+        # Validate the user-adjusted pixel against the current image.
         if pixel_x < 0 or pixel_x >= w or pixel_y < 0 or pixel_y >= h:
             return json.dumps({
                 "error": f"User-selected pixel ({pixel_x}, {pixel_y}) out of bounds. "
                          f"Image size: {w}x{h}.",
             })
 
-    # Look up 3D position from point cloud
     xyz = get_3d_position(cloud, pixel_x, pixel_y, search_radius)
 
     if xyz is None:
@@ -1643,7 +1324,6 @@ async def get_point_3d(
         "base_frame": "base_link",
     }
 
-    # Transform to base_link
     if transform_to_base:
         base_xyz = await _transform_point_to_base(
             node, xyz, camera_frame, stamp,
@@ -1651,7 +1331,6 @@ async def get_point_3d(
         if base_xyz is not None:
             result["base_xyz"] = [round(v, 6) for v in base_xyz]
 
-    # Annotate image with the queried point
     annotated = cv2.cvtColor(rgb.copy(), cv2.COLOR_RGB2BGR)
     cv2.drawMarker(
         annotated, (pixel_x, pixel_y), (0, 0, 255),
@@ -1673,7 +1352,7 @@ async def get_point_3d(
         annotated, label, (pixel_x + 15, pixel_y - 10),
         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 1,
     )
-    os.makedirs(os.path.dirname(save_path) or "/tmp", exist_ok=True)
+    Path(save_path).parent.mkdir(parents=True, exist_ok=True)
     cv2.imwrite(save_path, annotated)
     result["annotated_image_path"] = save_path
 
@@ -1686,24 +1365,14 @@ async def get_tf_transform(
     target_frame: str = "base_link",
     timeout: float = 2.0,
 ) -> str:
-    """Look up TF transform between two frames.
+    """Return the latest transform from source_frame to target_frame.
 
-    Uses the persistent TF buffer that fills continuously in the background.
-    Common frames: base_link, flange, tool0, zivid_optical_frame, world.
+    Uses flange by default for MoveIt Cartesian targets; tool0 has UR tool axes.
+    These frames share an origin but differ in orientation. Common frames include
+    base_link, flange, tool0, zivid_optical_frame and world.
+    timeout: Transform wait timeout in seconds.
 
-    IMPORTANT: Default is "flange" (MoveIt/ROS convention), NOT "tool0" (UR convention).
-    flange and tool0 are at the same position but rotated by (-90°, -90°, 0°).
-    Use "flange" when reading orientation for cartesian_target goals (MoveIt uses flange).
-    Use "tool0" when comparing with UR teach pendant values.
-
-    Args:
-        source_frame: The frame to transform FROM. Default "flange" (MoveIt convention).
-        target_frame: The frame to transform TO (e.g., "base_link").
-        timeout: Max seconds to wait for transform availability.
-
-    Returns:
-        JSON with translation (xyz), rotation (quaternion + RPY in degrees),
-        and the full 4x4 homogeneous transform matrix.
+    Returns translation in metres, quaternion, RPY in degrees and a 4x4 matrix.
     """
     loop = asyncio.get_event_loop()
 
@@ -1725,13 +1394,11 @@ async def get_tf_transform(
     t = transform.transform.translation
     q = transform.transform.rotation
 
-    # Compute RPY from quaternion
     from tf_transformations import euler_from_quaternion
 
     rpy = euler_from_quaternion([q.x, q.y, q.z, q.w])
     rpy_deg = [math.degrees(a) for a in rpy]
 
-    # Full 4x4 matrix
     mat = quaternion_matrix([q.x, q.y, q.z, q.w])
     mat[0, 3] = t.x
     mat[1, 3] = t.y
@@ -1757,8 +1424,7 @@ async def get_tf_transform(
 
 BEAMBOT_LOG_FILE = "/tmp/beambot_launch.log"
 
-# Regex to parse ROS2 launch log lines:
-# [process_name-N] [LEVEL] [timestamp] [logger_name]: message
+# ROS launch format: [process-N] [LEVEL] [timestamp] [logger]: message.
 _LOG_LINE_RE = re.compile(
     r'^\[([^\]]+)\]\s+'          # [process_name-N]
     r'\[(\w+)\]\s+'              # [LEVEL]
@@ -1776,26 +1442,17 @@ async def get_recent_logs(
     logger: str = "",
     count: int = 30,
 ) -> str:
-    """Get recent ROS2 log messages from the beambot launch output.
+    """Return recent matching entries from /tmp/beambot_launch.log, newest first.
 
-    Reads from /tmp/beambot_launch.log (written by start_mcp.sh).
-    Use this after a failure to understand what went wrong.
-
-    Args:
-        severity: Minimum severity level — "DEBUG", "INFO", "WARN", "ERROR", "FATAL".
-            Default "ERROR" (shows ERROR and FATAL only).
-        logger: Filter by logger name prefix (e.g., "beambot", "move_group",
-            "moveit"). Empty string = all loggers.
-        count: Maximum number of messages to return (most recent first).
-            Default 30.
-
-    Returns:
-        JSON with list of log entries, each containing process, logger,
-        severity, and message.
+    The log is written by start_mcp.sh; only its final 2,000 lines are searched.
+    severity: Minimum level: DEBUG, INFO, WARN, ERROR or FATAL.
+    logger: Logger-name prefix; empty matches all.
+    count: Maximum entries to return.
+    Entries contain process, logger, severity and message.
     """
     min_level = _SEVERITY_ORDER.get(severity.upper(), 40)
 
-    if not os.path.exists(BEAMBOT_LOG_FILE):
+    if not Path(BEAMBOT_LOG_FILE).exists():
         return json.dumps({
             "error": f"Log file not found: {BEAMBOT_LOG_FILE}. "
                      "Make sure beambot was started with start_mcp.sh.",
@@ -1803,7 +1460,7 @@ async def get_recent_logs(
             "count": 0,
         })
 
-    # Read last ~2000 lines (enough for recent activity without loading entire file)
+    # Retain at most 2,000 lines while reading the launch log.
     loop = asyncio.get_event_loop()
     def _read_tail():
         try:
@@ -1816,7 +1473,7 @@ async def get_recent_logs(
     if isinstance(lines, str):
         return json.dumps({"error": f"Failed to read log file: {lines}", "logs": [], "count": 0})
 
-    # Parse and filter (iterate in reverse for most recent first)
+    # Return matching entries newest first.
     filtered = []
     for line in reversed(lines):
         m = _LOG_LINE_RE.match(line.strip())
@@ -1849,22 +1506,12 @@ async def get_recent_logs(
     return json.dumps(result)
 
 
-# ---------------------------------------------------------------------------
-# Vision Target Framework
-# ---------------------------------------------------------------------------
-
-# Direction opposites for grid offset sign flips
-_DIRECTION_OPPOSITES = {
-    "forward": "backward", "backward": "forward",
-    "left": "right", "right": "left",
-    "up": "down", "down": "up",
-}
+# Vision-target task generation.
 
 
 def _load_beamline_config() -> dict:
     """Load the full beamline config from $BEAMBOT_BEAMLINE_CONFIG."""
     try:
-        # Import lazily so the MCP server can still start without ROS sourced
         from beambot.config_loader import load_beamline_config
         config, _ = load_beamline_config()
         return config
@@ -1886,20 +1533,9 @@ def _build_vision_target_tasks(
     col: int = -1,
     tag_id: int = -1,
 ) -> dict:
-    """Build task JSON for a vision target from config.
+    """Build offset/grid task JSON without executing it; return an error dict on failure.
 
-    For offset mode: moveto scan_pose → vision_moveto with marker-frame offsets.
-    For grid mode: moveto scan_pose → vision_moveto → relative cartesian moves.
-
-    Args:
-        target_name: Name of the target in vision_targets config.
-        element_index: For grid targets, 0-based index in row-major order.
-        row: For grid targets, 0-indexed row (overrides element_index).
-        col: For grid targets, 0-indexed column (overrides element_index).
-        tag_id: Override marker ID from config (-1 = use config value).
-
-    Returns:
-        Dict with 'task_json' key on success, 'error' key on failure.
+    Row and column override the row-major index; tag_id=-1 uses the configured ID.
     """
     targets = _load_vision_targets()
     if target_name not in targets:
@@ -1908,26 +1544,18 @@ def _build_vision_target_tasks(
 
     cfg = targets[target_name]
     mode = cfg.get("mode", "offset")
-    marker_id = tag_id if tag_id >= 0 else cfg["marker_id"]
     scan_pose_name = cfg.get("scan_pose", "")
     start_gripper = cfg.get("start_gripper", "pipettor")
 
-    # Load scan pose from poses.yaml
     poses_dict = {}
     all_poses = _read_poses_file()
     if scan_pose_name and scan_pose_name in all_poses:
         poses_dict[scan_pose_name] = all_poses[scan_pose_name]
 
-    tasks = []
-
-    # Step 1: Move to scan position
-    if scan_pose_name:
-        tasks.append({"task_type": "moveto", "target": scan_pose_name})
-
-    marker_offset = cfg.get("marker_offset", {})
-
     if mode == "offset":
-        # Single vision_moveto with marker-frame offsets → direct move
+        marker_id = tag_id if tag_id >= 0 else cfg["marker_id"]
+        marker_offset = cfg.get("marker_offset", {})
+        tasks = [{"task_type": "moveto", "target": scan_pose_name}] if scan_pose_name else []
         vision_step = {
             "task_type": "vision_moveto",
             "tag_id": marker_id,
@@ -1947,99 +1575,30 @@ def _build_vision_target_tasks(
         return {"task_json": task_json, "target": target_name, "mode": "offset"}
 
     elif mode == "grid":
-        grid_cfg = cfg.get("grid", {})
-        grid_rows = grid_cfg.get("rows", 1)
-        grid_cols = grid_cfg.get("cols", 1)
-        # Support separate row/col pitch, fall back to single pitch for backward compat
-        default_pitch = grid_cfg.get("pitch", 0.009)
-        col_pitch = grid_cfg.get("col_pitch", default_pitch)
-        row_pitch = grid_cfg.get("row_pitch", default_pitch)
-        # Flange directions for A1 offset from tag
-        col_dir_a1 = grid_cfg.get("col_direction", "left")
-        row_dir_a1 = grid_cfg.get("row_direction", "up")
-        col_dir_away = _DIRECTION_OPPOSITES.get(col_dir_a1, "right")
-        row_dir_away = _DIRECTION_OPPOSITES.get(row_dir_a1, "down")
-        # Direction indices increase: defaults to opposite of A1 direction
-        # (backward compat: tip_rack has A1 at max offset, indices go toward tag)
-        col_increasing = grid_cfg.get("col_increasing", col_dir_away)
-        row_increasing = grid_cfg.get("row_increasing", row_dir_away)
-
-        # A1 offset from tag: use grid-level overrides if present,
-        # else fall back to marker_offset for backward compat
-        a1_col_offset = grid_cfg.get("col_offset", abs(marker_offset.get("x", 0.0)))
-        a1_row_offset = grid_cfg.get("row_offset", abs(marker_offset.get("y", 0.0)))
-
-        # Resolve row/col from index
-        if row >= 0 and col >= 0:
-            if row >= grid_rows or col >= grid_cols:
-                return {"error": f"row={row}, col={col} out of range "
-                                 f"(max: {grid_rows-1}, {grid_cols-1})"}
-        else:
-            total = grid_rows * grid_cols
-            if element_index < 0 or element_index >= total:
-                return {"error": f"element_index={element_index} out of range (0-{total-1})"}
-            row = element_index // grid_cols
-            col = element_index % grid_cols
-
-        # Compute flange-frame offsets for this grid element
-        # A1 is at a1_offset in the A1-ward direction.
-        # Grid displacement goes in the col/row_increasing direction.
-        # If increasing == A1 direction: ADD (elements go further from tag)
-        # If increasing != A1 direction: SUBTRACT (elements go back toward tag)
-        if col_increasing == col_dir_a1:
-            col_offset = a1_col_offset + col * col_pitch
-        else:
-            col_offset = a1_col_offset - col * col_pitch
-
-        if row_increasing == row_dir_a1:
-            row_offset = a1_row_offset + row * row_pitch
-        else:
-            row_offset = a1_row_offset - row * row_pitch
-
-        col_dir = col_dir_a1 if col_offset >= 0 else col_dir_away
-        col_dist = abs(col_offset)
-        row_dir = row_dir_a1 if row_offset >= 0 else row_dir_away
-        row_dist = abs(row_offset)
-
-        # Vision alignment step (move to marker)
-        tasks.append({"task_type": "vision_moveto", "tag_id": marker_id})
-
-        # Build moves from config, replacing sentinels with computed offsets
-        for move in cfg.get("moves", []):
-            if move == "column_offset":
-                if col_dist > 1e-6:  # Skip zero-distance moves
-                    tasks.append({
-                        "task_type": "moveto", "target": "",
-                        "planning_type": "cartesian",
-                        "direction": col_dir,
-                        "distance": round(col_dist, 6),
-                    })
-            elif move == "row_offset":
-                if row_dist > 1e-6:  # Skip zero-distance moves
-                    tasks.append({
-                        "task_type": "moveto", "target": "",
-                        "planning_type": "cartesian",
-                        "direction": row_dir,
-                        "distance": round(row_dist, 6),
-                    })
-            elif isinstance(move, dict) and "direction" in move:
-                tasks.append({
-                    "task_type": "moveto", "target": "",
-                    "planning_type": "cartesian",
-                    "direction": move["direction"],
-                    "distance": float(move["distance"]),
-                })
+        # Share the orchestrator's pickup-macro expansion and validation.
+        task = {"row": row, "col": col} if row >= 0 and col >= 0 else {
+            "element_index": element_index
+        }
+        if tag_id >= 0:
+            task["config"] = {"marker_id": tag_id}
+        try:
+            grid_tasks, element = expand_grid_target(target_name, targets, task, target_name)
+        except ValueError as error:
+            return {"error": str(error)}
 
         task_json = json.dumps({
             "start_gripper": start_gripper,
-            "tasks": tasks,
+            "tasks": grid_tasks,  # Includes the scan-pose move.
             "poses": poses_dict,
         })
+        (col_dir, col_dist), (row_dir, row_dist) = (
+            element["moves"]["col"], element["moves"]["row"]
+        )
         return {
             "task_json": task_json,
             "target": target_name,
             "mode": "grid",
-            "element": {"row": row, "col": col, "index": row * grid_cols + col},
+            "element": {k: element[k] for k in ("row", "col", "index")},
             "offsets_mm": {
                 col_dir: round(col_dist * 1000, 1),
                 row_dir: round(row_dist * 1000, 1),
@@ -2058,25 +1617,15 @@ async def vision_target(
     col: int = -1,
     tag_id: int = -1,
 ) -> str:
-    """Build task JSON for a config-driven vision target operation.
+    """Build task_json for a configured vision target without executing it.
 
-    Vision targets are defined in $BEAMBOT_BEAMLINE_CONFIG under 'vision_targets'.
-    Each target uses ArUco marker detection to locate the target, then either:
-      - offset mode: moves directly to a marker-relative position (single point)
-      - grid mode: aligns with marker, then does relative moves to grid element
+    target_name: Entry under vision_targets in BEAMBOT_BEAMLINE_CONFIG.
+    Offset targets use marker-relative positioning; grid targets add relative moves.
+    element_index: Zero-based row-major grid index; ignored for offset targets.
+    row/col: Zero-based grid coordinates; supply both to override element_index.
+    tag_id: Override the marker ID; -1 uses the configured value.
 
-    Args:
-        target_name: Name of the vision target from config (e.g. "tip_rack",
-            "sample", "vial_rack").
-        element_index: For grid targets: 0-based element index in row-major order.
-            Ignored if row/col are specified. Ignored for offset targets.
-        row: For grid targets: 0-indexed row. Use with col.
-        col: For grid targets: 0-indexed column. Use with row.
-        tag_id: Override the marker ID from config. Use for targets like "sample"
-            where the same offset applies to different markers. -1 = use config value.
-
-    Returns:
-        JSON with task_json to send to the orchestrator via send_action_goal.
+    Send the returned task_json to the orchestrator via send_action_goal.
     """
     result = _build_vision_target_tasks(target_name, element_index, row, col, tag_id=tag_id)
     return json.dumps(result, indent=2)
@@ -2088,29 +1637,19 @@ async def pickup_tip(
     row: int = -1,
     col: int = -1,
 ) -> str:
-    """Build task JSON for picking up a pipettor tip from the tip rack.
+    """Build tip-rack pickup task_json without executing it.
 
-    Convenience wrapper around vision_target(target_name="tip_rack").
-    Specify the tip by either tip_index (0-95, row-major) or row + col (0-indexed).
-
-    Args:
-        tip_index: Tip number 0-95 in row-major order. Ignored if row/col given.
-        row: Row index 0-7 (A-H). Use with col.
-        col: Column index 0-11 (1-12). Use with row.
-
-    Returns:
-        JSON with task_json to send to the orchestrator.
+    tip_index is zero-based and row-major; supplying both row and col overrides it.
+    Bounds follow the configured tip_rack grid. Send task_json to the orchestrator.
     """
     result = _build_vision_target_tasks("tip_rack", tip_index, row, col)
     return json.dumps(result, indent=2)
 
 
-# ---------------------------------------------------------------------------
-# Entry point
-# ---------------------------------------------------------------------------
+# Entry point.
 
 def main():
-    # Configure logging to stderr (stdout is reserved for MCP stdio transport)
+    # Reserve stdout for MCP stdio transport.
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(name)s] %(levelname)s: %(message)s",
@@ -2118,7 +1657,7 @@ def main():
     )
     logger.info("Starting EROBS MCP server...")
 
-    # Write crash logs to file since stderr may not be visible
+    # Keep crash details when the MCP client hides stderr.
     crash_log = "/tmp/beambot_mcp_crash.log"
 
     try:

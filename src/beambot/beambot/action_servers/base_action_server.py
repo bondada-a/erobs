@@ -1,10 +1,5 @@
-"""Base class for MTC action servers.
+"""Shared action-server lifecycle and ROS node runner."""
 
-Provides goal lifecycle management, concurrent execution prevention,
-and standard error handling for all MTC action servers.
-"""
-
-import threading
 import traceback
 import uuid
 
@@ -16,26 +11,18 @@ from rclpy.node import Node
 
 
 class BaseActionServer(Node):
-    """Base class for MTC action servers.
-
-    Subclasses must implement create_stages() to return a stages object
-    whose run(request) yields None on success or an error string on
-    failure. Optionally override _execute() for custom goal handling.
-    """
+    """Manage goal admission, execution results, and errors for operation servers."""
 
     def __init__(self, node_name: str, action_name: str, action_type):
         super().__init__(node_name)
 
         self._executing = False
-        self._lock = threading.Lock()
         self._action_type = action_type
         self._robot_model_revision = ""
 
         self._stages = self.create_stages()
 
-        # Note: cancel_callback is omitted - defaults to REJECT. Individual action
-        # servers cannot safely cancel mid-execution (MTC/MoveIt is controlling the
-        # robot). Cancellation is handled at the orchestrator level (between tasks).
+        # Cancellation defaults to rejection; the orchestrator cancels between tasks.
         self._action_server = ActionServer(
             self,
             action_type,
@@ -47,29 +34,25 @@ class BaseActionServer(Node):
         self.get_logger().info(f"{node_name} started on '{action_name}'")
 
     def create_stages(self):
-        """Return a stages instance that exposes `.run(request) -> Optional[str]`.
-
-        The returned object's run() should yield None on success or an error
-        string on failure. Subclasses must override.
-        """
+        """Return operation stages; subclasses must implement this method."""
         raise NotImplementedError("Subclass must implement create_stages()")
 
     def _goal_callback(self, goal_request) -> GoalResponse:
-        """Accept goal if not already executing, otherwise reject."""
-        with self._lock:
-            if self._executing:
-                self.get_logger().warning("Rejecting goal: server busy")
-                return GoalResponse.REJECT
-            self._executing = True
-            if hasattr(goal_request, "robot_model_revision"):
-                self._robot_model_revision = (
-                    goal_request.robot_model_revision or uuid.uuid4().hex
-                )
+        """Reserve an idle server and record the goal's model revision."""
+        if self._executing:
+            self.get_logger().warning("Rejecting goal: server busy")
+            return GoalResponse.REJECT
+        self._executing = True
+        if hasattr(goal_request, "robot_model_revision"):
+            # Unique fallback keys prevent model reuse across unversioned goals.
+            self._robot_model_revision = (
+                goal_request.robot_model_revision or uuid.uuid4().hex
+            )
         self.get_logger().info("Received goal request")
         return GoalResponse.ACCEPT
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):
-        """Execute goal with error handling and state management."""
+        """Finalize the goal and release the server, including after exceptions."""
         try:
             result = self._execute(goal_handle)
 
@@ -83,10 +66,7 @@ class BaseActionServer(Node):
             return result
 
         except Exception as e:
-            # rclpy loggers don't support exc_info=, so format the traceback
-            # manually. Without this, every action-server error loses its stack
-            # trace and only the str(e) line hits the logs — making bugs below
-            # the action callback (stage code, MTC, MoveIt) effectively invisible.
+            # rclpy loggers lack exc_info support; include the traceback explicitly.
             self.get_logger().error(
                 f"Exception during execution: {e}\n{traceback.format_exc()}"
             )
@@ -94,14 +74,10 @@ class BaseActionServer(Node):
             return self._action_type.Result(success=False, error_message=str(e))
 
         finally:
-            with self._lock:
-                self._executing = False
+            self._executing = False
 
     def _execute(self, goal_handle: ServerGoalHandle):
-        """Execute goal. Override for custom behavior (e.g., logging).
-
-        Stages.run() returns Optional[str]: None on success, error string on failure.
-        """
+        """Run stages: None means success; a string becomes the result error."""
         error = self._stages.run(goal_handle.request)
         if error is not None:
             return self._action_type.Result(success=False, error_message=error)
@@ -109,16 +85,11 @@ class BaseActionServer(Node):
 
 
 def run_server(server_class, args=None):
-    """Run an action server with standard ROS 2 lifecycle.
-
-    Uses MultiThreadedExecutor because stages make concurrent ROS calls
-    during a single goal (action clients to other servers, service calls,
-    TF lookups). A single-threaded spin would serialize all of them and
-    stall the execute callback on its own downstream traffic.
-    """
+    """Run a ROS node with a multithreaded executor and shutdown cleanup."""
     rclpy.init(args=args)
     node = server_class()
 
+    # Multiple threads allow downstream ROS responses while execution waits.
     executor = MultiThreadedExecutor()
     executor.add_node(node)
 

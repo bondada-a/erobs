@@ -14,6 +14,7 @@ Usage:
 import subprocess
 import time
 import os
+from pathlib import Path
 import argparse
 
 import pymodbus
@@ -32,7 +33,7 @@ def start_socat(robot_ip):
     os.system('pkill -f "socat.*ttyUR" 2>/dev/null')
     time.sleep(1)
     try:
-        os.remove(SOCAT_PTY)
+        Path(SOCAT_PTY).unlink()
     except OSError:
         pass
 
@@ -42,7 +43,7 @@ def start_socat(robot_ip):
     )
     time.sleep(3)
 
-    if not os.path.exists(SOCAT_PTY):
+    if not Path(SOCAT_PTY).exists():
         print('[FAIL] socat failed to create PTY')
         proc.terminate()
         return None

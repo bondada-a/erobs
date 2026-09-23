@@ -1,50 +1,34 @@
-"""Shared loader for the beamline YAML config.
+"""Load and cache the YAML selected by BEAMBOT_BEAMLINE_CONFIG.
 
-Single source of truth: the BEAMBOT_BEAMLINE_CONFIG environment variable.
-Set it to the absolute path of your beamline's YAML before launching anything
-that touches the robot.
-
-Refusing to default-load avoids the silent-CMS-fallback failure mode: a
-deployment at a different beamline must declare itself, or nothing starts.
+The loader requires explicit beamline selection; convenience helpers retain
+their documented defaults when configuration is unavailable.
 """
 
 import json
+import math
 import os
 import threading
-from typing import Tuple
+from numbers import Real
+from pathlib import Path
 
 import yaml
 
 
 _ENV_VAR = "BEAMBOT_BEAMLINE_CONFIG"
 
-# Process-lifetime memo of the parsed beamline config. The beamline is selected
-# once at startup (via BEAMBOT_BEAMLINE_CONFIG) and never changes mid-run, so we
-# parse the YAML exactly once and hand the same (dict, path) back to every
-# caller. This is load-bearing for performance: helpers like arm_joint_names()
-# are reached from ~500 Hz /joint_states callbacks; re-parsing the YAML on every
-# access thrashed the GIL and starved MTC planning (the goal->motion latency
-# bug). Double-checked locking mirrors spincoater._get_sample_model.
-#
-# The cached dict is SHARED — treat it as READ-ONLY. Mutating it (or any of its
-# sub-dicts) leaks into every other caller in the process. The one historical
-# runtime mutation (the cup_profile override) now lives on the orchestrator /
-# MoveItLifecycleManager instead of being written back into this dict.
-_config_cache: Tuple[dict, str] | None = None
+# Parse once to keep frequent callers off disk; repeated YAML reads delayed planning.
+# The lock prevents duplicate initial loads. Cached data, including nested dicts,
+# is shared and must be treated as read-only; runtime overrides belong to callers.
+_config_cache: tuple[dict, str] | None = None
 _config_cache_lock = threading.Lock()
 
 
 class BeamlineConfigError(RuntimeError):
-    """Raised when the beamline config cannot be located or parsed."""
+    """Raised when the beamline config cannot be located, parsed or validated."""
 
 
 def get_beamline_config_path() -> str:
-    """Return the absolute path to the beamline YAML, or raise.
-
-    Reads the BEAMBOT_BEAMLINE_CONFIG environment variable. Errors out with
-    an actionable message if unset or pointing at a missing file — the robot
-    must not start without an explicit beamline declaration.
-    """
+    """Return the selected YAML's absolute path; reject an unset or invalid path."""
     raw = os.environ.get(_ENV_VAR, "").strip()
     if not raw:
         raise BeamlineConfigError(
@@ -55,30 +39,20 @@ def get_beamline_config_path() -> str:
             f"    export {_ENV_VAR}=$(realpath src/beambot/config/cms_beamline.yaml)"
         )
 
-    path = os.path.abspath(os.path.expanduser(raw))
-    if not os.path.isfile(path):
+    # Preserve unknown '~user' handling and normalize '..' without following symlinks.
+    path = Path(os.path.abspath(os.path.expanduser(raw)))
+    if not path.is_file():
         raise BeamlineConfigError(
             f"{_ENV_VAR} points at a file that does not exist: {path}"
         )
-    return path
+    return str(path)
 
 
-def load_beamline_config() -> Tuple[dict, str]:
-    """Return (parsed_yaml_dict, absolute_path_loaded_from), parsed once.
+def load_beamline_config() -> tuple[dict, str]:
+    """Return the shared configuration dict and source path for path resolution.
 
-    The YAML is parsed on the first call and memoized for the process lifetime
-    (see _config_cache). Every later call — from any of the ~30 helpers below,
-    at any frequency — returns the same cached objects without touching disk.
-
-    The path is returned alongside the dict so callers can resolve sibling
-    paths declared inside the YAML (poses_file, scene_file) relative to it.
-
-    IMPORTANT: the returned dict is shared and must be treated as READ-ONLY.
-
-    Failures are NOT cached: if the env var is unset or the file is unreadable
-    the exception propagates and _config_cache stays None, so a later call (once
-    the env is fixed) retries cleanly. This preserves the try/except fallbacks
-    in arm_joint_names() and friends.
+    Treat the dict as read-only. Successful loads are cached until reset or
+    process exit; environment/file changes are not detected. Failures are retried.
     """
     global _config_cache
     if _config_cache is None:
@@ -88,8 +62,8 @@ def load_beamline_config() -> Tuple[dict, str]:
     return _config_cache
 
 
-def _load_beamline_config_uncached() -> Tuple[dict, str]:
-    """Read and parse the beamline YAML from disk (no caching)."""
+def _load_beamline_config_uncached() -> tuple[dict, str]:
+    """Read the selected YAML and require a mapping at the root."""
     path = get_beamline_config_path()
     try:
         with open(path, "r") as f:
@@ -98,15 +72,55 @@ def _load_beamline_config_uncached() -> Tuple[dict, str]:
         raise BeamlineConfigError(f"Failed to parse {path}: {e}") from e
     if not isinstance(data, dict):
         raise BeamlineConfigError(f"{path}: expected a YAML mapping at root")
+    errors = validate_beamline_config(data)
+    if errors:
+        raise BeamlineConfigError(
+            f"{path}: invalid beamline config:\n  " + "\n  ".join(errors)
+        )
     return data, path
 
 
-def reset_beamline_config_cache() -> None:
-    """Clear the memoized config so the next load() re-parses from disk.
+ALLOWED_TOOL_VOLTAGES = (0, 12, 24)
 
-    For test isolation (a test that points the env var at a different YAML) or
-    an explicit in-process reload. Not used on the normal robot path — the
-    beamline is fixed for the process lifetime.
+
+def is_finite_number(value) -> bool:
+    """True for real, finite numbers; bools and strings are rejected."""
+    return not isinstance(value, bool) and isinstance(value, Real) and math.isfinite(value)
+
+
+def validate_beamline_config(config: dict) -> list[str]:
+    """Return every problem found in a parsed beamline config; empty when valid.
+
+    Sections a beamline does not use are absent and skipped. Checks run once per
+    process at load, so a bad value stops the stack before it moves the robot.
+    """
+    errors = []
+    for name, gripper in (config.get("grippers") or {}).items():
+        prefix = f"grippers.{name}"
+        if not isinstance(gripper, dict):
+            errors.append(f"{prefix}: expected a mapping")
+            continue
+
+        mass = gripper.get("payload_mass")
+        if not (is_finite_number(mass) and mass > 0):
+            errors.append(f"{prefix}.payload_mass: expected a finite number > 0, got {mass!r}")
+        cog = gripper.get("payload_cog")
+        if not (isinstance(cog, dict) and all(is_finite_number(cog.get(a)) for a in "xyz")):
+            errors.append(f"{prefix}.payload_cog: expected finite numbers x, y, z, got {cog!r}")
+
+        # Omitted tool_voltage means 0 V (off), suitable for passive tools.
+        voltage = gripper.get("tool_voltage", 0)
+        if isinstance(voltage, bool) or voltage not in ALLOWED_TOOL_VOLTAGES:
+            errors.append(
+                f"{prefix}.tool_voltage: expected one of {ALLOWED_TOOL_VOLTAGES}, got {voltage!r}"
+            )
+    return errors
+
+
+def reset_beamline_config_cache() -> None:
+    """Clear the loader cache for tests or explicit reloads.
+
+    Existing references and caller-specific caches are not refreshed.
     """
     global _config_cache
     with _config_cache_lock:
@@ -124,11 +138,9 @@ _DEFAULT_ARM_JOINTS = (
 
 
 def arm_joint_names() -> list[str]:
-    """Ordered list of arm joint names from the active beamline YAML.
+    """Return joint names in pose-registry order, defaulting to the six UR joints.
 
-    Order is significant: pose values in the registry are positional and
-    must align with this list. Falls back to the standard UR 6-DOF order
-    if the YAML is unset (test paths, isolated module imports).
+    Missing settings and read errors use the default, including isolated imports.
     """
     try:
         config, _ = load_beamline_config()
@@ -141,13 +153,7 @@ def arm_joint_names() -> list[str]:
 
 
 def gripper_tip_frame(gripper: str, default: str = "flange") -> str:
-    """Return the TF tip frame for a configured gripper.
-
-    Reads `grippers.<name>.tip_frame` from the active beamline YAML. Returns
-    `default` on any read failure (missing env var, missing key, etc.) — the
-    fallback "flange" is the safe choice because IK still resolves at the
-    arm flange when no gripper is detected.
-    """
+    """Return the gripper's tip frame, or default on missing keys or read errors."""
     try:
         config, _ = load_beamline_config()
         return config.get("grippers", {}).get(gripper, {}).get("tip_frame", default)
@@ -156,13 +162,9 @@ def gripper_tip_frame(gripper: str, default: str = "flange") -> str:
 
 
 def z_offset_for_tip_frame(tip_frame: str, default: float = 0.0) -> float:
-    """Return the z_offset associated with a tip frame.
+    """Return the matching tip frame's z_offset, or default if unavailable.
 
-    Looks across grippers.* entries for one whose tip_frame matches,
-    then returns its z_offset. The vision pipeline detects the active
-    gripper by probing TF for one of these frames, so the lookup is
-    naturally tip-frame-keyed even though the YAML keys grippers by
-    name.
+    Vision identifies the active tool by tip frame rather than gripper name.
     """
     try:
         config, _ = load_beamline_config()
@@ -175,13 +177,7 @@ def z_offset_for_tip_frame(tip_frame: str, default: float = 0.0) -> float:
 
 
 def configured_tip_frames() -> list[str]:
-    """All gripper tip frames declared in the active beamline YAML.
-
-    Used by stages that auto-detect the active gripper by probing TF for
-    one of the known tip frames. Excludes "flange" (the no-gripper case)
-    since detection there means "no gripper attached" — the caller falls
-    back to flange explicitly when no tip frame matches.
-    """
+    """Return unique tip frames in config order, excluding flange; [] on errors."""
     try:
         config, _ = load_beamline_config()
         frames = []
@@ -195,12 +191,7 @@ def configured_tip_frames() -> list[str]:
 
 
 def moveit_config_package(default: str = "cms_moveit_config") -> str:
-    """Return the MoveIt config package name from the active beamline YAML.
-
-    Used by stages that load joint_limits.yaml across gripper configs.
-    Falls back to the provided default so module-level imports succeed
-    in test paths where the env var is unset.
-    """
+    """Return the MoveIt config package, or default on missing keys or read errors."""
     try:
         config, _ = load_beamline_config()
         return config.get("robot", {}).get("moveit_config_package", default)
@@ -209,11 +200,7 @@ def moveit_config_package(default: str = "cms_moveit_config") -> str:
 
 
 def description_package(default: str = "cms_robot_description") -> str:
-    """Return the robot description package from the active beamline YAML.
-
-    Used by the GUI 3D viewer to locate URDF/mesh resources. Falls back
-    to the provided default when the env var is unset.
-    """
+    """Return the GUI's description package, or default if configuration is unavailable."""
     try:
         config, _ = load_beamline_config()
         return config.get("robot", {}).get("description_package", default)
@@ -222,11 +209,7 @@ def description_package(default: str = "cms_robot_description") -> str:
 
 
 def gripper_urdf_file(gripper: str, default: str = "ur_standalone.urdf") -> str:
-    """Return the URDF filename for a gripper as used by the GUI 3D viewer.
-
-    The viewer loads `<urdf_file>` from the URDF source dir to render the
-    arm + tool together. Per-beamline because mount layout differs.
-    """
+    """Return the GUI's gripper URDF filename, or default if unavailable."""
     try:
         config, _ = load_beamline_config()
         return config.get("grippers", {}).get(gripper, {}).get("urdf_file", default)
@@ -234,11 +217,7 @@ def gripper_urdf_file(gripper: str, default: str = "ur_standalone.urdf") -> str:
         return default
 
 
-# Pipeline params (planning_plugins + request/response adapters) the MTC node
-# and action-server processes need declared. Each maps to
-# config/<pipeline>_planning.yaml — the SAME files move_group loads via
-# MoveItConfigsBuilder — so the adapter lists (incl. the load-bearing Pilz
-# ValidateSolution) live in ONE place instead of being re-hardcoded (#87).
+# Use move_group's pipeline files so plugins and adapters, including ValidateSolution, match.
 _PLANNING_PIPELINE_FILES = {
     "ompl": "ompl_planning.yaml",
     "pilz_industrial_motion_planner": "pilz_industrial_motion_planner_planning.yaml",
@@ -247,7 +226,7 @@ _PLANNING_PIPELINE_FILES = {
 
 
 def _emit_param(prefix: str, value, args: list) -> None:
-    """Recurse dicts to dotted param names; json.dumps renders leaves in -p syntax."""
+    """Flatten nested mappings into dotted ROS parameter names and -p arguments."""
     if isinstance(value, dict):
         for k, v in value.items():
             _emit_param(f"{prefix}.{k}", v, args)
@@ -257,21 +236,21 @@ def _emit_param(prefix: str, value, args: list) -> None:
 
 
 def build_pipeline_param_args() -> list:
-    """Emit OMPL+Pilz pipeline ``-p`` pairs for nodes that can't use
-    MoveItConfigsBuilder (the MTC node, action servers).
+    """Build OMPL/Pilz and optional STOMP parameters for MTC and action servers.
 
-    Forwards EVERY top-level key (nested dicts flattened) — incl. planner_configs
-    and the ur_arm block, which MTC's PipelinePlanner needs to resolve non-default
-    planners; without them a planner_id silently falls back to RRTConnect.
+    Forward all keys, including planner_configs and group settings, so requested
+    planner IDs resolve instead of falling back to the default planner.
     """
-    from ament_index_python.packages import get_package_share_directory
+    from ament_index_python.packages import get_package_share_path
 
-    cfg_root = os.path.join(
-        get_package_share_directory(moveit_config_package()), "config"
-    )
+    cfg_root = get_package_share_path(moveit_config_package()) / "config"
     args: list = []
     for pipeline, filename in _PLANNING_PIPELINE_FILES.items():
-        with open(os.path.join(cfg_root, filename)) as f:
+        path = cfg_root / filename
+        # OMPL/Pilz are required; beamlines opt into STOMP with its config file.
+        if pipeline == "stomp" and not path.exists():
+            continue
+        with path.open() as f:
             data = yaml.safe_load(f) or {}
         for key, value in data.items():
             _emit_param(f"{pipeline}.{key}", value, args)
@@ -279,26 +258,11 @@ def build_pipeline_param_args() -> list:
 
 
 def gripper_launch_config(gripper: str) -> dict:
-    """Per-gripper launch values from the active beamline YAML (#77).
+    """Return configured gripper launch values, converting numbers/bools to strings.
 
-    Returns the fields ``robot_bringup.launch.py`` needs to bring up a gripper,
-    sourced from ``grippers.<name>`` so the launch file is a generic interpreter
-    with no hardcoded per-gripper dict. Values are coerced to launch-arg strings
-    (YAML gives int/bool; ros2 launch args must be strings — booleans lowercased
-    to "true"/"false").
-
-    Keys returned:
-      urdf_xacro              — robot_description xacro filename (distinct from
-                                ``urdf_file``, which is the .urdf the GUI viewer
-                                loads — do not conflate)
-      moveit_controllers      — config/<...> path for MoveItConfigsBuilder
-      tool_voltage            — "0"/"24" (single source; was duplicated in launch)
-      use_tool_communication  — "true"/"false"
-      tool_comm_params        — dict of RS485 params (str values), {} if none
-
-    Note: the ros2_control controllers file is NOT per-gripper after #86 — all
-    grippers share ur_base_controllers.yaml — so it stays a launch constant, not
-    a YAML field.
+    urdf_xacro is the launch Xacro, not the GUI's urdf_file. tool_comm_params
+    remains a dict of strings; booleans become "true"/"false". The shared
+    ros2_control controller file remains a launch constant.
     """
     config, _ = load_beamline_config()
     g = config.get("grippers", {}).get(gripper)
@@ -322,28 +286,28 @@ def gripper_launch_config(gripper: str) -> dict:
 
 
 def resolve_beamline_path(rel_or_abs: str, config_path: str) -> str:
-    """Resolve a path declared inside a beamline YAML.
+    """Expand '~' and resolve a configured path without requiring it to exist.
 
-    Absolute paths are returned as-is. Relative paths are walked upward from
-    the config's directory until the workspace root is found (a directory
-    containing 'src/'), then joined to the relative path. Falls back to
-    joining against the config's directory if no workspace root is found,
-    so configs outside a colcon workspace still work.
+    Relative paths use the nearest ancestor containing src/ (up to 10 directories),
+    or the config directory if none is found. Absolute paths are normalized
+    without following symlinks.
     """
     if not rel_or_abs:
         return ""
-    expanded = os.path.expanduser(rel_or_abs)
-    if os.path.isabs(expanded):
+    # Unlike Path.expanduser(), expanduser() leaves unknown '~user' names unchanged.
+    expanded = Path(os.path.expanduser(rel_or_abs))
+    if expanded.is_absolute():
+        # Preserve lexical normalization; resolve() would follow symlinks.
         return os.path.abspath(expanded)
 
-    config_dir = os.path.dirname(os.path.realpath(config_path))
+    config_dir = Path(config_path).resolve().parent
     candidate = config_dir
     for _ in range(10):
-        if os.path.isdir(os.path.join(candidate, "src")):
-            return os.path.join(candidate, expanded)
-        parent = os.path.dirname(candidate)
+        if (candidate / "src").is_dir():
+            return str(candidate / expanded)
+        parent = candidate.parent
         if parent == candidate:
             break
         candidate = parent
 
-    return os.path.join(config_dir, expanded)
+    return str(config_dir / expanded)

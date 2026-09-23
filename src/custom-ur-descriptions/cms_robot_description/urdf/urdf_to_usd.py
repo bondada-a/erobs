@@ -9,8 +9,7 @@ Import settings mirror docs/isaac_sim_integration.md (fix base, stiffness
 drive, self-collision on, collisions-from-visuals on). Joint-drive gains are
 NOT applied here — see isaac_sim_joint_params.yaml for that pass.
 """
-import glob
-import os
+from pathlib import Path
 
 from isaacsim import SimulationApp
 
@@ -20,9 +19,9 @@ import omni.kit.commands  # noqa: E402
 from isaacsim.asset.importer.urdf import _urdf  # noqa: E402
 from pxr import Usd  # noqa: E402
 
-HERE = os.path.dirname(os.path.abspath(__file__))
-OUT = os.path.join(HERE, "usd")
-os.makedirs(OUT, exist_ok=True)
+HERE = Path(__file__).absolute().parent
+OUT = HERE / "usd"
+OUT.mkdir(parents=True, exist_ok=True)
 
 cfg = _urdf.ImportConfig()
 cfg.fix_base = True                 # anchor to world (docs: Fix Base Link ON)
@@ -35,24 +34,24 @@ cfg.create_physics_scene = True
 cfg.default_drive_type = _urdf.UrdfJointTargetType.JOINT_DRIVE_POSITION
 cfg.distance_scale = 1.0            # URDF is already in meters
 
-urdfs = sorted(glob.glob(os.path.join(HERE, "*_isaac.urdf")))
+urdfs = sorted(path for path in HERE.glob("*_isaac.urdf") if not path.name.startswith("."))
 print(f"[urdf_to_usd] {len(urdfs)} configs -> {OUT}")
 
 for path in urdfs:
-    name = os.path.splitext(os.path.basename(path))[0]
-    dest = os.path.join(OUT, f"{name}.usd")
+    name = path.stem
+    dest = OUT / f"{name}.usd"
     # parse_urdf returns (status, robot_model); import_robot writes the stage
     status, robot = omni.kit.commands.execute(
-        "URDFParseFile", urdf_path=path, import_config=cfg
+        "URDFParseFile", urdf_path=str(path), import_config=cfg
     )
     omni.kit.commands.execute(
         "URDFImportRobot",
-        urdf_path=path,
+        urdf_path=str(path),
         urdf_robot=robot,
         import_config=cfg,
-        dest_path=dest,
+        dest_path=str(dest),
     )
-    ok = os.path.exists(dest) and Usd.Stage.Open(dest)
+    ok = dest.exists() and Usd.Stage.Open(str(dest))
     print(f"  {'OK ' if ok else 'FAIL'}  {name}.usd")
 
 app.close()

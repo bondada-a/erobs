@@ -26,8 +26,10 @@ grippers:
     moveit_package: "lix_moveit_config"
     gripper_arg: "hande"
     tool_voltage: 24
+    # Required for managed startup, including mock; verify these LIX launch values.
+    # payload_mass: 0.925  # kg
+    # payload_cog: {x: 0.0, y: 0.0, z: 0.058}  # m
     gripper_group: "hande_gripper"
-    controller_name: "gripper_action_controller"
     states:
       grasp: "hande_closed"
       release: "hande_open"

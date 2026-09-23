@@ -7,13 +7,6 @@
 # under the `/**` wildcard and sets both `<controller>.type` and the params on
 # the running controller_manager. This layout differs from the base file's
 # `controller_manager: ros__parameters: <controller>: type:` — keep them apart.
-#
-# ponytail: joint name is hard-coded with no tf_prefix because the spawner reads
-# this file with plain yaml.safe_load — it does NOT expand $(var tf_prefix) the
-# way ros2_control_node does for the base (ParameterFile allow_substs=True). CMS
-# runs tf_prefix="" so the literal is correct. If a future beamline sets a
-# non-empty tf_prefix, prefix this joint to match (or pass the overlay through a
-# substitution-aware loader).
 # Values aligned with upstream AGH-CEAI/robotiq_hande_driver jazzy config.
 /**:
   gripper_action_controller:

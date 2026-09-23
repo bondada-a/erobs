@@ -1,49 +1,30 @@
-"""EndEffector stages - Python equivalent of end_effector_stages.hpp/cpp.
+"""Gripper motion stages using SRDF-defined group states."""
 
-Handles gripper open/close operations using SRDF-defined group states.
-"""
-
-from moveit.task_constructor import core, stages
+from moveit.task_constructor import core
 from beambot.stages.base_stages import BaseStages
 
 
 class EndEffectorStages(BaseStages):
-    """Handles gripper open/close operations."""
-
     def add_to_task(self, task: core.Task, goal, planner=None) -> str | None:
-        """Add EndEffector stages to an existing MTC task.
-
-        This method adds stages without creating or executing the task,
-        enabling batch execution of multiple tasks.
-
-        Args:
-            task: Existing MTC Task to add stages to
-            goal: EndEffectorAction.Goal with fields:
-                - gripper_group: MoveIt group name (from config)
-                - end_effector_action: SRDF state name (e.g., "hande_open")
-            planner: Optional planner instance (creates JointInterpolation if None)
-
-        Returns:
-            None if stages were added successfully, error string on failure
-        """
+        """Append a gripper stage without executing; return None or an error."""
         if not goal.gripper_group:
             self.logger.info("No gripper group - treating as no-op success")
-            return None  # No-op success for "none" or "pipettor" gripper
+            return None
 
-        # Validate we have an action to perform
         if not goal.end_effector_action:
             error = "No end_effector_action specified"
             self.logger.error(error)
             return error
 
-        # Select planner if not provided
         if planner is None:
             planner = self.make_joint_interpolation_planner()
 
-        # Create MoveTo stage for gripper
-        stage = stages.MoveTo(f"gripper_{goal.end_effector_action}", planner)
-        stage.group = goal.gripper_group
-        stage.setGoal(goal.end_effector_action)
+        stage = self.make_gripper_stage(
+            f"gripper_{goal.end_effector_action}",
+            planner,
+            goal.gripper_group,
+            goal.end_effector_action,
+        )
 
         task.add(stage)
 
@@ -54,19 +35,10 @@ class EndEffectorStages(BaseStages):
         return None
 
     def run(self, goal) -> str | None:
-        """Execute EndEffector action.
-
-        Args:
-            goal: EndEffectorAction.Goal with fields:
-                - gripper_group: MoveIt group name (from config)
-                - end_effector_action: SRDF state name (e.g., "hande_open")
-
-        Returns:
-            None if successful, error string describing failure otherwise
-        """
+        """Build, plan, and execute a gripper task; return None or an error."""
         if not goal.gripper_group:
             self.logger.info("No gripper group - treating as no-op success")
-            return None  # No-op success for "none" or "pipettor" gripper
+            return None
 
         task = self.create_task_template("EndEffector Task")
 
