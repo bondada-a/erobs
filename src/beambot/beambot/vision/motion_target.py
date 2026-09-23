@@ -1,29 +1,45 @@
-"""Built-in goal computers for the vision-task pipeline (issue #88).
-
-A goal computer turns a detection into a MotionTarget. It is PURE w.r.t. the
-robot — it reads the detection + ctx and emits a target; it does not plan or
-move (that's the executor's job). Keeping compute and execute separate is what
-makes a computer swappable and (for the future j6_snap) unit-testable.
-
-Contract: compute(detection, ctx) -> MotionTarget | None
-           (None = detect_only short-circuit; the server returns the pose.)
-"""
+"""Motion targets and their construction from vision detections."""
 
 import json
+from dataclasses import dataclass
 
-from beambot.pipeline.motion_target import CartesianTarget, JointTarget, snap_j6
-from beambot.pipeline.registry import register_goal_computer
+from geometry_msgs.msg import PoseStamped
 
 
-@register_goal_computer("approach_pose")
+@dataclass(frozen=True)
+class CartesianTarget:
+    """Approach pose in base_link with optional gripper action and retreat."""
+
+    pose: PoseStamped
+    ik_frame: str = ""
+    grasp_state: str = ""  # SRDF state; empty skips gripper actuation.
+    gripper_group: str = ""
+    retreat_pose_key: str = ""  # Named joint pose; empty skips retreat.
+
+
+@dataclass(frozen=True)
+class JointTarget:
+    """Joint angles in degrees with optional forward motion and gripper action."""
+
+    joints_deg: list
+    forward_distance: float = (
+        0.0  # Metres; <= 0 skips forward motion.
+    )
+    terminal_state: str = ""  # SRDF state; empty skips gripper actuation.
+    gripper_group: str = ""
+
+
+def snap_j6(base_j6_deg: float, angle_deg: float, k_offset_deg: float = 0.0) -> float:
+    """Return joint 6 adjusted by the calibrated square-feature angle (degrees)."""
+    # Square symmetry limits the correction to (-45, 45] degrees.
+    correction = (angle_deg + k_offset_deg) % 90
+    if correction > 45:
+        correction -= 90
+    return base_j6_deg + correction
+
+
 def compute_approach_pose(detection, ctx):
-    """Detection pose -> 6-DOF CartesianTarget.
-
-    Delegates the geometry to VisionEngine.compute_approach_pose (marker-frame
-    offset, z_offset, straight-down orientation) and _apply_flange_offset — the
-    exact computation vision_moveto/pick/place use today. Emits a CartesianTarget
-    the executor runs via IK -> Pilz-PTP with Pilz-LIN fallback.
-    """
+    """Build an approach target or store its pose for detect-only requests."""
     vision = ctx.vision
     goal = ctx.goal
 
@@ -50,18 +66,14 @@ def compute_approach_pose(detection, ctx):
         )
         return None
 
-    # Optional fused grasp/retreat tail (pick/place). terminal_action names the
-    # SRDF state key in gripper_states_json; the executor builds the one fused
-    # task. vision_moveto leaves terminal_action empty -> bare approach.
     grasp_state = ""
     terminal = getattr(goal, "terminal_action", "") or ""
     if terminal:
         states = (
             json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
         )
-        grasp_state = states.get(
-            terminal, terminal
-        )  # accept state-key or raw SRDF name
+        # Accept a configured key or raw SRDF state.
+        grasp_state = states.get(terminal, terminal)
 
     return CartesianTarget(
         pose=approach,
@@ -72,16 +84,8 @@ def compute_approach_pose(detection, ctx):
     )
 
 
-@register_goal_computer("j6_snap")
 def compute_j6_snap(detection, ctx):
-    """Detected angle -> JointTarget with joint 6 corrected (spincoater).
-
-    Reads angle_mod90 from the detection dict, the base pose's joint 6 from the
-    pose registry (goal.target_pose, in degrees), applies the pure snap_j6
-    correction, and emits a JointTarget executed verbatim (NO IK). This is the
-    unified replacement for the byte-identical j6 math in both spincoater
-    handlers.
-    """
+    """Build a joint target by correcting a named pose's joint 6 (degrees)."""
     goal = ctx.goal
     vision = ctx.vision
 
@@ -107,14 +111,14 @@ def compute_j6_snap(detection, ctx):
     corrected = list(base_joints)
     corrected[5] = corrected_j6
 
-    # Optional tail: forward-contact move + terminal gripper (spincoater).
     terminal = getattr(goal, "terminal_action", "") or ""
     terminal_state = ""
     if terminal:
         states = (
             json.loads(goal.gripper_states_json) if goal.gripper_states_json else {}
         )
-        terminal_state = states.get(terminal, terminal)  # state-key or raw SRDF name
+        # Accept a configured key or raw SRDF state.
+        terminal_state = states.get(terminal, terminal)
 
     return JointTarget(
         joints_deg=corrected,
@@ -122,3 +126,19 @@ def compute_j6_snap(detection, ctx):
         terminal_state=terminal_state,
         gripper_group=getattr(goal, "gripper_group", "") or "",
     )
+
+
+GOAL_COMPUTERS = {
+    "approach_pose": compute_approach_pose,
+    "j6_snap": compute_j6_snap,
+}
+
+
+def get_goal_computer(name: str):
+    """Return a goal computer or raise KeyError listing the available names."""
+    try:
+        return GOAL_COMPUTERS[name]
+    except KeyError:
+        raise KeyError(
+            f"unknown goal_computer '{name}'. Registered: {sorted(GOAL_COMPUTERS)}"
+        ) from None

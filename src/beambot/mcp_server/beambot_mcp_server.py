@@ -32,7 +32,7 @@ import yaml
 import numpy as np
 from mcp.server.fastmcp import FastMCP
 
-from beambot.detection import (
+from beambot.vision.detection import (
     get_3d_position,
     YoloDetectionParams,
     get_yolo_detector,

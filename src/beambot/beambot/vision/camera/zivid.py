@@ -6,6 +6,7 @@ import numpy as np
 from builtin_interfaces.msg import Time as TimeMsg
 from cv_bridge import CvBridge
 from geometry_msgs.msg import Pose
+from rclpy.callback_groups import ReentrantCallbackGroup
 from rclpy.node import Node
 from rclpy.qos import (
     DurabilityPolicy,
@@ -17,8 +18,8 @@ from sensor_msgs.msg import Image
 from std_srvs.srv import Trigger
 from zivid_interfaces.srv import CaptureAndDetectMarkers
 
-from beambot.camera import DetectionResult
-from beambot.detection import (
+from beambot.vision.camera import DetectionResult
+from beambot.vision.detection import (
     SampleRoiDetectionParams,
     detect_sample_in_roi,
     sample_roi_pickup_camera_xyz,
@@ -56,8 +57,6 @@ def capture_2d(node: Node, timeout: float = 15.0) -> np.ndarray | None:
 
     def on_image(msg: Image):
         received[0] = msg
-
-    from rclpy.callback_groups import ReentrantCallbackGroup
 
     # Allow the executor to deliver the service and image callbacks concurrently.
     cb_group = ReentrantCallbackGroup()

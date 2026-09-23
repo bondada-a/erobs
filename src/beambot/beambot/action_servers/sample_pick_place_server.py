@@ -4,6 +4,7 @@
 from rclpy.action import ActionServer
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
+from beambot.config_loader import load_beamline_config
 from beambot.stages.pick_sample_stages import PickSampleStages
 from beambot.stages.place_sample_stages import PlaceSampleStages
 from beambot_interfaces.action import PickSampleAction, PlaceSampleAction
@@ -33,8 +34,6 @@ class SampleActionServer(BaseActionServer):
 
     def create_stages(self):
         """Create pick and place stages with shared camera settings."""
-        from beambot.config_loader import load_beamline_config
-
         config, _ = load_beamline_config()
         camera_config = config.get("camera", {})
         self.get_logger().info(
@@ -112,8 +111,7 @@ class SampleActionServer(BaseActionServer):
 
             return result
         finally:
-            with self._lock:
-                self._executing = False
+            self._executing = False
 
 
 def main(args=None):

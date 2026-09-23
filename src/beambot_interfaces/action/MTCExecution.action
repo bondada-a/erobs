@@ -1,15 +1,15 @@
 # Goal
-string full_json           # Complete task script JSON (poses, tasks, start_gripper)
-bool dry_run               # Plan-only preview: skip execute(), publish trajectory on /beambot/preview_trajectory.
-                           # v1 supports moveto + end_effector only — other task types are rejected.
+string full_json           # Task script JSON.
+bool dry_run               # Plan-only preview; moveto/end_effector only.
 ---
 # Result
 bool success
 string error_message
 int32 completed_steps
 int32 total_steps
-float64[] detected_position    # [x, y, z] in base_link frame (from detect_only vision_moveto)
-float64[] detected_orientation # [x, y, z, w] quaternion in base_link (from detect_only vision_moveto)
+# Last detect-only pose in base_link; empty if unavailable.
+float64[] detected_position    # XYZ (m).
+float64[] detected_orientation # Quaternion [x,y,z,w].
 ---
 # Feedback
 int32 current_step

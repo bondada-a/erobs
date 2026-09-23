@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""VisionTaskAction server — unified vision-guided pipeline (issue #88).
-
-Hosts the one pipeline (detect -> compute goal -> execute -> terminal) for all
-vision-guided tasks: vision_moveto, vision-mode pick/place, and pick/place
-spincoater. The orchestrator routes them all here via VisionTask goals.
-"""
+"""Serve vision-guided movement, sample handling and spincoater tasks."""
 
 import threading
 
@@ -16,8 +11,6 @@ from beambot_interfaces.action import VisionTaskAction
 
 
 class VisionTaskActionServer(BaseActionServer):
-    """Action server for the unified vision pipeline."""
-
     def __init__(self):
         super().__init__(
             node_name="beambot_vision_task_server",
@@ -25,29 +18,26 @@ class VisionTaskActionServer(BaseActionServer):
             action_type=VisionTaskAction,
         )
 
-        # Service to reset TF buffer after tool exchange (URDF change), parity
-        # with VisionActionServer's beambot_vision_reset_tf.
         self._reset_tf_service = self.create_service(
             Trigger, "beambot_vision_task_reset_tf", self._reset_tf_callback
         )
         self.get_logger().info("TF reset service: beambot_vision_task_reset_tf")
 
-        # Warm torch/CUDA in the process that performs spincoater inference.
         self._warmup_spincoater_model()
 
     def _warmup_spincoater_model(self):
-        """Pre-load the spincoater sample YOLO model in a background daemon thread."""
+        """Warm the spincoater model in a background thread."""
 
         def _warmup():
             try:
                 import numpy as np
-                from beambot.detection.spincoater import _get_sample_model
+                from beambot.vision.detection.spincoater_detection import _get_sample_model
 
                 self.get_logger().info(
                     "Warming up spincoater sample model (background)..."
                 )
                 model = _get_sample_model()
-                # Dummy inference triggers CUDA kernel compilation / graph build.
+                # Run one prediction to initialize inference resources.
                 dummy = np.zeros((640, 640, 3), dtype=np.uint8)
                 model(dummy, conf=0.5, verbose=False)
                 self.get_logger().info("Spincoater sample model ready")
@@ -57,7 +47,7 @@ class VisionTaskActionServer(BaseActionServer):
         threading.Thread(target=_warmup, daemon=True).start()
 
     def create_stages(self):
-        """Build VisionTaskStages with camera config from the beamline YAML."""
+        """Create stages from the beamline camera settings."""
         from beambot.config_loader import load_beamline_config
 
         config, _ = load_beamline_config()
@@ -74,7 +64,7 @@ class VisionTaskActionServer(BaseActionServer):
         )
 
     def _execute(self, goal_handle):
-        """Run the pipeline and populate the result (incl. detect_only pose)."""
+        """Run the task and populate the action result."""
         goal = goal_handle.request
         error = self._stages.run(goal)
 

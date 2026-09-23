@@ -1,39 +1,36 @@
-# Goal — Unified place operation (replaces pick_and_place + vision_pick_place place half)
-#
-# Two modes:
-#   use_vision=false: Hardcoded joint poses (approach → target → open → retreat)
-#   use_vision=true:  Vision-guided (detect marker → deterministic IK → open → retreat)
+# Goal
+bool use_vision                 # False uses named joint poses.
 
-bool use_vision                 # true = vision-guided, false = hardcoded poses
+# Vision (use_vision=true)
+string detection_type           # Always uses marker detection.
+int32 tag_id                    # ArUco ID.
+float64 z_offset                # base_link Z offset (m); 0 = gripper default.
+string scan_pose                # Scan/retreat pose key.
+# Marker-frame offsets (m).
+float64 marker_offset_x
+float64 marker_offset_y
+float64 marker_offset_z
+string offset_direction         # Flange-frame direction.
+float64 offset_distance         # Offset (m); > 0 when direction is set.
+string ik_frame                 # Empty = auto-detect.
 
-# Vision fields (used when use_vision=true)
-string detection_type           # "marker" only
-int32 tag_id                    # ArUco marker ID
-float64 z_offset                # Height offset (0 = gripper default from config)
-string scan_pose                # Pose key for scan/retreat position
-float64 marker_offset_x         # Marker-frame X offset (meters)
-float64 marker_offset_y         # Marker-frame Y offset (meters)
-float64 marker_offset_z         # Marker-frame Z offset (meters)
-string offset_direction         # Flange-frame direction (e.g. "right", "forward")
-float64 offset_distance         # Distance for offset_direction (meters)
-string ik_frame                 # IK frame override (empty = auto-detect)
+# Named poses (use_vision=false)
+string approach_pose            # Approach/retreat pose key.
+string target_pose              # Place pose key.
 
-# Hardcoded fields (used when use_vision=false)
-string approach_pose            # Pose key for approach position
-string target_pose              # Pose key for place target
-
-# Common (populated by orchestrator from beamline config)
-string gripper_group            # MoveIt group name: "hande_gripper", "epick_gripper", ""
-string gripper_states_json      # JSON dict: {"grasp": "vacuum_on", "release": "vacuum_off"}
-string poses_json               # Pose definitions from task
-string constraints_json         # Optional: JSON path constraints (empty = none)
-string robot_model_revision     # Orchestrator-managed; empty disables cross-goal model reuse
+# Common
+string gripper_group            # MoveIt gripper group.
+string gripper_states_json      # Maps grasp/release to SRDF states.
+string poses_json               # Pose name: six joint angles (deg).
+string constraints_json         # Empty = no constraints.
+string robot_model_revision     # Model cache key; empty disables cross-goal reuse.
 ---
 # Result
 bool success
 string error_message
-float64[] detected_position     # [x,y,z] in base_link (vision mode only)
-float64[] detected_orientation  # [x,y,z,w] quaternion (vision mode only)
+# Vision approach in base_link; empty on failure or non-vision places.
+float64[] detected_position     # XYZ (m).
+float64[] detected_orientation  # Quaternion [x,y,z,w].
 ---
 # Feedback
-string current_stage
+string current_stage            # Not currently published.

@@ -11,59 +11,43 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
-  <!-- Action interfaces (separated package) -->
+  <!-- Action interfaces -->
   <depend>beambot_interfaces</depend>
 
   <!-- ROS 2 core -->
   <depend>rclpy</depend>
+  <exec_depend>ament_index_python</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
 
-  <!-- Joint acceleration limits are loaded at runtime from
-       cms_moveit_config/config/<gripper>/joint_limits.yaml. -->
-  <exec_depend>cms_moveit_config</exec_depend>
-
-  <!-- MoveIt and MTC -->
+  <!-- MoveIt Task Constructor -->
   <depend>moveit_task_constructor_core</depend>
 
-  <!-- TF2 -->
+  <!-- Coordinate transforms -->
   <depend>tf2_ros</depend>
   <depend>tf2_geometry_msgs</depend>
   <exec_depend>tf_transformations</exec_depend>
 
-  <!-- Vision: Zivid is optional — only required on beamlines that select
-       camera: zivid in their $BEAMBOT_BEAMLINE_CONFIG YAML. The zivid
-       import in beambot.camera.zivid is lazy-loaded through get_camera(). -->
 
-  <!-- End effector feedback: epick_msgs is optional — required only on
-       beamlines whose YAML lists the ePick gripper. Imports are guarded
-       with try/except in vacuum_monitor.py, beambot_mcp_server.py, and
-       pick_sample_stages.py so non-ePick beamlines build and run cleanly. -->
-  <exec_depend>epick_msgs</exec_depend>
-
-  <!-- MCP bridge: start_mcp.sh launches rosbridge_websocket on :9090 so
-       ros-mcp-server can talk to the ROS graph. -->
+  <!-- ROS WebSocket bridge for MCP -->
   <exec_depend>rosbridge_server</exec_depend>
 
-  <!-- Octomap pipeline: opt-in via octomap_test.launch.py (relay +
-       octomap_server + octomap_to_planning_scene bridge). octomap_server
-       provides the server + octomap_saver_node; octomap_msgs backs the
-       bridge node's Octomap/OctomapWithPose imports. -->
+  <!-- Octomap generation and planning-scene integration -->
   <exec_depend>octomap_server</exec_depend>
   <exec_depend>octomap_msgs</exec_depend>
 
-  <!-- ros2_tracing: opt-in via enable_tracing:=true in the bringup launch.
-       tracetools_launch provides the Trace action; tracetools_analysis
-       provides the offline report scripts (ros2 run tracetools_analysis auto). -->
+  <!-- ROS tracing and analysis -->
   <exec_depend>tracetools_launch</exec_depend>
   <exec_depend>tracetools_analysis</exec_depend>
 
-  <!-- Messages -->
+  <!-- ROS messages and services -->
   <depend>geometry_msgs</depend>
   <depend>shape_msgs</depend>
   <depend>moveit_msgs</depend>
   <depend>std_srvs</depend>
   <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>sensor_msgs_py</exec_depend>
   <exec_depend>std_msgs</exec_depend>
+  <exec_depend>ur_msgs</exec_depend>
 
   <test_depend>python3-pytest</test_depend>
 

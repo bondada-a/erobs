@@ -1,60 +1,30 @@
-"""Spincoater pocket and sample detection for orientation-aware placement.
+"""Detect spincoater pockets and samples in BGR images.
 
-Two detectors:
-
-1. detect_spincoater_pocket() — detects the empty pocket in the red-painted
-   chuck using classical CV (HSV color masking + bright-metal isolation).
-   Used BEFORE placing a sample to determine the pocket's orientation.
-
-2. detect_spincoater_sample() — detects a sample wafer sitting on the chuck
-   using a YOLO segmentation model. Used AFTER spincoating to find the
-   sample's actual position and orientation for re-pickup.
-
-Both require 2D flash-lit capture (/capture_2d) — NOT the 3D projector capture.
-Chuck must be centered in the camera frame (flash falloff off-axis).
+Use 2D flash capture without the 3D projector; keep the chuck centered.
+Positions and sizes are in pixels; angle_mod90 folds degrees into [0, 90).
 """
 
 import logging
 import threading
-from pathlib import Path
 
 import cv2
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
-# YOLO model for sample detection (lazy-loaded)
-# Resolve from repo root (non-.py files aren't copied to install/)
-def _find_model_path() -> Path:
-    """Find the model file by searching from the git repo root."""
-    import subprocess
-    try:
-        repo_root = subprocess.check_output(
-            ["git", "rev-parse", "--show-toplevel"],
-            stderr=subprocess.DEVNULL, text=True
-        ).strip()
-        return Path(repo_root) / "src" / "beambot" / "models" / "spincoater_sample_seg.pt"
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return Path(__file__).parent.parent.parent / "models" / "spincoater_sample_seg.pt"
-
-_SAMPLE_MODEL_PATH = _find_model_path()
 _sample_model = None
 _sample_model_lock = threading.Lock()
 
 
 def _red_mask(hsv: np.ndarray) -> np.ndarray:
-    """Dual-range red HSV mask handling the hue wraparound at 0/179."""
+    """Combine red hue ranges across OpenCV's 0/179 boundary."""
     m1 = cv2.inRange(hsv, (0, 60, 40), (14, 255, 255))
     m2 = cv2.inRange(hsv, (166, 60, 40), (179, 255, 255))
     return cv2.bitwise_or(m1, m2)
 
 
 def _locate_chuck(image: np.ndarray) -> tuple[int, int, int] | None:
-    """Find the chuck center as the centroid of the largest red blob.
-
-    Returns:
-        (cx, cy, half_roi_size) or None if no red field found.
-    """
+    """Return the chuck center and ROI half-size in pixels, or None."""
     hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
     red = _red_mask(hsv)
     red = cv2.morphologyEx(red, cv2.MORPH_CLOSE, np.ones((25, 25), np.uint8))
@@ -78,26 +48,7 @@ def detect_spincoater_pocket(
     max_aspect: float = 1.25,
     min_solidity: float = 0.85,
 ) -> dict | None:
-    """Detect the empty pocket in a red-painted spincoater chuck.
-
-    Args:
-        image: BGR image from a 2D flash-lit capture (/capture_2d).
-        min_area: Minimum contour area in pixels to consider.
-        max_aspect: Maximum aspect ratio for a valid square pocket.
-        min_solidity: Minimum solidity (contour_area / convex_hull_area).
-
-    Returns:
-        Dict with keys:
-          - center_px: (x, y) pixel coordinates of pocket center
-          - angle_mod90: pocket rotation in degrees [0, 90), mod 90 for
-            4-fold symmetry, measured from image horizontal
-          - width: fitted rectangle width in pixels
-          - height: fitted rectangle height in pixels
-          - aspect: aspect ratio (>= 1.0)
-          - solidity: contour solidity
-          - area: contour area in pixels
-        Returns None if detection fails.
-    """
+    """Return empty-pocket geometry from the red chuck, or None."""
     loc = _locate_chuck(image)
     if loc is None:
         return None
@@ -108,7 +59,6 @@ def detect_spincoater_pocket(
     roi = image[y0:y0 + 2 * half, x0:x0 + 2 * half]
     hsv = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
 
-    # Red field mask within ROI
     red = _red_mask(hsv)
     red_closed = cv2.morphologyEx(red, cv2.MORPH_CLOSE, np.ones((21, 21), np.uint8))
     cnts, _ = cv2.findContours(
@@ -117,12 +67,11 @@ def detect_spincoater_pocket(
     if not cnts:
         return None
 
-    # Largest red blob = the chuck field
     field = max(cnts, key=cv2.contourArea)
     field_mask = np.zeros_like(red)
     cv2.drawContours(field_mask, [field], -1, 255, -1)
 
-    # Bright bare-metal: high value, low saturation (inside the red field)
+    # Isolate bright, low-saturation metal within the red chuck.
     bright = cv2.inRange(hsv, (0, 0, 150), (179, 90, 255))
     bright = cv2.bitwise_and(bright, field_mask)
     bright = cv2.morphologyEx(bright, cv2.MORPH_OPEN, np.ones((5, 5), np.uint8))
@@ -152,17 +101,13 @@ def detect_spincoater_pocket(
 
 
 def _get_sample_model():
-    """Lazy-load the YOLO segmentation model for sample detection.
-
-    Thread-safe: a background warmup thread and a task thread may both call
-    this; the lock ensures the model loads exactly once.
-    """
+    """Load and cache the segmentation model under the initialization lock."""
     global _sample_model
     if _sample_model is not None:
         return _sample_model
 
     with _sample_model_lock:
-        # Re-check inside the lock (another thread may have loaded it)
+        # Another thread may have loaded the model while this caller waited.
         if _sample_model is not None:
             return _sample_model
 
@@ -173,14 +118,18 @@ def _get_sample_model():
                 "ultralytics not installed. Run: pip install ultralytics"
             )
 
-        if not _SAMPLE_MODEL_PATH.exists():
+        from ament_index_python.packages import get_package_share_path
+
+        model_path = (
+            get_package_share_path("beambot") / "models" / "spincoater_sample_seg.pt"
+        )
+        if not model_path.exists():
             raise FileNotFoundError(
-                f"Spincoater sample model not found at {_SAMPLE_MODEL_PATH}. "
-                "Train with: yolo segment train data=data.yaml model=yolov8n-seg.pt"
+                f"Spincoater sample model not found at {model_path}"
             )
 
-        logger.info(f"Loading spincoater sample model: {_SAMPLE_MODEL_PATH}")
-        _sample_model = YOLO(str(_SAMPLE_MODEL_PATH))
+        logger.info(f"Loading spincoater sample model: {model_path}")
+        _sample_model = YOLO(str(model_path))
         return _sample_model
 
 
@@ -188,32 +137,7 @@ def detect_spincoater_sample(
     image: np.ndarray,
     confidence: float = 0.3,
 ) -> dict | None:
-    """Detect a sample wafer on the spincoater chuck using YOLO segmentation.
-
-    Uses a fine-tuned YOLOv8-seg model to detect the sample. Returns the
-    centroid and orientation derived from the segmentation mask's minAreaRect.
-
-    This is used for re-pickup after spincoating: the chuck stops at a random
-    angle, the sample may have shifted, and we need its actual position and
-    orientation.
-
-    Args:
-        image: BGR image from a 2D flash-lit capture (/capture_2d).
-        confidence: Minimum detection confidence (0-1).
-
-    Returns:
-        Dict with keys:
-          - center_px: (x, y) centroid of the segmentation mask
-          - angle_mod90: sample rotation in degrees [0, 90), mod 90 for
-            4-fold symmetry, measured from image horizontal
-          - angle_raw: raw minAreaRect angle (for cases where full 180° needed)
-          - width: fitted rectangle width in pixels
-          - height: fitted rectangle height in pixels
-          - aspect: aspect ratio (>= 1.0)
-          - confidence: detection confidence score
-          - mask_points: number of polygon points in the segmentation mask
-        Returns None if no sample detected.
-    """
+    """Return sample geometry and confidence from YOLO segmentation, or None."""
     model = _get_sample_model()
     results = model(image, conf=confidence, verbose=False)
 
@@ -221,7 +145,6 @@ def detect_spincoater_sample(
         if r.masks is None or len(r.masks) == 0:
             continue
 
-        # Take the highest-confidence detection
         best_idx = r.boxes.conf.argmax()
         mask_xy = r.masks[best_idx].xy[0]
         conf = r.boxes[best_idx].conf[0].item()
@@ -233,7 +156,7 @@ def detect_spincoater_sample(
         (cx, cy), (rw, rh), ang = cv2.minAreaRect(pts)
         aspect = max(rw, rh) / (min(rw, rh) + 1e-6)
 
-        # Centroid from moments (more accurate than rect center)
+        # Use the mask centroid, falling back to the rectangle center.
         M = cv2.moments(pts.astype(np.int32))
         if M["m00"] > 0:
             centroid_x = M["m10"] / M["m00"]
