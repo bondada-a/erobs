@@ -1,10 +1,4 @@
-"""MoveTo stages - Python equivalent of move_to_stages.hpp/cpp.
-
-Handles MoveTo operations:
-- Relative moves (direction + distance)
-- Cartesian pose targets (xyz + optional orientation)
-- Target-based moves (joint poses from JSON or named SRDF states)
-"""
+"""Build and execute MoveTo stages for relative, Cartesian, and named targets."""
 
 import json
 import math
@@ -20,33 +14,22 @@ from beambot.stages.base_stages import (
     BaseStages, parse_constraints, apply_constraints,
 )
 
-# Gripper tip frames are sourced from the active beamline YAML's
-# grippers.<name>.tip_frame entries via config_loader.configured_tip_frames().
-
 
 class MoveToStages(BaseStages):
-    """Handles MoveTo action: relative moves, Cartesian poses, joint poses, named states."""
+    """Compose movement stages for standalone and batched tasks."""
 
     def __init__(self, rclpy_node, arm_group: str = "", ik_frame: str = ""):
         super().__init__(rclpy_node, arm_group, ik_frame)
-        # Initialize TF eagerly so the buffer is populated by the time
-        # any Cartesian target or IK frame detection is needed
+        # Start listening before Cartesian targets need TF.
         self._tf_buffer = Buffer()
         self._tf_listener = TransformListener(self._tf_buffer, self.rclpy_node)
 
+    def close(self) -> None:
+        """Release this stage instance's TF subscriptions."""
+        self._tf_listener.unregister()
+
     def _get_current_yaw(self, frame: str = "flange") -> float:
-        """Get the current yaw of a robot frame in base_link.
-
-        Used as the default yaw for 3-value cartesian_target (XYZ only)
-        so the robot maintains its current wrist orientation.
-
-        Args:
-            frame: Robot frame to query (should match the IK frame, e.g.
-                   "epick_tip", "robotiq_hande_end", or "flange").
-
-        Returns:
-            Current yaw in radians, or 0.0 if TF lookup fails.
-        """
+        """Return frame yaw relative to base_link in radians; use zero on TF failure."""
         try:
             t = self._tf_buffer.lookup_transform(
                 "base_link", frame,
@@ -66,15 +49,7 @@ class MoveToStages(BaseStages):
             return 0.0
 
     def _detect_gripper_ik_frame(self) -> str:
-        """Auto-detect gripper tip frame from TF, like vision_stages.py.
-
-        Checks for known gripper tip frames in TF. If found, uses that as
-        the IK frame so Cartesian targets place the gripper TIP at the target
-        position, not the flange.
-
-        Returns:
-            Frame name for IK (e.g., "epick_tip", "robotiq_hande_end", or "flange")
-        """
+        """Return the first configured tip frame found in TF, or flange."""
         from beambot.config_loader import configured_tip_frames
         for frame in configured_tip_frames():
             try:
@@ -91,27 +66,7 @@ class MoveToStages(BaseStages):
         return "flange"
 
     def add_to_task(self, task: core.Task, goal, planner=None) -> str | None:
-        """Add MoveTo stages to an existing MTC task.
-
-        This method adds stages without creating or executing the task,
-        enabling batch execution of multiple tasks.
-
-        Args:
-            task: Existing MTC Task to add stages to
-            goal: MoveToAction.Goal with fields:
-                - target: Pose name, SRDF state, or empty for relative moves
-                - planning_type: "joint" or "cartesian"
-                - direction: Direction for relative moves
-                - distance: Distance in meters for relative moves
-                - cartesian_target: [x,y,z] or [x,y,z,r,p,y] in meters + degrees
-                - frame_id: Reference frame for cartesian_target
-                - poses_json: JSON string with pose definitions
-            planner: Optional planner instance (creates default based on
-                     planning_type if None)
-
-        Returns:
-            None if stages were added successfully, error string on failure
-        """
+        """Append stages without executing; return None or an error string."""
         error = moveto_goal_error(
             target=goal.target,
             direction=goal.direction,
@@ -123,22 +78,13 @@ class MoveToStages(BaseStages):
             self.logger.error(error)
             return error
 
-        # Reset the goal-pin target per move (#97): only a NAMED joint-pose move
-        # re-sets it below (via make_move_to_named_stage). This way it reflects
-        # ONLY the last move added — so _pin_endpoints pins the final waypoint to
-        # the exact goal iff the last move is named, and never pins a later
-        # cartesian/relative move's endpoint to a stale earlier named goal.
+        # Only named joint poses should pin the final trajectory endpoint.
         self._pin_goal_joints = None
 
         planning_type = goal.planning_type if goal.planning_type else ""
-        # "joint" routes through the same Pilz-PTP → OMPL fallback as auto/"":
-        # joint-space point-to-point is exactly what Pilz PTP is for, with OMPL
-        # as the obstacle-avoidance backstop. Without "joint" here it fell to the
-        # pure-OMPL else-branch below — non-deterministic for a move that should
-        # be deterministic, and the reason dry-run previews needed plan-replay.
+        # Empty, auto, and joint select the target-specific fallback chain.
         use_fallback = planning_type in ("", "auto", "joint") and planner is None
 
-        # Select single planner when not using fallbacks
         if not use_fallback and planner is None:
             if planning_type == "cartesian":
                 planner = self.make_cartesian_planner()
@@ -156,14 +102,13 @@ class MoveToStages(BaseStages):
         if use_fallback:
             self.logger.debug("Using fallback planning (auto)")
 
-        # Parse optional constraints
         constraints = parse_constraints(
             json.loads(goal.constraints_json) if goal.constraints_json else None
         )
         if constraints is not None:
             self.logger.debug("Path constraints active for this move")
 
-        # Case 1: Relative move (direction + distance)
+        # Relative move in the stage's IK frame.
         if goal.direction and goal.distance != 0.0:
             label = f"move_{goal.direction}_{goal.distance:.3f}m"
             stage = self.create_relative_move_stage(
@@ -176,10 +121,9 @@ class MoveToStages(BaseStages):
             )
             return None
 
-        # Case 2: Cartesian pose target ([x,y,z] or [x,y,z,r,p,y])
+        # Cartesian target: XYZ in meters, optional RPY in degrees.
         elif len(goal.cartesian_target) >= 3:
-            # Auto-detect gripper tip frame first — needed for both IK and
-            # default yaw lookup (different frames have different yaw values)
+            # Use the gripper tip for IK and default yaw.
             active_ik_frame = self._detect_gripper_ik_frame()
 
             pose = PoseStamped()
@@ -194,8 +138,7 @@ class MoveToStages(BaseStages):
                 y = math.radians(goal.cartesian_target[5])
                 q = quaternion_from_euler(r, p, y)
             else:
-                # Default: straight-down with current IK frame yaw
-                # Preserves the robot's current yaw to avoid unreachable orientations
+                # XYZ-only: roll=180 deg, pitch=0, live tip yaw in base_link.
                 current_yaw = self._get_current_yaw(active_ik_frame)
                 q = quaternion_from_euler(math.pi, 0.0, current_yaw)
                 self.logger.debug(f"Using current yaw from {active_ik_frame}: {math.degrees(current_yaw):.1f}°")
@@ -205,12 +148,11 @@ class MoveToStages(BaseStages):
             pose.pose.orientation.z = q[2]
             pose.pose.orientation.w = q[3]
 
-            # Pre-compute deterministic IK to avoid KDL jitter (#55).
-            # Same pattern as vision_moveto and pick_sample/place_sample.
+            # Precompute joint angles for the automatic PTP candidate.
             joint_goal = self.compute_deterministic_ik(pose, active_ik_frame)
 
             if use_fallback:
-                # Fallback chain: PTP with deterministic IK → Pilz LIN → CartesianPath
+                # Try PTP with precomputed IK, then LIN, then CartesianPath.
                 fb = core.Fallbacks("move_to_target")
                 if joint_goal is not None:
                     ptp_stage = stages.MoveTo("move_to_target [deterministic IK]", self.make_pilz_planner("PTP"))
@@ -236,7 +178,6 @@ class MoveToStages(BaseStages):
                 task.add(fb)
             else:
                 if joint_goal is not None and planner is None:
-                    # Deterministic IK succeeded — use PTP with joint goal
                     move_stage = stages.MoveTo("move_to_target", self.make_pilz_planner("PTP"))
                     move_stage.group = self.arm_group
                     self._set_ik_frame(move_stage)
@@ -244,7 +185,6 @@ class MoveToStages(BaseStages):
                     apply_constraints(move_stage, constraints)
                     task.add(move_stage)
                 else:
-                    # Fallback: use specified or default Cartesian planner
                     if planner is None:
                         planner = self.make_cartesian_planner()
                     move_stage = stages.MoveTo("move_to_target", planner)
@@ -263,9 +203,8 @@ class MoveToStages(BaseStages):
             )
             return None
 
-        # Case 3: Target-based move (joint pose or SRDF state)
+        # Named joint pose or SRDF state.
         elif goal.target:
-            # Poses are optional for MoveTo (might use SRDF named state)
             poses = self.parse_poses(goal.poses_json)
             if poses is None:
                 error = f"Failed to parse poses_json for target '{goal.target}'"
@@ -275,7 +214,6 @@ class MoveToStages(BaseStages):
             label = f"move_to_{goal.target}"
 
             if goal.target in poses:
-                # Joint pose from poses dict
                 stage = self.make_move_to_named_stage(
                     label, goal.target, poses,
                     planner=planner, constraints=constraints
@@ -285,9 +223,9 @@ class MoveToStages(BaseStages):
                 task.add(stage)
                 self.logger.debug(f"Planning move to joint pose: {goal.target}")
             else:
-                # SRDF named state
+                # SRDF named state.
                 if use_fallback:
-                    # Fallback chain: Pilz PTP → OMPL
+                    # Try Pilz PTP, then the configured general pipeline.
                     fb = core.Fallbacks(label)
                     for planner_fn, suffix in [
                         (lambda: self.make_pilz_planner("PTP"), "Pilz PTP"),
@@ -299,7 +237,7 @@ class MoveToStages(BaseStages):
                         s.setGoal(goal.target)
                         apply_constraints(s, constraints)
                         if suffix == "OMPL":
-                            s.timeout = self._ompl_timeout  # RRTstar budget
+                            s.timeout = self._ompl_timeout
                         fb.add(s)
                     task.add(fb)
                 else:
@@ -322,21 +260,7 @@ class MoveToStages(BaseStages):
             return error
 
     def run(self, goal) -> str | None:
-        """Execute MoveTo action.
-
-        Args:
-            goal: MoveToAction.Goal with fields:
-                - target: Pose name, SRDF state, or empty for relative moves
-                - planning_type: "joint" or "cartesian"
-                - direction: Direction for relative moves
-                - distance: Distance in meters for relative moves
-                - cartesian_target: [x,y,z] or [x,y,z,r,p,y]
-                - frame_id: Reference frame for cartesian_target
-                - poses_json: JSON string with pose definitions
-
-        Returns:
-            None if successful, error string describing failure otherwise
-        """
+        """Build, plan, and execute one goal; return None or an error string."""
         task = self.create_task_template("MoveTo Task")
 
         error = self.add_to_task(task, goal)

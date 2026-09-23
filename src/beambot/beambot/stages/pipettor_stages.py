@@ -1,14 +1,4 @@
-"""PipettorStages - Python equivalent of pipettor_stages.cpp.
-
-Handles pipettor operations:
-- SUCK: Aspirate liquid
-- EXPEL: Dispense liquid
-- EJECT_TIP: Eject the disposable tip
-- SET_LED: Control LED color
-
-Note: Unlike other MTC stages, pipettor operations don't move the robot.
-We directly call the pipettor action server instead of using MTC.
-"""
+"""Pipettor driver commands without robot-motion planning."""
 
 from action_msgs.msg import GoalStatus
 from rclpy.action import ActionClient
@@ -21,24 +11,13 @@ from beambot.stages.base_stages import wait_for_future
 
 
 class PipettorStages:
-    """Handles pipettor operations via action client."""
-
-    # Action server name
     PIPETTOR_ACTION = "pipettor_operation"
-
-    # Default timeout for pipettor operations (seconds)
-    DEFAULT_TIMEOUT = 60.0
+    DEFAULT_TIMEOUT = 60.0  # Seconds.
 
     def __init__(self, rclpy_node: Node):
-        """Initialize PipettorStages.
-
-        Args:
-            rclpy_node: ROS node for action client
-        """
         self.rclpy_node = rclpy_node
         self.logger = rclpy_node.get_logger()
 
-        # Create action client
         self._action_client = ActionClient(
             rclpy_node,
             PipettorOperation,
@@ -48,21 +27,8 @@ class PipettorStages:
         self.logger.info("PipettorStages initialized")
 
     def run(self, goal) -> str | None:
-        """Execute Pipettor action.
-
-        Args:
-            goal: PipettorAction.Goal with fields:
-                - operation: "SUCK", "EXPEL", "EJECT_TIP", "SET_LED"
-                - volume_pct: 0.0-1.0 for SUCK/EXPEL
-                - led_color: ColorRGBA for SET_LED
-
-        Returns:
-            None if successful, error string describing failure otherwise
-        """
-        # Format descriptive log message
-        if goal.operation in ["SUCK", "EXPEL"]:
-            op_desc = f"{goal.operation} {goal.volume_pct * 100.0:.0f}%"
-        elif goal.operation == "SET_LED":
+        """Execute a pipettor goal; return None on success or an error string."""
+        if goal.operation == "SET_LED":
             op_desc = (
                 f"SET_LED ({int(goal.led_color.r * 255)}, "
                 f"{int(goal.led_color.g * 255)}, "
@@ -85,24 +51,13 @@ class PipettorStages:
         volume_pct: float,
         led_color: ColorRGBA
     ) -> str | None:
-        """Execute the pipettor action.
-
-        Args:
-            operation: Operation type
-            volume_pct: Volume percentage (0.0-1.0)
-            led_color: LED color for SET_LED
-
-        Returns:
-            None if successful, error string on failure
-        """
-        # Wait for action server
+        """Send a driver goal and wait for its result."""
         if not self._action_client.wait_for_server(timeout_sec=5.0):
             return f"Pipettor action server '{self.PIPETTOR_ACTION}' not available (timeout 5s)"
 
-        # Create goal
         action_goal = PipettorOperation.Goal()
         action_goal.operation = operation
-        action_goal.volume_pct = volume_pct
+        action_goal.volume_pct = volume_pct  # Currently ignored by the driver.
         action_goal.led_color = led_color
 
         send_goal_future = self._action_client.send_goal_async(action_goal)

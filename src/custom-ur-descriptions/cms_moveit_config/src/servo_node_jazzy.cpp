@@ -326,10 +326,6 @@ void ServoNode::servoLoop()
   std::optional<KinematicState> next_joint_state = std::nullopt;
   rclcpp::WallRate servo_frequency(1 / servo_params_.publish_period);
 
-  // ponytail: Jazzy 2.12.4 compares incompatible PSM clocks here and its mock
-  // scene timestamp stays static. getCurrentRobotState(true) below performs
-  // the authoritative blocking freshness check. Delete this source once the
-  // distro package includes MoveIt's convertClockType fix.
   KinematicState current_state = servo_->getCurrentRobotState(true /* block for current robot state */);
   last_commanded_state_ = current_state;
   // Ensure the filter is up to date

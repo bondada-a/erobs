@@ -1,13 +1,13 @@
 """Parse orchestrator task scripts and resolve named poses."""
 
 import json
-import math
 from collections.abc import Callable, Mapping, Sequence
-from numbers import Real
 from pathlib import Path
 from typing import Any
 
 import yaml
+
+from beambot.config_loader import is_finite_number
 
 
 DRY_RUN_SUPPORTED_TYPES = {"moveto", "end_effector"}
@@ -77,22 +77,12 @@ def moveto_goal_error(
     if relative:
         if not isinstance(direction, str) or direction not in MOVETO_DIRECTIONS:
             return f"Unknown MoveTo direction: {direction!r}"
-        if (
-            isinstance(distance, bool)
-            or not isinstance(distance, Real)
-            or not math.isfinite(distance)
-            or distance <= 0.0
-        ):
+        if not is_finite_number(distance) or distance <= 0.0:
             return "MoveTo distance must be a finite number greater than zero"
     if cartesian and (
         not isinstance(cartesian_target, Sequence)
         or len(cartesian_target) not in (3, 6)
-        or any(
-            isinstance(value, bool)
-            or not isinstance(value, Real)
-            or not math.isfinite(value)
-            for value in cartesian_target
-        )
+        or not all(is_finite_number(value) for value in cartesian_target)
     ):
         return "MoveTo cartesian_target must contain exactly 3 or 6 finite numbers"
     return None
@@ -102,11 +92,7 @@ def flange_offset_error(*, direction: Any = "", distance: Any = 0.0) -> str | No
     """Return why a flange offset is invalid, or None when it is valid/absent."""
     if not isinstance(direction, str):
         return "Flange offset direction must be a string"
-    if (
-        isinstance(distance, bool)
-        or not isinstance(distance, Real)
-        or not math.isfinite(distance)
-    ):
+    if not is_finite_number(distance):
         return "Flange offset distance must be a finite number greater than zero"
     if not direction and distance == 0.0:
         return None
@@ -133,12 +119,7 @@ def _load_poses_registry(
 
 
 def _finite_number(value: Any, path: str, *, positive: bool = False) -> float:
-    if (
-        isinstance(value, bool)
-        or not isinstance(value, Real)
-        or not math.isfinite(value)
-        or (positive and value <= 0)
-    ):
+    if not is_finite_number(value) or (positive and value <= 0):
         qualifier = " greater than zero" if positive else ""
         raise ValueError(f"{path} must be a finite number{qualifier}")
     return float(value)
@@ -157,14 +138,18 @@ def _grid_direction(value: Any, path: str) -> str:
     return value
 
 
-def _expand_pickup_macro(
-    task: Mapping[str, Any],
-    task_index: int,
+def expand_grid_target(
+    target_name: str,
     vision_targets: Mapping[str, Any],
-) -> list[dict[str, Any]]:
-    task_path = f"tasks[{task_index}]"
-    task_type = task["task_type"]
-    target_name = TASK_MACROS[task_type]
+    task: Mapping[str, Any],
+    task_path: str = "task",
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Expand a grid vision target into scan, marker and row/column move tasks.
+
+    task supplies row/col or element_index, optional config overrides and, for
+    pickup_vial, a pipettor_operation. Also return the resolved element and the
+    row/column moves so callers can report them. Raise ValueError when invalid.
+    """
     target_path = f"vision_targets.{target_name}"
     base_config = vision_targets.get(target_name)
     if not isinstance(base_config, Mapping):
@@ -213,65 +198,39 @@ def _expand_pickup_macro(
             f"(max: {rows - 1}, {cols - 1})"
         )
 
-    default_pitch = _finite_number(
-        grid.get("pitch", 0.009), f"{target_path}.grid.pitch", positive=True
-    )
-    col_pitch = _finite_number(
-        grid.get("col_pitch", default_pitch),
-        f"{target_path}.grid.col_pitch",
-        positive=True,
-    )
-    row_pitch = _finite_number(
-        grid.get("row_pitch", default_pitch),
-        f"{target_path}.grid.row_pitch",
-        positive=True,
-    )
-    col_direction = _grid_direction(
-        grid.get("col_direction", "left"), f"{target_path}.grid.col_direction"
-    )
-    row_direction = _grid_direction(
-        grid.get("row_direction", "up"), f"{target_path}.grid.row_direction"
-    )
-    col_away = GRID_DIRECTION_OPPOSITES[col_direction]
-    row_away = GRID_DIRECTION_OPPOSITES[row_direction]
-    col_increasing = _grid_direction(
-        grid.get("col_increasing", col_away),
-        f"{target_path}.grid.col_increasing",
-    )
-    row_increasing = _grid_direction(
-        grid.get("row_increasing", row_away),
-        f"{target_path}.grid.row_increasing",
-    )
-    if col_increasing not in (col_direction, col_away):
-        raise ValueError(
-            f"{target_path}.grid.col_increasing must follow the column axis"
-        )
-    if row_increasing not in (row_direction, row_away):
-        raise ValueError(f"{target_path}.grid.row_increasing must follow the row axis")
-
     marker_offset = config.get("marker_offset", {})
     if not isinstance(marker_offset, Mapping):
         raise ValueError(f"{target_path}.marker_offset must be an object")
-    marker_x = _finite_number(
-        marker_offset.get("x", 0.0), f"{target_path}.marker_offset.x"
+    default_pitch = _finite_number(
+        grid.get("pitch", 0.009), f"{target_path}.grid.pitch", positive=True
     )
-    marker_y = _finite_number(
-        marker_offset.get("y", 0.0), f"{target_path}.marker_offset.y"
-    )
-    col_offset = _finite_number(
-        grid.get("col_offset", abs(marker_x)),
-        f"{target_path}.grid.col_offset",
-    )
-    row_offset = _finite_number(
-        grid.get("row_offset", abs(marker_y)),
-        f"{target_path}.grid.row_offset",
-    )
-    col_offset += col * col_pitch * (1 if col_increasing == col_direction else -1)
-    row_offset += row * row_pitch * (1 if row_increasing == row_direction else -1)
-    col_move = col_direction if col_offset >= 0 else col_away
-    row_move = row_direction if row_offset >= 0 else row_away
-    col_distance = abs(col_offset)
-    row_distance = abs(row_offset)
+
+    # Columns and rows share one rule: start at the A1 offset (default: the
+    # marker offset magnitude) and step one pitch per index along the axis.
+    axis_moves = {}
+    for axis, axis_name, index, default_direction, marker_key in (
+        ("col", "column", col, "left", "x"),
+        ("row", "row", row, "up", "y"),
+    ):
+        prefix = f"{target_path}.grid.{axis}"
+        pitch = _finite_number(
+            grid.get(f"{axis}_pitch", default_pitch), f"{prefix}_pitch", positive=True
+        )
+        direction = _grid_direction(
+            grid.get(f"{axis}_direction", default_direction), f"{prefix}_direction"
+        )
+        away = GRID_DIRECTION_OPPOSITES[direction]
+        increasing = _grid_direction(
+            grid.get(f"{axis}_increasing", away), f"{prefix}_increasing"
+        )
+        if increasing not in (direction, away):
+            raise ValueError(f"{prefix}_increasing must follow the {axis_name} axis")
+        marker = _finite_number(
+            marker_offset.get(marker_key, 0.0), f"{target_path}.marker_offset.{marker_key}"
+        )
+        offset = _finite_number(grid.get(f"{axis}_offset", abs(marker)), f"{prefix}_offset")
+        offset += index * pitch * (1 if increasing == direction else -1)
+        axis_moves[axis] = (direction if offset >= 0 else away, abs(offset))
 
     moves = config.get("moves")
     if not isinstance(moves, Sequence) or isinstance(moves, (str, bytes)) or not moves:
@@ -280,11 +239,7 @@ def _expand_pickup_macro(
     for move_index, move in enumerate(moves):
         move_path = f"{target_path}.moves[{move_index}]"
         if move in ("column_offset", "row_offset"):
-            direction, distance = (
-                (col_move, col_distance)
-                if move == "column_offset"
-                else (row_move, row_distance)
-            )
+            direction, distance = axis_moves["col" if move == "column_offset" else "row"]
             if distance <= 1e-6:
                 continue
         elif isinstance(move, Mapping):
@@ -307,7 +262,7 @@ def _expand_pickup_macro(
         )
 
     operation = task.get("pipettor_operation")
-    if task_type == "pickup_vial" and operation:
+    if task.get("task_type") == "pickup_vial" and operation:
         if not isinstance(operation, str):
             raise ValueError(f"{task_path}.pipettor_operation must be a string")
         if operation not in {"SUCK", "EXPEL", "RINSE"}:
@@ -333,7 +288,8 @@ def _expand_pickup_macro(
         expanded.append({"task_type": "moveto", "target": scan_pose})
     expanded.append({"task_type": "vision_moveto", "tag_id": marker_id})
     expanded.extend(move_tasks)
-    return expanded
+    element = {"row": row, "col": col, "index": row * cols + col, "moves": axis_moves}
+    return expanded, element
 
 
 def _expand_task_macros(
@@ -342,7 +298,10 @@ def _expand_task_macros(
     expanded = []
     for index, task in enumerate(tasks):
         if task["task_type"] in TASK_MACROS:
-            expanded.extend(_expand_pickup_macro(task, index, vision_targets))
+            macro_tasks, _ = expand_grid_target(
+                TASK_MACROS[task["task_type"]], vision_targets, task, f"tasks[{index}]"
+            )
+            expanded.extend(macro_tasks)
         else:
             expanded.append(dict(task))
     return expanded
@@ -357,8 +316,11 @@ def parse_task_script(
     vision_targets: Mapping[str, Any],
     on_info: Callable[[str], None] | None = None,
     on_warning: Callable[[str], None] | None = None,
-) -> tuple[str, list[dict[str, Any]], str, bool]:
-    """Parse task JSON, expand macros, and resolve missing named poses."""
+) -> tuple[str, list[dict[str, Any]], str]:
+    """Parse task JSON, expand macros, and resolve missing named poses.
+
+    Return (start_gripper, tasks, poses_json).
+    """
     if not full_json:
         raise ValueError("Goal missing required full_json")
 
@@ -399,6 +361,12 @@ def parse_task_script(
 
     for index, task in enumerate(tasks):
         task_type = task["task_type"]
+        if task_type == "end_effector" and "end_effector_type" in task:
+            gripper = task["end_effector_type"]
+            if not isinstance(gripper, str) or gripper not in grippers:
+                raise ValueError(
+                    f"tasks[{index}].end_effector_type: unknown gripper {gripper!r}"
+                )
         error = flange_offset_error(
             direction=task.get("offset_direction", ""),
             distance=task.get("offset_distance", 0.0),
@@ -460,4 +428,4 @@ def parse_task_script(
         if resolved and on_info:
             on_info(f"Auto-resolved {len(resolved)} pose(s) from registry: {resolved}")
 
-    return start_gripper, tasks, json.dumps(poses), dry_run
+    return start_gripper, tasks, json.dumps(poses)

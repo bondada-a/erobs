@@ -1,13 +1,7 @@
-"""Core MTC utilities shared by every stage subclass.
-
-Provides the BaseStages class plus planner factories, direction vectors,
-task planning/execution helpers, and the module-level rclcpp node that
-MTC's C++ backend requires.
-"""
+"""Shared MTC node setup, planning helpers, and trajectory execution."""
 
 import json
 import math
-import os
 import sys
 import threading
 import time
@@ -16,8 +10,7 @@ from typing import Any
 
 import rclcpp
 import yaml
-from ament_index_python.packages import get_package_share_directory
-from beambot.config_loader import build_pipeline_param_args
+from ament_index_python.packages import get_package_share_path
 from geometry_msgs.msg import PoseStamped, Vector3, Vector3Stamped
 from moveit.task_constructor import core, stages
 from moveit_msgs.msg import (
@@ -31,9 +24,13 @@ from sensor_msgs.msg import JointState
 from std_msgs.msg import Header
 from tf_transformations import quaternion_from_euler
 
+from beambot.config_loader import (
+    arm_joint_names,
+    build_pipeline_param_args,
+    moveit_config_package,
+)
 from beambot.core import MODEL_REVISION_PREFIX, VERIFIED_MODEL_DESCRIPTION
 
-# MoveIt error code → name, reflected from the message so it can't drift.
 MOVEIT_ERROR_NAMES: dict[int, str] = {
     getattr(MoveItErrorCodes, n): n
     for n in dir(MoveItErrorCodes)
@@ -41,11 +38,7 @@ MOVEIT_ERROR_NAMES: dict[int, str] = {
 }
 
 
-# Direction vectors for relative moves in ik_frame
-# Updated 2024: Compensates for 180° wrist rotation (camera mount XACRO change)
-# - forward/backward (X): unchanged
-# - left/right (Y): swapped
-# - up/down (Z): swapped
+# IK-frame directions; y/-y invert the Y axis.
 DIRECTION_VECTORS: dict[str, tuple[float, float, float]] = {
     "forward":  ( 1.0,  0.0,  0.0), "x":  ( 1.0,  0.0,  0.0),
     "backward": (-1.0,  0.0,  0.0), "-x": (-1.0,  0.0,  0.0),
@@ -55,48 +48,21 @@ DIRECTION_VECTORS: dict[str, tuple[float, float, float]] = {
     "down":     ( 0.0,  0.0, -1.0), "-z": ( 0.0,  0.0, -1.0),
 }
 
-# Arm joint names sourced from the active beamline YAML (robot.arm_joints).
-# Falls back to the UR 6-DOF order when the env var isn't set so module-level
-# imports still succeed in test paths and tooling.
-def _load_default_joint_names() -> list[str]:
-    try:
-        from beambot.config_loader import arm_joint_names
-        return arm_joint_names()
-    except Exception:
-        return [
-            "shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint",
-            "wrist_1_joint", "wrist_2_joint", "wrist_3_joint",
-        ]
+# arm_joint_names() already falls back to the standard UR order.
+DEFAULT_JOINT_NAMES: list[str] = arm_joint_names()
 
-
-DEFAULT_JOINT_NAMES: list[str] = _load_default_joint_names()
-
-# Global velocity/acceleration scaling (20% of joint limits)
+# Default fractions of the configured motion limits.
 VELOCITY_SCALING = 0.2
 ACCELERATION_SCALING = 0.2
 
-# Default MoveIt planning group and IK frame
 DEFAULT_ARM_GROUP = "ur_arm"
 DEFAULT_IK_FRAME = "flange"
 
 
+# TODO: Await ROS futures once callers are async; preserve timeout/cancellation handling.
 def wait_for_future(future, timeout: float, poll_interval: float = 0.01) -> bool:
-    """Poll ``future.done()`` until complete or timeout, without spinning.
-
-    Returns True iff the future completed within the timeout.
-
-    Used everywhere a stage or action-callback calls a ROS service or action
-    client. We can't use ``rclpy.spin_until_future_complete`` here: this code
-    runs inside a callback on a node whose MultiThreadedExecutor is already
-    spinning elsewhere, and re-entering the executor raises "Executor is
-    already spinning". The executor is what actually delivers the response to
-    the future; this function just waits for that to happen.
-
-    Uses time.monotonic() so wall-clock jumps (NTP, manual time changes) don't
-    skew the timeout. Caller retrieves the value via ``future.result()`` and
-    does its own logging/cleanup — this helper intentionally returns only a
-    boolean to keep call sites explicit about their error handling.
-    """
+    """Wait for completion without spinning; return False on timeout."""
+    # Requires an executor to process responses concurrently.
     deadline = time.monotonic() + timeout
     while not future.done():
         if time.monotonic() >= deadline:
@@ -104,56 +70,16 @@ def wait_for_future(future, timeout: float, poll_interval: float = 0.01) -> bool
         time.sleep(poll_interval)
     return True
 
-# Module-level rclcpp node initialization for MTC operations.
-# MTC requires rclcpp.Node (C++ backed via pybind11), not rclpy.Node, because
-# MTC's C++ code expects rclcpp::Node::SharedPtr. This is independent of rclpy.
-#
-# Module-level init is safe because:
-# 1. Python caches imported modules (no double-init risk)
-# 2. Action servers always use MTC immediately (no benefit to lazy init)
-# 3. Each server runs in separate process (no shared state concerns)
-#
-# IMPORTANT: The rclcpp.Node pybind11 wrapper does NOT expose declare_parameter().
-# Parameters MUST be passed via NodeOptions.arguments using --ros-args -p key:=value.
-# With automatically_declare_parameters_from_overrides=True, these are auto-declared
-# on the C++ node and visible to MoveIt's PlanningPipeline.
-#
-# __node:=beambot_mtc names this node, but only wins if no process-global
-# __node remap competes — so the orchestrator Node is launched without name=
-# (see #91 for the /rosout collision this avoids). Keep use_global_arguments
-# at its default True: this node inherits the planning-pipeline adapters and
-# robot_description_kinematics from the global launch args (see #87).
-# enable_rosout=False is defense-in-depth against the same collision.
+
 def _load_joint_accel_limits() -> dict[str, float]:
-    """Collect max_acceleration for every joint declared under any gripper's
-    joint_limits.yaml in the beamline's moveit_config_package/config/<gripper>/.
-
-    The active gripper isn't known at module-import time (beambot_mtc is built
-    before the orchestrator picks a gripper), so we load the union across all
-    configs. This is safe because:
-      - Arm joints are shared across all grippers with identical limits.
-      - Gripper-specific joints are disjoint (only declared in that gripper).
-    TOTG only consults the limits of joints actually in a trajectory, so the
-    extra entries are inert.
-
-    If two configs declare different max_acceleration for the same joint, a WARN
-    is printed — the trip-wire that this union approach has stopped being valid
-    and beambot_mtc should become gripper-aware (load only the active gripper's).
-    """
-    try:
-        from beambot.config_loader import moveit_config_package
-        pkg_name = moveit_config_package()
-    except Exception:
-        pkg_name = "cms_moveit_config"
-    cfg_root = os.path.join(
-        get_package_share_directory(pkg_name), "config"
-    )
+    """Merge enabled acceleration limits; warn and keep the first value on conflicts."""
+    cfg_root = get_package_share_path(moveit_config_package()) / "config"
     limits: dict[str, float] = {}
-    for entry in sorted(os.listdir(cfg_root)):
-        path = os.path.join(cfg_root, entry, "joint_limits.yaml")
-        if not os.path.isfile(path):
+    for directory in sorted(cfg_root.iterdir()):
+        path = directory / "joint_limits.yaml"
+        if not path.is_file():
             continue
-        with open(path) as f:
+        with path.open() as f:
             data = yaml.safe_load(f) or {}
         for joint, spec in (data.get("joint_limits") or {}).items():
             if not spec.get("has_acceleration_limits"):
@@ -166,7 +92,7 @@ def _load_joint_accel_limits() -> dict[str, float]:
                 print(
                     f"[beambot_mtc] WARN: max_acceleration for '{joint}' "
                     f"differs across gripper configs ({existing} vs {value} "
-                    f"in {entry}/joint_limits.yaml); using first-seen "
+                    f"in {directory.name}/joint_limits.yaml); using first-seen "
                     f"({existing}). Time to make beambot_mtc gripper-aware.",
                     file=sys.stderr,
                 )
@@ -189,16 +115,9 @@ def _build_joint_limit_args(
 
 
 def _build_kinematics_args(robot_description: str) -> list[str]:
-    """Load kinematics.yaml under a RobotModelLoader description root."""
-    try:
-        from beambot.config_loader import moveit_config_package
-        pkg_name = moveit_config_package()
-    except Exception:
-        pkg_name = "cms_moveit_config"
-    path = os.path.join(
-        get_package_share_directory(pkg_name), "config", "kinematics.yaml"
-    )
-    with open(path) as f:
+    """Load kinematics.yaml as ROS arguments under the supplied description root."""
+    path = get_package_share_path(moveit_config_package()) / "config" / "kinematics.yaml"
+    with path.open() as f:
         kinematics = yaml.safe_load(f) or {}
     args: list[str] = []
     for group, settings in kinematics.items():
@@ -212,19 +131,11 @@ def _build_kinematics_args(robot_description: str) -> list[str]:
 
 
 def _build_cartesian_limit_args() -> list[str]:
-    """Emit Pilz cartesian-limit -p pairs from pilz_cartesian_limits.yaml.
-
-    Single source of truth shared with move_group (which loads the same file).
-    """
-    try:
-        from beambot.config_loader import moveit_config_package
-        pkg_name = moveit_config_package()
-    except Exception:
-        pkg_name = "cms_moveit_config"
-    path = os.path.join(
-        get_package_share_directory(pkg_name), "config", "pilz_cartesian_limits.yaml"
+    """Load Pilz Cartesian limits as ROS parameter arguments."""
+    path = (
+        get_package_share_path(moveit_config_package()) / "config" / "pilz_cartesian_limits.yaml"
     )
-    with open(path) as f:
+    with path.open() as f:
         limits = (yaml.safe_load(f) or {})["cartesian_limits"]
     args: list[str] = []
     for key, value in limits.items():
@@ -232,57 +143,41 @@ def _build_cartesian_limit_args() -> list[str]:
     return args
 
 
-rclcpp.init()
 _options = rclcpp.NodeOptions()
 _options.automatically_declare_parameters_from_overrides = True
 _options.allow_undeclared_parameters = True
-_options.enable_rosout = False
+_options.enable_rosout = False  # Avoid rosout collisions from node-name remaps.
 _joint_accel_limits = _load_joint_accel_limits()
+# Keep global arguments so launch-provided kinematics remain available.
 _options.arguments = [
     "--ros-args",
     "-r", "__node:=beambot_mtc",
-    # OMPL + Pilz planning_plugins and request/response adapters — read from the
-    # moveit config's *_planning.yaml (same files move_group loads), not
-    # hardcoded here. Includes the load-bearing Pilz ValidateSolution (#87).
     *build_pipeline_param_args(),
-    # OMPL start-state tolerance — MTC-specific, not in the shared YAML.
     "-p", "ompl.start_state_max_bounds_error:=0.1",
-    # Managed models use one fixed description root so their associated
-    # kinematics and joint-limit namespaces can be declared once.
     *_build_kinematics_args(VERIFIED_MODEL_DESCRIPTION),
-    # Pilz cartesian limits — read from pilz_cartesian_limits.yaml (same file
-    # move_group loads), not duplicated here.
     *_build_cartesian_limit_args(),
-    # Pilz PTP / TOTG joint acceleration limits — union across all gripper
-    # joint_limits.yaml files under cms_moveit_config/config/<gripper>/.
     *_build_joint_limit_args(_joint_accel_limits),
     *_build_joint_limit_args(_joint_accel_limits, VERIFIED_MODEL_DESCRIPTION),
 ]
-_mtc_node = rclcpp.Node("beambot_mtc", _options)
+_mtc_node = None
+_mtc_node_lock = threading.Lock()
 
-# Cache the current RobotModel across goals (#97 latency follow-up).
-# task.loadRobotModel() re-parses URDF/SRDF and yields a NEW model pointer every
-# call; MTC's PipelinePlanner caches loaded pipelines in a static cache keyed by
-# (model, pipeline), so a fresh model per goal = cache miss = ~0.5s pluginlib
-# reload per pipeline. The orchestrator supplies a unique revision after each
-# successful MoveIt relaunch and publishes the exact verified model on the
-# fixed, fully configured description root above.
+
+def _get_mtc_node():
+    """Create the shared C++ node when the first stage is constructed."""
+    global _mtc_node
+    with _mtc_node_lock:
+        if _mtc_node is None:
+            rclcpp.init()
+            _mtc_node = rclcpp.Node("beambot_mtc", _options)
+        return _mtc_node
+
+# Reuse the most recent RobotModel by revision.
 _model_cache: dict = {}
 
 
 def joints_from_degrees(degrees: list[float]) -> dict[str, float]:
-    """Convert joint angles from degrees to radians dict.
-
-    Args:
-        degrees: List of 6 joint angles in degrees
-
-    Returns:
-        Dictionary mapping joint names to radian values
-
-    Example:
-        >>> joints_from_degrees([0, -90, 90, -90, -90, 0])
-        {'shoulder_pan_joint': 0.0, 'shoulder_lift_joint': -1.5707..., ...}
-    """
+    """Map angles in degrees to configured joint names with values in radians."""
     if len(degrees) != len(DEFAULT_JOINT_NAMES):
         raise ValueError(
             f"Expected {len(DEFAULT_JOINT_NAMES)} joint values, "
@@ -295,18 +190,7 @@ def joints_from_degrees(degrees: list[float]) -> dict[str, float]:
 
 
 def parse_constraints(constraints_dict: dict[str, Any] | None) -> Constraints | None:
-    """Parse a constraints dict from task JSON into a Constraints msg.
-
-    All angles (position, tolerances, orientation) are in degrees and
-    converted to radians internally, consistent with the rest of the framework.
-
-    Args:
-        constraints_dict: Dict with optional keys "joint_constraints" and
-                         "orientation_constraints". None or empty dict returns None.
-
-    Returns:
-        Constraints message, or None if no constraints specified.
-    """
+    """Convert joint/orientation constraints from degrees; return None if empty."""
     if not constraints_dict:
         return None
 
@@ -326,7 +210,6 @@ def parse_constraints(constraints_dict: dict[str, Any] | None) -> Constraints | 
         oc.header.frame_id = oc_dict.get("frame_id", "base_link")
         oc.link_name = oc_dict["link_name"]
 
-        # orientation as [roll, pitch, yaw] in degrees -> quaternion
         orient = oc_dict["orientation"]
         q = quaternion_from_euler(
             math.radians(orient[0]),
@@ -338,13 +221,11 @@ def parse_constraints(constraints_dict: dict[str, Any] | None) -> Constraints | 
         oc.orientation.z = q[2]
         oc.orientation.w = q[3]
 
-        # tolerance as [x, y, z] in degrees -> radians
         tol = oc_dict.get("tolerance", [5.0, 5.0, 5.0])
         oc.absolute_x_axis_tolerance = math.radians(tol[0])
         oc.absolute_y_axis_tolerance = math.radians(tol[1])
         oc.absolute_z_axis_tolerance = math.radians(tol[2])
 
-        # parameterization: default ROTATION_VECTOR (matches MTC demo)
         param = oc_dict.get("parameterization", "rotation_vector")
         if param == "rotation_vector":
             oc.parameterization = OrientationConstraint.ROTATION_VECTOR
@@ -356,7 +237,6 @@ def parse_constraints(constraints_dict: dict[str, Any] | None) -> Constraints | 
         oc.weight = float(oc_dict.get("weight", 1.0))
         constraints.orientation_constraints.append(oc)
 
-    # Return None if no actual constraints were added
     if not constraints.joint_constraints and not constraints.orientation_constraints:
         return None
 
@@ -364,26 +244,12 @@ def parse_constraints(constraints_dict: dict[str, Any] | None) -> Constraints | 
 
 
 def apply_constraints(stage, constraints: Constraints | None) -> None:
-    """Apply path constraints to an MTC stage if constraints are provided.
-
-    Args:
-        stage: MTC stage (MoveTo, MoveRelative) with path_constraints property
-        constraints: Constraints message, or None to skip
-    """
     if constraints is not None:
         stage.path_constraints = constraints
 
 
 class BaseStages:
-    """Base class providing MTC utilities for all stage implementations.
-
-    Provides:
-    - Task template creation with robot model
-    - Planner factories (pipeline, cartesian, joint interpolation)
-    - Directional move stage creation
-    - Joint angle conversion utilities
-    - Task planning and execution
-    """
+    """Shared task construction, planning, and execution."""
 
     def __init__(
         self,
@@ -391,29 +257,13 @@ class BaseStages:
         arm_group: str = "",
         ik_frame: str = ""
     ):
-        """Initialize base stages.
-
-        Args:
-            rclpy_node: The rclpy node (for logging, clock, spinning futures)
-            arm_group: MoveIt planning group for arm (default: ur_arm)
-            ik_frame: Frame for IK calculations (default: flange)
-        """
         self.rclpy_node = rclpy_node
-        self._mtc_node = _mtc_node  # For MTC operations (C++ backed)
+        self._mtc_node = _get_mtc_node()
         self.arm_group = arm_group if arm_group else DEFAULT_ARM_GROUP
         self.ik_frame = ik_frame if ik_frame else DEFAULT_IK_FRAME
         self.logger = rclpy_node.get_logger()
-        self._preview_pub = None  # Lazily created on first dry-run publish
-        # Serialized Solution msg of the most recent successful plan, captured
-        # for the trajectory cache (orchestrator reads it after init_and_plan /
-        # load_plan_execute returns). Holds no RobotModel reference, so it is
-        # safe to cache and replay after a MoveIt relaunch — unlike the live Task.
-        self.last_sol_msg = None
+        self.last_sol_msg = None  # Serialized solution for preview and replay.
 
-        # Velocity/acceleration scaling: read once from the active beamline
-        # YAML so per-beamline safety profiles stick without code edits. Falls
-        # back to module-level constants if YAML doesn't declare them or the
-        # env var isn't set (test paths, isolated stage construction).
         try:
             from beambot.config_loader import load_beamline_config
             cfg, _ = load_beamline_config()
@@ -424,57 +274,25 @@ class BaseStages:
             self._velocity_scaling = VELOCITY_SCALING
             self._acceleration_scaling = ACCELERATION_SCALING
 
-        # OMPL planning budget per stage (RRTstar runs to it, never early-exits).
-        # ponytail: hardcoded; move to YAML if a beamline needs a different budget.
         self._ompl_timeout = 5.0
 
-        # Pipeline for make_pipeline_planner(): "stomp" (optimization-based,
-        # smooth non-grazing paths — #97) or "ompl" (RRTstar). Flip to A/B.
-        self._pipeline = "stomp"
+        self._pipeline = "stomp" if any(
+            arg.startswith("stomp.planning_plugins:=") for arg in _options.arguments
+        ) else "ompl"
 
-        # Final joint goal (name->rad) of the most recent named-pose move, stashed
-        # so _pin_endpoints() can snap the trajectory's LAST waypoint to the exact
-        # goal (STOMP drifts it ~0.5°, #97). None for non-named moves -> end-pin
-        # skipped. Set in make_move_to_named_stage; consumed in init_and_plan.
-        self._pin_goal_joints = None
+        self._pin_goal_joints = None  # Named target for endpoint correction.
 
-        # Per-task planner cache. MTC solvers are meant to be built once and
-        # shared across all stages of a task (see the official MTC demos); a
-        # PipelinePlanner's first init() loads its pluginlib pipeline (Pilz
-        # PTP/LIN/CIRC, OMPL), which costs ~0.5s — so rebuilding one per stage
-        # made an N-move batch pay N× that load (the dominant planning cost).
-        # The cache is keyed by (kind, mode) and CLEARED at the top of every
-        # create_task_template() call. Planner instances retain task/model init
-        # state, and PipelinePlanner.init() throws if one crosses a model
-        # revision. Keeping them task-scoped avoids stale planner state while
-        # the RobotModel itself can still be reused safely by revision below.
         self._task_planner_cache: dict = {}
 
     def create_task_template(self, name: str) -> core.Task:
-        """Create a new MTC task with standard configuration.
-
-        Args:
-            name: Task name for identification
-
-        Returns:
-            Configured MTC Task with robot model loaded and CurrentState added
-        """
-        # Planner objects remain task-scoped even when the RobotModel is reused.
+        """Create a task with its robot model and current-state stage."""
+        self._pin_goal_joints = None
+        # Planner instances cannot be shared across tasks.
         self._task_planner_cache.clear()
 
-        # Introspection OFF. Its per-task node create/destroy poisons rcl's
-        # rosout hashmap (ros2/rcl#984, ~0.5-1s log stalls) and churns discovery
-        # under ROS_DISCOVERY_SERVER. Task() defaults introspection=True and
-        # creates the node even when disabled after — so pass False at construct.
-        # Cost: no live RViz task panel; motion/planning unaffected.
-        # (MTC's per-subtrajectory "no controllers specified" log is benign —
-        # one arm + one gripper, disjoint joints; setter isn't in the bindings.)
-        task = core.Task("", False)
+        task = core.Task("", False)  # Disable introspection to avoid extra nodes.
         task.name = name
 
-        # Standalone servers receive the revision with each action goal. Batched
-        # tasks run in the orchestrator process and read it from the manager.
-        # Without either source, fail safe and do not reuse across calls.
         model_revision = getattr(self.rclpy_node, "_robot_model_revision", "")
         if not model_revision:
             model_revision = getattr(
@@ -492,56 +310,22 @@ class BaseStages:
                 task.loadRobotModel(self._mtc_node, VERIFIED_MODEL_DESCRIPTION)
             else:
                 task.loadRobotModel(self._mtc_node)
+            # Model structure per gripper is checked offline by test_robot_models.py.
             if model_revision:
-                model = task.getRobotModel()
-                if managed_model:
-                    gripper = model_revision.removeprefix(
-                        MODEL_REVISION_PREFIX
-                    ).split("__", 1)[0]
-                    from beambot.config_loader import load_beamline_config
-                    config, _ = load_beamline_config()
-                    expected = config["grippers"][gripper]
-                    group = expected.get("gripper_group", "")
-                    if group and not model.has_joint_model_group(group):
-                        raise RuntimeError(
-                            f"Robot model revision for {gripper} is missing group '{group}'"
-                        )
-                    if group:
-                        tip = expected.get("tip_frame", "")
-                        links = set(model.get_joint_model_group(group).link_model_names)
-                        if tip and tip not in links:
-                            raise RuntimeError(
-                                f"Robot model revision for {gripper} is missing link '{tip}'"
-                            )
                 _model_cache.clear()
-                _model_cache[model_revision] = model
+                _model_cache[model_revision] = task.getRobotModel()
 
-        # Add current state as first stage
         task.add(stages.CurrentState("current_state"))
         return task
 
     def make_pipeline_planner(self) -> core.PipelinePlanner:
-        """Create the pipeline planner (STOMP or OMPL) with standard config.
-
-        Pipeline chosen by ``self._pipeline``. STOMP is optimization-based:
-        smooth, non-grazing paths worth caching (#97). OMPL uses RRTstar.
-
-        Returns:
-            Configured PipelinePlanner.
-        """
+        """Return a task-local STOMP or OMPL/RRTstar planner."""
         cached = self._task_planner_cache.get((self._pipeline,))
         if cached is not None:
             return cached
         if self._pipeline == "ompl":
-            # RRTstar (cached+replayed, so quality > speed). "RRTstar" matches the
-            # yaml key; LBTRRT also in the yaml for A/B — flip planner_id to compare.
-            # ponytail: never informed_sampling — its DirectInfSampler needs
-            # start+goal at construction, which MTC sets too late (crashes).
             planner = core.PipelinePlanner(self._mtc_node, "ompl", planner_id="RRTstar")
         else:
-            # stomp: single-planner optimization pipeline, no planner_id. Knobs
-            # live in stomp_planning.yaml (forwarded to the MTC node like the
-            # OMPL yaml via build_pipeline_param_args).
             planner = core.PipelinePlanner(self._mtc_node, self._pipeline)
         planner.goal_joint_tolerance = 1e-4
         planner.max_velocity_scaling_factor = self._velocity_scaling
@@ -550,33 +334,22 @@ class BaseStages:
         return planner
 
     def make_cartesian_planner(self) -> core.CartesianPath:
-        """Create Cartesian path planner with standard configuration.
-
-        Returns:
-            Configured CartesianPath planner
-        """
         cached = self._task_planner_cache.get(("cartesian",))
         if cached is not None:
             return cached
         planner = core.CartesianPath()
         planner.max_velocity_scaling_factor = self._velocity_scaling
         planner.max_acceleration_scaling_factor = self._acceleration_scaling
-        planner.step_size = 0.0005 # 1mm steps - good for collision detection
-        planner.min_fraction = 0.9  # Require near-complete path (was 0.6)
+        planner.step_size = 0.0005  # 0.5 mm.
+        planner.min_fraction = 0.9  # Accept at least 90% of the requested path.
         self._task_planner_cache[("cartesian",)] = planner
         return planner
 
     def make_pilz_planner(self, mode: str = "LIN") -> core.PipelinePlanner:
-        """Create Pilz industrial motion planner.
-
-        Args:
-            mode: "LIN" (straight-line Cartesian) or "PTP" (point-to-point joint)
-        """
+        """Return a task-local Pilz LIN or PTP planner."""
         cached = self._task_planner_cache.get(("pilz", mode))
         if cached is not None:
             return cached
-        # Jazzy MTC dropped the mutable .planner attribute; planner_id is now a
-        # constructor kwarg.
         planner = core.PipelinePlanner(
             self._mtc_node, "pilz_industrial_motion_planner", planner_id=mode
         )
@@ -586,11 +359,6 @@ class BaseStages:
         return planner
 
     def make_joint_interpolation_planner(self) -> core.JointInterpolationPlanner:
-        """Create joint interpolation planner (typically for gripper).
-
-        Returns:
-            Configured JointInterpolationPlanner
-        """
         cached = self._task_planner_cache.get(("joint_interp",))
         if cached is not None:
             return cached
@@ -601,11 +369,6 @@ class BaseStages:
         return planner
 
     def _set_ik_frame(self, stage) -> None:
-        """Set the ik_frame property on a stage (required for MTC IK).
-
-        Args:
-            stage: MTC stage (MoveTo, MoveRelative, etc.)
-        """
         ik_frame_pose = PoseStamped()
         ik_frame_pose.header.frame_id = self.ik_frame
         stage.ik_frame = ik_frame_pose
@@ -618,26 +381,7 @@ class BaseStages:
         planner=None,
         constraints: Constraints | None = None
     ):
-        """Create a MoveRelative stage (or Fallbacks container) for directional movement.
-
-        When planner is provided, returns a single MoveRelative stage.
-        When planner is None, returns a Fallbacks container:
-        Pilz LIN → CartesianPath → Pilz PTP.
-
-        Args:
-            label: Stage name for identification
-            direction: Direction string ("forward", "backward", "left",
-                      "right", "up", "down", "x", "-x", "y", "-y", "z", "-z")
-            distance: Distance in meters (positive value)
-            planner: Planner instance, or None for automatic fallback chain
-            constraints: Optional path constraints
-
-        Returns:
-            Configured MoveRelative or Fallbacks stage
-
-        Raises:
-            ValueError: If direction is not recognized
-        """
+        """Build a relative move in the IK frame; distance is in meters."""
         if direction not in DIRECTION_VECTORS:
             raise ValueError(
                 f"Unknown direction: '{direction}'. "
@@ -646,7 +390,6 @@ class BaseStages:
 
         vec = DIRECTION_VECTORS[direction]
 
-        # Build planner list: single planner or fallback chain
         if planner is not None:
             planners = [(planner, None)]
         else:
@@ -656,81 +399,40 @@ class BaseStages:
                 (self.make_pilz_planner("PTP"), "Pilz PTP"),
             ]
 
-        if len(planners) == 1:
-            # Single planner — return a plain MoveRelative stage
-            stage = stages.MoveRelative(label, planners[0][0])
-            stage.group = self.arm_group
-            self._set_ik_frame(stage)
-            header = Header(frame_id=self.ik_frame)
-            direction_vec = Vector3Stamped(
-                header=header,
-                vector=Vector3(
-                    x=vec[0] * distance,
-                    y=vec[1] * distance,
-                    z=vec[2] * distance
-                )
-            )
-            stage.setDirection(direction_vec)
-            apply_constraints(stage, constraints)
-            return stage
+        fb = core.Fallbacks(label) if len(planners) > 1 else None
 
-        # Multiple planners — return a Fallbacks container
-        fb = core.Fallbacks(label)
         for p, suffix in planners:
-            stage = stages.MoveRelative(f"{label} [{suffix}]", p)
+            stage_name = f"{label} [{suffix}]" if suffix is not None else label
+            stage = stages.MoveRelative(stage_name, p)
             stage.group = self.arm_group
             self._set_ik_frame(stage)
-            header = Header(frame_id=self.ik_frame)
             direction_vec = Vector3Stamped(
-                header=header,
+                header=Header(frame_id=self.ik_frame),
                 vector=Vector3(
                     x=vec[0] * distance,
                     y=vec[1] * distance,
-                    z=vec[2] * distance
-                )
+                    z=vec[2] * distance,
+                ),
             )
             stage.setDirection(direction_vec)
             apply_constraints(stage, constraints)
+
+            if fb is None:
+                return stage
             fb.add(stage)
+
         return fb
 
     def load_plan_execute(self, task: core.Task, dry_run: bool = False) -> str | None:
-        """Initialize, plan, and (optionally) execute the task.
-
-        Runs init() -> plan() -> execute(), logs the planned end-state joint
-        angles, and returns None on success or a structured error string
-        (PLANNING_FAILED, EXECUTION_FAILED: <MoveItErrorName>, etc.).
-
-        For caching dry-run plans and replaying them on execute, callers
-        should use init_and_plan() + execute_solution() directly so the
-        same task object can be planned once and executed later.
-
-        Args:
-            task: Configured MTC task
-            dry_run: When True, skip task.execute() and instead publish the
-                planned trajectory on /beambot/preview_trajectory for the GUI
-                3D viewer to animate. Returns None on successful planning.
-
-        Returns:
-            None if successful, error string describing failure otherwise
-        """
+        """Plan and execute a task, or preview a dry run; return None or an error."""
         error = self.init_and_plan(task, dry_run=dry_run)
         if error is not None or dry_run:
             return error
         return self.execute_solution(task)
 
     def init_and_plan(self, task: core.Task, dry_run: bool = False) -> str | None:
-        """Initialize the task, plan, log + (if dry_run) publish a preview.
-
-        Splits the planning half out of load_plan_execute so the orchestrator
-        can cache `task` between a dry-run plan and a later execute call,
-        avoiding a re-plan that would change the trajectory under the
-        operator's feet.
-
-        Returns:
-            None on successful planning, error string otherwise
-        """
-        self.last_sol_msg = None  # cleared per plan; set below on success
+        """Plan a task and optionally publish its preview; return None or an error."""
+        self.last_sol_msg = None
         try:
             self.logger.info(f"Initializing task: {task.name}")
             try:
@@ -756,8 +458,6 @@ class BaseStages:
                 f"{'previewing' if dry_run else 'ready to execute'}: {task.name}"
             )
 
-            # Log planned end-state joint angles for debugging IK issues,
-            # and capture sol_msg for optional preview publishing.
             sol_msg = None
             try:
                 sol = task.solutions[0]
@@ -772,14 +472,8 @@ class BaseStages:
             except Exception as e:
                 self.logger.warning(f"Could not extract planned joints: {e}")
 
-            # Stash the serialized solution for the trajectory cache: this is
-            # the exact msg /execute_task_solution replays, and it carries no
-            # RobotModel reference, so caching it survives a MoveIt relaunch.
             self.last_sol_msg = sol_msg
 
-            # Pin endpoints to exact start/goal (#97): STOMP drifts both ~0.2-0.5deg
-            # and never re-pins. Bake it into last_sol_msg BEFORE it's cached/executed
-            # so both fresh execute and cached replay run the pinned trajectory.
             if sol_msg is not None:
                 self._pin_endpoints(sol_msg)
 
@@ -795,21 +489,7 @@ class BaseStages:
             return f"Task planning exception for '{task.name}': {e}"
 
     def execute_solution(self, task: core.Task) -> str | None:
-        """Execute the first solution of a previously-planned task.
-
-        Pairs with init_and_plan(): assumes task.solutions is populated.
-        Used by the orchestrator to replay a cached dry-run plan without
-        re-planning (which would risk picking a different OMPL path).
-
-        Routes through execute_solution_msg(last_sol_msg) so fresh executes run
-        the ENDPOINT-PINNED serialized msg (init_and_plan pinned it) — the live
-        task.solutions[0] is unpinned. Same execute_task_solution server as
-        Task.execute() under the hood. Falls back to Task.execute() only if the
-        serialized msg wasn't captured.
-
-        Returns:
-            None on successful execution, error string otherwise
-        """
+        """Execute the saved message or first solution; return None or an error."""
         try:
             if not task.solutions:
                 error = f"EXECUTION_FAILED: No cached solution for '{task.name}'"
@@ -819,7 +499,7 @@ class BaseStages:
             if self.last_sol_msg is not None:
                 return self.execute_solution_msg(self.last_sol_msg)
 
-            # Fallback: no serialized msg — execute the live (unpinned) solution.
+            # Native execution bypasses serialized endpoint adjustments.
             result = task.execute(task.solutions[0])
             if result.val != MoveItErrorCodes.SUCCESS:
                 error_name = MOVEIT_ERROR_NAMES.get(result.val, "UNKNOWN")
@@ -839,24 +519,7 @@ class BaseStages:
             return f"Task execution exception for '{task.name}': {e}"
 
     def _pin_endpoints(self, sol_msg) -> None:
-        """Snap the trajectory's first waypoint to the live start and its last to
-        the exact goal, both mapped BY NAME into each trajectory's joint order.
-
-        STOMP is an optimizer: its smoothing drifts BOTH endpoints off the exact
-        boundary (start ~0.2 deg off the actual pose, goal ~0.5 deg off the
-        requested joints — measured, #97) and it never re-pins or goal-tolerance-
-        checks. So:
-          - start-pin: first sub-trajectory pt0 = current joints -> the robot
-            doesn't snap from its actual pose to STOMP's offset start at t=0.
-          - goal-pin:  last sub-trajectory last pt = self._pin_goal_joints -> the
-            arm lands the exact commanded pose (PILZ already does; this gives
-            STOMP the same). Skipped when the goal wasn't stashed (non-named move).
-        Endpoint velocity/accel are zeroed (start/stop from rest). The <=0.5 deg
-        shift lives entirely in the first/last segment, far under joint velocity
-        limits and MoveIt's allowed_start_tolerance.
-        Baked into last_sol_msg (init_and_plan) so the cached copy replays pinned.
-        No-ops safely if live joints unavailable.
-        """
+        """Adjust serialized endpoints without retiming or revalidation."""
         try:
             mgr = getattr(self.rclpy_node, "_moveit_manager", None)
             cur = getattr(mgr, "_joint_positions", None) if mgr else None
@@ -877,44 +540,19 @@ class BaseStages:
                 if pt.accelerations:
                     pt.accelerations = [0.0] * len(pt.accelerations)
 
-            # start-pin: first sub-trajectory's first point -> current joints
             if cur:
                 jt = subs[0].trajectory.joint_trajectory
                 _set(jt.points[0], jt.joint_names, cur)
-            # goal-pin: last sub-trajectory's last point -> exact requested goal
             if self._pin_goal_joints:
                 jt = subs[-1].trajectory.joint_trajectory
                 _set(jt.points[-1], jt.joint_names, self._pin_goal_joints)
-        except Exception as e:  # never let a pin failure block motion
+        except Exception as e:
             self.logger.warning(f"endpoint-pin skipped: {e}")
 
     def execute_solution_msg(self, sol_msg, is_replay: bool = False) -> str | None:
-        """Execute a serialized Solution msg WITHOUT a live MTC Task.
-
-        Sends the ``moveit_task_constructor_msgs/Solution`` to move_group's
-        ``execute_task_solution`` action server — exactly what ``Task.execute()``
-        does internally, minus the live Task. The server runs every
-        ``sub_trajectory`` in order and applies each ``scene_diff``
-        (attach/detach), so batched moveto+end_effector solutions run
-        faithfully. No re-planning, no IK; start-state safety is enforced
-        downstream by ``allowed_start_tolerance`` (rejects a stale start before
-        motion).
-
-        Shared by fresh-plan execute and cache replay. ``is_replay`` only gates
-        the success log — True on a replay; fresh executes leave it False since
-        move_group already logs execution success.
-
-        Returns None on success. On failure returns an error string: a
-        ``REPLAY_TIMEOUT:`` prefix means the goal may still be ACTIVE and the
-        caller must NOT re-dispatch motion (abort instead); any other string is
-        a pre-/post-terminal failure that dispatched no lingering motion, so the
-        caller may safely re-plan.
-        """
+        """Execute a serialized MTC solution; return None or an error string."""
         try:
-            # One ActionClient for the whole process, cached on the long-lived
-            # orchestrator node (self.rclpy_node). MoveToStages is rebuilt per
-            # batch, so a per-instance client would leak a node waitable on
-            # every replay; the node-cached client is created once and warmed.
+            # Share the action client across stage instances.
             client = getattr(self.rclpy_node, "_exec_task_solution_client", None)
             if client is None:
                 client = ActionClient(
@@ -929,8 +567,7 @@ class BaseStages:
 
             send_future = client.send_goal_async(goal)
             if not wait_for_future(send_future, timeout=10.0):
-                # Acceptance is unknown: the server may accept this goal late,
-                # so the caller must fault rather than dispatch another motion.
+                # Acceptance is unknown; do not retry after this timeout.
                 return "REPLAY_TIMEOUT: replay goal acceptance timed out (10s)"
             gh = send_future.result()
             if not gh.accepted:
@@ -938,11 +575,7 @@ class BaseStages:
 
             result_future = gh.get_result_async()
             if not wait_for_future(result_future, timeout=120.0):
-                # No terminal result: the goal may still be ACTIVE on the
-                # controller. Request cancel and wait for it to confirm before
-                # returning REPLAY_TIMEOUT, so the caller aborts rather than
-                # re-dispatching a fresh trajectory into an uncertain robot
-                # state (two overlapping goals on one controller).
+                # Request cancellation without assuming the goal has stopped.
                 cancel_future = gh.cancel_goal_async()
                 wait_for_future(cancel_future, timeout=5.0)
                 return "REPLAY_TIMEOUT: replay execution timed out (120s); aborted"
@@ -960,32 +593,25 @@ class BaseStages:
             return f"Replay execution exception: {e}"
 
     def _publish_preview_trajectory(self, sol_msg, task_name: str) -> None:
-        """Publish a planned MTC solution as a DisplayTrajectory for previewing.
-
-        sol_msg is the SolutionMsg from sol.toMsg(); each entry of
-        sub_trajectory has a moveit_msgs/RobotTrajectory we can forward
-        directly. The first sub-trajectory's start point becomes the
-        DisplayTrajectory's start_state so receivers (RViz, GUI viewer)
-        anchor the animation correctly.
-        """
+        """Publish the serialized plan with its start state and original timing."""
         try:
             from rclpy.qos import DurabilityPolicy, QoSProfile, ReliabilityPolicy
-            if self._preview_pub is None:
-                # TRANSIENT_LOCAL so the GUI sees the latest preview even if
-                # it subscribes after the orchestrator publishes.
+            publisher = getattr(self.rclpy_node, "_preview_trajectory_pub", None)
+            if publisher is None:
+                # Retain the preview for transient-local subscribers.
                 qos = QoSProfile(
                     depth=1,
                     durability=DurabilityPolicy.TRANSIENT_LOCAL,
                     reliability=ReliabilityPolicy.RELIABLE,
                 )
-                self._preview_pub = self.rclpy_node.create_publisher(
+                publisher = self.rclpy_node.create_publisher(
                     DisplayTrajectory, "/beambot/preview_trajectory", qos
                 )
+                self.rclpy_node._preview_trajectory_pub = publisher
 
             msg = DisplayTrajectory()
             msg.model_id = ""
 
-            # Build start_state from the first sub-trajectory's first point.
             start_state = RobotState()
             for sub in sol_msg.sub_trajectory:
                 jt = sub.trajectory.joint_trajectory
@@ -997,16 +623,13 @@ class BaseStages:
                     break
             msg.trajectory_start = start_state
 
-            # Append each sub-trajectory as its own RobotTrajectory entry.
-            # Forwarding sub.trajectory directly preserves time_from_start
-            # exactly as MTC's time-parameterization produced it.
             for sub in sol_msg.sub_trajectory:
                 rt = RobotTrajectory()
                 rt.joint_trajectory = sub.trajectory.joint_trajectory
                 rt.multi_dof_joint_trajectory = sub.trajectory.multi_dof_joint_trajectory
                 msg.trajectory.append(rt)
 
-            self._preview_pub.publish(msg)
+            publisher.publish(msg)
             self.logger.info(
                 f"Published preview for '{task_name}' "
                 f"({len(msg.trajectory)} segment(s))"
@@ -1015,14 +638,7 @@ class BaseStages:
             self.logger.warning(f"Failed to publish preview trajectory: {e}")
 
     def parse_poses(self, poses_json: str) -> dict[str, Any] | None:
-        """Parse poses JSON string.
-
-        Args:
-            poses_json: JSON string containing pose definitions
-
-        Returns:
-            Parsed dict, empty dict if poses_json is empty, None on parse error.
-        """
+        """Decode poses JSON; return {} for empty input or None for invalid JSON."""
         if not poses_json:
             return {}
         try:
@@ -1034,15 +650,7 @@ class BaseStages:
     def get_joint_pose(
         self, poses: dict[str, Any], pose_key: str
     ) -> list[float] | None:
-        """Get and validate a joint pose from the poses dictionary.
-
-        Args:
-            poses: Dictionary of pose definitions
-            pose_key: Key to look up in poses dict
-
-        Returns:
-            List of 6 joint angles in degrees, or None if invalid/missing
-        """
+        """Return a named six-element pose list, or None."""
         if pose_key not in poses:
             self.logger.error(f"Pose '{pose_key}' not found in poses_json")
             return None
@@ -1065,53 +673,37 @@ class BaseStages:
         planner=None,
         constraints: Constraints | None = None
     ):
-        """Create a MoveTo stage (or Fallbacks container) for a named joint pose.
-
-        When planner is provided, returns a single MoveTo stage with that planner.
-        When planner is None, returns a Fallbacks container: Pilz PTP → OMPL.
-
-        Args:
-            label: Stage name
-            pose_key: Key in poses dict
-            poses: Dictionary of pose definitions
-            planner: Planner to use, or None for automatic fallback chain
-            constraints: Optional path constraints
-
-        Returns:
-            Configured MoveTo or Fallbacks stage, or None if pose not found
-        """
+        """Build a named joint-pose stage, or None if the pose list is invalid."""
         joint_pose = self.get_joint_pose(poses, pose_key)
         if joint_pose is None:
             return None
 
         joint_goal = joints_from_degrees(joint_pose)
-        # Stash exact goal (name->rad) so _pin_endpoints snaps the final waypoint
-        # to it (STOMP drifts the goal ~0.5deg, #97). Last named move in a batch wins.
         self._pin_goal_joints = joint_goal
 
         if planner is not None:
-            stage = stages.MoveTo(label, planner)
-            stage.group = self.arm_group
-            self._set_ik_frame(stage)
-            stage.setGoal(joint_goal)
-            apply_constraints(stage, constraints)
-            return stage
+            planners = [(lambda: planner, None, None)]
+        else:
+            planners = [
+                (lambda: self.make_pilz_planner("PTP"), "Pilz PTP", None),
+                (self.make_pipeline_planner, self._pipeline.upper(), self._ompl_timeout),
+            ]
 
-        # Fallback chain: Pilz PTP → OMPL
-        fb = core.Fallbacks(label)
-        for planner_fn, suffix in [
-            (lambda: self.make_pilz_planner("PTP"), "Pilz PTP"),
-            (self.make_pipeline_planner, "OMPL"),
-        ]:
-            planner = planner_fn()
-            stage = stages.MoveTo(f"{label} [{suffix}]", planner)
+        fb = core.Fallbacks(label) if len(planners) > 1 else None
+
+        for planner_fn, suffix, timeout in planners:
+            stage_name = f"{label} [{suffix}]" if suffix is not None else label
+            stage = stages.MoveTo(stage_name, planner_fn())
             stage.group = self.arm_group
             self._set_ik_frame(stage)
             stage.setGoal(joint_goal)
             apply_constraints(stage, constraints)
-            if suffix == "OMPL":
-                stage.timeout = self._ompl_timeout  # RRTstar optimization budget
+            if timeout is not None:
+                stage.timeout = timeout
+            if fb is None:
+                return stage
             fb.add(stage)
+
         return fb
 
     def make_gripper_stage(
@@ -1121,17 +713,7 @@ class BaseStages:
         gripper_group: str,
         state_name: str
     ) -> stages.MoveTo | None:
-        """Create a gripper stage for a specific state.
-
-        Args:
-            label: Stage name
-            planner: Planner to use
-            gripper_group: MoveIt group name (from config)
-            state_name: SRDF state name to move to
-
-        Returns:
-            Configured MoveTo stage for gripper, or None if no gripper/state
-        """
+        """Create a gripper stage, or return None if its group or state is empty."""
         if not gripper_group or not state_name:
             self.logger.info(f"No gripper group or state for '{label}' - skipping")
             return None
@@ -1144,16 +726,7 @@ class BaseStages:
     def compute_deterministic_ik(
         self, approach: PoseStamped, ik_frame: str
     ) -> dict[str, float] | None:
-        """Compute IK via /compute_ik service for a deterministic joint goal.
-
-        Uses a snapshot of the current joint positions as the seed, quantized
-        to 0.01° for reproducibility. Since /compute_ik runs a single KDL
-        attempt without random re-seeding, the result is deterministic for a
-        given seed+target pair. (#51)
-
-        Returns:
-            Joint dict {name: radians} for the arm group, or None on failure.
-        """
+        """Solve IK using a rounded live-joint seed; return joint radians or None."""
         js_holder = [None]
         js_event = threading.Event()
 
@@ -1169,12 +742,15 @@ class BaseStages:
             self.logger.warning("No joint_states for IK seed")
             return None
 
+        # A per-call subscription avoids a 500 Hz Python callback in every stage
+        # server. Round the seed to 0.01 degrees to reduce variation between requests.
         quantized = []
         for p in js_holder[0].position:
             deg = math.degrees(p)
             deg_q = round(deg, 2)
             quantized.append(math.radians(deg_q))
 
+        ik_client = None
         try:
             ik_client = self.rclpy_node.create_client(GetPositionIK, '/compute_ik')
             if not ik_client.wait_for_service(timeout_sec=2.0):
@@ -1189,26 +765,28 @@ class BaseStages:
             req.ik_request.pose_stamped = approach
             req.ik_request.timeout.sec = 1
 
-            future = ik_client.call_async(req)
-            if not wait_for_future(future, timeout=5.0):
+            # Blocks until another executor thread delivers the reply (or 5 s).
+            result = ik_client.call(req, timeout_sec=5.0)
+            if result is None:
                 self.logger.warning("/compute_ik timed out")
-                self.rclpy_node.destroy_client(ik_client)
                 return None
-            self.rclpy_node.destroy_client(ik_client)
 
-            result = future.result()
-            if result and result.error_code.val == 1:  # SUCCESS
-                joint_goal = {}
-                for name, pos in zip(result.solution.joint_state.name,
-                                     result.solution.joint_state.position):
-                    if name in DEFAULT_JOINT_NAMES:
-                        joint_goal[name] = pos
-                if len(joint_goal) == 6:
+            if result.error_code.val == MoveItErrorCodes.SUCCESS:
+                joint_goal = {
+                    name: pos
+                    for name, pos in zip(result.solution.joint_state.name,
+                                         result.solution.joint_state.position)
+                    if name in DEFAULT_JOINT_NAMES
+                }
+                if len(joint_goal) == len(DEFAULT_JOINT_NAMES):
                     return joint_goal
 
-            self.logger.warning(f"compute_ik failed: error_code={result.error_code.val if result else 'None'}")
+            self.logger.warning(f"compute_ik failed: error_code={result.error_code.val}")
             return None
 
         except Exception as e:
             self.logger.warning(f"Deterministic IK error: {e}")
             return None
+        finally:
+            if ik_client is not None:
+                self.rclpy_node.destroy_client(ik_client)

@@ -26,12 +26,12 @@ def generate_launch_description():
 
     declare_enable_vision = DeclareLaunchArgument(
         "enable_vision",
-        default_value="true",
-        description="Enable vision servers (requires Zivid camera)",
+        default_value="false",
+        description="Launch vision/sample servers and the Zivid camera",
     )
 
     declare_enable_pipettor = DeclareLaunchArgument(
-        "enable_pipettor", default_value="true", description="Enable pipettor server"
+        "enable_pipettor", default_value="false", description="Enable pipettor server"
     )
 
     declare_use_mock_hardware = DeclareLaunchArgument(

@@ -1,29 +1,49 @@
 # End Effectors
 
-This directory contains drivers and configuration for robot end effectors like grippers and vacuum systems.
+This directory mixes project-owned packages with separately imported drivers and
+models for grippers, vacuum systems and the pipettor.
+
+## Packages already tracked here
+
+| Package | Role |
+|---|---|
+| `epick_config` | Local ePick overlay, suction-cup profiles and launch configuration. |
+| `onrobot_2fg7_description` | Local 2FG7 geometry and model parameters. |
+| `onrobot_2fg7_driver` | Local ROS/Modbus driver, launch and hardware exercise scripts. |
+
+These packages arrive with the EROBS checkout; they are not downloaded by the
+import command below.
 
 ## Getting the Drivers
 
-The actual driver code lives in separate repositories. To download them:
+The following additional dependencies live in separate repositories. From the
+EROBS repository root, the manifest imports them into named subdirectories:
 
 ```bash
 vcs import src/end_effectors < src/end_effectors/end_effectors.repos
 ```
 
 This pulls in:
+
 - `serial` - ROS2 serial communication
 - `robotiq_hande_driver` - Robotiq HandE gripper driver
 - `robotiq_hande_description` - Robotiq HandE URDF models
 - `ros2_epick_gripper` - EPick vacuum gripper driver (forked from [PickNikRobotics/ros2_epick_gripper](https://github.com/PickNikRobotics/ros2_epick_gripper) — our fork adds always-present extension link for stable URDF chain across suction cup configurations)
+- `pipettor` - Pipettor model, driver and action interface
 
-**Note:** The `ros2_epick_gripper` repository includes `epick_moveit_studio` which depends on paywalled MoveIt Studio/MoveIt Pro packages. Since we don't use this package, skip it during build and dependency installation:
+Imported directories are gitignored and versioned separately. Re-importing can
+change existing checkouts.
+
+### Install dependencies and build
+
+From the EROBS repository root, with ROS 2 Jazzy sourced:
 
 ```bash
 # Install dependencies
-rosdep install --from-paths src --ignore-src -y --skip-keys moveit_studio_behavior_interface
+rosdep install --from-paths src --ignore-src -y
 
-# Build workspace (skip epick_moveit_studio)
-colcon build --packages-skip epick_moveit_studio
+# Build workspace
+colcon build
 ```
 
 ## EPick Configuration

@@ -33,9 +33,10 @@ from beambot.core.plan_cache import PlanCache
 from beambot.core.tool_exchange_manager import ToolExchangeManager
 from beambot.stages.move_to_stages import MoveToStages
 from beambot.stages.end_effector_stages import EndEffectorStages
-from beambot.core.batch_planner import group_into_batches
+from beambot.core.task_batching import group_into_batches
 from beambot.stages.base_stages import wait_for_future
 from beambot.core.task_script import parse_task_script
+from beambot.config_loader import load_beamline_config, resolve_beamline_path
 
 
 class MTCOrchestratorServer(Node):
@@ -47,8 +48,8 @@ class MTCOrchestratorServer(Node):
         "end_effector": 30.0,
         "tool_exchange": 180.0,
         "vision_moveto": 60.0,
-        "vision_task": 60.0,  # Unified pipeline (issue #88); matches vision_moveto
-        "vision_scan": 180.0,  # Batch scan: 3 positions × 3 scans
+        "vision_task": 60.0,
+        "vision_scan": 180.0,
         "pick_sample": 180.0,
         "place_sample": 180.0,
         "pipettor": 60.0,
@@ -57,10 +58,19 @@ class MTCOrchestratorServer(Node):
     def __init__(self):
         super().__init__("beambot_orchestrator")
 
+        # Execution state.
         self._executing = False
         self._faulted = False
         self._lock = threading.Lock()
         self._current_gripper = "unknown"
+
+        # Pause control.
+        self._pause_requested = False
+        self._is_paused = False
+        self._pause_event = threading.Event()
+        self._pause_event.set()
+
+        # Action results.
         self._last_error = ""  # Error from last failed action/batch
         self._last_result = None  # Full result from last _send_and_wait
         self._last_detected_position = None  # [x, y, z] from detect_only vision
@@ -71,36 +81,25 @@ class MTCOrchestratorServer(Node):
         # Live MTC Tasks become invalid after MoveIt relaunches.
         self._last_planned_sol_msg = None
 
-        self._pause_requested = False
-        self._is_paused = False
-        self._pause_event = threading.Event()
-        self._pause_event.set()  # Start in "go" state (not blocked)
-
-        # BEAMBOT_BEAMLINE_CONFIG selects the beamline configuration.
-        from beambot.config_loader import load_beamline_config, resolve_beamline_path
-
+        # Runtime parameters.
         self.declare_parameter("use_mock_hardware", False)
         self.declare_parameter("enable_joystick", False)
         self.declare_parameter("enable_batching", True)
-        self.declare_parameter(
-            "cup_profile", ""
-        )  # Override cup profile (empty = use beamline config default)
+        # Empty cup_profile uses the beamline default.
+        self.declare_parameter("cup_profile", "")
         self._use_mock_hardware = self.get_parameter("use_mock_hardware").value
         self._enable_batching = self.get_parameter("enable_batching").value
 
+        # Beamline configuration from BEAMBOT_BEAMLINE_CONFIG.
         config, config_file = load_beamline_config()
         self._poses_file = resolve_beamline_path(
             config.get("poses_file", ""), config_file
         )
 
-        self._grippers = config[
-            "grippers"
-        ]  # Dict of gripper_name -> {moveit_package, tool_voltage, gripper_group, states}
+        self._grippers = config["grippers"]
         self._vision_targets = config.get("vision_targets", {})
-        self._robot_ip = config["robot"]["ip"]  # Single source: config file
-        self._arm_group = config.get("robot", {}).get(
-            "arm_group", "ur_arm"
-        )  # For batched execution
+        self._robot_ip = config["robot"]["ip"]
+        self._arm_group = config.get("robot", {}).get("arm_group", "ur_arm")
         self.get_logger().info(
             f"Loaded beamline: {config['beamline']} (robot: {self._robot_ip})"
         )
@@ -111,6 +110,7 @@ class MTCOrchestratorServer(Node):
                 "Batching DISABLED - each task executes via action server"
             )
 
+        # Action timeouts.
         self._timeouts = {}
         for action_type, default_timeout in self.DEFAULT_TIMEOUTS.items():
             param_name = f"timeout.{action_type}"
@@ -119,6 +119,7 @@ class MTCOrchestratorServer(Node):
 
         self.get_logger().info(f"Timeouts configured: {self._timeouts}")
 
+        # Callback scheduling and MoveIt lifecycle.
         self._callback_group = ReentrantCallbackGroup()
 
         self._moveit_manager = MoveItLifecycleManager(
@@ -130,6 +131,7 @@ class MTCOrchestratorServer(Node):
             enable_joystick=self.get_parameter("enable_joystick").value,
         )
 
+        # Action server and child-action clients.
         self._action_server = ActionServer(
             self,
             MTCExecution,
@@ -149,7 +151,6 @@ class MTCOrchestratorServer(Node):
             "beambot_endeffector",
             callback_group=self._callback_group,
         )
-        # Legacy vision_moveto tasks use the unified vision server.
         self._vision_task_client = ActionClient(
             self,
             VisionTaskAction,
@@ -181,6 +182,7 @@ class MTCOrchestratorServer(Node):
             callback_group=self._callback_group,
         )
 
+        # Tool exchange.
         self._tool_exchange_manager = ToolExchangeManager(
             self,
             self._grippers,
@@ -191,6 +193,7 @@ class MTCOrchestratorServer(Node):
             on_gripper_changed=self._set_current_gripper,
         )
 
+        # Pause/resume services.
         self._pause_service = self.create_service(
             Trigger,
             "beambot/pause",
@@ -204,6 +207,7 @@ class MTCOrchestratorServer(Node):
             callback_group=self._callback_group,
         )
 
+        # State publishers, latched for late subscribers.
         latched_qos = QoSProfile(
             depth=1,
             durability=DurabilityPolicy.TRANSIENT_LOCAL,
@@ -215,7 +219,6 @@ class MTCOrchestratorServer(Node):
         )
         self._publish_state("IDLE")
 
-        # Latched for late subscribers.
         self._gripper_publisher = self.create_publisher(
             String, "beambot/current_gripper", latched_qos
         )
@@ -229,6 +232,8 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info(
             "Pause/Resume services available: beambot/pause, beambot/resume"
         )
+
+    # Goal admission and pause/cancel control.
 
     def _goal_callback(self, goal_request) -> GoalResponse:
         """Handle incoming goal requests."""
@@ -296,22 +301,6 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Resume requested - continuing execution")
         return response
 
-    def _publish_state(self, state: str):
-        """Publish execution state."""
-        msg = String()
-        msg.data = state
-        self._state_publisher.publish(msg)
-
-    def _publish_gripper(self, gripper: str):
-        """Publish current gripper to latched topic."""
-        msg = String()
-        msg.data = gripper
-        self._gripper_publisher.publish(msg)
-
-    def _set_current_gripper(self, gripper: str):
-        self._current_gripper = gripper
-        self._publish_gripper(gripper)
-
     def _handle_pause(
         self,
         feedback: MTCExecution.Feedback,
@@ -359,110 +348,7 @@ class MTCOrchestratorServer(Node):
         self.get_logger().info("Execution resumed")
         self._publish_state("RUNNING")
 
-    def _execute_batch(
-        self,
-        batch_tasks: list[dict[str, Any]],
-        poses_json: str,
-        dry_run: bool = False,
-        cached_plan: dict | None = None,
-    ) -> bool:
-        """Plan or execute one batch; cached plans bypass planning."""
-        if not batch_tasks:
-            return True
-
-        task_types = [t.get("task_type", "?") for t in batch_tasks]
-        self.get_logger().info(
-            f"{'Replaying cached plan for' if cached_plan else 'Executing'} "
-            f"batch of {len(batch_tasks)} tasks: {task_types}"
-        )
-
-        # Stages share the module-level MTC node.
-        moveto_stage = MoveToStages(self, self._arm_group)
-        endeffector_stage = EndEffectorStages(self, self._arm_group)
-
-        # Replan after terminal replay failures. A timeout may leave motion active,
-        # so never dispatch a second trajectory after REPLAY_TIMEOUT.
-        # ponytail: replay skips live-scene collision checks; add isPathValid for
-        # dynamic scenes (MTC #198).
-        if cached_plan is not None:
-            error = moveto_stage.execute_solution_msg(
-                cached_plan["sol_msg"], is_replay=True
-            )
-            if error is None:
-                return True
-            if error.startswith("REPLAY_TIMEOUT"):
-                self._last_error = error
-                return False
-            self.get_logger().warning(
-                f"Cached replay failed ({error}); re-planning fresh"
-            )
-        task = moveto_stage.create_task_template(f"Batch ({len(batch_tasks)} tasks)")
-
-        for i, batch_task in enumerate(batch_tasks):
-            task_type = batch_task.get("task_type", "")
-            error = None
-
-            if task_type == "moveto":
-                goal = self._create_moveto_goal(batch_task, poses_json)
-                error = moveto_stage.add_to_task(task, goal)
-
-            elif task_type == "end_effector":
-                goal = self._create_endeffector_goal(batch_task)
-                error = endeffector_stage.add_to_task(task, goal)
-
-            else:
-                self._last_error = f"Unknown batchable type: {task_type}"
-                self.get_logger().error(self._last_error)
-                return False
-
-            if error is not None:
-                self._last_error = f"Batch task {i} ({task_type}): {error}"
-                self.get_logger().error(self._last_error)
-                return False
-
-        if dry_run:
-            error = moveto_stage.init_and_plan(task, dry_run=True)
-            if error is not None:
-                self._last_error = error
-                return False
-            # Cache the serialized solution; live Tasks cannot survive relaunches.
-            self._last_planned_sol_msg = moveto_stage.last_sol_msg
-            return True
-
-        error = moveto_stage.load_plan_execute(task)
-        if error is not None:
-            self._last_error = error
-            return False
-        # Save the fresh solution for later replay.
-        self._last_planned_sol_msg = moveto_stage.last_sol_msg
-        return True
-
-    def _create_moveto_goal(
-        self, step: dict[str, Any], poses_json: str
-    ) -> MoveToAction.Goal:
-        """Create a MoveToAction.Goal from task dict."""
-        goal = MoveToAction.Goal()
-        goal.target = step.get("target", "")
-        goal.planning_type = step.get("planning_type", "")
-        goal.direction = step.get("direction", "")
-        goal.distance = float(step.get("distance", 0.0))
-        goal.cartesian_target = [float(v) for v in step.get("cartesian_target", [])]
-        goal.frame_id = step.get("frame_id", "base_link")
-        goal.poses_json = poses_json
-        goal.constraints_json = (
-            json.dumps(step["constraints"]) if "constraints" in step else ""
-        )
-        return goal
-
-    def _create_endeffector_goal(self, step: dict[str, Any]) -> EndEffectorAction.Goal:
-        """Create an EndEffectorAction.Goal from task dict."""
-        gripper_type = step.get("end_effector_type", self._current_gripper)
-        gripper_config = self._grippers.get(gripper_type, {})
-
-        goal = EndEffectorAction.Goal()
-        goal.gripper_group = gripper_config.get("gripper_group", "")
-        goal.end_effector_action = step.get("end_effector_action", "")
-        return goal
+    # Main execution flow.
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         """Execute the orchestration goal."""
@@ -488,10 +374,11 @@ class MTCOrchestratorServer(Node):
         result = MTCExecution.Result()
         feedback = MTCExecution.Feedback()
 
+        dry_run = bool(getattr(goal_handle.request, "dry_run", False))
         try:
             parsed = parse_task_script(
                 goal_handle.request.full_json,
-                dry_run=bool(getattr(goal_handle.request, "dry_run", False)),
+                dry_run=dry_run,
                 grippers=self._grippers,
                 poses_file=self._poses_file,
                 vision_targets=self._vision_targets,
@@ -503,7 +390,7 @@ class MTCOrchestratorServer(Node):
             goal_handle.abort()
             return result
 
-        start_gripper, tasks, poses_json, dry_run = parsed
+        start_gripper, tasks, poses_json = parsed
         task_count = len(tasks)
         result.total_steps = task_count
         if dry_run:
@@ -512,7 +399,7 @@ class MTCOrchestratorServer(Node):
                 f"without moving the robot"
             )
 
-        cached_plan_for_replay: dict | None = None
+        cached_plan_for_replay = None  # Serialized MTC solution, or None.
 
         self._set_current_gripper(start_gripper)
 
@@ -531,17 +418,16 @@ class MTCOrchestratorServer(Node):
             goal_handle.abort()
             return result
 
-        # Model revision prevents replay across collision-geometry changes.
+        # Pose edits must invalidate cached trajectories.
         goal_key = PlanCache.compute_key(
-            goal_handle.request.full_json,
-            start_gripper,
+            json.dumps({"tasks": tasks, "poses": json.loads(poses_json)}),
             self._moveit_manager.model_revision,
             self._moveit_manager.current_arm_joints(),
         )
 
         self._publish_state("RUNNING")
 
-        # Keep dry-run and live batch boundaries identical.
+        # Group tasks into execution units; previews use the same boundaries.
         batches = group_into_batches(
             tasks,
             enabled=self._enable_batching,
@@ -564,6 +450,7 @@ class MTCOrchestratorServer(Node):
         for batch_type, batch_tasks in batches:
             batch_size = len(batch_tasks)
 
+            # Handle cancellation and pause before dispatch.
             if goal_handle.is_cancel_requested:
                 self.get_logger().warning(
                     f"Task cancelled after step {completed_tasks}/{task_count}"
@@ -607,6 +494,7 @@ class MTCOrchestratorServer(Node):
                 return result
 
             if batch_type == "batched":
+                # Report batch progress.
                 batch_desc = ", ".join(t.get("task_type", "?") for t in batch_tasks)
                 self._update_feedback(
                     feedback,
@@ -616,9 +504,7 @@ class MTCOrchestratorServer(Node):
                     f"batch[{batch_size}]: {batch_desc}",
                 )
 
-                # UR launch infrastructure owns controller activation. Previous
-                # orchestrator activation raced the spawner.
-
+                # Execute or preview the batch; launch owns controller activation.
                 self._last_planned_sol_msg = None
                 ok = self._execute_batch(
                     batch_tasks,
@@ -626,6 +512,7 @@ class MTCOrchestratorServer(Node):
                     dry_run=dry_run,
                     cached_plan=cached_plan_for_replay,
                 )
+
                 if not ok:
                     if goal_handle.is_cancel_requested or self._last_error.startswith(
                         ("TIMEOUT:", "REPLAY_TIMEOUT:")
@@ -636,11 +523,10 @@ class MTCOrchestratorServer(Node):
                     goal_handle.abort()
                     return result
 
-                # Store fresh single-batch plans. Replays leave
-                # _last_planned_sol_msg unset, avoiding redundant writes.
+                # Cache eligible fresh plans; replays produce no new solution.
                 if cache_eligible and self._last_planned_sol_msg is not None:
                     self._plan_cache.store(
-                        goal_key, self._last_planned_sol_msg, self._current_gripper
+                        goal_key, self._last_planned_sol_msg
                     )
                     self.get_logger().info("Trajectory cached for replay")
                     self._last_planned_sol_msg = None
@@ -661,16 +547,13 @@ class MTCOrchestratorServer(Node):
                     goal_handle.abort()
                     return result
 
+                self._update_feedback(
+                    feedback, goal_handle, completed_tasks + 1, task_count, task_type
+                )
+
                 # With batching disabled, route dry runs through planning to avoid
                 # hardware motion. Single-task dry runs are not cached.
                 if dry_run:
-                    self._update_feedback(
-                        feedback,
-                        goal_handle,
-                        completed_tasks + 1,
-                        task_count,
-                        task_type,
-                    )
                     self._last_planned_sol_msg = None
                     if not self._execute_batch([task], poses_json, dry_run=True):
                         result.error_message = (
@@ -686,10 +569,6 @@ class MTCOrchestratorServer(Node):
                         goal_handle.canceled()
                         return result
                     continue
-
-                self._update_feedback(
-                    feedback, goal_handle, completed_tasks + 1, task_count, task_type
-                )
 
                 if task_type == "pause":
                     self.get_logger().info(
@@ -798,6 +677,116 @@ class MTCOrchestratorServer(Node):
             self.get_logger().error(self._last_error)
             return False
 
+    # Batch planning and shared goal builders.
+
+    def _execute_batch(
+        self,
+        batch_tasks: list[dict[str, Any]],
+        poses_json: str,
+        dry_run: bool = False,
+        cached_plan=None,  # Serialized MTC solution to replay, or None.
+    ) -> bool:
+        """Plan or execute one batch; cached plans bypass planning."""
+        if not batch_tasks:
+            return True
+
+        task_types = [t.get("task_type", "?") for t in batch_tasks]
+        self.get_logger().info(
+            f"{'Replaying cached plan for' if cached_plan else 'Executing'} "
+            f"batch of {len(batch_tasks)} tasks: {task_types}"
+        )
+
+        # Stages share the module-level MTC node.
+        moveto_stage = MoveToStages(self, self._arm_group)
+        try:
+            endeffector_stage = EndEffectorStages(self, self._arm_group)
+
+            # Replan after terminal replay failures. A timeout may leave motion active,
+            # so never dispatch a second trajectory after REPLAY_TIMEOUT.
+            if cached_plan is not None:
+                error = moveto_stage.execute_solution_msg(
+                    cached_plan, is_replay=True
+                )
+                if error is None:
+                    return True
+                if error.startswith("REPLAY_TIMEOUT"):
+                    self._last_error = error
+                    return False
+                self.get_logger().warning(
+                    f"Cached replay failed ({error}); re-planning fresh"
+                )
+            task = moveto_stage.create_task_template(f"Batch ({len(batch_tasks)} tasks)")
+
+            for i, batch_task in enumerate(batch_tasks):
+                task_type = batch_task.get("task_type", "")
+                error = None
+
+                if task_type == "moveto":
+                    goal = self._create_moveto_goal(batch_task, poses_json)
+                    error = moveto_stage.add_to_task(task, goal)
+
+                elif task_type == "end_effector":
+                    goal = self._create_endeffector_goal(batch_task)
+                    error = endeffector_stage.add_to_task(task, goal)
+
+                else:
+                    self._last_error = f"Unknown batchable type: {task_type}"
+                    self.get_logger().error(self._last_error)
+                    return False
+
+                if error is not None:
+                    self._last_error = f"Batch task {i} ({task_type}): {error}"
+                    self.get_logger().error(self._last_error)
+                    return False
+
+            if dry_run:
+                error = moveto_stage.init_and_plan(task, dry_run=True)
+                if error is not None:
+                    self._last_error = error
+                    return False
+                # Cache the serialized solution; live Tasks cannot survive relaunches.
+                self._last_planned_sol_msg = moveto_stage.last_sol_msg
+                return True
+
+            error = moveto_stage.load_plan_execute(task)
+            if error is not None:
+                self._last_error = error
+                return False
+            # Save the fresh solution for later replay.
+            self._last_planned_sol_msg = moveto_stage.last_sol_msg
+            return True
+        finally:
+            moveto_stage.close()
+
+    def _create_moveto_goal(
+        self, step: dict[str, Any], poses_json: str
+    ) -> MoveToAction.Goal:
+        """Create a MoveToAction.Goal from task dict."""
+        goal = MoveToAction.Goal()
+        goal.target = step.get("target", "")
+        goal.planning_type = step.get("planning_type", "")
+        goal.direction = step.get("direction", "")
+        goal.distance = float(step.get("distance", 0.0))
+        goal.cartesian_target = [float(v) for v in step.get("cartesian_target", [])]
+        goal.frame_id = step.get("frame_id", "base_link")
+        goal.poses_json = poses_json
+        goal.constraints_json = (
+            json.dumps(step["constraints"]) if "constraints" in step else ""
+        )
+        return goal
+
+    def _create_endeffector_goal(self, step: dict[str, Any]) -> EndEffectorAction.Goal:
+        """Create an EndEffectorAction.Goal from task dict."""
+        gripper_type = step.get("end_effector_type", self._current_gripper)
+        gripper_config = self._grippers.get(gripper_type, {})
+
+        goal = EndEffectorAction.Goal()
+        goal.gripper_group = gripper_config.get("gripper_group", "")
+        goal.end_effector_action = step.get("end_effector_action", "")
+        return goal
+
+    # Child-action communication and motion/tool handlers.
+
     def _send_and_wait(
         self, client: ActionClient, goal, name: str, timeout: float
     ) -> bool:
@@ -866,16 +855,6 @@ class MTCOrchestratorServer(Node):
             self._timeouts["end_effector"],
         )
 
-    def _gripper_ik_frame(self) -> str:
-        """Return configured IK tip frame for the current gripper."""
-        from beambot.config_loader import gripper_tip_frame
-
-        return gripper_tip_frame(self._current_gripper, default="flange")
-
-    def _gripper_z_offset(self) -> float:
-        """Default Z offset for the currently attached gripper (meters)."""
-        return float(self._grippers.get(self._current_gripper, {}).get("z_offset", 0.0))
-
     def _handle_tool_exchange(self, step: dict[str, Any], poses_json: str) -> bool:
         success = self._tool_exchange_manager.exchange(
             step,
@@ -886,6 +865,69 @@ class MTCOrchestratorServer(Node):
         if not success and self._tool_exchange_manager.last_error:
             self._last_error = self._tool_exchange_manager.last_error
         return success
+
+    def _call_pipettor(self, step: dict[str, Any], poses_json: str) -> bool:
+        """Call the Pipettor action server."""
+        from std_msgs.msg import ColorRGBA
+
+        goal = PipettorAction.Goal()
+        goal.operation = step.get("operation", "")
+        goal.volume_pct = float(step.get("volume_pct", 0.0))
+        goal.poses_json = poses_json
+
+        if "led_color" in step:
+            led = step["led_color"]
+            goal.led_color = ColorRGBA()
+            goal.led_color.r = float(led.get("r", 0.0))
+            goal.led_color.g = float(led.get("g", 0.0))
+            goal.led_color.b = float(led.get("b", 0.0))
+            goal.led_color.a = 1.0
+
+        return self._send_and_wait(
+            self._pipettor_client, goal, "pipettor", self._timeouts["pipettor"]
+        )
+
+    # Vision and sample handlers.
+
+    # Legacy task names map to VisionTask defaults; explicit fields override them.
+    # Watchdog preserves ePick vacuum state across goals.
+    _VISION_PRESETS = {
+        "vision_moveto": {"detector": "marker", "goal_computer": "approach_pose"},
+        "pick_sample": {
+            "detector": "marker",
+            "goal_computer": "approach_pose",
+            "terminal_action": "grasp",
+            "pre_open": True,
+            "retreat_from_scan": True,
+            "watchdog": "arm",
+        },
+        "place_sample": {
+            "detector": "marker",
+            "goal_computer": "approach_pose",
+            "terminal_action": "release",
+            "retreat_from_scan": True,
+            "watchdog": "disarm",
+        },
+        "pick_spincoater": {
+            "detector": "spincoater_sample",
+            "goal_computer": "j6_snap",
+            "terminal_action": "vacuum_on",
+            "scan_pose": "spincoater_scan",
+            "default_target_pose": "spincoater_place",
+            "forward_distance": 0.003,
+        },
+        "place_spincoater": {
+            "detector": "spincoater_pocket",
+            "goal_computer": "j6_snap",
+            "terminal_action": "vacuum_off",
+            "scan_pose": "spincoater_scan",
+            "default_target_pose": "spincoater_place",
+            "forward_distance": 0.003,
+        },
+    }
+
+    # Route canonical and preset names through VisionTask.
+    _VISION_TASK_TYPES = frozenset({"vision_task", *_VISION_PRESETS})
 
     def _call_vision_scan(self, step: dict[str, Any], poses_json: str) -> bool:
         """Scan configured poses and cache detected marker poses."""
@@ -932,46 +974,6 @@ class MTCOrchestratorServer(Node):
         return self._send_and_wait(
             self._vision_scan_client, goal, "vision_scan", self._timeouts["vision_scan"]
         )
-
-    # Legacy task names map to VisionTask defaults; explicit fields override them.
-    # Watchdog preserves ePick vacuum state across goals.
-    _VISION_PRESETS = {
-        "vision_moveto": {"detector": "marker", "goal_computer": "approach_pose"},
-        "pick_sample": {
-            "detector": "marker",
-            "goal_computer": "approach_pose",
-            "terminal_action": "grasp",
-            "pre_open": True,
-            "retreat_from_scan": True,
-            "watchdog": "arm",
-        },
-        "place_sample": {
-            "detector": "marker",
-            "goal_computer": "approach_pose",
-            "terminal_action": "release",
-            "retreat_from_scan": True,
-            "watchdog": "disarm",
-        },
-        "pick_spincoater": {
-            "detector": "spincoater_sample",
-            "goal_computer": "j6_snap",
-            "terminal_action": "vacuum_on",
-            "scan_pose": "spincoater_scan",
-            "default_target_pose": "spincoater_place",
-            "forward_distance": 0.003,
-        },
-        "place_spincoater": {
-            "detector": "spincoater_pocket",
-            "goal_computer": "j6_snap",
-            "terminal_action": "vacuum_off",
-            "scan_pose": "spincoater_scan",
-            "default_target_pose": "spincoater_place",
-            "forward_distance": 0.003,
-        },
-    }
-
-    # Route canonical and preset names through VisionTask.
-    _VISION_TASK_TYPES = frozenset({"vision_task", *_VISION_PRESETS})
 
     def _call_vision_task(
         self, task_type: str, step: dict[str, Any], poses_json: str
@@ -1099,6 +1101,16 @@ class MTCOrchestratorServer(Node):
 
         return goal
 
+    def _gripper_ik_frame(self) -> str:
+        """Return configured IK tip frame for the current gripper."""
+        from beambot.config_loader import gripper_tip_frame
+
+        return gripper_tip_frame(self._current_gripper, default="flange")
+
+    def _gripper_z_offset(self) -> float:
+        """Default Z offset for the currently attached gripper (meters)."""
+        return float(self._grippers.get(self._current_gripper, {}).get("z_offset", 0.0))
+
     def _call_pick_sample_hardcoded(
         self, step: dict[str, Any], poses_json: str
     ) -> bool:
@@ -1148,26 +1160,23 @@ class MTCOrchestratorServer(Node):
             self._vacuum.lost = False
         return success
 
-    def _call_pipettor(self, step: dict[str, Any], poses_json: str) -> bool:
-        """Call the Pipettor action server."""
-        from std_msgs.msg import ColorRGBA
+    # State and feedback publishing.
 
-        goal = PipettorAction.Goal()
-        goal.operation = step.get("operation", "")
-        goal.volume_pct = float(step.get("volume_pct", 0.0))
-        goal.poses_json = poses_json
+    def _publish_state(self, state: str):
+        """Publish execution state."""
+        msg = String()
+        msg.data = state
+        self._state_publisher.publish(msg)
 
-        if "led_color" in step:
-            led = step["led_color"]
-            goal.led_color = ColorRGBA()
-            goal.led_color.r = float(led.get("r", 0.0))
-            goal.led_color.g = float(led.get("g", 0.0))
-            goal.led_color.b = float(led.get("b", 0.0))
-            goal.led_color.a = 1.0
+    def _publish_gripper(self, gripper: str):
+        """Publish current gripper to latched topic."""
+        msg = String()
+        msg.data = gripper
+        self._gripper_publisher.publish(msg)
 
-        return self._send_and_wait(
-            self._pipettor_client, goal, "pipettor", self._timeouts["pipettor"]
-        )
+    def _set_current_gripper(self, gripper: str):
+        self._current_gripper = gripper
+        self._publish_gripper(gripper)
 
     def _update_feedback(
         self,

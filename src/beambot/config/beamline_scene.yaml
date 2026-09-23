@@ -29,26 +29,22 @@ obstacles:
       yaw: 0.0
     size: [1.2192, 0.9144, 0.05791]  # [48in, 36in, 2.28in] in meters
 
-  # Custom cylinder obstacle (5cm radius, 42" length minus 15cm)
+  # Custom cylinder obstacle (5cm radius, 42" length)
   - name: "beam_cylinder"
     type: "cylinder"
     frame: "base"
     pose:
-      x: 0.36     # 15 inches in meters (relative to base)
+      x: 0.36     # 36cm in the base frame
       y: 0.0       # 0 inches
-      z: 0.205     # 10 inches in meters (relative to base)
+      z: 0.205     # 20.5cm in the base frame
       roll: 1.5708  # 90 degrees rotation around X axis
       pitch: 0.0
       yaw: 0.0
     height: 1.0668   # 42 inches in meters
     radius: 0.05     # 5cm in meters
 
-  # Custom box obstacle (16" x 28" x 50")
-  # Authored in base_link (REP-103) so the GUI viewer renders it correctly --
-  # the viewer ignores the per-obstacle `frame`, and base_link IS its world root.
-  # base_link->base is a pure 180deg-about-Z flip (ur_macro.xacro), so values
-  # measured in the UR 'base' frame are negated on x and y here. (Box is
-  # symmetric, so yaw stays 0.)
+  # Detector box (28" x 16" x 50") in base_link for GUI compatibility.
+  # From base, negate X/Y; 180-degree box symmetry allows yaw to remain zero.
   - name: "detector"
     type: "box"
     frame: "base_link"

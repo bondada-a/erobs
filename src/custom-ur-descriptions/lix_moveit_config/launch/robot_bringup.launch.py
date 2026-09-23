@@ -19,8 +19,7 @@ from launch.actions import (
 )
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch import LaunchDescription
-from ament_index_python.packages import get_package_share_directory
-import os
+from ament_index_python.packages import get_package_share_path
 
 
 def launch_setup(context, *args, **kwargs):
@@ -29,8 +28,8 @@ def launch_setup(context, *args, **kwargs):
     use_mock_hardware = LaunchConfiguration("use_mock_hardware").perform(context)
     tf_prefix = LaunchConfiguration("tf_prefix").perform(context)
 
-    pkg_share = get_package_share_directory("lix_moveit_config")
-    desc_share = get_package_share_directory("lix_robot_description")
+    pkg_share = get_package_share_path("lix_moveit_config")
+    desc_share = get_package_share_path("lix_robot_description")
 
     urdf_file = "ur_with_hande.xacro"
 
@@ -50,12 +49,10 @@ def launch_setup(context, *args, **kwargs):
         "use_mock_hardware": use_mock_hardware,
         "launch_rviz": "false",
         "description_package": "ur_description",
-        "description_file": os.path.join(desc_share, "urdf", urdf_file),
+        "description_file": str(desc_share / "urdf" / urdf_file),
         # Gripper-agnostic base; gripper controller added by the spawner overlay. #86
-        "controllers_file": os.path.join(
-            pkg_share, "config", "ur_base_controllers.yaml"),
-        "kinematics_params_file": os.path.join(
-            desc_share, "config", "ur5e_calibration.yaml"),
+        "controllers_file": str(pkg_share / "config" / "ur_base_controllers.yaml"),
+        "kinematics_params_file": str(desc_share / "config" / "ur5e_calibration.yaml"),
         "use_tool_communication": "false",
         "tool_voltage": "24",
         "controller_spawner_timeout": "30",
@@ -63,10 +60,7 @@ def launch_setup(context, *args, **kwargs):
 
     ur_control_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("ur_robot_driver"),
-                "launch", "ur_control.launch.py",
-            )
+            str(get_package_share_path("ur_robot_driver") / "launch" / "ur_control.launch.py")
         ),
         launch_arguments=ur_launch_args.items(),
     )
@@ -75,19 +69,17 @@ def launch_setup(context, *args, **kwargs):
     moveit_config = (
         MoveItConfigsBuilder("ur_moveit", package_name="lix_moveit_config")
         .robot_description(
-            file_path=os.path.join(desc_share, "urdf", urdf_file),
+            file_path=str(desc_share / "urdf" / urdf_file),
             mappings=xacro_args,
         )
         .robot_description_semantic(
-            file_path=os.path.join(pkg_share, "srdf", "ur.srdf.xacro"),
+            file_path=str(pkg_share / "srdf" / "ur.srdf.xacro"),
         )
         .joint_limits(
-            file_path=os.path.join(
-                pkg_share, "config", "hande", "joint_limits.yaml"),
+            file_path=str(pkg_share / "config" / "hande" / "joint_limits.yaml"),
         )
         .trajectory_execution(
-            file_path=os.path.join(
-                pkg_share, "config", "hande", "moveit_controllers.yaml"),
+            file_path=str(pkg_share / "config" / "hande" / "moveit_controllers.yaml"),
         )
         .robot_description_kinematics(file_path="config/kinematics.yaml")
         .planning_scene_monitor(
@@ -117,7 +109,7 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # ── RViz ────────────────────────────────────────────────────────────
-    rviz_config = os.path.join(pkg_share, "rviz", "view_robot_mtc.rviz")
+    rviz_config = str(pkg_share / "rviz" / "view_robot_mtc.rviz")
 
     rviz_node = Node(
         package="rviz2",
@@ -160,7 +152,7 @@ def launch_setup(context, *args, **kwargs):
         package="controller_manager",
         executable="spawner",
         arguments=["gripper_action_controller", "-c", "/controller_manager",
-                   "--param-file", os.path.join(pkg_share, "config", "hande_controllers.yaml")],
+                   "--param-file", str(pkg_share / "config" / "hande_controllers.yaml")],
     )
 
     return [

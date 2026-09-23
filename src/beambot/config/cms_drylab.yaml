@@ -1,4 +1,4 @@
-# CMS Beamline Configuration (NSLS-II Complex Materials Scattering)
+# CMS dry-lab configuration
 # Selected at runtime via the BEAMBOT_BEAMLINE_CONFIG environment variable.
 # Use this file as a template for new beamlines: copy and rename, then point
 # BEAMBOT_BEAMLINE_CONFIG at the new file.
@@ -8,7 +8,7 @@ poses_file: "src/cms/poses.yaml"                          # Relative to workspac
 scene_file: "src/beambot/config/beamline_scene.yaml"      # Static planning-scene obstacles
 
 robot:
-  ip: "xf11bm-robot1.nsls2.bnl.local" # CMS robot on discovery-server network (10.68.x)
+  ip: "192.168.1.101" # Dry-lab robot
   arm_group: "ur_arm"
   ik_frame: "flange"           # Matches SRDF chain (common.srdf.xacro: base_link → flange)
   velocity_scaling: 0.2        # 20% of joint limits — per-beamline safety profile

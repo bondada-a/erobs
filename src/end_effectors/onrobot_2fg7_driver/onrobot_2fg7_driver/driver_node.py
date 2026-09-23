@@ -20,7 +20,6 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from control_msgs.action import GripperCommand
 from sensor_msgs.msg import JointState
 import time
-import threading
 
 from onrobot_2fg7_driver.modbus_client import OnRobot2FG7Client
 
@@ -76,7 +75,6 @@ class OnRobot2FG7DriverNode(Node):
 
         # Current state
         self._current_width_mm = 60.0  # Assume open
-        self._lock = threading.Lock()
 
         # Initialize Modbus client
         self.gripper = None
@@ -122,8 +120,7 @@ class OnRobot2FG7DriverNode(Node):
             if self.gripper.connect():
                 status = self.gripper.read_status()
                 if status:
-                    with self._lock:
-                        self._current_width_mm = status.external_width_mm
+                    self._current_width_mm = status.external_width_mm
                     self.get_logger().info(
                         f'Connected to 2FG7 gripper (width: {status.external_width_mm:.1f}mm)')
                     return
@@ -143,16 +140,14 @@ class OnRobot2FG7DriverNode(Node):
 
     def _publish_joint_states(self):
         """Publish current finger joint positions."""
-        with self._lock:
-            width_mm = self._current_width_mm
+        width_mm = self._current_width_mm
 
         # Update from hardware periodically
         if self.gripper and not self.use_mock_hardware:
             status = self.gripper.read_status()
             if status:
-                with self._lock:
-                    self._current_width_mm = status.external_width_mm
-                    width_mm = status.external_width_mm
+                self._current_width_mm = status.external_width_mm
+                width_mm = status.external_width_mm
 
         joint_pos = width_mm_to_joint_pos(width_mm)
 
@@ -192,8 +187,7 @@ class OnRobot2FG7DriverNode(Node):
 
         if self.use_mock_hardware:
             time.sleep(0.5)
-            with self._lock:
-                self._current_width_mm = target_width_mm
+            self._current_width_mm = target_width_mm
             result.position = target_pos
             result.effort = 0.0
             result.stalled = False
@@ -234,8 +228,7 @@ class OnRobot2FG7DriverNode(Node):
 
             status = self.gripper.read_status()
             if status:
-                with self._lock:
-                    self._current_width_mm = status.external_width_mm
+                self._current_width_mm = status.external_width_mm
 
                 # Publish feedback
                 feedback = GripperCommand.Feedback()
@@ -251,8 +244,7 @@ class OnRobot2FG7DriverNode(Node):
         # Read final state
         status = self.gripper.read_status()
         if status:
-            with self._lock:
-                self._current_width_mm = status.external_width_mm
+            self._current_width_mm = status.external_width_mm
             result.position = width_mm_to_joint_pos(status.external_width_mm)
             result.effort = 0.0
             result.stalled = False

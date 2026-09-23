@@ -23,14 +23,14 @@ from launch.actions import (
     ExecuteProcess,
     IncludeLaunchDescription,
     OpaqueFunction,
+    SetEnvironmentVariable,
     TimerAction,
 )
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch import LaunchDescription
 from launch_param_builder import ParameterBuilder
-from ament_index_python.packages import get_package_share_directory
-import os
+from ament_index_python.packages import get_package_share_path
 
 
 # ─── Per-gripper configuration ──────────────────────────────────────────────
@@ -71,8 +71,8 @@ def launch_setup(context, *args, **kwargs):
 
     # Per-gripper launch values from the active beamline YAML (#77).
     config = gripper_launch_config(gripper)
-    pkg_share = get_package_share_directory("cms_moveit_config")
-    desc_share = get_package_share_directory("cms_robot_description")
+    pkg_share = get_package_share_path("cms_moveit_config")
+    desc_share = get_package_share_path("cms_robot_description")
 
     # ── Xacro args ──────────────────────────────────────────────────────
     xacro_args = {
@@ -85,8 +85,7 @@ def launch_setup(context, *args, **kwargs):
         # via kinematics_params_file below). Without this the wrapper xacro falls
         # back to nominal default_kinematics.yaml and every IK/Cartesian goal lands
         # ~2.5mm off the commanded pose (calibration delta).
-        "kinematics_params": os.path.join(
-            desc_share, "config", "ur5e_calibration.yaml"),
+        "kinematics_params": str(desc_share / "config" / "ur5e_calibration.yaml"),
     }
 
     # Gripper-specific xacro args
@@ -103,10 +102,9 @@ def launch_setup(context, *args, **kwargs):
         "use_mock_hardware": use_mock_hardware,
         "launch_rviz": "false",
         "description_package": "ur_description",
-        "description_file": os.path.join(desc_share, "urdf", config["urdf_xacro"]),
-        "controllers_file": os.path.join(pkg_share, "config", _BASE_CONTROLLERS),
-        "kinematics_params_file": os.path.join(
-            desc_share, "config", "ur5e_calibration.yaml"),
+        "description_file": str(desc_share / "urdf" / config["urdf_xacro"]),
+        "controllers_file": str(pkg_share / "config" / _BASE_CONTROLLERS),
+        "kinematics_params_file": str(desc_share / "config" / "ur5e_calibration.yaml"),
         "use_tool_communication": (
             "false" if use_mock_hardware == "true"
             else config["use_tool_communication"]
@@ -121,10 +119,7 @@ def launch_setup(context, *args, **kwargs):
 
     ur_control_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
-            os.path.join(
-                get_package_share_directory("ur_robot_driver"),
-                "launch", "ur_control.launch.py",
-            )
+            str(get_package_share_path("ur_robot_driver") / "launch" / "ur_control.launch.py")
         ),
         launch_arguments=ur_launch_args.items(),
     )
@@ -136,20 +131,18 @@ def launch_setup(context, *args, **kwargs):
     moveit_config = (
         MoveItConfigsBuilder("ur_moveit", package_name="cms_moveit_config")
         .robot_description(
-            file_path=os.path.join(desc_share, "urdf", config["urdf_xacro"]),
+            file_path=str(desc_share / "urdf" / config["urdf_xacro"]),
             mappings=xacro_args,
         )
         .robot_description_semantic(
-            file_path=os.path.join(pkg_share, "srdf", "ur.srdf.xacro"),
+            file_path=str(pkg_share / "srdf" / "ur.srdf.xacro"),
             mappings={"gripper": gripper},
         )
         .joint_limits(
-            file_path=os.path.join(
-                pkg_share, "config", gripper, "joint_limits.yaml"),
+            file_path=str(pkg_share / "config" / gripper / "joint_limits.yaml"),
         )
         .trajectory_execution(
-            file_path=os.path.join(
-                pkg_share, "config", config["moveit_controllers"]),
+            file_path=str(pkg_share / "config" / config["moveit_controllers"]),
         )
         .robot_description_kinematics(file_path="config/kinematics.yaml")
         .planning_scene_monitor(
@@ -180,7 +173,7 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # ── RViz ────────────────────────────────────────────────────────────
-    rviz_config = os.path.join(pkg_share, "rviz", "view_robot_mtc.rviz")
+    rviz_config = str(pkg_share / "rviz" / "view_robot_mtc.rviz")
 
     rviz_node = Node(
         package="rviz2",
@@ -209,6 +202,11 @@ def launch_setup(context, *args, **kwargs):
 
     # ── Build launch actions list ───────────────────────────────────────
     actions = [ur_control_launch]
+    if gripper == "epick":
+        # The UR driver does not forward cup_profile to Xacro.
+        actions.insert(0, SetEnvironmentVariable(
+            "BEAMBOT_EPICK_CUP_PROFILE", xacro_args["cup_profile"],
+        ))
 
     # Common nodes
     actions.append(run_move_group_node)
@@ -217,7 +215,7 @@ def launch_setup(context, *args, **kwargs):
     # Optional 8BitDo/Xbox-compatible Cartesian teleoperation. SDL supplies a
     # stable gamepad mapping; MoveIt Servo supplies limits and collision stops.
     joystick_enabled = IfCondition(LaunchConfiguration("enable_joystick"))
-    joystick_config = os.path.join(pkg_share, "config", "joystick_teleop.yaml")
+    joystick_config = str(pkg_share / "config" / "joystick_teleop.yaml")
     servo_params = {
         "moveit_servo": ParameterBuilder("cms_moveit_config")
         .yaml("config/servo.yaml")
@@ -302,14 +300,14 @@ def launch_setup(context, *args, **kwargs):
             executable="spawner",
             arguments=["epick_gripper_action_controller", "epick_status_publisher_controller",
                        "-c", "/controller_manager",
-                       "--param-file", os.path.join(pkg_share, "config", "epick_controllers.yaml")],
+                       "--param-file", str(pkg_share / "config" / "epick_controllers.yaml")],
         ))
     elif gripper == "hande":
         actions.append(Node(
             package="controller_manager",
             executable="spawner",
             arguments=["gripper_action_controller", "-c", "/controller_manager",
-                       "--param-file", os.path.join(pkg_share, "config", "hande_controllers.yaml")],
+                       "--param-file", str(pkg_share / "config" / "hande_controllers.yaml")],
         ))
     elif gripper == "2fg7":
         actions.append(TimerAction(
@@ -383,7 +381,7 @@ def generate_launch_description():
         # ePick cup profile (only used when gripper:=epick).
         # Profile name resolves to dimensions via suction_cups.yaml in the xacro.
         DeclareLaunchArgument(
-            "cup_profile", default_value="3mm_dia",
+            "cup_profile", default_value="3mm_dia_external_air",
             description="ePick suction cup profile name (from suction_cups.yaml)",
         ),
         # ── OpaqueFunction resolves gripper then builds all nodes ───────
