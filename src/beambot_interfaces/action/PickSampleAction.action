@@ -31,7 +31,7 @@ string robot_model_revision     # Model cache key; empty disables cross-goal reu
 # Result
 bool success
 string error_message
-bool vacuum_ok                  # true if ePick reports object detected (or non-ePick gripper)
+bool vacuum_ok                  # True if detected or unchecked; only valid on success.
 # Vision approach in base_link; empty on failure or non-vision picks.
 float64[] detected_position     # XYZ (m).
 float64[] detected_orientation  # Quaternion [x,y,z,w].

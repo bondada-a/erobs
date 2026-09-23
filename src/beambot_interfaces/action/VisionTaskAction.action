@@ -43,7 +43,7 @@ string robot_model_revision # Model cache key; empty disables cross-goal reuse.
 # Result
 bool success
 string error_message
-bool vacuum_ok                  # ePick reports object detected after grasp (true for non-ePick)
+bool vacuum_ok                  # True if detected or unchecked; only valid on success.
 # Detect-only approach in base_link; empty if unavailable.
 float64[] detected_position     # XYZ (m).
 float64[] detected_orientation  # Quaternion [x,y,z,w].
