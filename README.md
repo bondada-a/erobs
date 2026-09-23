@@ -35,7 +35,7 @@ Four entry points — honest labels:
 1. **PyQt6 GUI** — *primary manual interface.* `ros2 run mtc_gui mtc_gui_client`.
    Per-task dialogs, camera overlays, pose editor, experiment runner. Also hosts an
    **experimental** chat panel backed by the `beambot.agent` module.
-2. **MCP + Claude Code** — *LLM-assisted operation.* `./start_mcp.sh` launches
+2. **MCP + Claude Code** — *LLM-assisted operation.* `./utils/start_mcp.sh` launches
    `rosbridge` + `beambot_bringup`. Two MCP servers (generic `ros-mcp-server` and the
    custom `beambot-mcp-server`) expose task dispatch, vision, pose registry, and
    diagnostics to an LLM driving the robot. `.mcp.json` wires them up for Claude Code.
@@ -65,6 +65,11 @@ Four entry points — honest labels:
 
 Prerequisites: ROS 2 Jazzy, MoveIt 2, Zivid SDK (for vision), Python 3.12.
 
+These steps assume an already prepared ROS host, including colcon, vcstool and
+rosdep. The separate `setup.sh` installs/imports declared dependencies from the
+repository root; it does not install ROS/SDKs, build the workspace or select a
+beamline.
+
 ```bash
 git clone https://github.com/bondada-a/erobs.git
 cd erobs
@@ -73,8 +78,9 @@ cd erobs
 vcs import src/end_effectors < src/end_effectors/end_effectors.repos
 vcs import src/vision    < src/vision/vision.repos
 
-# Build (skip epick_moveit_studio — unused on Jazzy)
-colcon build --packages-skip epick_moveit_studio
+# Build
+source /opt/ros/jazzy/setup.bash
+colcon build
 source install/setup.bash
 ```
 
@@ -83,12 +89,18 @@ See [`src/end_effectors/README.md`](./src/end_effectors/README.md) and
 
 ## Launch
 
+From the repository root, select the deployment site in each terminal before launching:
+
 ```bash
+# CMS example; use the configuration for your deployment site
+export BEAMBOT_BEAMLINE_CONFIG="$(realpath src/beambot/config/cms_beamline.yaml)"
+
 # Real hardware, vision + pipettor enabled (defaults)
 ros2 launch beambot beambot_bringup.launch.py
 
-# Simulation (no real UR required)
-ros2 launch beambot beambot_bringup.launch.py use_mock_hardware:=true
+# Mock UR hardware with camera and pipettor servers disabled
+ros2 launch beambot beambot_bringup.launch.py \
+  use_mock_hardware:=true enable_vision:=false enable_pipettor:=false
 
 # Disable vision/pipettor if those subsystems aren't plugged in
 ros2 launch beambot beambot_bringup.launch.py enable_vision:=false enable_pipettor:=false
@@ -97,19 +109,17 @@ ros2 launch beambot beambot_bringup.launch.py enable_vision:=false enable_pipett
 ros2 run mtc_gui mtc_gui_client
 
 # MCP stack (rosbridge on :9090 + beambot_bringup + rosbag recording)
-./start_mcp.sh
+./utils/start_mcp.sh
 ```
 
 `beambot_bringup.launch.py` starts all action servers and the Zivid camera
 (conditionally); the orchestrator launches MoveIt lazily on the first goal based on the
-attached gripper. See [`CLAUDE.md`](./CLAUDE.md) for development architecture and
+attached gripper. See
 [`robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md) for task and
 robot-side troubleshooting details.
 
 ## Further reading
 
-- [`CLAUDE.md`](./CLAUDE.md) — development brief auto-loaded by Claude Code
-  (repo layout, build/test commands, invariants)
 - [`src/beambot/beambot/agent/robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md)
   — authoritative robot-operation reference: task JSON schema, MCP tool inventory,
   error taxonomy, gotchas (also loaded by the `robot-operation` skill)
