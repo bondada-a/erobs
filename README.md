@@ -56,7 +56,7 @@ Four entry points — honest labels:
 | [`src/custom-ur-descriptions`](./src/custom-ur-descriptions) | UR5e URDF/xacro and MoveIt configs (one generic config that branches per gripper) |
 | [`src/end_effectors`](./src/end_effectors) | Gripper drivers + `epick_config` overlay ([README](./src/end_effectors/README.md)) |
 | [`src/vision`](./src/vision) | External vision repos (Zivid; ZED listed but not currently launched) |
-| [`src/cms`](./src/cms) | CMS beamline assets — `poses.yaml`, `experiments.md`, task JSONs. CMS is the live beamline; some paths are hardcoded here today |
+| [`src/cms`](./src/cms) | CMS beamline assets — `poses.yaml` and task JSONs. CMS is the live beamline; some paths are hardcoded here today |
 | [`src/lix`](./src/lix) | Placeholder for LIX beamline |
 | [`src/demos`](./src/demos) | `hello_orchestrator_py` tutorial package |
 | [`src/bluesky_ros`](./src/bluesky_ros) | Ophyd + Bluesky integration (see "How to interact" — currently broken) |
@@ -123,7 +123,6 @@ robot-side troubleshooting details.
 - [`src/beambot/beambot/agent/robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md)
   — authoritative robot-operation reference: task JSON schema, MCP tool inventory,
   error taxonomy, gotchas (also loaded by the `robot-operation` skill)
-- [`src/cms/experiments.md`](./src/cms/experiments.md) — active experiment protocols
 
 ## License
 
