@@ -43,16 +43,14 @@ DEFAULT_QOS_OVERRIDE = SCRIPT_DIR / "tf_qos_override.yaml"
 
 def default_settings_file():
     try:
-        from ament_index_python.packages import get_package_share_directory
+        from ament_index_python.packages import get_package_share_path
 
-        installed = (
-            Path(get_package_share_directory("beambot")) / "config" / SETTINGS_FILE
-        )
+        installed = get_package_share_path("beambot") / "config" / "zivid" / SETTINGS_FILE
         if installed.is_file():
             return installed
     except Exception:  # Package may not be built or sourced yet.
         pass
-    return SCRIPT_DIR.parents[1] / "src" / "beambot" / "config" / SETTINGS_FILE
+    return SCRIPT_DIR.parents[1] / "src" / "beambot" / "config" / "zivid" / SETTINGS_FILE
 
 
 def load_poses(path):

@@ -1,25 +1,8 @@
-"""Built-in detectors for the vision-task pipeline (issue #88).
-
-Each detector is a thin adapter that DELEGATES to the proven VisionEngine
-detection methods — it does not reimplement capture, detection, or the
-TF-at-capture transform. Detection algorithms stay the single source of truth
-in beambot.detection (called transitively via VisionEngine). This is what lets
-the migration be faithful: we route through the exact code that works today.
-
-Contract: detect(ctx) -> PoseStamped | None  (None = detection failed).
-`ctx` carries the goal and a VisionEngine handle (see vision_task_stages.py).
-"""
-
-from beambot.pipeline.registry import register_detector
+"""Marker, sample-ROI and spincoater detection adapters for vision tasks."""
 
 
-@register_detector("marker")
 def detect_marker(ctx):
-    """ArUco marker detection -> base_link pose.
-
-    Marker branch: cache first, then multi-position averaging if scan positions
-    were given, then single-shot (the routing the old VisionMoveTo handler used).
-    """
+    """Return a cached or detected marker pose in base_link, or None."""
     vision = ctx.vision
     goal = ctx.goal
 
@@ -43,15 +26,12 @@ def detect_marker(ctx):
     return vision.detect_and_transform_tag(goal.tag_id, goal.timeout)
 
 
-@register_detector("sample_roi")
 def detect_sample_roi(ctx):
-    """Classical-CV sample detection within an ROI anchored to an ArUco tag."""
+    """Return a sample pickup pose in base_link from a marker-defined ROI, or None."""
     vision = ctx.vision
     goal = ctx.goal
     strategy = goal.strategy or "farthest_edge"
-    # Honor the configured inset verbatim, including 0.0 (grip at the true
-    # farthest edge). vision_task_stages already validated it as finite and
-    # >= 0, so no `or <default>` — that would silently force 0.0 back up.
+    # Preserve zero as a valid inset.
     edge_inset_mm = goal.edge_inset_mm
     vision.logger.info(
         f"Using sample_roi detection (tag {goal.tag_id}, "
@@ -65,26 +45,17 @@ def detect_sample_roi(ctx):
     )
 
 
-# --- spincoater detectors (2D flash capture -> angle, issue #88 PR2) ---------
-# These return the raw detection DICT (center_px, angle_mod90, ...), not a pose.
-# The j6_snap goal computer consumes angle_mod90; there is no TF transform
-# because the spincoater path is joint-space, not cartesian. Capture and
-# detection both stay single-source-of-truth: capture_2d (camera) +
-# detect_spincoater_* (beambot.detection).
-
-
 def _capture_2d_for_spincoater(ctx):
-    """Shared 2D flash capture used by both spincoater detectors."""
-    from beambot.camera.zivid import capture_2d
+    """Capture a flash-lit Zivid BGR image with a 15-second timeout."""
+    from beambot.vision.camera.zivid import capture_2d
 
     ctx.vision.logger.info("spincoater: capturing 2D image...")
     return capture_2d(ctx.vision.rclpy_node, timeout=15.0)
 
 
-@register_detector("spincoater_pocket")
 def detect_spincoater_pocket(ctx):
-    """Detect the empty pocket in the red chuck (HSV/CV). Returns a dict|None."""
-    from beambot.detection import detect_spincoater_pocket as _detect
+    """Return pocket geometry and angle as a dictionary, or None."""
+    from beambot.vision.detection import detect_spincoater_pocket as _detect
 
     image = _capture_2d_for_spincoater(ctx)
     if image is None:
@@ -99,10 +70,9 @@ def detect_spincoater_pocket(ctx):
     return detection
 
 
-@register_detector("spincoater_sample")
 def detect_spincoater_sample(ctx):
-    """Detect the sample wafer on the chuck (YOLO seg). Returns a dict|None."""
-    from beambot.detection import detect_spincoater_sample as _detect
+    """Return sample geometry, angle and confidence as a dictionary, or None."""
+    from beambot.vision.detection import detect_spincoater_sample as _detect
 
     image = _capture_2d_for_spincoater(ctx)
     if image is None:
@@ -115,3 +85,21 @@ def detect_spincoater_sample(ctx):
             f"confidence={detection['confidence']:.2f}, center={detection['center_px']}"
         )
     return detection
+
+
+DETECTORS = {
+    "marker": detect_marker,
+    "sample_roi": detect_sample_roi,
+    "spincoater_pocket": detect_spincoater_pocket,
+    "spincoater_sample": detect_spincoater_sample,
+}
+
+
+def get_detector(name: str):
+    """Return a detector or raise KeyError listing the available names."""
+    try:
+        return DETECTORS[name]
+    except KeyError:
+        raise KeyError(
+            f"unknown detector '{name}'. Registered: {sorted(DETECTORS)}"
+        ) from None

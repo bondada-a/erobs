@@ -28,16 +28,13 @@ class PoseTeacher(Node):
     def __init__(self):
         super().__init__("survey_pose_teacher")
         self._latest = None
-        self._lock = threading.Lock()
         self.create_subscription(JointState, "/joint_states", self._on_joints, 10)
 
     def _on_joints(self, msg):
-        with self._lock:
-            self._latest = dict(zip(msg.name, msg.position))
+        self._latest = dict(zip(msg.name, msg.position))
 
     def snapshot_degrees(self):
-        with self._lock:
-            latest = self._latest
+        latest = self._latest
         if latest is None:
             return None
         try:

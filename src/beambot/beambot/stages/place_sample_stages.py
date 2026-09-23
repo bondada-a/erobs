@@ -1,14 +1,4 @@
-"""PlaceSampleStages — unified place operation with optional vision guidance.
-
-Replaces pick_place_stages.py (place half) and vision_pick_place_stages.py (place half).
-
-Two modes:
-  use_vision=false: Hardcoded joint poses (approach → target → open → retreat)
-  use_vision=true:  Vision-guided (scan → [detect] → approach via deterministic IK → open → retreat)
-
-Uses deterministic IK (#51) to eliminate KDL jitter in vision mode.
-Key difference from pick: Task 1 does NOT open gripper (holding object).
-"""
+"""Sample placement using named joint poses or vision-guided targets."""
 
 import json
 
@@ -21,12 +11,10 @@ from beambot.stages.base_stages import (
     parse_constraints,
     apply_constraints,
 )
-from beambot.pipeline.vision_engine import VisionEngine
+from beambot.vision.vision_engine import VisionEngine
 
 
 class PlaceSampleStages(BaseStages):
-    """Handles unified place operations with optional vision guidance."""
-
     def __init__(
         self,
         rclpy_node,
@@ -37,23 +25,19 @@ class PlaceSampleStages(BaseStages):
         marker_dictionary: str = None,
     ):
         super().__init__(rclpy_node, arm_group, ik_frame=ik_frame)
-        self._vision = VisionEngine(
-            rclpy_node,
-            arm_group,
-            ik_frame,
-            camera_type=camera_type,
-            camera_frame=camera_frame,
-            marker_dictionary=marker_dictionary,
-        )
+        self._vision = None
+        self._vision_kwargs = {
+            "arm_group": arm_group,
+            "ik_frame": ik_frame,
+            "camera_type": camera_type,
+            "camera_frame": camera_frame,
+            "marker_dictionary": marker_dictionary,
+        }
         self.last_detected_pose: PoseStamped | None = None
         self.logger.info("PlaceSampleStages initialized")
 
     def run(self, goal) -> str | None:
-        """Execute place operation.
-
-        Returns:
-            None if successful, error string on failure.
-        """
+        """Execute a place; return None on completion or an error string."""
         self.last_detected_pose = None
 
         error = flange_offset_error(
@@ -95,13 +79,19 @@ class PlaceSampleStages(BaseStages):
     def _run_vision(
         self, goal, poses: dict, gripper_states: dict, constraints
     ) -> str | None:
-        """Vision-guided place: scan → detect → approach → open → retreat."""
+        """Place at a detected marker and retreat to the scan pose."""
+        if self._vision is None:
+            try:
+                self._vision = VisionEngine(self.rclpy_node, **self._vision_kwargs)
+            except Exception as e:
+                return f"Vision initialization failed: {e}"
+
         self.logger.info(
             f"Vision place: detection={goal.detection_type or 'marker'}, "
             f"tag_id={goal.tag_id}, scan_pose={goal.scan_pose}"
         )
 
-        # Task 1: move to scan position (NO gripper open — holding object)
+        # Leave the gripper unchanged while moving to the scan pose.
         task = self.create_task_template("Position for Place")
 
         scan_stage = self.make_move_to_named_stage(
@@ -118,7 +108,7 @@ class PlaceSampleStages(BaseStages):
         if error:
             return f"Position for place failed: {error}"
 
-        # Runtime: detect target
+        # This path always uses marker detection.
         detection_type = goal.detection_type or "marker"
         target_pose = self._vision.detect_and_transform_tag(goal.tag_id, timeout=10.0)
 
@@ -128,7 +118,6 @@ class PlaceSampleStages(BaseStages):
                 f"(tag_id={goal.tag_id})"
             )
 
-        # Compute approach pose with offsets
         ik_frame_override = getattr(goal, "ik_frame", "") or ""
         approach, active_ik_frame = self._vision.compute_approach_pose(
             target_pose,
@@ -139,7 +128,6 @@ class PlaceSampleStages(BaseStages):
             ik_frame_override=ik_frame_override,
         )
 
-        # Apply flange-frame directional offset if specified
         offset_direction = getattr(goal, "offset_direction", "") or ""
         offset_distance = getattr(goal, "offset_distance", 0.0)
         if offset_direction and offset_distance > 0:
@@ -149,16 +137,16 @@ class PlaceSampleStages(BaseStages):
                 offset_distance,
             )
 
+        # Results expose the offset approach pose, not the raw detection.
         self.last_detected_pose = approach
 
-        # Compute deterministic IK
         joint_goal = self._vision.compute_deterministic_ik(approach, active_ik_frame)
 
-        # Task 2: approach + open + retreat (one smooth MTC task)
+        # Approach, release and retreat share one task.
         task = self.create_task_template("Place")
         gripper_planner = self.make_joint_interpolation_planner()
 
-        # Approach via Fallbacks: PTP with joint goal → LIN with Cartesian
+        # Prefer a joint-space PTP goal; fall back to a LIN pose goal.
         approach_fb = core.Fallbacks("approach")
         if joint_goal is not None:
             ptp_stage = stages.MoveTo("approach [PTP]", self.make_pilz_planner("PTP"))
@@ -178,7 +166,6 @@ class PlaceSampleStages(BaseStages):
         approach_fb.add(lin_stage)
         task.add(approach_fb)
 
-        # Open gripper / vacuum off (release)
         release_stage = self.make_gripper_stage(
             "open gripper",
             gripper_planner,
@@ -188,7 +175,6 @@ class PlaceSampleStages(BaseStages):
         if release_stage:
             task.add(release_stage)
 
-        # Retreat to scan pose
         retreat_stage = self.make_move_to_named_stage(
             "retreat",
             goal.scan_pose,
@@ -208,7 +194,7 @@ class PlaceSampleStages(BaseStages):
     def _run_hardcoded(
         self, goal, poses: dict, gripper_states: dict, constraints
     ) -> str | None:
-        """Hardcoded place: approach → target → open → retreat."""
+        """Place using named approach/target poses, then retreat to approach."""
         self.logger.info(
             f"Hardcoded place: approach={goal.approach_pose}, target={goal.target_pose}"
         )
@@ -216,7 +202,6 @@ class PlaceSampleStages(BaseStages):
         task = self.create_task_template("Place Sample")
         gripper_planner = self.make_joint_interpolation_planner()
 
-        # 1. Move to approach
         stage = self.make_move_to_named_stage(
             "place approach",
             goal.approach_pose,
@@ -227,7 +212,6 @@ class PlaceSampleStages(BaseStages):
             return f"Pose '{goal.approach_pose}' not found or invalid (approach)"
         task.add(stage)
 
-        # 2. Move to target
         stage = self.make_move_to_named_stage(
             "place target",
             goal.target_pose,
@@ -238,7 +222,6 @@ class PlaceSampleStages(BaseStages):
             return f"Pose '{goal.target_pose}' not found or invalid (target)"
         task.add(stage)
 
-        # 3. Open gripper (release)
         release_stage = self.make_gripper_stage(
             "open gripper",
             gripper_planner,
@@ -248,7 +231,6 @@ class PlaceSampleStages(BaseStages):
         if release_stage:
             task.add(release_stage)
 
-        # 4. Retreat to approach
         stage = self.make_move_to_named_stage(
             "place retreat",
             goal.approach_pose,

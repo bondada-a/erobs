@@ -1,9 +1,10 @@
-"""Lightweight agentic loop: Claude API + MCP client for robot control."""
+"""Claude API and MCP tool loop shared by the CLI and GUI."""
 
 import json
 import logging
 import os
 from contextlib import AsyncExitStack
+from pathlib import Path
 from typing import Awaitable, Callable, Optional
 
 from mcp.client.session import ClientSession
@@ -11,30 +12,17 @@ from mcp.client.stdio import stdio_client, StdioServerParameters
 
 logger = logging.getLogger(__name__)
 
-# Sentinel stored in tool_to_session for tools handled by extra_dispatch
-# rather than an MCP server. _call_tool reads it to route locally.
+# Route caller-provided tools through extra_dispatch instead of MCP.
 _LOCAL_SESSION_SENTINEL = "__local__"
 
-# Path to the shared robot-operation prompt. Colocated with this module so the
-# same file drives the CLI, the GUI chat panel (via RobotAgent), and the
-# .claude/skills/robot-operation skill (which cats it into Claude Code's context).
-# Read fresh on every RobotAgent() construction so prompt edits take effect on
-# the next chat without restarting the host process.
-_PROMPT_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "robot_operation.md"
-)
-
-
-def _load_system_prompt() -> str:
-    with open(_PROMPT_PATH) as f:
-        return f.read()
+# Shared by the CLI, GUI and robot-operation skills; read for each new agent.
+_PROMPT_PATH = Path(__file__).absolute().with_name("robot_operation.md")
 
 
 def _create_client():
-    """Create an Anthropic client pointed at the NSLS-II Hermes gateway.
+    """Create a Hermes client using AIFAPIM_API_KEY.
 
-    Auth via AIFAPIM_API_KEY (sent as the x-api-key header). Endpoint
-    overridable with HERMES_ENDPOINT; model with BEAMBOT_MODEL.
+    HERMES_ENDPOINT and BEAMBOT_MODEL override the gateway and model.
     """
     from anthropic import Anthropic
 
@@ -47,7 +35,7 @@ def _create_client():
 
 
 class RobotAgent:
-    """Direct Claude API → MCP tool loop. No Claude Code overhead."""
+    """Manage model requests, MCP tools and conversation history."""
 
     def __init__(
         self,
@@ -60,7 +48,7 @@ class RobotAgent:
     ):
         self.client, default_model = _create_client()
         self.model = model or default_model
-        base_prompt = _load_system_prompt()
+        base_prompt = _PROMPT_PATH.read_text()
         self.system_prompt = (
             f"{system_prompt_prefix}\n\n---\n\n{base_prompt}"
             if system_prompt_prefix
@@ -68,7 +56,7 @@ class RobotAgent:
         )
         self.tools = []  # Anthropic API tool format
         self.tool_to_session = {}  # tool_name -> ClientSession or sentinel
-        self.messages = []  # conversation history
+        self.messages = []
         self._exit_stack = AsyncExitStack()
         self._mcp_config_path = mcp_config_path
         self._extra_tools = list(extra_tools or [])
@@ -76,7 +64,7 @@ class RobotAgent:
         self._tool_filter = tool_filter
 
     async def connect(self):
-        """Connect to all MCP servers defined in .mcp.json."""
+        """Connect configured MCP servers and register caller-provided tools."""
         config_path = self._mcp_config_path or self._find_mcp_config()
         if not config_path:
             raise FileNotFoundError("No .mcp.json found")
@@ -92,7 +80,7 @@ class RobotAgent:
             except Exception as e:
                 logger.warning(f"Failed to connect to MCP server '{name}': {e}")
 
-        # Register caller-supplied local tools (handled by extra_dispatch).
+        # Local tools bypass MCP and use the caller's dispatcher.
         for tool in self._extra_tools:
             self.tools.append(tool)
             self.tool_to_session[tool["name"]] = _LOCAL_SESSION_SENTINEL
@@ -111,7 +99,7 @@ class RobotAgent:
             env=server_cfg.get("env"),
         )
 
-        # stdio_client is an async context manager — keep it alive via exit stack
+        # Keep transports and sessions open until disconnect().
         streams = await self._exit_stack.enter_async_context(stdio_client(params))
         read_stream, write_stream = streams
 
@@ -120,7 +108,6 @@ class RobotAgent:
         )
         await session.initialize()
 
-        # Register tools
         result = await session.list_tools()
         registered = 0
         for tool in result.tools:
@@ -140,12 +127,10 @@ class RobotAgent:
         logger.info(f"  {name}: {registered}/{len(result.tools)} tools")
 
     async def chat(self, user_message: str, on_tool_call=None, on_text=None) -> str:
-        """Send message, execute tool calls in a loop, return final text.
+        """Run the model/tool loop and return the final text.
 
-        Args:
-            user_message: The user's request.
-            on_tool_call: Optional callback(name, input, result) for each tool call.
-            on_text: Optional callback(text) for streaming text chunks.
+        on_tool_call(name, input, result) runs after each tool call.
+        on_text(text) receives the final response, not streamed chunks.
         """
         self.messages.append({"role": "user", "content": user_message})
 
@@ -158,7 +143,6 @@ class RobotAgent:
                 messages=self.messages,
             )
 
-            # Serialize response content for message history
             content = []
             for block in response.content:
                 if block.type == "text":
@@ -174,14 +158,12 @@ class RobotAgent:
                     )
             self.messages.append({"role": "assistant", "content": content})
 
-            # If no tool calls, return final text
             if response.stop_reason == "end_turn":
                 text = "".join(b.text for b in response.content if b.type == "text")
                 if on_text:
                     on_text(text)
                 return text
 
-            # Execute tool calls
             tool_results = []
             for block in response.content:
                 if block.type == "tool_use":
@@ -200,7 +182,7 @@ class RobotAgent:
                 self.messages.append({"role": "user", "content": tool_results})
 
     async def _call_tool(self, name: str, arguments: dict) -> str:
-        """Route tool call to the correct MCP server session or local dispatcher."""
+        """Dispatch a tool call to MCP or the caller's local handler."""
         session = self.tool_to_session.get(name)
         if not session:
             return f"Error: tool '{name}' not found in any connected MCP server"
@@ -232,13 +214,13 @@ class RobotAgent:
         await self._exit_stack.aclose()
 
     def _find_mcp_config(self):
-        """Walk up from cwd to find .mcp.json."""
-        path = os.getcwd()
+        """Find .mcp.json within ten directory levels, starting at cwd."""
+        path = Path.cwd()
         for _ in range(10):
-            candidate = os.path.join(path, ".mcp.json")
-            if os.path.exists(candidate):
-                return candidate
-            parent = os.path.dirname(path)
+            candidate = path / ".mcp.json"
+            if candidate.exists():
+                return str(candidate)
+            parent = path.parent
             if parent == path:
                 break
             path = parent

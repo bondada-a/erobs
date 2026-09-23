@@ -1,6 +1,6 @@
 # Goal
-string gripper_group        # MoveIt group name (from config): "hande_gripper", "epick_gripper", ""
-string end_effector_action  # SRDF group_state name: "hande_open", "hande_closed", "vacuum_on", "vacuum_off"
+string gripper_group        # MoveIt group; empty skips the operation.
+string end_effector_action  # Named SRDF state for the group.
 string robot_model_revision # Orchestrator-managed; empty disables cross-goal model reuse
 ---
 # Result

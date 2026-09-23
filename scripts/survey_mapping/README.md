@@ -6,18 +6,20 @@ orchestrator task type.
 
 ## Requirements
 
-Source ROS and the workspace before running any script:
+From the repository root, source ROS and the workspace and select the deployment
+site before running any script:
 
 ```bash
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
+export BEAMBOT_BEAMLINE_CONFIG="$(realpath src/beambot/config/cms_beamline.yaml)"
 ```
 
 The live survey requires the robot, Zivid camera, and `beambot_moveto` action
 server. Start the stack without its general-purpose bag recorder:
 
 ```bash
-./start_mcp_nobag.sh
+./utils/start_mcp_nobag.sh
 ```
 
 ## Workflow
@@ -85,7 +87,7 @@ If an older bag lacks moving-arm TF, provide the matching robot URDF with
 
 ## Recording details
 
-- `run_survey.py` applies `manufacturing_specular.yml` before capture unless
+- `run_survey.py` applies `config/zivid/manufacturing_specular.yml` before capture unless
   disabled. This preset provides RGB point-cloud data.
 - Zivid publishes the cloud several seconds after the capture service returns.
   The runner waits for the cloud before moving to prevent bad transforms.

@@ -1,15 +1,54 @@
-"""Pure detection algorithms — OpenCV + NumPy only, no ROS dependencies."""
+"""Detection algorithms and image-to-3D geometry without ROS imports."""
 
 from __future__ import annotations
 
 import math
 import struct
+from dataclasses import dataclass
 from typing import Any
 
 import cv2
 import numpy as np
 
-from beambot.detection.params import SampleRoiDetectionParams
+
+@dataclass
+class SampleRoiDetectionParams:
+    """Geometry, contour filters and calibration for marker-relative samples."""
+    # ROI geometry relative to the marker center (mm).
+    roi_offset_x_mm: float = 19.3
+    roi_offset_y_mm: float = 0.3
+    roi_width_mm: float = 22.1
+    roi_height_mm: float = 21.8
+
+    # Contour area (pixels squared) and aspect ratio limits.
+    min_area: int = 100
+    max_area: int = 15000
+    max_aspect_ratio: float = 3.0
+
+    # Physical marker side length for pixel-to-millimetre conversion.
+    marker_size_mm: float = 14.9
+    # Sample height above the marker plane (mm); zero means coplanar.
+    sample_thickness_mm: float = 0.0
+
+
+def detect_aruco_markers(
+    rgb_image: np.ndarray,
+    dictionary_id: int,
+) -> tuple[tuple[np.ndarray, ...], np.ndarray | None]:
+    """Return marker corners and IDs from an RGB image, supporting both OpenCV APIs."""
+    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
+    try:
+        aruco_dict = cv2.aruco.getPredefinedDictionary(dictionary_id)
+        aruco_params = cv2.aruco.DetectorParameters()
+        detector = cv2.aruco.ArucoDetector(aruco_dict, aruco_params)
+        corners, ids, _ = detector.detectMarkers(gray)
+    except AttributeError:
+        aruco_dict = cv2.aruco.Dictionary_get(dictionary_id)
+        aruco_params = cv2.aruco.DetectorParameters_create()
+        corners, ids, _ = cv2.aruco.detectMarkers(
+            gray, aruco_dict, parameters=aruco_params
+        )
+    return corners, ids
 
 
 def get_3d_position(
@@ -18,19 +57,8 @@ def get_3d_position(
     cy: int,
     search_radius: int = 10,
 ) -> tuple[float, float, float] | None:
-    """Get 3D position from organized point cloud at pixel (cx, cy).
-
-    The point cloud is organized (same dimensions as image), so we can
-    directly index into it using pixel coordinates.
-
-    Args:
-        cloud: Organized point cloud (PointCloud2 message)
-        cx, cy: Pixel coordinates
-        search_radius: Pixels to search for valid depth if center is invalid
-
-    Returns:
-        (x, y, z) tuple in meters, or None if no valid depth found
-    """
+    """Return the first valid XYZ (metres) at or near a pixel, or None."""
+    # Assumes image-aligned, little-endian XYZ float32 point data.
     width = cloud.width
     height = cloud.height
     point_step = cloud.point_step
@@ -63,63 +91,6 @@ def get_3d_position(
     return None
 
 
-def get_3d_position_averaged(
-    cloud,
-    cx: int,
-    cy: int,
-    search_radius: int = 10,
-    min_points: int = 3,
-) -> tuple[float, float, float] | None:
-    """Get averaged 3D position from organized point cloud at pixel (cx, cy).
-
-    Unlike get_3d_position which returns the FIRST valid nearby pixel's XYZ,
-    this collects ALL valid pixels within search_radius and averages their XYZ.
-    This gives a position estimate centered on the target pixel rather than
-    biased toward whichever direction has valid depth first.
-
-    Useful for dark surfaces where the exact pixel may lack depth but
-    surrounding pixels have valid data.
-
-    Args:
-        cloud: Organized point cloud (PointCloud2 message)
-        cx, cy: Target pixel coordinates
-        search_radius: Pixels to search around center
-        min_points: Minimum valid points required for a reliable average
-
-    Returns:
-        (x, y, z) average in meters, or None if fewer than min_points found
-    """
-    width = cloud.width
-    height = cloud.height
-    point_step = cloud.point_step
-
-    points = []
-    for dv in range(-search_radius, search_radius + 1):
-        for du in range(-search_radius, search_radius + 1):
-            u = cx + du
-            v = cy + dv
-            if u < 0 or u >= width or v < 0 or v >= height:
-                continue
-            offset = v * cloud.row_step + u * point_step
-            try:
-                x, y, z = struct.unpack_from("<fff", cloud.data, offset)
-            except struct.error:
-                continue
-            if math.isnan(x) or math.isnan(y) or math.isnan(z):
-                continue
-            if x == 0.0 and y == 0.0 and z == 0.0:
-                continue
-            points.append((x, y, z))
-
-    if len(points) < min_points:
-        return None
-
-    avg_x = sum(p[0] for p in points) / len(points)
-    avg_y = sum(p[1] for p in points) / len(points)
-    avg_z = sum(p[2] for p in points) / len(points)
-    return (avg_x, avg_y, avg_z)
-
-
 def detect_sample_in_roi(
     rgb_image: np.ndarray,
     marker_corners: np.ndarray,
@@ -128,25 +99,9 @@ def detect_sample_in_roi(
     edge_inset_mm: float = 0.0,
     params: SampleRoiDetectionParams | None = None,
 ) -> dict[str, Any] | None:
-    """Detect a sample contour in a fixed ROI relative to an ArUco marker.
+    """Return sample geometry and a pickup pixel from a marker-relative ROI, or None.
 
-    Computes an ROI offset from the tag center in the marker's local axes,
-    runs edge detection + contour finding in that ROI, then selects a pickup
-    point based on the chosen strategy.
-
-    Args:
-        rgb_image: Full image (BGR or RGB)
-        marker_corners: Shape (4, 2) pixel corners [TL, TR, BR, BL]
-        px_per_mm: Pixel-to-mm scale (from known marker size)
-        strategy: Pickup strategy — "center", "farthest_edge", "nearest_edge",
-                  "farthest_corner", "nearest_corner"
-        edge_inset_mm: Distance to move inward from edge toward center (mm)
-        params: ROI geometry and CV pipeline parameters (uses defaults if None)
-
-    Returns:
-        Dict with pickup_px, center_px, sample_size_mm, sample_angle,
-        offset_from_center_mm, roi, strategy, edge_inset_mm — or None if
-        no sample found.
+    Expects BGR/grayscale input, TL/TR/BR/BL marker corners and pixels per mm.
     """
     if params is None:
         params = SampleRoiDetectionParams()
@@ -195,7 +150,7 @@ def detect_sample_in_roi(
     ):
         return None
 
-    # Marker axes in pixel space
+    # Use the marker's image axes to orient the ROI offset.
     top_left, top_right = marker_corners[0], marker_corners[1]
     bottom_left = marker_corners[3]
     marker_x = top_right - top_left
@@ -210,7 +165,6 @@ def detect_sample_in_roi(
     marker_y = marker_y / marker_y_norm
     tag_center = marker_corners.mean(axis=0)
 
-    # ROI center in pixel space
     roi_center = (
         tag_center
         + marker_x * (roi_offset_x_mm * px_per_mm)
@@ -232,13 +186,12 @@ def detect_sample_in_roi(
     if roi.size == 0:
         return None
 
-    # Convert to grayscale
     if len(roi.shape) == 3:
         roi_gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     else:
         roi_gray = roi
 
-    # Edge detection + contour finding
+    # Find sample contours within the ROI.
     blurred = cv2.GaussianBlur(roi_gray, (5, 5), 0)
     edges = cv2.Canny(blurred, 50, 150)
     kernel = np.ones((3, 3), np.uint8)
@@ -247,7 +200,6 @@ def detect_sample_in_roi(
         edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
     )
 
-    # Filter by area and aspect ratio
     valid = []
     for c in contours:
         area = cv2.contourArea(c)
@@ -264,62 +216,50 @@ def detect_sample_in_roi(
     if not valid:
         return None
 
-    # Select largest contour
     valid.sort(key=lambda x: x[0], reverse=True)
     sample_contour = valid[0][1]
 
-    # Fit rotated rectangle
     rect = cv2.minAreaRect(sample_contour)
     rect_center_roi = rect[0]
     rect_size = rect[1]
     rect_angle = rect[2]
     rect_corners_roi = cv2.boxPoints(rect)
 
-    # Convert to full image coordinates
+    # Convert ROI-local coordinates to full-image pixels.
     rect_center_full = np.array([
         rect_center_roi[0] + roi_x1,
         rect_center_roi[1] + roi_y1,
     ])
     rect_corners_full = rect_corners_roi + np.array([roi_x1, roi_y1])
 
-    # Compute pickup point based on strategy
     tag_pt = tag_center
     center_pt = rect_center_full.copy()
     edge_inset_px = edge_inset_mm * px_per_mm
 
     if strategy == "center":
         pickup = center_pt.copy()
-    elif "corner" in strategy:
-        distances = [np.linalg.norm(c - tag_pt) for c in rect_corners_full]
-        idx = np.argmax(distances) if "farthest" in strategy else np.argmin(distances)
-        pickup = rect_corners_full[idx].copy()
-        if edge_inset_px > 0:
-            toward = center_pt - pickup
-            norm = np.linalg.norm(toward)
-            if norm > 0:
-                pickup = pickup + toward / norm * edge_inset_px
-    elif "edge" in strategy:
-        midpoints = []
-        for i in range(4):
-            midpoints.append(
-                (rect_corners_full[i] + rect_corners_full[(i + 1) % 4]) / 2
-            )
-        distances = [np.linalg.norm(m - tag_pt) for m in midpoints]
-        idx = np.argmax(distances) if "farthest" in strategy else np.argmin(distances)
-        pickup = midpoints[idx].copy()
-        if edge_inset_px > 0:
-            toward = center_pt - pickup
-            norm = np.linalg.norm(toward)
-            if norm > 0:
-                pickup = pickup + toward / norm * edge_inset_px
     else:
-        pickup = center_pt.copy()
+        if "corner" in strategy:
+            candidates = rect_corners_full
+        else:
+            candidates = [
+                (rect_corners_full[i] + rect_corners_full[(i + 1) % 4]) / 2
+                for i in range(4)
+            ]
+        distances = [np.linalg.norm(point - tag_pt) for point in candidates]
+        idx = np.argmax(distances) if "farthest" in strategy else np.argmin(distances)
+        pickup = candidates[idx].copy()
+        if edge_inset_px > 0:
+            toward = center_pt - pickup
+            norm = np.linalg.norm(toward)
+            if norm > 0:
+                pickup = pickup + toward / norm * edge_inset_px
 
     offset_from_center_mm = np.linalg.norm(pickup - center_pt) / px_per_mm
 
     return {
         "pickup_px": (int(round(pickup[0])), int(round(pickup[1]))),
-        "center_px": (int(center_pt[0]), int(center_pt[1])),
+        "center_px": (int(round(center_pt[0])), int(round(center_pt[1]))),
         "sample_size_mm": (
             round(rect_size[0] / px_per_mm, 1),
             round(rect_size[1] / px_per_mm, 1),
@@ -341,35 +281,10 @@ def sample_roi_pickup_camera_xyz(
     px_per_mm: float,
     sample_thickness_mm: float = 0.0,
 ) -> tuple[float, float, float] | None:
-    """Depth-free 3D pickup point, projected onto the marker's PnP plane.
+    """Project a pickup pixel into camera XYZ (metres), or return None.
 
-    This is the SINGLE source of truth for turning a detected pickup pixel into
-    a 3D point for sample_roi. It deliberately does NOT touch the point cloud:
-    low-reflectivity sample surfaces return sparse/absent depth, which made the
-    old ``get_3d_position*`` lookup wander up to ~18mm capture-to-capture. The
-    ArUco marker's solvePnP pose (``marker_*`` args) is the same reliable pose
-    the plain marker-move path uses, so the result inherits that path's
-    sub-mm repeatability regardless of the sample's own depth return.
-
-    Method: express the pickup pixel's offset from the marker centre in the
-    marker's in-image edge axes, scale by ``px_per_mm`` to recover the physical
-    offset ALONG the marker surface (``px_per_mm`` is itself foreshortened by
-    the same view tilt, so this stays self-consistent for near-top-down views),
-    then rotate+translate that marker-frame offset into the camera frame with
-    the marker pose.
-
-    Args:
-        pickup_px: (u, v) pickup pixel, e.g. from ``detect_sample_in_roi``.
-        marker_corners: (4, 2) pixel corners ordered [TL, TR, BR, BL].
-        marker_position: marker origin (x, y, z) in the camera frame (metres).
-        marker_quat_xyzw: marker orientation quaternion (x, y, z, w), camera frame.
-        px_per_mm: pixel-to-mm scale from the marker edge length.
-        sample_thickness_mm: sample height above the marker plane (seal-height
-            calibration); applied along the marker normal. 0 = coplanar.
-
-    Returns:
-        (x, y, z) pickup point in the camera frame (metres), or None on
-        degenerate input.
+    Uses TL/TR/BR/BL corners and an XYZW marker quaternion, without sample depth.
+    Assumes a near-top-down view; marker_position is in metres.
     """
     corners = np.asarray(marker_corners, dtype=float)
     pickup = np.asarray(pickup_px, dtype=float)
@@ -382,7 +297,7 @@ def sample_roi_pickup_camera_xyz(
     ):
         return None
 
-    # Marker in-image unit axes from corner edges: +x = TL->TR, +y = TL->BL.
+    # Marker image axes: +X = TL to TR, +Y = TL to BL.
     top_left, top_right, bottom_left = corners[0], corners[1], corners[3]
     ax = top_right - top_left
     ay = bottom_left - top_left
@@ -392,12 +307,9 @@ def sample_roi_pickup_camera_xyz(
     ax = ax / ax_n
     ay = ay / ay_n
 
-    # Pickup offset from marker centre, projected onto marker axes -> mm -> m.
+    # Convert pixel offsets to marker-frame metres; sample height follows -Z.
     tag_center = corners.mean(axis=0)
     d = pickup - tag_center
-    # ponytail: assumes the marker pose's x/y axes align with the pixel edges
-    # TL->TR / TL->BL. If the first hardware test lands mirrored or 90deg-rotated,
-    # flip a sign / swap these two components here (1-line) — geometry only.
     offset_marker_m = np.array([
         float(np.dot(d, ax)) / px_per_mm / 1000.0,
         float(np.dot(d, ay)) / px_per_mm / 1000.0,
@@ -409,7 +321,7 @@ def sample_roi_pickup_camera_xyz(
     if not np.isfinite(norm_sq) or norm_sq <= 0:
         return None
     s = 2.0 / norm_sq
-    # Quaternion -> rotation matrix (camera <- marker).
+    # Rotate from marker coordinates into the camera frame.
     rot = np.array([
         [1 - s * (qy * qy + qz * qz), s * (qx * qy - qz * qw), s * (qx * qz + qy * qw)],
         [s * (qx * qy + qz * qw), 1 - s * (qx * qx + qz * qz), s * (qy * qz - qx * qw)],

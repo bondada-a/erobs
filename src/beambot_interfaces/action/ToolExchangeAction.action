@@ -1,11 +1,11 @@
 # Goal
-string operation            # "load" or "dock"
-string gripper              # "hande", "epick", or "none" - gripper being loaded/docked
-string current_attached_gripper  # "hande", "epick", or "none" - what's currently attached
-int32 dock_number           # Dock position (1-5)
-string approach_pose        # Approach pose name
-string poses_json           # Pose definitions from task
-string robot_model_revision # Orchestrator-managed; empty disables cross-goal model reuse
+string operation                # load or dock.
+string gripper                  # Configured gripper to load/dock.
+string current_attached_gripper  # Current gripper; none if detached.
+int32 dock_number               # Physical dock number; range not validated.
+string approach_pose            # Approach joint-pose key.
+string poses_json               # Pose name: six joint angles (deg).
+string robot_model_revision     # Model cache key; empty disables cross-goal reuse.
 ---
 # Result
 bool success

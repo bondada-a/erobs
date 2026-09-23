@@ -1,43 +1,40 @@
-# Goal — Unified pick operation (replaces pick_and_place + vision_pick_place pick half)
-#
-# Two modes:
-#   use_vision=false: Hardcoded joint poses (approach → target → close → retreat)
-#   use_vision=true:  Vision-guided (detect target → deterministic IK → close → retreat)
+# Goal
+bool use_vision                 # False uses named joint poses.
 
-bool use_vision                 # true = vision-guided, false = hardcoded poses
+# Vision (use_vision=true)
+string detection_type           # marker (default) or sample_roi.
+int32 tag_id                    # ArUco ID.
+int32 sample_index              # Reserved; unused.
+float64 z_offset                # base_link Z offset (m); 0 = gripper default.
+string scan_pose                # Scan/retreat pose key.
+# Marker-frame offsets (m).
+float64 marker_offset_x
+float64 marker_offset_y
+float64 marker_offset_z
+string offset_direction         # Flange-frame direction.
+float64 offset_distance         # Offset (m); > 0 when direction is set.
+string ik_frame                 # Empty = auto-detect.
+string strategy                 # sample_roi; empty = farthest_edge.
+float64 edge_inset_mm           # sample_roi; 0 = 6.5 mm.
 
-# Vision fields (used when use_vision=true)
-string detection_type           # "marker" (default) or "sample_roi"
-int32 tag_id                    # ArUco marker ID
-int32 sample_index              # Reserved for compatibility; currently unused
-float64 z_offset                # Height offset (0 = gripper default from config)
-string scan_pose                # Pose key for scan/retreat position
-float64 marker_offset_x         # Marker-frame X offset (meters)
-float64 marker_offset_y         # Marker-frame Y offset (meters)
-float64 marker_offset_z         # Marker-frame Z offset (meters)
-string offset_direction         # Flange-frame direction (e.g. "right", "forward")
-float64 offset_distance         # Distance for offset_direction (meters)
-string ik_frame                 # IK frame override (empty = auto-detect)
-string strategy                 # Pickup strategy for sample_roi (default: "farthest_edge")
-float64 edge_inset_mm           # Inset from edge (mm) for sample_roi (default: 6.5)
+# Named poses (use_vision=false)
+string approach_pose            # Approach/retreat pose key.
+string target_pose              # Grasp pose key.
 
-# Hardcoded fields (used when use_vision=false)
-string approach_pose            # Pose key for approach position
-string target_pose              # Pose key for grasp target
-
-# Common (populated by orchestrator from beamline config)
-string gripper_group            # MoveIt group name: "hande_gripper", "epick_gripper", ""
-string gripper_states_json      # JSON dict: {"grasp": "vacuum_on", "release": "vacuum_off"}
-string poses_json               # Pose definitions from task
-string constraints_json         # Optional: JSON path constraints (empty = none)
-string robot_model_revision     # Orchestrator-managed; empty disables cross-goal model reuse
+# Common
+string gripper_group            # MoveIt gripper group.
+string gripper_states_json      # Maps grasp/release to SRDF states.
+string poses_json               # Pose name: six joint angles (deg).
+string constraints_json         # Empty = no constraints.
+string robot_model_revision     # Model cache key; empty disables cross-goal reuse.
 ---
 # Result
 bool success
 string error_message
 bool vacuum_ok                  # true if ePick reports object detected (or non-ePick gripper)
-float64[] detected_position     # [x,y,z] in base_link (vision mode only)
-float64[] detected_orientation  # [x,y,z,w] quaternion (vision mode only)
+# Vision approach in base_link; empty on failure or non-vision picks.
+float64[] detected_position     # XYZ (m).
+float64[] detected_orientation  # Quaternion [x,y,z,w].
 ---
 # Feedback
-string current_stage
+string current_stage            # Not currently published.

@@ -1,70 +1,55 @@
-"""VisionTaskStages — the unified vision pipeline's run() entry point (issue #88).
-
-Fixed pipeline: (pre-scan) -> settle -> DETECT -> COMPUTE-GOAL -> EXECUTE ->
-(vacuum check). The DETECT and COMPUTE-GOAL stages are name-keyed plugins;
-EXECUTE is one dispatch over the MotionTarget union. All motion code is LIFTED
-from VisionEngine / the pick-place stages, never rewritten — so the #51 IK-jitter
-dodge, the Pilz PTP->LIN approach fallback, and the fused approach+grasp+retreat
-trajectory behave identically to the legacy handlers.
-
-Wires three migrations:
-  vision_moveto  : marker/sample_roi -> approach_pose -> CartesianTarget (bare)
-  spincoater     : spincoater_* -> j6_snap -> JointTarget (no IK)
-  pick/place     : marker/sample_roi -> approach_pose -> CartesianTarget with a
-                   fused grasp+retreat tail; orchestrator arms the vacuum
-                   watchdog from result.vacuum_ok.
-"""
+"""Run vision detection, target computation and Cartesian or joint motion."""
 
 import json
 import math
 import threading
-from dataclasses import dataclass, field
+import time
+from dataclasses import dataclass
 from typing import Any
 
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
 
-import beambot.pipeline  # noqa: F401 — registers built-in plugins on import
 from beambot.core.task_script import flange_offset_error
-from beambot.pipeline.motion_target import CartesianTarget, JointTarget
-from beambot.pipeline.registry import get_detector, get_goal_computer
-from beambot.pipeline.vision_engine import VisionEngine
+from beambot.vision.motion_target import (
+    CartesianTarget,
+    JointTarget,
+    get_goal_computer,
+)
+from beambot.vision.vision_task_detection import get_detector
+from beambot.vision.vision_engine import VisionEngine
 from beambot.stages.base_stages import apply_constraints, parse_constraints
 
 
 @dataclass
 class VisionTaskContext:
-    """Everything a detector / goal_computer needs, built once per goal."""
+    """Per-goal inputs and results shared by detectors and goal computers."""
 
     goal: Any
     vision: VisionEngine
     scan_positions: list | None = None
-    # Set by a goal_computer when detect_only short-circuits; read back by run().
-    detect_only_pose: Any = field(default=None)
-    # Set by a goal_computer to report a hard failure (distinct from a None
-    # target meaning "cache-only / detect_only, succeed without moving").
-    error: str | None = field(default=None)
+    # Pose returned without executing the computed target.
+    detect_only_pose: Any = None
+    # Distinguishes computation failure from a successful no-motion result.
+    error: str | None = None
 
 
 class VisionTaskStages:
-    """Runs the unified vision pipeline. Owns a VisionEngine for delegation."""
+    """Coordinate vision tasks using the shared VisionEngine."""
 
     def __init__(self, rclpy_node, **vision_kwargs):
         self.rclpy_node = rclpy_node
         self.logger = rclpy_node.get_logger()
         self._vision = VisionEngine(rclpy_node, **vision_kwargs)
-        # Surfaced to the server's _execute for result population.
         self.last_detected_pose = None
         self.vacuum_ok = True
-        self.goal = None  # current goal, set per-run for executor helpers
+        self.goal = None
 
-    # ----- TF reset passthrough (parity with VisionActionServer) -------------
     def reset_tf(self):
         self._vision.reset_tf()
 
-    # ----- pipeline ----------------------------------------------------------
     def run(self, goal) -> "str | None":
-        """Execute the pipeline. Returns None on success, an error string else."""
+        """Run a vision task; return None on completion or an error string."""
         self.last_detected_pose = None
         self.vacuum_ok = True
         self.goal = goal
@@ -96,27 +81,22 @@ class VisionTaskStages:
                     "nonnegative"
                 )
 
-        # Stage 0a: optional pre-scan move (pick/place fuse open-gripper + move
-        # to scan pose here; vision_moveto/spincoater leave scan_pose empty
-        # because the orchestrator already positioned the arm).
+        # Pre-scan motion also runs for detect_only requests.
         error = self._move_to_scan(goal)
         if error is not None:
             return error
 
-        # Stage 0b: settle (vibration damping before capture).
+        # Allow vibration to settle before capture.
         if vision._settle_time > 0:
             self.logger.info(
                 f"Waiting {vision._settle_time:.2f}s for robot to settle..."
             )
-            import time
-
             time.sleep(vision._settle_time)
             self.logger.info("Settle complete, starting detection")
 
         ctx = VisionTaskContext(goal=goal, vision=vision)
         ctx.scan_positions = self._parse_scan_positions(goal)
 
-        # Stage 1: DETECT (plugin)
         goal_computer_name = goal.goal_computer or "approach_pose"
         try:
             detector = get_detector(detector_name)
@@ -131,19 +111,17 @@ class VisionTaskStages:
                 f"(tag {goal.tag_id}, timeout {goal.timeout}s)"
             )
 
-        # Stage 2: COMPUTE-GOAL (plugin) -> MotionTarget | None
         target = goal_computer(detection, ctx)
 
         if ctx.error is not None:
             return f"GOAL_COMPUTE_FAILED: {ctx.error}"
-        # detect_only short-circuit: computer returned None and stashed the pose.
+        # The goal computer decides whether detect_only skips target execution.
         if ctx.detect_only_pose is not None:
             self.last_detected_pose = ctx.detect_only_pose
             return None
         if target is None:
-            return None  # cache-only / nothing to execute
+            return None
 
-        # Stage 3: EXECUTE — one dispatch over the MotionTarget union.
         error = self._execute_motion_target(target)
         if error is not None:
             return error
@@ -156,11 +134,7 @@ class VisionTaskStages:
         return None
 
     def _execute_motion_target(self, target) -> "str | None":
-        """Dispatch on the union tag. Each arm LIFTS existing motion code.
-
-        Adding a new arm (e.g. SequenceTarget for pipettor) is a new migration,
-        not a rewrite of these.
-        """
+        """Select the executor for a Cartesian or joint target."""
         if isinstance(target, CartesianTarget):
             return self._execute_cartesian(target)
 
@@ -170,22 +144,21 @@ class VisionTaskStages:
         return f"PIPELINE_ERROR: no executor arm for {type(target).__name__}"
 
     def _execute_joints(self, target: JointTarget) -> "str | None":
-        """Corrected joint move (NO IK), then optional forward-contact + terminal.
-
-        The three steps are SEPARATE plan/execute cycles, matching the legacy
-        spincoater handlers exactly (they were three orchestrator calls). The
-        joint move uses make_move_to_named_stage(planner=None) — the Pilz-PTP ->
-        OMPL fallback, byte-for-byte the path planning_type="joint" takes, so the
-        #51 jitter dodge is preserved (no pose, no IK).
-        """
+        """Execute joint positioning, optional contact and gripper actions separately."""
         vision = self._vision
+        goal = self.goal
+        constraints = parse_constraints(
+            json.loads(goal.constraints_json)
+            if getattr(goal, "constraints_json", "")
+            else None
+        )
 
-        # Step 1: corrected joint move (verbatim, no IK).
         pose_key = "_vision_task_joint_target"
         poses = {pose_key: list(target.joints_deg)}
         task = vision.create_task_template("Vision Task Joint Move")
         stage = vision.make_move_to_named_stage(
-            "corrected joint move", pose_key, poses, planner=None
+            "corrected joint move", pose_key, poses, planner=None,
+            constraints=constraints,
         )
         if stage is None:
             return "PIPELINE_ERROR: failed to build joint move stage"
@@ -194,7 +167,6 @@ class VisionTaskStages:
         if error:
             return f"corrected joint move failed: {error}"
 
-        # Step 2: forward-contact move (optional).
         if target.forward_distance > 0:
             self.logger.info(f"moving forward {target.forward_distance * 1000:.1f}mm")
             fwd_task = vision.create_task_template("Vision Task Forward")
@@ -202,13 +174,13 @@ class VisionTaskStages:
                 "forward contact",
                 "forward",
                 target.forward_distance,
+                constraints=constraints,
             )
             fwd_task.add(fwd_stage)
             error = vision.load_plan_execute(fwd_task)
             if error:
                 return f"forward move failed: {error}"
 
-        # Step 3: terminal gripper action (optional).
         if target.terminal_state:
             self.logger.info(f"terminal gripper: {target.terminal_state}")
             term_task = vision.create_task_template("Vision Task Terminal")
@@ -227,15 +199,7 @@ class VisionTaskStages:
         return None
 
     def _execute_cartesian(self, target: CartesianTarget) -> "str | None":
-        """Approach via IK->PTP with LIN fallback, optionally fused with a
-        grasp + retreat into ONE MTC task.
-
-        Lifted verbatim from PickSampleStages/PlaceSampleStages Task-2: the
-        approach Fallbacks(PTP joint goal -> LIN cartesian), the gripper stage,
-        and the retreat are added to a single task so MoveIt plans+executes one
-        continuous trajectory — preserving the verified pick/place motion. When
-        grasp_state is empty (vision_moveto) this is a bare approach move.
-        """
+        """Execute an approach, optionally with a gripper action and retreat."""
         vision = self._vision
         goal = self.goal
         constraints = parse_constraints(
@@ -244,15 +208,17 @@ class VisionTaskStages:
             else None
         )
 
-        # Bare approach (vision_moveto): no gripper, no retreat — delegate to the
-        # exact existing path so behavior is byte-for-byte unchanged.
+        # Bare approaches use the engine's standalone motion path.
         if not target.grasp_state and not target.retreat_pose_key:
-            return vision._move_to_approach(target.pose, ik_frame=target.ik_frame)
+            return vision._move_to_approach(
+                target.pose, ik_frame=target.ik_frame, constraints=constraints,
+            )
 
-        # Fused task: approach + gripper + retreat (pick/place).
+        # Approach, gripper action and retreat share one task.
         joint_goal = vision.compute_deterministic_ik(target.pose, target.ik_frame)
         task = vision.create_task_template("Vision Task Grasp")
 
+        # Prefer a joint-space PTP goal; fall back to a LIN pose goal.
         approach_fb = core.Fallbacks("approach")
         if joint_goal is not None:
             ptp = stages.MoveTo("approach [PTP]", vision.make_pilz_planner("PTP"))
@@ -298,11 +264,7 @@ class VisionTaskStages:
         return vision.load_plan_execute(task)
 
     def _move_to_scan(self, goal) -> "str | None":
-        """Optional pre-detection move: open gripper (pick) then move to scan.
-
-        Only runs when goal.scan_pose is set — pick/place fuse positioning here;
-        vision_moveto/spincoater leave it empty (orchestrator already positioned).
-        """
+        """Move to scan_pose, optionally opening the gripper first."""
         scan_pose = getattr(goal, "scan_pose", "") or ""
         if not scan_pose:
             return None

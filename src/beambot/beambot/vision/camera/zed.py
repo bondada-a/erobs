@@ -1,17 +1,4 @@
-"""ZED camera wrapper for beambot vision.
-
-Unlike Zivid (single-shot, triggered), ZED streams continuously.
-This module subscribes to ZED ROS2 topics and grabs the latest frame.
-
-Interface contract (matches beambot camera abstraction):
-    - create_client(node) -> None (no service client needed — streaming)
-    - detect_markers(client, node, ...) -> DetectionResult
-
-ZED 2i default topics (namespace: /zed/zed_node, SDK 5.2.1+):
-    - /zed/zed_node/rgb/color/rect/image  (sensor_msgs/Image, bgra8)
-    - /zed/zed_node/point_cloud/cloud_registered  (sensor_msgs/PointCloud2)
-    - /zed/zed_node/depth/depth_registered  (sensor_msgs/Image, 32FC1)
-"""
+"""ZED marker detection from streamed images and point clouds."""
 
 import rclpy
 from cv_bridge import CvBridge
@@ -20,15 +7,14 @@ from rclpy.node import Node
 from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPolicy
 from sensor_msgs.msg import Image, PointCloud2
 
-from beambot.camera import DetectionResult
-from beambot.detection import get_3d_position
+from beambot.vision.camera import DetectionResult
+from beambot.vision.detection import get_3d_position
+from beambot.vision.detection.image_detection import detect_aruco_markers
 
 
-# Default topic names (with zed2i default namespace)
 IMAGE_TOPIC = "/zed/zed_node/rgb/color/rect/image"
 CLOUD_TOPIC = "/zed/zed_node/point_cloud/cloud_registered"
 
-# ZED uses default ROS2 QoS
 ZED_QOS = QoSProfile(
     reliability=ReliabilityPolicy.RELIABLE,
     durability=DurabilityPolicy.VOLATILE,
@@ -38,10 +24,7 @@ ZED_QOS = QoSProfile(
 
 
 def create_client(node: Node):
-    """No service client needed — ZED streams continuously.
-
-    Returns None. Kept for interface compatibility with Zivid module.
-    """
+    """Return None for the shared camera interface; ZED needs no service client."""
     return None
 
 
@@ -50,18 +33,7 @@ def _grab_latest(
     timeout: float = 5.0,
     need_cloud: bool = True,
 ) -> tuple[Image | None, PointCloud2 | None]:
-    """Subscribe to ZED topics and grab the latest frame.
-
-    Since ZED streams at ~15fps, we just need to wait for the next message.
-
-    Args:
-        node: ROS2 node for subscriptions
-        timeout: Max seconds to wait for data
-        need_cloud: Whether to also grab point cloud
-
-    Returns:
-        (image_msg, cloud_msg) tuple. cloud_msg may be None if not needed.
-    """
+    """Collect an image and optional point cloud; unavailable messages remain None."""
     received_image: list[Image | None] = [None]
     received_cloud: list[PointCloud2 | None] = [None]
 
@@ -75,7 +47,6 @@ def _grab_latest(
     cloud_sub = node.create_subscription(PointCloud2, CLOUD_TOPIC, on_cloud, ZED_QOS) if need_cloud else None
 
     try:
-        # ZED streams at 15fps, so we should get data within ~100ms
         max_iterations = int(timeout * 10)
         for i in range(max_iterations):
             rclpy.spin_once(node, timeout_sec=0.1)
@@ -99,22 +70,8 @@ def detect_markers(
     timeout: float = 10.0,
     settle_time: float = 0.0,
 ) -> DetectionResult:
-    """Detect ArUco markers using OpenCV (no native SDK detection for ZED).
-
-    Grabs the latest ZED frame and runs OpenCV ArUco detection + 3D lookup
-    from the point cloud.
-
-    Args:
-        client: Unused (None). Kept for interface compatibility.
-        node: ROS2 node for subscriptions
-        marker_ids: List of marker IDs to detect, or None for all
-        dictionary: ArUco dictionary name
-        timeout: Detection timeout in seconds
-        settle_time: Unused for ZED (streaming camera)
-
-    Returns:
-        DetectionResult with detected markers and capture timestamp.
-    """
+    """Detect ArUco markers with OpenCV and look up their point-cloud positions."""
+    # client and settle_time are unused; retained for the shared camera interface.
     import cv2
     logger = node.get_logger()
     bridge = CvBridge()
@@ -128,18 +85,13 @@ def detect_markers(
     capture_stamp = image_msg.header.stamp
     rgb_image = bridge.imgmsg_to_cv2(image_msg, desired_encoding='rgb8')
 
-    # Map dictionary name to OpenCV constant
     dict_map = {
         "aruco4x4_50": cv2.aruco.DICT_4X4_50,
         "aruco5x5_100": cv2.aruco.DICT_5X5_100,
         "aruco6x6_250": cv2.aruco.DICT_6X6_250,
     }
     dict_id = dict_map.get(dictionary, cv2.aruco.DICT_4X4_50)
-    aruco_dict = cv2.aruco.Dictionary_get(dict_id)
-    aruco_params = cv2.aruco.DetectorParameters_create()
-
-    gray = cv2.cvtColor(rgb_image, cv2.COLOR_RGB2GRAY)
-    corners_list, ids, _ = cv2.aruco.detectMarkers(gray, aruco_dict, parameters=aruco_params)
+    corners_list, ids = detect_aruco_markers(rgb_image, dict_id)
 
     if ids is None or len(ids) == 0:
         if marker_ids is None:
@@ -172,7 +124,7 @@ def detect_markers(
         else:
             logger.warning(f"Marker {mid}: No point cloud — 2D only")
 
-        # Identity orientation (we don't have 3D pose estimation without camera intrinsics solve)
+        # Marker orientation is not estimated.
         pose.orientation.w = 1.0
         detected.append((mid, pose))
 
