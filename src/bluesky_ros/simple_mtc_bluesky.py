@@ -10,6 +10,7 @@ Backend: beambot (Python MTC implementation)
 import argparse
 import os
 import subprocess
+from pathlib import Path
 import bluesky.plan_stubs as bps
 import rclpy
 from bluesky import RunEngine
@@ -123,12 +124,11 @@ Note: Robot IP is now configured in beambot beamline config, not passed as argum
 
         if not WORKSPACE_ROOT:
             # Auto-detect from script location (src/bluesky_ros/ -> workspace root)
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            candidate = os.path.dirname(os.path.dirname(script_dir))
+            candidate = Path(__file__).absolute().parents[2]
 
             # Verify it's a valid workspace (has install/setup.bash or src/ directory)
-            if os.path.exists(os.path.join(candidate, 'install', 'setup.bash')) or \
-               os.path.exists(os.path.join(candidate, 'src')):
+            if (candidate / 'install' / 'setup.bash').exists() or \
+               (candidate / 'src').exists():
                 WORKSPACE_ROOT = candidate
 
         if not WORKSPACE_ROOT:
@@ -136,19 +136,16 @@ Note: Robot IP is now configured in beambot beamline config, not passed as argum
             print("  Example: export EROBS_WORKSPACE=/path/to/your/workspace")
             return
 
+        WORKSPACE_ROOT = Path(WORKSPACE_ROOT)
+
         # Process JSON file arguments
         if args.json_files:
-            json_files = []
-            for json_file in args.json_files:
-                if os.path.isabs(json_file):
-                    json_files.append(json_file)
-                else:
-                    json_files.append(os.path.join(WORKSPACE_ROOT, json_file))
+            json_files = [str(WORKSPACE_ROOT / json_file) for json_file in args.json_files]
         else:
             # Default to complete_sequence.json in cms/tasks/
-            default_path = os.path.join(WORKSPACE_ROOT, "src/cms/tasks/complete_sequence.json")
-            if os.path.exists(default_path):
-                json_files = [default_path]
+            default_path = WORKSPACE_ROOT / "src" / "cms" / "tasks" / "complete_sequence.json"
+            if default_path.exists():
+                json_files = [str(default_path)]
             else:
                 print(f"⚠ Default task file not found: {default_path}")
                 print("Please specify a JSON file path")

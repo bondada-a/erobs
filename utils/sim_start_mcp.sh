@@ -1,19 +1,19 @@
 #!/bin/bash
-# Start rosbridge + beambot for MCP access
-# Usage: ./start_mcp.sh [beambot launch args]
+# Start rosbridge + beambot with mock UR hardware for MCP access
+# Usage: ./utils/sim_start_mcp.sh [beambot launch args]
 # Examples:
-#   ./start_mcp.sh
-#   ./start_mcp.sh use_fake_hardware:=true
-#   ./start_mcp.sh enable_vision:=false
+#   ./utils/sim_start_mcp.sh
+#   ./utils/sim_start_mcp.sh enable_vision:=false enable_pipettor:=false
+#   ./utils/sim_start_mcp.sh enable_vision:=false
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Source ROS2 + workspace
 source /opt/ros/jazzy/setup.bash
-source "$SCRIPT_DIR/install/setup.bash" 2>/dev/null || {
-    echo "Workspace not built. Run: colcon build && source install/setup.bash"
+source "$WORKSPACE_DIR/install/setup.bash" 2>/dev/null || {
+    echo "Workspace not built. Run: cd \"$WORKSPACE_DIR\" && colcon build && source install/setup.bash"
     exit 1
 }
 
@@ -23,7 +23,7 @@ source "$SCRIPT_DIR/install/setup.bash" 2>/dev/null || {
 if [[ -z "${BEAMBOT_BEAMLINE_CONFIG:-}" ]]; then
     echo "ERROR: BEAMBOT_BEAMLINE_CONFIG is not set." >&2
     echo "Export it before launching, e.g.:" >&2
-    echo "    export BEAMBOT_BEAMLINE_CONFIG=$SCRIPT_DIR/src/beambot/config/cms_beamline.yaml" >&2
+    echo "    export BEAMBOT_BEAMLINE_CONFIG=\"$WORKSPACE_DIR/src/beambot/config/cms_beamline.yaml\"" >&2
     exit 1
 fi
 if [[ ! -f "$BEAMBOT_BEAMLINE_CONFIG" ]]; then
@@ -75,11 +75,11 @@ done
 BEAMBOT_LOG="/tmp/beambot_launch.log"
 > "$BEAMBOT_LOG"  # Truncate on start
 echo "Starting beambot..."
-ros2 launch beambot beambot_bringup.launch.py use_mock_hardware:=true"$@" 2>&1 | tee "$BEAMBOT_LOG" &
+ros2 launch beambot beambot_bringup.launch.py use_mock_hardware:=true "$@" 2>&1 | tee "$BEAMBOT_LOG" &
 BEAMBOT_PID=$!
 
 # Start rosbag recording for experiment data
-BAG_DIR="$SCRIPT_DIR/recorded_bags/testing_2026-04-02"
+BAG_DIR="$WORKSPACE_DIR/recorded_bags/testing_2026-04-02"
 mkdir -p "$BAG_DIR"
 BAG_NAME="experiment_$(date +%Y-%m-%d_%H-%M-%S)"
 echo "Starting rosbag recording: $BAG_DIR/$BAG_NAME"

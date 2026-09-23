@@ -2,97 +2,20 @@ build
 install
 log
 recorded_bags/
-site
-erobs.code-workspace
 
 # Environment files (may accumulate secrets)
 .env
 .env.*
 
-# Byte-compiled / optimized / DLL files
+# Python caches
 __pycache__/
 *.py[cod]
-*$py.class
 
-# C extensions
-*.so
-
-# Distribution / packaging
-.Python
-env/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-venv/
-*.egg-info/
-.installed.cfg
-*.egg
-
-# PyInstaller
-#  Usually these files are written by a python script from a template
-#  before PyInstaller builds the exe, so as to inject date/other infos into it.
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*,cover
-.hypothesis/
-
-# Translations
-*.mo
-*.pot
-
-# Django stuff:
+# Logs
 *.log
-
-# Sphinx documentation
-docs/build/
-docs/source/generated/
-docs/source/api_gen
 
 # pytest
 .pytest_cache/
-
-# PyBuilder
-target/
-
-# Editor files
-#mac
-.DS_Store
-*~
-
-#vim
-*.swp
-*.swo
-
-#pycharm
-.idea/
-
-#VSCode
-.vscode/
-
-#Ipython Notebook
-.ipynb_checkpoints
-*.code-workspace
 
 #Pixi
 pixi.lock
@@ -105,66 +28,37 @@ src/end_effectors/ros2_epick_gripper/
 src/end_effectors/pipettor/
 
 # Vision packages (imported via vcs)
-src/vision/zivid-ros/
-src/vision/zed-ros2-wrapper/
-src/vision/zivid-python-samples/
+src/vision/*
+!src/vision/README.md
+!src/vision/vision.repos
 
-# Debug outputs (keep root clean)
-*.gv
-frames_*.pdf
-frames_*.gv
-docs/audit-2026-07-13/
-
-# LaTeX build artifacts
-*.aux
-*.fls
-*.fdb_latexmk
-*.synctex.gz
-*.out
-
-# ROS bag recordings (can be large)
-*.bag
-*.db3
-*.mcap
-rosbag2_*/
 # Survey bags are recorded at the repo root (run_survey.py --bag-out). Anchor to
 # root so this doesn't swallow scripts/survey_mapping/ (the tooling itself).
 /survey_*/
-src/moveit_task_constructor/
+
+# Downloaded detector weights
 yolov8n.pt
 
 # Point cloud / mesh outputs from survey mapping (large, regenerable from bags)
 *.ply
 *.pcd
 
-# Claude Code state
-.claude/worktrees/
-.claude/*.backup*
+# Local Codex configuration.
+/.codex/config.toml
 
-# Per-dev local Claude Code state — not shared.
-.claude/settings.json
-.claude/settings.local.json
-.claude/memory.db
-# Keep robot-operation/ tracked (the project-owned skill pointing at
-# src/beambot/beambot/agent/robot_operation.md); ignore any other locally-installed
-# skills.
-.agents/*
-skills-lock.json
-.claude/skills/*/
+# Ignore Claude Code files except the project-owned robot-operation skill.
+.claude/*
+!.claude/skills/
+.claude/skills/*
 !.claude/skills/robot-operation/
 
+# Ignore locally installed agent skills except the project-owned robot-operation skill.
+.agents/*
+!.agents/skills/
+.agents/skills/*
+!.agents/skills/robot-operation/
+skills-lock.json
+
 # Training data (large files)
-src/beambot/data/spincoater_training/
-src/beambot/data/yolo_dataset/spincoater_obb/
-
-# Understand-Anything generated knowledge graph (per-dev tooling output)
-.understand-anything/
-
-# VLM service (large local models / venv — not shared via git)
-vlm_service/
-
-# Planning-latency investigation scratch (probe scripts, plots, diagnostic notes — local only)
-latency_analysis/
-
-# Debug capture images (keep root clean)
-marker_sheet_detections*.png
+src/beambot/data/*
+!src/beambot/data/yolo_dataset/

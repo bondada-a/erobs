@@ -1,20 +1,8 @@
 #!/usr/bin/env bash
-# Run one traced beambot task end-to-end and print the trace directory.
+# Launch beambot with tracing, execute task JSON, and report the trace directory.
+# Uses real hardware unless use_mock_hardware:=true is passed.
 #
-# Usage:
-#   scripts/perf_trace_run.sh <task.json> [extra launch args...]
-#
-# What it does:
-#   1. Launches beambot_bringup with enable_tracing:=true in the background.
-#   2. Waits for /beambot_execution to appear (orchestrator is ready).
-#   3. Runs beambot_client on the task JSON.
-#   4. Shuts down the launch cleanly so LTTng flushes + closes the trace.
-#   5. Prints the resulting trace directory for analysis.
-#
-# Analyze the trace:
-#   ros2 run tracetools_analysis auto          <trace_dir>   # summary
-#   ros2 run tracetools_analysis cb_durations  <trace_dir>   # per-callback
-#   ros2 run beambot perf_trace_summarize.py   <trace_dir>   # our custom report
+# Usage: ros2 run beambot perf_trace_run.sh <task.json> [extra launch args...]
 set -euo pipefail
 
 if [ $# -lt 1 ]; then
@@ -33,11 +21,10 @@ READY_TIMEOUT="${READY_TIMEOUT:-60}"
 
 TRACE_BASE="$HOME/.ros/tracing"
 mkdir -p "$TRACE_BASE"
-# Snapshot existing session dirs so we can diff after the run.
+# Record existing sessions to identify new trace directories.
 BEFORE=$(ls -1 "$TRACE_BASE" 2>/dev/null || true)
 
 echo "[perf_trace_run] Launching bringup with tracing enabled..."
-# shellcheck disable=SC2086
 ros2 launch beambot beambot_bringup.launch.py \
     enable_tracing:=true \
     trace_session_name:="$SESSION_NAME" \
@@ -48,7 +35,7 @@ cleanup() {
   if kill -0 "$LAUNCH_PID" 2>/dev/null; then
     echo "[perf_trace_run] Shutting down launch (pid $LAUNCH_PID)..."
     kill -INT "$LAUNCH_PID" 2>/dev/null || true
-    # Give LTTng time to finalize; ros2 launch SIGINT normally propagates.
+    # Allow up to 15 seconds for launch shutdown and trace finalization.
     for _ in $(seq 1 30); do
       kill -0 "$LAUNCH_PID" 2>/dev/null || break
       sleep 0.5
@@ -77,11 +64,11 @@ ros2 run beambot beambot_client.py "$TASK_JSON" || TASK_RC=$?
 TASK_RC="${TASK_RC:-0}"
 echo "[perf_trace_run] Task returned rc=$TASK_RC"
 
-# Shut down via trap, then identify the new trace directory.
+# Stop the launch before locating its trace directory.
 cleanup
 trap - EXIT
 
-# Give LTTng a moment to finish flushing.
+# Allow pending trace output to flush.
 sleep 2
 
 AFTER=$(ls -1 "$TRACE_BASE" 2>/dev/null || true)
@@ -92,7 +79,6 @@ if [ -z "$NEW_DIRS" ]; then
   exit "$TASK_RC"
 fi
 
-# Newest matching session dir
 NEWEST=$(echo "$NEW_DIRS" | tail -n 1)
 TRACE_DIR="$TRACE_BASE/$NEWEST"
 

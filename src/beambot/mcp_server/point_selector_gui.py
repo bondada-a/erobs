@@ -1,13 +1,10 @@
 #!/usr/bin/env python3
-"""Standalone tkinter point selector GUI for the get_point_3d MCP tool.
-
-Launched as a subprocess by beambot_mcp_server.py. No ROS or OpenCV dependencies
-for the GUI itself — uses tkinter (always available) + PIL for image display.
+"""Select an image pixel for the MCP get_point_3d tool using Tkinter and Pillow.
 
 Usage:
     python3 point_selector_gui.py <image_path> [--x 500] [--y 300] [--title "Point Selector"]
 
-Output (single JSON line on stdout):
+One JSON line on stdout, in original image coordinates:
     Confirmed: {"pixel_x": 485, "pixel_y": 412, "confirmed": true}
     Cancelled: {"confirmed": false}
 """
@@ -18,12 +15,13 @@ import os
 import subprocess as _sp
 import sys
 import tkinter as tk
+from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageTk
 
 
 def _ensure_display():
-    """Ensure DISPLAY and XAUTHORITY are set for X11 GUI access."""
+    """Fill missing DISPLAY and XAUTHORITY for X11 access."""
     if not os.environ.get("DISPLAY"):
         try:
             result = _sp.run(
@@ -40,22 +38,18 @@ def _ensure_display():
 
     if not os.environ.get("XAUTHORITY"):
         for candidate in [
-            f"/run/user/{os.getuid()}/gdm/Xauthority",
-            os.path.expanduser("~/.Xauthority"),
+            Path(f"/run/user/{os.getuid()}/gdm/Xauthority"),
+            Path.home() / ".Xauthority",
         ]:
-            if os.path.exists(candidate):
-                os.environ["XAUTHORITY"] = candidate
+            if candidate.exists():
+                os.environ["XAUTHORITY"] = str(candidate)
                 break
 
 
-_ensure_display()
-
-
 class PointSelector:
-    """Tkinter-based point selector with image display and crosshair."""
+    """Display an image and confirm or cancel a pixel selection."""
 
     CROSSHAIR_SIZE = 20
-    CROSSHAIR_COLOR = "red"
     MAX_WINDOW_W = 1280
     MAX_WINDOW_H = 800
 
@@ -68,39 +62,36 @@ class PointSelector:
         self.pil_image = Image.open(image_path)
         self.img_w, self.img_h = self.pil_image.size
         self.title = title
-        # Point in original image coordinates
+        # Selection uses original image pixels.
         self.current_point = initial_point
         self.result: dict | None = None
 
-        # Compute display scale to fit window
+        # Fit the image without upscaling.
         self.scale = min(
             self.MAX_WINDOW_W / self.img_w,
             self.MAX_WINDOW_H / self.img_h,
-            1.0,  # Don't upscale
+            1.0,
         )
         self.disp_w = int(self.img_w * self.scale)
         self.disp_h = int(self.img_h * self.scale)
 
-        # Pre-scale the base image for display
         self._base_display = self.pil_image.resize(
             (self.disp_w, self.disp_h), Image.LANCZOS,
         )
 
     def _draw_crosshair(self) -> ImageTk.PhotoImage:
-        """Return a PhotoImage with crosshair drawn at current_point."""
+        """Render the selection overlay on the scaled image."""
         img = self._base_display.copy()
         if self.current_point is not None:
             draw = ImageDraw.Draw(img)
-            # Convert original coords to display coords
+            # Convert selection coordinates to display pixels.
             dx = int(self.current_point[0] * self.scale)
             dy = int(self.current_point[1] * self.scale)
             s = self.CROSSHAIR_SIZE
 
-            # Crosshair lines
             draw.line([(dx - s, dy), (dx + s, dy)], fill="red", width=2)
             draw.line([(dx, dy - s), (dx, dy + s)], fill="red", width=2)
 
-            # Coordinate label
             label = f"({self.current_point[0]}, {self.current_point[1]})"
             draw.text((dx + 12, dy - 18), label, fill="white")
             draw.text((dx + 11, dy - 19), label, fill="black")
@@ -108,12 +99,11 @@ class PointSelector:
         return ImageTk.PhotoImage(img)
 
     def run(self) -> dict:
-        """Run the tkinter event loop. Returns result dict."""
+        """Return confirmed coordinates or a cancellation result."""
         root = tk.Tk()
         root.title(self.title)
         root.configure(bg="#282828")
 
-        # Banner
         banner = tk.Label(
             root,
             text="Click to select point.  Enter/Space = confirm,  Esc = cancel",
@@ -124,14 +114,13 @@ class PointSelector:
         )
         banner.pack(fill=tk.X)
 
-        # Canvas for image
         canvas = tk.Canvas(
             root, width=self.disp_w, height=self.disp_h,
             highlightthickness=0, bg="black",
         )
         canvas.pack()
 
-        # Initial render
+        # Keep the PhotoImage alive for Tk.
         self._tk_photo = self._draw_crosshair()
         canvas_image = canvas.create_image(0, 0, anchor=tk.NW, image=self._tk_photo)
 
@@ -140,10 +129,9 @@ class PointSelector:
             canvas.itemconfig(canvas_image, image=self._tk_photo)
 
         def _on_click(event):
-            # Convert display coords back to original image coords
+            # Map clicks back to original image pixels and clamp to bounds.
             orig_x = int(event.x / self.scale)
             orig_y = int(event.y / self.scale)
-            # Clamp to image bounds
             orig_x = max(0, min(orig_x, self.img_w - 1))
             orig_y = max(0, min(orig_y, self.img_h - 1))
             self.current_point = (orig_x, orig_y)
@@ -168,7 +156,7 @@ class PointSelector:
         root.bind("<Escape>", _on_cancel)
         root.protocol("WM_DELETE_WINDOW", _on_cancel)
 
-        # Center window on screen
+        # Center the window.
         root.update_idletasks()
         sw = root.winfo_screenwidth()
         sh = root.winfo_screenheight()
@@ -181,6 +169,7 @@ class PointSelector:
 
 
 def main():
+    _ensure_display()
     parser = argparse.ArgumentParser(description="Point selector GUI")
     parser.add_argument("image_path", help="Path to the image file")
     parser.add_argument("--x", type=int, default=None, help="Initial X coordinate")
