@@ -7,34 +7,25 @@ dialog can never diverge), and that the GUI writer's on-disk format matches
 the MCP server's one-line flow style (shared single source of truth).
 """
 
-import os
-import sys
-import tempfile
-from pathlib import Path
-
-os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
-
-import pytest  # noqa: E402
+import pytest
 
 pytest.importorskip("PyQt6.QtWidgets", reason="PyQt6 not installed")
-
-from PyQt6.QtWidgets import QApplication  # noqa: E402
 
 from mtc_gui.poses_panel import PosesPanel  # noqa: E402
 from mtc_gui.pose_io import read_poses  # noqa: E402
 
-_app = QApplication.instance() or QApplication([])
+pytestmark = pytest.mark.usefixtures("qapp")
 
 
-def _tmp_registry():
-    f = Path(tempfile.mkdtemp()) / "poses.yaml"
+@pytest.fixture
+def registry(tmp_path):
+    f = tmp_path / "poses.yaml"
     f.write_text("safe_tool_exchange: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]\n")
     return f
 
 
-def test_save_pose_persists_refreshes_and_emits():
-    f = _tmp_registry()
+def test_save_pose_persists_refreshes_and_emits(registry):
+    f = registry
     panel = PosesPanel()
     panel.load_from_file(f)
     assert panel.get_poses_file() == f
@@ -53,8 +44,8 @@ def test_save_pose_persists_refreshes_and_emits():
     assert read_poses(f).get("hotplate") == [10.0, 20.0, 30.0, 40.0, 50.0, 60.0]
 
 
-def test_delete_pose_persists_and_keeps_siblings():
-    f = _tmp_registry()
+def test_delete_pose_persists_and_keeps_siblings(registry):
+    f = registry
     panel = PosesPanel()
     panel.load_from_file(f)
     panel.save_pose("temp", [0.0] * 6)
@@ -70,18 +61,10 @@ def test_save_without_registry_returns_false():
     assert panel.save_pose("x", [0.0] * 6) is False  # returns False, no crash
 
 
-def test_writer_matches_mcp_flow_format():
-    f = _tmp_registry()
+def test_writer_matches_mcp_flow_format(registry):
+    f = registry
     panel = PosesPanel()
     panel.load_from_file(f)
     panel.save_pose("p", [1.0, 2.0, 3.0, 4.0, 5.0, 6.0])
     # one-line flow style — byte-compatible with beambot_mcp_server._write_poses_file
     assert "p: [1.0, 2.0, 3.0, 4.0, 5.0, 6.0]" in f.read_text()
-
-
-if __name__ == "__main__":
-    test_save_pose_persists_refreshes_and_emits()
-    test_delete_pose_persists_and_keeps_siblings()
-    test_save_without_registry_returns_false()
-    test_writer_matches_mcp_flow_format()
-    print("All poses_panel GUI tests passed.")

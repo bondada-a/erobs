@@ -1,15 +1,6 @@
-"""Centralized design tokens + QSS for mtc_gui.
+"""Shared colors, fonts and Qt styles for the GUI.
 
-Translated from the pyqt6-ui-designer agent skill
-(https://github.com/aminechraibi/pyqt6-ui-designer) with a few principles
-borrowed from Leonxlnx/taste-skill (no slop, intentional motion-states,
-4px grid, semantic color hierarchy). Robotics-tuned: dark by default,
-cool indigo accent, clear semantic states for planning / success /
-warning / error.
-
-Single source of truth — do not inline hex values in widget code.
-Tag widgets with objectName or dynamic property `class` to opt into
-a styled variant (e.g. ``btn.setProperty("class", "primary")``).
+Style references: aminechraibi/pyqt6-ui-designer and Leonxlnx/taste-skill.
 """
 
 from __future__ import annotations
@@ -17,64 +8,53 @@ from __future__ import annotations
 from PyQt6.QtGui import QColor, QFont, QFontDatabase, QPalette
 from PyQt6.QtWidgets import QApplication, QWidget
 
-# ─── Tokens ──────────────────────────────────────────────────────────────────
+# Style constants
 
-# Surfaces — v2 collapses to two real levels.
-# Visual depth comes from typography + spacing, not stacking 4 grays.
-BG = "#0B0E14"               # canvas / QMainWindow background (deeper)
-SURFACE = "#11151D"          # default panels, splitters
-SURFACE_LOW = "#11151D"      # alias — kept so old code compiles
+# Surfaces
+BG = "#0B0E14"               # window background
+SURFACE = "#11151D"          # panels and splitters
 SURFACE_HIGH = "#1A2030"     # hovered rows, secondary buttons
 SURFACE_HIGHEST = "#222A3C"  # pressed / active emphasis
 ELEVATED = "#161B26"         # popovers, menus, dropdowns
 
-# Borders / dividers — used sparingly, mostly hairlines
-OUTLINE = "#1E2533"          # subtle dividers (default)
-OUTLINE_STRONG = "#2A3346"   # input borders, focus-adjacent
+# Borders
+OUTLINE = "#1E2533"          # dividers
+OUTLINE_STRONG = "#2A3346"   # input borders
 
 # Text
 ON_SURFACE = "#E6EAF2"       # primary text
 ON_SURFACE_MUTED = "#A0A8BC" # secondary / labels
-ON_SURFACE_DIM = "#6B7385"   # placeholders / timestamps / disabled-ish
+ON_SURFACE_DIM = "#6B7385"   # placeholders and timestamps
 DISABLED = "#5A6378"
 
-# Brand accent (cool indigo — distinct from ROS-stock blue, calmer)
+# Accent
 PRIMARY = "#5B8DEF"
 PRIMARY_HOVER = "#7AA4F4"
 PRIMARY_PRESSED = "#3F70D8"
-PRIMARY_TINT = "#1F2C45"     # subtle accent-tinted background
+PRIMARY_TINT = "#1F2C45"     # selected backgrounds
 ON_PRIMARY = "#0B0F18"
 
-# Semantic
-SUCCESS = "#3DD68C"          # planning cached / OK / connected
+# Status colors
+SUCCESS = "#3DD68C"          # cached plan / connected
 SUCCESS_DIM = "#1F4A35"
 WARNING = "#F2B33D"          # dry-run / paused / waiting
 WARNING_DIM = "#4A3A18"
 DANGER = "#F26B6B"           # error / disconnected / aborted
 DANGER_DIM = "#4A1F1F"
 
-# Type
+# Fonts
 FONT_BODY = "Inter, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif"
-FONT_MONO = "'JetBrains Mono', 'Fira Code', 'DejaVu Sans Mono', monospace"
 
-# Spacing (4px grid — never deviate)
-SP_XS = 4
-SP_SM = 8
-SP_MD = 12
-SP_LG = 16
-SP_XL = 24
-
-# Radius
+# Corner radii
 R_SM = 4
 R_MD = 6
-R_LG = 8
 R_PILL = 999
 
 
-# ─── QSS ─────────────────────────────────────────────────────────────────────
+# Widget styles
 
 DARK_QSS = f"""
-/* ─── Base ─────────────────────────────────────────────────────────── */
+/* Base */
 QWidget {{
     background-color: {BG};
     color: {ON_SURFACE};
@@ -94,7 +74,7 @@ QToolTip {{
     padding: 6px 8px;
 }}
 
-/* ─── Menu bar ─────────────────────────────────────────────────────── */
+/* Menus */
 QMenuBar {{
     background-color: {BG};
     color: {ON_SURFACE_MUTED};
@@ -132,7 +112,7 @@ QMenu::separator {{
     margin: 4px 6px;
 }}
 
-/* ─── Buttons — borderless tonal-fill (Linear-style) ─────────────── */
+/* Buttons */
 QPushButton {{
     background-color: {SURFACE_HIGH};
     color: {ON_SURFACE};
@@ -167,7 +147,7 @@ QPushButton:flat:hover {{
     color: {ON_SURFACE};
 }}
 
-/* Variants — opt in via setProperty("class", "primary") etc. */
+/* Select button variants with setProperty("class", "primary") or "danger". */
 QPushButton[class="primary"] {{
     background-color: {PRIMARY};
     color: {ON_PRIMARY};
@@ -200,9 +180,7 @@ QPushButton[class="danger"]:disabled {{
     background: transparent;
 }}
 
-/* Segmented run-control row — Execute|Pause|Resume|Stop merged.
-   Strategy: container holds the outer border, buttons are borderless
-   with a 1px right-divider (last button's divider suppressed). */
+/* Run controls: the frame owns the outer border; buttons own the dividers. */
 QFrame#runBar {{
     background-color: {SURFACE_HIGH};
     border: 1px solid {OUTLINE};
@@ -234,7 +212,7 @@ QFrame#runBar > QPushButton#segLast {{
     border-bottom-right-radius: {R_SM}px;
 }}
 
-/* ─── Inputs ───────────────────────────────────────────────────────── */
+/* Inputs */
 QLineEdit, QTextEdit, QPlainTextEdit, QSpinBox, QDoubleSpinBox {{
     background-color: {BG};
     color: {ON_SURFACE};
@@ -258,11 +236,8 @@ QLineEdit:disabled, QTextEdit:disabled, QPlainTextEdit:disabled {{
     color: {ON_SURFACE_MUTED};
     border-color: {OUTLINE};
 }}
-QLineEdit::placeholder {{
-    color: {ON_SURFACE_DIM};
-}}
 
-/* ─── Combo box ────────────────────────────────────────────────────── */
+/* Combo boxes */
 QComboBox {{
     background-color: {BG};
     color: {ON_SURFACE};
@@ -300,7 +275,7 @@ QComboBox QAbstractItemView {{
     selection-color: {ON_SURFACE};
 }}
 
-/* ─── Checkboxes / Radios ──────────────────────────────────────────── */
+/* Checkboxes and radio buttons */
 QCheckBox, QRadioButton {{
     color: {ON_SURFACE};
     spacing: 8px;
@@ -312,7 +287,7 @@ QCheckBox:disabled, QRadioButton:disabled {{
 QCheckBox::indicator, QRadioButton::indicator {{
     width: 16px; height: 16px;
     border: 1px solid {OUTLINE_STRONG};
-    background-color: {SURFACE_LOW};
+    background-color: {SURFACE};
 }}
 QCheckBox::indicator {{
     border-radius: 3px;
@@ -328,7 +303,7 @@ QCheckBox::indicator:checked, QRadioButton::indicator:checked {{
     border-color: {PRIMARY};
 }}
 
-/* ─── Group box — flat, header-strip style (no Qt-classic border+title) ── */
+/* Group boxes */
 QGroupBox {{
     background: transparent;
     border: none;
@@ -352,7 +327,7 @@ QGroupBox::title {{
     text-transform: uppercase;
 }}
 
-/* ─── Tabs — modern bottom-border indicator (Linear/VSCode-style) ─── */
+/* Tabs */
 QTabWidget::pane {{
     background: transparent;
     border: none;
@@ -381,7 +356,7 @@ QTabBar::tab:selected {{
     border-bottom: 2px solid {PRIMARY};
 }}
 
-/* ─── List / Tree ──────────────────────────────────────────────────── */
+/* Lists and trees */
 QListWidget, QTreeWidget, QTreeView, QListView {{
     background: transparent;
     color: {ON_SURFACE};
@@ -407,7 +382,7 @@ QListWidget::item:selected:!active, QTreeWidget::item:selected:!active {{
     color: {ON_SURFACE};
 }}
 
-/* ─── Splitter handle ──────────────────────────────────────────────── */
+/* Splitter handles */
 QSplitter::handle {{
     background-color: {OUTLINE};
 }}
@@ -421,9 +396,9 @@ QSplitter::handle:hover {{
     background-color: {PRIMARY};
 }}
 
-/* ─── Progress bar ─────────────────────────────────────────────────── */
+/* Progress bars */
 QProgressBar {{
-    background-color: {SURFACE_LOW};
+    background-color: {SURFACE};
     color: {ON_SURFACE};
     border: 1px solid {OUTLINE};
     border-radius: {R_SM}px;
@@ -437,7 +412,7 @@ QProgressBar::chunk {{
     margin: 1px;
 }}
 
-/* ─── Scrollbars ───────────────────────────────────────────────────── */
+/* Scrollbars */
 QScrollBar:vertical {{
     background: transparent;
     width: 10px;
@@ -474,7 +449,7 @@ QScrollBar::add-page, QScrollBar::sub-page {{
     background: transparent;
 }}
 
-/* ─── Frame / status log ───────────────────────────────────────────── */
+/* Frames and labels */
 QFrame {{
     background: transparent;
 }}
@@ -483,7 +458,7 @@ QLabel {{
     color: {ON_SURFACE};
 }}
 
-/* ─── Header views (tables / trees) ────────────────────────────────── */
+/* Table and tree headers */
 QHeaderView::section {{
     background-color: {SURFACE};
     color: {ON_SURFACE_MUTED};
@@ -496,7 +471,7 @@ QHeaderView::section {{
     letter-spacing: 0.5px;
 }}
 
-/* ─── Status pills (for plan_cached_label etc) ─────────────────────── */
+/* Status labels */
 QLabel[status="success"] {{
     color: {SUCCESS};
     background-color: {SUCCESS_DIM};
@@ -510,15 +485,6 @@ QLabel[status="warning"] {{
     color: {WARNING};
     background-color: {WARNING_DIM};
     border: 1px solid {WARNING};
-    border-radius: {R_PILL}px;
-    padding: 2px 10px;
-    font-size: 11px;
-    font-weight: 600;
-}}
-QLabel[status="danger"] {{
-    color: {DANGER};
-    background-color: {DANGER_DIM};
-    border: 1px solid {DANGER};
     border-radius: {R_PILL}px;
     padding: 2px 10px;
     font-size: 11px;
@@ -540,12 +506,11 @@ QLabel[role="hint"] {{
 
 
 def _palette() -> QPalette:
-    """QPalette aligned with the dark QSS — covers things QSS misses
-    (native dialog widgets, rich-text rendering, default disabled colors)."""
+    """Match palette-based rendering and disabled colors to the stylesheet."""
     p = QPalette()
     p.setColor(QPalette.ColorRole.Window, QColor(BG))
     p.setColor(QPalette.ColorRole.WindowText, QColor(ON_SURFACE))
-    p.setColor(QPalette.ColorRole.Base, QColor(SURFACE_LOW))
+    p.setColor(QPalette.ColorRole.Base, QColor(SURFACE))
     p.setColor(QPalette.ColorRole.AlternateBase, QColor(SURFACE))
     p.setColor(QPalette.ColorRole.ToolTipBase, QColor(ELEVATED))
     p.setColor(QPalette.ColorRole.ToolTipText, QColor(ON_SURFACE))
@@ -564,15 +529,12 @@ def _palette() -> QPalette:
 
 
 def _load_fonts() -> str:
-    """Register Inter as the app font. Inter Variable lives at
-    /usr/share/fonts/truetype/inter-vf/InterVariable.ttf when fonts-inter-variable
-    is installed via apt; if QFontDatabase already knows it (system fontconfig),
-    we don't need to addApplicationFont. Returns the resolved family name."""
+    """Find or load Inter, falling back to the system sans-serif font."""
     families = set(QFontDatabase.families())
     for cand in ("Inter Variable", "Inter"):
         if cand in families:
             return cand
-    # Try loading from disk explicitly.
+    # Debian/Ubuntu package paths, used when Qt has not discovered Inter.
     for path in (
         "/usr/share/fonts/truetype/inter-vf/InterVariable.ttf",
         "/usr/share/fonts/truetype/inter/Inter-Regular.otf",
@@ -586,10 +548,7 @@ def _load_fonts() -> str:
 
 
 def icon(name: str, color: str = ON_SURFACE):
-    """Return a qtawesome QIcon for ``name`` (e.g. 'mdi6.play').
-    Imports lazily so headless tests can stub it. Falls back to an empty
-    QIcon if qtawesome isn't installed.
-    """
+    """Return a qtawesome icon, or an empty icon if loading fails."""
     try:
         import qtawesome as qta  # type: ignore
         return qta.icon(name, color=color)
@@ -599,7 +558,7 @@ def icon(name: str, color: str = ON_SURFACE):
 
 
 def apply(app: QApplication) -> None:
-    """Apply the dark theme + QSS + font to the running application."""
+    """Apply the dark palette, stylesheet and application font."""
     app.setStyle("Fusion")  # consistent baseline across platforms
     family = _load_fonts()
     f = QFont(family)
@@ -610,9 +569,17 @@ def apply(app: QApplication) -> None:
     app.setStyleSheet(DARK_QSS)
 
 
+def toggle_dark_mode(app: QApplication, enabled: bool) -> None:
+    """Apply the dark theme or restore the default palette and stylesheet."""
+    if enabled:
+        apply(app)
+    else:
+        app.setPalette(app.style().standardPalette())
+        app.setStyleSheet("")
+
+
 def restyle(widget: QWidget) -> None:
-    """Force a widget to re-evaluate property-based selectors after a
-    setProperty() call. Use after setProperty('class', ...) etc."""
+    """Refresh widget styling after changing a dynamic property."""
     widget.style().unpolish(widget)
     widget.style().polish(widget)
     widget.update()
