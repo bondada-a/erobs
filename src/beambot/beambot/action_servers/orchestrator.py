@@ -234,6 +234,12 @@ class MTCOrchestratorServer(Node):
             "Pause/Resume services available: beambot/pause, beambot/resume"
         )
 
+    def destroy_node(self):
+        """Stop MoveIt while rclpy is still up; the launch runs in its own session."""
+        # No next launch follows shutdown, so skip the discovery drain.
+        self._moveit_manager.kill_current_process(drain=False)
+        super().destroy_node()
+
     # Goal admission and pause/cancel control.
 
     def _goal_callback(self, goal_request) -> GoalResponse:

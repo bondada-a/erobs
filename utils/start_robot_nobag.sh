@@ -32,34 +32,7 @@ if [[ ! -f "$BEAMBOT_BEAMLINE_CONFIG" ]]; then
 fi
 echo "Beamline config: $BEAMBOT_BEAMLINE_CONFIG"
 
-# Cleanup on exit. PID is populated as beambot is spawned below; guard
-# against re-entry so a second Ctrl-C while wait is unwinding doesn't confuse
-# bash's variable-scope stack (pop_var_context warning).
-_cleanup_ran=0
-cleanup() {
-    (( _cleanup_ran )) && return
-    _cleanup_ran=1
-    echo ""
-    echo "Shutting down..."
-    [[ -n "$BEAMBOT_PID" ]] && kill "$BEAMBOT_PID" 2>/dev/null
-    wait 2>/dev/null
-    echo "Done."
-}
-trap cleanup EXIT
-trap 'exit 130' INT
-trap 'exit 143' TERM
-
-# Start beambot with any extra args passed to this script
-echo "Starting beambot..."
-ros2 launch beambot beambot_bringup.launch.py "$@" &
-BEAMBOT_PID=$!
-
-echo ""
-echo "=== Robot Ready (no bag) ==="
-echo "  beambot:    PID $BEAMBOT_PID"
-echo "  Press Ctrl+C to stop"
-echo "================="
-echo ""
-
-# Wait for beambot to exit
-wait -n "$BEAMBOT_PID" 2>/dev/null
+# Run launch in the foreground so Ctrl+C reaches it directly; launch then
+# stops its nodes in order and the orchestrator stops MoveIt.
+echo "Starting beambot (PID $$). Press Ctrl+C to stop."
+exec ros2 launch beambot beambot_bringup.launch.py "$@"

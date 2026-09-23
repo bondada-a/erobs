@@ -1,12 +1,13 @@
 """Shared action-server lifecycle and ROS node runner."""
 
+import signal
 import traceback
 import uuid
 
 import rclpy
 from rclpy.action import ActionServer, GoalResponse
 from rclpy.action.server import ServerGoalHandle
-from rclpy.executors import MultiThreadedExecutor
+from rclpy.executors import ExternalShutdownException, MultiThreadedExecutor
 from rclpy.node import Node
 
 
@@ -95,8 +96,14 @@ def run_server(server_class, args=None):
 
     try:
         executor.spin()
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, ExternalShutdownException):
         node.get_logger().info("Shutting down...")
     finally:
+        # Ctrl+C under ros2 launch signals each node twice (terminal, then
+        # launch). A repeat would kill cleanup midway, e.g. orphaning MoveIt's
+        # session during the orchestrator's stop; launch still escalates to SIGKILL.
+        signal.signal(signal.SIGINT, signal.SIG_IGN)
+        signal.signal(signal.SIGTERM, signal.SIG_IGN)
         node.destroy_node()
-        rclpy.shutdown()
+        # The signal handler may already have shut the context down.
+        rclpy.try_shutdown()

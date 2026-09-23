@@ -3,7 +3,7 @@
 URDF/SRDF structure per gripper is checked offline by test_robot_models.py.
 """
 
-import atexit
+import contextlib
 import os
 import signal
 import socket
@@ -96,8 +96,6 @@ class MoveItLifecycleManager:
                 JointState, "/joint_states", self._joint_state_cb, 10,
                 callback_group=self._callback_group,
             )
-
-        atexit.register(self.kill_current_process)
 
     def is_moveit_alive(self) -> bool:
         """Check if the MoveIt subprocess is still running."""
@@ -334,30 +332,45 @@ class MoveItLifecycleManager:
         self._logger.info(f"Payload set to {mass}kg")
         return True
 
-    def kill_current_process(self):
+    def kill_current_process(self, drain: bool = True):
         """Stop the launch process group, then drain stale action discovery.
 
+        Every node gets SIGTERM directly and shuts down through its own handler;
+        wait for the whole group, not just the launch parent, which exits first
+        and leaves slow nodes running. SIGKILL whatever remains after 3 s.
+
         Old /execute_trajectory entries can make the next launch appear ready
-        before the new move_group services are available.
+        before the new move_group services are available. Shutdown passes
+        drain=False because no launch follows.
         """
         self._model_revision = ""
         if not self._moveit_process:
             return
 
         self._logger.info("Stopping MoveIt process...")
-
-        try:
-            pgid = os.getpgid(self._moveit_process.pid)
+        start = time.monotonic()
+        # start_new_session=True makes the pid the pgid, even after the parent is reaped.
+        pgid = self._moveit_process.pid
+        with contextlib.suppress(ProcessLookupError):
             os.killpg(pgid, signal.SIGTERM)
-            self._moveit_process.wait(timeout=3.0)
-        except subprocess.TimeoutExpired:
-            os.killpg(pgid, signal.SIGKILL)
-            self._moveit_process.wait()
-        except (ProcessLookupError, OSError):
-            pass  # Process may already have exited.
 
+        while time.monotonic() - start < 3.0:
+            self._moveit_process.poll()  # Reap the parent so its zombie doesn't count.
+            try:
+                os.killpg(pgid, 0)
+            except ProcessLookupError:
+                break
+            time.sleep(0.05)
+        else:
+            self._logger.warning("MoveIt still running after 3 s, sending SIGKILL")
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(pgid, signal.SIGKILL)
+
+        self._moveit_process.wait()
+        self._logger.info(f"MoveIt stopped in {time.monotonic() - start:.2f}s")
         self._moveit_process = None
-        self._drain_stale_execute_trajectory()
+        if drain:
+            self._drain_stale_execute_trajectory()
 
     def _drain_stale_execute_trajectory(self, max_wait_sec: float = 10.0):
         """Wait until /execute_trajectory is not advertised to our node.
