@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Beambot Client - Send task sequences to the Beambot Orchestrator.
+"""Send task JSON to the Beambot orchestrator.
 
 Usage:
     ros2 run beambot beambot_client.py /path/to/task_sequence.json
@@ -50,7 +50,6 @@ class TaskGoalSender(Node):
 
         self.get_logger().info('Goal accepted, executing...')
 
-        # Wait for result
         result_future = self._goal_handle.get_result_async()
         rclpy.spin_until_future_complete(self, result_future)
 
@@ -84,20 +83,17 @@ class TaskGoalSender(Node):
 
 def main():
     parser = argparse.ArgumentParser(description='Send task sequence to MTC Orchestrator')
-    parser.add_argument('json_file', type=str, help='Path to task sequence JSON file')
+    parser.add_argument('json_file', help='Path to task sequence JSON file')
 
     args = parser.parse_args()
 
-    # Read and validate JSON file
     json_path = Path(args.json_file)
     if not json_path.exists():
         print(f'Error: File not found: {json_path}', file=sys.stderr)
         sys.exit(1)
 
     try:
-        with open(json_path) as f:
-            json_content = f.read()
-        # Validate it's valid JSON
+        json_content = json_path.read_text()
         json.loads(json_content)
     except json.JSONDecodeError as e:
         print(f'Error: Invalid JSON in {json_path}: {e}', file=sys.stderr)
@@ -108,7 +104,6 @@ def main():
 
     print(f'Loaded task sequence from: {json_path}')
 
-    # Send the goal
     rclpy.init()
     node = TaskGoalSender()
     exit_code = 1
@@ -121,17 +116,17 @@ def main():
         if node._goal_handle:
             try:
                 cancel_future = node._goal_handle.cancel_goal_async()
-                # Spin to actually send the cancel request (with timeout)
+                # Process cancellation for up to two seconds.
                 rclpy.spin_until_future_complete(node, cancel_future, timeout_sec=2.0)
             except KeyboardInterrupt:
-                pass  # User hit Ctrl+C again, just exit
+                pass  # Exit on a second interrupt.
         exit_code = 130
     finally:
         node.destroy_node()
         try:
             rclpy.shutdown()
         except Exception:
-            pass  # Already shut down
+            pass  # The context may already be shut down.
 
     sys.exit(exit_code)
 

@@ -1,8 +1,8 @@
 
 [workspace]
-authors = ["Max Rakitin <mrakitin@bnl.gov>, Jennefer Maldonado <jmaldonad@bnl.gov>, Aditya Bondada <abondada@bnl.gov>"]
+authors = ["Max Rakitin <mrakitin@bnl.gov>", "Jennefer Maldonado <jmaldonad@bnl.gov>", "Aditya Bondada <abondada@bnl.gov>"]
 channels = ["conda-forge", "robostack-jazzy"]
-name = "rclpy"
+name = "erobs-pixi"
 platforms = ["osx-arm64", "linux-64"]
 version = "0.1.0"
 
@@ -17,7 +17,6 @@ ros-jazzy-ros2cli = ">=0.32.9,<0.33"
 ros-jazzy-ros2topic = ">=0.32.9,<0.33"
 ros-jazzy-ros2action = ">=0.32.9,<0.33"
 ros-jazzy-ros2node = ">=0.32.9,<0.33"
-ros-jazzy-turtlesim = ">=1.8.3,<2"
 ros-jazzy-rosidl-default-generators = ">=1.6.0,<2"
 ros-jazzy-rosidl-default-runtime = ">=1.6.0,<2"
 ros-jazzy-rosidl-generator-py = ">=0.22.2,<0.23"
@@ -27,24 +26,20 @@ ros-jazzy-geometry-msgs = ">=5.3.7,<6"
 ros-jazzy-std-msgs = ">=5.3.7,<6"
 colcon-common-extensions = ">=0.3.0,<0.4"
 vcstool = ">=0.3.0,<0.4"
-# vcstool imports pkg_resources; setuptools >=81 drops it. Pin below that.
+# Preserve pkg_resources compatibility for Colcon.
 setuptools = ">=68,<81"
 ros-jazzy-rmw-cyclonedds-cpp = ">=2.2.3,<3"
 ros-jazzy-ros2doctor = ">=0.32.9,<0.33"
-websocket-client = ">=1.9.0,<2"
 ros-jazzy-ros2run = ">=0.32.9,<0.33"
+ros-jazzy-ros2launch = ">=0.26.11,<0.27"
 ros-jazzy-demo-nodes-cpp = ">=0.33.10,<0.34"
 ros-jazzy-sensor-msgs = ">=5.3.7,<6"
 ros-jazzy-std-srvs = ">=5.3.7,<6"
 ros-jazzy-cv-bridge = ">=4.1.0,<5"
 ros-jazzy-moveit-msgs = ">=2.6.0,<3"
-# UR5e meshes for the GUI's 3D view. Thin clients have no /opt/ros install;
-# this puts ur_description in the pixi env so ament_index resolves its meshes.
+# Provides UR5e meshes for the GUI's 3D view.
 ros-jazzy-ur-description = ">=3.1.0,<4"
-# Force the headless OpenCV build (no highgui → no Qt linkage). cv-bridge pulls
-# py-opencv/libopencv; the GUI build variant links conda Qt6, which then collides
-# with the pip PyQt6 6.9 needed for QtWebEngine (two Qt in one process → xcb
-# plugin version mismatch). Headless keeps a single Qt in the process.
+# Avoid OpenCV Qt dependencies conflicting with pip PyQt6.
 libopencv = { version = "*", build = "headless*" }
 py-opencv = { version = "*", build = "headless*" }
 
@@ -86,5 +81,3 @@ pvxslibs = ">=1.3.2, <2"
 
 [environments]
 ros2 = {features=["profile", "ros"], solve-group="profile"}
-
-

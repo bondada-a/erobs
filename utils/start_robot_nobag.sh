@@ -1,19 +1,19 @@
 #!/bin/bash
 # Start beambot (no rosbridge, no rosbag)
-# Usage: ./start_robot_nobag.sh [beambot launch args]
+# Usage: ./utils/start_robot_nobag.sh [beambot launch args]
 # Examples:
-#   ./start_robot_nobag.sh
-#   ./start_robot_nobag.sh use_fake_hardware:=true
-#   ./start_robot_nobag.sh enable_vision:=false
+#   ./utils/start_robot_nobag.sh
+#   ./utils/start_robot_nobag.sh use_mock_hardware:=true enable_vision:=false enable_pipettor:=false
+#   ./utils/start_robot_nobag.sh enable_vision:=false
 
 set -e
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+WORKSPACE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Source ROS2 + workspace
 source /opt/ros/jazzy/setup.bash
-source "$SCRIPT_DIR/install/setup.bash" 2>/dev/null || {
-    echo "Workspace not built. Run: colcon build && source install/setup.bash"
+source "$WORKSPACE_DIR/install/setup.bash" 2>/dev/null || {
+    echo "Workspace not built. Run: cd \"$WORKSPACE_DIR\" && colcon build && source install/setup.bash"
     exit 1
 }
 
@@ -23,7 +23,7 @@ source "$SCRIPT_DIR/install/setup.bash" 2>/dev/null || {
 if [[ -z "${BEAMBOT_BEAMLINE_CONFIG:-}" ]]; then
     echo "ERROR: BEAMBOT_BEAMLINE_CONFIG is not set." >&2
     echo "Export it before launching, e.g.:" >&2
-    echo "    export BEAMBOT_BEAMLINE_CONFIG=$SCRIPT_DIR/src/beambot/config/cms_beamline.yaml" >&2
+    echo "    export BEAMBOT_BEAMLINE_CONFIG=\"$WORKSPACE_DIR/src/beambot/config/cms_beamline.yaml\"" >&2
     exit 1
 fi
 if [[ ! -f "$BEAMBOT_BEAMLINE_CONFIG" ]]; then

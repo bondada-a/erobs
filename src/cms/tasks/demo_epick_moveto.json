@@ -1,0 +1,33 @@
+{
+  "start_gripper": "epick",
+  "poses": {
+    "safe_sample_transport": [
+      79.72,
+      -69.5,
+      -81.91,
+      -117.92,
+      -268.05,
+      -157.15
+    ],
+    "safe_tool_exchange": [
+      152.33,
+      -110.63,
+      -100.17,
+      -59.12,
+      -270.43,
+      -207.7
+    ]
+  },
+  "tasks": [
+    {
+      "task_type": "moveto",
+      "target": "safe_sample_transport",
+      "planning_type": "joint"
+    },
+    {
+      "task_type": "moveto",
+      "target": "safe_tool_exchange",
+      "planning_type": "joint"
+    }
+  ]
+}

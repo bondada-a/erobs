@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
-"""Summarize a ros2_tracing CTF trace for beambot perf review.
-
-Produces a markdown report with:
-  1. Top callbacks by total time spent (count * mean) — cumulative load
-  2. Top callbacks by p95 latency — worst-case outliers
-  3. Per-node callback counts + totals — which node is hottest
+"""Report callback timings and owner totals from a ros2_tracing CTF trace.
 
 Usage:
     ros2 run beambot perf_trace_summarize.py <trace_dir> [--top N] [--out report.md]
 
-Default is top 20, written to stdout.
+Defaults to the top 20 rows per table on stdout.
 """
 from __future__ import annotations
 
@@ -26,7 +21,7 @@ from tracetools_analysis.utils.ros2 import Ros2DataModelUtil
 
 
 def format_duration(td: pd.Timedelta | np.timedelta64 | float) -> str:
-    """Format a duration as ms (or us for sub-ms)."""
+    """Format seconds or a timedelta as us, ms, or s."""
     if isinstance(td, (pd.Timedelta, np.timedelta64)):
         ms = pd.Timedelta(td).total_seconds() * 1000.0
     else:
@@ -39,18 +34,10 @@ def format_duration(td: pd.Timedelta | np.timedelta64 | float) -> str:
 
 
 def collect_callback_stats(util: Ros2DataModelUtil) -> pd.DataFrame:
-    """Build a per-callback stats DataFrame: symbol, owner, count, mean, p50, p95, max, total.
-
-    Iterates over callback objects from the instances table directly and looks
-    up symbols via a safe .get() — tolerates missing symbol rows, which happen
-    whenever a callback was registered before tracing started (pre-init) but
-    executed after (so only the instance event is in the trace, not the
-    register event). util.get_callback_symbols() raises KeyError on these;
-    we skip them gracefully with a synthetic "<unknown symbol>".
-    """
+    """Collect per-callback counts and timing statistics in seconds."""
     data = util.data
     callback_instances = data.callback_instances
-    callback_symbols = data.callback_symbols  # DataFrame indexed by callback_object
+    callback_symbols = data.callback_symbols
     callback_objects = set(callback_instances['callback_object'])
 
     rows = []
@@ -64,11 +51,8 @@ def collect_callback_stats(util: Ros2DataModelUtil) -> pd.DataFrame:
         durs = durations_df['duration']
         durs_s = durs.dt.total_seconds() if hasattr(durs, 'dt') else pd.to_timedelta(durs).dt.total_seconds()
         count = int(len(durs_s))
-        if count == 0:
-            continue
 
-        # Safe symbol lookup: some callback_objects legitimately lack
-        # registration events in the trace window.
+        # Registration events may precede tracing; retain callbacks with unknown symbols.
         try:
             raw_symbol = callback_symbols.loc[cb_obj, 'symbol']
             symbol = util._prettify(raw_symbol) if hasattr(util, '_prettify') else str(raw_symbol)
@@ -100,7 +84,7 @@ def truncate(text: str, width: int) -> str:
 
 
 def md_table(df: pd.DataFrame, columns: list[tuple[str, str, int]]) -> str:
-    """Emit a markdown table. columns = [(df_col, header, width), ...]."""
+    """Render Markdown using (column, heading, width) specifications."""
     header = '| ' + ' | '.join(truncate(h, w) for _, h, w in columns) + ' |'
     sep = '|' + '|'.join('-' * (w + 2) for _, _, w in columns) + '|'
     lines = [header, sep]
@@ -142,12 +126,9 @@ def main() -> int:
 
     n = args.top
 
-    # Top N by cumulative time
     top_total = df.sort_values('total_s', ascending=False).head(n)
-    # Top N by p95 latency (only include callbacks with enough samples to be meaningful)
     top_p95 = df[df['count'] >= 3].sort_values('p95_s', ascending=False).head(n)
 
-    # Per-owner rollup
     per_owner = (
         df.groupby('owner')
           .agg(n_callbacks=('symbol', 'count'),
@@ -197,7 +178,7 @@ def main() -> int:
     ]))
     out_lines.append("")
     out_lines.append("---")
-    out_lines.append(f"_For publish/receive latency and timeline, run "
+    out_lines.append(f"_To inspect the trace data-model tables, run "
                      f"`ros2 run tracetools_analysis auto {args.trace_dir}`._")
 
     report = '\n'.join(out_lines) + '\n'
