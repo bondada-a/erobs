@@ -1,15 +1,7 @@
-"""Vacuum monitor — detects object drops during ePick transport.
+"""Optional ePick vacuum-loss tracking between execution units.
 
-Arms when vacuum_on is sent, disarms on vacuum_off. A background
-subscription on /object_detection_status watches for NO_OBJECT_DETECTED
-while armed, and flags the drop so the orchestrator can abort before
-the next motion step.
-
-epick_msgs is imported lazily so beamlines without ePick installed can
-still load this module. If the import fails, VacuumMonitor instantiates
-in a permanently-disarmed state and never subscribes — the orchestrator
-unconditionally builds a monitor, but only ePick-using beamlines have
-end_effector tasks that would arm it anyway.
+The subscription and orchestrator integration are disabled. Both must be
+restored for live detection; this monitor does not stop in-flight motion.
 """
 
 from typing import Any
@@ -17,37 +9,23 @@ from typing import Any
 from rclpy.node import Node
 
 
-# ePick status code for "no object detected"
+# ObjectDetectionStatus.NO_OBJECT_DETECTED; keep ePick imports optional.
 _NO_OBJECT = 3
 
 
 class VacuumMonitor:
-    """Monitors ePick vacuum grasp and detects object drops."""
+    """Track grasp state and latch vacuum loss for the orchestrator."""
 
     def __init__(self, node: Node, grippers_config: dict[str, Any], callback_group=None):
-        self._node = node
         self._logger = node.get_logger()
         self._grippers = grippers_config
 
         self.armed = False
         self.lost = False
         self.status: 'int | None' = None
-        self.last_error = ""
 
-        # Subscription DISABLED for performance.
-        #
-        # /object_detection_status arrives at a high rate (~250 Hz) and each
-        # message grabs the GIL in this GIL-bound Python process, contending
-        # with the goal-execution thread. The vacuum-loss ABORT was already
-        # disabled in the orchestrator (commit 88b3d4e — sequences continue
-        # regardless of drop detection), so this subscription fed nothing
-        # actionable. Leaving it active was pure GIL overhead.
-        #
-        # arm/disarm bookkeeping (update_after_tasks) and check_lost() still
-        # work; without the subscription self.lost never flips to True, which
-        # matches the current "no abort on drop" behavior. To restore live drop
-        # detection, set _SUBSCRIBE = True below AND re-enable the abort checks
-        # in the orchestrator.
+        # Disabled to avoid callback overhead while loss checks are inactive.
+        # Re-enable the subscription and orchestrator integration together.
         _SUBSCRIBE = False
 
         if not _SUBSCRIBE:
@@ -55,6 +33,7 @@ class VacuumMonitor:
             return
 
         try:
+            # Beamlines without ePick do not require its message package.
             from epick_msgs.msg import ObjectDetectionStatus
         except ImportError:
             self._sub = None
@@ -71,14 +50,14 @@ class VacuumMonitor:
         )
 
     def reset(self):
-        """Reset state for a new goal."""
+        """Clear arming and loss flags for a new goal."""
         self.armed = False
         self.lost = False
 
     def _on_status(self, msg):
-        """Subscription callback — fires continuously while ePick is active."""
+        """Cache status and latch a no-object report while armed."""
         self.status = int(msg.status)
-        if self.armed and self.status == _NO_OBJECT:
+        if self.armed and not self.lost and self.status == _NO_OBJECT:
             self.lost = True
             self._logger.warning(
                 "VACUUM_LOST: object detection status changed to NO_OBJECT_DETECTED "
@@ -88,14 +67,10 @@ class VacuumMonitor:
     def update_after_tasks(
         self, executed_tasks: list[dict[str, Any]], current_gripper: str
     ):
-        """Arm/disarm the monitor based on grasp/release actions in executed tasks.
+        """Update arming after executed end-effector actions.
 
-        State names are sourced from the active beamline YAML's
-        grippers.epick.states block — they must match the SRDF group_state
-        names exactly (e.g. "vacuum_on"/"vacuum_off" for the stock CMS SRDF,
-        or whatever the local SRDF declares). If the YAML doesn't declare
-        them, the monitor refuses to run — silent mismatch would mean no
-        drop detection during transport.
+        grippers.epick.states.grasp/release must match SRDF state names.
+        Missing names are logged and leave the existing monitor state unchanged.
         """
         if current_gripper != "epick":
             return
@@ -119,6 +94,7 @@ class VacuumMonitor:
                 self.lost = False
                 self.armed = True
                 self._logger.info(f"Vacuum monitor ARMED ({grasp_state} detected)")
+                # TODO: Use fresh post-grasp status; cached readings can falsely report a loss.
                 if self.status == _NO_OBJECT:
                     self.lost = True
                     self._logger.warning(
@@ -130,7 +106,7 @@ class VacuumMonitor:
                 self._logger.info(f"Vacuum monitor DISARMED ({release_state} detected)")
 
     def check_lost(self) -> str | None:
-        """Check if vacuum was lost. Returns error string if lost, None if OK."""
+        """Return a pending loss error once and disarm; otherwise return None."""
         if not self.armed or not self.lost:
             return None
         self.armed = False

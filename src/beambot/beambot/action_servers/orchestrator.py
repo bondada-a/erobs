@@ -28,7 +28,7 @@ from std_srvs.srv import Trigger
 from std_msgs.msg import String
 
 from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
-from beambot.core.vacuum_monitor import VacuumMonitor
+# from beambot.core.vacuum_monitor import VacuumMonitor
 from beambot.core.plan_cache import PlanCache
 from beambot.core.tool_exchange_manager import ToolExchangeManager
 from beambot.stages.move_to_stages import MoveToStages
@@ -224,7 +224,8 @@ class MTCOrchestratorServer(Node):
         )
         self._publish_gripper(self._current_gripper)
 
-        self._vacuum = VacuumMonitor(self, self._grippers, self._callback_group)
+        # Vacuum monitoring is disabled.
+        # self._vacuum = VacuumMonitor(self, self._grippers, self._callback_group)
 
         self.get_logger().info(
             "MTC Orchestrator (Python) started on 'beambot_execution'"
@@ -367,7 +368,7 @@ class MTCOrchestratorServer(Node):
         """Main execution logic."""
         self.get_logger().info("Executing orchestration goal")
 
-        self._vacuum.reset()
+        # self._vacuum.reset()
         self._last_detected_position = None
         self._last_detected_orientation = None
 
@@ -472,7 +473,7 @@ class MTCOrchestratorServer(Node):
                     goal_handle.canceled()
                     return result
 
-            # Vacuum loss is telemetry-only; abort logic remains disabled.
+            # Vacuum-loss abort checks remain disabled.
             # if not dry_run:
             #     vacuum_error = self._vacuum.check_lost()
             #     if vacuum_error:
@@ -531,8 +532,9 @@ class MTCOrchestratorServer(Node):
                     self.get_logger().info("Trajectory cached for replay")
                     self._last_planned_sol_msg = None
 
-                if not dry_run:
-                    self._vacuum.update_after_tasks(batch_tasks, self._current_gripper)
+                # Vacuum bookkeeping is disabled.
+                # if not dry_run:
+                #     self._vacuum.update_after_tasks(batch_tasks, self._current_gripper)
                 completed_tasks += batch_size
 
             else:
@@ -616,7 +618,7 @@ class MTCOrchestratorServer(Node):
                     goal_handle.abort()
                     return result
 
-                self._vacuum.update_after_tasks([task], self._current_gripper)
+                # self._vacuum.update_after_tasks([task], self._current_gripper)
                 completed_tasks += 1
 
             result.completed_steps = completed_tasks
@@ -630,7 +632,7 @@ class MTCOrchestratorServer(Node):
                 goal_handle.canceled()
                 return result
 
-        # Final vacuum loss does not change successful completion.
+        # Final vacuum-loss check remains disabled.
         # if not dry_run:
         #     vacuum_error = self._vacuum.check_lost()
         #     if vacuum_error:
@@ -890,7 +892,7 @@ class MTCOrchestratorServer(Node):
     # Vision and sample handlers.
 
     # Legacy task names map to VisionTask defaults; explicit fields override them.
-    # Watchdog preserves ePick vacuum state across goals.
+    # Vacuum watchdog bookkeeping is disabled.
     _VISION_PRESETS = {
         "vision_moveto": {"detector": "marker", "goal_computer": "approach_pose"},
         "pick_sample": {
@@ -899,14 +901,14 @@ class MTCOrchestratorServer(Node):
             "terminal_action": "grasp",
             "pre_open": True,
             "retreat_from_scan": True,
-            "watchdog": "arm",
+            # "watchdog": "arm",
         },
         "place_sample": {
             "detector": "marker",
             "goal_computer": "approach_pose",
             "terminal_action": "release",
             "retreat_from_scan": True,
-            "watchdog": "disarm",
+            # "watchdog": "disarm",
         },
         "pick_spincoater": {
             "detector": "spincoater_sample",
@@ -978,7 +980,7 @@ class MTCOrchestratorServer(Node):
     def _call_vision_task(
         self, task_type: str, step: dict[str, Any], poses_json: str
     ) -> bool:
-        """Dispatch vision tasks and retain cross-goal pose and vacuum state."""
+        """Dispatch vision tasks and retain detected poses."""
         preset = self._VISION_PRESETS.get(task_type, {})
 
         # Non-vision pick/place stays on the sample server.
@@ -1018,15 +1020,15 @@ class MTCOrchestratorServer(Node):
                     f"Stored detected pose: [{pos[0]:.4f}, {pos[1]:.4f}, {pos[2]:.4f}]"
                 )
 
-        # ePick watchdog spans goals, so its state remains in the orchestrator.
-        watchdog = preset.get("watchdog", "")
-        if success and watchdog and self._current_gripper == "epick":
-            if watchdog == "arm" and getattr(self._last_result, "vacuum_ok", True):
-                self._vacuum.armed = True
-                self._vacuum.lost = False
-            elif watchdog == "disarm":
-                self._vacuum.armed = False
-                self._vacuum.lost = False
+        # Vacuum watchdog bookkeeping is disabled.
+        # watchdog = preset.get("watchdog", "")
+        # if success and watchdog and self._current_gripper == "epick":
+        #     if watchdog == "arm" and getattr(self._last_result, "vacuum_ok", True):
+        #         self._vacuum.armed = True
+        #         self._vacuum.lost = False
+        #     elif watchdog == "disarm":
+        #         self._vacuum.armed = False
+        #         self._vacuum.lost = False
 
         return success
 
@@ -1155,9 +1157,9 @@ class MTCOrchestratorServer(Node):
             "place_sample",
             self._timeouts["place_sample"],
         )
-        if success and self._current_gripper == "epick":
-            self._vacuum.armed = False
-            self._vacuum.lost = False
+        # if success and self._current_gripper == "epick":
+        #     self._vacuum.armed = False
+        #     self._vacuum.lost = False
         return success
 
     # State and feedback publishing.

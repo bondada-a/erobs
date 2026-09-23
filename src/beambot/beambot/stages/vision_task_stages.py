@@ -2,7 +2,7 @@
 
 import json
 import math
-import threading
+# import threading
 import time
 from dataclasses import dataclass
 from typing import Any
@@ -126,11 +126,10 @@ class VisionTaskStages:
         if error is not None:
             return error
 
-        # Stage 4: post-grasp vacuum check (pick only — when a grasp happened on
-        # an ePick). Mirrors PickSampleStages: never aborts, just reports.
-        if isinstance(target, CartesianTarget) and target.grasp_state:
-            self.vacuum_ok = self._check_vacuum()
-            self.logger.info(f"vacuum_ok={self.vacuum_ok}")
+        # Vacuum check disabled; vacuum_ok remains an unchecked True.
+        # if isinstance(target, CartesianTarget) and target.grasp_state:
+        #     self.vacuum_ok = self._check_vacuum()
+        #     self.logger.info(f"vacuum_ok={self.vacuum_ok}")
         return None
 
     def _execute_motion_target(self, target) -> "str | None":
@@ -306,44 +305,41 @@ class VisionTaskStages:
         error = vision.load_plan_execute(task)
         return f"Position failed: {error}" if error else None
 
-    def _check_vacuum(self) -> bool:
-        """Lifted from PickSampleStages: one-shot /object_detection_status read.
-
-        Returns True if an object is detected or no ePick is connected.
-        """
-        try:
-            from epick_msgs.msg import ObjectDetectionStatus
-        except ImportError:
-            return True
-
-        msg_holder = [None]
-        event = threading.Event()
-
-        def _on_status(msg):
-            msg_holder[0] = msg
-            event.set()
-
-        sub = self.rclpy_node.create_subscription(
-            ObjectDetectionStatus,
-            "/object_detection_status",
-            _on_status,
-            10,
-        )
-        event.wait(timeout=1.0)
-        self.rclpy_node.destroy_subscription(sub)
-
-        if msg_holder[0] is None:
-            return True  # No ePick connected
-        NO_OBJECT = 3
-        detected = msg_holder[0].status != NO_OBJECT
-        if not detected:
-            self.logger.warning(
-                "VACUUM_LOST: ePick reports NO_OBJECT_DETECTED after pick"
-            )
-        return detected
+    # def _check_vacuum(self) -> bool:
+    #     """Return False only when ePick reports NO_OBJECT_DETECTED."""
+    #     try:
+    #         from epick_msgs.msg import ObjectDetectionStatus
+    #     except ImportError:
+    #         return True
+    #
+    #     msg_holder = [None]
+    #     event = threading.Event()
+    #
+    #     def _on_status(msg):
+    #         msg_holder[0] = msg
+    #         event.set()
+    #
+    #     sub = self.rclpy_node.create_subscription(
+    #         ObjectDetectionStatus,
+    #         "/object_detection_status",
+    #         _on_status,
+    #         10,
+    #     )
+    #     event.wait(timeout=1.0)
+    #     self.rclpy_node.destroy_subscription(sub)
+    #
+    #     if msg_holder[0] is None:
+    #         return True  # No status received; grasp is unverified.
+    #     NO_OBJECT = 3
+    #     detected = msg_holder[0].status != NO_OBJECT
+    #     if not detected:
+    #         self.logger.warning(
+    #             "VACUUM_LOST: ePick reports NO_OBJECT_DETECTED after pick"
+    #         )
+    #     return detected
 
     def _parse_scan_positions(self, goal) -> "list | None":
-        """Multi-position averaging: unflatten [j1..j6, ...] into [[6], ...]."""
+        """Group flattened scan poses into six-joint lists in radians."""
         num = getattr(goal, "num_scan_positions", 0)
         if num <= 0:
             return None

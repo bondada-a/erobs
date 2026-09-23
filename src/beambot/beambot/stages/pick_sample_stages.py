@@ -1,7 +1,7 @@
 """Sample picking using named joint poses or vision-guided targets."""
 
 import json
-import threading
+# import threading
 
 from geometry_msgs.msg import PoseStamped
 from moveit.task_constructor import core, stages
@@ -76,8 +76,9 @@ class PickSampleStages(BaseStages):
         if error is not None:
             return error
 
-        self.vacuum_ok = self._check_vacuum()
-        self.logger.info(f"Pick complete, vacuum_ok={self.vacuum_ok}")
+        # Vacuum check disabled; vacuum_ok remains an unchecked True.
+        # self.vacuum_ok = self._check_vacuum()
+        self.logger.info("Pick complete (vacuum check disabled)")
         return None
 
     def _run_vision(
@@ -281,40 +282,36 @@ class PickSampleStages(BaseStages):
 
         return None
 
-    def _check_vacuum(self) -> bool:
-        """Check if ePick reports object detected after pick.
-
-        One-shot subscribe to /object_detection_status, wait up to 1s.
-        Returns True if object detected or if no ePick connected.
-        """
-        try:
-            from epick_msgs.msg import ObjectDetectionStatus
-        except ImportError:
-            return True
-
-        msg_holder = [None]
-        event = threading.Event()
-
-        def _on_status(msg):
-            msg_holder[0] = msg
-            event.set()
-
-        sub = self.rclpy_node.create_subscription(
-            ObjectDetectionStatus,
-            "/object_detection_status",
-            _on_status,
-            10,
-        )
-        event.wait(timeout=1.0)
-        self.rclpy_node.destroy_subscription(sub)
-
-        if msg_holder[0] is None:
-            return True  # No ePick connected
-
-        NO_OBJECT = 3
-        detected = msg_holder[0].status != NO_OBJECT
-        if not detected:
-            self.logger.warning(
-                "VACUUM_LOST: ePick reports NO_OBJECT_DETECTED after pick"
-            )
-        return detected
+    # def _check_vacuum(self) -> bool:
+    #     """Read ePick status; missing messages or support return True."""
+    #     try:
+    #         from epick_msgs.msg import ObjectDetectionStatus
+    #     except ImportError:
+    #         return True
+    #
+    #     msg_holder = [None]
+    #     event = threading.Event()
+    #
+    #     def _on_status(msg):
+    #         msg_holder[0] = msg
+    #         event.set()
+    #
+    #     sub = self.rclpy_node.create_subscription(
+    #         ObjectDetectionStatus,
+    #         "/object_detection_status",
+    #         _on_status,
+    #         10,
+    #     )
+    #     event.wait(timeout=1.0)
+    #     self.rclpy_node.destroy_subscription(sub)
+    #
+    #     if msg_holder[0] is None:
+    #         return True  # No status received; grasp is unverified.
+    #
+    #     NO_OBJECT = 3
+    #     detected = msg_holder[0].status != NO_OBJECT
+    #     if not detected:
+    #         self.logger.warning(
+    #             "VACUUM_LOST: ePick reports NO_OBJECT_DETECTED after pick"
+    #         )
+    #     return detected
