@@ -7,6 +7,9 @@ The system pairs a UR5e with swappable end effectors, a Zivid 3D camera, and a R
 MoveIt Task Constructor stack behind a JSON task interface, so experiments can be
 authored manually, driven by an LLM over MCP, or — eventually — orchestrated by Bluesky.
 
+**Documentation:** <https://bondada-a.github.io/erobs/> — installation, operator guides,
+architecture, and the function reference. The docs are still being written and reviewed.
+
 ## Hardware at a glance
 
 - **Robot**: Universal Robots UR5e 6-DOF arm (fixed 20 % velocity / acceleration scaling)
@@ -120,6 +123,8 @@ robot-side troubleshooting details.
 
 ## Further reading
 
+- [EROBS documentation](https://bondada-a.github.io/erobs/) — full guides and
+  function reference (work in progress)
 - [`src/beambot/beambot/agent/robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md)
   — authoritative robot-operation reference: task JSON schema, MCP tool inventory,
   error taxonomy, gotchas (also loaded by the `robot-operation` skill)
