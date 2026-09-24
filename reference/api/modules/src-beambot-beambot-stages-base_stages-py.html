@@ -1,0 +1,964 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shared motion stages &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Trajectory plan cache" href="src-beambot-beambot-core-plan_cache-py.html" />
+    <link rel="prev" title="MoveTo planning stages" href="src-beambot-beambot-stages-move_to_stages-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-move_to_server-py.html">MoveTo action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-move_to_stages-py.html">MoveTo planning stages</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Shared motion stages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-plan_cache-py.html">Trajectory plan cache</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-custom-ur-descriptions-cms_moveit_config-src-servo_node_jazzy-cpp.html">CMS Servo controller</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/motion-planning.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/motion-planning.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/motion-planning.html">Motion planning</a></li>
+      <li class="breadcrumb-item active">Shared motion stages</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="shared-motion-stages">
+<h1>Shared motion stages<a class="headerlink" href="#shared-motion-stages" title="Link to this heading"></a></h1>
+<p>Provide shared MTC model loading, planners, pose conversion, constraints, previews, and execution. Import reads installed planning configuration; the first stage instance initializes the shared C++ MTC node.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.stages.base_stages</span></code> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/motion-planning.html"><span class="std std-doc">Motion planning</span></a> · <a class="reference internal" href="../../../architecture/batching.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>Operation-specific stage classes inherit <code class="docutils literal notranslate"><span class="pre">BaseStages</span></code> to build, plan, and execute MoveIt Task Constructor tasks. The usual flow is <code class="docutils literal notranslate"><span class="pre">create_task_template()</span></code> → add operation stages → <code class="docutils literal notranslate"><span class="pre">load_plan_execute()</span></code>. Use <code class="docutils literal notranslate"><span class="pre">init_and_plan()</span></code> when planning must be separated from execution, as in the orchestrator’s batch/cache path.</p>
+<p>Planner builders and pose/constraint helpers support that flow. Blocking ROS waits require another executor thread to process responses. Import still requires ROS/MTC libraries and reads installed planning YAML. <code class="docutils literal notranslate"><span class="pre">_get_mtc_node()</span></code> initializes <code class="docutils literal notranslate"><span class="pre">rclcpp</span></code> and creates the shared <code class="docutils literal notranslate"><span class="pre">beambot_mtc</span></code> node only when the first stage instance is constructed.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-cf73253cdd036a8d"><span class="std std-ref">BaseStages.create_task_template</span></a></p></td>
+<td><p>Create a task with CurrentState, clear task-local planners and endpoint pinning, and reuse the latest RobotModel when its revision matches. Managed revisions load the dedicated robot-description pair.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-8a861e38e03a1d33"><span class="std std-ref">BaseStages.load_plan_execute</span></a></p></td>
+<td><p>Initialize and plan a task, then execute it unless planning failed or dry_run was requested.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-e67cebd2930e6cde"><span class="std std-ref">BaseStages.init_and_plan</span></a></p></td>
+<td><p>Initialize the task and request one solution, serialize its first solution when possible, adjust endpoints and optionally publish a preview. Serialization failure alone does not turn a successful plan into an error.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-59e811f4af4c8d08"><span class="std std-ref">BaseStages.execute_solution_msg</span></a></p></td>
+<td><p>Send a serialized solution through a node-shared execute_task_solution action client, wait for acceptance/result and decode MoveIt success.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="basestages">
+<h2><code class="docutils literal notranslate"><span class="pre">BaseStages</span></code><a class="headerlink" href="#basestages" title="Link to this heading"></a></h2>
+<p>Shared implementation for robot-model reuse, planner construction, task planning, previews, and execution. Subclasses provide their operation-specific <code class="docutils literal notranslate"><span class="pre">run(goal)</span></code> or task-composition methods; the base does not implement a generic operation. The first instance initializes the shared native node; later instances reuse it.</p>
+<section id="basestages-create-task-template">
+<span id="api-cf73253cdd036a8d"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.create_task_template()</span></code><a class="headerlink" href="#basestages-create-task-template" title="Link to this heading"></a></h3>
+<p>Create a task with CurrentState, clear task-local planners and endpoint pinning, and reuse the latest RobotModel when its revision matches. Managed revisions load the dedicated robot-description pair.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-287">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">create_task_template</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">core</span><span class="o">.</span><span class="n">Task</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Human-readable MTC task name.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> New MTC Task with its model and current-state stage.</p>
+<p><strong>Errors:</strong> Model-loading and native binding errors propagate. Tool-specific group/link checks are performed by offline model tests, not this method.</p>
+<p><strong>Side effects:</strong> Resets _pin_goal_joints and planner cache, may load and replace the process model cache, and creates an MTC task with introspection disabled.</p>
+</section>
+<section id="basestages-load-plan-execute">
+<span id="api-8a861e38e03a1d33"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.load_plan_execute()</span></code><a class="headerlink" href="#basestages-load-plan-execute" title="Link to this heading"></a></h3>
+<p>Initialize and plan a task, then execute it unless planning failed or dry_run was requested.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-426">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">load_plan_execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">core</span><span class="o">.</span><span class="n">Task</span><span class="p">,</span> <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task</span></code></p></td>
+<td><p>MTC Task with composed stages.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dry_run</span></code></p></td>
+<td><p>When true, publish a preview and skip execution.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None on successful planning/execution, or an explanatory error string.</p>
+<p><strong>Errors:</strong> Planning/execution helpers convert their handled exceptions to strings.</p>
+<p><strong>Side effects:</strong> Plans trajectories, stores a serialized solution, and either publishes a preview or executes robot motion.</p>
+</section>
+<section id="basestages-init-and-plan">
+<span id="api-e67cebd2930e6cde"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.init_and_plan()</span></code><a class="headerlink" href="#basestages-init-and-plan" title="Link to this heading"></a></h3>
+<p>Initialize the task and request one solution, serialize its first solution when possible, adjust endpoints and optionally publish a preview. Serialization failure alone does not turn a successful plan into an error.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-433">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">init_and_plan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">core</span><span class="o">.</span><span class="n">Task</span><span class="p">,</span> <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task</span></code></p></td>
+<td><p>MTC Task to initialize and plan.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dry_run</span></code></p></td>
+<td><p>Publish the serialized preview when true.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None after a successful plan; error string for initialization/planning/no-solution/outer exceptions.</p>
+<p><strong>Errors:</strong> Catches initialization and outer planning exceptions; serialization failures are logged as warnings.</p>
+<p><strong>Side effects:</strong> Resets then updates last_sol_msg, plans, logs final joint positions, mutates serialized endpoints and may publish a preview.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-8a861e38e03a1d33"><code>BaseStages.load_plan_execute</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-execute-solution-msg">
+<span id="api-59e811f4af4c8d08"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.execute_solution_msg()</span></code><a class="headerlink" href="#basestages-execute-solution-msg" title="Link to this heading"></a></h3>
+<p>Send a serialized solution through a node-shared execute_task_solution action client, wait for acceptance/result and decode MoveIt success.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-552">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">execute_solution_msg</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sol_msg</span><span class="p">,</span> <span class="n">is_replay</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sol_msg</span></code></p></td>
+<td><p>Serialized MTC solution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">is_replay</span></code></p></td>
+<td><p>Emit an explicit cache-replay success log when true.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None on success; descriptive error string on unavailable server, rejection, timeout, MoveIt failure or exception.</p>
+<p><strong>Errors:</strong> A 10 s acceptance timeout leaves acceptance unknown and does not retry. A 120 s result timeout requests cancellation and waits up to 5 s without confirming motion stopped. Exceptions become strings.</p>
+<p><strong>Side effects:</strong> May create/cache an action client; executes physical trajectories, requests cancellation on result timeout and logs.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-8104cac7556b088f"><code>BaseStages.execute_solution</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-init">
+<span id="api-3d651866e556151f"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.__init__()</span></code><a class="headerlink" href="#basestages-init" title="Link to this heading"></a></h3>
+<p>Obtain the shared C++ MTC node, initializing it on first construction, and bind the Python logger. Choose default arm/IK frames, configured speed scales and STOMP when loaded, otherwise OMPL.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-254">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rclpy_node</span><span class="p">,</span> <span class="n">arm_group</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">,</span> <span class="n">ik_frame</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rclpy_node</span></code></p></td>
+<td><p>Owning ROS Python node.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">arm_group</span></code></p></td>
+<td><p>Planning group; empty uses ur_arm.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ik_frame</span></code></p></td>
+<td><p>IK frame; empty uses flange.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Configuration/scale failures fall back to 0.2 velocity and acceleration fractions; native ROS initialization, node construction, and logger failures propagate.</p>
+<p><strong>Side effects:</strong> On first stage construction, initializes rclcpp and creates the process-shared beambot_mtc node under a lock. Initializes this instance’s planner and serialized-solution state and may load configuration.</p>
+</section>
+<section id="basestages-make-pipeline-planner">
+<span id="api-1d6c251c392c5751"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.make_pipeline_planner()</span></code><a class="headerlink" href="#basestages-make-pipeline-planner" title="Link to this heading"></a></h3>
+<p>Reuse or create the current task’s general planner: OMPL RRTstar or the selected STOMP pipeline, with configured speed scales and 1e-4 joint-goal tolerance.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-321">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">make_pipeline_planner</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">core</span><span class="o">.</span><span class="n">PipelinePlanner</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task-local PipelinePlanner.</p>
+<p><strong>Errors:</strong> MTC planner construction/configuration errors propagate.</p>
+<p><strong>Side effects:</strong> Populates the current task’s planner cache.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-7f19069057378f90"><code>BaseStages.make_move_to_named_stage</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-make-cartesian-planner">
+<span id="api-d9e38f579f32d9a4"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.make_cartesian_planner()</span></code><a class="headerlink" href="#basestages-make-cartesian-planner" title="Link to this heading"></a></h3>
+<p>Reuse or create a CartesianPath planner with configured speed scales, 0.5 mm step size and minimum path fraction 0.9.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-336">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">make_cartesian_planner</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">core</span><span class="o">.</span><span class="n">CartesianPath</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task-local CartesianPath planner.</p>
+<p><strong>Errors:</strong> MTC binding errors propagate.</p>
+<p><strong>Side effects:</strong> Populates the current task’s planner cache; callers may mutate the returned shared planner.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-e0958d45a6aa75f4"><code>BaseStages.create_relative_move_stage</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-make-pilz-planner">
+<span id="api-3a613823397e9a09"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.make_pilz_planner()</span></code><a class="headerlink" href="#basestages-make-pilz-planner" title="Link to this heading"></a></h3>
+<p>Reuse or create a Pilz planner for the requested mode with configured speed scales.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-348">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">make_pilz_planner</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">'LIN'</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">core</span><span class="o">.</span><span class="n">PipelinePlanner</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p>Pilz planner ID, normally LIN or PTP; default LIN.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Task-local PipelinePlanner keyed by mode.</p>
+<p><strong>Errors:</strong> Unsupported modes are not validated locally; MTC/plugin failures propagate.</p>
+<p><strong>Side effects:</strong> Populates the current task’s planner cache.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-e0958d45a6aa75f4"><code>BaseStages.create_relative_move_stage</code></a> — beambot.stages.base_stages</li><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-7f19069057378f90"><code>BaseStages.make_move_to_named_stage</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-make-joint-interpolation-planner">
+<span id="api-157110c346a434e1"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.make_joint_interpolation_planner()</span></code><a class="headerlink" href="#basestages-make-joint-interpolation-planner" title="Link to this heading"></a></h3>
+<p>Reuse or create a JointInterpolationPlanner with configured speed scales for simple gripper motions.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-361">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">make_joint_interpolation_planner</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">core</span><span class="o">.</span><span class="n">JointInterpolationPlanner</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task-local JointInterpolationPlanner.</p>
+<p><strong>Errors:</strong> MTC binding errors propagate.</p>
+<p><strong>Side effects:</strong> Populates the current task’s planner cache.</p>
+</section>
+<section id="basestages-create-relative-move-stage">
+<span id="api-e0958d45a6aa75f4"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.create_relative_move_stage()</span></code><a class="headerlink" href="#basestages-create-relative-move-stage" title="Link to this heading"></a></h3>
+<p>Build relative translation in the configured IK frame. With no explicit planner, try Pilz LIN, CartesianPath and Pilz PTP in that order. The aliases y/right mean negative local Y, while -y/left mean positive local Y.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-376">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">create_relative_move_stage</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">direction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+    <span class="n">planner</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">constraints</span><span class="p">:</span> <span class="n">Constraints</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">label</span></code></p></td>
+<td><p>Display label for the stage/fallback container.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p>Supported direction word or axis alias.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">distance</span></code></p></td>
+<td><p>Travel in metres; positivity is validated by callers, not here.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">planner</span></code></p></td>
+<td><p>Explicit planner, or None for the fallback sequence.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">constraints</span></code></p></td>
+<td><p>Optional MoveIt path constraints applied to each candidate.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> MoveRelative stage for an explicit planner, otherwise a Fallbacks container.</p>
+<p><strong>Errors:</strong> Raises ValueError for an unknown direction; binding/planner errors propagate.</p>
+<p><strong>Side effects:</strong> Creates stages and may populate planner caches; does not plan or move the robot.</p>
+</section>
+<section id="basestages-execute-solution">
+<span id="api-8104cac7556b088f"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.execute_solution()</span></code><a class="headerlink" href="#basestages-execute-solution" title="Link to this heading"></a></h3>
+<p>Require an available task solution, then execute last_sol_msg when present or fall back to native execution of the first solution.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-491">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">execute_solution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">core</span><span class="o">.</span><span class="n">Task</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task</span></code></p></td>
+<td><p>Planned MTC Task.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None on MoveIt SUCCESS; otherwise an execution error string with decoded code where available.</p>
+<p><strong>Errors:</strong> Catches execution exceptions and converts them to strings; no solutions returns an error.</p>
+<p><strong>Side effects:</strong> Commands robot motion and logs failures; native fallback bypasses serialized endpoint adjustments.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-8a861e38e03a1d33"><code>BaseStages.load_plan_execute</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-parse-poses">
+<span id="api-4c395015b02bbfc8"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.parse_poses()</span></code><a class="headerlink" href="#basestages-parse-poses" title="Link to this heading"></a></h3>
+<p>Decode poses JSON without validating its root type.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-640">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">parse_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Serialized pose registry; empty input denotes no poses.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Decoded JSON value, {} for empty input, or None for invalid JSON.</p>
+<p><strong>Errors:</strong> Catches JSONDecodeError and logs; wrong input types can raise TypeError.</p>
+<p><strong>Side effects:</strong> Logs malformed JSON.</p>
+</section>
+<section id="basestages-get-joint-pose">
+<span id="api-ad6310bf6ff9eeff"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.get_joint_pose()</span></code><a class="headerlink" href="#basestages-get-joint-pose" title="Link to this heading"></a></h3>
+<p>Look up a named pose and require a list of exactly six elements; numeric contents are left for later conversion.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-650">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_joint_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">pose_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Decoded mapping of pose names to angle lists.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pose_key</span></code></p></td>
+<td><p>Pose name to retrieve.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Original six-element degree list, or None if absent or wrong shape.</p>
+<p><strong>Errors:</strong> Logs absent/invalid poses; malformed container types can still raise.</p>
+<p><strong>Side effects:</strong> Logs failures without mutating poses.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-7f19069057378f90"><code>BaseStages.make_move_to_named_stage</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-make-move-to-named-stage">
+<span id="api-7f19069057378f90"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.make_move_to_named_stage()</span></code><a class="headerlink" href="#basestages-make-move-to-named-stage" title="Link to this heading"></a></h3>
+<p>Convert a six-element named degree pose into joint targets, record it for endpoint pinning and build an explicit-planner stage or Pilz PTP/general-pipeline fallbacks.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-668">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">make_move_to_named_stage</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">pose_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">poses</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">planner</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">constraints</span><span class="p">:</span> <span class="n">Constraints</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">label</span></code></p></td>
+<td><p>Display name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pose_key</span></code></p></td>
+<td><p>Key in the pose mapping.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Named six-joint degree lists.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">planner</span></code></p></td>
+<td><p>Explicit planner; None enables Pilz PTP then general pipeline with a 5 s timeout.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">constraints</span></code></p></td>
+<td><p>Optional path constraints.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> MoveTo stage or Fallbacks container; None for a missing/wrong-shape pose.</p>
+<p><strong>Errors:</strong> Numeric/model/planner errors propagate; lookup failures are logged and return None.</p>
+<p><strong>Side effects:</strong> Sets _pin_goal_joints, creates stages and may populate planner caches.</p>
+</section>
+<section id="basestages-make-gripper-stage">
+<span id="api-0ed40cfcc8f569e2"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.make_gripper_stage()</span></code><a class="headerlink" href="#basestages-make-gripper-stage" title="Link to this heading"></a></h3>
+<p>Build a MoveTo stage targeting an SRDF state in a gripper group; omit the stage when either name is empty.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-709">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">make_gripper_stage</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">label</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">planner</span><span class="p">,</span>
+    <span class="n">gripper_group</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">state_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">stages</span><span class="o">.</span><span class="n">MoveTo</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">label</span></code></p></td>
+<td><p>Stage label.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">planner</span></code></p></td>
+<td><p>Planner used for gripper motion.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper_group</span></code></p></td>
+<td><p>SRDF gripper group.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">state_name</span></code></p></td>
+<td><p>SRDF group-state name.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> MoveTo stage, or None for empty group/state.</p>
+<p><strong>Errors:</strong> Binding errors propagate; group/state existence is not validated locally.</p>
+<p><strong>Side effects:</strong> Creates/configures a stage or logs the skipped action.</p>
+</section>
+<section id="basestages-compute-deterministic-ik">
+<span id="api-c62472d2d3918382"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseStages.compute_deterministic_ik()</span></code><a class="headerlink" href="#basestages-compute-deterministic-ik" title="Link to this heading"></a></h3>
+<p>Capture a live JointState, round seed positions to 0.01 degrees, request /compute_ik, and retain every configured arm joint from a successful solution.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-726">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">compute_deterministic_ik</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">approach</span><span class="p">:</span> <span class="n">PoseStamped</span><span class="p">,</span>
+    <span class="n">ik_frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">approach</span></code></p></td>
+<td><p>Target PoseStamped, including its reference frame.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ik_frame</span></code></p></td>
+<td><p>IK link name for the requested target.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Configured arm-joint name to radian-position mapping on success, otherwise None.</p>
+<p><strong>Errors:</strong> Missing joint state (1 s), service (2 s), response (5 s), unsuccessful code or incomplete solution return None with warnings. Service-phase exceptions are caught; initial subscription errors propagate.</p>
+<p><strong>Side effects:</strong> Creates/destroys a temporary joint-state subscription and IK service client. The blocking call allows 5 s for a response and requires another executor thread to process it.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="basestages-set-ik-frame">
+<span id="api-f0abccb36fe98f0e"></span><h4><code class="docutils literal notranslate"><span class="pre">BaseStages._set_ik_frame()</span></code><a class="headerlink" href="#basestages-set-ik-frame" title="Link to this heading"></a></h4>
+<p>Set the stage IK frame via a PoseStamped whose header uses this stage object’s configured frame.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-371">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_set_ik_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">stage</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">stage</span></code></p></td>
+<td><p>MTC stage to configure.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Stage binding errors propagate.</p>
+<p><strong>Side effects:</strong> Mutates stage.ik_frame.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-e0958d45a6aa75f4"><code>BaseStages.create_relative_move_stage</code></a> — beambot.stages.base_stages</li><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-7f19069057378f90"><code>BaseStages.make_move_to_named_stage</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-pin-endpoints">
+<span id="api-572ce4ba3991b16b"></span><h4><code class="docutils literal notranslate"><span class="pre">BaseStages._pin_endpoints()</span></code><a class="headerlink" href="#basestages-pin-endpoints" title="Link to this heading"></a></h4>
+<p>Overwrite the first populated trajectory point with known live joints and the last populated point with a saved named goal, without retiming or revalidating the trajectory.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-521">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_pin_endpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sol_msg</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sol_msg</span></code></p></td>
+<td><p>Serialized MTC solution to modify in place.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Catches all adjustment errors and logs a warning; earlier partial edits are not undone.</p>
+<p><strong>Side effects:</strong> Mutates first/last joint positions and zeros existing velocity/acceleration arrays.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-e67cebd2930e6cde"><code>BaseStages.init_and_plan</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-pin-endpoints-set">
+<span id="api-061fb77d737edca0"></span><h4><code class="docutils literal notranslate"><span class="pre">BaseStages._pin_endpoints._set()</span></code><a class="headerlink" href="#basestages-pin-endpoints-set" title="Link to this heading"></a></h4>
+<p>Replace positions for names found in a target mapping and zero any existing velocity/acceleration arrays.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-532">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_set</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="n">names</span><span class="p">,</span> <span class="n">targets</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pt</span></code></p></td>
+<td><p>Trajectory point to mutate.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">names</span></code></p></td>
+<td><p>Joint names aligned with the point positions.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">targets</span></code></p></td>
+<td><p>Mapping from joint name to desired position in radians.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Mismatched lengths may raise IndexError, handled by the enclosing endpoint adjustment.</p>
+<p><strong>Side effects:</strong> Mutates the point’s position, velocity and acceleration fields.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-572ce4ba3991b16b"><code>BaseStages._pin_endpoints</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-publish-preview-trajectory">
+<span id="api-8ed1b0fa3587c8b5"></span><h4><code class="docutils literal notranslate"><span class="pre">BaseStages._publish_preview_trajectory()</span></code><a class="headerlink" href="#basestages-publish-preview-trajectory" title="Link to this heading"></a></h4>
+<p>Build DisplayTrajectory from serialized subtrajectories, deriving the start state from the first populated joint trajectory and preserving original timing.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-595">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_publish_preview_trajectory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sol_msg</span><span class="p">,</span> <span class="n">task_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sol_msg</span></code></p></td>
+<td><p>Serialized solution with sub_trajectory entries.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">task_name</span></code></p></td>
+<td><p>Name used in the publication log.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Catches publication/message errors and logs a warning.</p>
+<p><strong>Side effects:</strong> Creates/reuses a reliable transient-local publisher and publishes /beambot/preview_trajectory.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-e67cebd2930e6cde"><code>BaseStages.init_and_plan</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="basestages-compute-deterministic-ik-on-js">
+<span id="api-83564b59f24f9746"></span><h4><code class="docutils literal notranslate"><span class="pre">BaseStages.compute_deterministic_ik._on_js()</span></code><a class="headerlink" href="#basestages-compute-deterministic-ik-on-js" title="Link to this heading"></a></h4>
+<p>Store the received JointState for the enclosing IK request and signal its waiter.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-733">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_js</span><span class="p">(</span><span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>Latest JointState message.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No explicit failure handling.</p>
+<p><strong>Side effects:</strong> Updates the closure-held message and sets its threading event.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-c62472d2d3918382"><code>BaseStages.compute_deterministic_ik</code></a> — beambot.stages.base_stages</li></ul></details></section>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="wait-for-future">
+<span id="api-4423ed7efe6c2304"></span><h3><code class="docutils literal notranslate"><span class="pre">wait_for_future()</span></code><a class="headerlink" href="#wait-for-future" title="Link to this heading"></a></h3>
+<p>Poll future.done without spinning an executor, using a monotonic deadline; another executor must process responses concurrently.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-63">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">wait_for_future</span><span class="p">(</span><span class="n">future</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">poll_interval</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mf">0.01</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">future</span></code></p></td>
+<td><p>Future supporting done().</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Maximum wait in seconds.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poll_interval</span></code></p></td>
+<td><p>Sleep interval in seconds, default 0.01.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True once done, including a future completed with an exception; False on timeout.</p>
+<p><strong>Errors:</strong> Does not inspect future.result or cancel it. Errors from done or invalid sleep intervals propagate.</p>
+<p><strong>Side effects:</strong> Blocks the calling thread in short sleeps.</p>
+<details class="api-references"><summary>Referenced in source (6)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-670df1277b3228fd"><code>MTCOrchestratorServer._send_and_wait</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-59e811f4af4c8d08"><code>BaseStages.execute_solution_msg</code></a> — beambot.stages.base_stages</li><li><a href="src-beambot-beambot-stages-pipettor_stages-py.html#api-2d12a5ecbccfb167"><code>PipettorStages._execute_pipettor_action</code></a> — beambot.stages.pipettor_stages</li><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-2a50653c20b17da7"><code>VisionEngine._apply_collision_object</code></a> — beambot.vision.vision_engine</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-b949a65b503ad22a"><code>ROS2BridgeNode.cancel_all_goals</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-1ed6cc38526428b0"><code>ROS2BridgeNode.trigger_capture</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="get-mtc-node">
+<span id="api-3e0a2671aedd7d3e"></span><h3><code class="docutils literal notranslate"><span class="pre">_get_mtc_node()</span></code><a class="headerlink" href="#get-mtc-node" title="Link to this heading"></a></h3>
+<p>Return the shared C++ MTC node, initializing it under a lock on first use.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-166">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_get_mtc_node</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> The process-shared rclcpp.Node named beambot_mtc; later calls return the same object.</p>
+<p><strong>Errors:</strong> Native ROS initialization or node-construction errors propagate. If construction fails, the cached node remains unset.</p>
+<p><strong>Side effects:</strong> Acquires the module lock. On first successful use, calls rclcpp.init() and constructs the node with planning options prepared at module import. Does not create or execute an MTC task.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-3d651866e556151f"><code>BaseStages.__init__</code></a> — beambot.stages.base_stages</li></ul></details></section>
+<section id="joints-from-degrees">
+<span id="api-eef35a3b9e318528"></span><h3><code class="docutils literal notranslate"><span class="pre">joints_from_degrees()</span></code><a class="headerlink" href="#joints-from-degrees" title="Link to this heading"></a></h3>
+<p>Pair each configured default joint name with the corresponding angle converted from degrees to radians.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-179">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">joints_from_degrees</span><span class="p">(</span><span class="n">degrees</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">degrees</span></code></p></td>
+<td><p>Ordered degree values, exactly matching DEFAULT_JOINT_NAMES length.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Dictionary of joint-name to radian angle.</p>
+<p><strong>Errors:</strong> Raises ValueError for length mismatch; invalid numeric values raise during conversion.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-7f19069057378f90"><code>BaseStages.make_move_to_named_stage</code></a> — beambot.stages.base_stages</li><li><a href="src-beambot-beambot-stages-tool_exchange_stages-py.html#api-0cf501d4d2d930ea"><code>ToolExchangeStages.run</code></a> — beambot.stages.tool_exchange_stages</li></ul></details></section>
+<section id="parse-constraints">
+<span id="api-ee586d647e1b6f63"></span><h3><code class="docutils literal notranslate"><span class="pre">parse_constraints()</span></code><a class="headerlink" href="#parse-constraints" title="Link to this heading"></a></h3>
+<p>Translate joint and orientation constraint dictionaries into MoveIt messages, converting degree angles and tolerances to radians. Orientation triples become quaternions; rotation-vector parameterization is the default.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-192">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">parse_constraints</span><span class="p">(</span><span class="n">constraints_dict</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Constraints</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">constraints_dict</span></code></p></td>
+<td><p>Optional mapping with joint_constraints and orientation_constraints lists. Joint tolerances default to 1 degree; orientation tolerances to 5 degrees per axis; weights to 1.0.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Constraints message, or None for absent input or no recognized constraints.</p>
+<p><strong>Errors:</strong> Missing required keys, undersized triples and invalid numeric values propagate as Python errors; no range validation is performed.</p>
+<p><strong>Side effects:</strong> Allocates ROS messages.</p>
+<details class="api-references"><summary>Referenced in source (6)</summary><ul><li><a href="src-beambot-beambot-stages-move_to_stages-py.html#api-bfce38ed98bd08c6"><code>MoveToStages.add_to_task</code></a> — beambot.stages.move_to_stages</li><li><a href="src-beambot-beambot-stages-pick_sample_stages-py.html#api-443489d0b5aceebd"><code>PickSampleStages.run</code></a> — beambot.stages.pick_sample_stages</li><li><a href="src-beambot-beambot-stages-place_sample_stages-py.html#api-b900eaf4301d8b33"><code>PlaceSampleStages.run</code></a> — beambot.stages.place_sample_stages</li><li><a href="src-beambot-beambot-stages-vision_task_stages-py.html#api-3bc74d269b9824f3"><code>VisionTaskStages._execute_cartesian</code></a> — beambot.stages.vision_task_stages</li><li><a href="src-beambot-beambot-stages-vision_task_stages-py.html#api-7b5c81526ef7b86f"><code>VisionTaskStages._execute_joints</code></a> — beambot.stages.vision_task_stages</li><li><a href="src-beambot-beambot-stages-vision_task_stages-py.html#api-982573b32013e6ec"><code>VisionTaskStages._move_to_scan</code></a> — beambot.stages.vision_task_stages</li></ul></details></section>
+<section id="apply-constraints">
+<span id="api-a4f04f40d5a1895b"></span><h3><code class="docutils literal notranslate"><span class="pre">apply_constraints()</span></code><a class="headerlink" href="#apply-constraints" title="Link to this heading"></a></h3>
+<p>Assign a stage’s path_constraints only when a non-None message is supplied.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-246">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">apply_constraints</span><span class="p">(</span><span class="n">stage</span><span class="p">,</span> <span class="n">constraints</span><span class="p">:</span> <span class="n">Constraints</span> <span class="o">|</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">stage</span></code></p></td>
+<td><p>MTC stage accepting path_constraints.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">constraints</span></code></p></td>
+<td><p>Constraints message or None.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Attribute/type errors from the stage binding propagate.</p>
+<p><strong>Side effects:</strong> May mutate the stage.</p>
+<details class="api-references"><summary>Referenced in source (7)</summary><ul><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-e0958d45a6aa75f4"><code>BaseStages.create_relative_move_stage</code></a> — beambot.stages.base_stages</li><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-7f19069057378f90"><code>BaseStages.make_move_to_named_stage</code></a> — beambot.stages.base_stages</li><li><a href="src-beambot-beambot-stages-move_to_stages-py.html#api-bfce38ed98bd08c6"><code>MoveToStages.add_to_task</code></a> — beambot.stages.move_to_stages</li><li><a href="src-beambot-beambot-stages-pick_sample_stages-py.html#api-7db2c8da4416721d"><code>PickSampleStages._run_vision</code></a> — beambot.stages.pick_sample_stages</li><li><a href="src-beambot-beambot-stages-place_sample_stages-py.html#api-aee268c8efd2bf1f"><code>PlaceSampleStages._run_vision</code></a> — beambot.stages.place_sample_stages</li><li><a href="src-beambot-beambot-stages-vision_task_stages-py.html#api-3bc74d269b9824f3"><code>VisionTaskStages._execute_cartesian</code></a> — beambot.stages.vision_task_stages</li><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-54c9b124a12789a9"><code>VisionEngine._move_to_approach</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="load-joint-accel-limits">
+<span id="api-926696dfbcde414f"></span><h4><code class="docutils literal notranslate"><span class="pre">_load_joint_accel_limits()</span></code><a class="headerlink" href="#load-joint-accel-limits" title="Link to this heading"></a></h4>
+<p>Read joint_limits.yaml from sorted MoveIt config subdirectories, collecting enabled max_acceleration values and keeping the first value on conflicts.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-74">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_joint_accel_limits</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Mapping from joint name to float acceleration limit.</p>
+<p><strong>Errors:</strong> Config-helper failure selects cms_moveit_config; package, directory, YAML and float-conversion errors otherwise propagate.</p>
+<p><strong>Side effects:</strong> Reads installed YAML files and writes conflict warnings to stderr; invoked at module import.</p>
+</section>
+<section id="build-joint-limit-args">
+<span id="api-b733e0376da84318"></span><h4><code class="docutils literal notranslate"><span class="pre">_build_joint_limit_args()</span></code><a class="headerlink" href="#build-joint-limit-args" title="Link to this heading"></a></h4>
+<p>Render acceleration enable/value overrides under a selected robot-description planning namespace.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-104">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_joint_limit_args</span><span class="p">(</span>
+    <span class="n">limits</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+    <span class="n">robot_description</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'robot_description'</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">limits</span></code></p></td>
+<td><p>Joint-name to acceleration-limit mapping.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">robot_description</span></code></p></td>
+<td><p>Parameter namespace root, robot_description by default.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Flat ROS -p argument list with two parameters per joint.</p>
+<p><strong>Errors:</strong> No explicit validation; values are string-interpolated.</p>
+</section>
+<section id="build-kinematics-args">
+<span id="api-6332700cd7c7620a"></span><h4><code class="docutils literal notranslate"><span class="pre">_build_kinematics_args()</span></code><a class="headerlink" href="#build-kinematics-args" title="Link to this heading"></a></h4>
+<p>Read installed config/kinematics.yaml and emit each group setting under the requested description’s kinematics namespace.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-117">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_kinematics_args</span><span class="p">(</span><span class="n">robot_description</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot_description</span></code></p></td>
+<td><p>Robot-description parameter root, including the verified-model root for managed revisions.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Flat ROS -p argument list.</p>
+<p><strong>Errors:</strong> Package lookup, file, YAML shape and serialization errors propagate; config-helper failure selects the default package.</p>
+<p><strong>Side effects:</strong> Reads kinematics YAML.</p>
+</section>
+<section id="build-cartesian-limit-args">
+<span id="api-493873fa3d289b23"></span><h4><code class="docutils literal notranslate"><span class="pre">_build_cartesian_limit_args()</span></code><a class="headerlink" href="#build-cartesian-limit-args" title="Link to this heading"></a></h4>
+<p>Read the required cartesian_limits block from installed Pilz limits and emit robot_description_planning overrides.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/stages/base_stages.py.html#L-133">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_cartesian_limit_args</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Flat ROS -p argument list.</p>
+<p><strong>Errors:</strong> Missing file/block, malformed YAML or package lookup errors propagate.</p>
+<p><strong>Side effects:</strong> Reads pilz_cartesian_limits.yaml.</p>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-beambot-stages-move_to_stages-py.html" class="btn btn-neutral float-left" title="MoveTo planning stages" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-beambot-core-plan_cache-py.html" class="btn btn-neutral float-right" title="Trajectory plan cache" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

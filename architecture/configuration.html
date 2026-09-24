@@ -1,0 +1,318 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Configuration and deployment boundaries &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Hardware and perception" href="../hardware/index.html" />
+    <link rel="prev" title="Perception and vision execution" href="perception.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Architecture</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="execution.html">Task execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="batching.html">Batching and caches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lifecycle.html">Tool and MoveIt lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="perception.html">Perception and vision execution</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Configuration and deployment boundaries</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#select-the-installation">Select the installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#load-and-apply-settings">Load and apply settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#choose-the-session-components">Choose the session components</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#resolve-pose-and-scene-paths">Resolve pose and scene paths</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#model-and-planner-configuration">Model and planner configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#adapting-another-installation">Adapting another installation</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#from-task-script-to-execution">From task script to execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#main-components">Main components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#process-boundaries">Process boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#explore-the-architecture">Explore the architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Architecture</a></li>
+      <li class="breadcrumb-item active">Configuration and deployment boundaries</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="configuration-and-deployment-boundaries">
+<h1>Configuration and deployment boundaries<a class="headerlink" href="#configuration-and-deployment-boundaries" title="Link to this heading"></a></h1>
+<p>EROBS separates installation settings from session options. A <strong>beamline YAML</strong> defines the robot, tools, camera, poses, and scene. <strong>Launch arguments</strong> select which components run. Robot models, controllers, and planning settings come from the selected ROS packages.</p>
+<section id="select-the-installation">
+<h2>Select the installation<a class="headerlink" href="#select-the-installation" title="Link to this heading"></a></h2>
+<p>Set <code class="docutils literal notranslate"><span class="pre">BEAMBOT_BEAMLINE_CONFIG</span></code> before starting EROBS. For example, from the repository root:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">BEAMBOT_BEAMLINE_CONFIG</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span>realpath<span class="w"> </span>src/beambot/config/cms_drylab.yaml<span class="k">)</span><span class="s2">"</span>
+</pre></div>
+</div>
+<p>Use the same selection in each terminal that starts the runtime, GUI, or another configuration-dependent client. Beamline selection is an environment variable; it is not a <code class="docutils literal notranslate"><span class="pre">beambot_bringup.launch.py</span></code> argument.</p>
+<p>The repository includes these files under <code class="docutils literal notranslate"><span class="pre">src/beambot/config/</span></code>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cms_beamline.yaml</span></code></p></td>
+<td><p>CMS beamline robot settings</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cms_drylab.yaml</span></code></p></td>
+<td><p>Dry-lab robot endpoint; currently shares CMS tool, pose, scene, and model settings</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lix_beamline.yaml</span></code></p></td>
+<td><p>Preliminary LIX configuration; requires completion before use</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The dry-lab file does not enable mock hardware.</strong> Select <code class="docutils literal notranslate"><span class="pre">use_mock_hardware:=true</span></code> separately, as shown in <a class="reference internal" href="../start/first-task.html"><span class="std std-doc">Run your first task</span></a>.</p>
+</section>
+<section id="load-and-apply-settings">
+<h2>Load and apply settings<a class="headerlink" href="#load-and-apply-settings" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../reference/api/modules/src-beambot-beambot-config_loader-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">config_loader.py</span></code></span></a>, under <code class="docutils literal notranslate"><span class="pre">src/beambot/beambot/</span></code>, provides <code class="docutils literal notranslate"><span class="pre">load_beamline_config()</span></code>. It reads the selected YAML, validates configured tool payloads and voltages, and returns the settings and source path. Every configured tool needs a finite positive <code class="docutils literal notranslate"><span class="pre">payload_mass</span></code> and finite <code class="docutils literal notranslate"><span class="pre">payload_cog.x/y/z</span></code>. <code class="docutils literal notranslate"><span class="pre">tool_voltage</span></code> accepts 0, 12, or 24 V; omitting it means 0 V. Invalid values are reported together and stop the load.</p>
+<p>This is a targeted check, not validation of the entire deployment. Missing selection, missing files, and YAML errors also fail loading; other required fields are checked by their consumers.</p>
+<p>A successful load is cached <strong>within each process</strong>. Callers in that process share the dictionary and must treat it as read-only. The runtime and GUI do not share a live configuration object.</p>
+<figure class="architecture-figure">
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="configuration diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="configuration-title configuration-desc">
+<title id="configuration-title">Beamline configuration within each process</title>
+<desc id="configuration-desc">The environment selects a beamline YAML. Each process using the shared loader caches its own settings and source path for robot, camera, pose, and scene consumers.</desc>
+<defs><marker id="configuration-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="configuration-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="configuration-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  ARCHITECTURE</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">Beamline configuration within each process</text><line x1="400" y1="204" x2="504" y2="204" stroke="#52647a" stroke-width="1.5" marker-end="url(#configuration-arrow)"/><rect x="412.0" y="160" width="80" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="452" y="180" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">SELECT</text><line x1="776" y1="204" x2="880" y2="204" stroke="#52647a" stroke-width="1.5" marker-end="url(#configuration-arrow)"/><rect x="792.0" y="160" width="72" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="828" y="180" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">CACHE</text><path d="M 976,244 V 324 Q 976,332 968,332 H 280 Q 272,332 272,340 V 416" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#configuration-arrow)"/><path d="M 1048,244 V 356 Q 1048,364 1040,364 H 648 Q 640,364 640,372 V 416" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#configuration-arrow)"/><path d="M 1120,244 V 388 Q 1120,396 1112,396 H 1016 Q 1008,396 1008,404 V 416" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#configuration-arrow)"/><rect x="48" y="160" width="352" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="224" y="200" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">BEAMBOT_BEAMLINE_CONFIG</text><text x="224" y="224" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">explicit existing YAML path</text><rect x="504" y="160" width="272" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="640" y="188" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Configuration loader</text><text x="640" y="212" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">read selected YAML</text><text x="640" y="236" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">return settings</text><rect x="880" y="160" width="336" height="88" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="1048" y="200" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Settings + source path</text><text x="1048" y="224" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">cached for this process</text><rect x="136" y="416" width="272" height="112" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="272" y="456" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Robot and tool model</text><text x="272" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">packages · frames ·</text><text x="272" y="504" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">tool settings</text><rect x="504" y="416" width="272" height="112" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="640" y="456" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Camera and vision</text><text x="640" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">type · frames · target</text><text x="640" y="504" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">profiles</text><rect x="872" y="416" width="272" height="112" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1008" y="468" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Poses and scene files</text><text x="1008" y="492" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">resolve configured paths</text><text x="136" y="568" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Used by lifecycle and stages</text><text x="504" y="568" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Used by vision and task routing</text><text x="872" y="568" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Workspace-relative when found</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Restart affected processes after changing the selected file or its contents. Each process keeps its own cached settings.</text>
+</svg></div>
+<figcaption><a href="../diagrams/configuration.html">Open the full-size diagram</a></figcaption>
+</figure><p><strong>Restart affected processes after changing the YAML or selecting a different file.</strong> Editing the file or exporting a new value does not refresh running processes. The cache-reset helper clears only the loader’s cache, not settings already held by callers.</p>
+<p>The GUI also reads beamline settings at startup. It can open without a usable configuration to inspect task JSON, but its robot address and pose registry will be unavailable. Some helper functions supply defaults for isolated use; those fallbacks do not replace the runtime’s required configuration.</p>
+<p>See the <a class="reference internal" href="../reference/configuration.html"><span class="std std-doc">configuration reference</span></a> for tool states, payloads, offsets, camera settings, and other fields.</p>
+</section>
+<section id="choose-the-session-components">
+<h2>Choose the session components<a class="headerlink" href="#choose-the-session-components" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">src/beambot/launch/beambot_bringup.launch.py</span></code> starts the orchestrator and core task servers. The orchestrator starts the selected robot and MoveIt stack when a task needs it.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Launch argument</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Effect</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">use_mock_hardware</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Select mock robot control in the managed robot launch. Camera, pipettor, and other device behavior remain separately configured.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">enable_vision</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Start Zivid, <code class="docutils literal notranslate"><span class="pre">vision_scan_server.py</span></code>, <code class="docutils literal notranslate"><span class="pre">vision_task_server.py</span></code>, and <code class="docutils literal notranslate"><span class="pre">sample_pick_place_server.py</span></code>.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enable_pipettor</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Start the pipettor task server.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">enable_batching</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+<td><p>Plan compatible consecutive steps in one MTC task.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The sample pick/place server is part of the vision launch group, so disabling vision also removes its <code class="docutils literal notranslate"><span class="pre">use_vision:</span> <span class="pre">false</span></code> pick/place endpoints. The <a class="reference internal" href="../reference/launch.html"><span class="std std-doc">launch reference</span></a> covers joystick, tracing, and logging options.</p>
+</section>
+<section id="resolve-pose-and-scene-paths">
+<h2>Resolve pose and scene paths<a class="headerlink" href="#resolve-pose-and-scene-paths" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">resolve_beamline_path()</span></code> expands <code class="docutils literal notranslate"><span class="pre">~</span></code> and handles resource paths as follows:</p>
+<ul class="simple">
+<li><p><strong>Absolute path:</strong> use the normalized path directly.</p></li>
+<li><p><strong>Relative path:</strong> search upward from the configuration directory, checking up to ten directories for one containing <code class="docutils literal notranslate"><span class="pre">src/</span></code>. Resolve against that workspace root; if none is found, use the configuration directory.</p></li>
+</ul>
+<p>For example, <code class="docutils literal notranslate"><span class="pre">poses_file:</span> <span class="pre">src/cms/poses.yaml</span></code> resolves from the workspace root when the YAML is under <code class="docutils literal notranslate"><span class="pre">src/beambot/config/</span></code>. Moving the YAML outside the workspace can change that result. The resolver constructs a path; it does not check that the resource exists.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Consumer</p></th>
+<th class="head"><p>Lookup behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Orchestrator and MCP pose registry; MoveIt and GUI scene loading</p></td>
+<td><p>Use the shared resolver above</p></td>
+</tr>
+<tr class="row-odd"><td><p>GUI pose panel</p></td>
+<td><p>Searches upward for an existing file matching <code class="docutils literal notranslate"><span class="pre">poses_file</span></code>; does not use the shared resolver or expand <code class="docutils literal notranslate"><span class="pre">~</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>GUI saved runs</p></td>
+<td><p>Searches upward for <code class="docutils literal notranslate"><span class="pre">src/cms/</span></code>, then uses <code class="docutils literal notranslate"><span class="pre">src/cms/runs/</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Use full absolute resource paths for a configuration stored outside the workspace, and verify both GUI and runtime loading. Saved runs retain their CMS-specific lookup. See <a class="reference internal" href="../operate/poses.html"><span class="std std-doc">poses and saved runs</span></a>.</p>
+</section>
+<section id="model-and-planner-configuration">
+<h2>Model and planner configuration<a class="headerlink" href="#model-and-planner-configuration" title="Link to this heading"></a></h2>
+<p>Three package settings serve different consumers:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Used for</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot.moveit_config_package</span></code></p></td>
+<td><p>Shared planning parameters, kinematics, and joint limits</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.&lt;tool&gt;.moveit_package</span></code></p></td>
+<td><p>The <code class="docutils literal notranslate"><span class="pre">robot_bringup.launch.py</span></code> launched for that tool</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot.description_package</span></code></p></td>
+<td><p>Robot descriptions used by the GUI viewer</p></td>
+</tr>
+</tbody>
+</table>
+<p>Keep these packages consistent with the selected tool. The main launch forwards OMPL, Pilz, and optional STOMP settings to the task servers and orchestrator. Stage planning selects STOMP when its parameters are present, otherwise OMPL. Velocity and acceleration scaling come from the beamline’s <code class="docutils literal notranslate"><span class="pre">robot</span></code> block, with <code class="docutils literal notranslate"><span class="pre">0.2</span></code> fallbacks.</p>
+</section>
+<section id="adapting-another-installation">
+<h2>Adapting another installation<a class="headerlink" href="#adapting-another-installation" title="Link to this heading"></a></h2>
+<p>Selecting a different YAML does not replace every site-specific choice:</p>
+<ul class="simple">
+<li><p><strong>Camera launch:</strong> main bringup explicitly starts Zivid with <code class="docutils literal notranslate"><span class="pre">zivid_optical_frame</span></code> and presets under <code class="docutils literal notranslate"><span class="pre">src/beambot/config/zivid/</span></code>. Changing <code class="docutils literal notranslate"><span class="pre">camera.type</span></code> or <code class="docutils literal notranslate"><span class="pre">camera.frame</span></code> alone does not change that launch.</p></li>
+<li><p><strong>Robot launch:</strong> CMS bringup still selects CMS packages and contains tool-specific controller and driver branches.</p></li>
+<li><p><strong>Site data:</strong> poses, tool geometry, payloads, camera calibration, and scene geometry must match the installation. The current LIX file lacks active payload values and fails configuration loading, including for mock sessions.</p></li>
+</ul>
+<p>Follow <a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamline adaptation</span></a> for the remaining site work and <a class="reference internal" href="lifecycle.html"><span class="std std-doc">tool and MoveIt lifecycle</span></a> for how configuration becomes a running robot model.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="perception.html" class="btn btn-neutral float-left" title="Perception and vision execution" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../hardware/index.html" class="btn btn-neutral float-right" title="Hardware and perception" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

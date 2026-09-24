@@ -1,0 +1,741 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>src/beambot/beambot/vision/detection/image_detection.py — EROBS source</title><style>body{font:16px system-ui;color:#18283b;margin:2rem}a{color:#235cb7}h1{font-size:1.3rem;overflow-wrap:anywhere}.source{overflow:auto}pre { line-height: 125%; }
+td.linenos .normal { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f0f0f0; }
+.highlight .c { color: #60A0B0; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #007020; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #60A0B0; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #60A0B0; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #007020 } /* Comment.Preproc */
+.highlight .cpf { color: #60A0B0; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #60A0B0; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #60A0B0; background-color: #FFF0F0 } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #F00 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #00A000 } /* Generic.Inserted */
+.highlight .go { color: #888 } /* Generic.Output */
+.highlight .gp { color: #C65D09; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #007020; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #007020; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #007020; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #007020 } /* Keyword.Pseudo */
+.highlight .kr { color: #007020; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #902000 } /* Keyword.Type */
+.highlight .m { color: #40A070 } /* Literal.Number */
+.highlight .s { color: #4070A0 } /* Literal.String */
+.highlight .na { color: #4070A0 } /* Name.Attribute */
+.highlight .nb { color: #007020 } /* Name.Builtin */
+.highlight .nc { color: #0E84B5; font-weight: bold } /* Name.Class */
+.highlight .no { color: #60ADD5 } /* Name.Constant */
+.highlight .nd { color: #555; font-weight: bold } /* Name.Decorator */
+.highlight .ni { color: #D55537; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #007020 } /* Name.Exception */
+.highlight .nf { color: #06287E } /* Name.Function */
+.highlight .nl { color: #002070; font-weight: bold } /* Name.Label */
+.highlight .nn { color: #0E84B5; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #062873; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #BB60D5 } /* Name.Variable */
+.highlight .ow { color: #007020; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #40A070 } /* Literal.Number.Bin */
+.highlight .mf { color: #40A070 } /* Literal.Number.Float */
+.highlight .mh { color: #40A070 } /* Literal.Number.Hex */
+.highlight .mi { color: #40A070 } /* Literal.Number.Integer */
+.highlight .mo { color: #40A070 } /* Literal.Number.Oct */
+.highlight .sa { color: #4070A0 } /* Literal.String.Affix */
+.highlight .sb { color: #4070A0 } /* Literal.String.Backtick */
+.highlight .sc { color: #4070A0 } /* Literal.String.Char */
+.highlight .dl { color: #4070A0 } /* Literal.String.Delimiter */
+.highlight .sd { color: #4070A0; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #4070A0 } /* Literal.String.Double */
+.highlight .se { color: #4070A0; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #4070A0 } /* Literal.String.Heredoc */
+.highlight .si { color: #70A0D0; font-style: italic } /* Literal.String.Interpol */
+.highlight .sx { color: #C65D09 } /* Literal.String.Other */
+.highlight .sr { color: #235388 } /* Literal.String.Regex */
+.highlight .s1 { color: #4070A0 } /* Literal.String.Single */
+.highlight .ss { color: #517918 } /* Literal.String.Symbol */
+.highlight .bp { color: #007020 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #06287E } /* Name.Function.Magic */
+.highlight .vc { color: #BB60D5 } /* Name.Variable.Class */
+.highlight .vg { color: #BB60D5 } /* Name.Variable.Global */
+.highlight .vi { color: #BB60D5 } /* Name.Variable.Instance */
+.highlight .vm { color: #BB60D5 } /* Name.Variable.Magic */
+.highlight .il { color: #40A070 } /* Literal.Number.Integer.Long */</style></head><body><a href="../../../../../../reference/source.html">← Source browser</a><h1>src/beambot/beambot/vision/detection/image_detection.py</h1><div class="source"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"><a href="#L-1">  1</a></span>
+<span class="normal"><a href="#L-2">  2</a></span>
+<span class="normal"><a href="#L-3">  3</a></span>
+<span class="normal"><a href="#L-4">  4</a></span>
+<span class="normal"><a href="#L-5">  5</a></span>
+<span class="normal"><a href="#L-6">  6</a></span>
+<span class="normal"><a href="#L-7">  7</a></span>
+<span class="normal"><a href="#L-8">  8</a></span>
+<span class="normal"><a href="#L-9">  9</a></span>
+<span class="normal"><a href="#L-10"> 10</a></span>
+<span class="normal"><a href="#L-11"> 11</a></span>
+<span class="normal"><a href="#L-12"> 12</a></span>
+<span class="normal"><a href="#L-13"> 13</a></span>
+<span class="normal"><a href="#L-14"> 14</a></span>
+<span class="normal"><a href="#L-15"> 15</a></span>
+<span class="normal"><a href="#L-16"> 16</a></span>
+<span class="normal"><a href="#L-17"> 17</a></span>
+<span class="normal"><a href="#L-18"> 18</a></span>
+<span class="normal"><a href="#L-19"> 19</a></span>
+<span class="normal"><a href="#L-20"> 20</a></span>
+<span class="normal"><a href="#L-21"> 21</a></span>
+<span class="normal"><a href="#L-22"> 22</a></span>
+<span class="normal"><a href="#L-23"> 23</a></span>
+<span class="normal"><a href="#L-24"> 24</a></span>
+<span class="normal"><a href="#L-25"> 25</a></span>
+<span class="normal"><a href="#L-26"> 26</a></span>
+<span class="normal"><a href="#L-27"> 27</a></span>
+<span class="normal"><a href="#L-28"> 28</a></span>
+<span class="normal"><a href="#L-29"> 29</a></span>
+<span class="normal"><a href="#L-30"> 30</a></span>
+<span class="normal"><a href="#L-31"> 31</a></span>
+<span class="normal"><a href="#L-32"> 32</a></span>
+<span class="normal"><a href="#L-33"> 33</a></span>
+<span class="normal"><a href="#L-34"> 34</a></span>
+<span class="normal"><a href="#L-35"> 35</a></span>
+<span class="normal"><a href="#L-36"> 36</a></span>
+<span class="normal"><a href="#L-37"> 37</a></span>
+<span class="normal"><a href="#L-38"> 38</a></span>
+<span class="normal"><a href="#L-39"> 39</a></span>
+<span class="normal"><a href="#L-40"> 40</a></span>
+<span class="normal"><a href="#L-41"> 41</a></span>
+<span class="normal"><a href="#L-42"> 42</a></span>
+<span class="normal"><a href="#L-43"> 43</a></span>
+<span class="normal"><a href="#L-44"> 44</a></span>
+<span class="normal"><a href="#L-45"> 45</a></span>
+<span class="normal"><a href="#L-46"> 46</a></span>
+<span class="normal"><a href="#L-47"> 47</a></span>
+<span class="normal"><a href="#L-48"> 48</a></span>
+<span class="normal"><a href="#L-49"> 49</a></span>
+<span class="normal"><a href="#L-50"> 50</a></span>
+<span class="normal"><a href="#L-51"> 51</a></span>
+<span class="normal"><a href="#L-52"> 52</a></span>
+<span class="normal"><a href="#L-53"> 53</a></span>
+<span class="normal"><a href="#L-54"> 54</a></span>
+<span class="normal"><a href="#L-55"> 55</a></span>
+<span class="normal"><a href="#L-56"> 56</a></span>
+<span class="normal"><a href="#L-57"> 57</a></span>
+<span class="normal"><a href="#L-58"> 58</a></span>
+<span class="normal"><a href="#L-59"> 59</a></span>
+<span class="normal"><a href="#L-60"> 60</a></span>
+<span class="normal"><a href="#L-61"> 61</a></span>
+<span class="normal"><a href="#L-62"> 62</a></span>
+<span class="normal"><a href="#L-63"> 63</a></span>
+<span class="normal"><a href="#L-64"> 64</a></span>
+<span class="normal"><a href="#L-65"> 65</a></span>
+<span class="normal"><a href="#L-66"> 66</a></span>
+<span class="normal"><a href="#L-67"> 67</a></span>
+<span class="normal"><a href="#L-68"> 68</a></span>
+<span class="normal"><a href="#L-69"> 69</a></span>
+<span class="normal"><a href="#L-70"> 70</a></span>
+<span class="normal"><a href="#L-71"> 71</a></span>
+<span class="normal"><a href="#L-72"> 72</a></span>
+<span class="normal"><a href="#L-73"> 73</a></span>
+<span class="normal"><a href="#L-74"> 74</a></span>
+<span class="normal"><a href="#L-75"> 75</a></span>
+<span class="normal"><a href="#L-76"> 76</a></span>
+<span class="normal"><a href="#L-77"> 77</a></span>
+<span class="normal"><a href="#L-78"> 78</a></span>
+<span class="normal"><a href="#L-79"> 79</a></span>
+<span class="normal"><a href="#L-80"> 80</a></span>
+<span class="normal"><a href="#L-81"> 81</a></span>
+<span class="normal"><a href="#L-82"> 82</a></span>
+<span class="normal"><a href="#L-83"> 83</a></span>
+<span class="normal"><a href="#L-84"> 84</a></span>
+<span class="normal"><a href="#L-85"> 85</a></span>
+<span class="normal"><a href="#L-86"> 86</a></span>
+<span class="normal"><a href="#L-87"> 87</a></span>
+<span class="normal"><a href="#L-88"> 88</a></span>
+<span class="normal"><a href="#L-89"> 89</a></span>
+<span class="normal"><a href="#L-90"> 90</a></span>
+<span class="normal"><a href="#L-91"> 91</a></span>
+<span class="normal"><a href="#L-92"> 92</a></span>
+<span class="normal"><a href="#L-93"> 93</a></span>
+<span class="normal"><a href="#L-94"> 94</a></span>
+<span class="normal"><a href="#L-95"> 95</a></span>
+<span class="normal"><a href="#L-96"> 96</a></span>
+<span class="normal"><a href="#L-97"> 97</a></span>
+<span class="normal"><a href="#L-98"> 98</a></span>
+<span class="normal"><a href="#L-99"> 99</a></span>
+<span class="normal"><a href="#L-100">100</a></span>
+<span class="normal"><a href="#L-101">101</a></span>
+<span class="normal"><a href="#L-102">102</a></span>
+<span class="normal"><a href="#L-103">103</a></span>
+<span class="normal"><a href="#L-104">104</a></span>
+<span class="normal"><a href="#L-105">105</a></span>
+<span class="normal"><a href="#L-106">106</a></span>
+<span class="normal"><a href="#L-107">107</a></span>
+<span class="normal"><a href="#L-108">108</a></span>
+<span class="normal"><a href="#L-109">109</a></span>
+<span class="normal"><a href="#L-110">110</a></span>
+<span class="normal"><a href="#L-111">111</a></span>
+<span class="normal"><a href="#L-112">112</a></span>
+<span class="normal"><a href="#L-113">113</a></span>
+<span class="normal"><a href="#L-114">114</a></span>
+<span class="normal"><a href="#L-115">115</a></span>
+<span class="normal"><a href="#L-116">116</a></span>
+<span class="normal"><a href="#L-117">117</a></span>
+<span class="normal"><a href="#L-118">118</a></span>
+<span class="normal"><a href="#L-119">119</a></span>
+<span class="normal"><a href="#L-120">120</a></span>
+<span class="normal"><a href="#L-121">121</a></span>
+<span class="normal"><a href="#L-122">122</a></span>
+<span class="normal"><a href="#L-123">123</a></span>
+<span class="normal"><a href="#L-124">124</a></span>
+<span class="normal"><a href="#L-125">125</a></span>
+<span class="normal"><a href="#L-126">126</a></span>
+<span class="normal"><a href="#L-127">127</a></span>
+<span class="normal"><a href="#L-128">128</a></span>
+<span class="normal"><a href="#L-129">129</a></span>
+<span class="normal"><a href="#L-130">130</a></span>
+<span class="normal"><a href="#L-131">131</a></span>
+<span class="normal"><a href="#L-132">132</a></span>
+<span class="normal"><a href="#L-133">133</a></span>
+<span class="normal"><a href="#L-134">134</a></span>
+<span class="normal"><a href="#L-135">135</a></span>
+<span class="normal"><a href="#L-136">136</a></span>
+<span class="normal"><a href="#L-137">137</a></span>
+<span class="normal"><a href="#L-138">138</a></span>
+<span class="normal"><a href="#L-139">139</a></span>
+<span class="normal"><a href="#L-140">140</a></span>
+<span class="normal"><a href="#L-141">141</a></span>
+<span class="normal"><a href="#L-142">142</a></span>
+<span class="normal"><a href="#L-143">143</a></span>
+<span class="normal"><a href="#L-144">144</a></span>
+<span class="normal"><a href="#L-145">145</a></span>
+<span class="normal"><a href="#L-146">146</a></span>
+<span class="normal"><a href="#L-147">147</a></span>
+<span class="normal"><a href="#L-148">148</a></span>
+<span class="normal"><a href="#L-149">149</a></span>
+<span class="normal"><a href="#L-150">150</a></span>
+<span class="normal"><a href="#L-151">151</a></span>
+<span class="normal"><a href="#L-152">152</a></span>
+<span class="normal"><a href="#L-153">153</a></span>
+<span class="normal"><a href="#L-154">154</a></span>
+<span class="normal"><a href="#L-155">155</a></span>
+<span class="normal"><a href="#L-156">156</a></span>
+<span class="normal"><a href="#L-157">157</a></span>
+<span class="normal"><a href="#L-158">158</a></span>
+<span class="normal"><a href="#L-159">159</a></span>
+<span class="normal"><a href="#L-160">160</a></span>
+<span class="normal"><a href="#L-161">161</a></span>
+<span class="normal"><a href="#L-162">162</a></span>
+<span class="normal"><a href="#L-163">163</a></span>
+<span class="normal"><a href="#L-164">164</a></span>
+<span class="normal"><a href="#L-165">165</a></span>
+<span class="normal"><a href="#L-166">166</a></span>
+<span class="normal"><a href="#L-167">167</a></span>
+<span class="normal"><a href="#L-168">168</a></span>
+<span class="normal"><a href="#L-169">169</a></span>
+<span class="normal"><a href="#L-170">170</a></span>
+<span class="normal"><a href="#L-171">171</a></span>
+<span class="normal"><a href="#L-172">172</a></span>
+<span class="normal"><a href="#L-173">173</a></span>
+<span class="normal"><a href="#L-174">174</a></span>
+<span class="normal"><a href="#L-175">175</a></span>
+<span class="normal"><a href="#L-176">176</a></span>
+<span class="normal"><a href="#L-177">177</a></span>
+<span class="normal"><a href="#L-178">178</a></span>
+<span class="normal"><a href="#L-179">179</a></span>
+<span class="normal"><a href="#L-180">180</a></span>
+<span class="normal"><a href="#L-181">181</a></span>
+<span class="normal"><a href="#L-182">182</a></span>
+<span class="normal"><a href="#L-183">183</a></span>
+<span class="normal"><a href="#L-184">184</a></span>
+<span class="normal"><a href="#L-185">185</a></span>
+<span class="normal"><a href="#L-186">186</a></span>
+<span class="normal"><a href="#L-187">187</a></span>
+<span class="normal"><a href="#L-188">188</a></span>
+<span class="normal"><a href="#L-189">189</a></span>
+<span class="normal"><a href="#L-190">190</a></span>
+<span class="normal"><a href="#L-191">191</a></span>
+<span class="normal"><a href="#L-192">192</a></span>
+<span class="normal"><a href="#L-193">193</a></span>
+<span class="normal"><a href="#L-194">194</a></span>
+<span class="normal"><a href="#L-195">195</a></span>
+<span class="normal"><a href="#L-196">196</a></span>
+<span class="normal"><a href="#L-197">197</a></span>
+<span class="normal"><a href="#L-198">198</a></span>
+<span class="normal"><a href="#L-199">199</a></span>
+<span class="normal"><a href="#L-200">200</a></span>
+<span class="normal"><a href="#L-201">201</a></span>
+<span class="normal"><a href="#L-202">202</a></span>
+<span class="normal"><a href="#L-203">203</a></span>
+<span class="normal"><a href="#L-204">204</a></span>
+<span class="normal"><a href="#L-205">205</a></span>
+<span class="normal"><a href="#L-206">206</a></span>
+<span class="normal"><a href="#L-207">207</a></span>
+<span class="normal"><a href="#L-208">208</a></span>
+<span class="normal"><a href="#L-209">209</a></span>
+<span class="normal"><a href="#L-210">210</a></span>
+<span class="normal"><a href="#L-211">211</a></span>
+<span class="normal"><a href="#L-212">212</a></span>
+<span class="normal"><a href="#L-213">213</a></span>
+<span class="normal"><a href="#L-214">214</a></span>
+<span class="normal"><a href="#L-215">215</a></span>
+<span class="normal"><a href="#L-216">216</a></span>
+<span class="normal"><a href="#L-217">217</a></span>
+<span class="normal"><a href="#L-218">218</a></span>
+<span class="normal"><a href="#L-219">219</a></span>
+<span class="normal"><a href="#L-220">220</a></span>
+<span class="normal"><a href="#L-221">221</a></span>
+<span class="normal"><a href="#L-222">222</a></span>
+<span class="normal"><a href="#L-223">223</a></span>
+<span class="normal"><a href="#L-224">224</a></span>
+<span class="normal"><a href="#L-225">225</a></span>
+<span class="normal"><a href="#L-226">226</a></span>
+<span class="normal"><a href="#L-227">227</a></span>
+<span class="normal"><a href="#L-228">228</a></span>
+<span class="normal"><a href="#L-229">229</a></span>
+<span class="normal"><a href="#L-230">230</a></span>
+<span class="normal"><a href="#L-231">231</a></span>
+<span class="normal"><a href="#L-232">232</a></span>
+<span class="normal"><a href="#L-233">233</a></span>
+<span class="normal"><a href="#L-234">234</a></span>
+<span class="normal"><a href="#L-235">235</a></span>
+<span class="normal"><a href="#L-236">236</a></span>
+<span class="normal"><a href="#L-237">237</a></span>
+<span class="normal"><a href="#L-238">238</a></span>
+<span class="normal"><a href="#L-239">239</a></span>
+<span class="normal"><a href="#L-240">240</a></span>
+<span class="normal"><a href="#L-241">241</a></span>
+<span class="normal"><a href="#L-242">242</a></span>
+<span class="normal"><a href="#L-243">243</a></span>
+<span class="normal"><a href="#L-244">244</a></span>
+<span class="normal"><a href="#L-245">245</a></span>
+<span class="normal"><a href="#L-246">246</a></span>
+<span class="normal"><a href="#L-247">247</a></span>
+<span class="normal"><a href="#L-248">248</a></span>
+<span class="normal"><a href="#L-249">249</a></span>
+<span class="normal"><a href="#L-250">250</a></span>
+<span class="normal"><a href="#L-251">251</a></span>
+<span class="normal"><a href="#L-252">252</a></span>
+<span class="normal"><a href="#L-253">253</a></span>
+<span class="normal"><a href="#L-254">254</a></span>
+<span class="normal"><a href="#L-255">255</a></span>
+<span class="normal"><a href="#L-256">256</a></span>
+<span class="normal"><a href="#L-257">257</a></span>
+<span class="normal"><a href="#L-258">258</a></span>
+<span class="normal"><a href="#L-259">259</a></span>
+<span class="normal"><a href="#L-260">260</a></span>
+<span class="normal"><a href="#L-261">261</a></span>
+<span class="normal"><a href="#L-262">262</a></span>
+<span class="normal"><a href="#L-263">263</a></span>
+<span class="normal"><a href="#L-264">264</a></span>
+<span class="normal"><a href="#L-265">265</a></span>
+<span class="normal"><a href="#L-266">266</a></span>
+<span class="normal"><a href="#L-267">267</a></span>
+<span class="normal"><a href="#L-268">268</a></span>
+<span class="normal"><a href="#L-269">269</a></span>
+<span class="normal"><a href="#L-270">270</a></span>
+<span class="normal"><a href="#L-271">271</a></span>
+<span class="normal"><a href="#L-272">272</a></span>
+<span class="normal"><a href="#L-273">273</a></span>
+<span class="normal"><a href="#L-274">274</a></span>
+<span class="normal"><a href="#L-275">275</a></span>
+<span class="normal"><a href="#L-276">276</a></span>
+<span class="normal"><a href="#L-277">277</a></span>
+<span class="normal"><a href="#L-278">278</a></span>
+<span class="normal"><a href="#L-279">279</a></span>
+<span class="normal"><a href="#L-280">280</a></span>
+<span class="normal"><a href="#L-281">281</a></span>
+<span class="normal"><a href="#L-282">282</a></span>
+<span class="normal"><a href="#L-283">283</a></span>
+<span class="normal"><a href="#L-284">284</a></span>
+<span class="normal"><a href="#L-285">285</a></span>
+<span class="normal"><a href="#L-286">286</a></span>
+<span class="normal"><a href="#L-287">287</a></span>
+<span class="normal"><a href="#L-288">288</a></span>
+<span class="normal"><a href="#L-289">289</a></span>
+<span class="normal"><a href="#L-290">290</a></span>
+<span class="normal"><a href="#L-291">291</a></span>
+<span class="normal"><a href="#L-292">292</a></span>
+<span class="normal"><a href="#L-293">293</a></span>
+<span class="normal"><a href="#L-294">294</a></span>
+<span class="normal"><a href="#L-295">295</a></span>
+<span class="normal"><a href="#L-296">296</a></span>
+<span class="normal"><a href="#L-297">297</a></span>
+<span class="normal"><a href="#L-298">298</a></span>
+<span class="normal"><a href="#L-299">299</a></span>
+<span class="normal"><a href="#L-300">300</a></span>
+<span class="normal"><a href="#L-301">301</a></span>
+<span class="normal"><a href="#L-302">302</a></span>
+<span class="normal"><a href="#L-303">303</a></span>
+<span class="normal"><a href="#L-304">304</a></span>
+<span class="normal"><a href="#L-305">305</a></span>
+<span class="normal"><a href="#L-306">306</a></span>
+<span class="normal"><a href="#L-307">307</a></span>
+<span class="normal"><a href="#L-308">308</a></span>
+<span class="normal"><a href="#L-309">309</a></span>
+<span class="normal"><a href="#L-310">310</a></span>
+<span class="normal"><a href="#L-311">311</a></span>
+<span class="normal"><a href="#L-312">312</a></span>
+<span class="normal"><a href="#L-313">313</a></span>
+<span class="normal"><a href="#L-314">314</a></span>
+<span class="normal"><a href="#L-315">315</a></span>
+<span class="normal"><a href="#L-316">316</a></span>
+<span class="normal"><a href="#L-317">317</a></span>
+<span class="normal"><a href="#L-318">318</a></span>
+<span class="normal"><a href="#L-319">319</a></span>
+<span class="normal"><a href="#L-320">320</a></span>
+<span class="normal"><a href="#L-321">321</a></span>
+<span class="normal"><a href="#L-322">322</a></span>
+<span class="normal"><a href="#L-323">323</a></span>
+<span class="normal"><a href="#L-324">324</a></span>
+<span class="normal"><a href="#L-325">325</a></span>
+<span class="normal"><a href="#L-326">326</a></span>
+<span class="normal"><a href="#L-327">327</a></span>
+<span class="normal"><a href="#L-328">328</a></span>
+<span class="normal"><a href="#L-329">329</a></span>
+<span class="normal"><a href="#L-330">330</a></span>
+<span class="normal"><a href="#L-331">331</a></span>
+<span class="normal"><a href="#L-332">332</a></span>
+<span class="normal"><a href="#L-333">333</a></span></pre></div></td><td class="code"><div><pre><span></span><a id="L-1" name="L-1"></a><span class="sd">"""Detection algorithms and image-to-3D geometry without ROS imports."""</span>
+<a id="L-2" name="L-2"></a>
+<a id="L-3" name="L-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">__future__</span><span class="w"> </span><span class="kn">import</span> <span class="n">annotations</span>
+<a id="L-4" name="L-4"></a>
+<a id="L-5" name="L-5"></a><span class="kn">import</span><span class="w"> </span><span class="nn">math</span>
+<a id="L-6" name="L-6"></a><span class="kn">import</span><span class="w"> </span><span class="nn">struct</span>
+<a id="L-7" name="L-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
+<a id="L-8" name="L-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<a id="L-9" name="L-9"></a>
+<a id="L-10" name="L-10"></a><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<a id="L-11" name="L-11"></a><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
+<a id="L-12" name="L-12"></a>
+<a id="L-13" name="L-13"></a>
+<a id="L-14" name="L-14"></a><span class="nd">@dataclass</span>
+<a id="L-15" name="L-15"></a><span class="k">class</span><span class="w"> </span><span class="nc">SampleRoiDetectionParams</span><span class="p">:</span>
+<a id="L-16" name="L-16"></a><span class="w">    </span><span class="sd">"""Geometry, contour filters and calibration for marker-relative samples."""</span>
+<a id="L-17" name="L-17"></a>    <span class="c1"># ROI geometry relative to the marker center (mm).</span>
+<a id="L-18" name="L-18"></a>    <span class="n">roi_offset_x_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">19.3</span>
+<a id="L-19" name="L-19"></a>    <span class="n">roi_offset_y_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span>
+<a id="L-20" name="L-20"></a>    <span class="n">roi_width_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">22.1</span>
+<a id="L-21" name="L-21"></a>    <span class="n">roi_height_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">21.8</span>
+<a id="L-22" name="L-22"></a>
+<a id="L-23" name="L-23"></a>    <span class="c1"># Contour area (pixels squared) and aspect ratio limits.</span>
+<a id="L-24" name="L-24"></a>    <span class="n">min_area</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span>
+<a id="L-25" name="L-25"></a>    <span class="n">max_area</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">15000</span>
+<a id="L-26" name="L-26"></a>    <span class="n">max_aspect_ratio</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">3.0</span>
+<a id="L-27" name="L-27"></a>
+<a id="L-28" name="L-28"></a>    <span class="c1"># Physical marker side length for pixel-to-millimetre conversion.</span>
+<a id="L-29" name="L-29"></a>    <span class="n">marker_size_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">14.9</span>
+<a id="L-30" name="L-30"></a>    <span class="c1"># Sample height above the marker plane (mm); zero means coplanar.</span>
+<a id="L-31" name="L-31"></a>    <span class="n">sample_thickness_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span>
+<a id="L-32" name="L-32"></a>
+<a id="L-33" name="L-33"></a>
+<a id="L-34" name="L-34"></a><span class="k">def</span><span class="w"> </span><span class="nf">detect_aruco_markers</span><span class="p">(</span>
+<a id="L-35" name="L-35"></a>    <span class="n">rgb_image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-36" name="L-36"></a>    <span class="n">dictionary_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="L-37" name="L-37"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="o">...</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]:</span>
+<a id="L-38" name="L-38"></a><span class="w">    </span><span class="sd">"""Return marker corners and IDs from an RGB image, supporting both OpenCV APIs."""</span>
+<a id="L-39" name="L-39"></a>    <span class="n">gray</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">rgb_image</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_RGB2GRAY</span><span class="p">)</span>
+<a id="L-40" name="L-40"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="L-41" name="L-41"></a>        <span class="n">aruco_dict</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">aruco</span><span class="o">.</span><span class="n">getPredefinedDictionary</span><span class="p">(</span><span class="n">dictionary_id</span><span class="p">)</span>
+<a id="L-42" name="L-42"></a>        <span class="n">aruco_params</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">aruco</span><span class="o">.</span><span class="n">DetectorParameters</span><span class="p">()</span>
+<a id="L-43" name="L-43"></a>        <span class="n">detector</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">aruco</span><span class="o">.</span><span class="n">ArucoDetector</span><span class="p">(</span><span class="n">aruco_dict</span><span class="p">,</span> <span class="n">aruco_params</span><span class="p">)</span>
+<a id="L-44" name="L-44"></a>        <span class="n">corners</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">detector</span><span class="o">.</span><span class="n">detectMarkers</span><span class="p">(</span><span class="n">gray</span><span class="p">)</span>
+<a id="L-45" name="L-45"></a>    <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+<a id="L-46" name="L-46"></a>        <span class="n">aruco_dict</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">aruco</span><span class="o">.</span><span class="n">Dictionary_get</span><span class="p">(</span><span class="n">dictionary_id</span><span class="p">)</span>
+<a id="L-47" name="L-47"></a>        <span class="n">aruco_params</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">aruco</span><span class="o">.</span><span class="n">DetectorParameters_create</span><span class="p">()</span>
+<a id="L-48" name="L-48"></a>        <span class="n">corners</span><span class="p">,</span> <span class="n">ids</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">aruco</span><span class="o">.</span><span class="n">detectMarkers</span><span class="p">(</span>
+<a id="L-49" name="L-49"></a>            <span class="n">gray</span><span class="p">,</span> <span class="n">aruco_dict</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">aruco_params</span>
+<a id="L-50" name="L-50"></a>        <span class="p">)</span>
+<a id="L-51" name="L-51"></a>    <span class="k">return</span> <span class="n">corners</span><span class="p">,</span> <span class="n">ids</span>
+<a id="L-52" name="L-52"></a>
+<a id="L-53" name="L-53"></a>
+<a id="L-54" name="L-54"></a><span class="k">def</span><span class="w"> </span><span class="nf">get_3d_position</span><span class="p">(</span>
+<a id="L-55" name="L-55"></a>    <span class="n">cloud</span><span class="p">,</span>
+<a id="L-56" name="L-56"></a>    <span class="n">cx</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="L-57" name="L-57"></a>    <span class="n">cy</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+<a id="L-58" name="L-58"></a>    <span class="n">search_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+<a id="L-59" name="L-59"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-60" name="L-60"></a><span class="w">    </span><span class="sd">"""Return the first valid XYZ (metres) at or near a pixel, or None."""</span>
+<a id="L-61" name="L-61"></a>    <span class="c1"># Assumes image-aligned, little-endian XYZ float32 point data.</span>
+<a id="L-62" name="L-62"></a>    <span class="n">width</span> <span class="o">=</span> <span class="n">cloud</span><span class="o">.</span><span class="n">width</span>
+<a id="L-63" name="L-63"></a>    <span class="n">height</span> <span class="o">=</span> <span class="n">cloud</span><span class="o">.</span><span class="n">height</span>
+<a id="L-64" name="L-64"></a>    <span class="n">point_step</span> <span class="o">=</span> <span class="n">cloud</span><span class="o">.</span><span class="n">point_step</span>
+<a id="L-65" name="L-65"></a>
+<a id="L-66" name="L-66"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">get_xyz_at</span><span class="p">(</span><span class="n">u</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">v</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<a id="L-67" name="L-67"></a>        <span class="k">if</span> <span class="n">u</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">u</span> <span class="o">&gt;=</span> <span class="n">width</span> <span class="ow">or</span> <span class="n">v</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">v</span> <span class="o">&gt;=</span> <span class="n">height</span><span class="p">:</span>
+<a id="L-68" name="L-68"></a>            <span class="k">return</span> <span class="kc">None</span>
+<a id="L-69" name="L-69"></a>        <span class="n">offset</span> <span class="o">=</span> <span class="n">v</span> <span class="o">*</span> <span class="n">cloud</span><span class="o">.</span><span class="n">row_step</span> <span class="o">+</span> <span class="n">u</span> <span class="o">*</span> <span class="n">point_step</span>
+<a id="L-70" name="L-70"></a>        <span class="k">try</span><span class="p">:</span>
+<a id="L-71" name="L-71"></a>            <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span> <span class="o">=</span> <span class="n">struct</span><span class="o">.</span><span class="n">unpack_from</span><span class="p">(</span><span class="s2">"&lt;fff"</span><span class="p">,</span> <span class="n">cloud</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+<a id="L-72" name="L-72"></a>        <span class="k">except</span> <span class="n">struct</span><span class="o">.</span><span class="n">error</span><span class="p">:</span>
+<a id="L-73" name="L-73"></a>            <span class="k">return</span> <span class="kc">None</span>
+<a id="L-74" name="L-74"></a>        <span class="k">if</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">x</span><span class="p">)</span> <span class="ow">or</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="ow">or</span> <span class="n">math</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">z</span><span class="p">):</span>
+<a id="L-75" name="L-75"></a>            <span class="k">return</span> <span class="kc">None</span>
+<a id="L-76" name="L-76"></a>        <span class="k">if</span> <span class="n">x</span> <span class="o">==</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">y</span> <span class="o">==</span> <span class="mf">0.0</span> <span class="ow">and</span> <span class="n">z</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="L-77" name="L-77"></a>            <span class="k">return</span> <span class="kc">None</span>
+<a id="L-78" name="L-78"></a>        <span class="k">return</span> <span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span>
+<a id="L-79" name="L-79"></a>
+<a id="L-80" name="L-80"></a>    <span class="n">xyz</span> <span class="o">=</span> <span class="n">get_xyz_at</span><span class="p">(</span><span class="n">cx</span><span class="p">,</span> <span class="n">cy</span><span class="p">)</span>
+<a id="L-81" name="L-81"></a>    <span class="k">if</span> <span class="n">xyz</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-82" name="L-82"></a>        <span class="k">return</span> <span class="n">xyz</span>
+<a id="L-83" name="L-83"></a>
+<a id="L-84" name="L-84"></a>    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">search_radius</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+<a id="L-85" name="L-85"></a>        <span class="k">for</span> <span class="n">du</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">r</span><span class="p">,</span> <span class="n">r</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+<a id="L-86" name="L-86"></a>            <span class="k">for</span> <span class="n">dv</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="n">r</span><span class="p">,</span> <span class="n">r</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+<a id="L-87" name="L-87"></a>                <span class="k">if</span> <span class="nb">abs</span><span class="p">(</span><span class="n">du</span><span class="p">)</span> <span class="o">==</span> <span class="n">r</span> <span class="ow">or</span> <span class="nb">abs</span><span class="p">(</span><span class="n">dv</span><span class="p">)</span> <span class="o">==</span> <span class="n">r</span><span class="p">:</span>
+<a id="L-88" name="L-88"></a>                    <span class="n">xyz</span> <span class="o">=</span> <span class="n">get_xyz_at</span><span class="p">(</span><span class="n">cx</span> <span class="o">+</span> <span class="n">du</span><span class="p">,</span> <span class="n">cy</span> <span class="o">+</span> <span class="n">dv</span><span class="p">)</span>
+<a id="L-89" name="L-89"></a>                    <span class="k">if</span> <span class="n">xyz</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-90" name="L-90"></a>                        <span class="k">return</span> <span class="n">xyz</span>
+<a id="L-91" name="L-91"></a>    <span class="k">return</span> <span class="kc">None</span>
+<a id="L-92" name="L-92"></a>
+<a id="L-93" name="L-93"></a>
+<a id="L-94" name="L-94"></a><span class="k">def</span><span class="w"> </span><span class="nf">detect_sample_in_roi</span><span class="p">(</span>
+<a id="L-95" name="L-95"></a>    <span class="n">rgb_image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-96" name="L-96"></a>    <span class="n">marker_corners</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-97" name="L-97"></a>    <span class="n">px_per_mm</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="L-98" name="L-98"></a>    <span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"farthest_edge"</span><span class="p">,</span>
+<a id="L-99" name="L-99"></a>    <span class="n">edge_inset_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+<a id="L-100" name="L-100"></a>    <span class="n">params</span><span class="p">:</span> <span class="n">SampleRoiDetectionParams</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="L-101" name="L-101"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-102" name="L-102"></a><span class="w">    </span><span class="sd">"""Return sample geometry and a pickup pixel from a marker-relative ROI, or None.</span>
+<a id="L-103" name="L-103"></a>
+<a id="L-104" name="L-104"></a><span class="sd">    Expects BGR/grayscale input, TL/TR/BR/BL marker corners and pixels per mm.</span>
+<a id="L-105" name="L-105"></a><span class="sd">    """</span>
+<a id="L-106" name="L-106"></a>    <span class="k">if</span> <span class="n">params</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-107" name="L-107"></a>        <span class="n">params</span> <span class="o">=</span> <span class="n">SampleRoiDetectionParams</span><span class="p">()</span>
+<a id="L-108" name="L-108"></a>
+<a id="L-109" name="L-109"></a>    <span class="k">if</span> <span class="n">strategy</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span>
+<a id="L-110" name="L-110"></a>        <span class="s2">"center"</span><span class="p">,</span>
+<a id="L-111" name="L-111"></a>        <span class="s2">"farthest_edge"</span><span class="p">,</span>
+<a id="L-112" name="L-112"></a>        <span class="s2">"nearest_edge"</span><span class="p">,</span>
+<a id="L-113" name="L-113"></a>        <span class="s2">"farthest_corner"</span><span class="p">,</span>
+<a id="L-114" name="L-114"></a>        <span class="s2">"nearest_corner"</span><span class="p">,</span>
+<a id="L-115" name="L-115"></a>    <span class="p">}:</span>
+<a id="L-116" name="L-116"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-117" name="L-117"></a>
+<a id="L-118" name="L-118"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="L-119" name="L-119"></a>        <span class="n">marker_corners</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">marker_corners</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<a id="L-120" name="L-120"></a>        <span class="n">geometry</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span>
+<a id="L-121" name="L-121"></a>            <span class="p">(</span>
+<a id="L-122" name="L-122"></a>                <span class="n">px_per_mm</span><span class="p">,</span>
+<a id="L-123" name="L-123"></a>                <span class="n">edge_inset_mm</span><span class="p">,</span>
+<a id="L-124" name="L-124"></a>                <span class="n">params</span><span class="o">.</span><span class="n">roi_offset_x_mm</span><span class="p">,</span>
+<a id="L-125" name="L-125"></a>                <span class="n">params</span><span class="o">.</span><span class="n">roi_offset_y_mm</span><span class="p">,</span>
+<a id="L-126" name="L-126"></a>                <span class="n">params</span><span class="o">.</span><span class="n">roi_width_mm</span><span class="p">,</span>
+<a id="L-127" name="L-127"></a>                <span class="n">params</span><span class="o">.</span><span class="n">roi_height_mm</span><span class="p">,</span>
+<a id="L-128" name="L-128"></a>            <span class="p">),</span>
+<a id="L-129" name="L-129"></a>            <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span>
+<a id="L-130" name="L-130"></a>        <span class="p">)</span>
+<a id="L-131" name="L-131"></a>    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="ne">ValueError</span><span class="p">,</span> <span class="ne">OverflowError</span><span class="p">):</span>
+<a id="L-132" name="L-132"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-133" name="L-133"></a>
+<a id="L-134" name="L-134"></a>    <span class="p">(</span>
+<a id="L-135" name="L-135"></a>        <span class="n">px_per_mm</span><span class="p">,</span>
+<a id="L-136" name="L-136"></a>        <span class="n">edge_inset_mm</span><span class="p">,</span>
+<a id="L-137" name="L-137"></a>        <span class="n">roi_offset_x_mm</span><span class="p">,</span>
+<a id="L-138" name="L-138"></a>        <span class="n">roi_offset_y_mm</span><span class="p">,</span>
+<a id="L-139" name="L-139"></a>        <span class="n">roi_width_mm</span><span class="p">,</span>
+<a id="L-140" name="L-140"></a>        <span class="n">roi_height_mm</span><span class="p">,</span>
+<a id="L-141" name="L-141"></a>    <span class="p">)</span> <span class="o">=</span> <span class="n">geometry</span>
+<a id="L-142" name="L-142"></a>    <span class="k">if</span> <span class="p">(</span>
+<a id="L-143" name="L-143"></a>        <span class="n">marker_corners</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="L-144" name="L-144"></a>        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">marker_corners</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<a id="L-145" name="L-145"></a>        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">geometry</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<a id="L-146" name="L-146"></a>        <span class="ow">or</span> <span class="n">px_per_mm</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+<a id="L-147" name="L-147"></a>        <span class="ow">or</span> <span class="n">edge_inset_mm</span> <span class="o">&lt;</span> <span class="mi">0</span>
+<a id="L-148" name="L-148"></a>        <span class="ow">or</span> <span class="n">roi_width_mm</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+<a id="L-149" name="L-149"></a>        <span class="ow">or</span> <span class="n">roi_height_mm</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+<a id="L-150" name="L-150"></a>    <span class="p">):</span>
+<a id="L-151" name="L-151"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-152" name="L-152"></a>
+<a id="L-153" name="L-153"></a>    <span class="c1"># Use the marker's image axes to orient the ROI offset.</span>
+<a id="L-154" name="L-154"></a>    <span class="n">top_left</span><span class="p">,</span> <span class="n">top_right</span> <span class="o">=</span> <span class="n">marker_corners</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">marker_corners</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a id="L-155" name="L-155"></a>    <span class="n">bottom_left</span> <span class="o">=</span> <span class="n">marker_corners</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+<a id="L-156" name="L-156"></a>    <span class="n">marker_x</span> <span class="o">=</span> <span class="n">top_right</span> <span class="o">-</span> <span class="n">top_left</span>
+<a id="L-157" name="L-157"></a>    <span class="n">marker_y</span> <span class="o">=</span> <span class="n">bottom_left</span> <span class="o">-</span> <span class="n">top_left</span>
+<a id="L-158" name="L-158"></a>    <span class="n">marker_x_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">marker_x</span><span class="p">)</span>
+<a id="L-159" name="L-159"></a>    <span class="n">marker_y_norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">marker_y</span><span class="p">)</span>
+<a id="L-160" name="L-160"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">((</span><span class="n">marker_x_norm</span><span class="p">,</span> <span class="n">marker_y_norm</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">()</span> <span class="ow">or</span> <span class="nb">min</span><span class="p">(</span>
+<a id="L-161" name="L-161"></a>        <span class="n">marker_x_norm</span><span class="p">,</span> <span class="n">marker_y_norm</span>
+<a id="L-162" name="L-162"></a>    <span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-163" name="L-163"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-164" name="L-164"></a>    <span class="n">marker_x</span> <span class="o">=</span> <span class="n">marker_x</span> <span class="o">/</span> <span class="n">marker_x_norm</span>
+<a id="L-165" name="L-165"></a>    <span class="n">marker_y</span> <span class="o">=</span> <span class="n">marker_y</span> <span class="o">/</span> <span class="n">marker_y_norm</span>
+<a id="L-166" name="L-166"></a>    <span class="n">tag_center</span> <span class="o">=</span> <span class="n">marker_corners</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="L-167" name="L-167"></a>
+<a id="L-168" name="L-168"></a>    <span class="n">roi_center</span> <span class="o">=</span> <span class="p">(</span>
+<a id="L-169" name="L-169"></a>        <span class="n">tag_center</span>
+<a id="L-170" name="L-170"></a>        <span class="o">+</span> <span class="n">marker_x</span> <span class="o">*</span> <span class="p">(</span><span class="n">roi_offset_x_mm</span> <span class="o">*</span> <span class="n">px_per_mm</span><span class="p">)</span>
+<a id="L-171" name="L-171"></a>        <span class="o">+</span> <span class="n">marker_y</span> <span class="o">*</span> <span class="p">(</span><span class="n">roi_offset_y_mm</span> <span class="o">*</span> <span class="n">px_per_mm</span><span class="p">)</span>
+<a id="L-172" name="L-172"></a>    <span class="p">)</span>
+<a id="L-173" name="L-173"></a>
+<a id="L-174" name="L-174"></a>    <span class="n">half_w</span> <span class="o">=</span> <span class="p">(</span><span class="n">roi_width_mm</span> <span class="o">*</span> <span class="n">px_per_mm</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+<a id="L-175" name="L-175"></a>    <span class="n">half_h</span> <span class="o">=</span> <span class="p">(</span><span class="n">roi_height_mm</span> <span class="o">*</span> <span class="n">px_per_mm</span><span class="p">)</span> <span class="o">/</span> <span class="mi">2</span>
+<a id="L-176" name="L-176"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">((</span><span class="o">*</span><span class="n">roi_center</span><span class="p">,</span> <span class="n">half_w</span><span class="p">,</span> <span class="n">half_h</span><span class="p">))</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+<a id="L-177" name="L-177"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-178" name="L-178"></a>
+<a id="L-179" name="L-179"></a>    <span class="n">h</span><span class="p">,</span> <span class="n">w</span> <span class="o">=</span> <span class="n">rgb_image</span><span class="o">.</span><span class="n">shape</span><span class="p">[:</span><span class="mi">2</span><span class="p">]</span>
+<a id="L-180" name="L-180"></a>    <span class="n">roi_x1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">roi_center</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">-</span> <span class="n">half_w</span><span class="p">))</span>
+<a id="L-181" name="L-181"></a>    <span class="n">roi_y1</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">roi_center</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">half_h</span><span class="p">))</span>
+<a id="L-182" name="L-182"></a>    <span class="n">roi_x2</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">roi_center</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">half_w</span><span class="p">))</span>
+<a id="L-183" name="L-183"></a>    <span class="n">roi_y2</span> <span class="o">=</span> <span class="nb">min</span><span class="p">(</span><span class="n">h</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="n">roi_center</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">half_h</span><span class="p">))</span>
+<a id="L-184" name="L-184"></a>
+<a id="L-185" name="L-185"></a>    <span class="n">roi</span> <span class="o">=</span> <span class="n">rgb_image</span><span class="p">[</span><span class="n">roi_y1</span><span class="p">:</span><span class="n">roi_y2</span><span class="p">,</span> <span class="n">roi_x1</span><span class="p">:</span><span class="n">roi_x2</span><span class="p">]</span>
+<a id="L-186" name="L-186"></a>    <span class="k">if</span> <span class="n">roi</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-187" name="L-187"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-188" name="L-188"></a>
+<a id="L-189" name="L-189"></a>    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">roi</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+<a id="L-190" name="L-190"></a>        <span class="n">roi_gray</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">roi</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2GRAY</span><span class="p">)</span>
+<a id="L-191" name="L-191"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="L-192" name="L-192"></a>        <span class="n">roi_gray</span> <span class="o">=</span> <span class="n">roi</span>
+<a id="L-193" name="L-193"></a>
+<a id="L-194" name="L-194"></a>    <span class="c1"># Find sample contours within the ROI.</span>
+<a id="L-195" name="L-195"></a>    <span class="n">blurred</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">GaussianBlur</span><span class="p">(</span><span class="n">roi_gray</span><span class="p">,</span> <span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="mi">0</span><span class="p">)</span>
+<a id="L-196" name="L-196"></a>    <span class="n">edges</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">Canny</span><span class="p">(</span><span class="n">blurred</span><span class="p">,</span> <span class="mi">50</span><span class="p">,</span> <span class="mi">150</span><span class="p">)</span>
+<a id="L-197" name="L-197"></a>    <span class="n">kernel</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">ones</span><span class="p">((</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<a id="L-198" name="L-198"></a>    <span class="n">edges</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">dilate</span><span class="p">(</span><span class="n">edges</span><span class="p">,</span> <span class="n">kernel</span><span class="p">,</span> <span class="n">iterations</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<a id="L-199" name="L-199"></a>    <span class="n">contours</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">findContours</span><span class="p">(</span>
+<a id="L-200" name="L-200"></a>        <span class="n">edges</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">RETR_EXTERNAL</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">CHAIN_APPROX_SIMPLE</span>
+<a id="L-201" name="L-201"></a>    <span class="p">)</span>
+<a id="L-202" name="L-202"></a>
+<a id="L-203" name="L-203"></a>    <span class="n">valid</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-204" name="L-204"></a>    <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">contours</span><span class="p">:</span>
+<a id="L-205" name="L-205"></a>        <span class="n">area</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+<a id="L-206" name="L-206"></a>        <span class="k">if</span> <span class="n">area</span> <span class="o">&lt;</span> <span class="n">params</span><span class="o">.</span><span class="n">min_area</span> <span class="ow">or</span> <span class="n">area</span> <span class="o">&gt;</span> <span class="n">params</span><span class="o">.</span><span class="n">max_area</span><span class="p">:</span>
+<a id="L-207" name="L-207"></a>            <span class="k">continue</span>
+<a id="L-208" name="L-208"></a>        <span class="n">rect</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">minAreaRect</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
+<a id="L-209" name="L-209"></a>        <span class="n">rw</span><span class="p">,</span> <span class="n">rh</span> <span class="o">=</span> <span class="n">rect</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a id="L-210" name="L-210"></a>        <span class="k">if</span> <span class="n">rw</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">rh</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-211" name="L-211"></a>            <span class="k">continue</span>
+<a id="L-212" name="L-212"></a>        <span class="k">if</span> <span class="nb">max</span><span class="p">(</span><span class="n">rw</span><span class="p">,</span> <span class="n">rh</span><span class="p">)</span> <span class="o">/</span> <span class="nb">min</span><span class="p">(</span><span class="n">rw</span><span class="p">,</span> <span class="n">rh</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">params</span><span class="o">.</span><span class="n">max_aspect_ratio</span><span class="p">:</span>
+<a id="L-213" name="L-213"></a>            <span class="k">continue</span>
+<a id="L-214" name="L-214"></a>        <span class="n">valid</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">area</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span>
+<a id="L-215" name="L-215"></a>
+<a id="L-216" name="L-216"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">valid</span><span class="p">:</span>
+<a id="L-217" name="L-217"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-218" name="L-218"></a>
+<a id="L-219" name="L-219"></a>    <span class="n">valid</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">reverse</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="L-220" name="L-220"></a>    <span class="n">sample_contour</span> <span class="o">=</span> <span class="n">valid</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span>
+<a id="L-221" name="L-221"></a>
+<a id="L-222" name="L-222"></a>    <span class="n">rect</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">minAreaRect</span><span class="p">(</span><span class="n">sample_contour</span><span class="p">)</span>
+<a id="L-223" name="L-223"></a>    <span class="n">rect_center_roi</span> <span class="o">=</span> <span class="n">rect</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+<a id="L-224" name="L-224"></a>    <span class="n">rect_size</span> <span class="o">=</span> <span class="n">rect</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span>
+<a id="L-225" name="L-225"></a>    <span class="n">rect_angle</span> <span class="o">=</span> <span class="n">rect</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+<a id="L-226" name="L-226"></a>    <span class="n">rect_corners_roi</span> <span class="o">=</span> <span class="n">cv2</span><span class="o">.</span><span class="n">boxPoints</span><span class="p">(</span><span class="n">rect</span><span class="p">)</span>
+<a id="L-227" name="L-227"></a>
+<a id="L-228" name="L-228"></a>    <span class="c1"># Convert ROI-local coordinates to full-image pixels.</span>
+<a id="L-229" name="L-229"></a>    <span class="n">rect_center_full</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+<a id="L-230" name="L-230"></a>        <span class="n">rect_center_roi</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+</span> <span class="n">roi_x1</span><span class="p">,</span>
+<a id="L-231" name="L-231"></a>        <span class="n">rect_center_roi</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">roi_y1</span><span class="p">,</span>
+<a id="L-232" name="L-232"></a>    <span class="p">])</span>
+<a id="L-233" name="L-233"></a>    <span class="n">rect_corners_full</span> <span class="o">=</span> <span class="n">rect_corners_roi</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">roi_x1</span><span class="p">,</span> <span class="n">roi_y1</span><span class="p">])</span>
+<a id="L-234" name="L-234"></a>
+<a id="L-235" name="L-235"></a>    <span class="n">tag_pt</span> <span class="o">=</span> <span class="n">tag_center</span>
+<a id="L-236" name="L-236"></a>    <span class="n">center_pt</span> <span class="o">=</span> <span class="n">rect_center_full</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a id="L-237" name="L-237"></a>    <span class="n">edge_inset_px</span> <span class="o">=</span> <span class="n">edge_inset_mm</span> <span class="o">*</span> <span class="n">px_per_mm</span>
+<a id="L-238" name="L-238"></a>
+<a id="L-239" name="L-239"></a>    <span class="k">if</span> <span class="n">strategy</span> <span class="o">==</span> <span class="s2">"center"</span><span class="p">:</span>
+<a id="L-240" name="L-240"></a>        <span class="n">pickup</span> <span class="o">=</span> <span class="n">center_pt</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a id="L-241" name="L-241"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="L-242" name="L-242"></a>        <span class="k">if</span> <span class="s2">"corner"</span> <span class="ow">in</span> <span class="n">strategy</span><span class="p">:</span>
+<a id="L-243" name="L-243"></a>            <span class="n">candidates</span> <span class="o">=</span> <span class="n">rect_corners_full</span>
+<a id="L-244" name="L-244"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="L-245" name="L-245"></a>            <span class="n">candidates</span> <span class="o">=</span> <span class="p">[</span>
+<a id="L-246" name="L-246"></a>                <span class="p">(</span><span class="n">rect_corners_full</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">+</span> <span class="n">rect_corners_full</span><span class="p">[(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">%</span> <span class="mi">4</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
+<a id="L-247" name="L-247"></a>                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+<a id="L-248" name="L-248"></a>            <span class="p">]</span>
+<a id="L-249" name="L-249"></a>        <span class="n">distances</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">point</span> <span class="o">-</span> <span class="n">tag_pt</span><span class="p">)</span> <span class="k">for</span> <span class="n">point</span> <span class="ow">in</span> <span class="n">candidates</span><span class="p">]</span>
+<a id="L-250" name="L-250"></a>        <span class="n">idx</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span> <span class="k">if</span> <span class="s2">"farthest"</span> <span class="ow">in</span> <span class="n">strategy</span> <span class="k">else</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">distances</span><span class="p">)</span>
+<a id="L-251" name="L-251"></a>        <span class="n">pickup</span> <span class="o">=</span> <span class="n">candidates</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<a id="L-252" name="L-252"></a>        <span class="k">if</span> <span class="n">edge_inset_px</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-253" name="L-253"></a>            <span class="n">toward</span> <span class="o">=</span> <span class="n">center_pt</span> <span class="o">-</span> <span class="n">pickup</span>
+<a id="L-254" name="L-254"></a>            <span class="n">norm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">toward</span><span class="p">)</span>
+<a id="L-255" name="L-255"></a>            <span class="k">if</span> <span class="n">norm</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-256" name="L-256"></a>                <span class="n">pickup</span> <span class="o">=</span> <span class="n">pickup</span> <span class="o">+</span> <span class="n">toward</span> <span class="o">/</span> <span class="n">norm</span> <span class="o">*</span> <span class="n">edge_inset_px</span>
+<a id="L-257" name="L-257"></a>
+<a id="L-258" name="L-258"></a>    <span class="n">offset_from_center_mm</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">pickup</span> <span class="o">-</span> <span class="n">center_pt</span><span class="p">)</span> <span class="o">/</span> <span class="n">px_per_mm</span>
+<a id="L-259" name="L-259"></a>
+<a id="L-260" name="L-260"></a>    <span class="k">return</span> <span class="p">{</span>
+<a id="L-261" name="L-261"></a>        <span class="s2">"pickup_px"</span><span class="p">:</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">pickup</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">pickup</span><span class="p">[</span><span class="mi">1</span><span class="p">]))),</span>
+<a id="L-262" name="L-262"></a>        <span class="s2">"center_px"</span><span class="p">:</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">center_pt</span><span class="p">[</span><span class="mi">0</span><span class="p">])),</span> <span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">center_pt</span><span class="p">[</span><span class="mi">1</span><span class="p">]))),</span>
+<a id="L-263" name="L-263"></a>        <span class="s2">"sample_size_mm"</span><span class="p">:</span> <span class="p">(</span>
+<a id="L-264" name="L-264"></a>            <span class="nb">round</span><span class="p">(</span><span class="n">rect_size</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">/</span> <span class="n">px_per_mm</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="L-265" name="L-265"></a>            <span class="nb">round</span><span class="p">(</span><span class="n">rect_size</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">/</span> <span class="n">px_per_mm</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="L-266" name="L-266"></a>        <span class="p">),</span>
+<a id="L-267" name="L-267"></a>        <span class="s2">"sample_angle"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">rect_angle</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="L-268" name="L-268"></a>        <span class="s2">"sample_area_px"</span><span class="p">:</span> <span class="nb">int</span><span class="p">(</span><span class="n">cv2</span><span class="o">.</span><span class="n">contourArea</span><span class="p">(</span><span class="n">sample_contour</span><span class="p">)),</span>
+<a id="L-269" name="L-269"></a>        <span class="s2">"offset_from_center_mm"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">offset_from_center_mm</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+<a id="L-270" name="L-270"></a>        <span class="s2">"roi"</span><span class="p">:</span> <span class="p">(</span><span class="n">roi_x1</span><span class="p">,</span> <span class="n">roi_y1</span><span class="p">,</span> <span class="n">roi_x2</span><span class="p">,</span> <span class="n">roi_y2</span><span class="p">),</span>
+<a id="L-271" name="L-271"></a>        <span class="s2">"strategy"</span><span class="p">:</span> <span class="n">strategy</span><span class="p">,</span>
+<a id="L-272" name="L-272"></a>        <span class="s2">"edge_inset_mm"</span><span class="p">:</span> <span class="n">edge_inset_mm</span><span class="p">,</span>
+<a id="L-273" name="L-273"></a>    <span class="p">}</span>
+<a id="L-274" name="L-274"></a>
+<a id="L-275" name="L-275"></a>
+<a id="L-276" name="L-276"></a><span class="k">def</span><span class="w"> </span><span class="nf">sample_roi_pickup_camera_xyz</span><span class="p">(</span>
+<a id="L-277" name="L-277"></a>    <span class="n">pickup_px</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+<a id="L-278" name="L-278"></a>    <span class="n">marker_corners</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+<a id="L-279" name="L-279"></a>    <span class="n">marker_position</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+<a id="L-280" name="L-280"></a>    <span class="n">marker_quat_xyzw</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+<a id="L-281" name="L-281"></a>    <span class="n">px_per_mm</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<a id="L-282" name="L-282"></a>    <span class="n">sample_thickness_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+<a id="L-283" name="L-283"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-284" name="L-284"></a><span class="w">    </span><span class="sd">"""Project a pickup pixel into camera XYZ (metres), or return None.</span>
+<a id="L-285" name="L-285"></a>
+<a id="L-286" name="L-286"></a><span class="sd">    Uses TL/TR/BR/BL corners and an XYZW marker quaternion, without sample depth.</span>
+<a id="L-287" name="L-287"></a><span class="sd">    Assumes a near-top-down view; marker_position is in metres.</span>
+<a id="L-288" name="L-288"></a><span class="sd">    """</span>
+<a id="L-289" name="L-289"></a>    <span class="n">corners</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">marker_corners</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<a id="L-290" name="L-290"></a>    <span class="n">pickup</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">pickup_px</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<a id="L-291" name="L-291"></a>    <span class="k">if</span> <span class="p">(</span>
+<a id="L-292" name="L-292"></a>        <span class="n">corners</span><span class="o">.</span><span class="n">shape</span> <span class="o">!=</span> <span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<a id="L-293" name="L-293"></a>        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">corners</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<a id="L-294" name="L-294"></a>        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">pickup</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">()</span>
+<a id="L-295" name="L-295"></a>        <span class="ow">or</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">px_per_mm</span><span class="p">)</span>
+<a id="L-296" name="L-296"></a>        <span class="ow">or</span> <span class="n">px_per_mm</span> <span class="o">&lt;=</span> <span class="mi">0</span>
+<a id="L-297" name="L-297"></a>    <span class="p">):</span>
+<a id="L-298" name="L-298"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-299" name="L-299"></a>
+<a id="L-300" name="L-300"></a>    <span class="c1"># Marker image axes: +X = TL to TR, +Y = TL to BL.</span>
+<a id="L-301" name="L-301"></a>    <span class="n">top_left</span><span class="p">,</span> <span class="n">top_right</span><span class="p">,</span> <span class="n">bottom_left</span> <span class="o">=</span> <span class="n">corners</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">corners</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">corners</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+<a id="L-302" name="L-302"></a>    <span class="n">ax</span> <span class="o">=</span> <span class="n">top_right</span> <span class="o">-</span> <span class="n">top_left</span>
+<a id="L-303" name="L-303"></a>    <span class="n">ay</span> <span class="o">=</span> <span class="n">bottom_left</span> <span class="o">-</span> <span class="n">top_left</span>
+<a id="L-304" name="L-304"></a>    <span class="n">ax_n</span><span class="p">,</span> <span class="n">ay_n</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ax</span><span class="p">),</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span><span class="n">ay</span><span class="p">)</span>
+<a id="L-305" name="L-305"></a>    <span class="k">if</span> <span class="nb">min</span><span class="p">(</span><span class="n">ax_n</span><span class="p">,</span> <span class="n">ay_n</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-306" name="L-306"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-307" name="L-307"></a>    <span class="n">ax</span> <span class="o">=</span> <span class="n">ax</span> <span class="o">/</span> <span class="n">ax_n</span>
+<a id="L-308" name="L-308"></a>    <span class="n">ay</span> <span class="o">=</span> <span class="n">ay</span> <span class="o">/</span> <span class="n">ay_n</span>
+<a id="L-309" name="L-309"></a>
+<a id="L-310" name="L-310"></a>    <span class="c1"># Convert pixel offsets to marker-frame metres; sample height follows -Z.</span>
+<a id="L-311" name="L-311"></a>    <span class="n">tag_center</span> <span class="o">=</span> <span class="n">corners</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<a id="L-312" name="L-312"></a>    <span class="n">d</span> <span class="o">=</span> <span class="n">pickup</span> <span class="o">-</span> <span class="n">tag_center</span>
+<a id="L-313" name="L-313"></a>    <span class="n">offset_marker_m</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+<a id="L-314" name="L-314"></a>        <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">ax</span><span class="p">))</span> <span class="o">/</span> <span class="n">px_per_mm</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">,</span>
+<a id="L-315" name="L-315"></a>        <span class="nb">float</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">dot</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">ay</span><span class="p">))</span> <span class="o">/</span> <span class="n">px_per_mm</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">,</span>
+<a id="L-316" name="L-316"></a>        <span class="o">-</span><span class="n">sample_thickness_mm</span> <span class="o">/</span> <span class="mf">1000.0</span><span class="p">,</span>
+<a id="L-317" name="L-317"></a>    <span class="p">])</span>
+<a id="L-318" name="L-318"></a>
+<a id="L-319" name="L-319"></a>    <span class="n">qx</span><span class="p">,</span> <span class="n">qy</span><span class="p">,</span> <span class="n">qz</span><span class="p">,</span> <span class="n">qw</span> <span class="o">=</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">marker_quat_xyzw</span><span class="p">)</span>
+<a id="L-320" name="L-320"></a>    <span class="n">norm_sq</span> <span class="o">=</span> <span class="n">qx</span> <span class="o">*</span> <span class="n">qx</span> <span class="o">+</span> <span class="n">qy</span> <span class="o">*</span> <span class="n">qy</span> <span class="o">+</span> <span class="n">qz</span> <span class="o">*</span> <span class="n">qz</span> <span class="o">+</span> <span class="n">qw</span> <span class="o">*</span> <span class="n">qw</span>
+<a id="L-321" name="L-321"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">norm_sq</span><span class="p">)</span> <span class="ow">or</span> <span class="n">norm_sq</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-322" name="L-322"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-323" name="L-323"></a>    <span class="n">s</span> <span class="o">=</span> <span class="mf">2.0</span> <span class="o">/</span> <span class="n">norm_sq</span>
+<a id="L-324" name="L-324"></a>    <span class="c1"># Rotate from marker coordinates into the camera frame.</span>
+<a id="L-325" name="L-325"></a>    <span class="n">rot</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span>
+<a id="L-326" name="L-326"></a>        <span class="p">[</span><span class="mi">1</span> <span class="o">-</span> <span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">qy</span> <span class="o">*</span> <span class="n">qy</span> <span class="o">+</span> <span class="n">qz</span> <span class="o">*</span> <span class="n">qz</span><span class="p">),</span> <span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">qx</span> <span class="o">*</span> <span class="n">qy</span> <span class="o">-</span> <span class="n">qz</span> <span class="o">*</span> <span class="n">qw</span><span class="p">),</span> <span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">qx</span> <span class="o">*</span> <span class="n">qz</span> <span class="o">+</span> <span class="n">qy</span> <span class="o">*</span> <span class="n">qw</span><span class="p">)],</span>
+<a id="L-327" name="L-327"></a>        <span class="p">[</span><span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">qx</span> <span class="o">*</span> <span class="n">qy</span> <span class="o">+</span> <span class="n">qz</span> <span class="o">*</span> <span class="n">qw</span><span class="p">),</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">qx</span> <span class="o">*</span> <span class="n">qx</span> <span class="o">+</span> <span class="n">qz</span> <span class="o">*</span> <span class="n">qz</span><span class="p">),</span> <span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">qy</span> <span class="o">*</span> <span class="n">qz</span> <span class="o">-</span> <span class="n">qx</span> <span class="o">*</span> <span class="n">qw</span><span class="p">)],</span>
+<a id="L-328" name="L-328"></a>        <span class="p">[</span><span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">qx</span> <span class="o">*</span> <span class="n">qz</span> <span class="o">-</span> <span class="n">qy</span> <span class="o">*</span> <span class="n">qw</span><span class="p">),</span> <span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">qy</span> <span class="o">*</span> <span class="n">qz</span> <span class="o">+</span> <span class="n">qx</span> <span class="o">*</span> <span class="n">qw</span><span class="p">),</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">s</span> <span class="o">*</span> <span class="p">(</span><span class="n">qx</span> <span class="o">*</span> <span class="n">qx</span> <span class="o">+</span> <span class="n">qy</span> <span class="o">*</span> <span class="n">qy</span><span class="p">)],</span>
+<a id="L-329" name="L-329"></a>    <span class="p">])</span>
+<a id="L-330" name="L-330"></a>    <span class="n">cam</span> <span class="o">=</span> <span class="n">rot</span> <span class="o">@</span> <span class="n">offset_marker_m</span> <span class="o">+</span> <span class="n">np</span><span class="o">.</span><span class="n">asarray</span><span class="p">(</span><span class="n">marker_position</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">float</span><span class="p">)</span>
+<a id="L-331" name="L-331"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">np</span><span class="o">.</span><span class="n">isfinite</span><span class="p">(</span><span class="n">cam</span><span class="p">)</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+<a id="L-332" name="L-332"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-333" name="L-333"></a>    <span class="k">return</span> <span class="p">(</span><span class="nb">float</span><span class="p">(</span><span class="n">cam</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">cam</span><span class="p">[</span><span class="mi">1</span><span class="p">]),</span> <span class="nb">float</span><span class="p">(</span><span class="n">cam</span><span class="p">[</span><span class="mi">2</span><span class="p">]))</span>
+</pre></div></td></tr></table></div>
+</div></body></html>

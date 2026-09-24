@@ -1,0 +1,266 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Setup and deployment &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Beamline configuration" href="../modules/src-beambot-beambot-config_loader-py.html" />
+    <link rel="prev" title="EPICS value topic" href="../modules/src-bluesky_ros-pv_to_topic-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Setup and deployment</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-beambot-beambot-config_loader-py.html">Beamline configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-beambot-beambot-core-moveit_lifecycle_manager-py.html">MoveIt lifecycle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-beambot-launch-beambot_bringup-launch-py.html">EROBS application launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-custom-ur-descriptions-cms_moveit_config-launch-robot_bringup-launch-py.html">CMS robot and MoveIt launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-custom-ur-descriptions-lix_moveit_config-launch-robot_bringup-launch-py.html">LiX robot and MoveIt launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/utils-start_mcp-sh.html">MCP startup with recording</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/utils-start_mcp_nobag-sh.html">MCP startup without recording</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/utils-sim_start_mcp-sh.html">Mock-hardware MCP startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/docker-img_build-sh.html">Docker image build and publish</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+      <li class="breadcrumb-item active">Setup and deployment</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="setup-and-deployment">
+<h1>Setup and deployment<a class="headerlink" href="#setup-and-deployment" title="Link to this heading"></a></h1>
+<p>Beamline configuration, launch descriptions, tool-specific MoveIt startup, and process cleanup. Docker helpers build and publish images.</p>
+<p><a class="reference internal" href="../../../start/setup.html"><span class="std std-doc">Read the guide</span></a> · <a class="reference internal" href="../index.html"><span class="std std-doc">All subsystems</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<div class="toctree-wrapper compound">
+</div>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../modules/src-beambot-beambot-config_loader-py.html#api-93befe87cda8e2cd"><span class="std std-ref">load_beamline_config</span></a> — Find how the active beamline YAML is selected, parsed, and cached for launch and runtime consumers.</p></li>
+<li><p><a class="reference internal" href="../modules/src-beambot-launch-beambot_bringup-launch-py.html#api-4c297adbd9a6fef7"><span class="std std-ref">generate_launch_description</span></a> — Check which action servers start by default and how optional vision, pipettor, and tracing components are enabled.</p></li>
+<li><p><a class="reference internal" href="../modules/src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-11df5711ff3640fe"><span class="std std-ref">MoveItLifecycleManager.launch_moveit_with_gripper</span></a> — Trace payload checks, model selection, launch attempts, and readiness checks when the robot stack starts or changes tools.</p></li>
+</ul>
+</section>
+<section id="modules">
+<h2>Modules<a class="headerlink" href="#modules" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Module</p></th>
+<th class="head"><p>Responsibility</p></th>
+<th class="head text-right"><p>Entries</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-beambot-beambot-config_loader-py.html"><span class="std std-doc">Beamline configuration</span></a></p></td>
+<td><p>Load and validate the selected beamline YAML, cache its shared mapping, resolve resource paths, and translate settings for ROS launch consumers.</p></td>
+<td class="text-right"><p>18</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/src-beambot-beambot-core-moveit_lifecycle_manager-py.html"><span class="std std-doc">MoveIt lifecycle</span></a></p></td>
+<td><p>Start, reuse, and replace MoveIt for the selected gripper. Readiness covers action availability, scene loading, and nonempty robot descriptions; real-hardware startup also checks control and joint feedback and applies the payload.</p></td>
+<td class="text-right"><p>21</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-beambot-launch-beambot_bringup-launch-py.html"><span class="std std-doc">EROBS application launch</span></a></p></td>
+<td><p>Launch EROBS action servers and the orchestrator, with optional vision, pipettor, joystick, and tracing support.</p></td>
+<td class="text-right"><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/src-custom-ur-descriptions-cms_moveit_config-launch-robot_bringup-launch-py.html"><span class="std std-doc">CMS robot and MoveIt launch</span></a></p></td>
+<td><p>CMS gripper-parameterized UR driver/MoveIt launch for none, epick, hande, 2fg7 or pipettor, sourcing per-gripper values from beamline YAML. Includes OMPL/Pilz/STOMP and optional joystick Servo. Uses the UR driver’s robot_state_publisher rather than creating another; payload setting is delegated to lifecycle management.</p></td>
+<td class="text-right"><p>2</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-custom-ur-descriptions-lix_moveit_config-launch-robot_bringup-launch-py.html"><span class="std std-doc">LiX robot and MoveIt launch</span></a></p></td>
+<td><p>LiX UR5e/Hand-E launch with OMPL and Pilz pipelines, RViz, controller overlay and a delayed hard-coded payload service call. No configurable gripper, camera or tool-exchange branch.</p></td>
+<td class="text-right"><p>2</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/utils-start_mcp-sh.html"><span class="std std-doc">MCP startup with recording</span></a></p></td>
+<td><p>Starts rosbridge, Beambot, and a selected-topic bag recorder. Beambot output also goes to a log file.</p></td>
+<td class="text-right"><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/utils-start_mcp_nobag-sh.html"><span class="std std-doc">MCP startup without recording</span></a></p></td>
+<td><p>Starts rosbridge and Beambot, with Beambot output copied to a log file. It does not start a bag recorder.</p></td>
+<td class="text-right"><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/utils-sim_start_mcp-sh.html"><span class="std std-doc">Mock-hardware MCP startup</span></a></p></td>
+<td><p>Starts rosbridge, Beambot with mock UR hardware, and a selected-topic bag recorder. Other devices remain separately configured.</p></td>
+<td class="text-right"><p>1</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/docker-img_build-sh.html"><span class="std std-doc">Docker image build and publish</span></a></p></td>
+<td><p>Build Docker images and push their <code class="docutils literal notranslate"><span class="pre">latest</span></code> tags to GHCR. These functions publish images as well as building them.</p></td>
+<td class="text-right"><p>2</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../modules/src-bluesky_ros-pv_to_topic-py.html" class="btn btn-neutral float-left" title="EPICS value topic" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../modules/src-beambot-beambot-config_loader-py.html" class="btn btn-neutral float-right" title="Beamline configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

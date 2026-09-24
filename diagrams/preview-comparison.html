@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Why two previews may not form one sequence — EROBS</title>
+<!-- Diagram Design, Cathryn Lavery, MIT; upstream 8d8b2993ee2256ee7dfc0eeb3b5713aba3b60792. Editable HTML is the diagram source.
+Source: beambot/action_servers/orchestrator.py:431-441,556-568,684-768; beambot/stages/base_stages.py:create_task_template; mtc_gui/visualization_panel.py:501-542; mtc_gui/main_window.py:_execute. -->
+<style>html,body{margin:0;background:#ffffff;color:#18283b;font-family:system-ui, sans-serif}main{min-width:960px;max-width:960px;margin:0 auto}svg{display:block;width:100%;height:auto}@media print{main{max-width:none}}</style></head>
+<body><main><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 900" role="img" aria-labelledby="preview-comparison-title preview-comparison-desc" font-family="system-ui, sans-serif" fill="#18283b">
+<title id="preview-comparison-title">Why two previews may not form one sequence</title>
+<desc id="preview-comparison-desc">Assume the real robot stays at A during Dry Run and the task list requests moves to B then C. With batching enabled, one MTC task produces a connected preview A to B to C. With batching disabled, each row creates a task from live CurrentState: first A to B, then A to C. The GUI replaces its preview when a new trajectory arrives rather than queuing both previews. Execute with Dry Run cleared performs motion; after a successful first move, the live robot can be at B before the next row plans. A schematic path shows order, not physical geometry.</desc>
+<defs>
+<marker id="preview-comparison-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker>
+<marker id="preview-comparison-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker>
+<marker id="preview-comparison-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker>
+</defs>
+<rect x="0" y="0" width="960" height="900" fill="#ffffff"/>
+<text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS  /  PREVIEW COMPARISON</text>
+<text x="48" y="84" font-size="28" font-weight="600">Why two previews may not form one sequence</text>
+<text x="48" y="120" font-size="20" fill="#52647a">Same task list: move to B, then C. The real robot stays at A during Dry Run.</text>
+<line x1="48" y1="156" x2="912" y2="156" stroke="#dbe3ee"/>
+
+<!-- Paired traces: order is represented horizontally, never spatial distance. -->
+<rect x="48" y="188" width="408" height="412" rx="8" fill="#edf3ff" stroke="#235cb7"/>
+<rect x="504" y="188" width="408" height="412" rx="8" fill="#f3f6fb" stroke="#dbe3ee"/>
+<text x="72" y="228" font-size="24" font-weight="600">Batching on</text>
+<text x="72" y="260" font-size="16" fill="#52647a">Both moves share one MTC task.</text>
+<text x="528" y="228" font-size="24" font-weight="600">Batching off</text>
+<text x="528" y="260" font-size="16" fill="#52647a">Each row creates a new MTC task.</text>
+
+<line x1="136" y1="364" x2="216" y2="364" stroke="#235cb7" stroke-width="2" marker-end="url(#preview-comparison-arrow-accent)"/>
+<line x1="272" y1="364" x2="352" y2="364" stroke="#235cb7" stroke-width="2" marker-end="url(#preview-comparison-arrow-accent)"/>
+<line x1="612" y1="340" x2="800" y2="340" stroke="#52647a" stroke-width="2" marker-end="url(#preview-comparison-arrow)"/>
+<line x1="612" y1="460" x2="800" y2="460" stroke="#52647a" stroke-width="2" marker-end="url(#preview-comparison-arrow)"/>
+
+<text x="72" y="316" font-size="20" font-weight="600">One connected preview</text>
+<circle cx="108" cy="364" r="28" fill="#ffffff" stroke="#52647a"/>
+<circle cx="244" cy="364" r="28" fill="#ffffff" stroke="#52647a"/>
+<circle cx="380" cy="364" r="28" fill="#ffffff" stroke="#52647a"/>
+<text x="108" y="372" font-size="24" font-weight="600" text-anchor="middle">A</text>
+<text x="244" y="372" font-size="24" font-weight="600" text-anchor="middle">B</text>
+<text x="380" y="372" font-size="24" font-weight="600" text-anchor="middle">C</text>
+<text x="108" y="424" font-size="16" fill="#52647a" text-anchor="middle">live start</text>
+<text x="244" y="424" font-size="16" fill="#52647a" text-anchor="middle">target 1</text>
+<text x="380" y="424" font-size="16" fill="#52647a" text-anchor="middle">target 2</text>
+<text x="72" y="492" font-size="20" font-weight="600">A → B → C</text>
+<text x="72" y="528" font-size="16" fill="#52647a">The later stage continues from the</text>
+<text x="72" y="552" font-size="16" fill="#52647a">earlier stage’s planned endpoint.</text>
+
+<text x="528" y="300" font-size="16" fill="#52647a">First row</text>
+<circle cx="584" cy="340" r="28" fill="#ffffff" stroke="#52647a"/>
+<circle cx="828" cy="340" r="28" fill="#ffffff" stroke="#52647a"/>
+<text x="584" y="348" font-size="24" font-weight="600" text-anchor="middle">A</text>
+<text x="828" y="348" font-size="24" font-weight="600" text-anchor="middle">B</text>
+<text x="528" y="420" font-size="16" fill="#52647a">Second row</text>
+<circle cx="584" cy="460" r="28" fill="#ffffff" stroke="#52647a"/>
+<circle cx="828" cy="460" r="28" fill="#ffffff" stroke="#52647a"/>
+<text x="584" y="468" font-size="24" font-weight="600" text-anchor="middle">A</text>
+<text x="828" y="468" font-size="24" font-weight="600" text-anchor="middle">C</text>
+<text x="528" y="528" font-size="16" fill="#52647a">Both start at live CurrentState = A.</text>
+<text x="528" y="552" font-size="16" fill="#52647a">The preview never moved the robot to B.</text>
+
+<text x="48" y="652" font-size="20" font-weight="600">What the GUI displays</text>
+<text x="48" y="684" font-size="16" fill="#52647a">A new trajectory replaces the active preview; the viewer does not queue it.</text>
+<text x="48" y="708" font-size="16" fill="#52647a">With batching off, A → C replaces A → B, even if its animation has not finished.</text>
+
+<line x1="48" y1="744" x2="912" y2="744" stroke="#dbe3ee"/>
+<text x="48" y="780" font-size="20" font-weight="600">Execution changes the live state</text>
+<text x="48" y="812" font-size="16" fill="#52647a">Clear Dry Run, then Execute to request motion. After the first unbatched move succeeds,</text>
+<text x="48" y="836" font-size="16" fill="#52647a">the robot is at B, so the next row can plan from B. Cached replay has separate eligibility checks.</text>
+<text x="48" y="880" font-size="16" fill="#52647a">Schematic order only; arrows do not depict physical paths or distances.</text>
+</svg></main></body></html>

@@ -1,0 +1,201 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Hardware and perception &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Robot models and controllers" href="robot-models.html" />
+    <link rel="prev" title="Configuration and deployment boundaries" href="../architecture/configuration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Hardware and perception</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="robot-models.html">Robot models and controllers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="end-effectors.html">End effectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameras.html">Cameras and detection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="calibration-scenes.html">Calibration and planning scenes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="survey.html">Survey mapping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hardware-guides">Hardware guides</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Hardware and perception</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="hardware-and-perception">
+<h1>Hardware and perception<a class="headerlink" href="#hardware-and-perception" title="Link to this heading"></a></h1>
+<p>EROBS plans with a model of the arm, attached tool, and surrounding cell. Drivers execute those plans; camera measurements provide targets for vision-guided tasks.</p>
+<p>The CMS configuration describes a UR5e with a wrist-mounted Zivid camera. It includes models and settings for Hand-E, ePick, 2FG7, the pipettor, and the no-tool state (<code class="docutils literal notranslate"><span class="pre">none</span></code>). LIX has separate model and planning packages, but its deployment configuration is incomplete; see <a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamline adaptation</span></a>.</p>
+<div class="toctree-wrapper compound">
+</div>
+<section id="hardware-guides">
+<h2>Hardware guides<a class="headerlink" href="#hardware-guides" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Guide</p></th>
+<th class="head"><p>What it covers</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="robot-models.html"><span class="std std-doc">Robot models and controllers</span></a></p></td>
+<td><p>How EROBS loads arm and tool geometry, planning settings, and controllers</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="end-effectors.html"><span class="std std-doc">End effectors</span></a></p></td>
+<td><p>Tool drivers, working-tip geometry, ePick cup profiles, and device limitations</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="cameras.html"><span class="std std-doc">Cameras and detection</span></a></p></td>
+<td><p>Zivid capture, detection helpers, and ZED support limits</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="calibration-scenes.html"><span class="std std-doc">Calibration and planning scenes</span></a></p></td>
+<td><p>Arm and camera calibration, static obstacles, and optional Octomap integration</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="survey.html"><span class="std std-doc">Survey mapping</span></a></p></td>
+<td><p>Recording multiple camera viewpoints and merging them into a point cloud</p></td>
+</tr>
+</tbody>
+</table>
+<p>The model, working tip, camera transform, and scene geometry must match the installation. Check these before compensating for a positioning error with task offsets.</p>
+<p>Use <a class="reference internal" href="../architecture/configuration.html"><span class="std std-doc">configuration and deployment</span></a> to select settings and launch options. For operating instructions, see <a class="reference internal" href="../operate/tools.html"><span class="std std-doc">tools and end effectors</span></a> and <a class="reference internal" href="../operate/vision.html"><span class="std std-doc">vision-guided tasks</span></a>. <a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">Perception architecture</span></a> explains how detections become motion targets.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../architecture/configuration.html" class="btn btn-neutral float-left" title="Configuration and deployment boundaries" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="robot-models.html" class="btn btn-neutral float-right" title="Robot models and controllers" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

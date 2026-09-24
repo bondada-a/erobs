@@ -1,0 +1,394 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Survey viewpoint teaching &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Survey capture" href="scripts-survey_mapping-run_survey-py.html" />
+    <link rel="prev" title="Image point selector" href="src-beambot-mcp_server-point_selector_gui-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-__init__-py.html">Camera backend selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zivid-py.html">Zivid camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zed-py.html">ZED camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-image_detection-py.html">Image and marker geometry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-spincoater_detection-py.html">Spincoater image detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-yolo_object_detection-py.html">YOLO object detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_task_detection-py.html">Vision task detector adapters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-motion_target-py.html">Vision motion targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_engine-py.html">Shared vision engine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_scan_server-py.html">Marker scan action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_task_server-py.html">Vision task action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-vision_task_stages-py.html">Vision task coordination</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-pointcloud_relay-py.html">Point-cloud filtering relay</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-octomap_to_planning_scene-py.html">Octomap scene bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-launch-octomap_mapping-launch-py.html">Octomap pipeline launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-mcp_server-point_selector_gui-py.html">Image point selector</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Survey viewpoint teaching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-run_survey-py.html">Survey capture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-merge_survey_bag-py.html">Survey point-cloud merger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/perception.html">Perception and mapping</a></li>
+      <li class="breadcrumb-item active">Survey viewpoint teaching</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="survey-viewpoint-teaching">
+<h1>Survey viewpoint teaching<a class="headerlink" href="#survey-viewpoint-teaching" title="Link to this heading"></a></h1>
+<p>Record operator-selected survey viewpoints from <code class="docutils literal notranslate"><span class="pre">/joint_states</span></code> and save them as a YAML pose registry.</p>
+<p><code class="docutils literal notranslate"><span class="pre">scripts.survey_mapping.teach_survey_poses</span></code> · <a href="../../../api-source/scripts/survey_mapping/teach_survey_poses.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/perception.html"><span class="std std-doc">Perception and mapping</span></a> · <a class="reference internal" href="../../../architecture/perception.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>Use the interactive <code class="docutils literal notranslate"><span class="pre">main()</span></code> entry point to save viewpoints while an operator positions the arm through the established robot controls. The teacher only observes <code class="docutils literal notranslate"><span class="pre">/joint_states</span></code>; it neither enables freedrive nor commands movement.</p>
+<p>Enter saves the current six arm joints in degrees, <code class="docutils literal notranslate"><span class="pre">u</span></code> removes the latest saved entry, and <code class="docutils literal notranslate"><span class="pre">q</span></code> writes the YAML file. Choose an explicit output path to avoid replacing the bundled survey poses; <code class="docutils literal notranslate"><span class="pre">--append</span></code> loads existing entries first.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-ec03af031f52d924"><span class="std std-ref">main</span></a></p></td>
+<td><p>Record viewpoints through an Enter/save, u/undo, q/finish loop, then write the remaining poses to YAML. Wait up to ten seconds for a complete arm state before starting; <code class="docutils literal notranslate"><span class="pre">--append</span></code> loads existing entries first.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-fa64da368baeb494"><span class="std std-ref">PoseTeacher.snapshot_degrees</span></a></p></td>
+<td><p>Read the last joint mapping and extract shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2 and wrist_3 in that order, converting radians to degrees rounded to two decimals.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-e5a9000bac968360"><span class="std std-ref">format_poses</span></a></p></td>
+<td><p>Format poses as a two-comment YAML document with each six-joint list on one line and two decimal places.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="main">
+<span id="api-ec03af031f52d924"></span><h3><code class="docutils literal notranslate"><span class="pre">main()</span></code><a class="headerlink" href="#main" title="Link to this heading"></a></h3>
+<p>Record viewpoints through an Enter/save, u/undo, q/finish loop, then write the remaining poses to YAML. Wait up to ten seconds for a complete arm state before starting; <code class="docutils literal notranslate"><span class="pre">--append</span></code> loads existing entries first.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/scripts/survey_mapping/teach_survey_poses.py.html#L-86">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> 0 after writing or when no poses remain; 1 for invalid existing data, state timeout or output error.</p>
+<p><strong>Errors:</strong> Catches load/write errors and KeyboardInterrupt/EOFError; interrupt/EOF still proceeds to save collected poses. Initial state timeout returns before file writing.</p>
+<p><strong>Side effects:</strong> Starts a daemon ROS spin thread, reads terminal input and /joint_states, and may overwrite –output. Existing output is not read without –append; cleanup destroys node and shuts down ROS.</p>
+</section>
+<section id="format-poses">
+<span id="api-e5a9000bac968360"></span><h3><code class="docutils literal notranslate"><span class="pre">format_poses()</span></code><a class="headerlink" href="#format-poses" title="Link to this heading"></a></h3>
+<p>Format poses as a two-comment YAML document with each six-joint list on one line and two decimal places.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/scripts/survey_mapping/teach_survey_poses.py.html#L-69">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">format_poses</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Ordered mapping of names to numeric joint sequences in degrees; names are emitted unquoted.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> String ending in a newline; no sequence-length or YAML-key escaping validation.</p>
+<p><strong>Errors:</strong> Nonnumeric values can raise formatting errors.</p>
+<p><strong>Side effects:</strong> Creates text only.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">text</span> <span class="o">=</span> <span class="n">format_poses</span><span class="p">({</span><span class="s2">"survey_1"</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="o">-</span><span class="mi">90</span><span class="p">,</span> <span class="mi">90</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]})</span>
+<span class="k">assert</span> <span class="s2">"survey_1: [0.00, -90.00, 90.00, 0.00, 0.00, 0.00]"</span> <span class="ow">in</span> <span class="n">text</span>
+</pre></div>
+</div>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-teach_survey_poses-py.html#api-ec03af031f52d924"><code>main</code></a> — scripts.survey_mapping.teach_survey_poses</li></ul></details></section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="load-existing">
+<span id="api-fe1da6f00f5da934"></span><h4><code class="docutils literal notranslate"><span class="pre">load_existing()</span></code><a class="headerlink" href="#load-existing" title="Link to this heading"></a></h4>
+<p>Read a prior YAML pose mapping for append mode, requiring every entry to have a string name and exactly six float-convertible values.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/scripts/survey_mapping/teach_survey_poses.py.html#L-47">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">load_existing</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">path</span></code></p></td>
+<td><p>Path object for the YAML file; missing/nonfile paths yield an empty mapping.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Dictionary of names to six float degree values; empty/null YAML yields {}.</p>
+<p><strong>Errors:</strong> ValueError for any malformed document/entry; read/YAML errors propagate. Unlike run_survey.load_poses, nonfinite floats are not rejected.</p>
+<p><strong>Side effects:</strong> Reads the existing file without changing it.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-teach_survey_poses-py.html#api-ec03af031f52d924"><code>main</code></a> — scripts.survey_mapping.teach_survey_poses</li></ul></details></section>
+<section id="next-index">
+<span id="api-b386fdd3e246f7ae"></span><h4><code class="docutils literal notranslate"><span class="pre">next_index()</span></code><a class="headerlink" href="#next-index" title="Link to this heading"></a></h4>
+<p>Find the lowest positive integer whose prefix_integer key is absent from poses, filling numbering gaps.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/scripts/survey_mapping/teach_survey_poses.py.html#L-79">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">next_index</span><span class="p">(</span><span class="n">poses</span><span class="p">,</span> <span class="n">prefix</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Mapping or container tested for existing generated keys.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prefix</span></code></p></td>
+<td><p>Text used before the underscore in generated pose names.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> First unused integer starting at 1.</p>
+<p><strong>Errors:</strong> Container membership errors propagate.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">assert</span> <span class="n">next_index</span><span class="p">({</span><span class="s2">"survey_1"</span><span class="p">:</span> <span class="p">[],</span> <span class="s2">"survey_3"</span><span class="p">:</span> <span class="p">[]},</span> <span class="s2">"survey"</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span>
+</pre></div>
+</div>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-teach_survey_poses-py.html#api-ec03af031f52d924"><code>main</code></a> — scripts.survey_mapping.teach_survey_poses</li></ul></details></section>
+</section>
+</section>
+<section id="poseteacher">
+<h2><code class="docutils literal notranslate"><span class="pre">PoseTeacher</span></code><a class="headerlink" href="#poseteacher" title="Link to this heading"></a></h2>
+<p>Cache joint-state messages and return the six arm joints in a fixed order, converted from radians to degrees and rounded to two decimal places.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">Node</span></code>.</p>
+<section id="poseteacher-snapshot-degrees">
+<span id="api-fa64da368baeb494"></span><h3><code class="docutils literal notranslate"><span class="pre">PoseTeacher.snapshot_degrees()</span></code><a class="headerlink" href="#poseteacher-snapshot-degrees" title="Link to this heading"></a></h3>
+<p>Read the last joint mapping and extract shoulder_pan, shoulder_lift, elbow, wrist_1, wrist_2 and wrist_3 in that order, converting radians to degrees rounded to two decimals.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/scripts/survey_mapping/teach_survey_poses.py.html#L-36">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">snapshot_degrees</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Six-element degree list, or None before a message or when any required joint is missing.</p>
+<p><strong>Errors:</strong> Missing joint logs an error and returns None; other conversion errors propagate. No age or finite-value validation is performed.</p>
+<p><strong>Side effects:</strong> Reads the cached mapping and may log an error; no motion.</p>
+</section>
+<section id="poseteacher-init">
+<span id="api-5646ce2fd088360f"></span><h3><code class="docutils literal notranslate"><span class="pre">PoseTeacher.__init__()</span></code><a class="headerlink" href="#poseteacher-init" title="Link to this heading"></a></h3>
+<p>Create survey_pose_teacher with a depth-ten /joint_states subscription and a latest-joint cache.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/scripts/survey_mapping/teach_survey_poses.py.html#L-28">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Errors:</strong> ROS setup errors propagate.</p>
+<p><strong>Side effects:</strong> Registers a ROS node/subscription and initializes the empty joint cache.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-teach_survey_poses-py.html#api-ec03af031f52d924"><code>main</code></a> — scripts.survey_mapping.teach_survey_poses</li></ul></details></section>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="poseteacher-on-joints">
+<span id="api-480739e9153943c8"></span><h4><code class="docutils literal notranslate"><span class="pre">PoseTeacher._on_joints()</span></code><a class="headerlink" href="#poseteacher-on-joints" title="Link to this heading"></a></h4>
+<p>Replace the cached mapping with the latest paired joint names and positions.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/scripts/survey_mapping/teach_survey_poses.py.html#L-33">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_joints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>JointState whose position values are radians; zip truncates mismatched name/position lengths.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed message access errors propagate.</p>
+<p><strong>Side effects:</strong> Updates the latest-joint cache; no motion.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-teach_survey_poses-py.html#api-5646ce2fd088360f"><code>PoseTeacher.__init__</code></a> — scripts.survey_mapping.teach_survey_poses</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-mcp_server-point_selector_gui-py.html" class="btn btn-neutral float-left" title="Image point selector" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="scripts-survey_mapping-run_survey-py.html" class="btn btn-neutral float-right" title="Survey capture" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

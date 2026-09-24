@@ -1,0 +1,568 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pose browser and registry &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Pose editing dialogs" href="src-mtc_gui-mtc_gui-pose_dialogs-py.html" />
+    <link rel="prev" title="ROS and GUI bridge" href="src-mtc_gui-mtc_gui-ros2_bridge-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main-py.html">GUI startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main_window-py.html">Operator window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-task_forms-py.html">Task editor forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-step_list_panel-py.html">Task queue display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-ros2_bridge-py.html">ROS and GUI bridge</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Pose browser and registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_dialogs-py.html">Pose editing dialogs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_io-py.html">Pose registry files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-camera_panel-py.html">Camera display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-visualization_panel-py.html">Robot and trajectory viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-resources-viewer-html.html">Embedded robot viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-chat_panel-py.html">Chat interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_bridge-py.html">Chat agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_modes-py.html">Chat agent modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-theme-py.html">GUI appearance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-launch-mtc_gui_client-launch-py.html">Operator GUI launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/operator-gui.html">Operator GUI</a></li>
+      <li class="breadcrumb-item active">Pose browser and registry</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="pose-browser-and-registry">
+<h1>Pose browser and registry<a class="headerlink" href="#pose-browser-and-registry" title="Link to this heading"></a></h1>
+<p>Load, browse, and update the GUI’s shared pose registry.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mtc_gui.poses_panel</span></code> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/operator-gui.html"><span class="std std-doc">Operator GUI</span></a> · <a class="reference internal" href="../../../operate/gui.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MTCMainWindow</span></code> loads the registry through <code class="docutils literal notranslate"><span class="pre">load_from_beamline_config()</span></code>; <code class="docutils literal notranslate"><span class="pre">load_from_file()</span></code> accepts a registry path directly. <code class="docutils literal notranslate"><span class="pre">pose_clicked</span></code> reports a selection, <code class="docutils literal notranslate"><span class="pre">pose_activated</span></code> requests a Move To queue entry, and <code class="docutils literal notranslate"><span class="pre">poses_loaded</span></code> announces a reload. Selecting or dragging a pose does not execute it.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">save_pose()</span></code> and <code class="docutils literal notranslate"><span class="pre">delete_pose()</span></code> to change the registry: both read the latest file, write it atomically, then reload the panel. Comment-derived groups are display metadata and are lost on rewrite. There is no interprocess lock between GUI and other registry writers.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-c5f641217ef9fa60"><span class="std std-ref">PosesPanel.load_from_beamline_config</span></a></p></td>
+<td><p>Read poses_file from a beamline YAML and search ancestor directories for the referenced registry.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-9958958e4d5ae042"><span class="std std-ref">PosesPanel.load_from_file</span></a></p></td>
+<td><p>Load six-element pose lists and extract display groups from # — group — comments.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-a815a08ba4a05928"><span class="std std-ref">PosesPanel.get_poses</span></a></p></td>
+<td><p>Return a shallow copy of the loaded pose mapping.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-be161a3314b1f2a2"><span class="std std-ref">PosesPanel.save_pose</span></a></p></td>
+<td><p>Merge one pose into the latest on-disk registry, atomically write it, then reload.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-6a478b9430ac81b3"><span class="std std-ref">PosesPanel.delete_pose</span></a></p></td>
+<td><p>Remove a name from the latest on-disk registry and reload the persisted result.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="posespanel">
+<h2><code class="docutils literal notranslate"><span class="pre">PosesPanel</span></code><a class="headerlink" href="#posespanel" title="Link to this heading"></a></h2>
+<p>Own the loaded registry, file path, filters, and pose signals. The main window and pose dialogs use this panel as their registry access point.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QWidget</span></code>.</p>
+<section id="posespanel-load-from-beamline-config">
+<span id="api-c5f641217ef9fa60"></span><h3><code class="docutils literal notranslate"><span class="pre">PosesPanel.load_from_beamline_config()</span></code><a class="headerlink" href="#posespanel-load-from-beamline-config" title="Link to this heading"></a></h3>
+<p>Read poses_file from a beamline YAML and search ancestor directories for the referenced registry.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-116">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">load_from_beamline_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">config_path</span></code></p></td>
+<td><p>Beamline YAML path. A relative poses_file is resolved by walking upward from this path’s parent; the filesystem-root directory is not checked by the loop.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Missing config, absent/false poses_file, or unresolved registry silently returns. YAML/I/O and nonmapping-config errors propagate.</p>
+<p><strong>Side effects:</strong> Reads the beamline config and, when found, loads the registry through load_from_file.</p>
+</section>
+<section id="posespanel-load-from-file">
+<span id="api-9958958e4d5ae042"></span><h3><code class="docutils literal notranslate"><span class="pre">PosesPanel.load_from_file()</span></code><a class="headerlink" href="#posespanel-load-from-file" title="Link to this heading"></a></h3>
+<p>Load six-element pose lists and extract display groups from # — group — comments.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-142">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">load_from_file</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Path</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">path</span></code></p></td>
+<td><p>Registry YAML path to become the active persistence destination.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> A missing file updates the count label and leaves previously loaded registry state intact. Other read/parse/display errors propagate; _poses_file is assigned before read_poses completes.</p>
+<p><strong>Side effects:</strong> Replaces poses/groups/path, reads the file twice, refreshes the list/source label, and emits poses_loaded with a shallow mapping copy.</p>
+<details class="api-references"><summary>Referenced in source (4)</summary><ul><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-862a917c57ee150e"><code>PosesPanel._reload</code></a> — mtc_gui.poses_panel</li><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-6a478b9430ac81b3"><code>PosesPanel.delete_pose</code></a> — mtc_gui.poses_panel</li><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-c5f641217ef9fa60"><code>PosesPanel.load_from_beamline_config</code></a> — mtc_gui.poses_panel</li><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-be161a3314b1f2a2"><code>PosesPanel.save_pose</code></a> — mtc_gui.poses_panel</li></ul></details></section>
+<section id="posespanel-get-poses">
+<span id="api-a815a08ba4a05928"></span><h3><code class="docutils literal notranslate"><span class="pre">PosesPanel.get_poses()</span></code><a class="headerlink" href="#posespanel-get-poses" title="Link to this heading"></a></h3>
+<p>Return a shallow copy of the loaded pose mapping.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-203">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> A shallow dict copy; contained joint-angle lists remain shared with the panel.</p>
+</section>
+<section id="posespanel-save-pose">
+<span id="api-be161a3314b1f2a2"></span><h3><code class="docutils literal notranslate"><span class="pre">PosesPanel.save_pose()</span></code><a class="headerlink" href="#posespanel-save-pose" title="Link to this heading"></a></h3>
+<p>Merge one pose into the latest on-disk registry, atomically write it, then reload.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-215">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">save_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Pose key to insert or overwrite without duplicate-name confirmation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">values</span></code></p></td>
+<td><p>Joint-angle list, conventionally six degrees values; no validation is performed before writing.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> False if no registry path is set; True after successful write and reload.</p>
+<p><strong>Errors:</strong> I/O/YAML/display errors propagate. The reload filters non-six-element lists, so malformed lengths may be written but then disappear from the visible registry.</p>
+<p><strong>Side effects:</strong> Reads current disk state, writes the merged registry, and reloads/emits poses_loaded. YAML comments are lost; read/merge/write is not protected by a cross-process lock.</p>
+</section>
+<section id="posespanel-delete-pose">
+<span id="api-6a478b9430ac81b3"></span><h3><code class="docutils literal notranslate"><span class="pre">PosesPanel.delete_pose()</span></code><a class="headerlink" href="#posespanel-delete-pose" title="Link to this heading"></a></h3>
+<p>Remove a name from the latest on-disk registry and reload the persisted result.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-229">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">delete_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Pose key to remove; absent keys are tolerated.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> False if no registry path is set; otherwise True after write/reload, even when the name was absent.</p>
+<p><strong>Errors:</strong> I/O/YAML/display errors propagate.</p>
+<p><strong>Side effects:</strong> Rewrites the registry and reloads/emits poses_loaded; comments are lost even when the requested key did not exist.</p>
+</section>
+<section id="posespanel-init">
+<span id="api-03eb23c64c0b32b2"></span><h3><code class="docutils literal notranslate"><span class="pre">PosesPanel.__init__()</span></code><a class="headerlink" href="#posespanel-init" title="Link to this heading"></a></h3>
+<p>Create an empty pose browser with no registry selected.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-53">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent widget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Qt construction errors propagate.</p>
+<p><strong>Side effects:</strong> Initializes in-memory state and widgets; reads no file.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6a79ece84303041e"><code>MTCMainWindow._build_sidebar</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="posespanel-get-pose">
+<span id="api-5b9279651e657fbc"></span><h3><code class="docutils literal notranslate"><span class="pre">PosesPanel.get_pose()</span></code><a class="headerlink" href="#posespanel-get-pose" title="Link to this heading"></a></h3>
+<p>Return one pose’s angle list from the in-memory registry.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-207">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Registry key to retrieve.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Stored joint-angle list by reference, or None when absent.</p>
+<p><strong>Errors:</strong> Unhashable names raise TypeError.</p>
+<p><strong>Side effects:</strong> None; mutating the returned list would change in-memory values without persistence or signals.</p>
+</section>
+<section id="posespanel-get-poses-file">
+<span id="api-e25cabeaad7dc2dd"></span><h3><code class="docutils literal notranslate"><span class="pre">PosesPanel.get_poses_file()</span></code><a class="headerlink" href="#posespanel-get-poses-file" title="Link to this heading"></a></h3>
+<p>Expose the active registry’s filesystem path.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-211">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_poses_file</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Path</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Path, or None before a registry has been selected.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="posespanel-build-ui">
+<span id="api-db73ff8f13212d4f"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesPanel._build_ui()</span></code><a class="headerlink" href="#posespanel-build-ui" title="Link to this heading"></a></h4>
+<p>Build name/group filtering, reload, drag-enabled pose list, six joint-value labels, and source status.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-60">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_ui</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt construction/connection errors propagate.</p>
+<p><strong>Side effects:</strong> Creates widgets and connects filters, clicks, double-clicks, and reload; installs no ROS connection itself.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-03eb23c64c0b32b2"><code>PosesPanel.__init__</code></a> — mtc_gui.poses_panel</li></ul></details></section>
+<section id="posespanel-refresh-list">
+<span id="api-8dddfea9a534d79e"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesPanel._refresh_list()</span></code><a class="headerlink" href="#posespanel-refresh-list" title="Link to this heading"></a></h4>
+<p>Rebuild the sorted pose list using a case-insensitive substring match on name or group.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-169">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_refresh_list</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Nonnumeric values and nonstring/unorderable pose names may raise; no local validation.</p>
+<p><strong>Side effects:</strong> Clears list/selection, creates visible PoseListItems, and updates total or visible/total count text.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-66e54f6358aa63b6"><code>PosesPanel._apply_filter</code></a> — mtc_gui.poses_panel</li><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-9958958e4d5ae042"><code>PosesPanel.load_from_file</code></a> — mtc_gui.poses_panel</li></ul></details></section>
+<section id="posespanel-apply-filter">
+<span id="api-66e54f6358aa63b6"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesPanel._apply_filter()</span></code><a class="headerlink" href="#posespanel-apply-filter" title="Link to this heading"></a></h4>
+<p>Refresh visible poses using the current filter-edit text.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-188">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_apply_filter</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Refresh errors propagate.</p>
+<p><strong>Side effects:</strong> Rebuilds the list and count label.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-db73ff8f13212d4f"><code>PosesPanel._build_ui</code></a> — mtc_gui.poses_panel</li></ul></details></section>
+<section id="posespanel-on-click">
+<span id="api-ceb5a119b675efa6"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesPanel._on_click()</span></code><a class="headerlink" href="#posespanel-on-click" title="Link to this heading"></a></h4>
+<p>Show a clicked pose’s joint angles and emit its informational selection signal.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-191">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">PoseListItem</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">item</span></code></p></td>
+<td><p>PoseListItem providing pose_name and pose_values.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed/nonnumeric values propagate; zip updates only matching label/value pairs.</p>
+<p><strong>Side effects:</strong> Updates joint labels and emits pose_clicked(name, values); does not enqueue or execute a move.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-db73ff8f13212d4f"><code>PosesPanel._build_ui</code></a> — mtc_gui.poses_panel</li></ul></details></section>
+<section id="posespanel-on-double-click">
+<span id="api-33cafd983ce3c63e"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesPanel._on_double_click()</span></code><a class="headerlink" href="#posespanel-on-double-click" title="Link to this heading"></a></h4>
+<p>Emit the selected pose as a requested queue addition.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-196">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_double_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">PoseListItem</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">item</span></code></p></td>
+<td><p>Activated PoseListItem containing pose_name and pose_values.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Attribute/signal errors propagate.</p>
+<p><strong>Side effects:</strong> Emits pose_activated(name, values); the connected main-window slot appends a Move To step.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-db73ff8f13212d4f"><code>PosesPanel._build_ui</code></a> — mtc_gui.poses_panel</li></ul></details></section>
+<section id="posespanel-reload">
+<span id="api-862a917c57ee150e"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesPanel._reload()</span></code><a class="headerlink" href="#posespanel-reload" title="Link to this heading"></a></h4>
+<p>Reload the active registry path when one has been selected.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-199">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_reload</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No loaded path is a no-op; load_from_file handles missing files and propagates other errors.</p>
+<p><strong>Side effects:</strong> Reads and redisplays the registry and emits poses_loaded on a successful reload.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-db73ff8f13212d4f"><code>PosesPanel._build_ui</code></a> — mtc_gui.poses_panel</li></ul></details></section>
+</section>
+</section>
+<section id="poselistitem">
+<h2><code class="docutils literal notranslate"><span class="pre">PoseListItem</span></code><a class="headerlink" href="#poselistitem" title="Link to this heading"></a></h2>
+<p>Store one pose’s name, degree-valued angles, and optional display group in the browser list.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QListWidgetItem</span></code>.</p>
+<section id="poselistitem-init">
+<span id="api-68576ca85c4837db"></span><h3><code class="docutils literal notranslate"><span class="pre">PoseListItem.__init__()</span></code><a class="headerlink" href="#poselistitem-init" title="Link to this heading"></a></h3>
+<p>Create a pose list item carrying its name, angle list, and display group.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-22">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">group</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Pose label and exported drag name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">values</span></code></p></td>
+<td><p>Joint-angle list in degrees; stored by reference and formatted to two decimals in the tooltip.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">group</span></code></p></td>
+<td><p>Optional display/filter group label parsed from YAML comments.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Nonnumeric values can fail tooltip formatting; Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Sets item text, tooltip, attributes, and UserRole {name, values, group}.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-poses_panel-py.html#api-8dddfea9a534d79e"><code>PosesPanel._refresh_list</code></a> — mtc_gui.poses_panel</li></ul></details></section>
+</section>
+<section id="posedraglistwidget">
+<h2><code class="docutils literal notranslate"><span class="pre">_PoseDragListWidget</span></code><a class="headerlink" href="#posedraglistwidget" title="Link to this heading"></a></h2>
+<p>Implement the browser’s drag payload. Qt calls <code class="docutils literal notranslate"><span class="pre">mimeData()</span></code> to export a pose name for the task queue.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QListWidget</span></code>.</p>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="posedraglistwidget-mimedata">
+<span id="api-95d83b69fede7c51"></span><h4><code class="docutils literal notranslate"><span class="pre">_PoseDragListWidget.mimeData()</span></code><a class="headerlink" href="#posedraglistwidget-mimedata" title="Link to this heading"></a></h4>
+<p>Export the first dragged PoseListItem as custom pose-name MIME data and plain text.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/poses_panel.py.html#L-35">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">mimeData</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">items</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">items</span></code></p></td>
+<td><p>Selected list items; only the first is considered, and it must be a PoseListItem.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> QMimeData containing application/x-mtc-pose-name UTF-8 bytes and text, or empty QMimeData when no compatible first item exists.</p>
+<p><strong>Errors:</strong> Encoding/Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Creates a drag payload; does not mutate registry data.</p>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html" class="btn btn-neutral float-left" title="ROS and GUI bridge" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html" class="btn btn-neutral float-right" title="Pose editing dialogs" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

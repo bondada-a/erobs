@@ -1,0 +1,250 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Poses and saved runs &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Tools and end effectors" href="tools.html" />
+    <link rel="prev" title="Write task scripts" href="tasks.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Operate EROBS</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="gui.html">Operator GUI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tasks.html">Write task scripts</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Poses and saved runs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#registry-and-inline-poses">Registry and inline poses</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#use-the-gui-pose-panel">Use the GUI pose panel</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#save-the-current-position">Save the current position</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#keep-a-task-linked-to-a-shared-pose">Keep a task linked to a shared pose</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#save-and-load-runs">Save and load runs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#after-changing-poses-or-calibration">After changing poses or calibration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tools.html">Tools and end effectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vision.html">Vision-guided tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="controls.html">Execution controls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#run-a-sequence">Run a sequence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#dry-run-and-mock-hardware">Dry Run and mock hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#operation-guides">Operation guides</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Operate EROBS</a></li>
+      <li class="breadcrumb-item active">Poses and saved runs</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="poses-and-saved-runs">
+<h1>Poses and saved runs<a class="headerlink" href="#poses-and-saved-runs" title="Link to this heading"></a></h1>
+<p>A pose is a named arm position stored as six joint angles in degrees. A saved run is a task sequence you can load, edit, and execute again.</p>
+<section id="registry-and-inline-poses">
+<h2>Registry and inline poses<a class="headerlink" href="#registry-and-inline-poses" title="Link to this heading"></a></h2>
+<p>Choose where to store a pose based on how it should be reused:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Storage</p></th>
+<th class="head"><p>Use it for</p></th>
+<th class="head"><p>Effect of later changes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Shared registry</p></td>
+<td><p>Calibrated positions used by several tasks. The beamline’s <code class="docutils literal notranslate"><span class="pre">poses_file</span></code> selects this YAML file.</p></td>
+<td><p>Tasks that refer to the pose by name use the updated values when planned again.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Inline pose</p></td>
+<td><p>Coordinates stored under <code class="docutils literal notranslate"><span class="pre">poses</span></code> in one task’s JSON.</p></td>
+<td><p>The task keeps these values, even if the shared pose changes.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Inline values take priority</strong> when both locations contain the same name.</p>
+<p>For example, the CMS registry at <code class="docutils literal notranslate"><span class="pre">src/cms/poses.yaml</span></code> includes:</p>
+<div class="highlight-yaml notranslate"><div class="highlight"><pre><span></span><span class="nt">safe_sample_transport</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">[</span><span class="nv">79.72</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">-69.5</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">-81.91</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">-117.92</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">-268.05</span><span class="p p-Indicator">,</span><span class="w"> </span><span class="nv">-157.15</span><span class="p p-Indicator">]</span>
+</pre></div>
+</div>
+<p>Values follow <code class="docutils literal notranslate"><span class="pre">robot.arm_joints</span></code> in the selected beamline configuration. For CMS, the order is shoulder pan, shoulder lift, elbow, wrist 1, wrist 2, wrist 3. Use calibrated values for your installation.</p>
+<p>The <a class="reference internal" href="tasks.html#start-with-the-epick-example"><span class="std std-ref">ePick task example</span></a> stores this pose inline. See <a class="reference internal" href="../reference/tasks.html#resolving-pose-names"><span class="std std-ref">pose-name resolution</span></a> for field-specific rules, including vision retreat poses.</p>
+</section>
+<section id="use-the-gui-pose-panel">
+<h2>Use the GUI pose panel<a class="headerlink" href="#use-the-gui-pose-panel" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Open <strong>Poses</strong> and use <strong>Filter poses</strong> to find a shared pose.</p></li>
+<li><p>Single-click it to inspect its six joint values.</p></li>
+<li><p>Double-click it, or drag it into the sequence, to add a named <strong>Move To</strong> step.</p></li>
+</ol>
+<p>The panel lists the shared registry, not the task’s inline poses. Use <strong>↻</strong> to reload after editing the registry outside the GUI.</p>
+<section id="save-the-current-position">
+<h3>Save the current position<a class="headerlink" href="#save-the-current-position" title="Link to this heading"></a></h3>
+<ol class="arabic simple">
+<li><p>With live joint data available, press <strong>Save Current Pose</strong>.</p></li>
+<li><p>Enter a descriptive name and choose <strong>Pose registry</strong> or <strong>Inline (this task only)</strong>, then press <strong>Save</strong>. Reusing a name replaces that stored pose.</p></li>
+<li><p>If you chose inline storage, save the task with <strong>File → Save JSON</strong> or save it in <strong>Runs</strong> to keep the change.</p></li>
+</ol>
+<p>Use <strong>Manage Poses</strong> to add, edit, delete, or import shared poses. Each change is written immediately; closing the dialog does not undo it. Registry writes do not preserve YAML comments. Saving a pose records coordinates without checking reachability or collision clearance.</p>
+</section>
+<section id="keep-a-task-linked-to-a-shared-pose">
+<h3>Keep a task linked to a shared pose<a class="headerlink" href="#keep-a-task-linked-to-a-shared-pose" title="Link to this heading"></a></h3>
+<p>When a named Move To resolves to six known joint values, its editor opens in <strong>Joint values</strong> mode. Saving in that mode copies the coordinates into the task as an inline pose.</p>
+<p>To keep using the shared position, choose <strong>Named target</strong> before saving. If an inline override already exists, remove its entry from the task JSON’s <code class="docutils literal notranslate"><span class="pre">poses</span></code> mapping and reload the file.</p>
+</section>
+</section>
+<section id="save-and-load-runs">
+<h2>Save and load runs<a class="headerlink" href="#save-and-load-runs" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Build the sequence and check <strong>Start Gripper</strong>.</p></li>
+<li><p>Open <strong>Runs</strong>, press <strong>Save</strong>, and enter a display name and filename.</p></li>
+<li><p>To reuse a run, double-click it. This replaces the active sequence, so save unfinished edits first. Check <strong>Start Gripper</strong> after loading. Loading does not execute the run.</p></li>
+</ol>
+<p><strong>Rename</strong> changes the display name. <strong>Delete</strong> removes the saved file after confirmation. <strong>↻</strong> refreshes the list.</p>
+<p>Runs are stored in <code class="docutils literal notranslate"><span class="pre">src/cms/runs</span></code>, including when another beamline configuration is selected. Use <strong>File → Save JSON</strong> to choose a different location.</p>
+</section>
+<section id="after-changing-poses-or-calibration">
+<h2>After changing poses or calibration<a class="headerlink" href="#after-changing-poses-or-calibration" title="Link to this heading"></a></h2>
+<p>Review any inline poses saved with the run before expecting it to use updated shared coordinates.</p>
+<p>Reload the registry in the GUI, then generate and inspect a fresh preview for sequences that support <strong>Dry Run</strong>. Resolved registry values are included in the plan-cache key, so a changed pose referenced by the task produces a different key. Inline overrides still take priority. See <a class="reference internal" href="../architecture/batching.html#what-does-not-invalidate-a-plan"><span class="std std-ref">cache behavior</span></a> and <a class="reference internal" href="controls.html#preview"><span class="std std-ref">preview limits</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tasks.html" class="btn btn-neutral float-left" title="Write task scripts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tools.html" class="btn btn-neutral float-right" title="Tools and end effectors" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,248 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tool and MoveIt lifecycle &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Perception and vision execution" href="perception.html" />
+    <link rel="prev" title="Batching and caches" href="batching.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Architecture</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="execution.html">Task execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="batching.html">Batching and caches</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Tool and MoveIt lifecycle</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#start-or-reuse-moveit">Start or reuse MoveIt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#keep-the-robot-model-consistent">Keep the robot model consistent</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#dock-and-load">Dock and load</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#failure-boundaries">Failure boundaries</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#shutdown">Shutdown</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="perception.html">Perception and vision execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration and deployment boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#from-task-script-to-execution">From task script to execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#main-components">Main components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#process-boundaries">Process boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#explore-the-architecture">Explore the architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Architecture</a></li>
+      <li class="breadcrumb-item active">Tool and MoveIt lifecycle</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="tool-and-moveit-lifecycle">
+<h1>Tool and MoveIt lifecycle<a class="headerlink" href="#tool-and-moveit-lifecycle" title="Link to this heading"></a></h1>
+<p>The orchestrator starts and manages the MoveIt stack for the selected tool. It reuses that stack between requests and replaces it when the tool configuration changes. The top-level EROBS launch starts task servers and optional devices; MoveIt starts when the orchestrator handles a task.</p>
+<p><code class="docutils literal notranslate"><span class="pre">start_gripper</span></code> declares the tool already attached. It selects the initial model and does not perform a physical exchange. See <a class="reference internal" href="../operate/tools.html"><span class="std std-doc">tools and end effectors</span></a> for operator settings.</p>
+<section id="start-or-reuse-moveit">
+<h2>Start or reuse MoveIt<a class="headerlink" href="#start-or-reuse-moveit" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../reference/api/modules/src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-11df5711ff3640fe"><span class="std std-ref">MoveItLifecycleManager.launch_moveit_with_gripper()</span></a> reads the selected tool’s beamline configuration. It reuses the existing stack when the launch process is running and its model revision matches the requested gripper and cup profile. Otherwise, it stops the previous stack and launches a replacement. Cup overrides apply only to tools that define a cup profile.</p>
+<p>Payload and voltage settings are validated when the beamline configuration loads. Both real and mock startup launch MoveIt, load collision objects, and read its robot descriptions. Real-hardware startup also sets tool voltage, restarts the UR external-control program, checks hardware readiness, and applies the payload.</p>
+<p>A failed real-hardware startup is retried once. Mock startup has no automatic retry. This retries initialization, not the preceding tool-exchange movement.</p>
+</section>
+<section id="keep-the-robot-model-consistent">
+<h2>Keep the robot model consistent<a class="headerlink" href="#keep-the-robot-model-consistent" title="Link to this heading"></a></h2>
+<p>A tool change updates both robot descriptions: <a class="reference external" href="https://moveit.picknik.ai/main/doc/examples/urdf_srdf/urdf_srdf_tutorial.html">URDF</a> describes geometry and joints; SRDF supplies planning groups, named states, and collision rules. Mixing descriptions from different launches can produce an inconsistent model.</p>
+<p>The lifecycle manager reads the pair used by <code class="docutils literal notranslate"><span class="pre">/move_group</span></code>, requires both descriptions to be nonempty, and republishes them on dedicated ROS topics. Rebuild and restart the model consumers after changing model files or tool configuration.</p>
+<p>The <strong>model revision</strong> identifies the gripper and its configured cup profile. MTC stages use it to reuse the matching model; MoveIt-using child action goals carry it and batches read it from the lifecycle manager. The same tool/cup combination keeps the same revision across launches. It is not a hash of the model files, so model-file edits require restarting the model consumers. See <a class="reference internal" href="batching.html"><span class="std std-doc">batching and caches</span></a> for trajectory reuse.</p>
+</section>
+<section id="dock-and-load">
+<h2>Dock and load<a class="headerlink" href="#dock-and-load" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../reference/api/modules/src-beambot-beambot-core-tool_exchange_manager-py.html#api-d19d00d386882dd0"><span class="std std-ref">ToolExchangeManager.exchange()</span></a> coordinates the movement and the model update. Replacing Hand-E with ePick, for example, uses two operations: <strong>dock Hand-E → prepare the <code class="docutils literal notranslate"><span class="pre">none</span></code> model → load ePick → prepare the ePick model</strong>.</p>
+<figure class="architecture-figure">
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="tool exchange diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="tool-exchange-title tool-exchange-desc">
+<title id="tool-exchange-title">Tool exchange changes hardware, then the model</title>
+<desc id="tool-exchange-desc">After a successful physical load or dock, the manager records the changed gripper, restarts MoveIt for that gripper, and requests the unified vision-task transform reset.</desc>
+<defs><marker id="tool-exchange-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="tool-exchange-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="tool-exchange-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  SEQUENCE</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">Tool exchange changes hardware, then the model</text><line x1="152" y1="188" x2="152" y2="648" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="384" y1="188" x2="384" y2="648" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="632" y1="188" x2="632" y2="648" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="880" y1="188" x2="880" y2="648" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="1128" y1="188" x2="1128" y2="648" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><rect x="80" y="200" width="352" height="144" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><rect x="80" y="200" width="40" height="24" rx="2" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="100" y="216" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">OPT</text><text x="176" y="228" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">dock on real hardware</text><rect x="80" y="472" width="1096" height="176" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><rect x="80" y="472" width="40" height="24" rx="2" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="100" y="488" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">OPT</text><text x="176" y="496" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">attached gripper changed</text><rect x="148" y="256" width="8" height="384" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="380" y="284" width="8" height="52" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="628" y="388" width="8" height="60" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="876" y="540" width="8" height="48" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><line x1="152" y1="284" x2="384" y2="284" stroke="#52647a" stroke-width="1.5" marker-end="url(#tool-exchange-arrow)"/><rect x="220.0" y="240" width="88" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="264" y="260" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">SET 0 V</text><line x1="384" y1="336" x2="152" y2="336" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#tool-exchange-arrow)"/><rect x="208.0" y="292" width="112" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="264" y="312" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">CONFIRMED</text><line x1="152" y1="396" x2="632" y2="396" stroke="#52647a" stroke-width="1.5" marker-end="url(#tool-exchange-arrow)"/><rect x="448.0" y="352" width="128" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="512" y="372" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">LOAD / DOCK</text><line x1="632" y1="448" x2="152" y2="448" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#tool-exchange-arrow)"/><rect x="468.0" y="404" width="88" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="512" y="424" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">SUCCESS</text><line x1="152" y1="540" x2="880" y2="540" stroke="#52647a" stroke-width="1.5" marker-end="url(#tool-exchange-arrow)"/><rect x="684.0" y="496" width="152" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="760" y="516" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">RESTART MODEL</text><line x1="880" y1="588" x2="152" y2="588" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#tool-exchange-arrow)"/><rect x="724.0" y="544" width="72" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="760" y="564" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">READY</text><line x1="152" y1="636" x2="1128" y2="636" stroke="#52647a" stroke-width="1.5" marker-end="url(#tool-exchange-arrow)"/><rect x="960.0" y="592" width="96" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="1008" y="612" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">RESET TF</text><rect x="40" y="120" width="224" height="68" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="152" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Exchange manager</text><text x="152" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">validate dock / load</text><rect x="280" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="384" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">UR I/O service</text><text x="384" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">real hardware only</text><rect x="528" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="632" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Tool action server</text><text x="632" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">physical exchange</text><rect x="776" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="880" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">MoveIt lifecycle</text><text x="880" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">new gripper model</text><rect x="1024" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1128" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Vision task server</text><text x="1128" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">cached transforms</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Gripper state is recorded before restart. Restart failure returns failure; vision reset failures are warnings, not rollback.</text>
+</svg></div>
+<figcaption><a href="../diagrams/tool-exchange.html">Open the full-size diagram</a></figcaption>
+</figure><p>Each operation follows this sequence:</p>
+<ol class="arabic simple">
+<li><p><strong>Check the request.</strong> Accept <code class="docutils literal notranslate"><span class="pre">dock</span></code> or <code class="docutils literal notranslate"><span class="pre">load</span></code>. For a load, confirm that the requested tool is configured; for a dock, require it to match the declared current tool. A mismatch stops the exchange before voltage changes or motion.</p></li>
+<li><p><strong>Prepare docking power.</strong> On real hardware, a dock request sets tool voltage to 0 V through the UR I/O service. If the service does not confirm success, the exchange stops before sending the motion goal.</p></li>
+<li><p><strong>Validate and execute the movement.</strong> The tool action server rejects a load unless the declared attachment is <code class="docutils literal notranslate"><span class="pre">none</span></code>; dock-tool matching has already been checked by the manager. <a class="reference internal" href="../reference/api/modules/src-beambot-beambot-stages-tool_exchange_stages-py.html#api-0cf501d4d2d930ea"><span class="std std-ref">ToolExchangeStages.run()</span></a> builds the approach, lateral dock alignment, and configured load/dock moves as one MTC task. Dock spacing, the reference dock, and movement sequences come from the beamline YAML.</p></li>
+<li><p><strong>Update the tool model.</strong> After motion succeeds, the manager records and publishes the new gripper: <code class="docutils literal notranslate"><span class="pre">none</span></code> after docking or the requested tool after loading. If this differs from the previous tool, it starts the matching MoveIt configuration and reads its robot descriptions.</p></li>
+<li><p><strong>Reset vision transforms.</strong> After the model is ready, the manager requests a TF-buffer reset from the unified vision-task server. A missing service, failed reset, or service exception produces a warning; it does not fail the exchange. The standalone scan server has no reset service.</p></li>
+</ol>
+<p>If the reported tool is unchanged, the manager skips the model restart and TF resets.</p>
+</section>
+<section id="failure-boundaries">
+<h2>Failure boundaries<a class="headerlink" href="#failure-boundaries" title="Link to this heading"></a></h2>
+<p>The physical exchange and model update complete separately. A failed exchange result does not establish which tool is attached.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Failure point</p></th>
+<th class="head"><p>What may already have happened</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Dock-tool mismatch at the manager</p></td>
+<td><p>No voltage change or motion has been requested</p></td>
+</tr>
+<tr class="row-odd"><td><p>Exchange motion</p></td>
+<td><p>Some movement may have completed; the manager updates the recorded gripper only after action success</p></td>
+</tr>
+<tr class="row-even"><td><p>New MoveIt startup</p></td>
+<td><p>Exchange motion has succeeded and the new gripper state has been published, but the model is not ready</p></td>
+</tr>
+<tr class="row-odd"><td><p>Vision TF reset</p></td>
+<td><p>Motion and model startup have succeeded; the exchange remains successful, but a vision server may retain old transforms</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">/beambot/current_gripper</span></code> reports the orchestrator’s state, not a tool-presence measurement. Establish the physical attachment and controller state before retrying a failed exchange. Resubmitting the original script can repeat an operation that already completed.</p>
+</section>
+<section id="shutdown">
+<h2>Shutdown<a class="headerlink" href="#shutdown" title="Link to this heading"></a></h2>
+<p>The orchestrator stops MoveIt when its node shuts down, while ROS is still running. <a class="reference internal" href="../reference/api/modules/src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-7bbac81b67b6b9c2"><span class="std std-ref">MoveItLifecycleManager.kill_current_process()</span></a> sends SIGTERM to the launch’s process group, waits up to three seconds for every process in the group to exit, then sends SIGKILL to any that remain.</p>
+<p>The same stop runs before a replacement launch during a tool change. It is followed by a wait of up to ten seconds for the old <code class="docutils literal notranslate"><span class="pre">/execute_trajectory</span></code> action to leave ROS discovery, so the new stack is not mistaken for ready.</p>
+<p>After the first <strong>Ctrl+C</strong>, EROBS task servers ignore further interrupt signals until their cleanup finishes. A second signal therefore cannot stop the orchestrator midway and leave MoveIt running.</p>
+<p>Processes that start their own session are outside the MoveIt process group and are not stopped this way. These shutdown changes have not yet been rechecked on the CMS hardware.</p>
+<p>Confirm the remaining process and ROS state before restarting after a failed or interrupted shutdown. Keep the orchestrator as the owner of MoveIt startup so tool configuration, model revisions, and cache reuse remain coordinated.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="batching.html" class="btn btn-neutral float-left" title="Batching and caches" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="perception.html" class="btn btn-neutral float-right" title="Perception and vision execution" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

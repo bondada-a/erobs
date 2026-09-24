@@ -1,0 +1,431 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Robot agent client &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Blocking Bluesky action device" href="src-bluesky_ros-mtc_ophyd_device-py.html" />
+    <link rel="prev" title="Robot agent command line" href="src-beambot-beambot-agent-__main__-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-beambot_client-py.html">Task submission client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-mcp_server-beambot_mcp_server-py.html">MCP robot tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-agent-__main__-py.html">Robot agent command line</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Robot agent client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-mtc_ophyd_device-py.html">Blocking Bluesky action device</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-mtc_ophyd_device_async-py.html">Background Bluesky action device</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-pv_service-py.html">EPICS value service</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-pv_to_topic-py.html">EPICS value topic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/clients-integrations.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/clients-integrations.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+      <li class="breadcrumb-item active">Robot agent client</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="robot-agent-client">
+<h1>Robot agent client<a class="headerlink" href="#robot-agent-client" title="Link to this heading"></a></h1>
+<p>Use an Anthropic-compatible Hermes client and stdio MCP sessions for a serial tool-use conversation loop. Tool callbacks can dispatch local GUI tools; API requests are synchronous even though chat is async.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.agent.robot_agent</span></code> · <a href="../../../api-source/src/beambot/beambot/agent/robot_agent.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/clients-integrations.html"><span class="std std-doc">Clients and integrations</span></a> · <a class="reference internal" href="../../../integrations/index.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>The command-line client and GUI bridge use <code class="docutils literal notranslate"><span class="pre">RobotAgent</span></code> to connect model responses to configured MCP tools. The lifecycle is <code class="docutils literal notranslate"><span class="pre">connect()</span></code> → repeated <code class="docutils literal notranslate"><span class="pre">chat()</span></code> calls → <code class="docutils literal notranslate"><span class="pre">disconnect()</span></code>; <code class="docutils literal notranslate"><span class="pre">clear_history()</span></code> starts a new conversation without reopening the connections.</p>
+<p>GUI integrations can supply local tool definitions, an async dispatcher, and a tool filter. <code class="docutils literal notranslate"><span class="pre">chat()</span></code> is async but makes synchronous model requests and executes tool calls serially; text callbacks receive the final response, not a stream.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-dee4bbd0a35943e7"><span class="std std-ref">RobotAgent.connect</span></a></p></td>
+<td><p>Read the explicit or discovered MCP config, enter the exit stack, connect each listed stdio server and finally register caller-supplied local tools. Remote server failures do not stop later servers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-9e000ce922a22e67"><span class="std std-ref">RobotAgent.chat</span></a></p></td>
+<td><p>Append a user message and repeatedly call the synchronous model API, store text/tool-use blocks, execute requested tools serially and append their results until stop_reason is end_turn. on_text receives the final concatenated text once; this is not streaming.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-0103a3f997608f5c"><span class="std std-ref">RobotAgent.disconnect</span></a></p></td>
+<td><p>Close the AsyncExitStack that owns MCP sessions and stdio processes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-4e770a408da20734"><span class="std std-ref">RobotAgent.clear_history</span></a></p></td>
+<td><p>Replace conversation history with a new empty list, retaining prompt, tools and connections.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="robotagent">
+<h2><code class="docutils literal notranslate"><span class="pre">RobotAgent</span></code><a class="headerlink" href="#robotagent" title="Link to this heading"></a></h2>
+<p>Conversation client that owns model history, MCP sessions, and tool routing. Callers manage its connection lifecycle and may extend the available tools through constructor arguments; it is not a ROS action server.</p>
+<section id="robotagent-connect">
+<span id="api-dee4bbd0a35943e7"></span><h3><code class="docutils literal notranslate"><span class="pre">RobotAgent.connect()</span></code><a class="headerlink" href="#robotagent-connect" title="Link to this heading"></a></h3>
+<p>Read the explicit or discovered MCP config, enter the exit stack, connect each listed stdio server and finally register caller-supplied local tools. Remote server failures do not stop later servers.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/agent/robot_agent.py.html#L-66">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">connect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None after attempted connections and registration.</p>
+<p><strong>Errors:</strong> Raises FileNotFoundError if no config is found; JSON/file errors propagate. Per-server exceptions are logged and suppressed. Malformed extra tool definitions can raise.</p>
+<p><strong>Side effects:</strong> Starts MCP subprocess sessions, populates tools/routing mappings and logs totals. Repeated calls do not clear prior registrations; duplicate names overwrite routing while remaining in the tools list.</p>
+</section>
+<section id="robotagent-chat">
+<span id="api-9e000ce922a22e67"></span><h3><code class="docutils literal notranslate"><span class="pre">RobotAgent.chat()</span></code><a class="headerlink" href="#robotagent-chat" title="Link to this heading"></a></h3>
+<p>Append a user message and repeatedly call the synchronous model API, store text/tool-use blocks, execute requested tools serially and append their results until stop_reason is end_turn. on_text receives the final concatenated text once; this is not streaming.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/agent/robot_agent.py.html#L-129">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">chat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">user_message</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">on_tool_call</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">on_text</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">user_message</span></code></p></td>
+<td><p>User request text appended to persistent conversation history.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">on_tool_call</span></code></p></td>
+<td><p>Optional synchronous callback(tool_name, arguments, result_text) after each executed tool.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">on_text</span></code></p></td>
+<td><p>Optional synchronous callback receiving final text when end_turn is returned.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Final concatenated text string from the end_turn response.</p>
+<p><strong>Errors:</strong> Model/API and callback exceptions propagate; tool dispatch errors normally become result strings. There is no iteration cap, and a non-end_turn response without tool calls repeats the loop.</p>
+<p><strong>Side effects:</strong> Sends prompt/history/tool metadata to the configured model service, grows messages, may invoke robot tools and blocks the event loop during synchronous API calls.</p>
+</section>
+<section id="robotagent-disconnect">
+<span id="api-0103a3f997608f5c"></span><h3><code class="docutils literal notranslate"><span class="pre">RobotAgent.disconnect()</span></code><a class="headerlink" href="#robotagent-disconnect" title="Link to this heading"></a></h3>
+<p>Close the AsyncExitStack that owns MCP sessions and stdio processes.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/agent/robot_agent.py.html#L-212">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None after asynchronous resource cleanup.</p>
+<p><strong>Errors:</strong> Context-manager cleanup exceptions propagate.</p>
+<p><strong>Side effects:</strong> Closes sessions and subprocess transport contexts. Does not clear tool/history mappings or explicitly close the Anthropic client.</p>
+</section>
+<section id="robotagent-clear-history">
+<span id="api-4e770a408da20734"></span><h3><code class="docutils literal notranslate"><span class="pre">RobotAgent.clear_history()</span></code><a class="headerlink" href="#robotagent-clear-history" title="Link to this heading"></a></h3>
+<p>Replace conversation history with a new empty list, retaining prompt, tools and connections.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/agent/robot_agent.py.html#L-208">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">clear_history</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No explicit failure handling.</p>
+<p><strong>Side effects:</strong> Discards this agent’s message-history reference.</p>
+</section>
+<section id="robotagent-init">
+<span id="api-f9cfc0be62e9fae9"></span><h3><code class="docutils literal notranslate"><span class="pre">RobotAgent.__init__()</span></code><a class="headerlink" href="#robotagent-init" title="Link to this heading"></a></h3>
+<p>Create the API client, load/prepend the operation prompt and initialize history, MCP exit stack and local-tool/filter settings.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/agent/robot_agent.py.html#L-40">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">mcp_config_path</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">system_prompt_prefix</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+    <span class="n">extra_tools</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">extra_dispatch</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">],</span> <span class="n">Awaitable</span><span class="p">[</span><span class="nb">str</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">tool_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="nb">bool</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">model</span></code></p></td>
+<td><p>Optional model override; falsy values use the environment/default model.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mcp_config_path</span></code></p></td>
+<td><p>Optional MCP JSON configuration filename; None triggers cwd-parent search during connect.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">system_prompt_prefix</span></code></p></td>
+<td><p>Optional text prepended to the shared prompt with a Markdown separator.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">extra_tools</span></code></p></td>
+<td><p>Optional Anthropic-format local tool definitions, shallow-copied into an internal list.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">extra_dispatch</span></code></p></td>
+<td><p>Optional async (tool_name, arguments) dispatcher returning tool-result text for local tools.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tool_filter</span></code></p></td>
+<td><p>Optional (server_name, tool_name) predicate deciding which remote tools to register.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Authentication environment, prompt file and API client initialization errors propagate.</p>
+<p><strong>Side effects:</strong> Reads configuration environment and prompt file, allocates API client/exit stack; no MCP subprocesses are started until connect.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="robotagent-connect-server">
+<span id="api-06400aee8b282a09"></span><h4><code class="docutils literal notranslate"><span class="pre">RobotAgent._connect_server()</span></code><a class="headerlink" href="#robotagent-connect-server" title="Link to this heading"></a></h4>
+<p>Start a configured stdio MCP process, initialize a ClientSession, list tools and register those accepted by the optional filter in Anthropic tool format.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/agent/robot_agent.py.html#L-94">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">_connect_server</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">server_cfg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Configuration server name used in logs and filter calls.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">server_cfg</span></code></p></td>
+<td><p>Mapping with required command and optional args/env passed to StdioServerParameters.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Process/protocol/filter errors propagate to connect’s per-server handler.</p>
+<p><strong>Side effects:</strong> Starts a subprocess, retains process/session contexts in the exit stack and appends tool definitions/routing entries; duplicate names replace the routing mapping.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-agent-robot_agent-py.html#api-dee4bbd0a35943e7"><code>RobotAgent.connect</code></a> — beambot.agent.robot_agent</li></ul></details></section>
+<section id="robotagent-call-tool">
+<span id="api-3476d308a2900e2c"></span><h4><code class="docutils literal notranslate"><span class="pre">RobotAgent._call_tool()</span></code><a class="headerlink" href="#robotagent-call-tool" title="Link to this heading"></a></h4>
+<p>Route a name to its local async dispatcher or MCP session; collect remote textual content joined by newlines, falling back to str(result) when no text exists.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/agent/robot_agent.py.html#L-184">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">_call_tool</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">arguments</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Registered tool name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">arguments</span></code></p></td>
+<td><p>Tool argument mapping forwarded unchanged.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Tool-result text, or an Error-prefixed string for unknown tool, missing local dispatcher or caught dispatch failure.</p>
+<p><strong>Errors:</strong> Catches ordinary local/remote dispatch exceptions and converts them to text; does not interpret remote isError separately.</p>
+<p><strong>Side effects:</strong> Invokes a registered tool, potentially controlling robot hardware or local GUI state.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-agent-robot_agent-py.html#api-9e000ce922a22e67"><code>RobotAgent.chat</code></a> — beambot.agent.robot_agent</li></ul></details></section>
+<section id="robotagent-find-mcp-config">
+<span id="api-d8908a0e66c4f4ce"></span><h4><code class="docutils literal notranslate"><span class="pre">RobotAgent._find_mcp_config()</span></code><a class="headerlink" href="#robotagent-find-mcp-config" title="Link to this heading"></a></h4>
+<p>Search cwd and up to nine further ancestors for the first existing .mcp.json path, stopping at filesystem root.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/agent/robot_agent.py.html#L-216">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_find_mcp_config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Filename string, or None if none is found. Existence is checked, not whether it is a regular file.</p>
+<p><strong>Errors:</strong> Path/cwd filesystem errors propagate.</p>
+<p><strong>Side effects:</strong> Reads cwd and checks ancestor filesystem entries.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-agent-robot_agent-py.html#api-dee4bbd0a35943e7"><code>RobotAgent.connect</code></a> — beambot.agent.robot_agent</li></ul></details></section>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="create-client">
+<span id="api-683d483766674603"></span><h4><code class="docutils literal notranslate"><span class="pre">_create_client()</span></code><a class="headerlink" href="#create-client" title="Link to this heading"></a></h4>
+<p>Construct an Anthropic client at HERMES_ENDPOINT plus /anthropic using AIFAPIM_API_KEY; return the BEAMBOT_MODEL selection alongside it.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/agent/robot_agent.py.html#L-22">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_create_client</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> (client, model_name), defaulting to the Hermes NSLS-II endpoint and claude-sonnet-4-6.</p>
+<p><strong>Errors:</strong> Missing API key raises KeyError; Anthropic import/client-construction errors propagate.</p>
+<p><strong>Side effects:</strong> Reads environment variables and initializes a network client; does not itself make a model request.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-agent-robot_agent-py.html#api-f9cfc0be62e9fae9"><code>RobotAgent.__init__</code></a> — beambot.agent.robot_agent</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-beambot-agent-__main__-py.html" class="btn btn-neutral float-left" title="Robot agent command line" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-bluesky_ros-mtc_ophyd_device-py.html" class="btn btn-neutral float-right" title="Blocking Bluesky action device" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

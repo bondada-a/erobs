@@ -1,0 +1,290 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gripper action server &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Gripper motion stages" href="src-beambot-beambot-stages-end_effector_stages-py.html" />
+    <link rel="prev" title="Tools and end effectors" href="../subsystems/tools-end-effectors.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Gripper action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-end_effector_stages-py.html">Gripper motion stages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-sample_pick_place_server-py.html">Sample pick and place servers</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-pick_sample_stages-py.html">Sample pick stages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-place_sample_stages-py.html">Sample place stages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-pipettor_server-py.html">Pipettor action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-pipettor_stages-py.html">Pipettor driver adapter</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-tool_exchange_server-py.html">Tool exchange action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-tool_exchange_manager-py.html">Tool exchange coordination</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-tool_exchange_stages-py.html">Tool dock and load stages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-vacuum_monitor-py.html">Vacuum monitoring state</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-end_effectors-onrobot_2fg7_driver-onrobot_2fg7_driver-driver_node-py.html">2FG7 ROS driver</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-end_effectors-onrobot_2fg7_driver-onrobot_2fg7_driver-modbus_client-py.html">2FG7 Modbus client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-end_effectors-onrobot_2fg7_driver-launch-2fg7_driver-launch-py.html">Standalone 2FG7 launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-end_effectors-epick_config-launch-epick_bringup-launch-py.html">Standalone ePick launch stub</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/tools-end-effectors.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/tools-end-effectors.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+      <li class="breadcrumb-item active">Gripper action server</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="gripper-action-server">
+<h1>Gripper action server<a class="headerlink" href="#gripper-action-server" title="Link to this heading"></a></h1>
+<p>Expose SRDF gripper-state motion through EndEffectorAction.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.action_servers.end_effector_server</span></code> · <a href="../../../api-source/src/beambot/beambot/action_servers/end_effector_server.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/tools-end-effectors.html"><span class="std std-doc">Tools and end effectors</span></a> · <a class="reference internal" href="../../../operate/tools.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>This is the ROS endpoint for moving a gripper to a named SRDF state, such as its configured grasp or release state. The orchestrator sends <code class="docutils literal notranslate"><span class="pre">EndEffectorAction</span></code> goals to <code class="docutils literal notranslate"><span class="pre">beambot_endeffector</span></code>; <code class="docutils literal notranslate"><span class="pre">EndEffectorStages</span></code> builds and executes the motion.</p>
+<p><code class="docutils literal notranslate"><span class="pre">main()</span></code> starts the server. Its <code class="docutils literal notranslate"><span class="pre">create_stages()</span></code> override is the connection between the shared action lifecycle and the gripper implementation.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-eab7798fcd9846b1"><span class="std std-ref">main</span></a></p></td>
+<td><p>Run EndEffectorActionServer through the shared multithreaded ROS server runner.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-485013667c58ca39"><span class="std std-ref">EndEffectorActionServer.create_stages</span></a></p></td>
+<td><p>Bind EndEffectorStages to this action-server node.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="main">
+<span id="api-eab7798fcd9846b1"></span><h3><code class="docutils literal notranslate"><span class="pre">main()</span></code><a class="headerlink" href="#main" title="Link to this heading"></a></h3>
+<p>Run EndEffectorActionServer through the shared multithreaded ROS server runner.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/end_effector_server.py.html#L-27">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">main</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">args</span></code></p></td>
+<td><p>Optional ROS initialization arguments; None uses normal rclpy argument handling.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None when the server exits.</p>
+<p><strong>Errors:</strong> KeyboardInterrupt during spin is handled by run_server; initialization/construction and other executor errors propagate.</p>
+<p><strong>Side effects:</strong> Initializes ROS, constructs the action node, spins until shutdown and destroys the node/context.</p>
+</section>
+</section>
+<section id="endeffectoractionserver">
+<h2><code class="docutils literal notranslate"><span class="pre">EndEffectorActionServer</span></code><a class="headerlink" href="#endeffectoractionserver" title="Link to this heading"></a></h2>
+<p>Concrete <code class="docutils literal notranslate"><span class="pre">BaseActionServer</span></code> for gripper group-state goals. Goal admission, result completion, and exception handling are inherited; stage construction selects <code class="docutils literal notranslate"><span class="pre">EndEffectorStages</span></code>.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseActionServer</span></code>.</p>
+<section id="endeffectoractionserver-create-stages">
+<span id="api-485013667c58ca39"></span><h3><code class="docutils literal notranslate"><span class="pre">EndEffectorActionServer.create_stages()</span></code><a class="headerlink" href="#endeffectoractionserver-create-stages" title="Link to this heading"></a></h3>
+<p>Bind EndEffectorStages to this action-server node.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/end_effector_server.py.html#L-23">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">create_stages</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> New EndEffectorStages instance.</p>
+<p><strong>Errors:</strong> Stage initialization errors propagate.</p>
+<p><strong>Side effects:</strong> Initializes stage resources.</p>
+</section>
+<section id="endeffectoractionserver-init">
+<span id="api-d606b7632af2c49d"></span><h3><code class="docutils literal notranslate"><span class="pre">EndEffectorActionServer.__init__()</span></code><a class="headerlink" href="#endeffectoractionserver-init" title="Link to this heading"></a></h3>
+<p>Configure the shared action base as node beambot_endeffector_server serving beambot_endeffector.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/end_effector_server.py.html#L-15">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Errors:</strong> Stage/node/action initialization errors propagate.</p>
+<p><strong>Side effects:</strong> Constructs the ROS action endpoint and operation stages; logs startup.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../subsystems/tools-end-effectors.html" class="btn btn-neutral float-left" title="Tools and end effectors" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-beambot-stages-end_effector_stages-py.html" class="btn btn-neutral float-right" title="Gripper motion stages" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,499 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pose editing dialogs &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Pose registry files" href="src-mtc_gui-mtc_gui-pose_io-py.html" />
+    <link rel="prev" title="Pose browser and registry" href="src-mtc_gui-mtc_gui-poses_panel-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main-py.html">GUI startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main_window-py.html">Operator window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-task_forms-py.html">Task editor forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-step_list_panel-py.html">Task queue display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-ros2_bridge-py.html">ROS and GUI bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-poses_panel-py.html">Pose browser and registry</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Pose editing dialogs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_io-py.html">Pose registry files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-camera_panel-py.html">Camera display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-visualization_panel-py.html">Robot and trajectory viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-resources-viewer-html.html">Embedded robot viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-chat_panel-py.html">Chat interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_bridge-py.html">Chat agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_modes-py.html">Chat agent modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-theme-py.html">GUI appearance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-launch-mtc_gui_client-launch-py.html">Operator GUI launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/operator-gui.html">Operator GUI</a></li>
+      <li class="breadcrumb-item active">Pose editing dialogs</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="pose-editing-dialogs">
+<h1>Pose editing dialogs<a class="headerlink" href="#pose-editing-dialogs" title="Link to this heading"></a></h1>
+<p>Edit joint poses and choose where to save them.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mtc_gui.pose_dialogs</span></code> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/operator-gui.html"><span class="std std-doc">Operator GUI</span></a> · <a class="reference internal" href="../../../operate/gui.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MTCMainWindow</span></code> opens <code class="docutils literal notranslate"><span class="pre">PosesManagerDialog</span></code> with its existing <code class="docutils literal notranslate"><span class="pre">PosesPanel</span></code> to manage the shared registry. Each accepted add, edit, import, or deletion is saved immediately through the panel; closing the manager does not undo those changes. Joint values use degrees.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PoseEditorDialog</span></code> returns six edited angles after acceptance. <code class="docutils literal notranslate"><span class="pre">SavePoseDialog</span></code> returns a pose name, values, and a choice of registry or task-only storage. The caller applies that choice; the save dialog does not write the file itself.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-87ab8cdf0986bf5e"><span class="std std-ref">PosesManagerDialog.__init__</span></a></p></td>
+<td><p>Build the registry manager; each accepted edit is persisted immediately.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-242acc07415b322e"><span class="std std-ref">PoseEditorDialog.__init__</span></a></p></td>
+<td><p>Build six joint-angle spin boxes and Home, Straight Up, and All Zero presets.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-eee5e23c032e66b0"><span class="std std-ref">SavePoseDialog.__init__</span></a></p></td>
+<td><p>Collect a name and storage destination for a current-pose snapshot.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="posesmanagerdialog">
+<h2><code class="docutils literal notranslate"><span class="pre">PosesManagerDialog</span></code><a class="headerlink" href="#posesmanagerdialog" title="Link to this heading"></a></h2>
+<p>Browse and modify the registry owned by a PosesPanel. Individual actions persist immediately, including entries imported before a later import error.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QDialog</span></code>.</p>
+<section id="posesmanagerdialog-init">
+<span id="api-87ab8cdf0986bf5e"></span><h3><code class="docutils literal notranslate"><span class="pre">PosesManagerDialog.__init__()</span></code><a class="headerlink" href="#posesmanagerdialog-init" title="Link to this heading"></a></h3>
+<p>Build the registry manager; each accepted edit is persisted immediately.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-81">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">panel</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">panel</span></code></p></td>
+<td><p>PosesPanel owning the loaded registry and implementing get_poses/get_pose/save_pose/delete_pose.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent widget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; this manager provides no aggregate result payload.</p>
+<p><strong>Errors:</strong> Qt and initial-refresh failures propagate.</p>
+<p><strong>Side effects:</strong> Stores panel, creates the modal dialog, connects controls and double-click editing, and populates the tree.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-3943323f2a857a41"><code>MTCMainWindow._manage_poses</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="posesmanagerdialog-refresh">
+<span id="api-8f4abdf2a56013e6"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesManagerDialog._refresh()</span></code><a class="headerlink" href="#posesmanagerdialog-refresh" title="Link to this heading"></a></h4>
+<p>Repopulate the tree with alphabetically sorted registry names and two-decimal joint lists.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-121">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Nonnumeric values or unorderable names can raise during formatting/sorting; no local catch.</p>
+<p><strong>Side effects:</strong> Clears and rebuilds the tree from panel.get_poses().</p>
+<details class="api-references"><summary>Referenced in source (4)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-87ab8cdf0986bf5e"><code>PosesManagerDialog.__init__</code></a> — mtc_gui.pose_dialogs</li><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-1ba65430af34e56d"><code>PosesManagerDialog._delete_pose</code></a> — mtc_gui.pose_dialogs</li><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-18fbd846ca7355e0"><code>PosesManagerDialog._import_json</code></a> — mtc_gui.pose_dialogs</li><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-e4899531e986f4da"><code>PosesManagerDialog._persist</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+<section id="posesmanagerdialog-persist">
+<span id="api-e4899531e986f4da"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesManagerDialog._persist()</span></code><a class="headerlink" href="#posesmanagerdialog-persist" title="Link to this heading"></a></h4>
+<p>Save one pose through the registry owner and refresh the manager display.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-128">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_persist</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Registry key to insert or overwrite.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">values</span></code></p></td>
+<td><p>Joint-angle list forwarded unchanged to panel.save_pose.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> A False save result opens a No Registry warning; persistence/refresh exceptions propagate.</p>
+<p><strong>Side effects:</strong> May atomically rewrite the registry through the panel, emit panel reload signals, and rebuild the tree.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-391c440c48485d07"><code>PosesManagerDialog._add_pose</code></a> — mtc_gui.pose_dialogs</li><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-810271d3173c88d4"><code>PosesManagerDialog._edit_pose</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+<section id="posesmanagerdialog-add-pose">
+<span id="api-391c440c48485d07"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesManagerDialog._add_pose()</span></code><a class="headerlink" href="#posesmanagerdialog-add-pose" title="Link to this heading"></a></h4>
+<p>Open a zero-initialized joint editor, then request a name and persist the accepted pose.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-136">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_add_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Canceling either prompt aborts; empty names are ignored, but whitespace-only names are not stripped here. Save failures follow _persist behavior.</p>
+<p><strong>Side effects:</strong> Shows modal dialogs and may immediately write the registry; existing names are overwritten without a separate confirmation.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-87ab8cdf0986bf5e"><code>PosesManagerDialog.__init__</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+<section id="posesmanagerdialog-edit-selected">
+<span id="api-d26718cec5d6812e"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesManagerDialog._edit_selected()</span></code><a class="headerlink" href="#posesmanagerdialog-edit-selected" title="Link to this heading"></a></h4>
+<p>Open the editor for the first selected tree item.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-145">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_edit_selected</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No selection is a no-op; editing exceptions propagate.</p>
+<p><strong>Side effects:</strong> Delegates to _edit_pose and may persist an accepted change.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-87ab8cdf0986bf5e"><code>PosesManagerDialog.__init__</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+<section id="posesmanagerdialog-edit-pose">
+<span id="api-810271d3173c88d4"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesManagerDialog._edit_pose()</span></code><a class="headerlink" href="#posesmanagerdialog-edit-pose" title="Link to this heading"></a></h4>
+<p>Edit a tree item’s registry values and persist accepted changes under the same name.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-150">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_edit_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">item</span></code></p></td>
+<td><p>QTreeWidgetItem; column zero provides the pose name. Also used as the itemDoubleClicked slot.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Missing/false pose values default to six zeros; other errors propagate.</p>
+<p><strong>Side effects:</strong> Shows PoseEditorDialog and writes the registry through _persist on acceptance.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-87ab8cdf0986bf5e"><code>PosesManagerDialog.__init__</code></a> — mtc_gui.pose_dialogs</li><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-d26718cec5d6812e"><code>PosesManagerDialog._edit_selected</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+<section id="posesmanagerdialog-delete-pose">
+<span id="api-1ba65430af34e56d"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesManagerDialog._delete_pose()</span></code><a class="headerlink" href="#posesmanagerdialog-delete-pose" title="Link to this heading"></a></h4>
+<p>Confirm deletion of the first selected pose and apply it immediately through PosesPanel.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-157">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_delete_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No selection or a non-Yes confirmation is a no-op. A False delete result shows a No Registry warning; file errors propagate.</p>
+<p><strong>Side effects:</strong> Displays confirmation, may rewrite the registry, and refreshes the tree after a confirmed deletion.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-87ab8cdf0986bf5e"><code>PosesManagerDialog.__init__</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+<section id="posesmanagerdialog-import-json">
+<span id="api-18fbd846ca7355e0"></span><h4><code class="docutils literal notranslate"><span class="pre">PosesManagerDialog._import_json()</span></code><a class="headerlink" href="#posesmanagerdialog-import-json" title="Link to this heading"></a></h4>
+<p>Import six-element pose lists from a selected JSON mapping or its poses member, saving entries one at a time.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-171">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_import_json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Cancel returns. Nonmapping roots import nothing; entries that are not six-element lists are skipped. All import exceptions display a critical dialog; previously saved entries remain persisted after a later failure.</p>
+<p><strong>Side effects:</strong> Reads a chosen JSON file, may overwrite registry names with repeated save/reload operations, refreshes the tree, and displays the count of successful saves.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-87ab8cdf0986bf5e"><code>PosesManagerDialog.__init__</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+</section>
+</section>
+<section id="poseeditordialog">
+<h2><code class="docutils literal notranslate"><span class="pre">PoseEditorDialog</span></code><a class="headerlink" href="#poseeditordialog" title="Link to this heading"></a></h2>
+<p>Collect six joint angles in a modal editor. On acceptance, <code class="docutils literal notranslate"><span class="pre">result</span></code> contains the edited list; the caller decides whether to persist it.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QDialog</span></code>.</p>
+<section id="poseeditordialog-init">
+<span id="api-242acc07415b322e"></span><h3><code class="docutils literal notranslate"><span class="pre">PoseEditorDialog.__init__()</span></code><a class="headerlink" href="#poseeditordialog-init" title="Link to this heading"></a></h3>
+<p>Build six joint-angle spin boxes and Home, Straight Up, and All Zero presets.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-27">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">values</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Pose name used in the window title; this dialog does not edit the name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">values</span></code></p></td>
+<td><p>Initial joint-angle sequence in degrees; missing trailing values default to zero and extra values are ignored.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent widget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; result starts as None and becomes a six-float list on Save.</p>
+<p><strong>Errors:</strong> Spin boxes constrain values to −360…360 degrees with two decimals; malformed initial values/Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Creates a modal dialog and connects Save/Cancel/preset buttons; writes no registry file.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-391c440c48485d07"><code>PosesManagerDialog._add_pose</code></a> — mtc_gui.pose_dialogs</li><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-810271d3173c88d4"><code>PosesManagerDialog._edit_pose</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="poseeditordialog-apply-preset">
+<span id="api-b64aa8e502bcd71a"></span><h4><code class="docutils literal notranslate"><span class="pre">PoseEditorDialog._apply_preset()</span></code><a class="headerlink" href="#poseeditordialog-apply-preset" title="Link to this heading"></a></h4>
+<p>Assign preset angles to the corresponding joint spin boxes.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-64">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_apply_preset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">values</span></code></p></td>
+<td><p>Sequence of joint angles in degrees; zip limits updates to available spin boxes and supplied values.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt rejects invalid value types and constrains values to each spin box’s range.</p>
+<p><strong>Side effects:</strong> Updates joint editors without accepting or saving the dialog.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-242acc07415b322e"><code>PoseEditorDialog.__init__</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+<section id="poseeditordialog-on-save">
+<span id="api-59233e542b31fe76"></span><h4><code class="docutils literal notranslate"><span class="pre">PoseEditorDialog._on_save()</span></code><a class="headerlink" href="#poseeditordialog-on-save" title="Link to this heading"></a></h4>
+<p>Collect the six displayed joint angles and accept the editor.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-68">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_save</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None; result is a list of six spin-box float values in degrees.</p>
+<p><strong>Errors:</strong> No additional validation beyond spin-box constraints.</p>
+<p><strong>Side effects:</strong> Sets result and closes the modal dialog with Accepted.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-242acc07415b322e"><code>PoseEditorDialog.__init__</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+</section>
+</section>
+<section id="saveposedialog">
+<h2><code class="docutils literal notranslate"><span class="pre">SavePoseDialog</span></code><a class="headerlink" href="#saveposedialog" title="Link to this heading"></a></h2>
+<p>Collect a name and storage destination for a supplied current-pose snapshot. On acceptance, <code class="docutils literal notranslate"><span class="pre">result</span></code> tells the main window what to save.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QDialog</span></code>.</p>
+<section id="saveposedialog-init">
+<span id="api-eee5e23c032e66b0"></span><h3><code class="docutils literal notranslate"><span class="pre">SavePoseDialog.__init__()</span></code><a class="headerlink" href="#saveposedialog-init" title="Link to this heading"></a></h3>
+<p>Collect a name and storage destination for a current-pose snapshot.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-193">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_pose</span><span class="p">,</span> <span class="n">registry_file</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">current_pose</span></code></p></td>
+<td><p>Current joint-angle sequence in degrees; retained by reference for the eventual result.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">registry_file</span></code></p></td>
+<td><p>Registry path used for its filename label and availability. None disables registry storage; a supplied path is not checked for existence.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent widget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; result begins as None.</p>
+<p><strong>Errors:</strong> Nonnumeric display values/path/Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Builds a modal dialog; defaults to registry when registry_file is not None, otherwise inline. Does not write poses.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6e65a45be09845d6"><code>MTCMainWindow._save_current_pose</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="id2">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<section id="saveposedialog-on-save">
+<span id="api-9e9b64a1e0466208"></span><h4><code class="docutils literal notranslate"><span class="pre">SavePoseDialog._on_save()</span></code><a class="headerlink" href="#saveposedialog-on-save" title="Link to this heading"></a></h4>
+<p>Validate the trimmed pose name and return the requested save operation to the caller.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/pose_dialogs.py.html#L-246">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_save</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None; result becomes {“action”: “save_to_registry” or “save_inline”, “pose_name”: name, “pose_values”: current_pose}.</p>
+<p><strong>Errors:</strong> Blank names produce a warning and leave the dialog open; no joint validation occurs.</p>
+<p><strong>Side effects:</strong> Sets result and accepts the dialog; performs no registry/file write itself.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-pose_dialogs-py.html#api-eee5e23c032e66b0"><code>SavePoseDialog.__init__</code></a> — mtc_gui.pose_dialogs</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-mtc_gui-mtc_gui-poses_panel-py.html" class="btn btn-neutral float-left" title="Pose browser and registry" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-mtc_gui-mtc_gui-pose_io-py.html" class="btn btn-neutral float-right" title="Pose registry files" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,496 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Survey capture &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Survey point-cloud merger" href="scripts-survey_mapping-merge_survey_bag-py.html" />
+    <link rel="prev" title="Survey viewpoint teaching" href="scripts-survey_mapping-teach_survey_poses-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-__init__-py.html">Camera backend selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zivid-py.html">Zivid camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zed-py.html">ZED camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-image_detection-py.html">Image and marker geometry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-spincoater_detection-py.html">Spincoater image detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-yolo_object_detection-py.html">YOLO object detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_task_detection-py.html">Vision task detector adapters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-motion_target-py.html">Vision motion targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_engine-py.html">Shared vision engine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_scan_server-py.html">Marker scan action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_task_server-py.html">Vision task action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-vision_task_stages-py.html">Vision task coordination</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-pointcloud_relay-py.html">Point-cloud filtering relay</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-octomap_to_planning_scene-py.html">Octomap scene bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-launch-octomap_mapping-launch-py.html">Octomap pipeline launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-mcp_server-point_selector_gui-py.html">Image point selector</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-teach_survey_poses-py.html">Survey viewpoint teaching</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Survey capture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-merge_survey_bag-py.html">Survey point-cloud merger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/perception.html">Perception and mapping</a></li>
+      <li class="breadcrumb-item active">Survey capture</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="survey-capture">
+<h1>Survey capture<a class="headerlink" href="#survey-capture" title="Link to this heading"></a></h1>
+<p>Move through taught viewpoints and record camera clouds, TF, and joint states for a survey. The <code class="docutils literal notranslate"><span class="pre">--dry-run</span></code> option still commands motion.</p>
+<p><code class="docutils literal notranslate"><span class="pre">scripts.survey_mapping.run_survey</span></code> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/perception.html"><span class="std std-doc">Perception and mapping</span></a> · <a class="reference internal" href="../../../architecture/perception.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>Use this script after teaching survey viewpoints and starting the configured robot, MoveIt, and Zivid services. <code class="docutils literal notranslate"><span class="pre">main()</span></code> manages the recorder and node; <code class="docutils literal notranslate"><span class="pre">SurveyRunner.run()</span></code> visits the poses, waits for settling, and requests each capture. Joint values in the pose YAML are degrees.</p>
+<p>The runner sends goals directly to <code class="docutils literal notranslate"><span class="pre">beambot_moveto</span></code>, outside the orchestrator task queue. Its <code class="docutils literal notranslate"><span class="pre">--dry-run</span></code> option still moves the arm: it skips camera settings, capture, and bag recording.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-e23caa4956312426"><span class="std std-ref">main</span></a></p></td>
+<td><p>Validate the survey options, prepare the ROS node and optional recorder, run the selected viewpoints, and clean up. Camera settings and recording are skipped in dry-run mode; movement is not.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-b64716653c177ca5"><span class="std std-ref">SurveyRunner.run</span></a></p></td>
+<td><p>Visit poses in order, wait after each successful movement, and capture unless <code class="docutils literal notranslate"><span class="pre">dry_run</span></code> is set. Stop on movement failure; continue to later viewpoints after a failed capture.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-74a0bdc8ecd94b9c"><span class="std std-ref">SurveyRunner.move_to</span></a></p></td>
+<td><p>Send one named joint-space MoveToAction with an inline one-pose JSON registry; wait for acceptance and completion, requesting cancellation after the movement timeout.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-b6872134bf1f0ae3"><span class="std std-ref">SurveyRunner.capture</span></a></p></td>
+<td><p>Request a capture and wait for the received-cloud count to increase. A failed Trigger response only logs a warning; a new cloud can still make the call succeed, without proving that it belongs to this request.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="main">
+<span id="api-e23caa4956312426"></span><h3><code class="docutils literal notranslate"><span class="pre">main()</span></code><a class="headerlink" href="#main" title="Link to this heading"></a></h3>
+<p>Validate the survey options, prepare the ROS node and optional recorder, run the selected viewpoints, and clean up. Camera settings and recording are skipped in dry-run mode; movement is not.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-241">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> 0 for full success, 1 for invalid inputs, endpoint/recorder failure, interrupted or incomplete survey.</p>
+<p><strong>Errors:</strong> Argparse exits for invalid numeric constraints; pose-read failures return 1. KeyboardInterrupt is reported; unexpected runtime errors propagate after cleanup once inside the try block.</p>
+<p><strong>Side effects:</strong> May move hardware even with –dry-run; normal mode can change camera settings and create a bag. Destroys node, shuts down ROS and stops recorder.</p>
+</section>
+<section id="start-bag">
+<span id="api-5999c125b243b24a"></span><h3><code class="docutils literal notranslate"><span class="pre">start_bag()</span></code><a class="headerlink" href="#start-bag" title="Link to this heading"></a></h3>
+<p>Start ros2 bag record in a new process session for survey clouds, TF and joint states.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-214">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">start_bag</span><span class="p">(</span><span class="n">output</span><span class="p">,</span> <span class="n">qos_override</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">output</span></code></p></td>
+<td><p>Bag output directory argument passed after -o.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">qos_override</span></code></p></td>
+<td><p>QoS override file path; falsey omits the override flag.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> subprocess.Popen recorder handle; startup success is checked later by main().</p>
+<p><strong>Errors:</strong> Popen launch errors propagate; does not check output/path validity here.</p>
+<p><strong>Side effects:</strong> Spawns a recording process, prints its command and causes bag files to be written.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-run_survey-py.html#api-e23caa4956312426"><code>main</code></a> — scripts.survey_mapping.run_survey</li></ul></details></section>
+<section id="stop-bag">
+<span id="api-a4eef77b92865421"></span><h3><code class="docutils literal notranslate"><span class="pre">stop_bag()</span></code><a class="headerlink" href="#stop-bag" title="Link to this heading"></a></h3>
+<p>Finalize a running recorder by sending SIGINT to its process group, escalating to terminate and kill if waits expire.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-223">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stop_bag</span><span class="p">(</span><span class="n">process</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">process</span></code></p></td>
+<td><p>Popen returned by start_bag, or None; completed processes are ignored.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None after the process ends or is already absent.</p>
+<p><strong>Errors:</strong> Suppresses ProcessLookupError; escalates after 15 seconds, then five seconds. Other signal/wait errors propagate.</p>
+<p><strong>Side effects:</strong> Signals the recorder, waits for exit and lets it finalize its bag.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-run_survey-py.html#api-e23caa4956312426"><code>main</code></a> — scripts.survey_mapping.run_survey</li></ul></details></section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="default-settings-file">
+<span id="api-30d096cb5433362a"></span><h4><code class="docutils literal notranslate"><span class="pre">default_settings_file()</span></code><a class="headerlink" href="#default-settings-file" title="Link to this heading"></a></h4>
+<p>Prefer the installed beambot config/zivid/manufacturing_specular.yml when present, then fall back to the source-tree config location.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-44">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">default_settings_file</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Path to an existing installed file, otherwise an unchecked source-tree Path.</p>
+<p><strong>Errors:</strong> Any installed-package lookup exception is suppressed; fallback existence is not validated here.</p>
+<p><strong>Side effects:</strong> Queries package metadata and tests a file path.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-run_survey-py.html#api-e23caa4956312426"><code>main</code></a> — scripts.survey_mapping.run_survey</li></ul></details></section>
+<section id="load-poses">
+<span id="api-db5b8b4d9f02142d"></span><h4><code class="docutils literal notranslate"><span class="pre">load_poses()</span></code><a class="headerlink" href="#load-poses" title="Link to this heading"></a></h4>
+<p>Load a YAML name-to-six-joint mapping, keeping entries with string names and six finite float-convertible values in input order.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-56">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">load_poses</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">path</span></code></p></td>
+<td><p>YAML pose file path; angles are degrees in arm-joint order.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Dictionary of valid names to six float degree values; empty/null YAML becomes {}.</p>
+<p><strong>Errors:</strong> ValueError for a nonmapping document; malformed entries are skipped with stderr warnings; file/YAML errors propagate.</p>
+<p><strong>Side effects:</strong> Reads the pose file and may print warnings.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-run_survey-py.html#api-e23caa4956312426"><code>main</code></a> — scripts.survey_mapping.run_survey</li></ul></details></section>
+</section>
+</section>
+<section id="surveyrunner">
+<h2><code class="docutils literal notranslate"><span class="pre">SurveyRunner</span></code><a class="headerlink" href="#surveyrunner" title="Link to this heading"></a></h2>
+<p>A ROS node that coordinates direct MoveTo goals and Zivid captures. Movement failure stops the sequence; a failed capture allows later viewpoints to proceed.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">Node</span></code>.</p>
+<section id="surveyrunner-run">
+<span id="api-b64716653c177ca5"></span><h3><code class="docutils literal notranslate"><span class="pre">SurveyRunner.run()</span></code><a class="headerlink" href="#surveyrunner-run" title="Link to this heading"></a></h3>
+<p>Visit poses in order, wait after each successful movement, and capture unless <code class="docutils literal notranslate"><span class="pre">dry_run</span></code> is set. Stop on movement failure; continue to later viewpoints after a failed capture.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-198">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Ordered mapping of pose name to six joint angles in degrees.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True iff all entries completed; an empty mapping succeeds.</p>
+<p><strong>Errors:</strong> Returns False on first movement failure or any capture failure; unexpected exceptions propagate.</p>
+<p><strong>Side effects:</strong> Commands arm movement, sleeps args.settle seconds, triggers captures and logs progress.</p>
+</section>
+<section id="surveyrunner-move-to">
+<span id="api-74a0bdc8ecd94b9c"></span><h3><code class="docutils literal notranslate"><span class="pre">SurveyRunner.move_to()</span></code><a class="headerlink" href="#surveyrunner-move-to" title="Link to this heading"></a></h3>
+<p>Send one named joint-space MoveToAction with an inline one-pose JSON registry; wait for acceptance and completion, requesting cancellation after the movement timeout.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-143">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">move_to</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">joints</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Pose name used as goal.target and JSON mapping key.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">joints</span></code></p></td>
+<td><p>Six arm joint angles in degrees, passed unchanged into goal.poses_json.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True only for an accepted goal whose returned result.success is true; otherwise False.</p>
+<p><strong>Errors:</strong> 15-second acceptance timeout/rejection, result timeout or failed/missing result are logged and return False. On movement timeout waits up to five seconds for cancellation; future exceptions propagate.</p>
+<p><strong>Side effects:</strong> Commands robot motion through beambot_moveto, spins ROS and may cancel the goal.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-run_survey-py.html#api-b64716653c177ca5"><code>SurveyRunner.run</code></a> — scripts.survey_mapping.run_survey</li></ul></details></section>
+<section id="surveyrunner-capture">
+<span id="api-b6872134bf1f0ae3"></span><h3><code class="docutils literal notranslate"><span class="pre">SurveyRunner.capture()</span></code><a class="headerlink" href="#surveyrunner-capture" title="Link to this heading"></a></h3>
+<p>Request a capture and wait for the received-cloud count to increase. A failed Trigger response only logs a warning; a new cloud can still make the call succeed, without proving that it belongs to this request.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-175">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">capture</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Pose label used in diagnostic messages.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True when a Trigger response arrives and any new subscribed cloud is observed; False on service-result or cloud timeout.</p>
+<p><strong>Errors:</strong> Uses args.capture_timeout and args.cloud_timeout seconds; timeout failures are logged. Future exceptions propagate.</p>
+<p><strong>Side effects:</strong> Triggers Zivid acquisition and spins ROS; does not verify the new cloud’s timestamp or source request.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-run_survey-py.html#api-b64716653c177ca5"><code>SurveyRunner.run</code></a> — scripts.survey_mapping.run_survey</li></ul></details></section>
+<section id="surveyrunner-init">
+<span id="api-4d85063d1fe7fb61"></span><h3><code class="docutils literal notranslate"><span class="pre">SurveyRunner.__init__()</span></code><a class="headerlink" href="#surveyrunner-init" title="Link to this heading"></a></h3>
+<p>Create the survey_runner ROS node, movement action client, capture Trigger client and reliable depth-one cloud subscription.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-81">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">args</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">args</span></code></p></td>
+<td><p>Parsed options namespace used for dry_run, settings_file, settle and movement/capture/cloud timeout seconds.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; starts cloud_count at zero.</p>
+<p><strong>Errors:</strong> ROS construction failures propagate.</p>
+<p><strong>Side effects:</strong> Registers ROS node, clients and subscription.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-run_survey-py.html#api-e23caa4956312426"><code>main</code></a> — scripts.survey_mapping.run_survey</li></ul></details></section>
+<section id="surveyrunner-wait-for-servers">
+<span id="api-a7e9a6e2ef0cca28"></span><h3><code class="docutils literal notranslate"><span class="pre">SurveyRunner.wait_for_servers()</span></code><a class="headerlink" href="#surveyrunner-wait-for-servers" title="Link to this heading"></a></h3>
+<p>Wait up to 15 seconds for beambot_moveto, then up to 15 seconds for /capture unless dry_run is enabled.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-92">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">wait_for_servers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> True if required endpoints are available, False after a timeout.</p>
+<p><strong>Errors:</strong> Endpoint timeouts are logged and converted to False; ROS errors propagate.</p>
+<p><strong>Side effects:</strong> Performs ROS discovery waits and logs availability failures.</p>
+</section>
+<section id="surveyrunner-apply-settings">
+<span id="api-f8ff1a172038ffb8"></span><h3><code class="docutils literal notranslate"><span class="pre">SurveyRunner.apply_settings()</span></code><a class="headerlink" href="#surveyrunner-apply-settings" title="Link to this heading"></a></h3>
+<p>Set zivid_camera settings_file_path to the resolved settings file and clear settings_yaml. Missing file/service or unsuccessful response leaves the survey running.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-104">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">apply_settings</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None regardless of whether settings were applied.</p>
+<p><strong>Errors:</strong> Missing file, 10-second service timeout, response timeout or rejected parameters produce warnings; unexpected service/future errors propagate.</p>
+<p><strong>Side effects:</strong> Reads file existence, creates a parameter client, requests camera parameter changes and logs results; non-atomic parameter application may partly succeed.</p>
+</section>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="surveyrunner-on-cloud">
+<span id="api-0ec642ef14e643b8"></span><h4><code class="docutils literal notranslate"><span class="pre">SurveyRunner._on_cloud()</span></code><a class="headerlink" href="#surveyrunner-on-cloud" title="Link to this heading"></a></h4>
+<p>Count each received point cloud so capture() can observe a new message.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/scripts/survey_mapping/run_survey.py.html#L-89">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_cloud</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_message</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">_message</span></code></p></td>
+<td><p>Received PointCloud2; payload and timestamp are intentionally ignored.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No explicit error handling.</p>
+<p><strong>Side effects:</strong> Increments cloud_count.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="scripts-survey_mapping-run_survey-py.html#api-4d85063d1fe7fb61"><code>SurveyRunner.__init__</code></a> — scripts.survey_mapping.run_survey</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="scripts-survey_mapping-teach_survey_poses-py.html" class="btn btn-neutral float-left" title="Survey viewpoint teaching" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="scripts-survey_mapping-merge_survey_bag-py.html" class="btn btn-neutral float-right" title="Survey point-cloud merger" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,263 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Survey mapping &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Reference" href="../reference/index.html" />
+    <link rel="prev" title="Calibration and planning scenes" href="calibration-scenes.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Hardware and perception</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="robot-models.html">Robot models and controllers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="end-effectors.html">End effectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameras.html">Cameras and detection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="calibration-scenes.html">Calibration and planning scenes</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Survey mapping</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#before-you-start">Before you start</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#record-viewpoints">1. Record viewpoints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#capture-the-survey">2. Capture the survey</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#merge-the-recording">3. Merge the recording</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#hardware-guides">Hardware guides</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Hardware and perception</a></li>
+      <li class="breadcrumb-item active">Survey mapping</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="survey-mapping">
+<h1>Survey mapping<a class="headerlink" href="#survey-mapping" title="Link to this heading"></a></h1>
+<p>Survey mapping creates point clouds of the physical cell for use in <strong>NVIDIA Isaac Sim</strong>. It combines wrist-camera captures from several viewpoints into one binary PLY file, providing a measured representation of the robot’s surroundings.</p>
+<figure class="screenshot-figure align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/survey-isaac-sim.png"><img alt="Isaac Sim viewport showing a robot model within a colored point cloud of the cell, including the table, equipment, pipes, and cabling." src="../_images/survey-isaac-sim.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">A survey point cloud displayed in Isaac Sim alongside the robot model. <a class="reference download internal" download="" href="../_downloads/5593707280754686b815ea986851ad45/survey-isaac-sim.png"><span class="xref download myst">Open the full-resolution screenshot</span></a>.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The workflow has three stages: <strong>record viewpoints → capture a survey → merge the recording</strong>. These scripts produce the point cloud; importing it and setting up the scene in Isaac Sim are separate steps.</p>
+<p>These tools live in <code class="docutils literal notranslate"><span class="pre">scripts/survey_mapping/</span></code>. The survey runner sends moves directly to <code class="docutils literal notranslate"><span class="pre">beambot_moveto</span></code>, outside the main task queue. Run it separately from GUI or orchestrator tasks.</p>
+<section id="before-you-start">
+<h2>Before you start<a class="headerlink" href="#before-you-start" title="Link to this heading"></a></h2>
+<p>Run the commands below from the repository root, with ROS and the workspace sourced. For live capture, the installation needs:</p>
+<ul class="simple">
+<li><p>The beamline configuration selected through <code class="docutils literal notranslate"><span class="pre">BEAMBOT_BEAMLINE_CONFIG</span></code>.</p></li>
+<li><p>The stack started with <code class="docutils literal notranslate"><span class="pre">./utils/start_mcp_nobag.sh</span></code>, so the large survey clouds are not written into the general experiment bag.</p></li>
+<li><p>MoveIt already initialized with the model for the attached tool, and the <code class="docutils literal notranslate"><span class="pre">beambot_moveto</span></code> action available.</p></li>
+<li><p>A Zivid camera providing <code class="docutils literal notranslate"><span class="pre">/capture</span></code> and <code class="docutils literal notranslate"><span class="pre">/points/xyzrgba</span></code>. Main bringup needs <code class="docutils literal notranslate"><span class="pre">enable_vision:=true</span></code> to start its camera and vision servers.</p></li>
+</ul>
+<p>Follow <a class="reference internal" href="../start/setup.html"><span class="std std-doc">installation and setup</span></a> and <a class="reference internal" href="../operate/index.html"><span class="std std-doc">operating EROBS</span></a> first. The survey runner cannot trigger the orchestrator’s lazy MoveIt startup; an available action server alone is not enough.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p><code class="docutils literal notranslate"><span class="pre">run_survey.py</span> <span class="pre">--dry-run</span></code> <strong>still moves the robot</strong> through the viewpoints. It skips camera capture, camera-settings changes, and bag recording. It is a motion rehearsal, not a plan-only preview.</p>
+</div>
+</section>
+<section id="record-viewpoints">
+<h2>1. Record viewpoints<a class="headerlink" href="#record-viewpoints" title="Link to this heading"></a></h2>
+<p>Position the arm using the installation’s normal procedure, then record each view:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/survey_mapping/teach_survey_poses.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--output<span class="w"> </span>survey_poses.yaml
+</pre></div>
+</div>
+<p>The teacher reads <code class="docutils literal notranslate"><span class="pre">/joint_states</span></code>; it does not move the arm or enable freedrive. Press <strong>Enter</strong> to save the current viewpoint, <strong>u</strong> to undo the last saved view, and <strong>q</strong> to finish and write the file.</p>
+<p>Each named viewpoint contains six joint angles in degrees, in this order: shoulder pan, shoulder lift, elbow, wrist 1, wrist 2, wrist 3. Use <code class="docutils literal notranslate"><span class="pre">--append</span></code> to extend an existing file; otherwise, saving replaces it.</p>
+<p>The repository includes 77 recorded viewpoints in <code class="docutils literal notranslate"><span class="pre">scripts/survey_mapping/survey_poses.yaml</span></code>. Those positions belong to a particular installation. The examples here use your own <code class="docutils literal notranslate"><span class="pre">survey_poses.yaml</span></code> in the repository root, leaving the bundled file unchanged.</p>
+</section>
+<section id="capture-the-survey">
+<h2>2. Capture the survey<a class="headerlink" href="#capture-the-survey" title="Link to this heading"></a></h2>
+<p>With the viewpoints checked for the current cell and tool, run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/survey_mapping/run_survey.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--poses<span class="w"> </span>survey_poses.yaml<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--bag-out<span class="w"> </span>survey_session
+</pre></div>
+</div>
+<p>For each viewpoint, the runner moves the arm, waits <strong>1.5 seconds</strong> to settle, triggers <code class="docutils literal notranslate"><span class="pre">/capture</span></code>, and waits for a new cloud on <code class="docutils literal notranslate"><span class="pre">/points/xyzrgba</span></code>. Avoid other capture requests during the survey: the runner accepts the next cloud message without matching it to a particular request.</p>
+<p>By default, it attempts to apply <code class="docutils literal notranslate"><span class="pre">manufacturing_specular.yml</span></code> from <code class="docutils literal notranslate"><span class="pre">src/beambot/config/zivid/</span></code> (using the installed copy when available). If settings cannot be applied, it logs a warning and continues with the camera’s current settings. It does not restore the previous settings afterward.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Option</p></th>
+<th class="head"><p>Use</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--settings-file</span> <span class="pre">PATH</span></code></p></td>
+<td><p>Apply a different Zivid preset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--no-set-settings</span></code></p></td>
+<td><p>Keep the camera’s current settings.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--max-poses</span> <span class="pre">N</span></code></p></td>
+<td><p>Run only the first N viewpoints; <code class="docutils literal notranslate"><span class="pre">0</span></code> uses all of them.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">--settle</span> <span class="pre">SECONDS</span></code></p></td>
+<td><p>Change the pause after each move.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">--no-bag</span></code></p></td>
+<td><p>Use a recorder you manage separately.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The runner refuses an existing bag output directory. Its recorder includes <code class="docutils literal notranslate"><span class="pre">/points/xyzrgba</span></code>, <code class="docutils literal notranslate"><span class="pre">/tf</span></code>, <code class="docutils literal notranslate"><span class="pre">/tf_static</span></code>, and <code class="docutils literal notranslate"><span class="pre">/joint_states</span></code>; the supplied QoS override applies specifically to <code class="docutils literal notranslate"><span class="pre">/tf</span></code>.</p>
+<p>A failed move stops the survey. A capture that produces no cloud is reported as incomplete, but the runner continues to later viewpoints. Check the final <strong>completed/total</strong> count and the recorded bag before merging; an interrupted or incomplete session may still leave a usable partial recording.</p>
+</section>
+<section id="merge-the-recording">
+<h2>3. Merge the recording<a class="headerlink" href="#merge-the-recording" title="Link to this heading"></a></h2>
+<p>Merging runs offline with ROS libraries available; it does not need a running robot or camera:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python3<span class="w"> </span>scripts/survey_mapping/merge_survey_bag.py<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--bag<span class="w"> </span>survey_session<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--out<span class="w"> </span>survey_map.ply<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--voxel<span class="w"> </span><span class="m">0</span>.005
+</pre></div>
+</div>
+<p>The defaults are the <strong><code class="docutils literal notranslate"><span class="pre">base_link</span></code> frame</strong>, a <strong>2 m</strong> maximum range from the camera, and <strong>5 mm</strong> voxels. The merger removes invalid points, filters by range, transforms the clouds, and averages points within each voxel. It writes a binary PLY file, including color when every merged cloud provides it. An existing output file is overwritten.</p>
+<p>Cloud alignment uses recorded transforms; the merger does not estimate alignment from overlapping surfaces or correct calibration errors. In its default mode, it looks up TF at each cloud’s timestamp using transforms already read from the bag. Clouds without a transform are skipped and are not retried later. Check warnings and the final merged-cloud count.</p>
+<p>If the bag lacks moving-arm TF, add <code class="docutils literal notranslate"><span class="pre">--urdf</span> <span class="pre">PATH</span></code> with an <strong>expanded URDF matching the captured robot and camera calibration</strong>. This replaces TF lookup with forward kinematics using the latest preceding joint-state message. It does not interpolate joints to the cloud timestamp.</p>
+<p>The optional <code class="docutils literal notranslate"><span class="pre">--self-check</span></code> checks voxel averaging, color averaging, and a translation transform. It does not validate a bag or the survey’s physical alignment.</p>
+<p>To use measured geometry for collision checking, see the separate <a class="reference internal" href="calibration-scenes.html#octomap-path"><span class="std std-ref">Octomap workflow</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="calibration-scenes.html" class="btn btn-neutral float-left" title="Calibration and planning scenes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../reference/index.html" class="btn btn-neutral float-right" title="Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

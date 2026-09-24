@@ -1,0 +1,394 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trajectory plan cache &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="CMS Servo controller" href="src-custom-ur-descriptions-cms_moveit_config-src-servo_node_jazzy-cpp.html" />
+    <link rel="prev" title="Shared motion stages" href="src-beambot-beambot-stages-base_stages-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-move_to_server-py.html">MoveTo action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-move_to_stages-py.html">MoveTo planning stages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-base_stages-py.html">Shared motion stages</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Trajectory plan cache</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-custom-ur-descriptions-cms_moveit_config-src-servo_node_jazzy-cpp.html">CMS Servo controller</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/motion-planning.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/motion-planning.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/motion-planning.html">Motion planning</a></li>
+      <li class="breadcrumb-item active">Trajectory plan cache</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="trajectory-plan-cache">
+<h1>Trajectory plan cache<a class="headerlink" href="#trajectory-plan-cache" title="Link to this heading"></a></h1>
+<p>Keep up to a configured number of serialized MTC solutions in an in-memory LRU cache. Keys combine normalized request JSON, model revision, and rounded six-joint start state; stored trajectories are not revalidated.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.core.plan_cache</span></code> · <a href="../../../api-source/src/beambot/beambot/core/plan_cache.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/motion-planning.html"><span class="std std-doc">Motion planning</span></a> · <a class="reference internal" href="../../../architecture/batching.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>The orchestrator uses <code class="docutils literal notranslate"><span class="pre">PlanCache</span></code> only for goals containing one motion batch. Its key includes the expanded tasks and resolved poses, so editing a referenced registry pose changes the key. The model revision identifies the tool and cup profile; starting joints distinguish execution states.</p>
+<p><code class="docutils literal notranslate"><span class="pre">get()</span></code> returns the stored solution message directly, or <code class="docutils literal notranslate"><span class="pre">None</span></code> on a miss. Callers serialize access: the cache has no lock. It manages storage and eviction, not scene validity or execution readiness. The example uses placeholder solution values without planning or motion.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-befc317396708449"><span class="std std-ref">PlanCache.compute_key</span></a></p></td>
+<td><p>Build a tuple key from normalized JSON, model revision, and rounded start joints. Object-key order and whitespace are ignored; array/task order and whole-turn joint offsets remain significant.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-870d6306c7c9152b"><span class="std std-ref">PlanCache.get</span></a></p></td>
+<td><p>Return the stored solution message and promote a hit to most recently used.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-952d9286c8c7d70d"><span class="std std-ref">PlanCache.store</span></a></p></td>
+<td><p>Insert or replace an entry, mark it most recently used, then evict oldest entries until within capacity.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-4993795acae78faa"><span class="std std-ref">normalize_joints</span></a></p></td>
+<td><p>Convert six ordered arm positions to floats and round to two decimal radians. Preserve whole-turn differences and normalize negative zero to positive zero.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">types</span><span class="w"> </span><span class="kn">import</span> <span class="n">SimpleNamespace</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">beambot.core.plan_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">PlanCache</span>
+
+<span class="n">cache</span> <span class="o">=</span> <span class="n">PlanCache</span><span class="p">(</span><span class="n">SimpleNamespace</span><span class="p">(</span><span class="n">info</span><span class="o">=</span><span class="k">lambda</span> <span class="n">message</span><span class="p">:</span> <span class="kc">None</span><span class="p">),</span> <span class="n">max_entries</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+<span class="n">key_a</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">compute_key</span><span class="p">(</span><span class="s1">'{"example": "a"}'</span><span class="p">,</span> <span class="s2">"model-1"</span><span class="p">)</span>
+<span class="n">key_b</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">compute_key</span><span class="p">(</span><span class="s1">'{"example": "b"}'</span><span class="p">,</span> <span class="s2">"model-1"</span><span class="p">)</span>
+<span class="n">key_c</span> <span class="o">=</span> <span class="n">cache</span><span class="o">.</span><span class="n">compute_key</span><span class="p">(</span><span class="s1">'{"example": "c"}'</span><span class="p">,</span> <span class="s2">"model-1"</span><span class="p">)</span>
+<span class="n">cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">key_a</span><span class="p">,</span> <span class="s2">"solution-a"</span><span class="p">)</span>
+<span class="n">cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">key_b</span><span class="p">,</span> <span class="s2">"solution-b"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key_a</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"solution-a"</span>  <span class="c1"># a becomes most recently used</span>
+<span class="n">cache</span><span class="o">.</span><span class="n">store</span><span class="p">(</span><span class="n">key_c</span><span class="p">,</span> <span class="s2">"solution-c"</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">cache</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key_b</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>  <span class="c1"># b was evicted</span>
+</pre></div>
+</div>
+</section>
+<section id="plancache">
+<h2><code class="docutils literal notranslate"><span class="pre">PlanCache</span></code><a class="headerlink" href="#plancache" title="Link to this heading"></a></h2>
+<p>Bounded least-recently-used store of serialized solutions. <code class="docutils literal notranslate"><span class="pre">compute_key()</span></code> returns a tuple identity, <code class="docutils literal notranslate"><span class="pre">get()</span></code> promotes a hit, and <code class="docutils literal notranslate"><span class="pre">store()</span></code> evicts old entries. It does not provide synchronization or an explicit clear method.</p>
+<section id="plancache-compute-key">
+<span id="api-befc317396708449"></span><h3><code class="docutils literal notranslate"><span class="pre">PlanCache.compute_key()</span></code><a class="headerlink" href="#plancache-compute-key" title="Link to this heading"></a></h3>
+<p>Build a tuple key from normalized JSON, model revision, and rounded start joints. Object-key order and whitespace are ignored; array/task order and whole-turn joint offsets remain significant.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/core/plan_cache.py.html#L-41">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@staticmethod</span>
+<span class="n">compute_key</span><span class="p">(</span><span class="n">full_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">model_revision</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">start_joints_rad</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">full_json</span></code></p></td>
+<td><p>JSON text to identify. The orchestrator supplies expanded tasks and resolved poses; invalid JSON is retained as its original text.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">model_revision</span></code></p></td>
+<td><p>Model identity, including the configured tool and cup profile when supplied by the lifecycle manager.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_joints_rad</span></code></p></td>
+<td><p>Optional six joint angles in radians; missing or invalid-length state contributes None.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Tuple (normalized_json, model_revision, normalized_start_joints). It is not a digest string.</p>
+<p><strong>Errors:</strong> Catches JSONDecodeError only; wrong input types and joint float-conversion/iteration errors propagate.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">beambot.core.plan_cache</span><span class="w"> </span><span class="kn">import</span> <span class="n">PlanCache</span><span class="p">,</span> <span class="n">normalize_joints</span>
+
+<span class="k">assert</span> <span class="n">PlanCache</span><span class="o">.</span><span class="n">compute_key</span><span class="p">(</span><span class="s1">'{"b":2,"a":1}'</span><span class="p">,</span> <span class="s2">"model-1"</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span>
+    <span class="n">PlanCache</span><span class="o">.</span><span class="n">compute_key</span><span class="p">(</span><span class="s1">'{"a":1, "b":2}'</span><span class="p">,</span> <span class="s2">"model-1"</span><span class="p">)</span>
+<span class="p">)</span>
+<span class="k">assert</span> <span class="n">normalize_joints</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">)</span> <span class="o">==</span> <span class="p">(</span><span class="mf">0.0</span><span class="p">,)</span> <span class="o">*</span> <span class="mi">6</span>
+<span class="k">assert</span> <span class="n">normalize_joints</span><span class="p">([</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">5</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-7101b1b1589d4518"><code>MTCOrchestratorServer._execute</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="plancache-get">
+<span id="api-870d6306c7c9152b"></span><h3><code class="docutils literal notranslate"><span class="pre">PlanCache.get()</span></code><a class="headerlink" href="#plancache-get" title="Link to this heading"></a></h3>
+<p>Return the stored solution message and promote a hit to most recently used.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/core/plan_cache.py.html#L-61">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">key</span></code></p></td>
+<td><p>Tuple returned by compute_key(), or another hashable key used by the caller.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> The stored solution object itself, or None on a miss. Storing None is indistinguishable from a miss and does not promote the entry on lookup.</p>
+<p><strong>Errors:</strong> Unhashable keys raise TypeError.</p>
+<p><strong>Side effects:</strong> Changes LRU order on a hit. The solution is returned by reference, without copying or locking.</p>
+</section>
+<section id="plancache-store">
+<span id="api-952d9286c8c7d70d"></span><h3><code class="docutils literal notranslate"><span class="pre">PlanCache.store()</span></code><a class="headerlink" href="#plancache-store" title="Link to this heading"></a></h3>
+<p>Insert or replace an entry, mark it most recently used, then evict oldest entries until within capacity.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/core/plan_cache.py.html#L-53">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">store</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span> <span class="n">sol_msg</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">key</span></code></p></td>
+<td><p>Tuple returned by compute_key(), or another hashable key used consistently by the caller.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sol_msg</span></code></p></td>
+<td><p>Opaque solution object, stored by reference.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Invalid keys or logger failures propagate; negative max_entries can exhaust the eviction dictionary.</p>
+<p><strong>Side effects:</strong> Mutates the cache and logs each eviction; stores the solution by reference without locking.</p>
+</section>
+<section id="plancache-init">
+<span id="api-7859300df02bf0eb"></span><h3><code class="docutils literal notranslate"><span class="pre">PlanCache.__init__()</span></code><a class="headerlink" href="#plancache-init" title="Link to this heading"></a></h3>
+<p>Create an empty LRU store with the supplied entry limit.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/core/plan_cache.py.html#L-34">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">logger</span><span class="p">,</span> <span class="n">max_entries</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="n">MAX_ENTRIES</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">logger</span></code></p></td>
+<td><p>Logger used for eviction messages.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">max_entries</span></code></p></td>
+<td><p>Maximum entries, default 64; no positivity validation is performed.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> No explicit validation; a negative capacity causes store’s eviction loop to fail once empty.</p>
+<p><strong>Side effects:</strong> Allocates an OrderedDict; no lock or ROS resources are created.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="normalize-joints">
+<span id="api-4993795acae78faa"></span><h3><code class="docutils literal notranslate"><span class="pre">normalize_joints()</span></code><a class="headerlink" href="#normalize-joints" title="Link to this heading"></a></h3>
+<p>Convert six ordered arm positions to floats and round to two decimal radians. Preserve whole-turn differences and normalize negative zero to positive zero.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/core/plan_cache.py.html#L-14">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">normalize_joints</span><span class="p">(</span><span class="n">positions_rad</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">positions_rad</span></code></p></td>
+<td><p>Iterable of arm joint angles in radians, already reordered by joint name; None denotes unavailable state.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Six-value tuple, or None when input is None or contains any other number of values.</p>
+<p><strong>Errors:</strong> Float conversion and iteration errors propagate; nonfinite values are not rejected.</p>
+<p><strong>Side effects:</strong> Consumes the supplied iterable.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-plan_cache-py.html#api-befc317396708449"><code>PlanCache.compute_key</code></a> — beambot.core.plan_cache</li></ul></details></section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-beambot-stages-base_stages-py.html" class="btn btn-neutral float-left" title="Shared motion stages" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-custom-ur-descriptions-cms_moveit_config-src-servo_node_jazzy-cpp.html" class="btn btn-neutral float-right" title="CMS Servo controller" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

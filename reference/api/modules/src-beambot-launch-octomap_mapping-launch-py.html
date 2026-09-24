@@ -1,0 +1,253 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Octomap pipeline launch &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Image point selector" href="src-beambot-mcp_server-point_selector_gui-py.html" />
+    <link rel="prev" title="Octomap scene bridge" href="src-beambot-beambot-mapping-octomap_to_planning_scene-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-__init__-py.html">Camera backend selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zivid-py.html">Zivid camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zed-py.html">ZED camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-image_detection-py.html">Image and marker geometry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-spincoater_detection-py.html">Spincoater image detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-yolo_object_detection-py.html">YOLO object detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_task_detection-py.html">Vision task detector adapters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-motion_target-py.html">Vision motion targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_engine-py.html">Shared vision engine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_scan_server-py.html">Marker scan action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_task_server-py.html">Vision task action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-vision_task_stages-py.html">Vision task coordination</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-pointcloud_relay-py.html">Point-cloud filtering relay</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-octomap_to_planning_scene-py.html">Octomap scene bridge</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Octomap pipeline launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-mcp_server-point_selector_gui-py.html">Image point selector</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-teach_survey_poses-py.html">Survey viewpoint teaching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-run_survey-py.html">Survey capture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-merge_survey_bag-py.html">Survey point-cloud merger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/perception.html">Perception and mapping</a></li>
+      <li class="breadcrumb-item active">Octomap pipeline launch</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="octomap-pipeline-launch">
+<h1>Octomap pipeline launch<a class="headerlink" href="#octomap-pipeline-launch" title="Link to this heading"></a></h1>
+<p>Launch the live point-cloud-to-Octomap pipeline and its MoveIt planning-scene bridge.</p>
+<p><code class="docutils literal notranslate"><span class="pre">src.beambot.launch.octomap_mapping.launch</span></code> · <a href="../../../api-source/src/beambot/launch/octomap_mapping.launch.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/perception.html"><span class="std std-doc">Perception and mapping</span></a> · <a class="reference internal" href="../../../architecture/perception.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>ROS launch calls <code class="docutils literal notranslate"><span class="pre">generate_launch_description()</span></code> to connect the point-cloud relay, Octomap server, and MoveIt planning-scene bridge. It consumes <code class="docutils literal notranslate"><span class="pre">/points/xyz</span></code>; camera acquisition and robot motion are supplied separately.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">octomap_path</span></code> to seed the pipeline from a saved map. The launch configures 1 cm voxels/resolution, a 2 m sensor range, and a 0.5-second scene-update interval.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-08e15df41f2f6c72"><span class="std std-ref">generate_launch_description</span></a></p></td>
+<td><p>Declare optional saved-map path and construct relay, octomap server and planning-scene bridge actions with 1 cm resolution/voxel size, 2 m sensor range and 0.5-second scene-update throttling.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="generate-launch-description">
+<span id="api-08e15df41f2f6c72"></span><h3><code class="docutils literal notranslate"><span class="pre">generate_launch_description()</span></code><a class="headerlink" href="#generate-launch-description" title="Link to this heading"></a></h3>
+<p>Declare optional saved-map path and construct relay, octomap server and planning-scene bridge actions with 1 cm resolution/voxel size, 2 m sensor range and 0.5-second scene-update throttling.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/launch/octomap_mapping.launch.py.html#L-9">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">generate_launch_description</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> LaunchDescription with one argument and three nodes. cloud_in remaps to /points/xyz_relayed; map frame is base_link and filter_ground_plane is False. No transform_tolerance override is supplied.</p>
+<p><strong>Errors:</strong> Launch-object construction errors propagate; saved-map validity and TF/topic availability are checked only by launched components.</p>
+<p><strong>Side effects:</strong> Builds launch actions; execution subscribes/publishes point clouds, octomap and planning scene and may read the saved map.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-beambot-mapping-octomap_to_planning_scene-py.html" class="btn btn-neutral float-left" title="Octomap scene bridge" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-mcp_server-point_selector_gui-py.html" class="btn btn-neutral float-right" title="Image point selector" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,258 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beamline adaptation &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Troubleshooting and maintenance" href="../maintenance/index.html" />
+    <link rel="prev" title="Container images" href="containers.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Integrations and deployment</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="mcp-agent.html">MCP and the direct agent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bluesky-epics.html">Bluesky and EPICS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="containers.html">Container images</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Beamline adaptation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#what-is-present-today">What is present today</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-adaptation-boundary">The adaptation boundary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#lix-specific-differences">LIX-specific differences</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pdf-and-external-dependencies">PDF and external dependencies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#acceptance-for-another-installation">Acceptance for another installation</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Integrations and deployment</a></li>
+      <li class="breadcrumb-item active">Beamline adaptation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="beamline-adaptation">
+<h1>Beamline adaptation<a class="headerlink" href="#beamline-adaptation" title="Link to this heading"></a></h1>
+<p>The beamline configuration selects models, tools, camera settings, poses and scene data. Adapting EROBS to another site also requires calibrated data and updates to the CMS-specific paths and tool branches described below.</p>
+<section id="what-is-present-today">
+<h2>What is present today<a class="headerlink" href="#what-is-present-today" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Area</p></th>
+<th class="head"><p>Contents</p></th>
+<th class="head"><p>Interpretation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>CMS</p></td>
+<td><p>Beamline and dry-lab YAMLs, model/planning packages, calibration assets, poses, tasks and saved runs</p></td>
+<td><p>Shared resources; distinct robot endpoints.</p></td>
+</tr>
+<tr class="row-odd"><td><p>LIX</p></td>
+<td><p>Separate beamline YAML, Hand-E model/planning packages and a pose-registry placeholder</p></td>
+<td><p>Adaptation material; complete deployment is unverified</p></td>
+</tr>
+<tr class="row-even"><td><p>PDF</p></td>
+<td><p>Container, driver, MoveIt and Bluesky launch scripts</p></td>
+<td><p>Historical/site-specific deployment material; continued use unverified</p></td>
+</tr>
+</tbody>
+</table>
+<p>Select a deployment through <code class="docutils literal notranslate"><span class="pre">BEAMBOT_BEAMLINE_CONFIG</span></code>. The main configuration loader requires this environment variable. The <a class="reference internal" href="../reference/configuration.html"><span class="std std-doc">configuration reference</span></a> explains its fields and path resolution.</p>
+</section>
+<section id="the-adaptation-boundary">
+<h2>The adaptation boundary<a class="headerlink" href="#the-adaptation-boundary" title="Link to this heading"></a></h2>
+<p>Review each part of the beamline YAML against the new installation:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Configuration area</p></th>
+<th class="head"><p>Site choices</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Robot</p></td>
+<td><p>Arm planning group, joint order, robot/model packages and network endpoint</p></td>
+</tr>
+<tr class="row-odd"><td><p>Tools</p></td>
+<td><p>States, controllers, payload, communication settings and tip frames</p></td>
+</tr>
+<tr class="row-even"><td><p>Camera</p></td>
+<td><p>Adapter type, frame and marker dictionary</p></td>
+</tr>
+<tr class="row-odd"><td><p>Vision targets</p></td>
+<td><p>Marker IDs, offsets or rack grids, and movement sequences</p></td>
+</tr>
+<tr class="row-even"><td><p>Pose and scene paths</p></td>
+<td><p>Site data files</p></td>
+</tr>
+</tbody>
+</table>
+<p>Joint order is part of the interface. Named poses store positional six-joint values; changing the joint list without converting those values changes their meaning. Likewise, a target named <code class="docutils literal notranslate"><span class="pre">sample_scan_1</span></code> is not portable merely because both beamlines use a UR5e.</p>
+<p>For a new site using existing tool types:</p>
+<ol class="arabic simple">
+<li><p>Review a copy of the beamline configuration in a development checkout.</p></li>
+<li><p>Supply the corresponding pose, scene and calibrated model data.</p></li>
+<li><p>Inspect the code that loads those settings for remaining site assumptions.</p></li>
+</ol>
+<p>The GUI still resolves saved runs to <code class="docutils literal notranslate"><span class="pre">src/cms/runs</span></code>, and model launches retain structural tool branches. Selecting another YAML does not make every part of the application site-neutral. CMS selects the dedicated <code class="docutils literal notranslate"><span class="pre">ur_with_zivid_2fg7.urdf</span></code> for its 2FG7 viewer.</p>
+</section>
+<section id="lix-specific-differences">
+<h2>LIX-specific differences<a class="headerlink" href="#lix-specific-differences" title="Link to this heading"></a></h2>
+<p>LIX defines Hand-E rather than CMS’s full interchangeable-tool set. Its MoveIt directory includes OMPL and Pilz configuration, while CMS also has STOMP. The shared planner loader permits STOMP to be absent. The complete LIX stack remains unverified.</p>
+<p>The LIX Hand-E configuration leaves <code class="docutils literal notranslate"><span class="pre">payload_mass</span></code> and <code class="docutils literal notranslate"><span class="pre">payload_cog</span></code> commented out. The shared configuration loader requires those values for every configured tool, including in mock sessions, so the current file fails at configuration loading. Supply measured and reviewed values before commissioning. The LIX robot calibration also includes a replacement placeholder, and <code class="docutils literal notranslate"><span class="pre">src/lix/poses.yaml</span></code> is comments-only. Replace these placeholders with measured calibration and taught poses.</p>
+</section>
+<section id="pdf-and-external-dependencies">
+<h2>PDF and external dependencies<a class="headerlink" href="#pdf-and-external-dependencies" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">scripts/pdf-launch-scripts/</span></code> contains a talker/listener communication exercise, UR-driver launchers, Hand-E/MoveIt launchers, a sample-movement server launcher and a BSUI launcher. Several names and image references reflect an earlier container deployment. Retain them as reference material until their users and versions are established. They are not the default CMS startup path.</p>
+<p>External drivers and camera repositories have their own branch refs in the <code class="docutils literal notranslate"><span class="pre">.repos</span></code> manifests. Record their actual commits when commissioning a beamline. Record exact commits alongside the ROS distribution, Zivid SDK, serial settings, and tool controller version.</p>
+</section>
+<section id="acceptance-for-another-installation">
+<h2>Acceptance for another installation<a class="headerlink" href="#acceptance-for-another-installation" title="Link to this heading"></a></h2>
+<p>An adaptation review should cover:</p>
+<ul class="simple">
+<li><p>Model agreement with <a class="reference internal" href="../start/concepts.html#the-software-building-blocks"><span class="std std-ref">TF</span></a>, controller joint names, payload and tool communication.</p></li>
+<li><p>Taught pose ordering, camera calibration and scene geometry.</p></li>
+<li><p>Task parsing and client discovery.</p></li>
+</ul>
+<p>Begin with isolated configuration and mock checks, then use the site’s approved hardware commissioning procedure. Treat GUI display, planning preview and real motion as separate evidence.</p>
+<p>A new tool type or detector goes beyond configuration and needs code changes; the <a class="reference internal" href="../reference/modules.html"><span class="std std-doc">module map</span></a> shows where tool, launch, and perception code live.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="containers.html" class="btn btn-neutral float-left" title="Container images" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../maintenance/index.html" class="btn btn-neutral float-right" title="Troubleshooting and maintenance" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

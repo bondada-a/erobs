@@ -1,0 +1,604 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beamline configuration &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="MoveIt lifecycle" href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html" />
+    <link rel="prev" title="Setup and deployment" href="../subsystems/setup-deployment.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Beamline configuration</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html">MoveIt lifecycle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-launch-beambot_bringup-launch-py.html">EROBS application launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-custom-ur-descriptions-cms_moveit_config-launch-robot_bringup-launch-py.html">CMS robot and MoveIt launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-custom-ur-descriptions-lix_moveit_config-launch-robot_bringup-launch-py.html">LiX robot and MoveIt launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils-start_mcp-sh.html">MCP startup with recording</a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils-start_mcp_nobag-sh.html">MCP startup without recording</a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils-sim_start_mcp-sh.html">Mock-hardware MCP startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="docker-img_build-sh.html">Docker image build and publish</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/setup-deployment.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/setup-deployment.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+      <li class="breadcrumb-item active">Beamline configuration</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="beamline-configuration">
+<h1>Beamline configuration<a class="headerlink" href="#beamline-configuration" title="Link to this heading"></a></h1>
+<p>Load and validate the selected beamline YAML, cache its shared mapping, resolve resource paths, and translate settings for ROS launch consumers.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.config_loader</span></code> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/setup-deployment.html"><span class="std std-doc">Setup and deployment</span></a> · <a class="reference internal" href="../../../start/setup.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>Launch files, the orchestrator, stages, and the GUI read the beamline selected by <code class="docutils literal notranslate"><span class="pre">BEAMBOT_BEAMLINE_CONFIG</span></code>. <code class="docutils literal notranslate"><span class="pre">load_beamline_config()</span></code> validates configured gripper payloads and voltages before caching the mapping and its source path. Treat that shared mapping as read-only.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">validate_beamline_config()</span></code> to check an already parsed mapping without loading a file. It checks tool mass, center of gravity, and voltage, not the complete deployment schema. Named accessors and path/launch helpers serve individual consumers; reset the cache only when deliberately reloading configuration.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-93befe87cda8e2cd"><span class="std std-ref">load_beamline_config</span></a></p></td>
+<td><p>Load and validate configuration once under the shared cache lock. Later calls return the same mapping and path; treat nested values as read-only.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-03878f00a22152c2"><span class="std std-ref">validate_beamline_config</span></a></p></td>
+<td><p>Collect payload and voltage problems for every configured gripper. Missing tool sections are skipped; this is not a complete configuration-schema check.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-c1be57874f3dd8e9"><span class="std std-ref">resolve_beamline_path</span></a></p></td>
+<td><p>Expand a configured path. Absolute inputs receive lexical normalization; relative inputs are joined to the nearest ancestor containing src, searched for at most ten levels, or to the configuration directory.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-8334d06ce8a311ce"><span class="std std-ref">gripper_launch_config</span></a></p></td>
+<td><p>Translate a configured gripper’s launch fields into a launch dictionary, converting voltage, communication flag and RS485 values to strings.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-7dad15eef1daf449"><span class="std std-ref">build_pipeline_param_args</span></a></p></td>
+<td><p>Read the installed MoveIt configuration’s OMPL and Pilz YAML files and optional STOMP file, forwarding every top-level and nested value through _emit_param.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<p>With <code class="docutils literal notranslate"><span class="pre">BEAMBOT_BEAMLINE_CONFIG</span></code> already selecting a beamline, resolve its pose registry the same way as the orchestrator:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">beambot.config_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_beamline_config</span><span class="p">,</span> <span class="n">resolve_beamline_path</span>
+
+<span class="n">config</span><span class="p">,</span> <span class="n">config_path</span> <span class="o">=</span> <span class="n">load_beamline_config</span><span class="p">()</span>
+<span class="n">poses_path</span> <span class="o">=</span> <span class="n">resolve_beamline_path</span><span class="p">(</span><span class="n">config</span><span class="p">[</span><span class="s2">"poses_file"</span><span class="p">],</span> <span class="n">config_path</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The example reads configuration only. It assumes the selected YAML defines <code class="docutils literal notranslate"><span class="pre">poses_file</span></code>; do not modify the shared <code class="docutils literal notranslate"><span class="pre">config</span></code> mapping.</p>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="load-beamline-config">
+<span id="api-93befe87cda8e2cd"></span><h3><code class="docutils literal notranslate"><span class="pre">load_beamline_config()</span></code><a class="headerlink" href="#load-beamline-config" title="Link to this heading"></a></h3>
+<p>Load and validate configuration once under the shared cache lock. Later calls return the same mapping and path; treat nested values as read-only.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-51">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">load_beamline_config</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Shared (configuration_dict, absolute_path) tuple.</p>
+<p><strong>Errors:</strong> Selection, file, YAML, and configuration-validation errors propagate without populating the cache, so a corrected file can be retried.</p>
+<p><strong>Side effects:</strong> On first successful call, reads YAML, validates configured tools, and stores process-wide state. Subsequent calls avoid both disk I/O and revalidation.</p>
+<details class="api-references"><summary>Referenced in source (12)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-sample_pick_place_server-py.html#api-952cff7db8502b70"><code>SampleActionServer.create_stages</code></a> — beambot.action_servers.sample_pick_place_server</li><li><a href="src-beambot-beambot-config_loader-py.html#api-cf7421eeada684ea"><code>arm_joint_names</code></a> — beambot.config_loader</li><li><a href="src-beambot-beambot-config_loader-py.html#api-1257e30376a242ab"><code>configured_tip_frames</code></a> — beambot.config_loader</li><li><a href="src-beambot-beambot-config_loader-py.html#api-943206d9c96ae911"><code>description_package</code></a> — beambot.config_loader</li><li><a href="src-beambot-beambot-config_loader-py.html#api-8334d06ce8a311ce"><code>gripper_launch_config</code></a> — beambot.config_loader</li><li><a href="src-beambot-beambot-config_loader-py.html#api-04eef2ba8fdc3bb7"><code>gripper_tip_frame</code></a> — beambot.config_loader</li><li><a href="src-beambot-beambot-config_loader-py.html#api-b566804207bdf664"><code>gripper_urdf_file</code></a> — beambot.config_loader</li><li><a href="src-beambot-beambot-config_loader-py.html#api-854179bfaa94c6f6"><code>moveit_config_package</code></a> — beambot.config_loader</li><li><a href="src-beambot-beambot-config_loader-py.html#api-28435a6390e735c9"><code>z_offset_for_tip_frame</code></a> — beambot.config_loader</li><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-0bd8018a088b3197"><code>MoveItLifecycleManager._load_collision_obstacles</code></a> — beambot.core.moveit_lifecycle_manager</li><li><a href="src-beambot-beambot-stages-tool_exchange_stages-py.html#api-b395b506ce53cc9c"><code>_load_tool_exchange_config</code></a> — beambot.stages.tool_exchange_stages</li></ul></details></section>
+<section id="validate-beamline-config">
+<span id="api-03878f00a22152c2"></span><h3><code class="docutils literal notranslate"><span class="pre">validate_beamline_config()</span></code><a class="headerlink" href="#validate-beamline-config" title="Link to this heading"></a></h3>
+<p>Collect payload and voltage problems for every configured gripper. Missing tool sections are skipped; this is not a complete configuration-schema check.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-91">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">validate_beamline_config</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">config</span></code></p></td>
+<td><p>Parsed configuration dictionary. Each grippers entry should be a dictionary with payload_mass, payload_cog and optional tool_voltage.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> List of diagnostic strings, empty when these checks pass. Mass must be finite and positive; CoG needs finite x/y/z; voltage must compare equal to 0, 12, or 24, excluding booleans. Omitted voltage means 0 V.</p>
+<p><strong>Errors:</strong> Reports invalid gripper entries and checked fields in the returned list. A malformed root or truthy nonmapping grippers container can raise Python errors rather than return diagnostics. Strings and booleans are rejected for payload values.</p>
+<p><strong>Side effects:</strong> Does not mutate the mapping, read files, or contact hardware.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-config_loader-py.html#api-5662f3c3d151c2de"><code>_load_beamline_config_uncached</code></a> — beambot.config_loader</li></ul></details></section>
+<section id="resolve-beamline-path">
+<span id="api-c1be57874f3dd8e9"></span><h3><code class="docutils literal notranslate"><span class="pre">resolve_beamline_path()</span></code><a class="headerlink" href="#resolve-beamline-path" title="Link to this heading"></a></h3>
+<p>Expand a configured path. Absolute inputs receive lexical normalization; relative inputs are joined to the nearest ancestor containing src, searched for at most ten levels, or to the configuration directory.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-288">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">resolve_beamline_path</span><span class="p">(</span><span class="n">rel_or_abs</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">config_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rel_or_abs</span></code></p></td>
+<td><p>Configured path, absolute or relative; an empty value means no path.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">config_path</span></code></p></td>
+<td><p>Beamline YAML filename whose resolved parent anchors the search.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Resolved path string, or an empty string for an empty input. Relative-path suffixes are joined without an additional resolve call.</p>
+<p><strong>Errors:</strong> Filesystem/path resolution errors propagate.</p>
+<p><strong>Side effects:</strong> Checks ancestor directories; does not create or read the target file.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-0bd8018a088b3197"><code>MoveItLifecycleManager._load_collision_obstacles</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="gripper-launch-config">
+<span id="api-8334d06ce8a311ce"></span><h3><code class="docutils literal notranslate"><span class="pre">gripper_launch_config()</span></code><a class="headerlink" href="#gripper-launch-config" title="Link to this heading"></a></h3>
+<p>Translate a configured gripper’s launch fields into a launch dictionary, converting voltage, communication flag and RS485 values to strings.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-260">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gripper_launch_config</span><span class="p">(</span><span class="n">gripper</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Gripper key under grippers.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Dictionary containing urdf_xacro, moveit_controllers, tool_voltage, use_tool_communication and tool_comm_params.</p>
+<p><strong>Errors:</strong> Raises BeamlineConfigError for an undeclared gripper; missing required fields raise KeyError. Configuration and malformed-data errors propagate.</p>
+<p><strong>Side effects:</strong> May initialize the shared configuration cache.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-custom-ur-descriptions-cms_moveit_config-launch-robot_bringup-launch-py.html#api-4025dd4d23c7ee39"><code>launch_setup</code></a> — src.custom-ur-descriptions.cms_moveit_config.launch.robot_bringup.launch</li></ul></details></section>
+<section id="build-pipeline-param-args">
+<span id="api-7dad15eef1daf449"></span><h3><code class="docutils literal notranslate"><span class="pre">build_pipeline_param_args()</span></code><a class="headerlink" href="#build-pipeline-param-args" title="Link to this heading"></a></h3>
+<p>Read the installed MoveIt configuration’s OMPL and Pilz YAML files and optional STOMP file, forwarding every top-level and nested value through _emit_param.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-238">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_pipeline_param_args</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Flat list of ROS -p argument pairs, prefixed by pipeline name.</p>
+<p><strong>Errors:</strong> Package lookup, required-file I/O, YAML parsing, malformed mappings and leaf serialization errors propagate. A missing STOMP file is skipped.</p>
+<p><strong>Side effects:</strong> Locates an ament package and reads planning YAML files; may load the shared beamline configuration.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-launch-beambot_bringup-launch-py.html#api-4c297adbd9a6fef7"><code>generate_launch_description</code></a> — src.beambot.launch.beambot_bringup.launch</li></ul></details></section>
+<section id="get-beamline-config-path">
+<span id="api-95bf9b7ca9faa0b2"></span><h3><code class="docutils literal notranslate"><span class="pre">get_beamline_config_path()</span></code><a class="headerlink" href="#get-beamline-config-path" title="Link to this heading"></a></h3>
+<p>Read BEAMBOT_BEAMLINE_CONFIG, trim whitespace, expand the home directory and normalize an absolute filename without following symlinks.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-30">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_beamline_config_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Absolute filename of an existing regular file.</p>
+<p><strong>Errors:</strong> Raises BeamlineConfigError when the environment variable is empty or the file does not exist.</p>
+<p><strong>Side effects:</strong> Reads the environment and checks the filesystem.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-config_loader-py.html#api-5662f3c3d151c2de"><code>_load_beamline_config_uncached</code></a> — beambot.config_loader</li></ul></details></section>
+<section id="is-finite-number">
+<span id="api-b95a18980c1ac014"></span><h3><code class="docutils literal notranslate"><span class="pre">is_finite_number()</span></code><a class="headerlink" href="#is-finite-number" title="Link to this heading"></a></h3>
+<p>Check for a finite real number, excluding booleans and numeric strings.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-86">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">is_finite_number</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">value</span></code></p></td>
+<td><p>Value to inspect without coercing it to a number.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True for nonboolean numbers.Real values accepted as finite by math.isfinite; otherwise False.</p>
+<p><strong>Errors:</strong> No exception conversion; unusual numeric conversion failures, such as an integer too large for math.isfinite, can propagate.</p>
+<details class="api-references"><summary>Referenced in source (4)</summary><ul><li><a href="src-beambot-beambot-config_loader-py.html#api-03878f00a22152c2"><code>validate_beamline_config</code></a> — beambot.config_loader</li><li><a href="src-beambot-beambot-core-task_script-py.html#api-6d907311d7f0e4f8"><code>_finite_number</code></a> — beambot.core.task_script</li><li><a href="src-beambot-beambot-core-task_script-py.html#api-0dbdfe4e7a3696b8"><code>flange_offset_error</code></a> — beambot.core.task_script</li><li><a href="src-beambot-beambot-core-task_script-py.html#api-25c3f9aa24c48080"><code>moveto_goal_error</code></a> — beambot.core.task_script</li></ul></details></section>
+<section id="reset-beamline-config-cache">
+<span id="api-ad7fadfa88cffd69"></span><h3><code class="docutils literal notranslate"><span class="pre">reset_beamline_config_cache()</span></code><a class="headerlink" href="#reset-beamline-config-cache" title="Link to this heading"></a></h3>
+<p>Clear the process-wide configuration reference under its lock so the next load rereads the selected file.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-120">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">reset_beamline_config_cache</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No explicit validation or error conversion.</p>
+<p><strong>Side effects:</strong> Invalidates the loader cache; previously returned mapping objects and caller-specific cached properties remain unchanged.</p>
+</section>
+<section id="arm-joint-names">
+<span id="api-cf7421eeada684ea"></span><h3><code class="docutils literal notranslate"><span class="pre">arm_joint_names()</span></code><a class="headerlink" href="#arm-joint-names" title="Link to this heading"></a></h3>
+<p>Return the configured robot.arm_joints order used to align positional pose values, falling back to the standard six UR arm joints.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-140">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">arm_joint_names</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> New list of configured joint names, or the six default shoulder-to-wrist names when absent or loading fails.</p>
+<p><strong>Errors:</strong> Suppresses every exception from configuration access.</p>
+<p><strong>Side effects:</strong> May initialize the shared configuration cache.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-6c82acae0b581c7a"><code>MoveItLifecycleManager.__init__</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="gripper-tip-frame">
+<span id="api-04eef2ba8fdc3bb7"></span><h3><code class="docutils literal notranslate"><span class="pre">gripper_tip_frame()</span></code><a class="headerlink" href="#gripper-tip-frame" title="Link to this heading"></a></h3>
+<p>Look up <code class="docutils literal notranslate"><span class="pre">grippers.&lt;gripper&gt;.tip_frame</span></code> for TF and IK consumers.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-155">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gripper_tip_frame</span><span class="p">(</span><span class="n">gripper</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">'flange'</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Gripper key in the beamline configuration.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>Fallback frame name; flange by default.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Configured value, or default when the key is absent or loading fails.</p>
+<p><strong>Errors:</strong> Suppresses configuration lookup exceptions.</p>
+<p><strong>Side effects:</strong> May initialize the shared configuration cache.</p>
+</section>
+<section id="z-offset-for-tip-frame">
+<span id="api-28435a6390e735c9"></span><h3><code class="docutils literal notranslate"><span class="pre">z_offset_for_tip_frame()</span></code><a class="headerlink" href="#z-offset-for-tip-frame" title="Link to this heading"></a></h3>
+<p>Search configured grippers in insertion order for a matching tip frame and convert its z_offset to a float.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-164">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">z_offset_for_tip_frame</span><span class="p">(</span><span class="n">tip_frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tip_frame</span></code></p></td>
+<td><p>TF tip-frame name to match.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>Fallback offset in metres, default 0.0.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> First matching gripper offset in metres, or default if no match or a read/conversion fails.</p>
+<p><strong>Errors:</strong> Suppresses configuration and float-conversion exceptions.</p>
+<p><strong>Side effects:</strong> May initialize the shared configuration cache.</p>
+</section>
+<section id="configured-tip-frames">
+<span id="api-1257e30376a242ab"></span><h3><code class="docutils literal notranslate"><span class="pre">configured_tip_frames()</span></code><a class="headerlink" href="#configured-tip-frames" title="Link to this heading"></a></h3>
+<p>Collect distinct truthy configured tip frames, preserving their configuration order and excluding flange.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-179">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">configured_tip_frames</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> List of candidate attached-tool frames; empty on missing configuration or any lookup failure.</p>
+<p><strong>Errors:</strong> Suppresses configuration lookup exceptions.</p>
+<p><strong>Side effects:</strong> May initialize the shared configuration cache.</p>
+</section>
+<section id="moveit-config-package">
+<span id="api-854179bfaa94c6f6"></span><h3><code class="docutils literal notranslate"><span class="pre">moveit_config_package()</span></code><a class="headerlink" href="#moveit-config-package" title="Link to this heading"></a></h3>
+<p>Read robot.moveit_config_package for consumers that locate planner and joint-limit resources.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-193">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">moveit_config_package</span><span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">'cms_moveit_config'</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>Package name used if absent or unreadable; cms_moveit_config by default.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Configured package value or default.</p>
+<p><strong>Errors:</strong> Suppresses configuration lookup exceptions.</p>
+<p><strong>Side effects:</strong> May initialize the shared configuration cache.</p>
+<details class="api-references"><summary>Referenced in source (5)</summary><ul><li><a href="src-beambot-beambot-config_loader-py.html#api-7dad15eef1daf449"><code>build_pipeline_param_args</code></a> — beambot.config_loader</li><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-493873fa3d289b23"><code>_build_cartesian_limit_args</code></a> — beambot.stages.base_stages</li><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-6332700cd7c7620a"><code>_build_kinematics_args</code></a> — beambot.stages.base_stages</li><li><a href="src-beambot-beambot-stages-base_stages-py.html#api-926696dfbcde414f"><code>_load_joint_accel_limits</code></a> — beambot.stages.base_stages</li><li><a href="src-beambot-launch-beambot_bringup-launch-py.html#api-4c297adbd9a6fef7"><code>generate_launch_description</code></a> — src.beambot.launch.beambot_bringup.launch</li></ul></details></section>
+<section id="description-package">
+<span id="api-943206d9c96ae911"></span><h3><code class="docutils literal notranslate"><span class="pre">description_package()</span></code><a class="headerlink" href="#description-package" title="Link to this heading"></a></h3>
+<p>Read robot.description_package for consumers locating URDF and mesh resources.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-202">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">description_package</span><span class="p">(</span><span class="n">default</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">'cms_robot_description'</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>Package name used if absent or unreadable; cms_robot_description by default.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Configured package value or default.</p>
+<p><strong>Errors:</strong> Suppresses configuration lookup exceptions.</p>
+<p><strong>Side effects:</strong> May initialize the shared configuration cache.</p>
+</section>
+<section id="gripper-urdf-file">
+<span id="api-b566804207bdf664"></span><h3><code class="docutils literal notranslate"><span class="pre">gripper_urdf_file()</span></code><a class="headerlink" href="#gripper-urdf-file" title="Link to this heading"></a></h3>
+<p>Read a gripper’s urdf_file used by the viewer; this is separate from its launch_urdf xacro.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-211">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">gripper_urdf_file</span><span class="p">(</span><span class="n">gripper</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">default</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">'ur_standalone.urdf'</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Configured gripper key.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>Fallback filename, ur_standalone.urdf by default.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Configured URDF filename or default.</p>
+<p><strong>Errors:</strong> Suppresses configuration lookup exceptions.</p>
+<p><strong>Side effects:</strong> May initialize the shared configuration cache.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="load-beamline-config-uncached">
+<span id="api-5662f3c3d151c2de"></span><h4><code class="docutils literal notranslate"><span class="pre">_load_beamline_config_uncached()</span></code><a class="headerlink" href="#load-beamline-config-uncached" title="Link to this heading"></a></h4>
+<p>Read the selected YAML, require a mapping, and validate all configured gripper payloads and tool voltages before returning it.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-65">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_beamline_config_uncached</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Fresh (configuration_dict, absolute_path) tuple.</p>
+<p><strong>Errors:</strong> YAML syntax, non-mapping roots, and reported gripper validation errors become BeamlineConfigError. Validation messages are collected into one error. File-open errors and malformed container errors not handled by the validator propagate.</p>
+<p><strong>Side effects:</strong> Reads the environment and YAML file without populating the memoized cache.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-config_loader-py.html#api-93befe87cda8e2cd"><code>load_beamline_config</code></a> — beambot.config_loader</li></ul></details></section>
+<section id="emit-param">
+<span id="api-5628718acc8f0b28"></span><h4><code class="docutils literal notranslate"><span class="pre">_emit_param()</span></code><a class="headerlink" href="#emit-param" title="Link to this heading"></a></h4>
+<p>Recursively flatten mapping leaves into dotted ROS parameter names, JSON-render each leaf, and replace double quotes with single quotes.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-228">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_emit_param</span><span class="p">(</span><span class="n">prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">value</span><span class="p">,</span> <span class="n">args</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">prefix</span></code></p></td>
+<td><p>Dotted prefix for this value.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">value</span></code></p></td>
+<td><p>Mapping to recurse through or JSON-serializable leaf.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">args</span></code></p></td>
+<td><p>Mutable command-argument list receiving alternating -p and name:=value strings.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> JSON serialization errors propagate for unsupported leaf values.</p>
+<p><strong>Side effects:</strong> Appends arguments to the caller’s list in mapping iteration order.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-config_loader-py.html#api-7dad15eef1daf449"><code>build_pipeline_param_args</code></a> — beambot.config_loader</li></ul></details></section>
+<section id="gripper-launch-config-s">
+<span id="api-4bd3b2955136bff4"></span><h4><code class="docutils literal notranslate"><span class="pre">gripper_launch_config._s()</span></code><a class="headerlink" href="#gripper-launch-config-s" title="Link to this heading"></a></h4>
+<p>Render a launch value as text, lowercasing Python boolean values.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/config_loader.py.html#L-274">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_s</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">v</span></code></p></td>
+<td><p>Value from the gripper launch configuration.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> true or false for booleans; str(v) for other values.</p>
+<p><strong>Errors:</strong> Errors from a custom string conversion propagate.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-config_loader-py.html#api-8334d06ce8a311ce"><code>gripper_launch_config</code></a> — beambot.config_loader</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../subsystems/setup-deployment.html" class="btn btn-neutral float-left" title="Setup and deployment" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html" class="btn btn-neutral float-right" title="MoveIt lifecycle" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

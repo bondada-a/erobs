@@ -1,0 +1,699 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoveIt lifecycle &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="EROBS application launch" href="src-beambot-launch-beambot_bringup-launch-py.html" />
+    <link rel="prev" title="Beamline configuration" href="src-beambot-beambot-config_loader-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-config_loader-py.html">Beamline configuration</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">MoveIt lifecycle</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-launch-beambot_bringup-launch-py.html">EROBS application launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-custom-ur-descriptions-cms_moveit_config-launch-robot_bringup-launch-py.html">CMS robot and MoveIt launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-custom-ur-descriptions-lix_moveit_config-launch-robot_bringup-launch-py.html">LiX robot and MoveIt launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils-start_mcp-sh.html">MCP startup with recording</a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils-start_mcp_nobag-sh.html">MCP startup without recording</a></li>
+<li class="toctree-l4"><a class="reference internal" href="utils-sim_start_mcp-sh.html">Mock-hardware MCP startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="docker-img_build-sh.html">Docker image build and publish</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/setup-deployment.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/setup-deployment.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+      <li class="breadcrumb-item active">MoveIt lifecycle</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="moveit-lifecycle">
+<h1>MoveIt lifecycle<a class="headerlink" href="#moveit-lifecycle" title="Link to this heading"></a></h1>
+<p>Start, reuse, and replace MoveIt for the selected gripper. Readiness covers action availability, scene loading, and nonempty robot descriptions; real-hardware startup also checks control and joint feedback and applies the payload.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.core.moveit_lifecycle_manager</span></code> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/setup-deployment.html"><span class="std std-doc">Setup and deployment</span></a> · <a class="reference internal" href="../../../start/setup.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>The orchestrator and tool-exchange manager use <code class="docutils literal notranslate"><span class="pre">launch_moveit_with_gripper()</span></code> to reuse a matching live process or launch the requested model. Real-hardware launches can change tool voltage, restart external control, and set the payload. Payload and voltage values are validated when the beamline configuration loads.</p>
+<p><code class="docutils literal notranslate"><span class="pre">model_revision</span></code> identifies the gripper and, where configured, its cup profile. The same configuration keeps the same identity across launches; it is not a content hash. Runtime model checks require nonempty URDF/SRDF strings from <code class="docutils literal notranslate"><span class="pre">/move_group</span></code>. Tool links, groups, states, and collision geometry are checked separately by the offline model tests.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-11df5711ff3640fe"><span class="std std-ref">MoveItLifecycleManager.launch_moveit_with_gripper</span></a></p></td>
+<td><p>Reuse a live process with the requested tool/cup revision, or relaunch and publish nonempty robot descriptions. A failed real-hardware attempt is stopped and retried once; mock mode makes one attempt.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-713a163d060c1c78"><span class="std std-ref">MoveItLifecycleManager.model_revision</span></a></p></td>
+<td><p>Expose the tool/cup model identity only while the launch process is alive.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-3a9eaef6800a6524"><span class="std std-ref">MoveItLifecycleManager.current_arm_joints</span></a></p></td>
+<td><p>Read cached positions in the arm-joint order recorded during construction.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-7bbac81b67b6b9c2"><span class="std std-ref">MoveItLifecycleManager.kill_current_process</span></a></p></td>
+<td><p>Stop the MoveIt launch session: send SIGTERM to its process group, wait up to 3 s for every member to exit, then SIGKILL the group. Clear model identity and optionally drain execute_trajectory discovery.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="moveitlifecyclemanager">
+<h2><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager</span></code><a class="headerlink" href="#moveitlifecyclemanager" title="Link to this heading"></a></h2>
+<p>Owner of the MoveIt launch process, tool/cup model identity, and hardware readiness checks. It uses an existing ROS node and validated gripper mapping. Blocking service calls require another executor thread to deliver responses.</p>
+<section id="moveitlifecyclemanager-launch-moveit-with-gripper">
+<span id="api-11df5711ff3640fe"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager.launch_moveit_with_gripper()</span></code><a class="headerlink" href="#moveitlifecyclemanager-launch-moveit-with-gripper" title="Link to this heading"></a></h3>
+<p>Reuse a live process with the requested tool/cup revision, or relaunch and publish nonempty robot descriptions. A failed real-hardware attempt is stopped and retried once; mock mode makes one attempt.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-159">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">launch_moveit_with_gripper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gripper</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Configured tool name. cup_override takes precedence over cup_profile only for grippers whose configuration defines that field.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True when reuse or startup succeeds, otherwise False.</p>
+<p><strong>Errors:</strong> Unknown gripper raises KeyError; unhandled helper errors propagate. A failed final launch is not automatically killed here.</p>
+<p><strong>Side effects:</strong> May kill/relaunch processes, configure hardware, load scenes and publish model descriptions. Success assigns the stable prefix + gripper [+ __cup] revision; restarting the same configuration does not create a new identity.</p>
+</section>
+<section id="moveitlifecyclemanager-model-revision">
+<span id="api-713a163d060c1c78"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager.model_revision</span></code><a class="headerlink" href="#moveitlifecyclemanager-model-revision" title="Link to this heading"></a></h3>
+<p>Expose the tool/cup model identity only while the launch process is alive.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-107">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@property</span>
+<span class="n">model_revision</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Access this as an instance property, without parentheses.</p>
+<p><strong>Returns:</strong> Stable revision string assigned after successful startup, or an empty string when the process is absent/dead. It identifies configuration names, not model-file content.</p>
+<p><strong>Errors:</strong> Process polling errors propagate.</p>
+<p><strong>Side effects:</strong> Polls process status.</p>
+</section>
+<section id="moveitlifecyclemanager-current-arm-joints">
+<span id="api-3a9eaef6800a6524"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager.current_arm_joints()</span></code><a class="headerlink" href="#moveitlifecyclemanager-current-arm-joints" title="Link to this heading"></a></h3>
+<p>Read cached positions in the arm-joint order recorded during construction.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-147">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">current_arm_joints</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Arm positions in radians, or None until every configured joint has a value. Mock mode normally returns None because this manager has no joint-state subscription.</p>
+<p><strong>Errors:</strong> No explicit validation of numeric values or joint-count assumptions in downstream callers.</p>
+<p><strong>Side effects:</strong> Reads cached feedback without waiting for fresh messages or rereading configuration.</p>
+</section>
+<section id="moveitlifecyclemanager-kill-current-process">
+<span id="api-7bbac81b67b6b9c2"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager.kill_current_process()</span></code><a class="headerlink" href="#moveitlifecyclemanager-kill-current-process" title="Link to this heading"></a></h3>
+<p>Stop the MoveIt launch session: send SIGTERM to its process group, wait up to 3 s for every member to exit, then SIGKILL the group. Clear model identity and optionally drain execute_trajectory discovery.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-335">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">kill_current_process</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">drain</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">drain</span></code></p></td>
+<td><p>When true (default), wait for /execute_trajectory to leave discovery before returning, so the next launch is not mistaken for ready. Shutdown passes false because no launch follows.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> ProcessLookupError from signalling is suppressed; other signalling, wait or discovery errors propagate.</p>
+<p><strong>Side effects:</strong> Clears the model revision first. The launch was started in its own session, so its PID is the process-group ID. Polls every 50 ms until no group member remains, sends SIGKILL to the group after 3 s, waits for the launch parent and logs the stop time. Processes that start their own session are outside this group. With drain, waits up to 10 s for DDS graph cleanup; timeout only warns. Cached voltage is retained.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-11df5711ff3640fe"><code>MoveItLifecycleManager.launch_moveit_with_gripper</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-init">
+<span id="api-6c82acae0b581c7a"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager.__init__()</span></code><a class="headerlink" href="#moveitlifecyclemanager-init" title="Link to this heading"></a></h3>
+<p>Initialize process/model/voltage state, cache the configured arm-joint order, and create managed-model publishers and a move_group parameter client.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-46">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">node</span><span class="p">:</span> <span class="n">Node</span><span class="p">,</span>
+    <span class="n">grippers</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span>
+    <span class="n">robot_ip</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">callback_group</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">use_mock_hardware</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">enable_joystick</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">node</span></code></p></td>
+<td><p>Owning ROS node/logger.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers</span></code></p></td>
+<td><p>Validated gripper mapping containing MoveIt package, tool, payload and model settings.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot_ip</span></code></p></td>
+<td><p>UR controller address for pre-launch voltage commands.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">callback_group</span></code></p></td>
+<td><p>ROS callback group for clients/subscriptions; blocking calls need another executor thread to process responses.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">use_mock_hardware</span></code></p></td>
+<td><p>Skip the real joint-state subscription and hardware gates when true.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">enable_joystick</span></code></p></td>
+<td><p>Forward joystick/Servo enablement to robot bringup.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> ROS resource construction errors propagate.</p>
+<p><strong>Side effects:</strong> Reads arm-joint configuration, creates publishers/parameter client and, on real hardware, a persistent joint subscription; initializes a program-running event. Does not launch MoveIt yet. The owning orchestrator stops MoveIt when its node is destroyed.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="moveitlifecyclemanager-is-moveit-alive">
+<span id="api-ea85fa09d144ab70"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager.is_moveit_alive()</span></code><a class="headerlink" href="#moveitlifecyclemanager-is-moveit-alive" title="Link to this heading"></a></h3>
+<p>Poll the stored launch process to determine whether it remains running.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-100">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">is_moveit_alive</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> True when a process exists and poll returns None; False otherwise.</p>
+<p><strong>Errors:</strong> Process polling errors propagate.</p>
+<p><strong>Side effects:</strong> Polls/reaps process status as provided by subprocess.Popen.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-11df5711ff3640fe"><code>MoveItLifecycleManager.launch_moveit_with_gripper</code></a> — beambot.core.moveit_lifecycle_manager</li><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-713a163d060c1c78"><code>MoveItLifecycleManager.model_revision</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-get-moveit-exit-info">
+<span id="api-4d8e683df7d1e2c7"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager.get_moveit_exit_info()</span></code><a class="headerlink" href="#moveitlifecyclemanager-get-moveit-exit-info" title="Link to this heading"></a></h3>
+<p>Describe an absent or exited launch process after is_moveit_alive() reports False.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-111">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_moveit_exit_info</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> A not-started message or an exit-code message. Calling while the process is alive yields an exit-code message containing None.</p>
+<p><strong>Errors:</strong> Process polling errors propagate.</p>
+<p><strong>Side effects:</strong> Polls process status.</p>
+</section>
+<section id="moveitlifecyclemanager-notify-voltage-change">
+<span id="api-b2f2cb5d88982da0"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager.notify_voltage_change()</span></code><a class="headerlink" href="#moveitlifecyclemanager-notify-voltage-change" title="Link to this heading"></a></h3>
+<p>Record a voltage changed through another control path so the next launch can avoid an unnecessary secondary-interface command.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-117">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">notify_voltage_change</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">voltage</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">voltage</span></code></p></td>
+<td><p>New tool voltage in volts; stored without local validation.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No explicit validation/failure path.</p>
+<p><strong>Side effects:</strong> Updates cached voltage only; sends no hardware command.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="moveitlifecyclemanager-call-service">
+<span id="api-d2204eac875fc5fe"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._call_service()</span></code><a class="headerlink" href="#moveitlifecyclemanager-call-service" title="Link to this heading"></a></h4>
+<p>Create a temporary service client, wait for availability, make a blocking call, and destroy the client.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-121">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_call_service</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">srv_type</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">timeout_sec</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mf">5.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">srv_type</span></code></p></td>
+<td><p>ROS service type used to create the client.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Service name.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">request</span></code></p></td>
+<td><p>Request instance for srv_type.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout_sec</span></code></p></td>
+<td><p>Response timeout in seconds, default 5.0; service discovery separately allows 5.0 seconds.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Service response, or None when unavailable or when the call returns no response.</p>
+<p><strong>Errors:</strong> Client creation, service calls and cleanup exceptions propagate. Unavailability and a missing response are logged. Another executor thread must process the reply while this call blocks.</p>
+<p><strong>Side effects:</strong> Creates and destroys a ROS client and invokes the named service, whose effects depend on the request.</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-0bd8018a088b3197"><code>MoveItLifecycleManager._load_collision_obstacles</code></a> — beambot.core.moveit_lifecycle_manager</li><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-7ffa1b949982eca8"><code>MoveItLifecycleManager._restart_external_control</code></a> — beambot.core.moveit_lifecycle_manager</li><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-e15fbebd4eba393d"><code>MoveItLifecycleManager._set_payload</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-joint-state-cb">
+<span id="api-ebe2dd7b27912665"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._joint_state_cb()</span></code><a class="headerlink" href="#moveitlifecyclemanager-joint-state-cb" title="Link to this heading"></a></h4>
+<p>Copy known arm joint positions from a JointState while ignoring gripper/other joints; zip truncates unequal name/position lengths.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-141">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_joint_state_cb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>JointState names and radian positions.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed messages can raise; values are not validated for finiteness.</p>
+<p><strong>Side effects:</strong> Updates the persistent name-to-position mapping using the arm names cached during construction.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-6c82acae0b581c7a"><code>MoveItLifecycleManager.__init__</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-publish-verified-model">
+<span id="api-67de4cd000adbb15"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._publish_verified_model()</span></code><a class="headerlink" href="#moveitlifecyclemanager-publish-verified-model" title="Link to this heading"></a></h4>
+<p>Read nonempty move_group URDF/SRDF strings and publish them on the managed model topics.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-196">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_publish_verified_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gripper</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Requested gripper name, used in diagnostics; this method does not inspect tool-specific XML content.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True after publishing both descriptions, or False if descriptions are unavailable.</p>
+<p><strong>Errors:</strong> Parameter request and publication errors propagate.</p>
+<p><strong>Side effects:</strong> Queries parameters and publishes two transient-local String messages. The caller assigns the model revision after success.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-11df5711ff3640fe"><code>MoveItLifecycleManager.launch_moveit_with_gripper</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-wait-for-verified-model">
+<span id="api-636ed488192de9d0"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._wait_for_verified_model()</span></code><a class="headerlink" href="#moveitlifecyclemanager-wait-for-verified-model" title="Link to this heading"></a></h4>
+<p>Read move_group robot_description and semantic parameters within one monotonic deadline until both are nonempty strings. Tool-specific XML structure is checked by offline tests.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-208">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_wait_for_verified_model</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">gripper</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">timeout_sec</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Requested gripper name for the final error message.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout_sec</span></code></p></td>
+<td><p>Overall parameter-service/response deadline in seconds, default 10.0.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> (URDF, SRDF) string tuple, or None after unavailable services or deadline expiry.</p>
+<p><strong>Errors:</strong> Response/conversion exceptions are caught and retried; service/request errors outside the response block can propagate.</p>
+<p><strong>Side effects:</strong> Calls parameter services, waits on a completion event, pauses 50 ms between unsuccessful responses, and logs a final failure. Requires the caller’s executor to process responses.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-67de4cd000adbb15"><code>MoveItLifecycleManager._publish_verified_model</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-attempt-launch">
+<span id="api-6eb489fd69f3fb8e"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._attempt_launch()</span></code><a class="headerlink" href="#moveitlifecyclemanager-attempt-launch" title="Link to this heading"></a></h4>
+<p>Set changed real tool voltage and wait for power-up, spawn robot bringup in its own process session, wait for MoveIt and load obstacles. On hardware, also restart external control, verify joints, and set the payload. Configuration validation occurs before this method.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-246">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_attempt_launch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gripper</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">cup_profile</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Configured gripper name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cup_profile</span></code></p></td>
+<td><p>Resolved cup-profile override forwarded only when nonempty.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True when all applicable readiness gates succeed; False at the first handled failure.</p>
+<p><strong>Errors:</strong> Process-spawn exceptions are caught. Gripper/config conversion and some helper exceptions propagate. Failure after spawning leaves cleanup to the caller.</p>
+<p><strong>Side effects:</strong> May send voltage commands, sleep 2 s, spawn ros2 launch, apply collision scene, restart robot control and set physical payload.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-11df5711ff3640fe"><code>MoveItLifecycleManager.launch_moveit_with_gripper</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-set-payload">
+<span id="api-e15fbebd4eba393d"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._set_payload()</span></code><a class="headerlink" href="#moveitlifecyclemanager-set-payload" title="Link to this heading"></a></h4>
+<p>Convert a previously validated payload to a UR SetPayload request and require a successful response.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-307">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_set_payload</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">config</span></code></p></td>
+<td><p>Validated payload_mass in kg and payload_cog x/y/z in metres.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True after service success; False for service absence, a missing response, rejection, or a caught service exception.</p>
+<p><strong>Errors:</strong> Configuration reads, numeric conversion, imports and request construction precede the try block and can propagate. Service-phase exceptions become False; a created client is destroyed by _call_service().</p>
+<p><strong>Side effects:</strong> Waits up to 5 s for service availability and 10 s for its response, sends the robot’s mass in kg and centre of gravity in metres, and logs the outcome.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-6eb489fd69f3fb8e"><code>MoveItLifecycleManager._attempt_launch</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-drain-stale-execute-trajectory">
+<span id="api-63fb525a7c9aff00"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._drain_stale_execute_trajectory()</span></code><a class="headerlink" href="#moveitlifecyclemanager-drain-stale-execute-trajectory" title="Link to this heading"></a></h4>
+<p>Poll the ROS discovery graph until /execute_trajectory disappears, avoiding creation of action-client endpoints during teardown.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-375">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_drain_stale_execute_trajectory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_wait_sec</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_wait_sec</span></code></p></td>
+<td><p>Maximum drain wait in seconds, default 10.0.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None whether the action disappears or the deadline expires.</p>
+<p><strong>Errors:</strong> Graph API errors propagate; deadline expiry logs a warning rather than raising.</p>
+<p><strong>Side effects:</strong> Reads discovery and sleeps at 0.1 s intervals.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-7bbac81b67b6b9c2"><code>MoveItLifecycleManager.kill_current_process</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-wait-for-moveit-ready">
+<span id="api-57104b084377f7ed"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._wait_for_moveit_ready()</span></code><a class="headerlink" href="#moveitlifecyclemanager-wait-for-moveit-ready" title="Link to this heading"></a></h4>
+<p>Create a temporary ExecuteTrajectory client and wait for /execute_trajectory advertisement. This checks action availability, not payload, model correctness or hardware feedback.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-393">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_wait_for_moveit_ready</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout_sec</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mf">45.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timeout_sec</span></code></p></td>
+<td><p>Action discovery timeout in seconds, default 45.0.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True when server is advertised, False on timeout.</p>
+<p><strong>Errors:</strong> Client construction/wait errors propagate; a successfully created client is destroyed in finally. If teardown left an old server advertised, this method may accept that stale endpoint.</p>
+<p><strong>Side effects:</strong> Creates/destroys action endpoints, waits and logs readiness.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-6eb489fd69f3fb8e"><code>MoveItLifecycleManager._attempt_launch</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-verify-hardware-connected">
+<span id="api-7e1ac20b408eee83"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._verify_hardware_connected()</span></code><a class="headerlink" href="#moveitlifecyclemanager-verify-hardware-connected" title="Link to this heading"></a></h4>
+<p>Clear previous joint feedback and wait for every configured arm joint, requiring the summed absolute position to exceed 0.01 radians.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-414">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_verify_hardware_connected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout_sec</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timeout_sec</span></code></p></td>
+<td><p>Feedback timeout in seconds, default 10.0.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True when the complete-joint/nonzero heuristic passes; False on timeout.</p>
+<p><strong>Errors:</strong> No broad exception handling; legitimate all-zero/near-zero poses fail this heuristic.</p>
+<p><strong>Side effects:</strong> Clears shared feedback state, waits in 0.1 s intervals using monotonic time and logs diagnostics.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-6eb489fd69f3fb8e"><code>MoveItLifecycleManager._attempt_launch</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-load-collision-obstacles">
+<span id="api-0bd8018a088b3197"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._load_collision_obstacles()</span></code><a class="headerlink" href="#moveitlifecyclemanager-load-collision-obstacles" title="Link to this heading"></a></h4>
+<p>Read the beamline scene_file, translate box/cylinder/sphere obstacles to an additive PlanningScene diff and require /apply_planning_scene acknowledgement. Pose RPY values are passed as radians. Unknown shape types are skipped.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-441">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_collision_obstacles</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> True when no scene/obstacles are configured or the diff is accepted; False on missing file, service/response failure or exception.</p>
+<p><strong>Errors:</strong> Catches all load/build/service exceptions and logs traceback. Service discovery and response each have 5 s limits.</p>
+<p><strong>Side effects:</strong> Reads YAML, creates/destroys a service client and updates MoveIt collision objects by configured IDs. An empty scene does not remove previously loaded objects.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-6eb489fd69f3fb8e"><code>MoveItLifecycleManager._attempt_launch</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-set-tool-voltage">
+<span id="api-3054d8b5a56f41b3"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._set_tool_voltage()</span></code><a class="headerlink" href="#moveitlifecyclemanager-set-tool-voltage" title="Link to this heading"></a></h4>
+<p>Send a set_tool_voltage URScript command to the robot secondary interface at TCP port 30002. Allowed values are validated when the beamline configuration loads.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-541">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_set_tool_voltage</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">voltage</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">voltage</span></code></p></td>
+<td><p>Previously validated tool supply setting: 0, 12 or 24 volts. This helper formats it with int() and does not recheck the allowed set.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True after bytes are sent; False for missing robot IP or a caught socket/conversion/send failure. No controller acknowledgement is read.</p>
+<p><strong>Errors:</strong> Connection timeouts and other OSError failures are logged and return False; other exceptions inside the connection/send block also return False.</p>
+<p><strong>Side effects:</strong> Opens a TCP socket with 2 s timeout and sends a voltage command; the context manager closes the socket on both success and exceptions. Receipt may change the tool supply and stop external_control.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-6eb489fd69f3fb8e"><code>MoveItLifecycleManager._attempt_launch</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-restart-external-control">
+<span id="api-7ffa1b949982eca8"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._restart_external_control()</span></code><a class="headerlink" href="#moveitlifecyclemanager-restart-external-control" title="Link to this heading"></a></h4>
+<p>Create a fresh program-running subscription, call dashboard play, then require a True robot_program_running message before success.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-573">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_restart_external_control</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> True after accepted play and observed running state; False for timeout/rejection or caught service-phase exception.</p>
+<p><strong>Errors:</strong> Service availability, response and running-signal waits each allow 5 s. Subscription construction errors precede the try block and propagate; service-phase exceptions become False.</p>
+<p><strong>Side effects:</strong> Clears the program-running event, creates a fresh subscription, calls dashboard play through a temporary client, waits for a True signal and destroys the subscription.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-6eb489fd69f3fb8e"><code>MoveItLifecycleManager._attempt_launch</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+<section id="moveitlifecyclemanager-robot-program-cb">
+<span id="api-943fe9637783876f"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveItLifecycleManager._robot_program_cb()</span></code><a class="headerlink" href="#moveitlifecyclemanager-robot-program-cb" title="Link to this heading"></a></h4>
+<p>Latch the program-running event when a True UR status message arrives.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html#L-612">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_robot_program_cb</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>Bool message from io_and_status_controller.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed messages can raise AttributeError.</p>
+<p><strong>Side effects:</strong> Sets _robot_program_running on True; False messages do not clear it. The next restart explicitly clears the event.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-moveit_lifecycle_manager-py.html#api-7ffa1b949982eca8"><code>MoveItLifecycleManager._restart_external_control</code></a> — beambot.core.moveit_lifecycle_manager</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-beambot-config_loader-py.html" class="btn btn-neutral float-left" title="Beamline configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-launch-beambot_bringup-launch-py.html" class="btn btn-neutral float-right" title="EROBS application launch" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

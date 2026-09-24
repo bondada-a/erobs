@@ -1,0 +1,1011 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task queue display &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="ROS and GUI bridge" href="src-mtc_gui-mtc_gui-ros2_bridge-py.html" />
+    <link rel="prev" title="Task editor forms" href="src-mtc_gui-mtc_gui-task_forms-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main-py.html">GUI startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main_window-py.html">Operator window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-task_forms-py.html">Task editor forms</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Task queue display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-ros2_bridge-py.html">ROS and GUI bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-poses_panel-py.html">Pose browser and registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_dialogs-py.html">Pose editing dialogs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_io-py.html">Pose registry files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-camera_panel-py.html">Camera display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-visualization_panel-py.html">Robot and trajectory viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-resources-viewer-html.html">Embedded robot viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-chat_panel-py.html">Chat interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_bridge-py.html">Chat agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_modes-py.html">Chat agent modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-theme-py.html">GUI appearance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-launch-mtc_gui_client-launch-py.html">Operator GUI launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/operator-gui.html">Operator GUI</a></li>
+      <li class="breadcrumb-item active">Task queue display</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="task-queue-display">
+<h1>Task queue display<a class="headerlink" href="#task-queue-display" title="Link to this heading"></a></h1>
+<p>Show editable task rows, selection, and execution progress.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mtc_gui.step_list_panel</span></code> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/operator-gui.html"><span class="std std-doc">Operator GUI</span></a> · <a class="reference internal" href="../../../operate/gui.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MTCMainWindow</span></code> owns the task document and calls <code class="docutils literal notranslate"><span class="pre">StepListPanel.refresh()</span></code> to render it. The panel emits row selections, edit requests, pose drops, and reorder requests; the window applies those changes to the document. All widget updates belong on the GUI thread.</p>
+<p>During a run, the window calls <code class="docutils literal notranslate"><span class="pre">start_execution()</span></code>, forwards feedback to <code class="docutils literal notranslate"><span class="pre">update_step()</span></code>, and completes the display with <code class="docutils literal notranslate"><span class="pre">finish_execution()</span></code>. Feedback steps are one-based within the submitted sequence; <code class="docutils literal notranslate"><span class="pre">start_index</span></code> maps them back to the full queue. Pausing changes the status indicator but does not stop elapsed-time counters.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-4c6e299ac790764c"><span class="std std-ref">StepListPanel.refresh</span></a></p></td>
+<td><p>Render the task sequence, reusing row widgets when the row count is unchanged.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-079b19bc1e2e3b6a"><span class="std std-ref">StepListPanel.start_execution</span></a></p></td>
+<td><p>Prepare the queue display for a run beginning at the specified row.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-c0f84dd207829671"><span class="std std-ref">StepListPanel.update_step</span></a></p></td>
+<td><p>Map one-based execution feedback to the full queue and update row progress.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-7125d4ace352f6ba"><span class="std std-ref">StepListPanel.finish_execution</span></a></p></td>
+<td><p>Stop timing and mark the executed queue segment from the reported result.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-410e3ad4e32bc0ca"><span class="std std-ref">StepListPanel.selected_indices</span></a></p></td>
+<td><p>Collect currently selected list-row positions.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="steplistpanel">
+<h2><code class="docutils literal notranslate"><span class="pre">StepListPanel</span></code><a class="headerlink" href="#steplistpanel" title="Link to this heading"></a></h2>
+<p>Coordinate task rows, selection, drag/drop signals, and execution display. It renders the main window’s tasks without owning or submitting the task document.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QWidget</span></code>.</p>
+<section id="steplistpanel-refresh">
+<span id="api-4c6e299ac790764c"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.refresh()</span></code><a class="headerlink" href="#steplistpanel-refresh" title="Link to this heading"></a></h3>
+<p>Render the task sequence, reusing row widgets when the row count is unchanged.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-514">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tasks</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">summary_fn</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tasks</span></code></p></td>
+<td><p>Ordered list of task mappings; task_type defaults to “?” for display.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">summary_fn</span></code></p></td>
+<td><p>Callable taking a task mapping and returning its subtitle string.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Task/summary/Qt errors propagate; updates are disabled before processing and there is no finally to re-enable them after failure.</p>
+<p><strong>Side effects:</strong> Resets row execution state, rebuilds or updates widgets and UserRole indices, sets total count/current step, reenables updates on success, and refreshes the empty overlay.</p>
+</section>
+<section id="steplistpanel-start-execution">
+<span id="api-079b19bc1e2e3b6a"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.start_execution()</span></code><a class="headerlink" href="#steplistpanel-start-execution" title="Link to this heading"></a></h3>
+<p>Prepare the queue display for a run beginning at the specified row.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-590">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">start_execution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">total_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">start_index</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">total_steps</span></code></p></td>
+<td><p>Full queue-step count used by the toolbar.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">start_index</span></code></p></td>
+<td><p>Zero-based first row to execute; callers provide a valid nonnegative index.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No bounds validation beyond the first-next check; negative values follow Python slicing/indexing behavior and can fail on an empty list.</p>
+<p><strong>Side effects:</strong> Disables the panel’s editing flag, resets suffix rows to PENDING, clears/sets next badges, shows toolbar, and starts the elapsed timer. The list’s drag flags are changed separately by set_editing_enabled.</p>
+</section>
+<section id="steplistpanel-update-step">
+<span id="api-c0f84dd207829671"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.update_step()</span></code><a class="headerlink" href="#steplistpanel-update-step" title="Link to this heading"></a></h3>
+<p>Map one-based execution feedback to the full queue and update row progress.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-613">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">update_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">current_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">progress</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">action_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">current_step</span></code></p></td>
+<td><p>One-based step number within the submitted execution suffix.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">progress</span></code></p></td>
+<td><p>Accepted feedback percentage but not used; toolbar percentage is recomputed from the full-queue row index.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">action_name</span></code></p></td>
+<td><p>Task-type label displayed by the toolbar.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Ignores nonpositive or out-of-range step indices; other type/Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Updates row states/badges/current index, toolbar step/percentage, and scrolls to the active item. A row timer restarts only when that row first becomes RUNNING.</p>
+</section>
+<section id="steplistpanel-finish-execution">
+<span id="api-7125d4ace352f6ba"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.finish_execution()</span></code><a class="headerlink" href="#steplistpanel-finish-execution" title="Link to this heading"></a></h3>
+<p>Stop timing and mark the executed queue segment from the reported result.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-651">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">finish_execution</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">completed_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">status</span></code></p></td>
+<td><p>“success” marks every suffix row DONE; any other value marks the first uncompleted row FAILED and later rows PENDING.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">completed_steps</span></code></p></td>
+<td><p>Completed count relative to _execution_start_index.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No completion-count bounds validation; Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Sets execution inactive/editing flag true, stops timer, clears all next badges, preserves skipped prefix states, marks suffix states, and hides toolbar. Drag/drop flags are not changed here.</p>
+</section>
+<section id="steplistpanel-selected-indices">
+<span id="api-410e3ad4e32bc0ca"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.selected_indices()</span></code><a class="headerlink" href="#steplistpanel-selected-indices" title="Link to this heading"></a></h3>
+<p>Collect currently selected list-row positions.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-680">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">selected_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Sorted list of zero-based visible row indices.</p>
+<p><strong>Errors:</strong> Qt errors propagate.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-a63376f0e5ed3bac"><code>StepListPanel._on_selection_changed</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+<section id="steplistpanel-init">
+<span id="api-52fa02ad6c46b549"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.__init__()</span></code><a class="headerlink" href="#steplistpanel-init" title="Link to this heading"></a></h3>
+<p>Create the task list, execution display, and elapsed-time timer.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-429">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent widget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Qt construction errors propagate.</p>
+<p><strong>Side effects:</strong> Starts with no rows, inactive execution, enabled editing, zero start offset, and an inactive QTimer.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="steplistpanel-select-range">
+<span id="api-1438b4f9c6547c95"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.select_range()</span></code><a class="headerlink" href="#steplistpanel-select-range" title="Link to this heading"></a></h3>
+<p>Select and reveal a contiguous range of queue rows.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-552">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">select_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">count</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start</span></code></p></td>
+<td><p>First zero-based row index.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">count</span></code></p></td>
+<td><p>Number of rows included; a nonpositive count selects none.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Type/range-construction errors propagate; unavailable rows are ignored by select_indices.</p>
+<p><strong>Side effects:</strong> Delegates to select_indices(range(start, start + count)).</p>
+</section>
+<section id="steplistpanel-select-indices">
+<span id="api-7c0ca224e6620d31"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.select_indices()</span></code><a class="headerlink" href="#steplistpanel-select-indices" title="Link to this heading"></a></h3>
+<p>Clear selection, select all existing requested rows, and reveal the first one.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-556">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">select_indices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">indices</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">indices</span></code></p></td>
+<td><p>Iterable of zero-based row indices; out-of-range rows yielding no item are ignored.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/index-type errors propagate.</p>
+<p><strong>Side effects:</strong> Changes selection/current item and scroll position; selection-change signals may be emitted.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-1438b4f9c6547c95"><code>StepListPanel.select_range</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+<section id="steplistpanel-set-editing-enabled">
+<span id="api-d9955a0d3b616df3"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.set_editing_enabled()</span></code><a class="headerlink" href="#steplistpanel-set-editing-enabled" title="Link to this heading"></a></h3>
+<p>Apply queue editability to double-click handling and drag/drop controls.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-673">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_editing_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p>Whether editing and reordering should be available.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Updates _editing_enabled and inner-list reordering state.</p>
+</section>
+<section id="steplistpanel-set-paused">
+<span id="api-cd03eed3956121c4"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.set_paused()</span></code><a class="headerlink" href="#steplistpanel-set-paused" title="Link to this heading"></a></h3>
+<p>Forward pause appearance to the execution toolbar.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-677">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_paused</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paused</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">paused</span></code></p></td>
+<td><p>Boolean paused display state.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Toolbar/Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Changes toolbar indicator; does not suspend row or elapsed timers.</p>
+</section>
+<section id="steplistpanel-set-current-row">
+<span id="api-f879766469a235df"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.set_current_row()</span></code><a class="headerlink" href="#steplistpanel-set-current-row" title="Link to this heading"></a></h3>
+<p>Clear the selection and select a valid row after a move operation.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-688">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_current_row</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">index</span></code></p></td>
+<td><p>Zero-based row to select; invalid indices leave selection empty.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Index-comparison/Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Changes selected/current row and may emit selection_changed.</p>
+</section>
+<section id="steplistpanel-editing-enabled">
+<span id="api-16a99970785a95d4"></span><h3><code class="docutils literal notranslate"><span class="pre">StepListPanel.editing_enabled</span></code><a class="headerlink" href="#steplistpanel-editing-enabled" title="Link to this heading"></a></h3>
+<p>Expose the current panel editability flag.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-695">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@property</span>
+<span class="n">editing_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<p>Access this as an instance property, without parentheses.</p>
+<p><strong>Returns:</strong> Boolean _editing_enabled.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="steplistpanel-build-ui">
+<span id="api-e71c8ef5dc58eff8"></span><h4><code class="docutils literal notranslate"><span class="pre">StepListPanel._build_ui()</span></code><a class="headerlink" href="#steplistpanel-build-ui" title="Link to this heading"></a></h4>
+<p>Build the queue list, execution toolbar, and empty-list hint.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-444">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_ui</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Optional qtawesome empty-state icon failures are suppressed; other Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Creates widgets, forwards drop/reorder signals, connects selection/double-click handlers, and installs a resize event filter.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-52fa02ad6c46b549"><code>StepListPanel.__init__</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+<section id="steplistpanel-update-empty-state">
+<span id="api-36c720834e3395a4"></span><h4><code class="docutils literal notranslate"><span class="pre">StepListPanel._update_empty_state()</span></code><a class="headerlink" href="#steplistpanel-update-empty-state" title="Link to this heading"></a></h4>
+<p>Show and fit the empty-list hint to the viewport only when no items exist.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-573">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_update_empty_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Returns if the overlay has not been created; Qt errors otherwise propagate.</p>
+<p><strong>Side effects:</strong> Changes overlay visibility and, while empty, its size, position, and stacking order.</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-e71c8ef5dc58eff8"><code>StepListPanel._build_ui</code></a> — mtc_gui.step_list_panel</li><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-264bfe57b9b5bf2c"><code>StepListPanel.eventFilter</code></a> — mtc_gui.step_list_panel</li><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-4c6e299ac790764c"><code>StepListPanel.refresh</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+<section id="steplistpanel-eventfilter">
+<span id="api-264bfe57b9b5bf2c"></span><h4><code class="docutils literal notranslate"><span class="pre">StepListPanel.eventFilter()</span></code><a class="headerlink" href="#steplistpanel-eventfilter" title="Link to this heading"></a></h4>
+<p>Recenter the empty-state hint when the inner list receives a resize event.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-584">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">eventFilter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">obj</span></code></p></td>
+<td><p>Watched QObject; only the panel’s inner list is handled specially.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">event</span></code></p></td>
+<td><p>Qt event whose type is checked for Resize.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Base QWidget.eventFilter result; the resize event is not consumed here.</p>
+<p><strong>Errors:</strong> Qt errors propagate.</p>
+<p><strong>Side effects:</strong> May update the empty overlay before delegating to the superclass.</p>
+</section>
+<section id="steplistpanel-on-double-click">
+<span id="api-de31239d507cbe9f"></span><h4><code class="docutils literal notranslate"><span class="pre">StepListPanel._on_double_click()</span></code><a class="headerlink" href="#steplistpanel-on-double-click" title="Link to this heading"></a></h4>
+<p>Forward an editable double-click as a row-index event.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-700">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_double_click</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="n">QListWidgetItem</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">item</span></code></p></td>
+<td><p>Double-clicked QListWidgetItem from the inner list.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Returns when editing is disabled; otherwise Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Emits item_double_clicked(row).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-e71c8ef5dc58eff8"><code>StepListPanel._build_ui</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+<section id="steplistpanel-on-selection-changed">
+<span id="api-a63376f0e5ed3bac"></span><h4><code class="docutils literal notranslate"><span class="pre">StepListPanel._on_selection_changed()</span></code><a class="headerlink" href="#steplistpanel-on-selection-changed" title="Link to this heading"></a></h4>
+<p>Forward the current sorted selection to consumers.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-706">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_selection_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Selection/signal errors propagate.</p>
+<p><strong>Side effects:</strong> Emits selection_changed(selected_indices()).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-e71c8ef5dc58eff8"><code>StepListPanel._build_ui</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+<section id="steplistpanel-tick-elapsed">
+<span id="api-09660464614b1ca0"></span><h4><code class="docutils literal notranslate"><span class="pre">StepListPanel._tick_elapsed()</span></code><a class="headerlink" href="#steplistpanel-tick-elapsed" title="Link to this heading"></a></h4>
+<p>Update the current row’s timer when its index is valid and always refresh total elapsed time.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-709">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_tick_elapsed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Changes elapsed labels; a non-running row’s own update_elapsed is a no-op.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-52fa02ad6c46b549"><code>StepListPanel.__init__</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+</section>
+</section>
+<section id="steprowwidget">
+<h2><code class="docutils literal notranslate"><span class="pre">StepRowWidget</span></code><a class="headerlink" href="#steprowwidget" title="Link to this heading"></a></h2>
+<p>Render one task’s number, summary, status, and elapsed time. StepListPanel updates these widgets as the queue or execution state changes.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QFrame</span></code>.</p>
+<section id="steprowwidget-init">
+<span id="api-e652877ec7ff37b9"></span><h3><code class="docutils literal notranslate"><span class="pre">StepRowWidget.__init__()</span></code><a class="headerlink" href="#steprowwidget-init" title="Link to this heading"></a></h3>
+<p>Create one task row with its summary, status, and timing display.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-66">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">task_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">detail_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">index</span></code></p></td>
+<td><p>Zero-based queue index displayed as index + 1 with at least two digits.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">task_type</span></code></p></td>
+<td><p>Task type used in TASK_TYPE_CONFIG; unknown types show a question mark and their raw name.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">detail_text</span></code></p></td>
+<td><p>Step summary displayed as the subtitle.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent widget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Qt errors propagate; unknown task types have a fallback.</p>
+<p><strong>Side effects:</strong> Creates the 52-pixel row in PENDING state with no timer start or next badge.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-4c6e299ac790764c"><code>StepListPanel.refresh</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+<section id="steprowwidget-update-content">
+<span id="api-87bcf720b30541c2"></span><h3><code class="docutils literal notranslate"><span class="pre">StepRowWidget.update_content()</span></code><a class="headerlink" href="#steprowwidget-update-content" title="Link to this heading"></a></h3>
+<p>Reuse an existing row for new queue content while resetting its execution display.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-178">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">update_content</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">task_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">detail_text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">index</span></code></p></td>
+<td><p>New zero-based queue index.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">task_type</span></code></p></td>
+<td><p>New type key, with the same unknown-type fallback as construction.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">detail_text</span></code></p></td>
+<td><p>New subtitle string.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Updates labels/icons/colors and resets state to PENDING, start time to None, next status to False, and hides timer/check/badge.</p>
+</section>
+<section id="steprowwidget-set-state">
+<span id="api-9a3e102e56e0086a"></span><h3><code class="docutils literal notranslate"><span class="pre">StepRowWidget.set_state()</span></code><a class="headerlink" href="#steprowwidget-set-state" title="Link to this heading"></a></h3>
+<p>Set a row’s execution state and refresh status/timer/check styling.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-211">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="n">StepState</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">state</span></code></p></td>
+<td><p>StepState.PENDING, RUNNING, DONE, or FAILED.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Invalid state keys raise KeyError after some state mutation; no validation wrapper exists.</p>
+<p><strong>Side effects:</strong> RUNNING restarts its monotonic elapsed timer at zero; other states hide it. DONE shows a check; status icon and row background update. Next-badge state is managed separately.</p>
+</section>
+<section id="steprowwidget-set-is-next">
+<span id="api-603619d603e1111a"></span><h3><code class="docutils literal notranslate"><span class="pre">StepRowWidget.set_is_next()</span></code><a class="headerlink" href="#steprowwidget-set-is-next" title="Link to this heading"></a></h3>
+<p>Show the next-step badge only for a pending row marked as next.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-232">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_is_next</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_next</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">is_next</span></code></p></td>
+<td><p>Boolean next-step flag.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Updates _is_next and next-badge visibility.</p>
+</section>
+<section id="steprowwidget-update-elapsed">
+<span id="api-6ab8afeb5b1436ed"></span><h3><code class="docutils literal notranslate"><span class="pre">StepRowWidget.update_elapsed()</span></code><a class="headerlink" href="#steprowwidget-update-elapsed" title="Link to this heading"></a></h3>
+<p>Refresh a running row’s elapsed label from monotonic time.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-239">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">update_elapsed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No explicit error handling.</p>
+<p><strong>Side effects:</strong> Displays whole elapsed minutes and zero-padded seconds only while RUNNING with a start time.</p>
+</section>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="steprowwidget-apply-state-style">
+<span id="api-980a3304265f90e8"></span><h4><code class="docutils literal notranslate"><span class="pre">StepRowWidget._apply_state_style()</span></code><a class="headerlink" href="#steprowwidget-apply-state-style" title="Link to this heading"></a></h4>
+<p>Refresh the row’s appearance for its execution state.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-246">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_apply_state_style</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt stylesheet errors propagate.</p>
+<p><strong>Side effects:</strong> Updates the row stylesheet and left-border stylesheet.</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-e652877ec7ff37b9"><code>StepRowWidget.__init__</code></a> — mtc_gui.step_list_panel</li><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-9a3e102e56e0086a"><code>StepRowWidget.set_state</code></a> — mtc_gui.step_list_panel</li><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-87bcf720b30541c2"><code>StepRowWidget.update_content</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+</section>
+</section>
+<section id="executiontoolbar">
+<h2><code class="docutils literal notranslate"><span class="pre">ExecutionToolbar</span></code><a class="headerlink" href="#executiontoolbar" title="Link to this heading"></a></h2>
+<p>Render the overall execution status, progress, and elapsed time above the queue. StepListPanel controls its lifetime and values.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QFrame</span></code>.</p>
+<section id="executiontoolbar-init">
+<span id="api-578d795a75eb7404"></span><h3><code class="docutils literal notranslate"><span class="pre">ExecutionToolbar.__init__()</span></code><a class="headerlink" href="#executiontoolbar-init" title="Link to this heading"></a></h3>
+<p>Create the overall execution status, progress, and timing display.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-265">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent widget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Qt construction errors propagate.</p>
+<p><strong>Side effects:</strong> Creates a compact toolbar with no active elapsed-time origin.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-e71c8ef5dc58eff8"><code>StepListPanel._build_ui</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+<section id="executiontoolbar-start">
+<span id="api-950b294c9eebc8ae"></span><h3><code class="docutils literal notranslate"><span class="pre">ExecutionToolbar.start()</span></code><a class="headerlink" href="#executiontoolbar-start" title="Link to this heading"></a></h3>
+<p>Start total elapsed timing and initialize progress for an execution beginning partway through a queue.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-318">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">total_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">start_index</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">total_steps</span></code></p></td>
+<td><p>Full queue length used for displayed denominator and initial percent; zero avoids division.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">start_index</span></code></p></td>
+<td><p>Zero-based index where execution starts.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No range validation; Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Stores time.monotonic(), shows Step start_index+1/total_steps, sets percentage from start_index/total_steps, and clears task/elapsed text.</p>
+</section>
+<section id="executiontoolbar-update-progress">
+<span id="api-6e92e7e898595697"></span><h3><code class="docutils literal notranslate"><span class="pre">ExecutionToolbar.update_progress()</span></code><a class="headerlink" href="#executiontoolbar-update-progress" title="Link to this heading"></a></h3>
+<p>Display current step, task title, and integer percentage.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-326">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">update_progress</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">current_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">total_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">task_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">progress_pct</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">current_step</span></code></p></td>
+<td><p>Already display-ready one-based step number.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">total_steps</span></code></p></td>
+<td><p>Displayed total queue-step count.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task_name</span></code></p></td>
+<td><p>Task-type key mapped to a friendly title, or displayed raw when unknown.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">progress_pct</span></code></p></td>
+<td><p>Percentage converted to int and passed to QProgressBar.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Invalid numeric conversion/Qt errors propagate; no explicit percentage bounds check.</p>
+<p><strong>Side effects:</strong> Updates step/task labels and progress value.</p>
+</section>
+<section id="executiontoolbar-update-elapsed">
+<span id="api-fa991df0f60583dc"></span><h3><code class="docutils literal notranslate"><span class="pre">ExecutionToolbar.update_elapsed()</span></code><a class="headerlink" href="#executiontoolbar-update-elapsed" title="Link to this heading"></a></h3>
+<p>Refresh the elapsed-time label from the stored start time.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-335">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">update_elapsed</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No explicit error handling.</p>
+<p><strong>Side effects:</strong> Updates elapsed label; paused time is included.</p>
+</section>
+<section id="executiontoolbar-set-paused">
+<span id="api-be9d0f637340f6b5"></span><h3><code class="docutils literal notranslate"><span class="pre">ExecutionToolbar.set_paused()</span></code><a class="headerlink" href="#executiontoolbar-set-paused" title="Link to this heading"></a></h3>
+<p>Change the pause indicator without stopping the elapsed timer.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-342">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_paused</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">paused</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">paused</span></code></p></td>
+<td><p>Truthy selects paused appearance.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Changes indicator text/color; does not stop elapsed timing.</p>
+</section>
+<section id="executiontoolbar-reset">
+<span id="api-f0c3f7a8b41a96e8"></span><h3><code class="docutils literal notranslate"><span class="pre">ExecutionToolbar.reset()</span></code><a class="headerlink" href="#executiontoolbar-reset" title="Link to this heading"></a></h3>
+<p>Clear toolbar execution labels and remove its timing origin.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-350">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Sets _start_time=None, percentage zero, empty step/task text, and 00:00 elapsed; does not reset the indicator glyph.</p>
+</section>
+</section>
+<section id="droptargetlistwidget">
+<h2><code class="docutils literal notranslate"><span class="pre">_DropTargetListWidget</span></code><a class="headerlink" href="#droptargetlistwidget" title="Link to this heading"></a></h2>
+<p>Translate external pose drops and internal row drags into signals. The main window validates and applies the resulting reorder request.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QListWidget</span></code>.</p>
+<section id="droptargetlistwidget-init">
+<span id="api-6fe3aef5f9d73926"></span><h3><code class="docutils literal notranslate"><span class="pre">_DropTargetListWidget.__init__()</span></code><a class="headerlink" href="#droptargetlistwidget-init" title="Link to this heading"></a></h3>
+<p>Enable external pose drops and internal move-style queue reordering.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-364">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent widget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Qt construction errors propagate.</p>
+<p><strong>Side effects:</strong> Configures drag/drop flags, move default, visible drop indicator, and _reordering_enabled=True.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-step_list_panel-py.html#api-e71c8ef5dc58eff8"><code>StepListPanel._build_ui</code></a> — mtc_gui.step_list_panel</li></ul></details></section>
+<section id="id2">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<section id="droptargetlistwidget-set-reordering-enabled">
+<span id="api-0528d7b88487139e"></span><h4><code class="docutils literal notranslate"><span class="pre">_DropTargetListWidget.set_reordering_enabled()</span></code><a class="headerlink" href="#droptargetlistwidget-set-reordering-enabled" title="Link to this heading"></a></h4>
+<p>Toggle both dragging and accepting drops with the queue-editing flag.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-373">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_reordering_enabled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p>Whether interactive queue reorder and pose drop operations are enabled.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Sets the internal flag and Qt dragEnabled/acceptDrops state.</p>
+</section>
+<section id="droptargetlistwidget-dragenterevent">
+<span id="api-014893e8317aa105"></span><h4><code class="docutils literal notranslate"><span class="pre">_DropTargetListWidget.dragEnterEvent()</span></code><a class="headerlink" href="#droptargetlistwidget-dragenterevent" title="Link to this heading"></a></h4>
+<p>Accept custom pose-name MIME drags; delegate other drag entry events to QListWidget.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-379">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dragEnterEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event</span></code></p></td>
+<td><p>QDragEnterEvent exposing mimeData and acceptProposedAction.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Event/Qt errors propagate; this handler itself does not inspect _reordering_enabled.</p>
+<p><strong>Side effects:</strong> Accepts the proposed pose-drop action or invokes the base event handler.</p>
+</section>
+<section id="droptargetlistwidget-dragmoveevent">
+<span id="api-beb8104e732d93c7"></span><h4><code class="docutils literal notranslate"><span class="pre">_DropTargetListWidget.dragMoveEvent()</span></code><a class="headerlink" href="#droptargetlistwidget-dragmoveevent" title="Link to this heading"></a></h4>
+<p>Keep custom pose-name MIME drags accepted while they move over the list.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-385">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dragMoveEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event</span></code></p></td>
+<td><p>QDragMoveEvent with MIME data and proposed action.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Event/Qt errors propagate; this handler itself does not inspect _reordering_enabled.</p>
+<p><strong>Side effects:</strong> Accepts the proposed pose-drop action or delegates to QListWidget.</p>
+</section>
+<section id="droptargetlistwidget-dropevent">
+<span id="api-266248e72f8a3a50"></span><h4><code class="docutils literal notranslate"><span class="pre">_DropTargetListWidget.dropEvent()</span></code><a class="headerlink" href="#droptargetlistwidget-dropevent" title="Link to this heading"></a></h4>
+<p>Decode external pose names or perform internal row moves and emit their original row identities.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/step_list_panel.py.html#L-391">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">dropEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event</span></code></p></td>
+<td><p>QDropEvent; pose drops use application/x-mtc-pose-name UTF-8 bytes, and internal moves require event.source() is this list.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> UTF-8 decoding/Qt errors propagate. Empty pose names produce no signal. Disabled/other drops are delegated to the base handler.</p>
+<p><strong>Side effects:</strong> Emits pose_dropped(name) for enabled pose drops. For internal moves, calls the base handler then emits steps_reordered(new_order, moved_rows) only if order changed; both lists contain pre-refresh UserRole indices.</p>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-mtc_gui-mtc_gui-task_forms-py.html" class="btn btn-neutral float-left" title="Task editor forms" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html" class="btn btn-neutral float-right" title="ROS and GUI bridge" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

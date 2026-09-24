@@ -1,0 +1,280 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Known limitations &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Diagram library" href="../diagrams/index.html" />
+    <link rel="prev" title="Troubleshooting" href="troubleshooting.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Troubleshooting and maintenance</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="troubleshooting.html">Troubleshooting</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Known limitations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#execution-semantics">Execution semantics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vision-pipettor-and-survey">Vision, pipettor, and survey</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#deployment-and-integration">Deployment and integration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#recorded-deployment-findings">Recorded deployment findings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#historical-notes">Historical notes</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Troubleshooting and maintenance</a></li>
+      <li class="breadcrumb-item active">Known limitations</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="known-limitations">
+<h1>Known limitations<a class="headerlink" href="#known-limitations" title="Link to this heading"></a></h1>
+<p>These limitations affect task execution, device behavior, and deployment. Check the relevant entries when selecting a workflow or diagnosing a failure.</p>
+<section id="execution-semantics">
+<h2>Execution semantics<a class="headerlink" href="#execution-semantics" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Area</p></th>
+<th class="head"><p>Current limitation</p></th>
+<th class="head"><p>What this means for use</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Preview</p></td>
+<td><p>Only <code class="docutils literal notranslate"><span class="pre">moveto</span></code> and <code class="docutils literal notranslate"><span class="pre">end_effector</span></code>; MoveIt still initializes</p></td>
+<td><p>Preview checks supported motion plans; it does not simulate an entire experiment or isolate every device</p></td>
+</tr>
+<tr class="row-odd"><td><p>Unbatched preview</p></td>
+<td><p>Every row starts from live <code class="docutils literal notranslate"><span class="pre">CurrentState</span></code>; the GUI replaces each displayed preview</p></td>
+<td><p>Success does not validate transitions between rows; use an eligible batched preview for a <a class="reference internal" href="../architecture/batching.html#preview-start-states"><span class="std std-ref">connected sequence</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Mock hardware</p></td>
+<td><p>Mock UR control does not automatically disable all devices</p></td>
+<td><p>Explicitly disable vision/pipettor and restrict the introductory task</p></td>
+</tr>
+<tr class="row-odd"><td><p>2FG7 mock mode</p></td>
+<td><p>CMS launch supplies <code class="docutils literal notranslate"><span class="pre">use_fake_hardware</span></code>, but the local driver reads <code class="docutils literal notranslate"><span class="pre">use_mock_hardware</span></code>; serial connection remains possible</p></td>
+<td><p>Use the <a class="reference internal" href="../start/first-task.html"><span class="std std-doc">first-task ePick demo</span></a>, which avoids this driver; see the <a class="reference internal" href="../hardware/end-effectors.html#the-local-2fg7-driver"><span class="std std-ref">driver limitation</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Cancellation</p></td>
+<td><p>Behavior depends on batch and child-action execution boundaries</p></td>
+<td><p>Software cancellation is not a hardware emergency stop</p></td>
+</tr>
+<tr class="row-odd"><td><p>GUI Stop</p></td>
+<td><p>Cancellation takes effect at backend execution boundaries; the GUI waits for the terminal result</p></td>
+<td><p>Requesting Stop does not mean motion has already ended; see <a class="reference internal" href="../operate/controls.html"><span class="std std-doc">execution controls</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>ePick vacuum monitoring</p></td>
+<td><p>Subscription and loss-abort checks are disabled in the orchestrator</p></td>
+<td><p>A lost vacuum does not trigger the orchestrator’s automatic abort path</p></td>
+</tr>
+<tr class="row-odd"><td><p>ePick batch breaker</p></td>
+<td><p>Batcher groups by task type; there is no action-specific breaker hook</p></td>
+<td><p>A vacuum-on task can share a batch with adjacent movements</p></td>
+</tr>
+<tr class="row-even"><td><p>Trajectory cache</p></td>
+<td><p>Resolved poses are keyed, but live scene changes and model-file contents are not</p></td>
+<td><p>Gripper/cup identity does not prove the surrounding geometry is unchanged; see <a class="reference internal" href="../architecture/batching.html"><span class="std std-doc">cache behavior</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Cached replay failure</p></td>
+<td><p>Any returned error except <code class="docutils literal notranslate"><span class="pre">REPLAY_TIMEOUT</span></code> falls back to fresh planning and execution of the whole eligible batch</p></td>
+<td><p>Earlier physical effects may repeat after a terminal failure; see <a class="reference internal" href="../architecture/batching.html#replay-failure-handling"><span class="std std-ref">replay failure handling</span></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="vision-pipettor-and-survey">
+<h2>Vision, pipettor, and survey<a class="headerlink" href="#vision-pipettor-and-survey" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Area</p></th>
+<th class="head"><p>Current limitation</p></th>
+<th class="head"><p>What this means for use</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Vision scan cache</p></td>
+<td><p>Scan and unified vision servers own separate process-local engines</p></td>
+<td><p>A completed scan does not populate the unified vision server’s detection cache</p></td>
+</tr>
+<tr class="row-odd"><td><p>Detect-only vision</p></td>
+<td><p>Approach execution is skipped for the applicable path, but scan moves can still occur; <code class="docutils literal notranslate"><span class="pre">j6_snap</span></code> ignores the flag</p></td>
+<td><p>Detect-only requests can still cause motion</p></td>
+</tr>
+<tr class="row-even"><td><p>Vision scan constraints</p></td>
+<td><p>Multi-position and standalone scan helpers do not accept path constraints</p></td>
+<td><p>Task constraints apply to supported approach/execution paths, not every scan movement; see <a class="reference internal" href="../reference/tasks.html"><span class="std std-doc">task fields</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p>Pipettor volume</p></td>
+<td><p>EROBS forwards <code class="docutils literal notranslate"><span class="pre">volume_pct</span></code>, but the imported pipette driver uses fixed SUCK/EXPEL sequences</p></td>
+<td><p>Changing the JSON fraction does not change those actuator sequences; see <a class="reference internal" href="../operate/tools.html#pipettor-operations"><span class="std std-ref">pipettor operations</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p>Survey <code class="docutils literal notranslate"><span class="pre">--dry-run</span></code></p></td>
+<td><p>Live survey still moves; recording is suppressed</p></td>
+<td><p>Use its offline merge or logic checks for hardware-free work</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="deployment-and-integration">
+<h2>Deployment and integration<a class="headerlink" href="#deployment-and-integration" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><strong>Optional servers:</strong> vision and pipettor default to disabled. Disabling vision also suppresses the sample server, including its legacy non-vision pick/place endpoints.</p></li>
+<li><p><strong>Tool change:</strong> MoveIt relaunch follows an actual tool/model transition; same-tool requests can return early without relaunching it.</p></li>
+<li><p><strong>CMS geometry:</strong> ePick configuration contains an explicit approach compensation, and some model/calibration work remains to be validated physically.</p></li>
+<li><p><strong>GUI portability:</strong> saved-run and some resource paths retain CMS assumptions. Changing the beamline name alone does not make the GUI deployment-neutral.</p></li>
+<li><p><strong>Agent/chat:</strong> experimental; implementation and current endpoint/credential handling take precedence over older README descriptions.</p></li>
+<li><p><strong>Bluesky/ZED/LIX/PDF:</strong> code and assets exist, but current end-to-end operation remains unverified. The integration guides distinguish demonstrated source defects from untested behavior.</p></li>
+<li><p><strong>Containers:</strong> recipes differ in build inputs and source provenance. Current ignore rules conflict with the minimal image’s local source copy assumptions; older VNC and interface examples are not reliable launch instructions.</p></li>
+</ul>
+</section>
+<section id="recorded-deployment-findings">
+<h2>Recorded deployment findings<a class="headerlink" href="#recorded-deployment-findings" title="Link to this heading"></a></h2>
+<p>Known CMS hardware issues: gripper steps reporting success before the fingers settle, and intermittent controller timing faults. Incomplete process cleanup after shutdown and tool exchange was also observed. The current <a class="reference internal" href="../architecture/lifecycle.html#shutdown"><span class="std std-ref">shutdown</span></a> behavior addresses it in source but has not yet been rechecked on the hardware.</p>
+</section>
+<section id="historical-notes">
+<h2>Historical notes<a class="headerlink" href="#historical-notes" title="Link to this heading"></a></h2>
+<p>Use the current guides and <a class="reference internal" href="../reference/source.html"><span class="std std-doc">source browser</span></a> for implementation details.</p>
+<p>Use the explanatory chapters for current behavior and the <a class="reference internal" href="../reference/source.html"><span class="std std-doc">source browser</span></a> to inspect the corresponding implementation.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="troubleshooting.html" class="btn btn-neutral float-left" title="Troubleshooting" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../diagrams/index.html" class="btn btn-neutral float-right" title="Diagram library" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

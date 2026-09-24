@@ -1,0 +1,276 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Beamline configuration &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="CMS configuration values" href="configuration-values.html" />
+    <link rel="prev" title="Launch arguments" href="launch.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="modules.html">Module map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/index.html">Function and method reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch.html">Launch arguments</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Beamline configuration</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#selection-and-caching">Selection and caching</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-sections-and-consumers">Configuration sections and consumers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-resource-paths-are-resolved">How resource paths are resolved</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tool-settings-must-agree">Tool settings must agree</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vision-target-example">Vision-target example</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Reference</a></li>
+      <li class="breadcrumb-item active">Beamline configuration</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="beamline-configuration">
+<h1>Beamline configuration<a class="headerlink" href="#beamline-configuration" title="Link to this heading"></a></h1>
+<p>Set <code class="docutils literal notranslate"><span class="pre">BEAMBOT_BEAMLINE_CONFIG</span></code> to the YAML file containing robot, tool, camera, and deployment settings. The main launch requires an explicit selection.</p>
+<section id="selection-and-caching">
+<h2>Selection and caching<a class="headerlink" href="#selection-and-caching" title="Link to this heading"></a></h2>
+<p>Configuration loads once per process:</p>
+<ol class="arabic simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">get_beamline_config_path()</span></code> reads the environment variable, strips whitespace, expands <code class="docutils literal notranslate"><span class="pre">~</span></code>, and resolves an absolute path. An unset variable or missing file is an error.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">load_beamline_config()</span></code> reads the YAML. Its root must be a mapping.</p></li>
+<li><p>A successful load caches the mapping and resolved path for the process lifetime. Consumers share the mapping and must treat it as read-only.</p></li>
+</ol>
+<p><strong>Restart affected processes after changing the YAML or its environment variable.</strong> Running processes do not automatically refresh their cached configuration.</p>
+<p><code class="docutils literal notranslate"><span class="pre">reset_beamline_config_cache()</span></code> supports test isolation or an explicit in-process reload. It clears only the loader cache; existing references and consumer caches remain unchanged. Restarting the affected processes is the normal way to apply deployment changes.</p>
+<p>Some convenience helpers catch configuration failures and return defaults so isolated imports or tests can work. Main application startup still requires the configuration file.</p>
+</section>
+<section id="configuration-sections-and-consumers">
+<h2>Configuration sections and consumers<a class="headerlink" href="#configuration-sections-and-consumers" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Section</p></th>
+<th class="head"><p>Meaning and principal consumers</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beamline</span></code></p></td>
+<td><p>Identity reported to clients; not a directory-discovery mechanism by itself</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_file</span></code></p></td>
+<td><p>Named joint-pose registry used by task parsing and pose tools</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scene_file</span></code></p></td>
+<td><p>Static planning-scene obstacle resource</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">robot</span></code></p></td>
+<td><p>Robot address, arm group, IK frame, ordered joints, description/MoveIt packages, velocity and acceleration scaling</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers</span></code></p></td>
+<td><p>Tool launch arguments, voltage/communication, controller/group/states, tip frame, payload, geometry and viewer resources</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">camera</span></code></p></td>
+<td><p>Camera adapter type, frame and ArUco dictionary; the current CMS files select Zivid</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tool_exchange</span></code></p></td>
+<td><p>Dock spacing, reference dock and physical load/dock moves</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">collision_objects</span></code></p></td>
+<td><p>Optional marker-linked shapes; the sample-bar example is commented out in both CMS files</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets</span></code></p></td>
+<td><p>Marker-based offset or grid recipes used by task macros and MCP builders</p></td>
+</tr>
+</tbody>
+</table>
+<p>The <a class="reference internal" href="configuration-values.html"><span class="std std-doc">CMS values</span></a> show every configured leaf value in <code class="docutils literal notranslate"><span class="pre">cms_beamline.yaml</span></code>. <code class="docutils literal notranslate"><span class="pre">cms_drylab.yaml</span></code> selects the dry-lab robot address while retaining the same CMS pose, scene and model resources. These values are specific to CMS. Check the consuming code before removing a configuration key.</p>
+</section>
+<section id="how-resource-paths-are-resolved">
+<span id="paths-have-consumers"></span><h2>How resource paths are resolved<a class="headerlink" href="#how-resource-paths-are-resolved" title="Link to this heading"></a></h2>
+<p>CMS uses workspace-relative paths such as <code class="docutils literal notranslate"><span class="pre">src/cms/poses.yaml</span></code>. Do not assume every consumer resolves a relative resource against the YAML file’s directory. The orchestrator, MCP bridge, GUI, and installed package resources have distinct lookup code. The GUI’s saved-run directory also has CMS-specific behavior.</p>
+<p>When moving a deployment, verify the resolved paths in each component. Check that every resolved file exists and that each consumer selects the intended resource. The <a class="reference internal" href="../architecture/configuration.html"><span class="std std-doc">configuration architecture</span></a> traces these paths.</p>
+</section>
+<section id="tool-settings-must-agree">
+<h2>Tool settings must agree<a class="headerlink" href="#tool-settings-must-agree" title="Link to this heading"></a></h2>
+<p>Different tool fields configure different parts of the system:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Fields</p></th>
+<th class="head"><p>What they configure</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tip_frame</span></code></p></td>
+<td><p>Working frame used for inverse kinematics (IK)</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gripper_group</span></code>, <code class="docutils literal notranslate"><span class="pre">states</span></code></p></td>
+<td><p>MoveIt gripper group and named states</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">launch_urdf</span></code>, controller files, communication settings, payload</p></td>
+<td><p>Robot and tool stack</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">urdf_file</span></code></p></td>
+<td><p>GUI viewer model; this can differ from the launch Xacro</p></td>
+</tr>
+</tbody>
+</table>
+<p>The shared configuration loader validates every configured tool before caching the YAML: positive finite <code class="docutils literal notranslate"><span class="pre">payload_mass</span></code>, finite numeric <code class="docutils literal notranslate"><span class="pre">payload_cog.x</span></code>, <code class="docutils literal notranslate"><span class="pre">.y</span></code> and <code class="docutils literal notranslate"><span class="pre">.z</span></code>, and an allowed tool voltage of 0, 12 or 24 V. These checks also apply to mock sessions. The current LIX file has only commented payload examples, so it fails configuration loading.</p>
+<p>CMS’s velocity and acceleration scaling values are <code class="docutils literal notranslate"><span class="pre">0.2</span></code>; these are configured values rather than immutable global limits. The ePick <code class="docutils literal notranslate"><span class="pre">cup_profile</span></code> and <code class="docutils literal notranslate"><span class="pre">z_offset</span></code> affect geometry/approach behavior. The configured <code class="docutils literal notranslate"><span class="pre">z_offset</span></code> is applied along <code class="docutils literal notranslate"><span class="pre">base_link</span></code> Z, in meters. The current ePick offset includes a documented compensation for modeled geometry; keep that physical calibration context when editing it.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">cup_profile</span></code> ROS parameter is a runtime override managed outside the shared cached mapping. It takes effect when the relevant MoveIt model is subsequently launched. Changing the parameter does not trigger an immediate model rebuild or relaunch.</p>
+</section>
+<section id="vision-target-example">
+<h2>Vision-target example<a class="headerlink" href="#vision-target-example" title="Link to this heading"></a></h2>
+<p>A grid target combines marker detection with rows, columns, pitch, and direction conventions. After marker alignment, the selected row and column determine the movements to a grid cell. An offset target describes a single marker-relative location.</p>
+<p>Both require deployment calibration: marker IDs, offsets, scan poses, and approach/retreat distances must match the physical setup.</p>
+<p>The task parser and MCP grid helper share <code class="docutils literal notranslate"><span class="pre">expand_grid_target()</span></code> for grid validation and task expansion. Their request formats differ: the parser accepts pickup task fields, while MCP takes a target name and grid coordinates. See <a class="reference internal" href="tasks.html"><span class="std std-doc">task macros</span></a> and <a class="reference internal" href="mcp.html"><span class="std std-doc">MCP tools</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="launch.html" class="btn btn-neutral float-left" title="Launch arguments" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="configuration-values.html" class="btn btn-neutral float-right" title="CMS configuration values" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

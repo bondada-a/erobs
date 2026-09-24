@@ -1,0 +1,300 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operator GUI &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Write task scripts" href="tasks.html" />
+    <link rel="prev" title="Operate EROBS" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Operate EROBS</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Operator GUI</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#open-the-gui">Open the GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#read-the-panels">Read the panels</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#build-a-sequence">Build a sequence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#preview-and-execute">Preview and execute</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#start-from-a-selected-step">Start from a selected step</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pause-resume-and-stop">Pause, resume, and stop</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="tasks.html">Write task scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="poses.html">Poses and saved runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools.html">Tools and end effectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vision.html">Vision-guided tasks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="controls.html">Execution controls</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#run-a-sequence">Run a sequence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#dry-run-and-mock-hardware">Dry Run and mock hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#operation-guides">Operation guides</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Operate EROBS</a></li>
+      <li class="breadcrumb-item active">Operator GUI</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="operator-gui">
+<h1>Operator GUI<a class="headerlink" href="#operator-gui" title="Link to this heading"></a></h1>
+<p>Use the GUI to build task sequences, preview motion, and follow execution. It also displays saved poses, robot state, and camera images.</p>
+<section id="open-the-gui">
+<h2>Open the GUI<a class="headerlink" href="#open-the-gui" title="Link to this heading"></a></h2>
+<p>Follow <a class="reference internal" href="../start/first-task.html"><span class="std std-doc">Run your first task</span></a> to start a mock session. For an existing session, load the same workspace and set the same <code class="docutils literal notranslate"><span class="pre">BEAMBOT_BEAMLINE_CONFIG</span></code> as the orchestrator in your terminal, then run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ros2<span class="w"> </span>run<span class="w"> </span>mtc_gui<span class="w"> </span>mtc_gui_client
+</pre></div>
+</div>
+<p>Press <strong>Test Server</strong> to check the connection. The result appears in the <strong>Activity Log</strong>. Chat is optional; missing chat credentials do not prevent manual task editing or execution.</p>
+<figure class="screenshot-figure align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/gui-first-task-drylab.png"><img alt="EROBS GUI showing the ePick demo: task choices on the left, two completed Move To steps and execution controls in the center, and the robot in 3D View on the right." src="../_images/gui-first-task-drylab.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The GUI after the <a class="reference internal" href="../start/first-task.html"><span class="std std-doc">first-task demo</span></a> with mock hardware. <a class="reference download internal" download="" href="../_downloads/67d45ba54461177626857945d20ebba9/gui-first-task-drylab.png"><span class="xref download myst">Open the full-resolution screenshot</span></a>.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="read-the-panels">
+<h2>Read the panels<a class="headerlink" href="#read-the-panels" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Area</p></th>
+<th class="head"><p>Use it to</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Robot configuration</p></td>
+<td><p>Check the configured <strong>Robot IP</strong> and select <strong>Start Gripper</strong>. The IP is read-only.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Tasks</p></td>
+<td><p>Add steps to the sequence.</p></td>
+</tr>
+<tr class="row-even"><td><p>Poses</p></td>
+<td><p>Inspect saved joint positions and add named moves.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Runs</p></td>
+<td><p>Save and load named task sequences.</p></td>
+</tr>
+<tr class="row-even"><td><p>Sequence and controls</p></td>
+<td><p>Edit steps, start a run, and follow progress.</p></td>
+</tr>
+<tr class="row-odd"><td><p>3D View</p></td>
+<td><p>View the robot model, live joint positions, and planned trajectories.</p></td>
+</tr>
+<tr class="row-even"><td><p>Camera</p></td>
+<td><p>View camera images and detection overlays.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Chat</p></td>
+<td><p>Use experimental agent assistance; see <a class="reference internal" href="../integrations/mcp-agent.html"><span class="std std-doc">agent integration</span></a>.</p></td>
+</tr>
+<tr class="row-even"><td><p>Activity Log</p></td>
+<td><p>Read connection messages, task feedback, results, and errors.</p></td>
+</tr>
+</tbody>
+</table>
+<p>The Camera panel retains its last image until another arrives. If it is blank, check that the camera is enabled, connected, and publishing.</p>
+</section>
+<section id="build-a-sequence">
+<h2>Build a sequence<a class="headerlink" href="#build-a-sequence" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Load or add tasks.</strong> Use <strong>File → Load JSON</strong>, or click a task in the <strong>Tasks</strong> tab.</p></li>
+<li><p><strong>Check the starting tool.</strong> Set <strong>Start Gripper</strong> to the tool already attached. This setting does not attach or exchange a tool.</p></li>
+<li><p><strong>Edit a step.</strong> Double-click its row to enter its settings. <strong>Pause</strong> has no settings to edit.</p></li>
+<li><p><strong>Arrange the sequence.</strong> Use <strong>Up</strong>, <strong>Down</strong>, or drag-and-drop. <strong>Remove</strong> deletes selected steps; <strong>Clear</strong> removes all steps after confirmation.</p></li>
+<li><p><strong>Save your work.</strong> Use <strong>File → Save JSON</strong> or save a named sequence in <strong>Runs</strong>. Loading or saving a task does not execute it.</p></li>
+</ol>
+<p>Use <strong>Edit → Copy</strong> and <strong>Edit → Paste</strong> to duplicate selected steps. Pasted steps appear after the selection, or at the end when nothing is selected.</p>
+<p>For <strong>Move To</strong>, choose one target mode:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>Target</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Named target</p></td>
+<td><p>A saved pose or named robot state.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Relative move</p></td>
+<td><p>A direction and distance in the flange frame.</p></td>
+</tr>
+<tr class="row-even"><td><p>Cartesian target</p></td>
+<td><p>A position and optional orientation in the selected frame.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Joint values</p></td>
+<td><p>Six arm joint angles in degrees.</p></td>
+</tr>
+</tbody>
+</table>
+<p>In <strong>Poses</strong>, single-click to inspect values; double-click or drag a pose into the sequence to add a named Move To. Saving in <strong>Joint values</strong> mode stores coordinates in the task, which take priority over the shared pose. See <a class="reference internal" href="poses.html#use-the-gui-pose-panel"><span class="std std-ref">pose editing and overrides</span></a>.</p>
+<figure class="screenshot-figure align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/gui-moveto.png"><img alt="MoveTo editor in Named target mode with safe_tool_exchange selected and a robot pose display beside the settings." src="../_images/gui-moveto.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">The MoveTo editor showing <code class="docutils literal notranslate"><span class="pre">safe_tool_exchange</span></code>. Its pose display updates the view without planning or executing a movement. <a class="reference download internal" download="" href="../_downloads/c0352d5ba3f21fad210908106baf4b17/gui-moveto.png"><span class="xref download myst">Open the full-resolution screenshot</span></a>.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="preview-and-execute">
+<h2>Preview and execute<a class="headerlink" href="#preview-and-execute" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Select <strong>Dry Run</strong> and press <strong>Execute</strong> to plan a sequence. Preview supports only <strong>Move To</strong> and <strong>End Effector</strong> steps; a <strong>Pause</strong>, vision, tool-exchange, or pipettor step prevents previewing the whole sequence.</p></li>
+<li><p>Inspect the planned motion in <strong>3D View</strong> or RViz. Preview requires MoveIt and leaves the controller at its current position.</p></li>
+<li><p>Clear <strong>Dry Run</strong>, then press <strong>Execute</strong> to run the sequence. Execution uses the real or mock hardware selected at launch.</p></li>
+<li><p>Check the <strong>Activity Log</strong> for the result and completed-step count. A completed preview confirms planning only.</p></li>
+</ol>
+<p>Generate a new preview after changing the scene or saved poses. <strong>3D View</strong> displays the latest received trajectory; <a class="reference internal" href="controls.html#preview"><span class="std std-ref">preview limits</span></a> explains how multiple steps are planned and displayed.</p>
+<p>A cached-plan replay failure can trigger fresh planning and repeat earlier steps. See <a class="reference internal" href="../architecture/batching.html#replay-failure-handling"><span class="std std-ref">cache behavior</span></a> before relying on execution following the same trajectory as the preview.</p>
+</section>
+<section id="start-from-a-selected-step">
+<h2>Start from a selected step<a class="headerlink" href="#start-from-a-selected-step" title="Link to this heading"></a></h2>
+<p>Select one row, then press <strong>From Selected</strong> to submit that step and every following step. It uses the current <strong>Dry Run</strong> setting.</p>
+<p>Earlier steps are skipped. Set <strong>Start Gripper</strong> to the current tool and confirm that any required sample handling or tool changes have already happened.</p>
+</section>
+<section id="pause-resume-and-stop">
+<h2>Pause, resume, and stop<a class="headerlink" href="#pause-resume-and-stop" title="Link to this heading"></a></h2>
+<p><strong>Pause</strong> requests a pause after the active task or batch finishes. <strong>Resume</strong> continues a paused run.</p>
+<p><strong>Stop</strong> requests cancellation and waits for the server’s final result. If goal acceptance is still pending, the GUI waits for acceptance before sending the cancellation request. A stop handled before submission prevents the goal from being sent.</p>
+<p>Check the <strong>Activity Log</strong> for the final outcome and completed-step count. A task can finish successfully before cancellation takes effect. Cancellation takes effect at task or batch boundaries; Stop is not an emergency stop.</p>
+<p>Read <a class="reference internal" href="controls.html#stop-and-cancellation"><span class="std std-ref">execution controls</span></a> for the full behavior and how to interpret the reported state.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Operate EROBS" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="tasks.html" class="btn btn-neutral float-right" title="Write task scripts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

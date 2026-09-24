@@ -1,0 +1,684 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Diagram library &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="prev" title="Known limitations" href="../maintenance/limitations.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Diagram library</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#figure-index">Figure index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#reading-the-figures">Reading the figures</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#tasks-coordinates-and-code">Tasks, coordinates, and code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#execution-and-tool-changes">Execution and tool changes</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vision-and-configuration">Vision and configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#execution-states">Execution states</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#editing-and-checking">Editing and checking</a></li>
+</ul>
+</li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Diagram library</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="diagram-library">
+<h1>Diagram library<a class="headerlink" href="#diagram-library" title="Link to this heading"></a></h1>
+<p>Diagrams show the main execution paths, component relationships, and configuration flow. Select a figure to open its guide and full-size view.</p>
+<div class="visual-gallery"><a class="visual-card" href="../start/concepts.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 736" aria-hidden="true" aria-labelledby="frames-units-title frames-units-desc">
+<title id="frames-units-title">Coordinates need a frame and units</title>
+<desc id="frames-units-desc">A conceptual XY view compares a Cartesian position expressed in base_link with a forward displacement along an IK frame rotated ninety degrees. Forward is positive local X, so its direction in the room follows the frame. Distances use metres; task joint angles use degrees while ROS revolute joint states use radians. Illustrative coordinates are not calibrated robot targets.</desc>
+<defs>
+<marker id="frames-units-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#52647a"/></marker>
+<marker id="frames-units-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+<marker id="frames-units-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+</defs>
+<rect width="960" height="736" fill="#ffffff"/>
+<text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / SPATIAL CONVENTIONS</text>
+<text x="48" y="84" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Coordinates need a frame and units</text>
+<text x="48" y="128" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Conceptual XY view. The right-hand frame is rotated 90°; geometry is illustrative.</text>
+<line x1="480" y1="176" x2="480" y2="536" stroke="#dbe3ee"/>
+<text x="48" y="196" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Absolute position</text>
+<text x="528" y="196" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Relative displacement</text>
+<!-- Coordinate axes and projection guides, not software-flow connectors. -->
+<line x1="112" y1="416" x2="400" y2="416" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<line x1="112" y1="416" x2="112" y2="232" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<path d="M304 416 V288 H112" fill="none" stroke="#52647a" stroke-dasharray="4,4"/>
+<circle cx="112" cy="416" r="4" fill="#18283b"/>
+<circle cx="304" cy="288" r="8" fill="#235cb7"/>
+<text x="404" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">+X</text>
+<text x="72" y="240" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">+Y</text>
+<text x="320" y="272" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Target</text>
+<text x="288" y="444" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">0.30 m</text>
+<text x="48" y="288" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">0.20 m</text>
+<text x="112" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">frame_id: "base_link"</text>
+<text x="112" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Position is measured from this origin.</text>
+<line x1="680" y1="416" x2="536" y2="416" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<line x1="680" y1="416" x2="680" y2="240" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<line x1="704" y1="416" x2="704" y2="304" stroke="#235cb7" stroke-width="3" marker-end="url(#frames-units-arrow-accent)"/>
+<circle cx="680" cy="416" r="4" fill="#18283b"/>
+<text x="528" y="444" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">local +Y</text>
+<text x="696" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">local +X</text>
+<rect x="724" y="316" width="180" height="72" fill="#ffffff"/>
+<text x="732" y="340" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">forward</text>
+<text x="732" y="372" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">distance: 0.01</text>
+<text x="576" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">selected IK frame</text>
+<text x="576" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">The local direction rotates with it.</text>
+<line x1="48" y1="556" x2="912" y2="556" stroke="#dbe3ee"/>
+<text x="48" y="596" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">DISTANCE</text>
+<text x="48" y="636" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">10 mm = 0.01 m</text>
+<text x="528" y="596" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">REVOLUTE JOINT ANGLE</text>
+<text x="528" y="636" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">90° = π/2 rad</text>
+<text x="528" y="668" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">task pose → ROS arm joint state</text>
+<text x="48" y="712" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">These are unit conventions, not calibrated targets. Prismatic joint positions use metres.</text>
+</svg></span><span class="visual-card-title">Coordinates need a frame and units</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../operate/tasks.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 904" aria-hidden="true" aria-labelledby="task-anatomy-title task-anatomy-desc" font-family="system-ui, sans-serif" fill="#18283b">
+<title id="task-anatomy-title">Anatomy of a named-move task</title>
+<desc id="task-anatomy-desc">The complete named-move example has start_gripper none, an inline example_home pose containing six joint angles in degrees, and one moveto task whose target is example_home. Inline pose data takes priority; the parser fills missing names from the registry. If a MoveTo name remains absent, its motion stage tries an SRDF named state. These are illustrative parser inputs, not a validated robot motion.</desc>
+<defs>
+<marker id="task-anatomy-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker>
+<marker id="task-anatomy-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker>
+<marker id="task-anatomy-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker>
+</defs>
+<rect x="0" y="0" width="960" height="904" fill="#ffffff"/>
+<text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS  /  TASK ANATOMY</text>
+<text x="48" y="84" font-size="28" font-weight="600">Anatomy of a named-move task</text>
+<text x="48" y="120" font-size="20" fill="#52647a">One document declares the starting tool, named poses, and ordered work.</text>
+
+<!-- The code is complete JSON, reformatted from examples/named-move.json. -->
+<rect x="48" y="160" width="520" height="468" rx="8" fill="#f3f6fb" stroke="#dbe3ee"/>
+<text x="72" y="192" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">named-move.json</text>
+<line x1="568" y1="252" x2="608" y2="252" stroke="#52647a" stroke-width="1.5"/>
+<line x1="568" y1="340" x2="608" y2="340" stroke="#52647a" stroke-width="1.5"/>
+<line x1="568" y1="492" x2="608" y2="492" stroke="#52647a" stroke-width="1.5"/>
+<g font-family="ui-monospace, monospace" font-size="20">
+<text x="72" y="228">{</text>
+<text x="96" y="256">"start_gripper": "none",</text>
+<text x="96" y="284">"poses": {</text>
+<text x="120" y="312" fill="#235cb7">"example_home":</text>
+<text x="144" y="340">[0, -90, 90, -90, -90, 0]</text>
+<text x="96" y="368">},</text>
+<text x="96" y="396">"tasks": [</text>
+<text x="120" y="424">{</text>
+<text x="144" y="452">"task_type": "moveto",</text>
+<text x="144" y="480">"target": <tspan fill="#235cb7">"example_home"</tspan></text>
+<text x="120" y="508">}</text>
+<text x="96" y="536">]</text>
+<text x="72" y="564">}</text>
+</g>
+<text x="72" y="604" font-size="16" fill="#52647a">The same pose name connects the task to its joint values.</text>
+
+<text x="624" y="232" font-size="20" font-weight="600">Starting tool model</text>
+<text x="624" y="260" font-size="16" fill="#52647a">A key in the beamline’s grippers.</text>
+<text x="624" y="284" font-size="16" fill="#52647a">Declares the already attached tool.</text>
+<text x="624" y="328" font-size="20" font-weight="600">Inline pose values</text>
+<text x="624" y="356" font-size="16" fill="#52647a">Six joint angles, in degrees.</text>
+<text x="624" y="380" font-size="16" fill="#52647a">This example supplies its own pose.</text>
+<text x="624" y="464" font-size="20" font-weight="600">Ordered task list</text>
+<text x="624" y="492" font-size="16" fill="#52647a">One MoveTo step in this example.</text>
+<text x="624" y="516" font-size="16" fill="#52647a">target is a name, not XYZ.</text>
+<text x="624" y="564" font-size="16" fill="#52647a">The list must be nonempty.</text>
+
+<text x="48" y="684" font-size="20" font-weight="600">How a named target is resolved</text>
+<line x1="288" y1="748" x2="336" y2="748" stroke="#52647a" stroke-width="1.5" marker-end="url(#task-anatomy-arrow)"/>
+<line x1="600" y1="748" x2="648" y2="748" stroke="#52647a" stroke-width="1.5" marker-end="url(#task-anatomy-arrow)"/>
+<text x="48" y="728" font-size="20" font-weight="600">1  Inline pose</text>
+<text x="48" y="764" font-size="16" fill="#52647a">Use the document’s value.</text>
+<text x="48" y="788" font-size="16" fill="#52647a">example_home resolves here.</text>
+<text x="360" y="728" font-size="20" font-weight="600">2  Pose registry</text>
+<text x="360" y="764" font-size="16" fill="#52647a">Fill names absent from poses.</text>
+<text x="360" y="788" font-size="16" fill="#52647a">Inline values keep priority.</text>
+<text x="672" y="728" font-size="20" font-weight="600">3  SRDF state</text>
+<text x="672" y="764" font-size="16" fill="#52647a">If still absent, MoveTo tries</text>
+<text x="672" y="788" font-size="16" fill="#52647a">the robot model’s named state.</text>
+<line x1="48" y1="836" x2="912" y2="836" stroke="#dbe3ee"/>
+<text x="48" y="868" font-size="16" fill="#52647a">Illustrative parser input. Parsing does not establish reachability or collision clearance.</text>
+</svg></span><span class="visual-card-title">Anatomy of a named-move task</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../operate/tasks.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 900" aria-hidden="true" aria-labelledby="preview-comparison-title preview-comparison-desc" font-family="system-ui, sans-serif" fill="#18283b">
+<title id="preview-comparison-title">Why two previews may not form one sequence</title>
+<desc id="preview-comparison-desc">Assume the real robot stays at A during Dry Run and the task list requests moves to B then C. With batching enabled, one MTC task produces a connected preview A to B to C. With batching disabled, each row creates a task from live CurrentState: first A to B, then A to C. The GUI replaces its preview when a new trajectory arrives rather than queuing both previews. Execute with Dry Run cleared performs motion; after a successful first move, the live robot can be at B before the next row plans. A schematic path shows order, not physical geometry.</desc>
+<defs>
+<marker id="preview-comparison-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker>
+<marker id="preview-comparison-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker>
+<marker id="preview-comparison-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker>
+</defs>
+<rect x="0" y="0" width="960" height="900" fill="#ffffff"/>
+<text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS  /  PREVIEW COMPARISON</text>
+<text x="48" y="84" font-size="28" font-weight="600">Why two previews may not form one sequence</text>
+<text x="48" y="120" font-size="20" fill="#52647a">Same task list: move to B, then C. The real robot stays at A during Dry Run.</text>
+<line x1="48" y1="156" x2="912" y2="156" stroke="#dbe3ee"/>
+
+<!-- Paired traces: order is represented horizontally, never spatial distance. -->
+<rect x="48" y="188" width="408" height="412" rx="8" fill="#edf3ff" stroke="#235cb7"/>
+<rect x="504" y="188" width="408" height="412" rx="8" fill="#f3f6fb" stroke="#dbe3ee"/>
+<text x="72" y="228" font-size="24" font-weight="600">Batching on</text>
+<text x="72" y="260" font-size="16" fill="#52647a">Both moves share one MTC task.</text>
+<text x="528" y="228" font-size="24" font-weight="600">Batching off</text>
+<text x="528" y="260" font-size="16" fill="#52647a">Each row creates a new MTC task.</text>
+
+<line x1="136" y1="364" x2="216" y2="364" stroke="#235cb7" stroke-width="2" marker-end="url(#preview-comparison-arrow-accent)"/>
+<line x1="272" y1="364" x2="352" y2="364" stroke="#235cb7" stroke-width="2" marker-end="url(#preview-comparison-arrow-accent)"/>
+<line x1="612" y1="340" x2="800" y2="340" stroke="#52647a" stroke-width="2" marker-end="url(#preview-comparison-arrow)"/>
+<line x1="612" y1="460" x2="800" y2="460" stroke="#52647a" stroke-width="2" marker-end="url(#preview-comparison-arrow)"/>
+
+<text x="72" y="316" font-size="20" font-weight="600">One connected preview</text>
+<circle cx="108" cy="364" r="28" fill="#ffffff" stroke="#52647a"/>
+<circle cx="244" cy="364" r="28" fill="#ffffff" stroke="#52647a"/>
+<circle cx="380" cy="364" r="28" fill="#ffffff" stroke="#52647a"/>
+<text x="108" y="372" font-size="24" font-weight="600" text-anchor="middle">A</text>
+<text x="244" y="372" font-size="24" font-weight="600" text-anchor="middle">B</text>
+<text x="380" y="372" font-size="24" font-weight="600" text-anchor="middle">C</text>
+<text x="108" y="424" font-size="16" fill="#52647a" text-anchor="middle">live start</text>
+<text x="244" y="424" font-size="16" fill="#52647a" text-anchor="middle">target 1</text>
+<text x="380" y="424" font-size="16" fill="#52647a" text-anchor="middle">target 2</text>
+<text x="72" y="492" font-size="20" font-weight="600">A → B → C</text>
+<text x="72" y="528" font-size="16" fill="#52647a">The later stage continues from the</text>
+<text x="72" y="552" font-size="16" fill="#52647a">earlier stage’s planned endpoint.</text>
+
+<text x="528" y="300" font-size="16" fill="#52647a">First row</text>
+<circle cx="584" cy="340" r="28" fill="#ffffff" stroke="#52647a"/>
+<circle cx="828" cy="340" r="28" fill="#ffffff" stroke="#52647a"/>
+<text x="584" y="348" font-size="24" font-weight="600" text-anchor="middle">A</text>
+<text x="828" y="348" font-size="24" font-weight="600" text-anchor="middle">B</text>
+<text x="528" y="420" font-size="16" fill="#52647a">Second row</text>
+<circle cx="584" cy="460" r="28" fill="#ffffff" stroke="#52647a"/>
+<circle cx="828" cy="460" r="28" fill="#ffffff" stroke="#52647a"/>
+<text x="584" y="468" font-size="24" font-weight="600" text-anchor="middle">A</text>
+<text x="828" y="468" font-size="24" font-weight="600" text-anchor="middle">C</text>
+<text x="528" y="528" font-size="16" fill="#52647a">Both start at live CurrentState = A.</text>
+<text x="528" y="552" font-size="16" fill="#52647a">The preview never moved the robot to B.</text>
+
+<text x="48" y="652" font-size="20" font-weight="600">What the GUI displays</text>
+<text x="48" y="684" font-size="16" fill="#52647a">A new trajectory replaces the active preview; the viewer does not queue it.</text>
+<text x="48" y="708" font-size="16" fill="#52647a">With batching off, A → C replaces A → B, even if its animation has not finished.</text>
+
+<line x1="48" y1="744" x2="912" y2="744" stroke="#dbe3ee"/>
+<text x="48" y="780" font-size="20" font-weight="600">Execution changes the live state</text>
+<text x="48" y="812" font-size="16" fill="#52647a">Clear Dry Run, then Execute to request motion. After the first unbatched move succeeds,</text>
+<text x="48" y="836" font-size="16" fill="#52647a">the robot is at B, so the next row can plan from B. Cached replay has separate eligibility checks.</text>
+<text x="48" y="880" font-size="16" fill="#52647a">Schematic order only; arrows do not depict physical paths or distances.</text>
+</svg></span><span class="visual-card-title">Why two previews may not form one sequence</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../reference/tasks.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 800" aria-hidden="true" aria-labelledby="motion-targets-title motion-targets-desc">
+<title id="motion-targets-title">Choose one MoveTo target form</title>
+<desc id="motion-targets-desc">A moveto request must specify exactly one target form: a named joint pose or SRDF state, a relative direction with distance, or a Cartesian pose. Each form has its own automatic planner fallback order. The deterministic-IK PTP branch for Cartesian targets is included only when IK succeeds.</desc>
+<defs>
+<marker id="motion-targets-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#52647a"/></marker>
+<marker id="motion-targets-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+<marker id="motion-targets-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+</defs>
+<rect width="960" height="800" fill="#ffffff"/>
+<text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / TARGET SELECTION</text>
+<text x="48" y="84" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Choose one MoveTo target form</text>
+<path d="M316 240 H184 Q176 240 176 248 V360" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#motion-targets-arrow)"/>
+<path d="M480 304 V360" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#motion-targets-arrow)"/>
+<path d="M644 240 H776 Q784 240 784 248 V360" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#motion-targets-arrow)"/>
+<rect x="208" y="200" width="72" height="24" fill="#ffffff"/>
+<text x="244" y="220" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">NAME</text>
+<rect x="496" y="316" width="104" height="24" fill="#ffffff"/>
+<text x="548" y="336" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">DISPLACE</text>
+<rect x="684" y="200" width="72" height="24" fill="#ffffff"/>
+<text x="720" y="220" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">POSE</text>
+<polygon points="480,176 644,240 480,304 316,240" fill="#edf3ff" stroke="#235cb7"/>
+<text x="480" y="236" text-anchor="middle" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">What do you know</text>
+<text x="480" y="260" text-anchor="middle" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">about the destination?</text>
+<rect x="48" y="360" width="256" height="176" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="72" y="400" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Named configuration</text>
+<text x="72" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">target: "pose_name"</text>
+<text x="72" y="480" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Six joint values in degrees</text>
+<text x="72" y="504" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">or a named SRDF state</text>
+<rect x="352" y="360" width="256" height="176" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="376" y="400" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Relative movement</text>
+<text x="376" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">direction + distance</text>
+<text x="376" y="480" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Metres along the selected</text>
+<text x="376" y="504" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">IK frame's local direction</text>
+<rect x="656" y="360" width="256" height="176" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="680" y="400" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Cartesian pose</text>
+<text x="680" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">cartesian_target</text>
+<text x="680" y="480" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">XYZ metres + optional RPY°</text>
+<text x="680" y="504" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">in frame_id (base_link)</text>
+<text x="48" y="584" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">AUTOMATIC PLANNER ORDER</text>
+<text x="72" y="624" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">PTP → pipeline</text>
+<text x="72" y="656" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Pipeline uses configured</text>
+<text x="72" y="680" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">STOMP or OMPL/RRTstar.</text>
+<text x="376" y="624" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">LIN → CartesianPath</text>
+<text x="376" y="652" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">→ PTP</text>
+<text x="680" y="624" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">PTP with solved IK*</text>
+<text x="680" y="652" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">→ LIN → CartesianPath</text>
+<text x="680" y="680" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">*Skip PTP when IK fails.</text>
+<line x1="48" y1="720" x2="912" y2="720" stroke="#dbe3ee"/>
+<text x="48" y="752" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Exactly one form is required. Mixing forms, or supplying none, is rejected.</text>
+<text x="48" y="780" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">These chains cover auto / joint modes; explicit planner choices override them.</text>
+</svg></span><span class="visual-card-title">Choose one MoveTo target form</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../reference/modules.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 928" aria-hidden="true" aria-labelledby="module-map-title module-map-desc">
+<title id="module-map-title">Where each behavior belongs</title>
+<desc id="module-map-desc">The GUI crosses a ROS action boundary into action servers, which compose core helpers and task stages; perception and shared beamline configuration have their own responsibilities and cross-cutting dependencies.</desc>
+<defs><marker id="module-map-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="module-map-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="module-map-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="960" height="928" fill="#ffffff"/>
+<text x="40" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / MODULE MAP</text>
+<text x="40" y="84" font-size="28" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Where each behavior belongs</text>
+<text x="40" y="116" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Find the area responsible for a feature, then follow its module into the reference.</text>
+
+<!-- Selected runtime relationships. -->
+<line x1="320" y1="240" x2="532" y2="240" stroke="#235cb7" stroke-width="1.5" marker-end="url(#module-map-arrow-link)"/>
+<rect x="352" y="200" width="148" height="28" fill="#ffffff"/>
+<text x="428" y="220" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#235cb7">ROS ACTION</text>
+<path d="M 604,312 V 336 Q 604,344 596,344 H 176 Q 168,344 168,352 V 408" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#module-map-arrow)"/>
+<path d="M 728,312 V 368 Q 728,376 720,376 H 480 Q 472,376 472,384 V 408" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#module-map-arrow)"/>
+<line x1="600" y1="504" x2="648" y2="504" stroke="#52647a" stroke-width="1.5" marker-end="url(#module-map-arrow)"/>
+
+<rect x="40" y="164" width="280" height="148" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="200" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">GUI composition</text>
+<text x="60" y="232" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">mtc_gui/</text>
+<text x="60" y="264" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Forms, queue and viewers</text>
+<text x="60" y="292" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">ros2_bridge.py → Qt</text>
+
+<rect x="532" y="164" width="388" height="148" rx="8" fill="#edf3ff" stroke="#235cb7"/>
+<text x="552" y="200" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Action boundaries</text>
+<text x="552" y="232" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/action_servers/</text>
+<text x="552" y="264" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Orchestrator and task servers</text>
+<text x="552" y="292" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Admission, feedback and results</text>
+
+<rect x="40" y="408" width="256" height="224" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="444" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Execution support</text>
+<text x="60" y="476" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/core/</text>
+<text x="60" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Task parsing and batching</text>
+<text x="60" y="536" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Plan cache and lifecycle</text>
+<text x="60" y="564" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Tool-change coordination</text>
+
+<rect x="344" y="408" width="256" height="224" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="364" y="444" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Task stages</text>
+<text x="364" y="476" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/stages/</text>
+<text x="364" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">MTC task construction</text>
+<text x="364" y="536" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Shared motion helpers</text>
+<text x="364" y="564" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Per-task execution</text>
+
+<rect x="648" y="408" width="272" height="224" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="668" y="444" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Perception &amp; mapping</text>
+<text x="668" y="476" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/vision/</text>
+<text x="668" y="504" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">camera/ · detection/</text>
+<text x="668" y="536" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Capture, detection and TF</text>
+<text x="668" y="564" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Lookup and goal geometry</text>
+<text x="668" y="600" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/mapping/</text>
+
+<rect x="40" y="664" width="880" height="128" rx="8" fill="#f3f6fb" stroke="#52647a"/>
+<text x="60" y="700" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Shared beamline configuration</text>
+<text x="60" y="732" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/config_loader.py + selected beamline YAML</text>
+<text x="60" y="764" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Consumed across launch, GUI, action servers, stages and perception.</text>
+
+<text x="40" y="836" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Selected calls are shown. VisionEngine also inherits BaseStages; these are responsibility groups.</text>
+<line x1="40" y1="868" x2="920" y2="868" stroke="#dbe3ee"/>
+<line x1="40" y1="900" x2="88" y2="900" stroke="#52647a" stroke-width="1.5"/>
+<text x="104" y="904" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Python composition / calls</text>
+<line x1="488" y1="900" x2="536" y2="900" stroke="#235cb7" stroke-width="1.5"/>
+<text x="552" y="904" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">ROS action boundary</text>
+</svg></span><span class="visual-card-title">Where each behavior belongs</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../hardware/robot-models.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1120" aria-hidden="true" aria-labelledby="robot-model-title robot-model-desc">
+<title id="robot-model-title">One robot, two model-loading paths</title>
+<desc id="robot-model-desc">CMS bringup assembles geometry, planning semantics, YAML settings and arm calibration for MoveIt and the UR driver, while the GUI separately loads the expanded URDF selected by the beamline configuration.</desc>
+<defs><marker id="robot-model-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="robot-model-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="robot-model-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="960" height="1120" fill="#ffffff"/>
+<text x="40" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / CMS ROBOT MODEL</text>
+<text x="40" y="84" font-size="28" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">One robot, two model-loading paths</text>
+<text x="40" y="132" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">The selected beamline and active tool choose the xacro, SRDF branch and tool configuration.</text>
+<text x="40" y="192" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">PLANNING / BRINGUP</text>
+
+<path d="M 168,364 V 404 Q 168,412 176,412 H 408 Q 416,412 416,420 V 468" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<path d="M 472,364 V 380 Q 472,388 480,388 H 624 Q 632,388 632,396 V 468" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<line x1="784" y1="364" x2="784" y2="468" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<line x1="296" y1="532" x2="344" y2="532" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<line x1="168" y1="600" x2="168" y2="704" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<path d="M 416,600 V 644 Q 416,652 408,652 H 352 Q 344,652 344,660 V 704" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<line x1="784" y1="600" x2="784" y2="704" stroke="#235cb7" stroke-width="1.5" marker-end="url(#robot-model-arrow-accent)"/>
+<rect x="796" y="636" width="112" height="28" fill="#ffffff"/>
+<text x="808" y="656" font-size="16" font-family="ui-monospace, monospace" fill="#235cb7">PARAMETERS</text>
+
+<rect x="40" y="220" width="256" height="144" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="256" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Geometry</text>
+<text x="60" y="288" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">launch_urdf → xacro</text>
+<text x="60" y="320" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Links, joints and tool</text>
+<text x="60" y="348" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Meshes and mounting</text>
+
+<rect x="344" y="220" width="256" height="144" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="364" y="256" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Planning semantics</text>
+<text x="364" y="288" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">SRDF xacro</text>
+<text x="364" y="320" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Groups and named states</text>
+<text x="364" y="348" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Collision exclusions</text>
+
+<rect x="648" y="220" width="272" height="144" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="668" y="256" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Planning / control</text>
+<text x="668" y="288" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">YAML configuration</text>
+<text x="668" y="320" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Planners, IK and limits</text>
+<text x="668" y="348" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">MoveIt controller map</text>
+
+<rect x="40" y="468" width="256" height="132" rx="8" fill="#f3f6fb" stroke="#52647a"/>
+<text x="60" y="504" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Arm calibration</text>
+<text x="60" y="536" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">ur5e_calibration.yaml</text>
+<text x="60" y="568" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Shared by planning and TF</text>
+
+<rect x="344" y="468" width="576" height="132" rx="8" fill="#edf3ff" stroke="#235cb7"/>
+<text x="364" y="504" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">CMS bringup assembles the runtime model</text>
+<text x="364" y="536" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">robot_bringup.launch.py · MoveItConfigsBuilder</text>
+<text x="364" y="568" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Expanded URDF + SRDF + planning and execution settings</text>
+
+<rect x="40" y="704" width="392" height="104" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="740" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">UR driver + robot state publisher</text>
+<text x="60" y="772" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Controllers and calibrated robot TF</text>
+
+<rect x="528" y="704" width="392" height="104" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="548" y="740" font-size="20" font-family="ui-monospace, monospace" font-weight="600" fill="#18283b">move_group</text>
+<text x="548" y="772" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Planning, scene and MTC execution</text>
+<text x="40" y="848" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Bringup passes the selected xacro to the UR driver; both planning and TF use arm calibration.</text>
+
+<line x1="40" y1="880" x2="920" y2="880" stroke="#dbe3ee"/>
+<text x="40" y="912" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">GUI / SEPARATE FILE LOAD</text>
+<line x1="432" y1="996" x2="528" y2="996" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<rect x="444" y="956" width="72" height="28" fill="#ffffff"/>
+<text x="480" y="976" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">LOAD</text>
+<rect x="40" y="940" width="392" height="112" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="976" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Existing expanded URDF</text>
+<text x="60" y="1008" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">urdf_file → selected .urdf</text>
+<text x="60" y="1036" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">From the beamline description package</text>
+<rect x="528" y="940" width="392" height="112" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="548" y="976" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">GUI 3D viewer</text>
+<text x="548" y="1008" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">VisualizationPanel → URDFLoader</text>
+<text x="548" y="1036" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Local model and package meshes</text>
+<text x="40" y="1092" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Updating xacro does not regenerate the GUI’s selected URDF. Check the two models together.</text>
+</svg></span><span class="visual-card-title">One robot, two model-loading paths</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../architecture/index.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" aria-hidden="true" aria-labelledby="system-title system-desc">
+<title id="system-title">From task requests to robot motion</title>
+<desc id="system-desc">Task clients send JSON goals to the orchestrator, which runs batch stages or child action servers; direct clients can also call child actions.</desc>
+<defs><marker id="system-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="system-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="system-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  ARCHITECTURE</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">From task requests to robot motion</text><rect x="40" y="132" width="256" height="440" rx="8" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="64" y="160" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">CLIENTS</text><rect x="344" y="132" width="584" height="440" rx="8" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="368" y="160" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">TASK EXECUTION</text><rect x="976" y="132" width="256" height="440" rx="8" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="1000" y="160" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">MOTION / DEVICES</text><line x1="264" y1="232" x2="376" y2="232" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><line x1="600" y1="232" x2="680" y2="232" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><line x1="896" y1="232" x2="1000" y2="232" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><path d="M 488,280 V 436 Q 488,444 496,444 H 680" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><line x1="264" y1="488" x2="680" y2="488" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><path d="M 896,436 H 944 Q 952,436 952,428 V 316 Q 952,308 960,308 H 1080 Q 1088,308 1088,300 V 280" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><line x1="896" y1="484" x2="1000" y2="484" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><line x1="1136" y1="280" x2="1136" y2="440" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><rect x="292.0" y="192" width="56" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="320" y="212" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">GOAL</text><rect x="920.0" y="192" width="56" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="948" y="212" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">PLAN</text><rect x="508.0" y="404" width="96" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="556" y="424" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">DISPATCH</text><rect x="392.0" y="448" width="152" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="468" y="468" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">DIRECT ACTION</text><rect x="1148.0" y="340" width="88" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="1192" y="360" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">EXECUTE</text><rect x="64" y="184" width="200" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="164" y="228" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Task clients</text><text x="164" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">GUI · JSON · MCP</text><rect x="64" y="440" width="200" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="164" y="484" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Direct clients</text><text x="164" y="508" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">actions · surveys</text><rect x="376" y="184" width="224" height="96" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="488" y="228" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Orchestrator</text><text x="488" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">beambot_execution</text><rect x="680" y="184" width="216" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="788" y="216" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Batch stages</text><text x="788" y="240" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">moveto ·</text><text x="788" y="264" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">end_effector</text><rect x="680" y="408" width="216" height="128" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="788" y="456" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Task action servers</text><text x="788" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">vision · tool ·</text><text x="788" y="504" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">devices</text><rect x="1000" y="184" width="216" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1108" y="228" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">MTC / MoveIt</text><text x="1108" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">plan and execute</text><rect x="1000" y="440" width="216" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1108" y="472" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Robot and tools</text><text x="1108" y="496" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">controllers /</text><text x="1108" y="520" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">device I/O</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Solid arrows show principal calls. Device actions may bypass MoveIt; perception details are shown separately.</text>
+</svg></span><span class="visual-card-title">From task requests to robot motion</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../architecture/execution.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" aria-hidden="true" aria-labelledby="execution-title execution-desc">
+<title id="execution-title">Task execution flow</title>
+<desc id="execution-desc">The orchestrator prepares a robot model, processes execution units through MTC or child actions, and returns a final action result.</desc>
+<defs><marker id="execution-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="execution-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="execution-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  SEQUENCE</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">Task execution flow</text><line x1="120" y1="188" x2="120" y2="652" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="380" y1="188" x2="380" y2="652" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="640" y1="188" x2="640" y2="652" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="880" y1="188" x2="880" y2="652" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="1136" y1="188" x2="1136" y2="652" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><rect x="324" y="352" width="844" height="252" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><rect x="324" y="352" width="48" height="24" rx="2" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="348" y="368" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">LOOP</text><text x="440" y="380" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">for each execution unit</text><rect x="376" y="224" width="8" height="416" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="636" y="276" width="8" height="52" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="876" y="416" width="8" height="144" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="1132" y="464" width="8" height="48" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><line x1="120" y1="224" x2="380" y2="224" stroke="#52647a" stroke-width="1.5" marker-end="url(#execution-arrow)"/><rect x="192.0" y="180" width="112" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="248" y="200" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">JSON GOAL</text><line x1="380" y1="276" x2="640" y2="276" stroke="#52647a" stroke-width="1.5" marker-end="url(#execution-arrow)"/><rect x="444.0" y="232" width="136" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="512" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">ENSURE MODEL</text><line x1="640" y1="328" x2="380" y2="328" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#execution-arrow)"/><rect x="448.0" y="284" width="128" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="512" y="304" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">MODEL READY</text><line x1="380" y1="416" x2="880" y2="416" stroke="#52647a" stroke-width="1.5" marker-end="url(#execution-arrow)"/><rect x="688.0" y="372" width="152" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="764" y="392" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">DISPATCH UNIT</text><line x1="880" y1="464" x2="1136" y2="464" stroke="#52647a" stroke-width="1.5" marker-end="url(#execution-arrow)"/><rect x="928.0" y="420" width="160" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="1008" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">PLAN / EXECUTE</text><line x1="1136" y1="512" x2="880" y2="512" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#execution-arrow)"/><rect x="964.0" y="468" width="88" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="1008" y="488" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">OUTCOME</text><line x1="880" y1="560" x2="380" y2="560" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#execution-arrow)"/><rect x="696.0" y="516" width="128" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="760" y="536" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">UNIT RESULT</text><line x1="380" y1="640" x2="120" y2="640" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#execution-arrow)"/><rect x="180.0" y="596" width="136" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="248" y="616" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">FINAL RESULT</text><rect x="40.0" y="120" width="160" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="120" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Task client</text><text x="120" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">MTCExecution</text><rect x="276.0" y="120" width="208" height="68" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="380" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Orchestrator</text><text x="380" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">validate · group</text><rect x="528.0" y="120" width="224" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="640" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">MoveIt lifecycle</text><text x="640" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">model readiness</text><rect x="776.0" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="880" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Task execution</text><text x="880" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">batch / action</text><rect x="1032.0" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1136" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">MTC / controllers</text><text x="1136" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">plan · execute</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Successful motion with fresh planning. Cached replay and dry-run preview change the execution step.</text>
+</svg></span><span class="visual-card-title">Task execution flow</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../architecture/batching.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" aria-hidden="true" aria-labelledby="batching-title batching-desc">
+<title id="batching-title">How batching groups tasks</title>
+<desc id="batching-desc">With batching enabled, consecutive moveto and end_effector tasks accumulate; every other type closes that batch and becomes a single execution unit.</desc>
+<defs><marker id="batching-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="batching-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="batching-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="960" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  FLOWCHART</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">How batching groups tasks</text><line x1="512" y1="176" x2="512" y2="208" stroke="#52647a" stroke-width="1.5" marker-end="url(#batching-arrow)"/><path d="M 388,268 H 232 Q 224,268 224,276 V 400" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#batching-arrow)"/><rect x="288.0" y="224" width="40" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="308" y="244" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">NO</text><path d="M 636,268 H 648 Q 656,268 656,276 V 392" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#batching-arrow)"/><rect x="668.0" y="316" width="48" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="692" y="336" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">YES</text><path d="M 780,452 H 816 Q 824,452 824,460 V 576" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#batching-arrow)"/><rect x="800.0" y="408" width="48" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="824" y="428" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">YES</text><path d="M 656,512 V 536 Q 656,544 648,544 H 524 Q 516,544 516,552 V 576" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#batching-arrow)"/><rect x="564.0" y="500" width="40" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="584" y="520" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">NO</text><rect x="392" y="112" width="240" height="64" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="512" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Next task in order</text><polygon points="512,208 636,268 512,328 388,268" fill="#ffffff" stroke="#52647a" stroke-width="1"/><text x="512" y="272" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Batching enabled?</text><polygon points="656,392 780,452 656,512 532,452" fill="#edf3ff" stroke="#235cb7" stroke-width="1"/><text x="656" y="444" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">moveto or</text><text x="656" y="468" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">end_effector?</text><rect x="96" y="400" width="256" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="224" y="444" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Run as one unit</text><text x="224" y="468" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">batching disabled</text><rect x="384" y="576" width="264" height="72" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="516" y="608" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Close the batch</text><text x="516" y="632" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">run this task separately</text><rect x="712" y="576" width="208" height="72" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="816" y="608" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Add to batch</text><text x="816" y="632" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">keep task order</text><line x1="48" y1="660" x2="912" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Keep task order. Close the batch before another task type and at the end of the script.</text>
+</svg></span><span class="visual-card-title">How batching groups tasks</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../architecture/lifecycle.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" aria-hidden="true" aria-labelledby="tool-exchange-title tool-exchange-desc">
+<title id="tool-exchange-title">Tool exchange changes hardware, then the model</title>
+<desc id="tool-exchange-desc">After a successful physical load or dock, the manager records the changed gripper, restarts MoveIt for that gripper, and requests the unified vision-task transform reset.</desc>
+<defs><marker id="tool-exchange-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="tool-exchange-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="tool-exchange-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  SEQUENCE</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">Tool exchange changes hardware, then the model</text><line x1="152" y1="188" x2="152" y2="648" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="384" y1="188" x2="384" y2="648" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="632" y1="188" x2="632" y2="648" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="880" y1="188" x2="880" y2="648" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="1128" y1="188" x2="1128" y2="648" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><rect x="80" y="200" width="352" height="144" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><rect x="80" y="200" width="40" height="24" rx="2" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="100" y="216" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">OPT</text><text x="176" y="228" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">dock on real hardware</text><rect x="80" y="472" width="1096" height="176" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><rect x="80" y="472" width="40" height="24" rx="2" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="100" y="488" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">OPT</text><text x="176" y="496" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">attached gripper changed</text><rect x="148" y="256" width="8" height="384" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="380" y="284" width="8" height="52" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="628" y="388" width="8" height="60" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="876" y="540" width="8" height="48" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><line x1="152" y1="284" x2="384" y2="284" stroke="#52647a" stroke-width="1.5" marker-end="url(#tool-exchange-arrow)"/><rect x="220.0" y="240" width="88" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="264" y="260" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">SET 0 V</text><line x1="384" y1="336" x2="152" y2="336" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#tool-exchange-arrow)"/><rect x="208.0" y="292" width="112" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="264" y="312" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">CONFIRMED</text><line x1="152" y1="396" x2="632" y2="396" stroke="#52647a" stroke-width="1.5" marker-end="url(#tool-exchange-arrow)"/><rect x="448.0" y="352" width="128" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="512" y="372" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">LOAD / DOCK</text><line x1="632" y1="448" x2="152" y2="448" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#tool-exchange-arrow)"/><rect x="468.0" y="404" width="88" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="512" y="424" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">SUCCESS</text><line x1="152" y1="540" x2="880" y2="540" stroke="#52647a" stroke-width="1.5" marker-end="url(#tool-exchange-arrow)"/><rect x="684.0" y="496" width="152" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="760" y="516" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">RESTART MODEL</text><line x1="880" y1="588" x2="152" y2="588" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#tool-exchange-arrow)"/><rect x="724.0" y="544" width="72" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="760" y="564" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">READY</text><line x1="152" y1="636" x2="1128" y2="636" stroke="#52647a" stroke-width="1.5" marker-end="url(#tool-exchange-arrow)"/><rect x="960.0" y="592" width="96" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="1008" y="612" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">RESET TF</text><rect x="40" y="120" width="224" height="68" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="152" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Exchange manager</text><text x="152" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">validate dock / load</text><rect x="280" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="384" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">UR I/O service</text><text x="384" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">real hardware only</text><rect x="528" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="632" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Tool action server</text><text x="632" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">physical exchange</text><rect x="776" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="880" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">MoveIt lifecycle</text><text x="880" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">new gripper model</text><rect x="1024" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1128" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Vision task server</text><text x="1128" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">cached transforms</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Gripper state is recorded before restart. Restart failure returns failure; vision reset failures are warnings, not rollback.</text>
+</svg></span><span class="visual-card-title">Tool exchange changes hardware, then the model</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../architecture/perception.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" aria-hidden="true" aria-labelledby="vision-title vision-desc">
+<title id="vision-title">Vision turns a detection into a motion target</title>
+<desc id="vision-desc">A vision task prepares the scan, runs its detector and goal computer, optionally executes a Cartesian or joint target, and reports a result.</desc>
+<defs><marker id="vision-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="vision-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="vision-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  DATA FLOW</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">Vision turns a detection into a motion target</text><rect x="48" y="160" width="1184" height="104" rx="0" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="64" y="216" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">PREPARATION</text><rect x="48" y="264" width="1184" height="104" rx="0" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="64" y="320" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">PERCEPTION</text><rect x="48" y="368" width="1184" height="104" rx="0" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="64" y="424" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">MOTION</text><rect x="48" y="472" width="1184" height="104" rx="0" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="64" y="528" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">RESULT</text><rect x="256" y="112" width="40" height="24" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="276" y="128" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">01</text><text x="276" y="152" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">PREPARE</text><rect x="464" y="112" width="40" height="24" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="484" y="128" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">02</text><text x="484" y="152" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">DETECT</text><rect x="672" y="112" width="40" height="24" rx="4" fill="#edf3ff" stroke="#dbe3ee" stroke-width="1" /><text x="692" y="128" font-size="16" font-family="ui-monospace, monospace" fill="#235cb7" text-anchor="middle" font-weight="400">03</text><text x="692" y="152" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">TARGET</text><rect x="880" y="112" width="40" height="24" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="900" y="128" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">04</text><text x="900" y="152" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">EXECUTE</text><rect x="1088" y="112" width="40" height="24" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="1108" y="128" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">05</text><text x="1108" y="152" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">REPORT</text><line x1="176" y1="160" x2="176" y2="576" stroke="#dbe3ee" stroke-width="1.5"/><path d="M 368,208 H 476 Q 484,208 484,216 V 272" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#vision-arrow)"/><line x1="576" y1="312" x2="600" y2="312" stroke="#52647a" stroke-width="1.5" marker-end="url(#vision-arrow)"/><path d="M 784,344 H 892 Q 900,344 900,352 V 376" fill="none" stroke="#235cb7" stroke-width="1.5" marker-end="url(#vision-arrow-accent)"/><rect x="800.0" y="300" width="80" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="840" y="320" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">TARGET</text><path d="M 992,416 H 1072 Q 1080,416 1080,424 V 480" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#vision-arrow)"/><path d="M 784,280 H 1140 Q 1148,280 1148,288 V 480" fill="none" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#vision-arrow)"/><rect x="184" y="168" width="184" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="276" y="196" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Prepare scan</text><text x="276" y="220" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">open / move</text><text x="276" y="244" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">optional</text><rect x="392" y="272" width="184" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="484" y="300" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Detector</text><text x="484" y="324" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">image / cached</text><text x="484" y="348" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">pose</text><rect x="600" y="272" width="184" height="88" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="692" y="300" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Goal computer</text><text x="692" y="324" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">pose / joints</text><text x="692" y="348" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">or return pose</text><rect x="808" y="376" width="184" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="900" y="404" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">MTC execution</text><text x="900" y="428" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">Cartesian /</text><text x="900" y="452" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">joints</text><rect x="1016" y="480" width="184" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1108" y="508" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Action result</text><text x="1108" y="532" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">pose · success ·</text><text x="1108" y="556" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">error</text><text x="184" y="616" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Solid: normal data handoff</text><line x1="496" y1="612" x2="536" y2="612" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#vision-arrow)"/><text x="552" y="616" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Dashed: approach_pose with detect_only</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Detect Only skips the computed approach. Earlier scan moves can still occur; j6_snap ignores this flag.</text>
+</svg></span><span class="visual-card-title">Vision turns a detection into a motion target</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../architecture/configuration.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" aria-hidden="true" aria-labelledby="configuration-title configuration-desc">
+<title id="configuration-title">Beamline configuration within each process</title>
+<desc id="configuration-desc">The environment selects a beamline YAML. Each process using the shared loader caches its own settings and source path for robot, camera, pose, and scene consumers.</desc>
+<defs><marker id="configuration-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="configuration-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="configuration-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  ARCHITECTURE</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">Beamline configuration within each process</text><line x1="400" y1="204" x2="504" y2="204" stroke="#52647a" stroke-width="1.5" marker-end="url(#configuration-arrow)"/><rect x="412.0" y="160" width="80" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="452" y="180" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">SELECT</text><line x1="776" y1="204" x2="880" y2="204" stroke="#52647a" stroke-width="1.5" marker-end="url(#configuration-arrow)"/><rect x="792.0" y="160" width="72" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="828" y="180" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">CACHE</text><path d="M 976,244 V 324 Q 976,332 968,332 H 280 Q 272,332 272,340 V 416" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#configuration-arrow)"/><path d="M 1048,244 V 356 Q 1048,364 1040,364 H 648 Q 640,364 640,372 V 416" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#configuration-arrow)"/><path d="M 1120,244 V 388 Q 1120,396 1112,396 H 1016 Q 1008,396 1008,404 V 416" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#configuration-arrow)"/><rect x="48" y="160" width="352" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="224" y="200" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">BEAMBOT_BEAMLINE_CONFIG</text><text x="224" y="224" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">explicit existing YAML path</text><rect x="504" y="160" width="272" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="640" y="188" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Configuration loader</text><text x="640" y="212" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">read selected YAML</text><text x="640" y="236" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">return settings</text><rect x="880" y="160" width="336" height="88" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="1048" y="200" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Settings + source path</text><text x="1048" y="224" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">cached for this process</text><rect x="136" y="416" width="272" height="112" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="272" y="456" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Robot and tool model</text><text x="272" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">packages · frames ·</text><text x="272" y="504" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">tool settings</text><rect x="504" y="416" width="272" height="112" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="640" y="456" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Camera and vision</text><text x="640" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">type · frames · target</text><text x="640" y="504" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">profiles</text><rect x="872" y="416" width="272" height="112" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1008" y="468" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Poses and scene files</text><text x="1008" y="492" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">resolve configured paths</text><text x="136" y="568" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Used by lifecycle and stages</text><text x="504" y="568" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Used by vision and task routing</text><text x="872" y="568" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Workspace-relative when found</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Restart affected processes after changing the selected file or its contents. Each process keeps its own cached settings.</text>
+</svg></span><span class="visual-card-title">Beamline configuration within each process</span><span class="visual-card-hint">Read the guide →</span></a>
+<a class="visual-card" href="../operate/controls.html"><span class="visual-thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" aria-hidden="true" aria-labelledby="states-title states-desc">
+<title id="states-title">Execution state messages and control boundaries</title>
+<desc id="states-desc">The normal path cycles through IDLE, RUNNING, COMPLETING_TASK and PAUSED; cancellation reports CANCELING, while uncertain failures can latch FAULTED.</desc>
+<defs><marker id="states-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="states-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="states-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  STATE MACHINE</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">Execution state messages and control boundaries</text><circle cx="64" cy="224" r="8" fill="#18283b"/><line x1="72" y1="224" x2="96" y2="224" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><line x1="296" y1="224" x2="448" y2="224" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="308.0" y="180" width="128" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="372" y="200" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">MODEL READY</text><line x1="688" y1="224" x2="880" y2="224" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="708.0" y="180" width="152" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="784" y="200" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">PAUSE REQUEST</text><line x1="1040" y1="264" x2="1040" y2="448" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="1072.0" y="328" width="112" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="1128" y="348" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">UNIT ENDS</text><path d="M 560,184 V 140 Q 560,132 552,132 H 200 Q 192,132 192,140 V 184" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="288.0" y="88" width="176" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="376" y="108" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">RESULT; NO FAULT</text><path d="M 560,264 V 328 Q 560,336 568,336 H 912 Q 920,336 920,344 V 448" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="580.0" y="292" width="120" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="640" y="312" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">PAUSE STEP</text><path d="M 880,488 H 760 Q 752,488 752,480 V 344 a 8,8 0 0,1 0,-16 V 296 Q 752,288 744,288 H 632 Q 624,288 624,280 V 264" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="768.0" y="368" width="80" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="808" y="388" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">RESUME</text><path d="M 448,488 H 352 Q 344,488 344,480 V 312 Q 344,304 336,304 H 208 Q 200,304 200,296 V 264" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="232.0" y="260" width="88" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="276" y="280" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">SETTLED</text><rect x="96" y="184" width="200" height="80" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="196" y="220" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">IDLE</text><text x="196" y="244" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">initial / cleanup</text><rect x="448" y="184" width="240" height="80" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="568" y="220" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">RUNNING</text><text x="568" y="244" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">unit execution</text><rect x="880" y="184" width="304" height="80" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1032" y="220" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">COMPLETING_TASK</text><text x="1032" y="244" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">pause requested</text><rect x="880" y="448" width="240" height="80" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1000" y="484" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">PAUSED</text><text x="1000" y="508" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">waiting for resume</text><rect x="448" y="448" width="240" height="80" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="568" y="484" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">CANCELING</text><text x="568" y="508" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">cancel requested</text><rect x="96" y="448" width="224" height="80" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="208" y="484" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">FAULTED</text><text x="208" y="508" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">restart to recover</text><text x="96" y="576" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">* Uncertain failure / exception</text><text x="96" y="600" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Faulted goals are rejected.</text><text x="448" y="576" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">* Cancel from an active goal</text><text x="448" y="600" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Waits for the active unit.</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">* Cross-state rules are summarized below their destination. IDLE is a lifecycle status, not proof that the last task succeeded.</text>
+</svg></span><span class="visual-card-title">Execution state messages and control boundaries</span><span class="visual-card-hint">Read the guide →</span></a>
+</div><section id="figure-index">
+<h2>Figure index<a class="headerlink" href="#figure-index" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Figure</p></th>
+<th class="head"><p>What it explains</p></th>
+<th class="head"><p>Read the explanation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference download internal" download="" href="../_downloads/8a158d9dde9860cbeaf2bdb5079fa1c7/frames-units.html"><span class="xref download myst">Frames and units</span></a></p></td>
+<td><p>Absolute coordinates, local displacement, and unit conversions</p></td>
+<td><p><a class="reference internal" href="../start/concepts.html"><span class="std std-doc">Concepts</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference download internal" download="" href="../_downloads/34e860d48720ff5b67169e61b168a79b/task-anatomy.html"><span class="xref download myst">Task anatomy</span></a></p></td>
+<td><p>How a complete JSON task declares its tool, poses, and work</p></td>
+<td><p><a class="reference internal" href="../operate/tasks.html"><span class="std std-doc">Task scripts</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference download internal" download="" href="../_downloads/1eac2850c25a9b84da165513303092fe/preview-comparison.html"><span class="xref download myst">Preview comparison</span></a></p></td>
+<td><p>Connected batched plans versus independent unbatched previews</p></td>
+<td><p><a class="reference internal" href="../operate/tasks.html"><span class="std std-doc">Task scripts</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference download internal" download="" href="../_downloads/5d65cb7d014d0e79710cba9b6cf88fbd/motion-targets.html"><span class="xref download myst">MoveTo target choices</span></a></p></td>
+<td><p>Three mutually exclusive request forms and their automatic planner chains</p></td>
+<td><p><a class="reference internal" href="../reference/tasks.html"><span class="std std-doc">Task reference</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference download internal" download="" href="../_downloads/73f150aa5be5c7b3cec15deae2df7161/module-map.html"><span class="xref download myst">Module ownership</span></a></p></td>
+<td><p>Which source areas own interfaces, coordination, stages, and perception</p></td>
+<td><p><a class="reference internal" href="../reference/modules.html"><span class="std std-doc">Module map</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference download internal" download="" href="../_downloads/a314cf2e028cc5d65970d12d0da4190b/robot-model.html"><span class="xref download myst">Robot model assembly</span></a></p></td>
+<td><p>Geometry, semantics, control configuration, and the separate GUI model</p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">Robot models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference download internal" download="" href="../_downloads/88ee89f2c176d9a7764e116c6cf8dd3d/system.html"><span class="xref download myst">System architecture</span></a></p></td>
+<td><p>Task clients, the orchestrator, child actions, MoveIt, and devices</p></td>
+<td><p><a class="reference internal" href="../architecture/index.html"><span class="std std-doc">Architecture</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference download internal" download="" href="../_downloads/a6f09491d525cca61517d8930a900c5c/execution.html"><span class="xref download myst">Task execution</span></a></p></td>
+<td><p>A motion goal’s model preparation, execution units, and final result</p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">Execution</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference download internal" download="" href="../_downloads/1c1e850f8556cbac09ffcf6edb9664f4/batching.html"><span class="xref download myst">Batch selection</span></a></p></td>
+<td><p>Which task types accumulate and which create a boundary</p></td>
+<td><p><a class="reference internal" href="../architecture/batching.html"><span class="std std-doc">Batching and replay</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference download internal" download="" href="../_downloads/c3544c63af0a888c42d9941341d5e95f/tool-exchange.html"><span class="xref download myst">Tool exchange</span></a></p></td>
+<td><p>Physical exchange, gripper state, model restart, and vision resets</p></td>
+<td><p><a class="reference internal" href="../architecture/lifecycle.html"><span class="std std-doc">Tool and model lifecycle</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference download internal" download="" href="../_downloads/dd91b2299a3d62238fc90add10279c30/vision.html"><span class="xref download myst">Vision pipeline</span></a></p></td>
+<td><p>Detection, goal computation, optional motion, and results</p></td>
+<td><p><a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">Perception</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference download internal" download="" href="../_downloads/abfb9294cee286cd6efc2fd1c6e1392b/configuration.html"><span class="xref download myst">Configuration</span></a></p></td>
+<td><p>Explicit beamline selection and shared configuration consumers</p></td>
+<td><p><a class="reference internal" href="../architecture/configuration.html"><span class="std std-doc">Configuration flow</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference download internal" download="" href="../_downloads/bd2885933c9339bcd6a76904786603a5/states.html"><span class="xref download myst">Execution states</span></a></p></td>
+<td><p>Pause, resume, cancellation, and fault boundaries</p></td>
+<td><p><a class="reference internal" href="../operate/controls.html"><span class="std std-doc">Execution controls</span></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="reading-the-figures">
+<h2>Reading the figures<a class="headerlink" href="#reading-the-figures" title="Link to this heading"></a></h2>
+<section id="tasks-coordinates-and-code">
+<h3>Tasks, coordinates, and code<a class="headerlink" href="#tasks-coordinates-and-code" title="Link to this heading"></a></h3>
+<p>The <a class="reference internal" href="../operate/gui.html"><span class="std std-doc">GUI guide</span></a> uses application screenshots to locate the real controls. The diagrams here explain relationships and behavior: task anatomy annotates a minimal named-move task, while the preview comparison assumes the robot stays at A during both planning requests.</p>
+<p>The frames illustration separates a base-frame position from displacement along a rotated local frame. Its numbers teach units, not calibrated robot targets. The MoveTo decision figure shows the automatic planner chains; explicit planner selection has its own behavior in the task reference.</p>
+<p>The module map groups ownership rather than asserting a strict import hierarchy. Model assembly keeps the launch-time robot description separate from the expanded URDF selected by the GUI.</p>
+</section>
+<section id="execution-and-tool-changes">
+<h3>Execution and tool changes<a class="headerlink" href="#execution-and-tool-changes" title="Link to this heading"></a></h3>
+<p>The system figure groups clients and task servers to show the main paths. Direct action clients can bypass the orchestrator. Vision transformations, model verification, and controller details have separate explanations.</p>
+<p>The execution sequence shows a successful <strong>motion</strong> unit with fresh planning. Batch stages execute in the orchestrator process; a single task can instead use a child action server. Pipettor device calls, cache replay, and dry-run preview do not follow every arrow in this representative sequence.</p>
+<p>Batching preserves input order. With batching enabled, consecutive <code class="docutils literal notranslate"><span class="pre">moveto</span></code> and <code class="docutils literal notranslate"><span class="pre">end_effector</span></code> tasks share an execution unit. Other types flush the accumulated batch and become single units. There is no separate action-specific breaker parameter. A <code class="docutils literal notranslate"><span class="pre">pause</span></code> task is handled locally by the orchestrator rather than sent to a child server.</p>
+<p>The tool exchange sequence has two independent optional sections:</p>
+<ul class="simple">
+<li><p>Real-hardware docking first sets the tool voltage to 0 V.</p></li>
+<li><p>A changed attached gripper triggers a model restart and vision resets after successful physical motion.</p></li>
+</ul>
+<p>The manager records the new gripper <strong>before</strong> attempting the restart. A failed restart returns failure without undoing the physical exchange. Vision reset failures are logged as warnings.</p>
+</section>
+<section id="vision-and-configuration">
+<h3>Vision and configuration<a class="headerlink" href="#vision-and-configuration" title="Link to this heading"></a></h3>
+<p>The vision figure follows the unified <code class="docutils literal notranslate"><span class="pre">VisionTaskStages.run</span></code> path. The optional scan move happens before settling, detection, and goal computation. A goal computer can produce a Cartesian target, a joint target, a detect-only result, or a cache-only completion. Detection and computation errors stop this path. The separate <code class="docutils literal notranslate"><span class="pre">vision_scan</span></code> action and individual detector algorithms are outside this overview.</p>
+<p>Configuration is parsed once per process. The top-level loader requires an explicit existing YAML file with a mapping at its root.</p>
+<p>For relative resource paths, the resolver searches up to ten ancestors for a directory with a <code class="docutils literal notranslate"><span class="pre">src/</span></code> child. If none is found, it uses the configuration directory. Some helpers provide fallback values for isolated use; the top-level loader still requires explicit configuration.</p>
+</section>
+<section id="execution-states">
+<h3>Execution states<a class="headerlink" href="#execution-states" title="Link to this heading"></a></h3>
+<p>Execution state messages describe lifecycle progress. Read the ROS action result to determine whether a goal succeeded.</p>
+<p><code class="docutils literal notranslate"><span class="pre">IDLE</span></code> appears initially and during non-faulted cleanup, including after a failed goal. The previous <code class="docutils literal notranslate"><span class="pre">IDLE</span></code> message can also remain visible while an accepted goal’s model starts.</p>
+<p>Pause and cancellation operate at execution-unit boundaries. The figure shows common paths; its asterisk notes describe cancel and fault rules across active states. The current orchestrator has no reset service to clear a latched fault.</p>
+</section>
+</section>
+<section id="editing-and-checking">
+<h2>Editing and checking<a class="headerlink" href="#editing-and-checking" title="Link to this heading"></a></h2>
+<p>Each figure is an editable HTML file under <code class="docutils literal notranslate"><span class="pre">docs/diagrams/</span></code>, with inline SVG, system fonts, and no network dependency. Its text remains selectable and searchable.</p>
+<p>Keep the accessible title, description, and diagram-specific IDs. The site build embeds the SVG and links to the full-size HTML; the browser needs no diagram renderer.</p>
+<p>The design follows <a class="reference external" href="https://github.com/cathrynlavery/diagram-design">Cathryn Lavery’s Diagram Design</a>, pinned to <code class="docutils literal notranslate"><span class="pre">8d8b2993ee2256ee7dfc0eeb3b5713aba3b60792</span></code>. The project-specific blue palette and system-font profile are stored in <code class="docutils literal notranslate"><span class="pre">scripts/diagram-style-guide.md</span></code>. The isolated upstream checkout is disposable; the authored figures and profile are the durable source.</p>
+<p>From the root of the documentation source repository:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="c1"># First use: fetch the pinned authoring tools into .tools/.</span>
+python3<span class="w"> </span>scripts/check_diagrams.py<span class="w"> </span>--bootstrap
+
+<span class="c1"># Subsequent checks work offline.</span>
+python3<span class="w"> </span>scripts/check_diagrams.py
+</pre></div>
+</div>
+<p>Every figure must pass the upstream accessibility/single-file check, skin lint, and geometry check. Also check label readability, connector crossings, and mobile layout in the browser. Keep full-size diagrams available.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../maintenance/limitations.html" class="btn btn-neutral float-left" title="Known limitations" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

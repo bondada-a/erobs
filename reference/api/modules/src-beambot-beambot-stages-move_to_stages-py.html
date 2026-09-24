@@ -1,0 +1,364 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MoveTo planning stages &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Shared motion stages" href="src-beambot-beambot-stages-base_stages-py.html" />
+    <link rel="prev" title="MoveTo action server" href="src-beambot-beambot-action_servers-move_to_server-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-move_to_server-py.html">MoveTo action server</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">MoveTo planning stages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-base_stages-py.html">Shared motion stages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-plan_cache-py.html">Trajectory plan cache</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-custom-ur-descriptions-cms_moveit_config-src-servo_node_jazzy-cpp.html">CMS Servo controller</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/motion-planning.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/motion-planning.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/motion-planning.html">Motion planning</a></li>
+      <li class="breadcrumb-item active">MoveTo planning stages</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="moveto-planning-stages">
+<h1>MoveTo planning stages<a class="headerlink" href="#moveto-planning-stages" title="Link to this heading"></a></h1>
+<p>Compose and execute named, relative and Cartesian MoveTo goals, using shared validation, target-specific fallback planners and TF-based tool-tip selection.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.stages.move_to_stages</span></code> · <a href="../../../api-source/src/beambot/beambot/stages/move_to_stages.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/motion-planning.html"><span class="std std-doc">Motion planning</span></a> · <a class="reference internal" href="../../../architecture/batching.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MoveToActionServer</span></code> uses <code class="docutils literal notranslate"><span class="pre">run()</span></code> to plan and execute one goal. The orchestrator instead uses <code class="docutils literal notranslate"><span class="pre">add_to_task()</span></code> to compose multiple moves into a batch. Both paths share target validation, planner selection, and tool-tip resolution.</p>
+<p>Read <code class="docutils literal notranslate"><span class="pre">add_to_task()</span></code> for the differences between named, relative, and Cartesian targets. Temporary instances own TF subscriptions and should be released with <code class="docutils literal notranslate"><span class="pre">close()</span></code> after batch execution.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-08384d1d63df1ef9"><span class="std std-ref">MoveToStages.run</span></a></p></td>
+<td><p>Create a fresh MoveTo task, append the goal’s stages, then plan and execute it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-bfce38ed98bd08c6"><span class="std std-ref">MoveToStages.add_to_task</span></a></p></td>
+<td><p>Validate a MoveTo goal and append target-specific stages. Automatic relative moves use LIN/Cartesian/PTP; named joints/states use PTP then the configured general pipeline; Cartesian goals prefer seeded IK/PTP then LIN/Cartesian. XYZ-only targets use roll 180°, pitch 0° and live tip yaw.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-c316dfadbadb0c92"><span class="std std-ref">MoveToStages.close</span></a></p></td>
+<td><p>Unregister this instance’s TF listener subscriptions.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="movetostages">
+<h2><code class="docutils literal notranslate"><span class="pre">MoveToStages</span></code><a class="headerlink" href="#movetostages" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">BaseStages</span></code> subclass that converts <code class="docutils literal notranslate"><span class="pre">MoveToAction</span></code> fields into motion stages. It owns a TF listener for tool-frame selection and current orientation, and exposes separate composition and execution paths.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseStages</span></code>.</p>
+<section id="movetostages-run">
+<span id="api-08384d1d63df1ef9"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveToStages.run()</span></code><a class="headerlink" href="#movetostages-run" title="Link to this heading"></a></h3>
+<p>Create a fresh MoveTo task, append the goal’s stages, then plan and execute it.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/beambot/stages/move_to_stages.py.html#L-262">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">goal</span></code></p></td>
+<td><p>MoveTo action goal consumed by add_to_task.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None on completion or an error string from stage construction/planning/execution.</p>
+<p><strong>Errors:</strong> Unhandled construction/JSON errors propagate to the action-server boundary.</p>
+<p><strong>Side effects:</strong> Creates/plans a task and commands robot motion.</p>
+</section>
+<section id="movetostages-add-to-task">
+<span id="api-bfce38ed98bd08c6"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveToStages.add_to_task()</span></code><a class="headerlink" href="#movetostages-add-to-task" title="Link to this heading"></a></h3>
+<p>Validate a MoveTo goal and append target-specific stages. Automatic relative moves use LIN/Cartesian/PTP; named joints/states use PTP then the configured general pipeline; Cartesian goals prefer seeded IK/PTP then LIN/Cartesian. XYZ-only targets use roll 180°, pitch 0° and live tip yaw.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/stages/move_to_stages.py.html#L-68">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_to_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task</span><span class="p">:</span> <span class="n">core</span><span class="o">.</span><span class="n">Task</span><span class="p">,</span> <span class="n">goal</span><span class="p">,</span> <span class="n">planner</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task</span></code></p></td>
+<td><p>MTC task receiving stages.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">goal</span></code></p></td>
+<td><p>MoveTo action goal: named target with poses_json, direction/distance in metres, or XYZ metres plus optional RPY degrees; planning_type and constraints_json select planning behavior.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">planner</span></code></p></td>
+<td><p>Optional explicit planner overriding automatic selection.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None when stages were appended; validation/pose error string otherwise.</p>
+<p><strong>Errors:</strong> Invalid motion selection becomes an error string; malformed constraints JSON/data and MTC/TF/helper errors can propagate.</p>
+<p><strong>Side effects:</strong> Appends stages, resets/sets endpoint pinning, queries TF/IK for Cartesian goals and populates planner caches; does not execute the task.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-move_to_stages-py.html#api-08384d1d63df1ef9"><code>MoveToStages.run</code></a> — beambot.stages.move_to_stages</li></ul></details></section>
+<section id="movetostages-close">
+<span id="api-c316dfadbadb0c92"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveToStages.close()</span></code><a class="headerlink" href="#movetostages-close" title="Link to this heading"></a></h3>
+<p>Unregister this instance’s TF listener subscriptions.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/stages/move_to_stages.py.html#L-27">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">close</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Listener cleanup errors propagate.</p>
+<p><strong>Side effects:</strong> Releases TF subscriptions.</p>
+</section>
+<section id="movetostages-init">
+<span id="api-12353da8bcd04889"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveToStages.__init__()</span></code><a class="headerlink" href="#movetostages-init" title="Link to this heading"></a></h3>
+<p>Initialize shared planning state and start a TF listener before Cartesian goals arrive.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/stages/move_to_stages.py.html#L-21">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rclpy_node</span><span class="p">,</span> <span class="n">arm_group</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">,</span> <span class="n">ik_frame</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rclpy_node</span></code></p></td>
+<td><p>Owning ROS node.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">arm_group</span></code></p></td>
+<td><p>Planning group; empty uses ur_arm.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ik_frame</span></code></p></td>
+<td><p>Relative-motion IK frame; empty uses flange.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Base/TF construction errors propagate.</p>
+<p><strong>Side effects:</strong> Creates a TF buffer/listener and its subscriptions.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-action_servers-move_to_server-py.html#api-b117caa39f41358d"><code>MoveToActionServer.create_stages</code></a> — beambot.action_servers.move_to_server</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-25cf2c21c2b2a9d0"><code>MTCOrchestratorServer._execute_batch</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="movetostages-get-current-yaw">
+<span id="api-e7989d152c133a8d"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveToStages._get_current_yaw()</span></code><a class="headerlink" href="#movetostages-get-current-yaw" title="Link to this heading"></a></h4>
+<p>Look up the latest base_link-to-frame rotation and extract Euler yaw.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/stages/move_to_stages.py.html#L-31">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_get_current_yaw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">'flange'</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frame</span></code></p></td>
+<td><p>Tool/link frame, flange by default.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Yaw in radians, or 0.0 on any lookup/conversion exception.</p>
+<p><strong>Errors:</strong> Logs and suppresses exceptions; TF lookup waits up to 2 s.</p>
+<p><strong>Side effects:</strong> Queries the TF buffer and may log a fallback warning.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-move_to_stages-py.html#api-bfce38ed98bd08c6"><code>MoveToStages.add_to_task</code></a> — beambot.stages.move_to_stages</li></ul></details></section>
+<section id="movetostages-detect-gripper-ik-frame">
+<span id="api-97a4bf11dbf23e1d"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveToStages._detect_gripper_ik_frame()</span></code><a class="headerlink" href="#movetostages-detect-gripper-ik-frame" title="Link to this heading"></a></h4>
+<p>Probe configured tip frames in order for a transform from base_link, returning the first available frame.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/stages/move_to_stages.py.html#L-51">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_detect_gripper_ik_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Detected tip frame name, or flange when none can be transformed.</p>
+<p><strong>Errors:</strong> Per-frame TF errors are ignored; configuration helper supplies its own empty fallback.</p>
+<p><strong>Side effects:</strong> Queries TF with up to 1 s per frame and logs selection.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-stages-move_to_stages-py.html#api-bfce38ed98bd08c6"><code>MoveToStages.add_to_task</code></a> — beambot.stages.move_to_stages</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-beambot-action_servers-move_to_server-py.html" class="btn btn-neutral float-left" title="MoveTo action server" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-beambot-stages-base_stages-py.html" class="btn btn-neutral float-right" title="Shared motion stages" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

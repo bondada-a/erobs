@@ -1,0 +1,477 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>src/beambot/scripts/capture_octomap.py — EROBS source</title><style>body{font:16px system-ui;color:#18283b;margin:2rem}a{color:#235cb7}h1{font-size:1.3rem;overflow-wrap:anywhere}.source{overflow:auto}pre { line-height: 125%; }
+td.linenos .normal { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f0f0f0; }
+.highlight .c { color: #60A0B0; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #007020; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #60A0B0; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #60A0B0; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #007020 } /* Comment.Preproc */
+.highlight .cpf { color: #60A0B0; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #60A0B0; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #60A0B0; background-color: #FFF0F0 } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #F00 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #00A000 } /* Generic.Inserted */
+.highlight .go { color: #888 } /* Generic.Output */
+.highlight .gp { color: #C65D09; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #007020; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #007020; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #007020; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #007020 } /* Keyword.Pseudo */
+.highlight .kr { color: #007020; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #902000 } /* Keyword.Type */
+.highlight .m { color: #40A070 } /* Literal.Number */
+.highlight .s { color: #4070A0 } /* Literal.String */
+.highlight .na { color: #4070A0 } /* Name.Attribute */
+.highlight .nb { color: #007020 } /* Name.Builtin */
+.highlight .nc { color: #0E84B5; font-weight: bold } /* Name.Class */
+.highlight .no { color: #60ADD5 } /* Name.Constant */
+.highlight .nd { color: #555; font-weight: bold } /* Name.Decorator */
+.highlight .ni { color: #D55537; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #007020 } /* Name.Exception */
+.highlight .nf { color: #06287E } /* Name.Function */
+.highlight .nl { color: #002070; font-weight: bold } /* Name.Label */
+.highlight .nn { color: #0E84B5; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #062873; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #BB60D5 } /* Name.Variable */
+.highlight .ow { color: #007020; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #40A070 } /* Literal.Number.Bin */
+.highlight .mf { color: #40A070 } /* Literal.Number.Float */
+.highlight .mh { color: #40A070 } /* Literal.Number.Hex */
+.highlight .mi { color: #40A070 } /* Literal.Number.Integer */
+.highlight .mo { color: #40A070 } /* Literal.Number.Oct */
+.highlight .sa { color: #4070A0 } /* Literal.String.Affix */
+.highlight .sb { color: #4070A0 } /* Literal.String.Backtick */
+.highlight .sc { color: #4070A0 } /* Literal.String.Char */
+.highlight .dl { color: #4070A0 } /* Literal.String.Delimiter */
+.highlight .sd { color: #4070A0; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #4070A0 } /* Literal.String.Double */
+.highlight .se { color: #4070A0; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #4070A0 } /* Literal.String.Heredoc */
+.highlight .si { color: #70A0D0; font-style: italic } /* Literal.String.Interpol */
+.highlight .sx { color: #C65D09 } /* Literal.String.Other */
+.highlight .sr { color: #235388 } /* Literal.String.Regex */
+.highlight .s1 { color: #4070A0 } /* Literal.String.Single */
+.highlight .ss { color: #517918 } /* Literal.String.Symbol */
+.highlight .bp { color: #007020 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #06287E } /* Name.Function.Magic */
+.highlight .vc { color: #BB60D5 } /* Name.Variable.Class */
+.highlight .vg { color: #BB60D5 } /* Name.Variable.Global */
+.highlight .vi { color: #BB60D5 } /* Name.Variable.Instance */
+.highlight .vm { color: #BB60D5 } /* Name.Variable.Magic */
+.highlight .il { color: #40A070 } /* Literal.Number.Integer.Long */</style></head><body><a href="../../../../reference/source.html">← Source browser</a><h1>src/beambot/scripts/capture_octomap.py</h1><div class="source"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"><a href="#L-1">  1</a></span>
+<span class="normal"><a href="#L-2">  2</a></span>
+<span class="normal"><a href="#L-3">  3</a></span>
+<span class="normal"><a href="#L-4">  4</a></span>
+<span class="normal"><a href="#L-5">  5</a></span>
+<span class="normal"><a href="#L-6">  6</a></span>
+<span class="normal"><a href="#L-7">  7</a></span>
+<span class="normal"><a href="#L-8">  8</a></span>
+<span class="normal"><a href="#L-9">  9</a></span>
+<span class="normal"><a href="#L-10"> 10</a></span>
+<span class="normal"><a href="#L-11"> 11</a></span>
+<span class="normal"><a href="#L-12"> 12</a></span>
+<span class="normal"><a href="#L-13"> 13</a></span>
+<span class="normal"><a href="#L-14"> 14</a></span>
+<span class="normal"><a href="#L-15"> 15</a></span>
+<span class="normal"><a href="#L-16"> 16</a></span>
+<span class="normal"><a href="#L-17"> 17</a></span>
+<span class="normal"><a href="#L-18"> 18</a></span>
+<span class="normal"><a href="#L-19"> 19</a></span>
+<span class="normal"><a href="#L-20"> 20</a></span>
+<span class="normal"><a href="#L-21"> 21</a></span>
+<span class="normal"><a href="#L-22"> 22</a></span>
+<span class="normal"><a href="#L-23"> 23</a></span>
+<span class="normal"><a href="#L-24"> 24</a></span>
+<span class="normal"><a href="#L-25"> 25</a></span>
+<span class="normal"><a href="#L-26"> 26</a></span>
+<span class="normal"><a href="#L-27"> 27</a></span>
+<span class="normal"><a href="#L-28"> 28</a></span>
+<span class="normal"><a href="#L-29"> 29</a></span>
+<span class="normal"><a href="#L-30"> 30</a></span>
+<span class="normal"><a href="#L-31"> 31</a></span>
+<span class="normal"><a href="#L-32"> 32</a></span>
+<span class="normal"><a href="#L-33"> 33</a></span>
+<span class="normal"><a href="#L-34"> 34</a></span>
+<span class="normal"><a href="#L-35"> 35</a></span>
+<span class="normal"><a href="#L-36"> 36</a></span>
+<span class="normal"><a href="#L-37"> 37</a></span>
+<span class="normal"><a href="#L-38"> 38</a></span>
+<span class="normal"><a href="#L-39"> 39</a></span>
+<span class="normal"><a href="#L-40"> 40</a></span>
+<span class="normal"><a href="#L-41"> 41</a></span>
+<span class="normal"><a href="#L-42"> 42</a></span>
+<span class="normal"><a href="#L-43"> 43</a></span>
+<span class="normal"><a href="#L-44"> 44</a></span>
+<span class="normal"><a href="#L-45"> 45</a></span>
+<span class="normal"><a href="#L-46"> 46</a></span>
+<span class="normal"><a href="#L-47"> 47</a></span>
+<span class="normal"><a href="#L-48"> 48</a></span>
+<span class="normal"><a href="#L-49"> 49</a></span>
+<span class="normal"><a href="#L-50"> 50</a></span>
+<span class="normal"><a href="#L-51"> 51</a></span>
+<span class="normal"><a href="#L-52"> 52</a></span>
+<span class="normal"><a href="#L-53"> 53</a></span>
+<span class="normal"><a href="#L-54"> 54</a></span>
+<span class="normal"><a href="#L-55"> 55</a></span>
+<span class="normal"><a href="#L-56"> 56</a></span>
+<span class="normal"><a href="#L-57"> 57</a></span>
+<span class="normal"><a href="#L-58"> 58</a></span>
+<span class="normal"><a href="#L-59"> 59</a></span>
+<span class="normal"><a href="#L-60"> 60</a></span>
+<span class="normal"><a href="#L-61"> 61</a></span>
+<span class="normal"><a href="#L-62"> 62</a></span>
+<span class="normal"><a href="#L-63"> 63</a></span>
+<span class="normal"><a href="#L-64"> 64</a></span>
+<span class="normal"><a href="#L-65"> 65</a></span>
+<span class="normal"><a href="#L-66"> 66</a></span>
+<span class="normal"><a href="#L-67"> 67</a></span>
+<span class="normal"><a href="#L-68"> 68</a></span>
+<span class="normal"><a href="#L-69"> 69</a></span>
+<span class="normal"><a href="#L-70"> 70</a></span>
+<span class="normal"><a href="#L-71"> 71</a></span>
+<span class="normal"><a href="#L-72"> 72</a></span>
+<span class="normal"><a href="#L-73"> 73</a></span>
+<span class="normal"><a href="#L-74"> 74</a></span>
+<span class="normal"><a href="#L-75"> 75</a></span>
+<span class="normal"><a href="#L-76"> 76</a></span>
+<span class="normal"><a href="#L-77"> 77</a></span>
+<span class="normal"><a href="#L-78"> 78</a></span>
+<span class="normal"><a href="#L-79"> 79</a></span>
+<span class="normal"><a href="#L-80"> 80</a></span>
+<span class="normal"><a href="#L-81"> 81</a></span>
+<span class="normal"><a href="#L-82"> 82</a></span>
+<span class="normal"><a href="#L-83"> 83</a></span>
+<span class="normal"><a href="#L-84"> 84</a></span>
+<span class="normal"><a href="#L-85"> 85</a></span>
+<span class="normal"><a href="#L-86"> 86</a></span>
+<span class="normal"><a href="#L-87"> 87</a></span>
+<span class="normal"><a href="#L-88"> 88</a></span>
+<span class="normal"><a href="#L-89"> 89</a></span>
+<span class="normal"><a href="#L-90"> 90</a></span>
+<span class="normal"><a href="#L-91"> 91</a></span>
+<span class="normal"><a href="#L-92"> 92</a></span>
+<span class="normal"><a href="#L-93"> 93</a></span>
+<span class="normal"><a href="#L-94"> 94</a></span>
+<span class="normal"><a href="#L-95"> 95</a></span>
+<span class="normal"><a href="#L-96"> 96</a></span>
+<span class="normal"><a href="#L-97"> 97</a></span>
+<span class="normal"><a href="#L-98"> 98</a></span>
+<span class="normal"><a href="#L-99"> 99</a></span>
+<span class="normal"><a href="#L-100">100</a></span>
+<span class="normal"><a href="#L-101">101</a></span>
+<span class="normal"><a href="#L-102">102</a></span>
+<span class="normal"><a href="#L-103">103</a></span>
+<span class="normal"><a href="#L-104">104</a></span>
+<span class="normal"><a href="#L-105">105</a></span>
+<span class="normal"><a href="#L-106">106</a></span>
+<span class="normal"><a href="#L-107">107</a></span>
+<span class="normal"><a href="#L-108">108</a></span>
+<span class="normal"><a href="#L-109">109</a></span>
+<span class="normal"><a href="#L-110">110</a></span>
+<span class="normal"><a href="#L-111">111</a></span>
+<span class="normal"><a href="#L-112">112</a></span>
+<span class="normal"><a href="#L-113">113</a></span>
+<span class="normal"><a href="#L-114">114</a></span>
+<span class="normal"><a href="#L-115">115</a></span>
+<span class="normal"><a href="#L-116">116</a></span>
+<span class="normal"><a href="#L-117">117</a></span>
+<span class="normal"><a href="#L-118">118</a></span>
+<span class="normal"><a href="#L-119">119</a></span>
+<span class="normal"><a href="#L-120">120</a></span>
+<span class="normal"><a href="#L-121">121</a></span>
+<span class="normal"><a href="#L-122">122</a></span>
+<span class="normal"><a href="#L-123">123</a></span>
+<span class="normal"><a href="#L-124">124</a></span>
+<span class="normal"><a href="#L-125">125</a></span>
+<span class="normal"><a href="#L-126">126</a></span>
+<span class="normal"><a href="#L-127">127</a></span>
+<span class="normal"><a href="#L-128">128</a></span>
+<span class="normal"><a href="#L-129">129</a></span>
+<span class="normal"><a href="#L-130">130</a></span>
+<span class="normal"><a href="#L-131">131</a></span>
+<span class="normal"><a href="#L-132">132</a></span>
+<span class="normal"><a href="#L-133">133</a></span>
+<span class="normal"><a href="#L-134">134</a></span>
+<span class="normal"><a href="#L-135">135</a></span>
+<span class="normal"><a href="#L-136">136</a></span>
+<span class="normal"><a href="#L-137">137</a></span>
+<span class="normal"><a href="#L-138">138</a></span>
+<span class="normal"><a href="#L-139">139</a></span>
+<span class="normal"><a href="#L-140">140</a></span>
+<span class="normal"><a href="#L-141">141</a></span>
+<span class="normal"><a href="#L-142">142</a></span>
+<span class="normal"><a href="#L-143">143</a></span>
+<span class="normal"><a href="#L-144">144</a></span>
+<span class="normal"><a href="#L-145">145</a></span>
+<span class="normal"><a href="#L-146">146</a></span>
+<span class="normal"><a href="#L-147">147</a></span>
+<span class="normal"><a href="#L-148">148</a></span>
+<span class="normal"><a href="#L-149">149</a></span>
+<span class="normal"><a href="#L-150">150</a></span>
+<span class="normal"><a href="#L-151">151</a></span>
+<span class="normal"><a href="#L-152">152</a></span>
+<span class="normal"><a href="#L-153">153</a></span>
+<span class="normal"><a href="#L-154">154</a></span>
+<span class="normal"><a href="#L-155">155</a></span>
+<span class="normal"><a href="#L-156">156</a></span>
+<span class="normal"><a href="#L-157">157</a></span>
+<span class="normal"><a href="#L-158">158</a></span>
+<span class="normal"><a href="#L-159">159</a></span>
+<span class="normal"><a href="#L-160">160</a></span>
+<span class="normal"><a href="#L-161">161</a></span>
+<span class="normal"><a href="#L-162">162</a></span>
+<span class="normal"><a href="#L-163">163</a></span>
+<span class="normal"><a href="#L-164">164</a></span>
+<span class="normal"><a href="#L-165">165</a></span>
+<span class="normal"><a href="#L-166">166</a></span>
+<span class="normal"><a href="#L-167">167</a></span>
+<span class="normal"><a href="#L-168">168</a></span>
+<span class="normal"><a href="#L-169">169</a></span>
+<span class="normal"><a href="#L-170">170</a></span>
+<span class="normal"><a href="#L-171">171</a></span>
+<span class="normal"><a href="#L-172">172</a></span>
+<span class="normal"><a href="#L-173">173</a></span>
+<span class="normal"><a href="#L-174">174</a></span>
+<span class="normal"><a href="#L-175">175</a></span>
+<span class="normal"><a href="#L-176">176</a></span>
+<span class="normal"><a href="#L-177">177</a></span>
+<span class="normal"><a href="#L-178">178</a></span>
+<span class="normal"><a href="#L-179">179</a></span>
+<span class="normal"><a href="#L-180">180</a></span>
+<span class="normal"><a href="#L-181">181</a></span>
+<span class="normal"><a href="#L-182">182</a></span>
+<span class="normal"><a href="#L-183">183</a></span>
+<span class="normal"><a href="#L-184">184</a></span>
+<span class="normal"><a href="#L-185">185</a></span>
+<span class="normal"><a href="#L-186">186</a></span>
+<span class="normal"><a href="#L-187">187</a></span>
+<span class="normal"><a href="#L-188">188</a></span>
+<span class="normal"><a href="#L-189">189</a></span>
+<span class="normal"><a href="#L-190">190</a></span>
+<span class="normal"><a href="#L-191">191</a></span>
+<span class="normal"><a href="#L-192">192</a></span>
+<span class="normal"><a href="#L-193">193</a></span>
+<span class="normal"><a href="#L-194">194</a></span>
+<span class="normal"><a href="#L-195">195</a></span>
+<span class="normal"><a href="#L-196">196</a></span>
+<span class="normal"><a href="#L-197">197</a></span>
+<span class="normal"><a href="#L-198">198</a></span>
+<span class="normal"><a href="#L-199">199</a></span>
+<span class="normal"><a href="#L-200">200</a></span>
+<span class="normal"><a href="#L-201">201</a></span></pre></div></td><td class="code"><div><pre><span></span><a id="L-1" name="L-1"></a><span class="ch">#!/usr/bin/env python3</span>
+<a id="L-2" name="L-2"></a><span class="sd">"""Sequence robot motion and Zivid captures for Octomap mapping.</span>
+<a id="L-3" name="L-3"></a>
+<a id="L-4" name="L-4"></a><span class="sd">Requires robot/camera bringup and octomap_mapping.launch.py running separately.</span>
+<a id="L-5" name="L-5"></a><span class="sd">Use --self-check to verify task sequencing without ROS or hardware.</span>
+<a id="L-6" name="L-6"></a><span class="sd">"""</span>
+<a id="L-7" name="L-7"></a>
+<a id="L-8" name="L-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">argparse</span>
+<a id="L-9" name="L-9"></a><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<a id="L-10" name="L-10"></a><span class="kn">import</span><span class="w"> </span><span class="nn">subprocess</span>
+<a id="L-11" name="L-11"></a><span class="kn">import</span><span class="w"> </span><span class="nn">sys</span>
+<a id="L-12" name="L-12"></a>
+<a id="L-13" name="L-13"></a><span class="c1"># Keep ROS imports local so --self-check works without ROS.</span>
+<a id="L-14" name="L-14"></a>
+<a id="L-15" name="L-15"></a>
+<a id="L-16" name="L-16"></a><span class="k">def</span><span class="w"> </span><span class="nf">plan_capture_steps</span><span class="p">(</span><span class="n">run</span><span class="p">:</span> <span class="nb">dict</span><span class="p">,</span> <span class="n">capture_prefix</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="L-17" name="L-17"></a><span class="w">    </span><span class="sd">"""Return single-task goals and capture flags for matching moveto targets."""</span>
+<a id="L-18" name="L-18"></a>    <span class="n">base</span> <span class="o">=</span> <span class="p">{</span><span class="n">k</span><span class="p">:</span> <span class="n">run</span><span class="p">[</span><span class="n">k</span><span class="p">]</span> <span class="k">for</span> <span class="n">k</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"start_gripper"</span><span class="p">,</span> <span class="s2">"poses"</span><span class="p">)</span> <span class="k">if</span> <span class="n">k</span> <span class="ow">in</span> <span class="n">run</span><span class="p">}</span>
+<a id="L-19" name="L-19"></a>    <span class="n">run_name</span> <span class="o">=</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"run_name"</span><span class="p">,</span> <span class="s2">"capture_run"</span><span class="p">)</span>
+<a id="L-20" name="L-20"></a>    <span class="n">steps</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-21" name="L-21"></a>    <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">run</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"tasks"</span><span class="p">,</span> <span class="p">[]):</span>
+<a id="L-22" name="L-22"></a>        <span class="n">goal</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">base</span><span class="p">)</span>
+<a id="L-23" name="L-23"></a>        <span class="n">goal</span><span class="p">[</span><span class="s2">"tasks"</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="n">task</span><span class="p">]</span>
+<a id="L-24" name="L-24"></a>        <span class="n">goal</span><span class="p">[</span><span class="s2">"run_name"</span><span class="p">]</span> <span class="o">=</span> <span class="n">run_name</span>
+<a id="L-25" name="L-25"></a>        <span class="n">target</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"target"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+<a id="L-26" name="L-26"></a>        <span class="n">do_capture</span> <span class="o">=</span> <span class="p">(</span>
+<a id="L-27" name="L-27"></a>            <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"task_type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"moveto"</span> <span class="ow">and</span> <span class="n">target</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="n">capture_prefix</span><span class="p">)</span>
+<a id="L-28" name="L-28"></a>        <span class="p">)</span>
+<a id="L-29" name="L-29"></a>        <span class="n">steps</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">goal</span><span class="p">),</span> <span class="n">do_capture</span><span class="p">))</span>
+<a id="L-30" name="L-30"></a>    <span class="k">return</span> <span class="n">steps</span>
+<a id="L-31" name="L-31"></a>
+<a id="L-32" name="L-32"></a>
+<a id="L-33" name="L-33"></a><span class="k">def</span><span class="w"> </span><span class="nf">_send_goal</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">action_client</span><span class="p">,</span> <span class="n">full_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="L-34" name="L-34"></a><span class="w">    </span><span class="sd">"""Wait for one MTCExecution goal; return (success, message)."""</span>
+<a id="L-35" name="L-35"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">rclpy</span>
+<a id="L-36" name="L-36"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">action_msgs.msg</span><span class="w"> </span><span class="kn">import</span> <span class="n">GoalStatus</span>
+<a id="L-37" name="L-37"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">beambot_interfaces.action</span><span class="w"> </span><span class="kn">import</span> <span class="n">MTCExecution</span>
+<a id="L-38" name="L-38"></a>
+<a id="L-39" name="L-39"></a>    <span class="n">goal</span> <span class="o">=</span> <span class="n">MTCExecution</span><span class="o">.</span><span class="n">Goal</span><span class="p">()</span>
+<a id="L-40" name="L-40"></a>    <span class="n">goal</span><span class="o">.</span><span class="n">full_json</span> <span class="o">=</span> <span class="n">full_json</span>
+<a id="L-41" name="L-41"></a>    <span class="n">send_future</span> <span class="o">=</span> <span class="n">action_client</span><span class="o">.</span><span class="n">send_goal_async</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span>
+<a id="L-42" name="L-42"></a>    <span class="n">rclpy</span><span class="o">.</span><span class="n">spin_until_future_complete</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">send_future</span><span class="p">)</span>
+<a id="L-43" name="L-43"></a>    <span class="n">handle</span> <span class="o">=</span> <span class="n">send_future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<a id="L-44" name="L-44"></a>    <span class="k">if</span> <span class="n">handle</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">handle</span><span class="o">.</span><span class="n">accepted</span><span class="p">:</span>
+<a id="L-45" name="L-45"></a>        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="s2">"goal rejected"</span>
+<a id="L-46" name="L-46"></a>    <span class="n">result_future</span> <span class="o">=</span> <span class="n">handle</span><span class="o">.</span><span class="n">get_result_async</span><span class="p">()</span>
+<a id="L-47" name="L-47"></a>    <span class="n">rclpy</span><span class="o">.</span><span class="n">spin_until_future_complete</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">result_future</span><span class="p">)</span>
+<a id="L-48" name="L-48"></a>    <span class="n">result</span> <span class="o">=</span> <span class="n">result_future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<a id="L-49" name="L-49"></a>    <span class="n">ok</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">status</span> <span class="o">==</span> <span class="n">GoalStatus</span><span class="o">.</span><span class="n">STATUS_SUCCEEDED</span>
+<a id="L-50" name="L-50"></a>    <span class="k">return</span> <span class="n">ok</span><span class="p">,</span> <span class="n">result</span><span class="o">.</span><span class="n">result</span><span class="o">.</span><span class="n">error_message</span>
+<a id="L-51" name="L-51"></a>
+<a id="L-52" name="L-52"></a>
+<a id="L-53" name="L-53"></a><span class="k">def</span><span class="w"> </span><span class="nf">_capture</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">trigger_client</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<a id="L-54" name="L-54"></a><span class="w">    </span><span class="sd">"""Request a Zivid 3D capture; return (success, message)."""</span>
+<a id="L-55" name="L-55"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">rclpy</span>
+<a id="L-56" name="L-56"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">std_srvs.srv</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trigger</span>
+<a id="L-57" name="L-57"></a>
+<a id="L-58" name="L-58"></a>    <span class="n">future</span> <span class="o">=</span> <span class="n">trigger_client</span><span class="o">.</span><span class="n">call_async</span><span class="p">(</span><span class="n">Trigger</span><span class="o">.</span><span class="n">Request</span><span class="p">())</span>
+<a id="L-59" name="L-59"></a>    <span class="n">rclpy</span><span class="o">.</span><span class="n">spin_until_future_complete</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">future</span><span class="p">,</span> <span class="n">timeout_sec</span><span class="o">=</span><span class="n">timeout</span><span class="p">)</span>
+<a id="L-60" name="L-60"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">future</span><span class="o">.</span><span class="n">done</span><span class="p">():</span>
+<a id="L-61" name="L-61"></a>        <span class="k">return</span> <span class="kc">False</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"capture timed out after </span><span class="si">{</span><span class="n">timeout</span><span class="si">}</span><span class="s2">s"</span>
+<a id="L-62" name="L-62"></a>    <span class="n">res</span> <span class="o">=</span> <span class="n">future</span><span class="o">.</span><span class="n">result</span><span class="p">()</span>
+<a id="L-63" name="L-63"></a>    <span class="k">return</span> <span class="n">res</span><span class="o">.</span><span class="n">success</span><span class="p">,</span> <span class="n">res</span><span class="o">.</span><span class="n">message</span>
+<a id="L-64" name="L-64"></a>
+<a id="L-65" name="L-65"></a>
+<a id="L-66" name="L-66"></a><span class="k">def</span><span class="w"> </span><span class="nf">_save_map</span><span class="p">(</span><span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<a id="L-67" name="L-67"></a><span class="w">    </span><span class="sd">"""Save the current map with octomap_saver_node."""</span>
+<a id="L-68" name="L-68"></a>    <span class="n">cmd</span> <span class="o">=</span> <span class="p">[</span>
+<a id="L-69" name="L-69"></a>        <span class="s2">"ros2"</span><span class="p">,</span> <span class="s2">"run"</span><span class="p">,</span> <span class="s2">"octomap_server"</span><span class="p">,</span> <span class="s2">"octomap_saver_node"</span><span class="p">,</span>
+<a id="L-70" name="L-70"></a>        <span class="s2">"--ros-args"</span><span class="p">,</span> <span class="s2">"-p"</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"octomap_path:=</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+<a id="L-71" name="L-71"></a>    <span class="p">]</span>
+<a id="L-72" name="L-72"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Saving octomap -&gt; </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-73" name="L-73"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="L-74" name="L-74"></a>        <span class="n">subprocess</span><span class="o">.</span><span class="n">run</span><span class="p">(</span><span class="n">cmd</span><span class="p">,</span> <span class="n">timeout</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span> <span class="n">check</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="L-75" name="L-75"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Saved </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-76" name="L-76"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">exc</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - save is best-effort</span>
+<a id="L-77" name="L-77"></a>        <span class="nb">print</span><span class="p">(</span>
+<a id="L-78" name="L-78"></a>            <span class="sa">f</span><span class="s2">"Auto-save failed (</span><span class="si">{</span><span class="n">exc</span><span class="si">}</span><span class="s2">). Save manually with:</span><span class="se">\n</span><span class="s2">  </span><span class="si">{</span><span class="s1">' '</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">cmd</span><span class="p">)</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span>
+<a id="L-79" name="L-79"></a>            <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">,</span>
+<a id="L-80" name="L-80"></a>        <span class="p">)</span>
+<a id="L-81" name="L-81"></a>
+<a id="L-82" name="L-82"></a>
+<a id="L-83" name="L-83"></a><span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="L-84" name="L-84"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">rclpy</span>
+<a id="L-85" name="L-85"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">rclpy.node</span><span class="w"> </span><span class="kn">import</span> <span class="n">Node</span>
+<a id="L-86" name="L-86"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">rclpy.action</span><span class="w"> </span><span class="kn">import</span> <span class="n">ActionClient</span>
+<a id="L-87" name="L-87"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">std_srvs.srv</span><span class="w"> </span><span class="kn">import</span> <span class="n">Trigger</span>
+<a id="L-88" name="L-88"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">beambot_interfaces.action</span><span class="w"> </span><span class="kn">import</span> <span class="n">MTCExecution</span>
+<a id="L-89" name="L-89"></a>
+<a id="L-90" name="L-90"></a>    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">run_json</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+<a id="L-91" name="L-91"></a>        <span class="n">run_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+<a id="L-92" name="L-92"></a>    <span class="n">steps</span> <span class="o">=</span> <span class="n">plan_capture_steps</span><span class="p">(</span><span class="n">run_data</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">capture_prefix</span><span class="p">)</span>
+<a id="L-93" name="L-93"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">steps</span><span class="p">:</span>
+<a id="L-94" name="L-94"></a>        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"No tasks in </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">run_json</span><span class="si">}</span><span class="s2">"</span><span class="p">,</span> <span class="n">file</span><span class="o">=</span><span class="n">sys</span><span class="o">.</span><span class="n">stderr</span><span class="p">)</span>
+<a id="L-95" name="L-95"></a>        <span class="k">return</span> <span class="mi">1</span>
+<a id="L-96" name="L-96"></a>
+<a id="L-97" name="L-97"></a>    <span class="n">rclpy</span><span class="o">.</span><span class="n">init</span><span class="p">()</span>
+<a id="L-98" name="L-98"></a>    <span class="n">node</span> <span class="o">=</span> <span class="kc">None</span>
+<a id="L-99" name="L-99"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="L-100" name="L-100"></a>        <span class="n">node</span> <span class="o">=</span> <span class="n">Node</span><span class="p">(</span><span class="s2">"capture_run"</span><span class="p">)</span>
+<a id="L-101" name="L-101"></a>        <span class="n">action_client</span> <span class="o">=</span> <span class="n">ActionClient</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">MTCExecution</span><span class="p">,</span> <span class="s2">"beambot_execution"</span><span class="p">)</span>
+<a id="L-102" name="L-102"></a>        <span class="n">trigger_client</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">create_client</span><span class="p">(</span><span class="n">Trigger</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">capture_service</span><span class="p">)</span>
+<a id="L-103" name="L-103"></a>
+<a id="L-104" name="L-104"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">action_client</span><span class="o">.</span><span class="n">wait_for_server</span><span class="p">(</span><span class="n">timeout_sec</span><span class="o">=</span><span class="mf">15.0</span><span class="p">):</span>
+<a id="L-105" name="L-105"></a>            <span class="n">node</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"beambot_execution action server not available"</span><span class="p">)</span>
+<a id="L-106" name="L-106"></a>            <span class="k">return</span> <span class="mi">1</span>
+<a id="L-107" name="L-107"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">trigger_client</span><span class="o">.</span><span class="n">wait_for_service</span><span class="p">(</span><span class="n">timeout_sec</span><span class="o">=</span><span class="mf">15.0</span><span class="p">):</span>
+<a id="L-108" name="L-108"></a>            <span class="n">node</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">"capture service </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">capture_service</span><span class="si">}</span><span class="s2"> not available"</span><span class="p">)</span>
+<a id="L-109" name="L-109"></a>            <span class="k">return</span> <span class="mi">1</span>
+<a id="L-110" name="L-110"></a>
+<a id="L-111" name="L-111"></a>        <span class="n">n_capture</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="mi">1</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">steps</span> <span class="k">if</span> <span class="n">c</span><span class="p">)</span>
+<a id="L-112" name="L-112"></a>        <span class="n">node</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span>
+<a id="L-113" name="L-113"></a>            <span class="sa">f</span><span class="s2">"Capture run: </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span><span class="si">}</span><span class="s2"> moves, </span><span class="si">{</span><span class="n">n_capture</span><span class="si">}</span><span class="s2"> captures "</span>
+<a id="L-114" name="L-114"></a>            <span class="sa">f</span><span class="s2">"(prefix '</span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">capture_prefix</span><span class="si">}</span><span class="s2">')"</span>
+<a id="L-115" name="L-115"></a>        <span class="p">)</span>
+<a id="L-116" name="L-116"></a>
+<a id="L-117" name="L-117"></a>        <span class="n">captures</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="L-118" name="L-118"></a>        <span class="n">rc</span> <span class="o">=</span> <span class="mi">0</span>
+<a id="L-119" name="L-119"></a>        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">full_json</span><span class="p">,</span> <span class="n">do_capture</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">steps</span><span class="p">,</span> <span class="mi">1</span><span class="p">):</span>
+<a id="L-120" name="L-120"></a>            <span class="n">node</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span><span class="si">}</span><span class="s2">] moving"</span><span class="p">)</span>
+<a id="L-121" name="L-121"></a>            <span class="n">ok</span><span class="p">,</span> <span class="n">msg</span> <span class="o">=</span> <span class="n">_send_goal</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">action_client</span><span class="p">,</span> <span class="n">full_json</span><span class="p">)</span>
+<a id="L-122" name="L-122"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">ok</span><span class="p">:</span>
+<a id="L-123" name="L-123"></a>                <span class="n">node</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="sa">f</span><span class="s2">"move </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="n">msg</span><span class="si">}</span><span class="s2"> — aborting"</span><span class="p">)</span>
+<a id="L-124" name="L-124"></a>                <span class="n">rc</span> <span class="o">=</span> <span class="mi">1</span>
+<a id="L-125" name="L-125"></a>                <span class="k">break</span>
+<a id="L-126" name="L-126"></a>            <span class="k">if</span> <span class="n">do_capture</span><span class="p">:</span>
+<a id="L-127" name="L-127"></a>                <span class="n">node</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"[</span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">steps</span><span class="p">)</span><span class="si">}</span><span class="s2">] capture -&gt; </span><span class="si">{</span><span class="n">args</span><span class="o">.</span><span class="n">capture_service</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-128" name="L-128"></a>                <span class="n">cok</span><span class="p">,</span> <span class="n">cmsg</span> <span class="o">=</span> <span class="n">_capture</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">trigger_client</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">capture_timeout</span><span class="p">)</span>
+<a id="L-129" name="L-129"></a>                <span class="k">if</span> <span class="n">cok</span><span class="p">:</span>
+<a id="L-130" name="L-130"></a>                    <span class="n">captures</span> <span class="o">+=</span> <span class="mi">1</span>
+<a id="L-131" name="L-131"></a>                <span class="k">else</span><span class="p">:</span>
+<a id="L-132" name="L-132"></a>                    <span class="c1"># Continue after capture failures; the map may be incomplete.</span>
+<a id="L-133" name="L-133"></a>                    <span class="n">node</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"capture </span><span class="si">{</span><span class="n">i</span><span class="si">}</span><span class="s2"> failed: </span><span class="si">{</span><span class="n">cmsg</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-134" name="L-134"></a>                <span class="n">_sleep</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">args</span><span class="o">.</span><span class="n">settle</span><span class="p">)</span>
+<a id="L-135" name="L-135"></a>
+<a id="L-136" name="L-136"></a>        <span class="n">node</span><span class="o">.</span><span class="n">get_logger</span><span class="p">()</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Done: </span><span class="si">{</span><span class="n">captures</span><span class="si">}</span><span class="s2">/</span><span class="si">{</span><span class="n">n_capture</span><span class="si">}</span><span class="s2"> captures succeeded"</span><span class="p">)</span>
+<a id="L-137" name="L-137"></a>    <span class="k">finally</span><span class="p">:</span>
+<a id="L-138" name="L-138"></a>        <span class="k">if</span> <span class="n">node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-139" name="L-139"></a>            <span class="n">node</span><span class="o">.</span><span class="n">destroy_node</span><span class="p">()</span>
+<a id="L-140" name="L-140"></a>        <span class="n">rclpy</span><span class="o">.</span><span class="n">try_shutdown</span><span class="p">()</span>
+<a id="L-141" name="L-141"></a>
+<a id="L-142" name="L-142"></a>    <span class="k">if</span> <span class="n">rc</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">no_save</span> <span class="ow">and</span> <span class="n">args</span><span class="o">.</span><span class="n">save</span><span class="p">:</span>
+<a id="L-143" name="L-143"></a>        <span class="n">_save_map</span><span class="p">(</span><span class="n">args</span><span class="o">.</span><span class="n">save</span><span class="p">)</span>
+<a id="L-144" name="L-144"></a>    <span class="k">return</span> <span class="n">rc</span>
+<a id="L-145" name="L-145"></a>
+<a id="L-146" name="L-146"></a>
+<a id="L-147" name="L-147"></a><span class="k">def</span><span class="w"> </span><span class="nf">_sleep</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">seconds</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<a id="L-148" name="L-148"></a><span class="w">    </span><span class="sd">"""Wait on the node clock while processing callbacks."""</span>
+<a id="L-149" name="L-149"></a>    <span class="kn">import</span><span class="w"> </span><span class="nn">rclpy</span>
+<a id="L-150" name="L-150"></a>
+<a id="L-151" name="L-151"></a>    <span class="n">end</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">get_clock</span><span class="p">()</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">nanoseconds</span> <span class="o">+</span> <span class="nb">int</span><span class="p">(</span><span class="n">seconds</span> <span class="o">*</span> <span class="mf">1e9</span><span class="p">)</span>
+<a id="L-152" name="L-152"></a>    <span class="k">while</span> <span class="n">rclpy</span><span class="o">.</span><span class="n">ok</span><span class="p">()</span> <span class="ow">and</span> <span class="n">node</span><span class="o">.</span><span class="n">get_clock</span><span class="p">()</span><span class="o">.</span><span class="n">now</span><span class="p">()</span><span class="o">.</span><span class="n">nanoseconds</span> <span class="o">&lt;</span> <span class="n">end</span><span class="p">:</span>
+<a id="L-153" name="L-153"></a>        <span class="n">rclpy</span><span class="o">.</span><span class="n">spin_once</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">timeout_sec</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span>
+<a id="L-154" name="L-154"></a>
+<a id="L-155" name="L-155"></a>
+<a id="L-156" name="L-156"></a><span class="k">def</span><span class="w"> </span><span class="nf">_self_check</span><span class="p">():</span>
+<a id="L-157" name="L-157"></a><span class="w">    </span><span class="sd">"""Check task sequencing without ROS."""</span>
+<a id="L-158" name="L-158"></a>    <span class="n">run_data</span> <span class="o">=</span> <span class="p">{</span>
+<a id="L-159" name="L-159"></a>        <span class="s2">"start_gripper"</span><span class="p">:</span> <span class="s2">"hande"</span><span class="p">,</span>
+<a id="L-160" name="L-160"></a>        <span class="s2">"poses"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"safe_sample_transport"</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">"oscan1"</span><span class="p">:</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">,</span> <span class="s2">"oscan2"</span><span class="p">:</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="o">*</span> <span class="mi">6</span><span class="p">},</span>
+<a id="L-161" name="L-161"></a>        <span class="s2">"tasks"</span><span class="p">:</span> <span class="p">[</span>
+<a id="L-162" name="L-162"></a>            <span class="p">{</span><span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"moveto"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="s2">"safe_sample_transport"</span><span class="p">,</span> <span class="s2">"planning_type"</span><span class="p">:</span> <span class="s2">"joint"</span><span class="p">},</span>
+<a id="L-163" name="L-163"></a>            <span class="p">{</span><span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"moveto"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="s2">"oscan1"</span><span class="p">,</span> <span class="s2">"planning_type"</span><span class="p">:</span> <span class="s2">"joint"</span><span class="p">},</span>
+<a id="L-164" name="L-164"></a>            <span class="p">{</span><span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"moveto"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="s2">"oscan2"</span><span class="p">,</span> <span class="s2">"planning_type"</span><span class="p">:</span> <span class="s2">"joint"</span><span class="p">},</span>
+<a id="L-165" name="L-165"></a>        <span class="p">],</span>
+<a id="L-166" name="L-166"></a>        <span class="s2">"run_name"</span><span class="p">:</span> <span class="s2">"oscan"</span><span class="p">,</span>
+<a id="L-167" name="L-167"></a>    <span class="p">}</span>
+<a id="L-168" name="L-168"></a>    <span class="n">steps</span> <span class="o">=</span> <span class="n">plan_capture_steps</span><span class="p">(</span><span class="n">run_data</span><span class="p">,</span> <span class="s2">"oscan"</span><span class="p">)</span>
+<a id="L-169" name="L-169"></a>    <span class="k">assert</span> <span class="p">[</span><span class="n">c</span> <span class="k">for</span> <span class="n">_</span><span class="p">,</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">]</span> <span class="o">==</span> <span class="p">[</span><span class="kc">False</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="kc">True</span><span class="p">],</span> <span class="s2">"capture only at oscan* poses"</span>
+<a id="L-170" name="L-170"></a>    <span class="k">for</span> <span class="n">goal_json</span><span class="p">,</span> <span class="n">_</span> <span class="ow">in</span> <span class="n">steps</span><span class="p">:</span>
+<a id="L-171" name="L-171"></a>        <span class="n">g</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">goal_json</span><span class="p">)</span>
+<a id="L-172" name="L-172"></a>        <span class="k">assert</span> <span class="n">g</span><span class="p">[</span><span class="s2">"start_gripper"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"hande"</span>
+<a id="L-173" name="L-173"></a>        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">g</span><span class="p">[</span><span class="s2">"tasks"</span><span class="p">])</span> <span class="o">==</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"one task per goal"</span>
+<a id="L-174" name="L-174"></a>        <span class="k">assert</span> <span class="s2">"oscan1"</span> <span class="ow">in</span> <span class="n">g</span><span class="p">[</span><span class="s2">"poses"</span><span class="p">],</span> <span class="s2">"full poses dict carried on every goal"</span>
+<a id="L-175" name="L-175"></a>        <span class="k">assert</span> <span class="n">g</span><span class="p">[</span><span class="s2">"run_name"</span><span class="p">]</span> <span class="o">==</span> <span class="s2">"oscan"</span>
+<a id="L-176" name="L-176"></a>    <span class="k">assert</span> <span class="n">plan_capture_steps</span><span class="p">({</span><span class="s2">"tasks"</span><span class="p">:</span> <span class="p">[]},</span> <span class="s2">"oscan"</span><span class="p">)</span> <span class="o">==</span> <span class="p">[]</span>
+<a id="L-177" name="L-177"></a>    <span class="nb">print</span><span class="p">(</span><span class="s2">"self-check OK"</span><span class="p">)</span>
+<a id="L-178" name="L-178"></a>
+<a id="L-179" name="L-179"></a>
+<a id="L-180" name="L-180"></a><span class="k">def</span><span class="w"> </span><span class="nf">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="L-181" name="L-181"></a>    <span class="n">parser</span> <span class="o">=</span> <span class="n">argparse</span><span class="o">.</span><span class="n">ArgumentParser</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="vm">__doc__</span><span class="o">.</span><span class="n">splitlines</span><span class="p">()[</span><span class="mi">0</span><span class="p">])</span>
+<a id="L-182" name="L-182"></a>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"run_json"</span><span class="p">,</span> <span class="n">nargs</span><span class="o">=</span><span class="s2">"?"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Path to the run JSON (poses + moveto tasks)"</span><span class="p">)</span>
+<a id="L-183" name="L-183"></a>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--capture-prefix"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"oscan"</span><span class="p">)</span>
+<a id="L-184" name="L-184"></a>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--capture-service"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">"/capture"</span><span class="p">)</span>
+<a id="L-185" name="L-185"></a>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--capture-timeout"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">30.0</span><span class="p">)</span>
+<a id="L-186" name="L-186"></a>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--settle"</span><span class="p">,</span> <span class="nb">type</span><span class="o">=</span><span class="nb">float</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">2.0</span><span class="p">)</span>
+<a id="L-187" name="L-187"></a>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--save"</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s2">""</span><span class="p">)</span>
+<a id="L-188" name="L-188"></a>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--no-save"</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">)</span>
+<a id="L-189" name="L-189"></a>    <span class="n">parser</span><span class="o">.</span><span class="n">add_argument</span><span class="p">(</span><span class="s2">"--self-check"</span><span class="p">,</span> <span class="n">action</span><span class="o">=</span><span class="s2">"store_true"</span><span class="p">,</span> <span class="n">help</span><span class="o">=</span><span class="s2">"Run logic self-check and exit"</span><span class="p">)</span>
+<a id="L-190" name="L-190"></a>    <span class="n">args</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse_known_args</span><span class="p">()</span>
+<a id="L-191" name="L-191"></a>
+<a id="L-192" name="L-192"></a>    <span class="k">if</span> <span class="n">args</span><span class="o">.</span><span class="n">self_check</span><span class="p">:</span>
+<a id="L-193" name="L-193"></a>        <span class="n">_self_check</span><span class="p">()</span>
+<a id="L-194" name="L-194"></a>        <span class="k">return</span> <span class="mi">0</span>
+<a id="L-195" name="L-195"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">args</span><span class="o">.</span><span class="n">run_json</span><span class="p">:</span>
+<a id="L-196" name="L-196"></a>        <span class="n">parser</span><span class="o">.</span><span class="n">error</span><span class="p">(</span><span class="s2">"run_json is required (or pass --self-check)"</span><span class="p">)</span>
+<a id="L-197" name="L-197"></a>    <span class="k">return</span> <span class="n">run</span><span class="p">(</span><span class="n">args</span><span class="p">)</span>
+<a id="L-198" name="L-198"></a>
+<a id="L-199" name="L-199"></a>
+<a id="L-200" name="L-200"></a><span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">"__main__"</span><span class="p">:</span>
+<a id="L-201" name="L-201"></a>    <span class="n">sys</span><span class="o">.</span><span class="n">exit</span><span class="p">(</span><span class="n">main</span><span class="p">())</span>
+</pre></div></td></tr></table></div>
+</div></body></html>

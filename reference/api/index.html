@@ -1,0 +1,249 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Function and method reference &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+    <link rel="next" title="Task execution" href="subsystems/task-execution.html" />
+    <link rel="prev" title="Module map" href="../modules.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Function and method reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Reference</a></li>
+      <li class="breadcrumb-item active">Function and method reference</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="function-and-method-reference">
+<h1>Function and method reference<a class="headerlink" href="#function-and-method-reference" title="Link to this heading"></a></h1>
+<p>Use this reference when extending EROBS or investigating how a component works. Each module introduces its purpose and usage before the detailed function contracts.</p>
+<p>Choose a subsystem below and follow its <strong>Start here</strong> links. If you already know a function name, use the <a class="reference internal" href="symbols.html"><span class="std std-doc">symbol index</span></a>. For operating the platform, start with the <a class="reference internal" href="../../operate/index.html"><span class="std std-doc">operator guides</span></a>.</p>
+<div class="toctree-wrapper compound">
+</div>
+<section id="browse-by-subsystem">
+<h2>Browse by subsystem<a class="headerlink" href="#browse-by-subsystem" title="Link to this heading"></a></h2>
+<div class="reader-paths">
+<section class="reader-path"><h3><a href="subsystems/task-execution.html">Task execution</a></h3><p>Task validation, pose resolution, batching, action dispatch, and execution controls. Includes run recording and performance tracing.</p><p>7 modules · 60 entries</p></section>
+<section class="reader-path"><h3><a href="subsystems/motion-planning.html">Motion planning</a></h3><p>MTC stages, planner selection, trajectory execution, and plan caching. The CMS Servo node provides a separate continuous-command path.</p><p>5 modules · 57 entries</p></section>
+<section class="reader-path"><h3><a href="subsystems/tools-end-effectors.html">Tools and end effectors</a></h3><p>Gripper control, sample handling, pipettor commands, and tool exchange, including the local 2FG7 driver and ePick launch configuration.</p><p>15 modules · 60 entries</p></section>
+<section class="reader-path"><h3><a href="subsystems/perception.html">Perception and mapping</a></h3><p>Camera acquisition, feature detection, motion-target calculation, and scene mapping. Includes survey capture and offline point-cloud merging.</p><p>19 modules · 128 entries</p></section>
+<section class="reader-path"><h3><a href="subsystems/operator-gui.html">Operator GUI</a></h3><p>Task editing, pose storage, execution controls, chat, and robot visualization. The ROS bridge connects the Qt interface to topics, actions, and services.</p><p>16 modules · 317 entries</p></section>
+<section class="reader-path"><h3><a href="subsystems/clients-integrations.html">Clients and integrations</a></h3><p>Task submission from the CLI and Bluesky, EPICS-to-ROS utilities, and MCP/agent clients. Task-building helpers return JSON for a separate submission step.</p><p>8 modules · 96 entries</p></section>
+<section class="reader-path"><h3><a href="subsystems/setup-deployment.html">Setup and deployment</a></h3><p>Beamline configuration, launch descriptions, tool-specific MoveIt startup, and process cleanup. Docker helpers build and publish images.</p><p>9 modules · 49 entries</p></section>
+<section class="reader-path"><h3><a href="subsystems/examples-demos.html">Examples and demos</a></h3><p>The teaching orchestrator, motion and logging stages, and a Bluesky example. Demo tasks use a separate schema; motion examples can operate the robot.</p><p>11 modules · 39 entries</p></section>
+</div><p>The <a class="reference internal" href="../modules.html"><span class="std std-doc">module map</span></a> shows which files implement each feature. The <a class="reference internal" href="../../architecture/index.html"><span class="std std-doc">architecture guides</span></a> explain how the subsystems work together.</p>
+</section>
+<section id="reading-an-entry">
+<h2>Reading an entry<a class="headerlink" href="#reading-an-entry" title="Link to this heading"></a></h2>
+<p>Module pages explain <strong>how the code is used</strong>, identify key callables, and group methods under their owning classes. <strong>Internal callbacks and helpers</strong> follow the main methods. All entries remain searchable and directly linkable.</p>
+<p>The role beside each signature tells you how the callable is used:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Role</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Entry point</p></td>
+<td><p>A starting point for a workflow or for tracing its implementation. Follow the module’s usage guidance before calling it.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Extension hook</p></td>
+<td><p>A method implemented or overridden by subclasses.</p></td>
+</tr>
+<tr class="row-even"><td><p>Lifecycle</p></td>
+<td><p>Construction, initialization, cleanup, or shutdown.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Callback</p></td>
+<td><p>Called by ROS, Qt, a timer, or another framework event.</p></td>
+</tr>
+<tr class="row-even"><td><p>Method / function</p></td>
+<td><p>A regular operation used by the surrounding code.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Internal helper</p></td>
+<td><p>Supporting implementation logic.</p></td>
+</tr>
+</tbody>
+</table>
+<p>These labels describe usage, not a guarantee of a stable public API. An underscore alone does not determine whether a method is an extension hook.</p>
+<p>Signatures, defaults, and annotations come from source. Parameter descriptions explain expected inputs; error notes describe validation and recovery. Uncaught exceptions propagate unless the entry describes recovery. Side-effect notes identify state changes, I/O, camera capture, and robot motion where applicable.</p>
+<p><strong>Referenced in source</strong> lists statically identified references. It can omit dynamic dispatch, inherited methods, GUI string lookups, ROS clients, and external callers. No listed references does not mean a function is unused.</p>
+<p><code class="docutils literal notranslate"><span class="pre">self</span></code> and <code class="docutils literal notranslate"><span class="pre">cls</span></code> in Python signatures refer to the current instance and class. Examples that require a running application state their context.</p>
+</section>
+<section id="source-links">
+<h2>Source links<a class="headerlink" href="#source-links" title="Link to this heading"></a></h2>
+<p>Source links open the snapshot of the code these entries describe.</p>
+<p>The reference covers <strong>806 functions and methods across 90 modules</strong>. Coverage includes first-party Python, C++, shell, and viewer functions, including private and nested helpers. It excludes tests, imported libraries, anonymous functions, inherited dependency methods, and generated dataclass methods. Scripts without named functions are covered in the <a class="reference internal" href="../commands.html"><span class="std std-doc">command guide</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../modules.html" class="btn btn-neutral float-left" title="Module map" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="subsystems/task-execution.html" class="btn btn-neutral float-right" title="Task execution" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,422 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Module map &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Function and method reference" href="api/index.html" />
+    <link rel="prev" title="Reference" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Module map</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#main-execution-package">Main execution package</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#perception-and-auxiliary-programs">Perception and auxiliary programs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gui-modules">GUI modules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#models-tools-and-teaching-packages">Models, tools and teaching packages</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="api/index.html">Function and method reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Reference</a></li>
+      <li class="breadcrumb-item active">Module map</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="module-map">
+<h1>Module map<a class="headerlink" href="#module-map" title="Link to this heading"></a></h1>
+<p>Find the modules responsible for execution, perception, the GUI, and hardware integration. Module links open the function reference; architecture links explain how the components work together.</p>
+<figure class="architecture-figure">
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="module map diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 928" role="img" aria-labelledby="module-map-title module-map-desc">
+<title id="module-map-title">Where each behavior belongs</title>
+<desc id="module-map-desc">The GUI crosses a ROS action boundary into action servers, which compose core helpers and task stages; perception and shared beamline configuration have their own responsibilities and cross-cutting dependencies.</desc>
+<defs><marker id="module-map-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="module-map-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="module-map-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="960" height="928" fill="#ffffff"/>
+<text x="40" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / MODULE MAP</text>
+<text x="40" y="84" font-size="28" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Where each behavior belongs</text>
+<text x="40" y="116" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Find the area responsible for a feature, then follow its module into the reference.</text>
+
+<!-- Selected runtime relationships. -->
+<line x1="320" y1="240" x2="532" y2="240" stroke="#235cb7" stroke-width="1.5" marker-end="url(#module-map-arrow-link)"/>
+<rect x="352" y="200" width="148" height="28" fill="#ffffff"/>
+<text x="428" y="220" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#235cb7">ROS ACTION</text>
+<path d="M 604,312 V 336 Q 604,344 596,344 H 176 Q 168,344 168,352 V 408" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#module-map-arrow)"/>
+<path d="M 728,312 V 368 Q 728,376 720,376 H 480 Q 472,376 472,384 V 408" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#module-map-arrow)"/>
+<line x1="600" y1="504" x2="648" y2="504" stroke="#52647a" stroke-width="1.5" marker-end="url(#module-map-arrow)"/>
+
+<rect x="40" y="164" width="280" height="148" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="200" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">GUI composition</text>
+<text x="60" y="232" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">mtc_gui/</text>
+<text x="60" y="264" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Forms, queue and viewers</text>
+<text x="60" y="292" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">ros2_bridge.py → Qt</text>
+
+<rect x="532" y="164" width="388" height="148" rx="8" fill="#edf3ff" stroke="#235cb7"/>
+<text x="552" y="200" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Action boundaries</text>
+<text x="552" y="232" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/action_servers/</text>
+<text x="552" y="264" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Orchestrator and task servers</text>
+<text x="552" y="292" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Admission, feedback and results</text>
+
+<rect x="40" y="408" width="256" height="224" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="444" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Execution support</text>
+<text x="60" y="476" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/core/</text>
+<text x="60" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Task parsing and batching</text>
+<text x="60" y="536" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Plan cache and lifecycle</text>
+<text x="60" y="564" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Tool-change coordination</text>
+
+<rect x="344" y="408" width="256" height="224" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="364" y="444" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Task stages</text>
+<text x="364" y="476" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/stages/</text>
+<text x="364" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">MTC task construction</text>
+<text x="364" y="536" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Shared motion helpers</text>
+<text x="364" y="564" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Per-task execution</text>
+
+<rect x="648" y="408" width="272" height="224" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="668" y="444" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Perception &amp; mapping</text>
+<text x="668" y="476" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/vision/</text>
+<text x="668" y="504" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">camera/ · detection/</text>
+<text x="668" y="536" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Capture, detection and TF</text>
+<text x="668" y="564" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Lookup and goal geometry</text>
+<text x="668" y="600" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/mapping/</text>
+
+<rect x="40" y="664" width="880" height="128" rx="8" fill="#f3f6fb" stroke="#52647a"/>
+<text x="60" y="700" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Shared beamline configuration</text>
+<text x="60" y="732" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/config_loader.py + selected beamline YAML</text>
+<text x="60" y="764" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Consumed across launch, GUI, action servers, stages and perception.</text>
+
+<text x="40" y="836" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Selected calls are shown. VisionEngine also inherits BaseStages; these are responsibility groups.</text>
+<line x1="40" y1="868" x2="920" y2="868" stroke="#dbe3ee"/>
+<line x1="40" y1="900" x2="88" y2="900" stroke="#52647a" stroke-width="1.5"/>
+<text x="104" y="904" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Python composition / calls</text>
+<line x1="488" y1="900" x2="536" y2="900" stroke="#235cb7" stroke-width="1.5"/>
+<text x="552" y="904" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">ROS action boundary</text>
+</svg></div>
+<figcaption><a href="../diagrams/module-map.html">Open the full-size diagram</a></figcaption>
+</figure><section id="main-execution-package">
+<h2>Main execution package<a class="headerlink" href="#main-execution-package" title="Link to this heading"></a></h2>
+<p>Paths in this table are relative to <code class="docutils literal notranslate"><span class="pre">src/beambot/</span></code>.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Source</p></th>
+<th class="head"><p>Responsibility</p></th>
+<th class="head"><p>Called by or consumed by</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-action_servers-orchestrator-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/action_servers/orchestrator.py</span></code></span></a></p></td>
+<td><p>Main JSON action, execution state, dispatch and coordination</p></td>
+<td><p>GUI, JSON client, MCP-dispatched actions and Bluesky</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-action_servers-base_action_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/action_servers/base_action_server.py</span></code></span></a></p></td>
+<td><p>Shared action-server lifecycle and admission behavior</p></td>
+<td><p>Individual task servers</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-action_servers-move_to_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/action_servers/move_to_server.py</span></code></span></a>, <a class="reference internal" href="api/modules/src-beambot-beambot-action_servers-end_effector_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/action_servers/end_effector_server.py</span></code></span></a></p></td>
+<td><p>Direct motion and gripper actions</p></td>
+<td><p>Orchestrator; direct action clients</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-action_servers-sample_pick_place_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/action_servers/sample_pick_place_server.py</span></code></span></a>, <a class="reference internal" href="api/modules/src-beambot-beambot-action_servers-tool_exchange_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/action_servers/tool_exchange_server.py</span></code></span></a>, <a class="reference internal" href="api/modules/src-beambot-beambot-action_servers-pipettor_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/action_servers/pipettor_server.py</span></code></span></a></p></td>
+<td><p>Sample, tool exchange and pipettor action boundaries</p></td>
+<td><p>Orchestrator</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-action_servers-vision_scan_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/action_servers/vision_scan_server.py</span></code></span></a>, <a class="reference internal" href="api/modules/src-beambot-beambot-action_servers-vision_task_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/action_servers/vision_task_server.py</span></code></span></a></p></td>
+<td><p>Scan and unified vision-task actions</p></td>
+<td><p>Orchestrator and perception clients</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-core-task_script-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/core/task_script.py</span></code></span></a></p></td>
+<td><p>Request parsing, task and pose handling</p></td>
+<td><p>Orchestrator</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-core-task_batching-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/core/task_batching.py</span></code></span></a>, <a class="reference internal" href="api/modules/src-beambot-beambot-core-plan_cache-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/core/plan_cache.py</span></code></span></a></p></td>
+<td><p>Group eligible tasks; manage reusable plans</p></td>
+<td><p>Orchestrator</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-core-moveit_lifecycle_manager-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/core/moveit_lifecycle_manager.py</span></code></span></a>, <a class="reference internal" href="api/modules/src-beambot-beambot-core-tool_exchange_manager-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/core/tool_exchange_manager.py</span></code></span></a></p></td>
+<td><p>Robot-stack lifetime and tool-change coordination</p></td>
+<td><p>Orchestrator</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-core-vacuum_monitor-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/core/vacuum_monitor.py</span></code></span></a></p></td>
+<td><p>Retained vacuum bookkeeping class; subscription branch is disabled</p></td>
+<td><p>Orchestrator integration is commented out; no instance is created</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-stages-base_stages-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/stages/base_stages.py</span></code></span></a></p></td>
+<td><p>Shared MTC, planner, pose and motion helpers</p></td>
+<td><p>Task stages and vision engine</p></td>
+</tr>
+<tr class="row-even"><td><p>Other files in <code class="docutils literal notranslate"><span class="pre">beambot/stages/</span></code></p></td>
+<td><p>Motion, end-effector, pick/place, exchange, pipettor and vision execution</p></td>
+<td><p>Corresponding action servers</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-config_loader-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/config_loader.py</span></code></span></a></p></td>
+<td><p>Beamline selection and shared configuration access</p></td>
+<td><p>Launch files, execution, GUI and tools</p></td>
+</tr>
+</tbody>
+</table>
+<p>The task name <code class="docutils literal notranslate"><span class="pre">moveto</span></code> and filename <code class="docutils literal notranslate"><span class="pre">move_to_server.py</span></code> differ deliberately. The full endpoint-to-action mapping is in the <a class="reference internal" href="actions.html"><span class="std std-doc">action reference</span></a>.</p>
+</section>
+<section id="perception-and-auxiliary-programs">
+<h2>Perception and auxiliary programs<a class="headerlink" href="#perception-and-auxiliary-programs" title="Link to this heading"></a></h2>
+<p>The perception code has three main source areas:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Directory</p></th>
+<th class="head"><p>Responsibility</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision/camera/</span></code></p></td>
+<td><p>Backend acquisition</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision/detection/</span></code></p></td>
+<td><p>Algorithms and parameter types</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision/</span></code></p></td>
+<td><p>Detector/goal-computer dispatch dictionaries, motion-target types and <code class="docutils literal notranslate"><span class="pre">VisionEngine</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">VisionEngine</span></code> provides camera capture, TF, approach geometry, tag caching and detected collision objects. <code class="docutils literal notranslate"><span class="pre">VisionTaskStages.run()</span></code> looks up detector and goal-computer callables. The vision code also serves the remaining scan and hardcoded sample paths; see <a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">perception</span></a>.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Source</p></th>
+<th class="head"><p>Role</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-mapping-pointcloud_relay-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/mapping/pointcloud_relay.py</span></code></span></a></p></td>
+<td><p>Feed the mapping cloud path</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-mapping-octomap_to_planning_scene-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/mapping/octomap_to_planning_scene.py</span></code></span></a></p></td>
+<td><p>Bridge Octomap messages into MoveIt scene updates</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-beambot-scripts-beambot_client-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">scripts/beambot_client.py</span></code></span></a></p></td>
+<td><p>Read task JSON and submit the main action</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-beambot-scripts-capture_octomap-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">scripts/capture_octomap.py</span></code></span></a></p></td>
+<td><p>Execute selected scan poses and trigger captures for the Octomap workflow</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-beambot-scripts-perf_trace_run-sh.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">scripts/perf_trace_run.sh</span></code></span></a></p></td>
+<td><p>Launch a tracing-enabled run</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-beambot-scripts-perf_trace_summarize-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">scripts/perf_trace_summarize.py</span></code></span></a></p></td>
+<td><p>Summarize ROS trace callback timing</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-beambot-mcp_server-beambot_mcp_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">mcp_server/beambot_mcp_server.py</span></code></span></a></p></td>
+<td><p>Custom beamline MCP tools</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-beambot-beambot-agent-robot_agent-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/agent/robot_agent.py</span></code></span></a>, <a class="reference internal" href="api/modules/src-beambot-beambot-agent-__main__-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">beambot/agent/__main__.py</span></code></span></a></p></td>
+<td><p>Shared direct agent and command-line entry</p></td>
+</tr>
+</tbody>
+</table>
+<p>The standalone survey scripts are outside this package. Their live runner calls the move action directly; <code class="docutils literal notranslate"><span class="pre">capture_octomap.py</span></code> instead sends one-task orchestrator goals. Both programs can move the robot and trigger camera capture.</p>
+</section>
+<section id="gui-modules">
+<h2>GUI modules<a class="headerlink" href="#gui-modules" title="Link to this heading"></a></h2>
+<p>Paths below are relative to <code class="docutils literal notranslate"><span class="pre">src/mtc_gui/mtc_gui/</span></code>.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Source</p></th>
+<th class="head"><p>Responsibility</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-main-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">main.py</span></code></span></a></p></td>
+<td><p>Application startup, Qt event loop and ROS bridge cleanup</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-main_window-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">main_window.py</span></code></span></a></p></td>
+<td><p>Panels, task-document ownership and execution controls; agent disconnection on window close</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-theme-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">theme.py</span></code></span></a></p></td>
+<td><p>Shared appearance and <code class="docutils literal notranslate"><span class="pre">toggle_dark_mode()</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-task_forms-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">task_forms.py</span></code></span></a></p></td>
+<td><p>GUI task serialization: input dialogs and JSON construction</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-step_list_panel-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">step_list_panel.py</span></code></span></a></p></td>
+<td><p>Queue rows, selection/reordering and execution progress</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-ros2_bridge-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">ros2_bridge.py</span></code></span></a></p></td>
+<td><p>ROS messages, actions and services translated into Qt signals; cancellation tracking through the final action result</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-pose_io-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">pose_io.py</span></code></span></a></p></td>
+<td><p>Qt-independent YAML reading and atomic replacement on save</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-poses_panel-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">poses_panel.py</span></code></span></a>, <a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-pose_dialogs-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">pose_dialogs.py</span></code></span></a></p></td>
+<td><p>Pose browsing, editing, importing and saving</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-camera_panel-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">camera_panel.py</span></code></span></a></p></td>
+<td><p>Image display and detection overlays</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-visualization_panel-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">visualization_panel.py</span></code></span></a></p></td>
+<td><p>QWebEngine viewer, model/mesh resolution and trajectory display</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-chat_panel-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">chat_panel.py</span></code></span></a>, <a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-agent_bridge-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">agent_bridge.py</span></code></span></a>, <a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-agent_modes-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">agent_modes.py</span></code></span></a></p></td>
+<td><p>Conversation presentation, asynchronous agent bridge and Plan/Run tool policy</p></td>
+</tr>
+</tbody>
+</table>
+<p><a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-resources-viewer-html.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">resources/viewer.html</span></code></span></a> runs the browser scene. Three.js provides rendering, OrbitControls provides navigation, URDFLoader builds the link/joint model, and STLLoader/ColladaLoader read mesh formats. <code class="docutils literal notranslate"><span class="pre">VisualizationPanel</span></code> serves these resources and package meshes over an ephemeral loopback HTTP port. Its path resolver confines requests to configured roots. Updating that code requires preserving both the resource mapping and path boundary.</p>
+<p>For GUI task serialization, start with <a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-task_forms-py.html#api-1e874a358e709f90"><span class="std std-ref">open_task_form()</span></a> to select the dialog. On Save, <a class="reference internal" href="api/modules/src-mtc_gui-mtc_gui-task_forms-py.html#api-d5c6792c4ecd4671"><span class="std std-ref">BaseTaskForm._on_save()</span></a> calls the form’s <code class="docutils literal notranslate"><span class="pre">collect_values()</span></code> method and stores the edited task dictionary in <code class="docutils literal notranslate"><span class="pre">dialog.result</span></code>. The <a class="reference internal" href="api/modules/src-beambot-beambot-core-task_script-py.html"><span class="std std-doc">task parser</span></a> is the receiving contract; form fields and parser defaults must agree.</p>
+</section>
+<section id="models-tools-and-teaching-packages">
+<h2>Models, tools and teaching packages<a class="headerlink" href="#models-tools-and-teaching-packages" title="Link to this heading"></a></h2>
+<p>The four CMS/LIX description and MoveIt packages own models, planning configuration and bringup. CMS additionally compiles <code class="docutils literal notranslate"><span class="pre">cms_servo_node</span></code>, the C++ Servo implementation used by optional joystick control. Three local end-effector packages supply the ePick overlay and OnRobot model/driver; <a class="reference internal" href="../hardware/index.html"><span class="std std-doc">hardware</span></a> explains them.</p>
+<p><code class="docutils literal notranslate"><span class="pre">hello_orchestrator_py</span></code> is a separate teaching example with print, move and orchestrator servers plus matching stages and a JSON client. Its companion interface package defines <code class="docutils literal notranslate"><span class="pre">PrintMessage</span></code>, <code class="docutils literal notranslate"><span class="pre">MoveToNamedState</span></code> and <code class="docutils literal notranslate"><span class="pre">OrchestratorTask</span></code>. The demo uses <code class="docutils literal notranslate"><span class="pre">{&quot;type&quot;:</span> <span class="pre">&quot;move&quot;}</span></code> rather than the main application’s <code class="docutils literal notranslate"><span class="pre">task_type</span></code> schema. It requires a configured MoveIt planning group and named state; its move example can execute motion.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="api/index.html" class="btn btn-neutral float-right" title="Function and method reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

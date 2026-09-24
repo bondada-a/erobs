@@ -1,0 +1,297 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Installation &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Run your first task" href="first-task.html" />
+    <link rel="prev" title="Concepts and conventions" href="concepts.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Start here</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="concepts.html">Concepts and conventions</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#install-ros-2">1. Install ROS 2</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#clone-erobs-and-run-setup">2. Clone EROBS and run setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#build-and-load-the-workspace">3. Build and load the workspace</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#check-the-installation">4. Check the installation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optional-zivid-camera">Optional: Zivid camera</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#optional-python-features">Optional Python features</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#prepare-the-python-environment">Prepare the Python environment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#learned-vision-and-mapping">Learned vision and mapping</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#chat-and-mcp">Chat and MCP</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#bluesky-and-epics">Bluesky and EPICS</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#if-setup-fails">If setup fails</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="first-task.html">Run your first task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#how-erobs-works">How EROBS works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#current-capabilities">Current capabilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#next-steps">Next steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Start here</a></li>
+      <li class="breadcrumb-item active">Installation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<p>Set up EROBS on <strong>Ubuntu 24.04 with ROS 2 Jazzy</strong>. The steps below install the robot software and GUI for a first run with mock hardware. Camera support is optional.</p>
+<section id="install-ros-2">
+<h2>1. Install ROS 2<a class="headerlink" href="#install-ros-2" title="Link to this heading"></a></h2>
+<p>Follow the official <a class="reference external" href="https://docs.ros.org/en/jazzy/Installation/Ubuntu-Install-Debs.html">ROS 2 Jazzy installation guide</a>. Complete both <strong>Desktop Install</strong> and <strong>Install development tools</strong> (<code class="docutils literal notranslate"><span class="pre">ros-dev-tools</span></code>). The development-tools step supplies Git, CMake, colcon, rosdep, and vcstool for building EROBS.</p>
+<p>After installation, load ROS in your terminal:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>/opt/ros/jazzy/setup.bash
+</pre></div>
+</div>
+<p>Use Ubuntu’s Python 3.12 and a desktop session for the GUI and RViz.</p>
+</section>
+<section id="clone-erobs-and-run-setup">
+<h2>2. Clone EROBS and run setup<a class="headerlink" href="#clone-erobs-and-run-setup" title="Link to this heading"></a></h2>
+<p>Choose where you want to keep EROBS and open a terminal in that directory:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>--branch<span class="w"> </span>pr_jazzy_dev<span class="w"> </span>https://github.com/bondada-a/erobs.git
+<span class="nb">cd</span><span class="w"> </span>erobs
+</pre></div>
+</div>
+<p>Run the remaining commands from the repository root—the directory containing <code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> and <code class="docutils literal notranslate"><span class="pre">src/</span></code>.</p>
+<p>On first-time setup, run <code class="docutils literal notranslate"><span class="pre">sudo</span> <span class="pre">rosdep</span> <span class="pre">init</span></code> once. Skip this if rosdep is already initialized.</p>
+<p>Then run the repository’s setup script:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>bash<span class="w"> </span>setup.sh
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> imports the repository’s existing driver manifests and installs the declared ROS dependencies, including planning and GUI packages. It does not build EROBS or install camera SDKs.</p>
+<p>If you already have an EROBS checkout, use it instead of cloning a new one.</p>
+</section>
+<section id="build-and-load-the-workspace">
+<h2>3. Build and load the workspace<a class="headerlink" href="#build-and-load-the-workspace" title="Link to this heading"></a></h2>
+<p>From the EROBS repository root:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>colcon<span class="w"> </span>build<span class="w"> </span>--merge-install<span class="w"> </span>--symlink-install<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--packages-skip-regex<span class="w"> </span><span class="s1">'zivid_(camera|samples)|zed_.*'</span>
+<span class="nb">source</span><span class="w"> </span>install/setup.bash
+</pre></div>
+</div>
+<p>This builds EROBS without the camera drivers that require vendor SDKs. Camera model and interface packages remain available for the robot descriptions.</p>
+<p><code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> prepares dependencies; <code class="docutils literal notranslate"><span class="pre">install/setup.bash</span></code> loads the built workspace. Open each new terminal in your EROBS checkout, then run:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">source</span><span class="w"> </span>/opt/ros/jazzy/setup.bash
+<span class="nb">source</span><span class="w"> </span>install/setup.bash
+</pre></div>
+</div>
+<p>For an existing workspace, keep its current install layout. The <a class="reference internal" href="../reference/packages.html#build-and-installation"><span class="std std-ref">package index</span></a> lists what each package installs.</p>
+</section>
+<section id="check-the-installation">
+<h2>4. Check the installation<a class="headerlink" href="#check-the-installation" title="Link to this heading"></a></h2>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ros2<span class="w"> </span>pkg<span class="w"> </span>prefix<span class="w"> </span>beambot
+ros2<span class="w"> </span>pkg<span class="w"> </span>prefix<span class="w"> </span>mtc_gui
+ros2<span class="w"> </span>interface<span class="w"> </span>show<span class="w"> </span>beambot_interfaces/action/MTCExecution
+</pre></div>
+</div>
+<p>Both package paths should point into this workspace’s <code class="docutils literal notranslate"><span class="pre">install/</span></code> directory. The final command should display the <code class="docutils literal notranslate"><span class="pre">MTCExecution</span></code> action definition.</p>
+<p>Continue with <strong><a class="reference internal" href="first-task.html"><span class="std std-doc">Run your first task</span></a></strong> to select a mock configuration, open the GUI, preview a movement, and execute it. For a physical installation, follow <a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamline configuration</span></a>.</p>
+</section>
+<section id="optional-zivid-camera">
+<h2>Optional: Zivid camera<a class="headerlink" href="#optional-zivid-camera" title="Link to this heading"></a></h2>
+<p>For camera capture, install the SDK and GPU drivers required by <code class="docutils literal notranslate"><span class="pre">src/vision/zivid-ros/README.md</span></code>. Follow <a class="reference external" href="https://support.zivid.com/en/latest/camera/getting-started/software-installation/install-zivid-on-ubuntu.html">Zivid’s Ubuntu installation guide</a>, choosing an SDK version compatible with that checkout.</p>
+<p>Then build the camera packages from your EROBS repository root:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>colcon<span class="w"> </span>build<span class="w"> </span>--merge-install<span class="w"> </span>--symlink-install<span class="w"> </span><span class="se">\</span>
+<span class="w">  </span>--packages-up-to<span class="w"> </span>zivid_camera<span class="w"> </span>zivid_samples
+<span class="nb">source</span><span class="w"> </span>install/setup.bash
+</pre></div>
+</div>
+<p>Configure the camera network and calibration, then enable vision with <code class="docutils literal notranslate"><span class="pre">enable_vision:=true</span></code> when launching EROBS. See <a class="reference internal" href="../hardware/cameras.html"><span class="std std-doc">cameras and detection</span></a> for the complete camera workflow and ZED limitations.</p>
+</section>
+<section id="optional-python-features">
+<h2>Optional Python features<a class="headerlink" href="#optional-python-features" title="Link to this heading"></a></h2>
+<p>These packages support learned vision, chat, and experiment integrations. They are not needed for the manual GUI or <a class="reference internal" href="first-task.html"><span class="std std-doc">the first mock task</span></a>.</p>
+<section id="prepare-the-python-environment">
+<h3>Prepare the Python environment<a class="headerlink" href="#prepare-the-python-environment" title="Link to this heading"></a></h3>
+<p>Keep these packages outside Ubuntu’s managed Python installation:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>sudo<span class="w"> </span>apt<span class="w"> </span>install<span class="w"> </span>python3-venv
+/usr/bin/python3<span class="w"> </span>-m<span class="w"> </span>venv<span class="w"> </span>--system-site-packages<span class="w"> </span>~/.venvs/erobs
+<span class="nb">source</span><span class="w"> </span>~/.venvs/erobs/bin/activate
+python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>--upgrade<span class="w"> </span>pip
+</pre></div>
+</div>
+<p>After sourcing ROS and the workspace, expose this environment’s packages to ROS entry points that use <code class="docutils literal notranslate"><span class="pre">/usr/bin/python3</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$HOME</span><span class="s2">/.venvs/erobs/lib/python3.12/site-packages</span><span class="si">${</span><span class="nv">PYTHONPATH</span><span class="p">:+:</span><span class="nv">$PYTHONPATH</span><span class="si">}</span><span class="s2">"</span>
+</pre></div>
+</div>
+<p>Repeat the activation and export in terminals that launch these optional features. Keep the core ROS build on the system interpreter.</p>
+</section>
+<section id="learned-vision-and-mapping">
+<h3>Learned vision and mapping<a class="headerlink" href="#learned-vision-and-mapping" title="Link to this heading"></a></h3>
+<p>Install PyTorch using its <a class="reference external" href="https://pytorch.org/get-started/locally/">platform-specific installation guide</a>, choosing the appropriate CPU or GPU build. Then install the feature packages in the environment above:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span><span class="s1">'numpy&lt;2'</span><span class="w"> </span><span class="s1">'opencv-python&lt;4.12'</span><span class="w"> </span>ultralytics<span class="w"> </span>open3d
+/usr/bin/python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">'import cv2, cv_bridge, torch, ultralytics, open3d'</span>
+</pre></div>
+</div>
+<p>The NumPy/OpenCV constraints keep this Python stack compatible with Jazzy’s NumPy 1.x image bridge. Ultralytics supports learned sample detection; Open3D supports point-cloud processing. Camera calibration, model weights, and detector configuration are covered in <a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">perception</span></a>.</p>
+</section>
+<section id="chat-and-mcp">
+<h3>Chat and MCP<a class="headerlink" href="#chat-and-mcp" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>anthropic<span class="w"> </span>mcp
+/usr/bin/python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">'import anthropic, mcp'</span>
+</pre></div>
+</div>
+<p>Install <a class="reference external" href="https://docs.astral.sh/uv/getting-started/installation/">uv</a> so the configured <code class="docutils literal notranslate"><span class="pre">uvx</span></code> MCP process is available. Start the client from the EROBS checkout so it finds <code class="docutils literal notranslate"><span class="pre">.mcp.json</span></code>, select the beamline, and supply <code class="docutils literal notranslate"><span class="pre">AIFAPIM_API_KEY</span></code> through your credential environment. Verify that <code class="docutils literal notranslate"><span class="pre">robot_operation.md</span></code> exists next to the imported <code class="docutils literal notranslate"><span class="pre">beambot.agent.robot_agent</span></code> module. Read <a class="reference internal" href="../integrations/mcp-agent.html"><span class="std std-doc">MCP and the direct agent</span></a> for gateway settings and runtime-file requirements. Manual task editing does not require chat credentials.</p>
+</section>
+<section id="bluesky-and-epics">
+<h3>Bluesky and EPICS<a class="headerlink" href="#bluesky-and-epics" title="Link to this heading"></a></h3>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-m<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>bluesky<span class="w"> </span>ophyd<span class="w"> </span>pyepics
+<span class="c1"># Run from the repository root.</span>
+<span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/src</span><span class="si">${</span><span class="nv">PYTHONPATH</span><span class="p">:+:</span><span class="nv">$PYTHONPATH</span><span class="si">}</span><span class="s2">"</span>
+/usr/bin/python3<span class="w"> </span>-c<span class="w"> </span><span class="s1">'import bluesky, ophyd, epics, bluesky_ros'</span>
+</pre></div>
+</div>
+<p>Configure the site’s EPICS network and devices separately. The <a class="reference internal" href="../integrations/bluesky-epics.html"><span class="std std-doc">Bluesky and EPICS guide</span></a> explains the adapters and their current limitations; installing them does not validate an experiment workflow.</p>
+</section>
+</section>
+<section id="if-setup-fails">
+<h2>If setup fails<a class="headerlink" href="#if-setup-fails" title="Link to this heading"></a></h2>
+<p>If setup or a check fails, resolve the reported error before continuing. The <a class="reference internal" href="../maintenance/troubleshooting.html#configuration-and-installation"><span class="std std-ref">troubleshooting guide</span></a> covers missing packages, Python imports, and configuration paths.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="concepts.html" class="btn btn-neutral float-left" title="Concepts and conventions" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="first-task.html" class="btn btn-neutral float-right" title="Run your first task" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

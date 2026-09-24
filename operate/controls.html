@@ -1,0 +1,282 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Execution controls &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Architecture" href="../architecture/index.html" />
+    <link rel="prev" title="Vision-guided tasks" href="vision.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Operate EROBS</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="gui.html">Operator GUI</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tasks.html">Write task scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="poses.html">Poses and saved runs</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tools.html">Tools and end effectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="vision.html">Vision-guided tasks</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Execution controls</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#preview">Preview</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pause-and-resume">Pause and resume</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-and-cancellation">Stop and cancellation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#states-and-results">States and results</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#run-a-sequence">Run a sequence</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#dry-run-and-mock-hardware">Dry Run and mock hardware</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#operation-guides">Operation guides</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Operate EROBS</a></li>
+      <li class="breadcrumb-item active">Execution controls</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="execution-controls">
+<h1>Execution controls<a class="headerlink" href="#execution-controls" title="Link to this heading"></a></h1>
+<p>Use <strong>Dry Run</strong> to preview a sequence, <strong>Execute</strong> to run it, and <strong>Pause</strong>, <strong>Resume</strong>, or <strong>Stop</strong> to control progress.</p>
+<p>Pause and cancellation normally take effect after the active task or batch finishes. Consecutive MoveTo and End Effector steps can share a batch, so several rows may finish before either request takes effect.</p>
+<section id="preview">
+<h2>Preview<a class="headerlink" href="#preview" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Select <strong>Dry Run</strong> and press <strong>Execute</strong> to plan without executing the task trajectories.</p></li>
+<li><p>Inspect the planned motion in <strong>3D View</strong> or RViz and check the <strong>Activity Log</strong> for the result.</p></li>
+<li><p>Clear <strong>Dry Run</strong> and press <strong>Execute</strong> when ready to run the sequence. Execution uses the real or mock hardware selected at launch.</p></li>
+</ol>
+<p>Preview supports only <strong>Move To</strong> and <strong>End Effector</strong> tasks. A Pause, vision, tool-exchange, or pipettor step prevents previewing the whole sequence. Preview initializes MoveIt for <strong>Start Gripper</strong> and confirms planning, not successful device operation.</p>
+<p>How multiple steps are previewed depends on batching:</p>
+<ul class="simple">
+<li><p><strong>Batching on:</strong> supported steps are planned as a connected sequence.</p></li>
+<li><p><strong>Batching off:</strong> each step starts from the live robot position. Earlier preview endpoints are not carried forward.</p></li>
+</ul>
+<p>For a robot at A and targets B then C, unbatched previews plan A→B and A→C. They do not check the B→C transition. The GUI displays the latest trajectory, replacing the previous one. See the <a class="reference internal" href="tasks.html#compare-previews"><span class="std std-ref">preview comparison</span></a>.</p>
+<p>A successful preview may be cached for execution. Resolved pose values are part of the cache key, but scene changes are not. Generate and inspect a fresh preview after changing the scene; see <a class="reference internal" href="../architecture/batching.html"><span class="std std-doc">cache behavior</span></a>.</p>
+<figure class="screenshot-figure align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/rviz-preview.png"><img alt="RViz displays translucent robot poses sampled along a successful mock MoveIt plan to safe_tool_exchange, with Show Trail enabled." src="../_images/rviz-preview.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text">A recorded mock preview displayed in RViz. The translucent robot poses show the planned path to <code class="docutils literal notranslate"><span class="pre">safe_tool_exchange</span></code>; displaying this trajectory does not command the controller. <a class="reference download internal" download="" href="../_downloads/7522a3644a65205703b81664d856223c/rviz-preview.png"><span class="xref download myst">Open the full-resolution screenshot</span></a>.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+</section>
+<section id="pause-and-resume">
+<h2>Pause and resume<a class="headerlink" href="#pause-and-resume" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Press <strong>Pause</strong> to request a pause after the active task or batch.</p></li>
+<li><p>Wait for <code class="docutils literal notranslate"><span class="pre">PAUSED</span></code>. While the request is pending, the state is <code class="docutils literal notranslate"><span class="pre">COMPLETING_TASK</span></code> and execution continues.</p></li>
+<li><p>Press <strong>Resume</strong> to continue. Resume is available once the run is paused.</p></li>
+</ol>
+<p>If the active task or batch is the last one, the sequence can finish before entering <code class="docutils literal notranslate"><span class="pre">PAUSED</span></code>.</p>
+<p>To stop at a planned inspection point, insert a <strong>Pause</strong> task in the sequence. It waits for Resume or cancellation and has no timer. A sequence containing it cannot be previewed as a whole.</p>
+<p>The sequence editor stays locked while a run is pending, running, or paused. Resume continues the submitted sequence.</p>
+</section>
+<section id="stop-and-cancellation">
+<h2>Stop and cancellation<a class="headerlink" href="#stop-and-cancellation" title="Link to this heading"></a></h2>
+<p><strong>Stop requests cancellation; it is not an emergency stop.</strong> Use the cell’s physical stop system when immediate stopping is required.</p>
+<p>The GUI keeps tracking submitted work until the server returns a final result:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Request state</p></th>
+<th class="head"><p>What Stop does</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Before submission</p></td>
+<td><p>Stops without sending a goal.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Waiting for acceptance</p></td>
+<td><p>Waits for the reply, then requests cancellation if the goal was accepted.</p></td>
+</tr>
+<tr class="row-even"><td><p>Accepted</p></td>
+<td><p>Requests cancellation and waits for the actual terminal result. The active task or batch can still be running.</p></td>
+</tr>
+</tbody>
+</table>
+<p>While waiting, the Activity Log reports “Stopping… waiting for task completion”. A run can finish successfully before cancellation takes effect; the GUI reports that actual outcome. A final result is still a software report, not an independent measurement of physical stoppage.</p>
+<p>When the server accepts cancellation, it reports <code class="docutils literal notranslate"><span class="pre">CANCELING</span></code> and checks the request at task or batch boundaries. Cancellation does not interrupt an active movement in the middle of a batch. If the active task or batch fails after cancellation was requested, the orchestrator enters <code class="docutils literal notranslate"><span class="pre">FAULTED</span></code> and rejects new goals until it is restarted.</p>
+<p>The custom MCP <code class="docutils literal notranslate"><span class="pre">stop_robot</span></code> tool requests cancellation of all orchestrator goals. An accepted request also waits for a task or batch boundary.</p>
+</section>
+<section id="states-and-results">
+<h2>States and results<a class="headerlink" href="#states-and-results" title="Link to this heading"></a></h2>
+<p>The server publishes these states on <code class="docutils literal notranslate"><span class="pre">/beambot/execution_state</span></code>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>State</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">IDLE</span></code></p></td>
+<td><p>Initial or cleanup state; check the task result separately.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">RUNNING</span></code></p></td>
+<td><p>Processing a task or batch.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">COMPLETING_TASK</span></code></p></td>
+<td><p>Pause requested; finishing the active task or batch.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">PAUSED</span></code></p></td>
+<td><p>Waiting for Resume or cancellation.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">CANCELING</span></code></p></td>
+<td><p>Cancellation accepted; waiting for a cancellation check.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">FAULTED</span></code></p></td>
+<td><p>Execution is uncertain or an unhandled exception occurred; new goals are rejected.</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">IDLE</span></code> can remain visible during MoveIt initialization and can follow a failed task. It does not mean the last run succeeded. These states—and the tool name on <code class="docutils literal notranslate"><span class="pre">/beambot/current_gripper</span></code>—are software reports, not independent confirmation of physical stoppage or attachment.</p>
+<figure class="architecture-figure">
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="states diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="states-title states-desc">
+<title id="states-title">Execution state messages and control boundaries</title>
+<desc id="states-desc">The normal path cycles through IDLE, RUNNING, COMPLETING_TASK and PAUSED; cancellation reports CANCELING, while uncertain failures can latch FAULTED.</desc>
+<defs><marker id="states-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="states-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="states-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  STATE MACHINE</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">Execution state messages and control boundaries</text><circle cx="64" cy="224" r="8" fill="#18283b"/><line x1="72" y1="224" x2="96" y2="224" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><line x1="296" y1="224" x2="448" y2="224" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="308.0" y="180" width="128" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="372" y="200" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">MODEL READY</text><line x1="688" y1="224" x2="880" y2="224" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="708.0" y="180" width="152" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="784" y="200" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">PAUSE REQUEST</text><line x1="1040" y1="264" x2="1040" y2="448" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="1072.0" y="328" width="112" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="1128" y="348" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">UNIT ENDS</text><path d="M 560,184 V 140 Q 560,132 552,132 H 200 Q 192,132 192,140 V 184" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="288.0" y="88" width="176" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="376" y="108" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">RESULT; NO FAULT</text><path d="M 560,264 V 328 Q 560,336 568,336 H 912 Q 920,336 920,344 V 448" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="580.0" y="292" width="120" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="640" y="312" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">PAUSE STEP</text><path d="M 880,488 H 760 Q 752,488 752,480 V 344 a 8,8 0 0,1 0,-16 V 296 Q 752,288 744,288 H 632 Q 624,288 624,280 V 264" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="768.0" y="368" width="80" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="808" y="388" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">RESUME</text><path d="M 448,488 H 352 Q 344,488 344,480 V 312 Q 344,304 336,304 H 208 Q 200,304 200,296 V 264" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#states-arrow)"/><rect x="232.0" y="260" width="88" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="276" y="280" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">SETTLED</text><rect x="96" y="184" width="200" height="80" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="196" y="220" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">IDLE</text><text x="196" y="244" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">initial / cleanup</text><rect x="448" y="184" width="240" height="80" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="568" y="220" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">RUNNING</text><text x="568" y="244" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">unit execution</text><rect x="880" y="184" width="304" height="80" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1032" y="220" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">COMPLETING_TASK</text><text x="1032" y="244" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">pause requested</text><rect x="880" y="448" width="240" height="80" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1000" y="484" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">PAUSED</text><text x="1000" y="508" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">waiting for resume</text><rect x="448" y="448" width="240" height="80" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="568" y="484" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">CANCELING</text><text x="568" y="508" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">cancel requested</text><rect x="96" y="448" width="224" height="80" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="208" y="484" font-size="20" font-family="ui-monospace, monospace" fill="#18283b" text-anchor="middle" font-weight="600">FAULTED</text><text x="208" y="508" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">restart to recover</text><text x="96" y="576" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">* Uncertain failure / exception</text><text x="96" y="600" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Faulted goals are rejected.</text><text x="448" y="576" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">* Cancel from an active goal</text><text x="448" y="600" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Waits for the active unit.</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">* Cross-state rules are summarized below their destination. IDLE is a lifecycle status, not proof that the last task succeeded.</text>
+</svg></div>
+<figcaption><a href="../diagrams/states.html">Open the full-size diagram</a></figcaption>
+</figure><p>Use the final <a class="reference internal" href="../reference/actions.html#mtcexecution"><span class="std std-ref">action result</span></a> to determine success or failure. It includes <code class="docutils literal notranslate"><span class="pre">success</span></code>, <code class="docutils literal notranslate"><span class="pre">error_message</span></code>, <code class="docutils literal notranslate"><span class="pre">completed_steps</span></code>, and <code class="docutils literal notranslate"><span class="pre">total_steps</span></code>. Progress counts steps, not elapsed time. If a batch fails partway through, the completed count excludes that batch; some of its movements or device actions may already have happened.</p>
+<p>After <code class="docutils literal notranslate"><span class="pre">FAULTED</span></code>, diagnose the failure and establish the robot and controller state before restarting. There is no public reset-fault service, and Resume does not clear faults. See <a class="reference internal" href="../maintenance/troubleshooting.html#planning-and-execution"><span class="std std-ref">execution troubleshooting</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="vision.html" class="btn btn-neutral float-left" title="Vision-guided tasks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../architecture/index.html" class="btn btn-neutral float-right" title="Architecture" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

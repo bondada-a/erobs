@@ -1,0 +1,877 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Source browser &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Documentation coverage" href="coverage.html" />
+    <link rel="prev" title="Package index" href="packages.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="modules.html">Module map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/index.html">Function and method reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="packages.html">Package index</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Reference</a></li>
+      <li class="breadcrumb-item active">Source browser</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="source-browser">
+<h1>Source browser<a class="headerlink" href="#source-browser" title="Link to this heading"></a></h1>
+<p>Browse code and configuration from the documented EROBS edition. Each listing links to its explanatory guide. Generated assets, credentials, and private agent configuration are excluded.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Explanation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a href="../source/.doecode.yml.html">.doecode.yml</a></p></td>
+<td><p><a class="reference internal" href="packages.html"><span class="std std-doc">packages</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/.github/dependabot.yml.html">.github/dependabot.yml</a></p></td>
+<td><p><a class="reference internal" href="packages.html"><span class="std std-doc">packages</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/.github/workflows/docker-publish.yml.html">.github/workflows/docker-publish.yml</a></p></td>
+<td><p><a class="reference internal" href="packages.html"><span class="std std-doc">packages</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/.github/workflows/ruff.yml.html">.github/workflows/ruff.yml</a></p></td>
+<td><p><a class="reference internal" href="packages.html"><span class="std std-doc">packages</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/.github/workflows/super-linter.yml.html">.github/workflows/super-linter.yml</a></p></td>
+<td><p><a class="reference internal" href="packages.html"><span class="std std-doc">packages</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/.pre-commit-config.yaml.html">.pre-commit-config.yaml</a></p></td>
+<td><p><a class="reference internal" href="packages.html"><span class="std std-doc">packages</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/docker/img_build.sh.html">docker/img_build.sh</a></p></td>
+<td><p><a class="reference internal" href="../integrations/containers.html"><span class="std std-doc">containers</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/docker/jazzy/start-vnc.sh.html">docker/jazzy/start-vnc.sh</a></p></td>
+<td><p><a class="reference internal" href="../integrations/containers.html"><span class="std std-doc">containers</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/scripts/pdf-launch-scripts/bsui-launch.sh.html">scripts/pdf-launch-scripts/bsui-launch.sh</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/scripts/pdf-launch-scripts/hello-talker.sh.html">scripts/pdf-launch-scripts/hello-talker.sh</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/scripts/pdf-launch-scripts/mtc-moveit-launch.sh.html">scripts/pdf-launch-scripts/mtc-moveit-launch.sh</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/scripts/pdf-launch-scripts/robotiq-driver-entrypoint.sh.html">scripts/pdf-launch-scripts/robotiq-driver-entrypoint.sh</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/scripts/pdf-launch-scripts/robotiq-driver-launch.sh.html">scripts/pdf-launch-scripts/robotiq-driver-launch.sh</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/scripts/pdf-launch-scripts/sample-movement-server-launch.sh.html">scripts/pdf-launch-scripts/sample-movement-server-launch.sh</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/scripts/pdf-launch-scripts/simple_listener.py.html">scripts/pdf-launch-scripts/simple_listener.py</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/scripts/pdf-launch-scripts/ur-driver-launch.sh.html">scripts/pdf-launch-scripts/ur-driver-launch.sh</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/scripts/pdf-launch-scripts/ur-hande-driver-launch.sh.html">scripts/pdf-launch-scripts/ur-hande-driver-launch.sh</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/scripts/survey_mapping/merge_survey_bag.py.html">scripts/survey_mapping/merge_survey_bag.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/survey.html"><span class="std std-doc">survey</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/scripts/survey_mapping/run_survey.py.html">scripts/survey_mapping/run_survey.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/survey.html"><span class="std std-doc">survey</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/scripts/survey_mapping/survey_poses.yaml.html">scripts/survey_mapping/survey_poses.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/survey.html"><span class="std std-doc">survey</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/scripts/survey_mapping/teach_survey_poses.py.html">scripts/survey_mapping/teach_survey_poses.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/survey.html"><span class="std std-doc">survey</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/scripts/survey_mapping/tf_qos_override.yaml.html">scripts/survey_mapping/tf_qos_override.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/survey.html"><span class="std std-doc">survey</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/setup.sh.html">setup.sh</a></p></td>
+<td><p><a class="reference internal" href="../start/setup.html"><span class="std std-doc">setup</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/__init__.py.html">src/beambot/beambot/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/action_servers/__init__.py.html">src/beambot/beambot/action_servers/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/action_servers/base_action_server.py.html">src/beambot/beambot/action_servers/base_action_server.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/action_servers/end_effector_server.py.html">src/beambot/beambot/action_servers/end_effector_server.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/action_servers/move_to_server.py.html">src/beambot/beambot/action_servers/move_to_server.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/action_servers/orchestrator.py.html">src/beambot/beambot/action_servers/orchestrator.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/action_servers/pipettor_server.py.html">src/beambot/beambot/action_servers/pipettor_server.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/action_servers/sample_pick_place_server.py.html">src/beambot/beambot/action_servers/sample_pick_place_server.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/action_servers/tool_exchange_server.py.html">src/beambot/beambot/action_servers/tool_exchange_server.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/action_servers/vision_scan_server.py.html">src/beambot/beambot/action_servers/vision_scan_server.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/action_servers/vision_task_server.py.html">src/beambot/beambot/action_servers/vision_task_server.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/agent/__init__.py.html">src/beambot/beambot/agent/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../integrations/mcp-agent.html"><span class="std std-doc">mcp-agent</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/agent/__main__.py.html">src/beambot/beambot/agent/<strong>main</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../integrations/mcp-agent.html"><span class="std std-doc">mcp-agent</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/agent/robot_agent.py.html">src/beambot/beambot/agent/robot_agent.py</a></p></td>
+<td><p><a class="reference internal" href="../integrations/mcp-agent.html"><span class="std std-doc">mcp-agent</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/config_loader.py.html">src/beambot/beambot/config_loader.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/configuration.html"><span class="std std-doc">configuration</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/core/__init__.py.html">src/beambot/beambot/core/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/lifecycle.html"><span class="std std-doc">lifecycle</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/core/moveit_lifecycle_manager.py.html">src/beambot/beambot/core/moveit_lifecycle_manager.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/lifecycle.html"><span class="std std-doc">lifecycle</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/core/plan_cache.py.html">src/beambot/beambot/core/plan_cache.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/batching.html"><span class="std std-doc">batching</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/core/task_batching.py.html">src/beambot/beambot/core/task_batching.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/batching.html"><span class="std std-doc">batching</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/core/task_script.py.html">src/beambot/beambot/core/task_script.py</a></p></td>
+<td><p><a class="reference internal" href="tasks.html"><span class="std std-doc">tasks</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/core/tool_exchange_manager.py.html">src/beambot/beambot/core/tool_exchange_manager.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/lifecycle.html"><span class="std std-doc">lifecycle</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/core/vacuum_monitor.py.html">src/beambot/beambot/core/vacuum_monitor.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/lifecycle.html"><span class="std std-doc">lifecycle</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/mapping/__init__.py.html">src/beambot/beambot/mapping/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/calibration-scenes.html"><span class="std std-doc">calibration-scenes</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/mapping/octomap_to_planning_scene.py.html">src/beambot/beambot/mapping/octomap_to_planning_scene.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/calibration-scenes.html"><span class="std std-doc">calibration-scenes</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/mapping/pointcloud_relay.py.html">src/beambot/beambot/mapping/pointcloud_relay.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/calibration-scenes.html"><span class="std std-doc">calibration-scenes</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/stages/__init__.py.html">src/beambot/beambot/stages/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/stages/base_stages.py.html">src/beambot/beambot/stages/base_stages.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/stages/end_effector_stages.py.html">src/beambot/beambot/stages/end_effector_stages.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/stages/move_to_stages.py.html">src/beambot/beambot/stages/move_to_stages.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/stages/pick_sample_stages.py.html">src/beambot/beambot/stages/pick_sample_stages.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/stages/pipettor_stages.py.html">src/beambot/beambot/stages/pipettor_stages.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/stages/place_sample_stages.py.html">src/beambot/beambot/stages/place_sample_stages.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/stages/tool_exchange_stages.py.html">src/beambot/beambot/stages/tool_exchange_stages.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/stages/vision_task_stages.py.html">src/beambot/beambot/stages/vision_task_stages.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/vision/__init__.py.html">src/beambot/beambot/vision/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">perception</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/vision/camera/__init__.py.html">src/beambot/beambot/vision/camera/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/cameras.html"><span class="std std-doc">cameras</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/vision/camera/zed.py.html">src/beambot/beambot/vision/camera/zed.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/cameras.html"><span class="std std-doc">cameras</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/vision/camera/zivid.py.html">src/beambot/beambot/vision/camera/zivid.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/cameras.html"><span class="std std-doc">cameras</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/vision/detection/__init__.py.html">src/beambot/beambot/vision/detection/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">perception</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/vision/detection/image_detection.py.html">src/beambot/beambot/vision/detection/image_detection.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">perception</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/vision/detection/spincoater_detection.py.html">src/beambot/beambot/vision/detection/spincoater_detection.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">perception</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/vision/detection/yolo_object_detection.py.html">src/beambot/beambot/vision/detection/yolo_object_detection.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">perception</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/vision/motion_target.py.html">src/beambot/beambot/vision/motion_target.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">perception</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/beambot/vision/vision_engine.py.html">src/beambot/beambot/vision/vision_engine.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">perception</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/beambot/vision/vision_task_detection.py.html">src/beambot/beambot/vision/vision_task_detection.py</a></p></td>
+<td><p><a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">perception</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/config/beamline_scene.yaml.html">src/beambot/config/beamline_scene.yaml</a></p></td>
+<td><p><a class="reference internal" href="configuration.html"><span class="std std-doc">configuration</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/config/cms_beamline.yaml.html">src/beambot/config/cms_beamline.yaml</a></p></td>
+<td><p><a class="reference internal" href="configuration.html"><span class="std std-doc">configuration</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/config/cms_drylab.yaml.html">src/beambot/config/cms_drylab.yaml</a></p></td>
+<td><p><a class="reference internal" href="configuration.html"><span class="std std-doc">configuration</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/config/lix_beamline.yaml.html">src/beambot/config/lix_beamline.yaml</a></p></td>
+<td><p><a class="reference internal" href="configuration.html"><span class="std std-doc">configuration</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/config/zivid/manufacturing_specular.yml.html">src/beambot/config/zivid/manufacturing_specular.yml</a></p></td>
+<td><p><a class="reference internal" href="configuration.html"><span class="std std-doc">configuration</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/config/zivid/manufacturing_specular_fullres.yml.html">src/beambot/config/zivid/manufacturing_specular_fullres.yml</a></p></td>
+<td><p><a class="reference internal" href="configuration.html"><span class="std std-doc">configuration</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/config/zivid/scene_capture_noproj.yml.html">src/beambot/config/zivid/scene_capture_noproj.yml</a></p></td>
+<td><p><a class="reference internal" href="configuration.html"><span class="std std-doc">configuration</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/config/zivid/zivid_settings.yml.html">src/beambot/config/zivid/zivid_settings.yml</a></p></td>
+<td><p><a class="reference internal" href="configuration.html"><span class="std std-doc">configuration</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/launch/beambot_bringup.launch.py.html">src/beambot/launch/beambot_bringup.launch.py</a></p></td>
+<td><p><a class="reference internal" href="launch.html"><span class="std std-doc">launch</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/launch/octomap_mapping.launch.py.html">src/beambot/launch/octomap_mapping.launch.py</a></p></td>
+<td><p><a class="reference internal" href="launch.html"><span class="std std-doc">launch</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/mcp_server/beambot_mcp_server.py.html">src/beambot/mcp_server/beambot_mcp_server.py</a></p></td>
+<td><p><a class="reference internal" href="mcp.html"><span class="std std-doc">mcp</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/mcp_server/point_selector_gui.py.html">src/beambot/mcp_server/point_selector_gui.py</a></p></td>
+<td><p><a class="reference internal" href="mcp.html"><span class="std std-doc">mcp</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/package.xml.html">src/beambot/package.xml</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/scripts/beambot_client.py.html">src/beambot/scripts/beambot_client.py</a></p></td>
+<td><p><a class="reference internal" href="commands.html"><span class="std std-doc">commands</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/scripts/capture_octomap.py.html">src/beambot/scripts/capture_octomap.py</a></p></td>
+<td><p><a class="reference internal" href="commands.html"><span class="std std-doc">commands</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot/scripts/perf_trace_run.sh.html">src/beambot/scripts/perf_trace_run.sh</a></p></td>
+<td><p><a class="reference internal" href="commands.html"><span class="std std-doc">commands</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot/scripts/perf_trace_summarize.py.html">src/beambot/scripts/perf_trace_summarize.py</a></p></td>
+<td><p><a class="reference internal" href="commands.html"><span class="std std-doc">commands</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot_interfaces/action/EndEffectorAction.action.html">src/beambot_interfaces/action/EndEffectorAction.action</a></p></td>
+<td><p><a class="reference internal" href="actions.html"><span class="std std-doc">actions</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot_interfaces/action/MTCExecution.action.html">src/beambot_interfaces/action/MTCExecution.action</a></p></td>
+<td><p><a class="reference internal" href="actions.html"><span class="std std-doc">actions</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot_interfaces/action/MoveToAction.action.html">src/beambot_interfaces/action/MoveToAction.action</a></p></td>
+<td><p><a class="reference internal" href="actions.html"><span class="std std-doc">actions</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot_interfaces/action/PickSampleAction.action.html">src/beambot_interfaces/action/PickSampleAction.action</a></p></td>
+<td><p><a class="reference internal" href="actions.html"><span class="std std-doc">actions</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot_interfaces/action/PipettorAction.action.html">src/beambot_interfaces/action/PipettorAction.action</a></p></td>
+<td><p><a class="reference internal" href="actions.html"><span class="std std-doc">actions</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot_interfaces/action/PlaceSampleAction.action.html">src/beambot_interfaces/action/PlaceSampleAction.action</a></p></td>
+<td><p><a class="reference internal" href="actions.html"><span class="std std-doc">actions</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot_interfaces/action/ToolExchangeAction.action.html">src/beambot_interfaces/action/ToolExchangeAction.action</a></p></td>
+<td><p><a class="reference internal" href="actions.html"><span class="std std-doc">actions</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot_interfaces/action/VisionScanAction.action.html">src/beambot_interfaces/action/VisionScanAction.action</a></p></td>
+<td><p><a class="reference internal" href="actions.html"><span class="std std-doc">actions</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/beambot_interfaces/action/VisionTaskAction.action.html">src/beambot_interfaces/action/VisionTaskAction.action</a></p></td>
+<td><p><a class="reference internal" href="actions.html"><span class="std std-doc">actions</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/beambot_interfaces/package.xml.html">src/beambot_interfaces/package.xml</a></p></td>
+<td><p><a class="reference internal" href="actions.html"><span class="std std-doc">actions</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/bluesky_ros/__init__.py.html">src/bluesky_ros/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../integrations/bluesky-epics.html"><span class="std std-doc">bluesky-epics</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/bluesky_ros/mtc_ophyd_device.py.html">src/bluesky_ros/mtc_ophyd_device.py</a></p></td>
+<td><p><a class="reference internal" href="../integrations/bluesky-epics.html"><span class="std std-doc">bluesky-epics</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/bluesky_ros/mtc_ophyd_device_async.py.html">src/bluesky_ros/mtc_ophyd_device_async.py</a></p></td>
+<td><p><a class="reference internal" href="../integrations/bluesky-epics.html"><span class="std std-doc">bluesky-epics</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/bluesky_ros/pv_service.py.html">src/bluesky_ros/pv_service.py</a></p></td>
+<td><p><a class="reference internal" href="../integrations/bluesky-epics.html"><span class="std std-doc">bluesky-epics</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/bluesky_ros/pv_to_topic.py.html">src/bluesky_ros/pv_to_topic.py</a></p></td>
+<td><p><a class="reference internal" href="../integrations/bluesky-epics.html"><span class="std std-doc">bluesky-epics</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/bluesky_ros/simple_mtc_bluesky.py.html">src/bluesky_ros/simple_mtc_bluesky.py</a></p></td>
+<td><p><a class="reference internal" href="../integrations/bluesky-epics.html"><span class="std std-doc">bluesky-epics</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/cms/handeye_cal_poses.yaml.html">src/cms/handeye_cal_poses.yaml</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/cms/poses.yaml.html">src/cms/poses.yaml</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/2fg7/initial_positions.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/2fg7/initial_positions.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/2fg7/joint_limits.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/2fg7/joint_limits.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/2fg7/moveit_controllers.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/2fg7/moveit_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/epick/initial_positions.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/epick/initial_positions.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/epick/joint_limits.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/epick/joint_limits.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/epick/moveit_controllers.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/epick/moveit_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/epick_controllers.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/epick_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/hande/initial_positions.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/hande/initial_positions.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/hande/joint_limits.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/hande/joint_limits.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/hande/moveit_controllers.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/hande/moveit_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/hande_controllers.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/hande_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/joystick_teleop.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/joystick_teleop.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/kinematics.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/kinematics.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/none/initial_positions.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/none/initial_positions.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/none/joint_limits.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/none/joint_limits.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/none/moveit_controllers.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/none/moveit_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/ompl_planning.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/ompl_planning.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/pilz_cartesian_limits.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/pilz_cartesian_limits.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/pilz_industrial_motion_planner_planning.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/pilz_industrial_motion_planner_planning.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/pipettor/initial_positions.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/pipettor/initial_positions.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/pipettor/joint_limits.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/pipettor/joint_limits.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/pipettor/moveit_controllers.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/pipettor/moveit_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/servo.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/servo.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/stomp_planning.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/stomp_planning.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/config/ur_base_controllers.yaml.html">src/custom-ur-descriptions/cms_moveit_config/config/ur_base_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/launch/robot_bringup.launch.py.html">src/custom-ur-descriptions/cms_moveit_config/launch/robot_bringup.launch.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/package.xml.html">src/custom-ur-descriptions/cms_moveit_config/package.xml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html">src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/srdf/2fg7.srdf.xacro.html">src/custom-ur-descriptions/cms_moveit_config/srdf/2fg7.srdf.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/srdf/common.srdf.xacro.html">src/custom-ur-descriptions/cms_moveit_config/srdf/common.srdf.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/srdf/epick.srdf.xacro.html">src/custom-ur-descriptions/cms_moveit_config/srdf/epick.srdf.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/srdf/hande.srdf.xacro.html">src/custom-ur-descriptions/cms_moveit_config/srdf/hande.srdf.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/srdf/none.srdf.xacro.html">src/custom-ur-descriptions/cms_moveit_config/srdf/none.srdf.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/srdf/pipettor.srdf.xacro.html">src/custom-ur-descriptions/cms_moveit_config/srdf/pipettor.srdf.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_moveit_config/srdf/ur.srdf.xacro.html">src/custom-ur-descriptions/cms_moveit_config/srdf/ur.srdf.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/config/hand_eye_calibration.yaml.html">src/custom-ur-descriptions/cms_robot_description/config/hand_eye_calibration.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/config/ur5e_calibration.yaml.html">src/custom-ur-descriptions/cms_robot_description/config/ur5e_calibration.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/package.xml.html">src/custom-ur-descriptions/cms_robot_description/package.xml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/convert_urdf_for_isaac.sh.html">src/custom-ur-descriptions/cms_robot_description/urdf/convert_urdf_for_isaac.sh</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/isaac_sim_joint_params.yaml.html">src/custom-ur-descriptions/cms_robot_description/urdf/isaac_sim_joint_params.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/te_coupling.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/te_coupling.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/te_robotside.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/te_robotside.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/te_toolside.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/te_toolside.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/tool_block.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/tool_block.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/ur_standalone.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/ur_standalone.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_2fg7.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_2fg7.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_epick.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_epick.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_hande.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_hande.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_pipettor.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/ur_with_zivid_pipettor.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/urdf_to_usd.py.html">src/custom-ur-descriptions/cms_robot_description/urdf/urdf_to_usd.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/wrist_extension.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/wrist_extension.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/cms_robot_description/urdf/zivid_camera_mount.xacro.html">src/custom-ur-descriptions/cms_robot_description/urdf/zivid_camera_mount.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/config/hande/initial_positions.yaml.html">src/custom-ur-descriptions/lix_moveit_config/config/hande/initial_positions.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/config/hande/joint_limits.yaml.html">src/custom-ur-descriptions/lix_moveit_config/config/hande/joint_limits.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/config/hande/moveit_controllers.yaml.html">src/custom-ur-descriptions/lix_moveit_config/config/hande/moveit_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/config/hande_controllers.yaml.html">src/custom-ur-descriptions/lix_moveit_config/config/hande_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/config/kinematics.yaml.html">src/custom-ur-descriptions/lix_moveit_config/config/kinematics.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/config/ompl_planning.yaml.html">src/custom-ur-descriptions/lix_moveit_config/config/ompl_planning.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/config/pilz_cartesian_limits.yaml.html">src/custom-ur-descriptions/lix_moveit_config/config/pilz_cartesian_limits.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/config/pilz_industrial_motion_planner_planning.yaml.html">src/custom-ur-descriptions/lix_moveit_config/config/pilz_industrial_motion_planner_planning.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/config/ur_base_controllers.yaml.html">src/custom-ur-descriptions/lix_moveit_config/config/ur_base_controllers.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/launch/robot_bringup.launch.py.html">src/custom-ur-descriptions/lix_moveit_config/launch/robot_bringup.launch.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/package.xml.html">src/custom-ur-descriptions/lix_moveit_config/package.xml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/srdf/common.srdf.xacro.html">src/custom-ur-descriptions/lix_moveit_config/srdf/common.srdf.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/srdf/hande.srdf.xacro.html">src/custom-ur-descriptions/lix_moveit_config/srdf/hande.srdf.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/lix_moveit_config/srdf/ur.srdf.xacro.html">src/custom-ur-descriptions/lix_moveit_config/srdf/ur.srdf.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/lix_robot_description/config/ur5e_calibration.yaml.html">src/custom-ur-descriptions/lix_robot_description/config/ur5e_calibration.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/custom-ur-descriptions/lix_robot_description/package.xml.html">src/custom-ur-descriptions/lix_robot_description/package.xml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/custom-ur-descriptions/lix_robot_description/urdf/ur_with_hande.xacro.html">src/custom-ur-descriptions/lix_robot_description/urdf/ur_with_hande.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">robot-models</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/demos/hello_orchestrator_py/hello_orchestrator_py/__init__.py.html">src/demos/hello_orchestrator_py/hello_orchestrator_py/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/demos/hello_orchestrator_py/hello_orchestrator_py/base_action_server.py.html">src/demos/hello_orchestrator_py/hello_orchestrator_py/base_action_server.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/demos/hello_orchestrator_py/hello_orchestrator_py/stages/__init__.py.html">src/demos/hello_orchestrator_py/hello_orchestrator_py/stages/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/demos/hello_orchestrator_py/hello_orchestrator_py/stages/base_stages.py.html">src/demos/hello_orchestrator_py/hello_orchestrator_py/stages/base_stages.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/demos/hello_orchestrator_py/hello_orchestrator_py/stages/move_stages.py.html">src/demos/hello_orchestrator_py/hello_orchestrator_py/stages/move_stages.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/demos/hello_orchestrator_py/hello_orchestrator_py/stages/print_stages.py.html">src/demos/hello_orchestrator_py/hello_orchestrator_py/stages/print_stages.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/demos/hello_orchestrator_py/launch/demo.launch.py.html">src/demos/hello_orchestrator_py/launch/demo.launch.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/demos/hello_orchestrator_py/package.xml.html">src/demos/hello_orchestrator_py/package.xml</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/demos/hello_orchestrator_py/scripts/move_server.py.html">src/demos/hello_orchestrator_py/scripts/move_server.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/demos/hello_orchestrator_py/scripts/orchestrator_client.py.html">src/demos/hello_orchestrator_py/scripts/orchestrator_client.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/demos/hello_orchestrator_py/scripts/orchestrator_server.py.html">src/demos/hello_orchestrator_py/scripts/orchestrator_server.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/demos/hello_orchestrator_py/scripts/print_server.py.html">src/demos/hello_orchestrator_py/scripts/print_server.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/demos/hello_orchestrator_py_interfaces/action/MoveToNamedState.action.html">src/demos/hello_orchestrator_py_interfaces/action/MoveToNamedState.action</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/demos/hello_orchestrator_py_interfaces/action/OrchestratorTask.action.html">src/demos/hello_orchestrator_py_interfaces/action/OrchestratorTask.action</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/demos/hello_orchestrator_py_interfaces/action/PrintMessage.action.html">src/demos/hello_orchestrator_py_interfaces/action/PrintMessage.action</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/demos/hello_orchestrator_py_interfaces/package.xml.html">src/demos/hello_orchestrator_py_interfaces/package.xml</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/end_effectors/end_effectors.repos.html">src/end_effectors/end_effectors.repos</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/end_effectors/epick_config/config/suction_cups.yaml.html">src/end_effectors/epick_config/config/suction_cups.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/end_effectors/epick_config/launch/epick_bringup.launch.py.html">src/end_effectors/epick_config/launch/epick_bringup.launch.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/end_effectors/epick_config/package.xml.html">src/end_effectors/epick_config/package.xml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/end_effectors/epick_config/urdf/epick_overlay.xacro.html">src/end_effectors/epick_config/urdf/epick_overlay.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_description/config/2fg7_params.yaml.html">src/end_effectors/onrobot_2fg7_description/config/2fg7_params.yaml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_description/package.xml.html">src/end_effectors/onrobot_2fg7_description/package.xml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_description/urdf/onrobot_2fg7.xacro.html">src/end_effectors/onrobot_2fg7_description/urdf/onrobot_2fg7.xacro</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_driver/launch/2fg7_driver.launch.py.html">src/end_effectors/onrobot_2fg7_driver/launch/2fg7_driver.launch.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_driver/onrobot_2fg7_driver/__init__.py.html">src/end_effectors/onrobot_2fg7_driver/onrobot_2fg7_driver/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_driver/onrobot_2fg7_driver/driver_node.py.html">src/end_effectors/onrobot_2fg7_driver/onrobot_2fg7_driver/driver_node.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_driver/onrobot_2fg7_driver/modbus_client.py.html">src/end_effectors/onrobot_2fg7_driver/onrobot_2fg7_driver/modbus_client.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_driver/package.xml.html">src/end_effectors/onrobot_2fg7_driver/package.xml</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_driver/test_scripts/test_modbus_client.py.html">src/end_effectors/onrobot_2fg7_driver/test_scripts/test_modbus_client.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_driver/test_scripts/test_modbus_direct.py.html">src/end_effectors/onrobot_2fg7_driver/test_scripts/test_modbus_direct.py</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/end_effectors/onrobot_2fg7_driver/test_scripts/test_ros2_driver.sh.html">src/end_effectors/onrobot_2fg7_driver/test_scripts/test_ros2_driver.sh</a></p></td>
+<td><p><a class="reference internal" href="../hardware/end-effectors.html"><span class="std std-doc">end-effectors</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/lix/poses.yaml.html">src/lix/poses.yaml</a></p></td>
+<td><p><a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamlines</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/mtc_gui/launch/mtc_gui_client.launch.py.html">src/mtc_gui/launch/mtc_gui_client.launch.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/mtc_gui/mtc_gui/__init__.py.html">src/mtc_gui/mtc_gui/<strong>init</strong>.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/mtc_gui/mtc_gui/agent_bridge.py.html">src/mtc_gui/mtc_gui/agent_bridge.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/mtc_gui/mtc_gui/agent_modes.py.html">src/mtc_gui/mtc_gui/agent_modes.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/mtc_gui/mtc_gui/camera_panel.py.html">src/mtc_gui/mtc_gui/camera_panel.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/mtc_gui/mtc_gui/chat_panel.py.html">src/mtc_gui/mtc_gui/chat_panel.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/mtc_gui/mtc_gui/main.py.html">src/mtc_gui/mtc_gui/main.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/mtc_gui/mtc_gui/main_window.py.html">src/mtc_gui/mtc_gui/main_window.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/mtc_gui/mtc_gui/pose_dialogs.py.html">src/mtc_gui/mtc_gui/pose_dialogs.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/mtc_gui/mtc_gui/pose_io.py.html">src/mtc_gui/mtc_gui/pose_io.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/mtc_gui/mtc_gui/poses_panel.py.html">src/mtc_gui/mtc_gui/poses_panel.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/mtc_gui/mtc_gui/ros2_bridge.py.html">src/mtc_gui/mtc_gui/ros2_bridge.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/mtc_gui/mtc_gui/step_list_panel.py.html">src/mtc_gui/mtc_gui/step_list_panel.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/mtc_gui/mtc_gui/task_forms.py.html">src/mtc_gui/mtc_gui/task_forms.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/mtc_gui/mtc_gui/theme.py.html">src/mtc_gui/mtc_gui/theme.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/mtc_gui/mtc_gui/visualization_panel.py.html">src/mtc_gui/mtc_gui/visualization_panel.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/mtc_gui/package.xml.html">src/mtc_gui/package.xml</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/src/mtc_gui/setup.py.html">src/mtc_gui/setup.py</a></p></td>
+<td><p><a class="reference internal" href="modules.html"><span class="std std-doc">modules</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/src/vision/vision.repos.html">src/vision/vision.repos</a></p></td>
+<td><p><a class="reference internal" href="../hardware/cameras.html"><span class="std std-doc">cameras</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/utils/sim_start_mcp.sh.html">utils/sim_start_mcp.sh</a></p></td>
+<td><p><a class="reference internal" href="commands.html"><span class="std std-doc">commands</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/utils/start_mcp.sh.html">utils/start_mcp.sh</a></p></td>
+<td><p><a class="reference internal" href="commands.html"><span class="std std-doc">commands</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/utils/start_mcp_nobag.sh.html">utils/start_mcp_nobag.sh</a></p></td>
+<td><p><a class="reference internal" href="commands.html"><span class="std std-doc">commands</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/utils/start_robot.sh.html">utils/start_robot.sh</a></p></td>
+<td><p><a class="reference internal" href="commands.html"><span class="std std-doc">commands</span></a></p></td>
+</tr>
+<tr class="row-even"><td><p><a href="../source/utils/start_robot_nobag.sh.html">utils/start_robot_nobag.sh</a></p></td>
+<td><p><a class="reference internal" href="commands.html"><span class="std std-doc">commands</span></a></p></td>
+</tr>
+<tr class="row-odd"><td><p><a href="../source/utils/start_ursim.sh.html">utils/start_ursim.sh</a></p></td>
+<td><p><a class="reference internal" href="commands.html"><span class="std std-doc">commands</span></a></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="packages.html" class="btn btn-neutral float-left" title="Package index" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="coverage.html" class="btn btn-neutral float-right" title="Documentation coverage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

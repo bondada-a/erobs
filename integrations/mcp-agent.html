@@ -1,0 +1,247 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP and the direct agent &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Bluesky and EPICS" href="bluesky-epics.html" />
+    <link rel="prev" title="Integrations and deployment" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Integrations and deployment</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">MCP and the direct agent</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-two-mcp-servers">The two MCP servers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#the-direct-robotagent">The direct <code class="docutils literal notranslate"><span class="pre">RobotAgent</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#gui-plan-and-run-modes">GUI Plan and Run modes</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="bluesky-epics.html">Bluesky and EPICS</a></li>
+<li class="toctree-l2"><a class="reference internal" href="containers.html">Container images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beamlines.html">Beamline adaptation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Integrations and deployment</a></li>
+      <li class="breadcrumb-item active">MCP and the direct agent</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="mcp-and-the-direct-agent">
+<h1>MCP and the direct agent<a class="headerlink" href="#mcp-and-the-direct-agent" title="Link to this heading"></a></h1>
+<p>EROBS exposes robot tools to language-model clients through <a class="reference external" href="https://modelcontextprotocol.io/docs/getting-started/intro">Model Context Protocol (MCP)</a>. A generic ROS server handles ROS communication; a custom beamline server adds EROBS tools. The language model chooses tools; the ROS action servers and device stack perform the resulting work.</p>
+<section id="the-two-mcp-servers">
+<h2>The two MCP servers<a class="headerlink" href="#the-two-mcp-servers" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Server</p></th>
+<th class="head"><p>Responsibility</p></th>
+<th class="head"><p>Location</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Generic ROS MCP server</p></td>
+<td><p>ROS communication, including action-goal dispatch</p></td>
+<td><p>External process declared in <code class="docutils literal notranslate"><span class="pre">.mcp.json</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Custom <code class="docutils literal notranslate"><span class="pre">beambot</span></code> server</p></td>
+<td><p>Robot/pose inspection, perception, task-building helpers and beamline-specific operations</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">src/beambot/mcp_server/beambot_mcp_server.py</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>The custom server is not the sole task executor. For example, a helper can construct task JSON that is then submitted through the generic server’s action interface. Other tools capture images or change saved data directly. The <a class="reference internal" href="../reference/mcp.html"><span class="std std-doc">MCP reference</span></a> lists each tool’s inputs and effects.</p>
+<p><code class="docutils literal notranslate"><span class="pre">.mcp.json</span></code> describes local processes and arguments. The generic server runs <code class="docutils literal notranslate"><span class="pre">ros-mcp==3.1.0</span></code> through isolated <code class="docutils literal notranslate"><span class="pre">uvx</span></code>, with <code class="docutils literal notranslate"><span class="pre">fastmcp&lt;4</span></code> and <code class="docutils literal notranslate"><span class="pre">ROS_DEFAULT_TIMEOUT=60</span></code>. The custom server resolves the checkout with <code class="docutils literal notranslate"><span class="pre">git</span> <span class="pre">rev-parse</span> <span class="pre">--show-toplevel</span></code>, sources Jazzy and that checkout’s installation overlay, then starts its source script with <code class="docutils literal notranslate"><span class="pre">python3</span></code>. Start the client from inside the intended checkout and export <code class="docutils literal notranslate"><span class="pre">BEAMBOT_BEAMLINE_CONFIG</span></code> for that deployment.</p>
+<p><code class="docutils literal notranslate"><span class="pre">RobotAgent</span></code> searches for <code class="docutils literal notranslate"><span class="pre">.mcp.json</span></code> from the current directory upward (at most ten levels).</p>
+<p>The custom server lives outside the installed <code class="docutils literal notranslate"><span class="pre">beambot</span></code> Python package directory. CMake does not install <code class="docutils literal notranslate"><span class="pre">mcp_server/</span></code>, so the documented MCP process layout requires a source checkout.</p>
+<p>The startup wrappers add rosbridge to the ROS stack. <code class="docutils literal notranslate"><span class="pre">utils/start_mcp.sh</span></code> also records a bag; <code class="docutils literal notranslate"><span class="pre">utils/start_mcp_nobag.sh</span></code> omits that recorder. Those wrappers start processes, while an MCP client’s configuration starts its MCP servers. Keep the distinction when diagnosing “server unavailable.”</p>
+</section>
+<section id="the-direct-robotagent">
+<h2>The direct <code class="docutils literal notranslate"><span class="pre">RobotAgent</span></code><a class="headerlink" href="#the-direct-robotagent" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.agent</span></code> supplies a direct API-to-MCP loop reused by the CLI and GUI chat. The source entry point is <code class="docutils literal notranslate"><span class="pre">python</span> <span class="pre">-m</span> <span class="pre">beambot.agent</span></code>; <code class="docutils literal notranslate"><span class="pre">__main__.py</span></code> supports an interactive conversation or a one-shot request passed as command-line text.</p>
+<p>The agent uses an Anthropic-compatible client to connect to the NSLS-II Hermes gateway. It reads:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">AIFAPIM_API_KEY</span></code></p></td>
+<td><p>Required API credential for the gateway</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">HERMES_ENDPOINT</span></code></p></td>
+<td><p>Gateway base URL; defaults to the configured Hermes endpoint</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">BEAMBOT_MODEL</span></code></p></td>
+<td><p>Model identifier override; the source supplies a default</p></td>
+</tr>
+</tbody>
+</table>
+<p>Set credentials in the execution environment and keep them out of source control.</p>
+<p>For each configured server, the agent starts the stdio process, initializes an MCP session, lists its tools and converts their schemas into API tools.</p>
+<p>If a server connection fails, the agent logs the failure and continues to the others. Startup can therefore succeed with only some of the expected tools available. Check the available tools before attributing a missing capability to the model.</p>
+<p><code class="docutils literal notranslate"><span class="pre">robot_operation.md</span></code> is loaded next to <code class="docutils literal notranslate"><span class="pre">robot_agent.py</span></code> whenever a <code class="docutils literal notranslate"><span class="pre">RobotAgent</span></code> is constructed. It is shared runtime input for the CLI, GUI chat and repository operation skill. Do not relocate it to the documentation site or replace it with a web link. The reviewed CMake file installs the Python package with <code class="docutils literal notranslate"><span class="pre">ament_python_install_package</span></code> but has no explicit installation rule for this Markdown file. Verify its presence when using an installed package. <code class="docutils literal notranslate"><span class="pre">setup.sh</span></code> imports ROS repositories and runs rosdep; it does not explicitly install the agent’s <code class="docutils literal notranslate"><span class="pre">anthropic</span></code> and <code class="docutils literal notranslate"><span class="pre">mcp</span></code> Python dependencies. Install these Python dependencies separately before starting the agent.</p>
+</section>
+<section id="gui-plan-and-run-modes">
+<h2>GUI Plan and Run modes<a class="headerlink" href="#gui-plan-and-run-modes" title="Link to this heading"></a></h2>
+<p>The GUI composes the same agent with local tools and a tool filter. <code class="docutils literal notranslate"><span class="pre">agent_modes.py</span></code> defines the behavior, <code class="docutils literal notranslate"><span class="pre">AgentBridge</span></code> connects the async agent to Qt signals, and the main window owns the task queue and execution path.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Mode</p></th>
+<th class="head"><p>Queue behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong>Plan</strong></p></td>
+<td><p>The agent can propose or clear tasks. The human reviews the queue and starts execution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong>Run</strong></p></td>
+<td><p>The agent can also call the local <code class="docutils literal notranslate"><span class="pre">execute_queue</span></code> tool.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Both modes filter generic ROS motion-dispatch tools so queue execution follows the GUI’s existing path.</p>
+<p>Plan mode can still capture camera images. Both modes are experimental; their tool filters are not hardware safety interlocks.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Integrations and deployment" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="bluesky-epics.html" class="btn btn-neutral float-right" title="Bluesky and EPICS" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

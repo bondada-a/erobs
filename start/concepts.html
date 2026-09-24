@@ -1,0 +1,319 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Concepts and conventions &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Installation" href="setup.html" />
+    <link rel="prev" title="Start here" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Start here</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Concepts and conventions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#the-software-building-blocks">The software building blocks</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#geometry-files-describe-different-things">Geometry files describe different things</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#units-you-must-keep-distinct">Units you must keep distinct</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#frames-are-part-of-the-request">Frames are part of the request</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#configuration-is-not-calibration">Configuration is not calibration</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="setup.html">Installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="first-task.html">Run your first task</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#how-erobs-works">How EROBS works</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#current-capabilities">Current capabilities</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#next-steps">Next steps</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Start here</a></li>
+      <li class="breadcrumb-item active">Concepts and conventions</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="concepts-and-conventions">
+<h1>Concepts and conventions<a class="headerlink" href="#concepts-and-conventions" title="Link to this heading"></a></h1>
+<p>EROBS turns task scripts into coordinated robot, tool, and camera operations. This page explains the terms and conventions used by the platform. Linked framework terms open the official documentation for more detail.</p>
+<section id="the-software-building-blocks">
+<h2>The software building blocks<a class="headerlink" href="#the-software-building-blocks" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Term</p></th>
+<th class="head"><p>Role in EROBS</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><strong><a class="reference internal" href="../operate/tasks.html"><span class="std std-doc">Task script</span></a></strong></p></td>
+<td><p>JSON specifying the starting tool and an ordered sequence of operations</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong><a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">Orchestrator</span></a></strong></p></td>
+<td><p>Accepts scripts on <code class="docutils literal notranslate"><span class="pre">/beambot_execution</span></code>, coordinates their steps, and manages the active MoveIt stack</p></td>
+</tr>
+<tr class="row-even"><td><p><strong><a class="reference internal" href="../architecture/batching.html"><span class="std std-doc">Batch</span></a></strong></p></td>
+<td><p>Consecutive compatible steps combined into one MTC task for planning and execution</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong><a class="reference external" href="https://docs.ros.org/en/jazzy/Concepts/Basic/About-Nodes.html">ROS node</a></strong></p></td>
+<td><p>A ROS participant, such as the orchestrator or camera driver</p></td>
+</tr>
+<tr class="row-even"><td><p><strong><a class="reference external" href="https://docs.ros.org/en/jazzy/Concepts/Basic/Interfaces-Topics-Services-Actions.html">Topic, service, action</a></strong></p></td>
+<td><p>Topics stream state and images; services handle requests such as capture; actions run tasks with feedback and a result</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong><a class="reference external" href="https://moveit.picknik.ai/main/doc/concepts/move_group.html">MoveIt 2</a></strong></p></td>
+<td><p>Plans motion using the selected arm/tool model and collision scene</p></td>
+</tr>
+<tr class="row-even"><td><p><strong><a class="reference external" href="https://moveit.picknik.ai/main/doc/concepts/moveit_task_constructor/moveit_task_constructor.html">MTC stage</a></strong></p></td>
+<td><p>One part of a MoveIt Task Constructor plan, such as a relative move or gripper motion</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong><a class="reference external" href="https://control.ros.org/jazzy/doc/getting_started/getting_started.html#controllers">Controller</a></strong></p></td>
+<td><p>Carries out a planned trajectory—a timed sequence of robot states—or a device command</p></td>
+</tr>
+<tr class="row-even"><td><p><strong><a class="reference external" href="https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Tf2.html">TF</a></strong></p></td>
+<td><p>Coordinate transforms connecting the robot base, flange, tool, and camera</p></td>
+</tr>
+<tr class="row-odd"><td><p><strong><a class="reference external" href="https://moveit.picknik.ai/main/doc/concepts/kinematics.html">Inverse kinematics (IK)</a></strong></p></td>
+<td><p>Finds joint angles for a target pose. The <strong>IK frame</strong> is the frame being positioned, such as the flange or tool tip.</p></td>
+</tr>
+</tbody>
+</table>
+<p>A JSON <strong>task type</strong>, such as <code class="docutils literal notranslate"><span class="pre">moveto</span></code>, selects an EROBS operation. The ROS <strong>action type</strong> <code class="docutils literal notranslate"><span class="pre">MTCExecution</span></code> carries the complete script to the orchestrator. See the <a class="reference internal" href="../reference/actions.html"><span class="std std-doc">action contracts</span></a> for its goal, feedback, and result fields.</p>
+<p>Some tasks become <strong>child action goals</strong>: requests the orchestrator sends to another action server. Consecutive compatible tasks may instead be combined into one MTC task inside the orchestrator.</p>
+</section>
+<section id="geometry-files-describe-different-things">
+<h2>Geometry files describe different things<a class="headerlink" href="#geometry-files-describe-different-things" title="Link to this heading"></a></h2>
+<p>EROBS uses <strong>URDF</strong> (Unified Robot Description Format) for arm and tool geometry, <strong>Xacro</strong> templates to assemble model variants, and <strong>SRDF</strong> (Semantic Robot Description Format) for planning groups, named states, and collision exclusions. Controller and planning YAML files configure limits, planners, and execution.</p>
+<p>The official <a class="reference external" href="https://moveit.picknik.ai/main/doc/examples/urdf_srdf/urdf_srdf_tutorial.html">URDF/SRDF guide</a> and <a class="reference external" href="https://docs.ros.org/en/jazzy/Tutorials/Intermediate/URDF/Using-Xacro-to-Clean-Up-a-URDF-File.html">Xacro tutorial</a> explain the formats. See <a class="reference internal" href="../hardware/robot-models.html"><span class="std std-doc">EROBS model packages</span></a> for the files used here and the <a class="reference internal" href="../architecture/lifecycle.html"><span class="std std-doc">tool lifecycle</span></a> for how geometry, tip frames, payloads, and controllers change with a tool.</p>
+</section>
+<section id="units-you-must-keep-distinct">
+<h2>Units you must keep distinct<a class="headerlink" href="#units-you-must-keep-distinct" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Value</p></th>
+<th class="head"><p>Convention</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Named joint-pose arrays in task JSON and pose YAML</p></td>
+<td><p>Degrees; six values in configured arm-joint order</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cartesian_target</span></code></p></td>
+<td><p>XYZ in metres; optional roll/pitch/yaw in degrees</p></td>
+</tr>
+<tr class="row-even"><td><p>Relative movement distance</p></td>
+<td><p>Metres</p></td>
+</tr>
+<tr class="row-odd"><td><p>Revolute arm-joint positions on ROS <code class="docutils literal notranslate"><span class="pre">/joint_states</span></code></p></td>
+<td><p>Radians; prismatic gripper-joint positions on the same topic use metres</p></td>
+</tr>
+<tr class="row-even"><td><p>Flattened ROS vision scan joint poses</p></td>
+<td><p>Radians</p></td>
+</tr>
+<tr class="row-odd"><td><p>Result orientation arrays</p></td>
+<td><p>Quaternion <code class="docutils literal notranslate"><span class="pre">[x,</span> <span class="pre">y,</span> <span class="pre">z,</span> <span class="pre">w]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Sample edge inset</p></td>
+<td><p>Millimetres where the field is named <code class="docutils literal notranslate"><span class="pre">edge_inset_mm</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>For example, a 10 mm translation is <code class="docutils literal notranslate"><span class="pre">0.01</span></code> metres. A <code class="docutils literal notranslate"><span class="pre">90</span></code> in a pose YAML joint array is 90 degrees; <code class="docutils literal notranslate"><span class="pre">90</span></code> as a revolute arm-joint position in a ROS joint-state message means 90 radians.</p>
+<p><strong>RPY</strong> means roll, pitch, and yaw. EROBS task fields use the units above; the official <a class="reference external" href="https://docs.ros.org/en/jazzy/Tutorials/Intermediate/Tf2/Quaternion-Fundamentals.html">rotation guide</a> covers quaternions and RPY conversion.</p>
+</section>
+<section id="frames-are-part-of-the-request">
+<h2>Frames are part of the request<a class="headerlink" href="#frames-are-part-of-the-request" title="Link to this heading"></a></h2>
+<figure class="architecture-figure">
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="frames units diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 736" role="img" aria-labelledby="frames-units-title frames-units-desc">
+<title id="frames-units-title">Coordinates need a frame and units</title>
+<desc id="frames-units-desc">A conceptual XY view compares a Cartesian position expressed in base_link with a forward displacement along an IK frame rotated ninety degrees. Forward is positive local X, so its direction in the room follows the frame. Distances use metres; task joint angles use degrees while ROS revolute joint states use radians. Illustrative coordinates are not calibrated robot targets.</desc>
+<defs>
+<marker id="frames-units-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#52647a"/></marker>
+<marker id="frames-units-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+<marker id="frames-units-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+</defs>
+<rect width="960" height="736" fill="#ffffff"/>
+<text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / SPATIAL CONVENTIONS</text>
+<text x="48" y="84" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Coordinates need a frame and units</text>
+<text x="48" y="128" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Conceptual XY view. The right-hand frame is rotated 90°; geometry is illustrative.</text>
+<line x1="480" y1="176" x2="480" y2="536" stroke="#dbe3ee"/>
+<text x="48" y="196" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Absolute position</text>
+<text x="528" y="196" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Relative displacement</text>
+<!-- Coordinate axes and projection guides, not software-flow connectors. -->
+<line x1="112" y1="416" x2="400" y2="416" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<line x1="112" y1="416" x2="112" y2="232" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<path d="M304 416 V288 H112" fill="none" stroke="#52647a" stroke-dasharray="4,4"/>
+<circle cx="112" cy="416" r="4" fill="#18283b"/>
+<circle cx="304" cy="288" r="8" fill="#235cb7"/>
+<text x="404" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">+X</text>
+<text x="72" y="240" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">+Y</text>
+<text x="320" y="272" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Target</text>
+<text x="288" y="444" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">0.30 m</text>
+<text x="48" y="288" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">0.20 m</text>
+<text x="112" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">frame_id: "base_link"</text>
+<text x="112" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Position is measured from this origin.</text>
+<line x1="680" y1="416" x2="536" y2="416" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<line x1="680" y1="416" x2="680" y2="240" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<line x1="704" y1="416" x2="704" y2="304" stroke="#235cb7" stroke-width="3" marker-end="url(#frames-units-arrow-accent)"/>
+<circle cx="680" cy="416" r="4" fill="#18283b"/>
+<text x="528" y="444" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">local +Y</text>
+<text x="696" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">local +X</text>
+<rect x="724" y="316" width="180" height="72" fill="#ffffff"/>
+<text x="732" y="340" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">forward</text>
+<text x="732" y="372" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">distance: 0.01</text>
+<text x="576" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">selected IK frame</text>
+<text x="576" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">The local direction rotates with it.</text>
+<line x1="48" y1="556" x2="912" y2="556" stroke="#dbe3ee"/>
+<text x="48" y="596" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">DISTANCE</text>
+<text x="48" y="636" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">10 mm = 0.01 m</text>
+<text x="528" y="596" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">REVOLUTE JOINT ANGLE</text>
+<text x="528" y="636" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">90° = π/2 rad</text>
+<text x="528" y="668" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">task pose → ROS arm joint state</text>
+<text x="48" y="712" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">These are unit conventions, not calibrated targets. Prismatic joint positions use metres.</text>
+</svg></div>
+<figcaption><a href="../diagrams/frames-units.html">Open the full-size diagram</a></figcaption>
+</figure><p>A Cartesian coordinate is incomplete without its reference frame. <code class="docutils literal notranslate"><span class="pre">base_link</span></code> describes a position relative to the robot base. <code class="docutils literal notranslate"><span class="pre">flange</span></code> is the robot’s flange frame. A tool tip frame describes the working end of a particular tool. The camera’s optical frame describes the measurement before transformation into the robot frame.</p>
+<p>MoveTo relative directions apply in the flange frame. Vision marker offsets and final base-frame offsets have different meanings. <code class="docutils literal notranslate"><span class="pre">flange</span></code> and <code class="docutils literal notranslate"><span class="pre">tool0</span></code> must not be treated as interchangeable orientation conventions. See <a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">vision and frames</span></a> before interpreting a detected pose as a motion target.</p>
+</section>
+<section id="configuration-is-not-calibration">
+<h2>Configuration is not calibration<a class="headerlink" href="#configuration-is-not-calibration" title="Link to this heading"></a></h2>
+<p>The beamline YAML selects packages, resources, and per-tool settings. Calibration establishes physical relationships: robot geometry, camera mounting, tool tip offsets, and taught poses. Copying the CMS YAML to a new beamline does not calibrate that installation.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Start here" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="setup.html" class="btn btn-neutral float-right" title="Installation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

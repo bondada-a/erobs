@@ -1,0 +1,151 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>src/beambot/config/lix_beamline.yaml — EROBS source</title><style>body{font:16px system-ui;color:#18283b;margin:2rem}a{color:#235cb7}h1{font-size:1.3rem;overflow-wrap:anywhere}.source{overflow:auto}pre { line-height: 125%; }
+td.linenos .normal { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f0f0f0; }
+.highlight .c { color: #60A0B0; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #007020; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #60A0B0; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #60A0B0; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #007020 } /* Comment.Preproc */
+.highlight .cpf { color: #60A0B0; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #60A0B0; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #60A0B0; background-color: #FFF0F0 } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #F00 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #00A000 } /* Generic.Inserted */
+.highlight .go { color: #888 } /* Generic.Output */
+.highlight .gp { color: #C65D09; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #007020; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #007020; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #007020; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #007020 } /* Keyword.Pseudo */
+.highlight .kr { color: #007020; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #902000 } /* Keyword.Type */
+.highlight .m { color: #40A070 } /* Literal.Number */
+.highlight .s { color: #4070A0 } /* Literal.String */
+.highlight .na { color: #4070A0 } /* Name.Attribute */
+.highlight .nb { color: #007020 } /* Name.Builtin */
+.highlight .nc { color: #0E84B5; font-weight: bold } /* Name.Class */
+.highlight .no { color: #60ADD5 } /* Name.Constant */
+.highlight .nd { color: #555; font-weight: bold } /* Name.Decorator */
+.highlight .ni { color: #D55537; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #007020 } /* Name.Exception */
+.highlight .nf { color: #06287E } /* Name.Function */
+.highlight .nl { color: #002070; font-weight: bold } /* Name.Label */
+.highlight .nn { color: #0E84B5; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #062873; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #BB60D5 } /* Name.Variable */
+.highlight .ow { color: #007020; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #40A070 } /* Literal.Number.Bin */
+.highlight .mf { color: #40A070 } /* Literal.Number.Float */
+.highlight .mh { color: #40A070 } /* Literal.Number.Hex */
+.highlight .mi { color: #40A070 } /* Literal.Number.Integer */
+.highlight .mo { color: #40A070 } /* Literal.Number.Oct */
+.highlight .sa { color: #4070A0 } /* Literal.String.Affix */
+.highlight .sb { color: #4070A0 } /* Literal.String.Backtick */
+.highlight .sc { color: #4070A0 } /* Literal.String.Char */
+.highlight .dl { color: #4070A0 } /* Literal.String.Delimiter */
+.highlight .sd { color: #4070A0; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #4070A0 } /* Literal.String.Double */
+.highlight .se { color: #4070A0; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #4070A0 } /* Literal.String.Heredoc */
+.highlight .si { color: #70A0D0; font-style: italic } /* Literal.String.Interpol */
+.highlight .sx { color: #C65D09 } /* Literal.String.Other */
+.highlight .sr { color: #235388 } /* Literal.String.Regex */
+.highlight .s1 { color: #4070A0 } /* Literal.String.Single */
+.highlight .ss { color: #517918 } /* Literal.String.Symbol */
+.highlight .bp { color: #007020 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #06287E } /* Name.Function.Magic */
+.highlight .vc { color: #BB60D5 } /* Name.Variable.Class */
+.highlight .vg { color: #BB60D5 } /* Name.Variable.Global */
+.highlight .vi { color: #BB60D5 } /* Name.Variable.Instance */
+.highlight .vm { color: #BB60D5 } /* Name.Variable.Magic */
+.highlight .il { color: #40A070 } /* Literal.Number.Integer.Long */</style></head><body><a href="../../../../reference/source.html">← Source browser</a><h1>src/beambot/config/lix_beamline.yaml</h1><div class="source"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"><a href="#L-1"> 1</a></span>
+<span class="normal"><a href="#L-2"> 2</a></span>
+<span class="normal"><a href="#L-3"> 3</a></span>
+<span class="normal"><a href="#L-4"> 4</a></span>
+<span class="normal"><a href="#L-5"> 5</a></span>
+<span class="normal"><a href="#L-6"> 6</a></span>
+<span class="normal"><a href="#L-7"> 7</a></span>
+<span class="normal"><a href="#L-8"> 8</a></span>
+<span class="normal"><a href="#L-9"> 9</a></span>
+<span class="normal"><a href="#L-10">10</a></span>
+<span class="normal"><a href="#L-11">11</a></span>
+<span class="normal"><a href="#L-12">12</a></span>
+<span class="normal"><a href="#L-13">13</a></span>
+<span class="normal"><a href="#L-14">14</a></span>
+<span class="normal"><a href="#L-15">15</a></span>
+<span class="normal"><a href="#L-16">16</a></span>
+<span class="normal"><a href="#L-17">17</a></span>
+<span class="normal"><a href="#L-18">18</a></span>
+<span class="normal"><a href="#L-19">19</a></span>
+<span class="normal"><a href="#L-20">20</a></span>
+<span class="normal"><a href="#L-21">21</a></span>
+<span class="normal"><a href="#L-22">22</a></span>
+<span class="normal"><a href="#L-23">23</a></span>
+<span class="normal"><a href="#L-24">24</a></span>
+<span class="normal"><a href="#L-25">25</a></span>
+<span class="normal"><a href="#L-26">26</a></span>
+<span class="normal"><a href="#L-27">27</a></span>
+<span class="normal"><a href="#L-28">28</a></span>
+<span class="normal"><a href="#L-29">29</a></span>
+<span class="normal"><a href="#L-30">30</a></span>
+<span class="normal"><a href="#L-31">31</a></span>
+<span class="normal"><a href="#L-32">32</a></span>
+<span class="normal"><a href="#L-33">33</a></span>
+<span class="normal"><a href="#L-34">34</a></span>
+<span class="normal"><a href="#L-35">35</a></span>
+<span class="normal"><a href="#L-36">36</a></span>
+<span class="normal"><a href="#L-37">37</a></span>
+<span class="normal"><a href="#L-38">38</a></span></pre></div></td><td class="code"><div><pre><span></span><a id="L-1" name="L-1"></a><span class="c1"># LiX Beamline Configuration (NSLS-II Liquid Interface X-ray Scattering)</span>
+<a id="L-2" name="L-2"></a><span class="c1"># Selected at runtime via the BEAMBOT_BEAMLINE_CONFIG environment variable.</span>
+<a id="L-3" name="L-3"></a><span class="c1">#   export BEAMBOT_BEAMLINE_CONFIG=$(realpath src/beambot/config/lix_beamline.yaml)</span>
+<a id="L-4" name="L-4"></a>
+<a id="L-5" name="L-5"></a><span class="nt">beamline</span><span class="p">:</span><span class="w"> </span><span class="s">"lix"</span>
+<a id="L-6" name="L-6"></a><span class="nt">poses_file</span><span class="p">:</span><span class="w"> </span><span class="s">"src/lix/poses.yaml"</span>
+<a id="L-7" name="L-7"></a>
+<a id="L-8" name="L-8"></a><span class="nt">robot</span><span class="p">:</span>
+<a id="L-9" name="L-9"></a><span class="w">  </span><span class="nt">ip</span><span class="p">:</span><span class="w"> </span><span class="s">"192.168.1.101"</span>
+<a id="L-10" name="L-10"></a><span class="w">  </span><span class="nt">arm_group</span><span class="p">:</span><span class="w"> </span><span class="s">"ur_arm"</span>
+<a id="L-11" name="L-11"></a><span class="w">  </span><span class="nt">ik_frame</span><span class="p">:</span><span class="w"> </span><span class="s">"robotiq_hande_end"</span>
+<a id="L-12" name="L-12"></a><span class="w">  </span><span class="nt">velocity_scaling</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span>
+<a id="L-13" name="L-13"></a><span class="w">  </span><span class="nt">acceleration_scaling</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">0.2</span>
+<a id="L-14" name="L-14"></a><span class="w">  </span><span class="nt">moveit_config_package</span><span class="p">:</span><span class="w"> </span><span class="s">"lix_moveit_config"</span>
+<a id="L-15" name="L-15"></a><span class="w">  </span><span class="nt">description_package</span><span class="p">:</span><span class="w"> </span><span class="s">"lix_robot_description"</span>
+<a id="L-16" name="L-16"></a><span class="w">  </span><span class="nt">arm_joints</span><span class="p">:</span>
+<a id="L-17" name="L-17"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shoulder_pan_joint</span>
+<a id="L-18" name="L-18"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">shoulder_lift_joint</span>
+<a id="L-19" name="L-19"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">elbow_joint</span>
+<a id="L-20" name="L-20"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wrist_1_joint</span>
+<a id="L-21" name="L-21"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wrist_2_joint</span>
+<a id="L-22" name="L-22"></a><span class="w">    </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">wrist_3_joint</span>
+<a id="L-23" name="L-23"></a>
+<a id="L-24" name="L-24"></a><span class="nt">grippers</span><span class="p">:</span>
+<a id="L-25" name="L-25"></a><span class="w">  </span><span class="nt">hande</span><span class="p">:</span>
+<a id="L-26" name="L-26"></a><span class="w">    </span><span class="nt">moveit_package</span><span class="p">:</span><span class="w"> </span><span class="s">"lix_moveit_config"</span>
+<a id="L-27" name="L-27"></a><span class="w">    </span><span class="nt">gripper_arg</span><span class="p">:</span><span class="w"> </span><span class="s">"hande"</span>
+<a id="L-28" name="L-28"></a><span class="w">    </span><span class="nt">tool_voltage</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">24</span>
+<a id="L-29" name="L-29"></a><span class="w">    </span><span class="c1"># Required for managed startup, including mock; verify these LIX launch values.</span>
+<a id="L-30" name="L-30"></a><span class="w">    </span><span class="c1"># payload_mass: 0.925  # kg</span>
+<a id="L-31" name="L-31"></a><span class="w">    </span><span class="c1"># payload_cog: {x: 0.0, y: 0.0, z: 0.058}  # m</span>
+<a id="L-32" name="L-32"></a><span class="w">    </span><span class="nt">gripper_group</span><span class="p">:</span><span class="w"> </span><span class="s">"hande_gripper"</span>
+<a id="L-33" name="L-33"></a><span class="w">    </span><span class="nt">states</span><span class="p">:</span>
+<a id="L-34" name="L-34"></a><span class="w">      </span><span class="nt">grasp</span><span class="p">:</span><span class="w"> </span><span class="s">"hande_closed"</span>
+<a id="L-35" name="L-35"></a><span class="w">      </span><span class="nt">release</span><span class="p">:</span><span class="w"> </span><span class="s">"hande_open"</span>
+<a id="L-36" name="L-36"></a><span class="w">    </span><span class="nt">tip_frame</span><span class="p">:</span><span class="w"> </span><span class="s">"robotiq_hande_end"</span>
+<a id="L-37" name="L-37"></a><span class="w">    </span><span class="nt">z_offset</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">-0.02</span>
+<a id="L-38" name="L-38"></a><span class="w">    </span><span class="nt">urdf_file</span><span class="p">:</span><span class="w"> </span><span class="s">"ur_with_hande.xacro"</span>
+</pre></div></td></tr></table></div>
+</div></body></html>

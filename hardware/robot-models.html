@@ -1,0 +1,357 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Robot models and controllers &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="End effectors" href="end-effectors.html" />
+    <link rel="prev" title="Hardware and perception" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Hardware and perception</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Robot models and controllers</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#model-packages">Model packages</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#how-cms-starts-the-robot-stack">How CMS starts the robot stack</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#controller-configuration">Controller configuration</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#runtime-and-gui-models">Runtime and GUI models</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#a-tool-model-change-in-simulation">A tool-model change in simulation</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#joystick-and-servo">Joystick and Servo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#when-changing-a-model">When changing a model</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="end-effectors.html">End effectors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="cameras.html">Cameras and detection</a></li>
+<li class="toctree-l2"><a class="reference internal" href="calibration-scenes.html">Calibration and planning scenes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="survey.html">Survey mapping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#hardware-guides">Hardware guides</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Hardware and perception</a></li>
+      <li class="breadcrumb-item active">Robot models and controllers</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="robot-models-and-controllers">
+<h1>Robot models and controllers<a class="headerlink" href="#robot-models-and-controllers" title="Link to this heading"></a></h1>
+<p>EROBS uses the selected tool’s robot model to plan motion and sends the result to the arm and tool controllers. The geometry, planning groups, joint names, and controller interfaces must agree.</p>
+<p>The operator GUI loads its own model file. A correct-looking robot in the GUI does not establish that MoveIt and the driver are using the same geometry.</p>
+<section id="model-packages">
+<h2>Model packages<a class="headerlink" href="#model-packages" title="Link to this heading"></a></h2>
+<p>These packages live under <code class="docutils literal notranslate"><span class="pre">src/custom-ur-descriptions/</span></code>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Package</p></th>
+<th class="head"><p>Contents</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cms_robot_description</span></code></p></td>
+<td><p>CMS arm/tool Xacro templates, expanded URDFs, meshes, and calibration</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cms_moveit_config</span></code></p></td>
+<td><p>CMS launch files, SRDF, planners, limits, controllers, RViz, and Servo</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">lix_robot_description</span></code></p></td>
+<td><p>LIX arm/Hand-E geometry and a calibration placeholder</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">lix_moveit_config</span></code></p></td>
+<td><p>LIX Hand-E planning and controller configuration</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>URDF</strong> describes links and joints; <strong>SRDF</strong> adds planning groups, named states, and collision rules. Xacro generates these descriptions from reusable templates. See the official <a class="reference external" href="https://moveit.picknik.ai/main/doc/examples/urdf_srdf/urdf_srdf_tutorial.html">URDF/SRDF guide</a> and <a class="reference external" href="https://docs.ros.org/en/jazzy/Tutorials/Intermediate/URDF/Using-Xacro-to-Clean-Up-a-URDF-File.html">Xacro tutorial</a> for the formats.</p>
+</section>
+<section id="how-cms-starts-the-robot-stack">
+<h2>How CMS starts the robot stack<a class="headerlink" href="#how-cms-starts-the-robot-stack" title="Link to this heading"></a></h2>
+<p>The orchestrator’s lifecycle manager launches <a class="reference internal" href="../reference/api/modules/src-custom-ur-descriptions-cms_moveit_config-launch-robot_bringup-launch-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">cms_moveit_config/launch/robot_bringup.launch.py</span></code></span></a> for the selected tool: <code class="docutils literal notranslate"><span class="pre">none</span></code>, <code class="docutils literal notranslate"><span class="pre">hande</span></code>, <code class="docutils literal notranslate"><span class="pre">epick</span></code>, <code class="docutils literal notranslate"><span class="pre">2fg7</span></code>, or <code class="docutils literal notranslate"><span class="pre">pipettor</span></code>.</p>
+<p>The launch assembles four parts:</p>
+<ol class="arabic simple">
+<li><p><strong>Geometry and calibration.</strong> Read the tool’s <code class="docutils literal notranslate"><span class="pre">launch_urdf</span></code> from the beamline YAML and expand that Xacro. Pass <code class="docutils literal notranslate"><span class="pre">cms_robot_description/config/ur5e_calibration.yaml</span></code> to both the MoveIt model and the UR driver.</p></li>
+<li><p><strong>Planning configuration.</strong> Select the tool branch in <code class="docutils literal notranslate"><span class="pre">srdf/ur.srdf.xacro</span></code>, its <code class="docutils literal notranslate"><span class="pre">config/&lt;tool&gt;/joint_limits.yaml</span></code>, and the configured MoveIt controller file. Load kinematics and the OMPL, Pilz, and STOMP planners.</p></li>
+<li><p><strong>Robot and tool control.</strong> Include the UR driver launch and start the selected tool’s controllers or driver nodes. The UR launch provides <code class="docutils literal notranslate"><span class="pre">robot_state_publisher</span></code>, which publishes the robot’s transforms.</p></li>
+<li><p><strong>Planning and visualization.</strong> Start <code class="docutils literal notranslate"><span class="pre">move_group</span></code> with MTC execution support, and RViz with the selected robot model.</p></li>
+</ol>
+<p>Paths in steps 2–4 are relative to <code class="docutils literal notranslate"><span class="pre">cms_moveit_config/</span></code>. The orchestrator manages startup, reuse, and replacement of this stack during tool changes; see <a class="reference internal" href="../architecture/lifecycle.html"><span class="std std-doc">tool and MoveIt lifecycle</span></a>.</p>
+</section>
+<section id="controller-configuration">
+<h2>Controller configuration<a class="headerlink" href="#controller-configuration" title="Link to this heading"></a></h2>
+<p>Controller definitions and MoveIt’s command routing are separate. Files below are relative to <code class="docutils literal notranslate"><span class="pre">src/custom-ur-descriptions/cms_moveit_config/</span></code>:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File</p></th>
+<th class="head"><p>Role</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">config/ur_base_controllers.yaml</span></code></p></td>
+<td><p>Shared UR controller definitions and settings, including the arm trajectory controller</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">config/hande_controllers.yaml</span></code>, <code class="docutils literal notranslate"><span class="pre">config/epick_controllers.yaml</span></code></p></td>
+<td><p>Tool controllers loaded by their spawners</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">config/&lt;tool&gt;/moveit_controllers.yaml</span></code></p></td>
+<td><p>Action interfaces and joint names that MoveIt uses to send commands</p></td>
+</tr>
+</tbody>
+</table>
+<p>For example, Hand-E uses the arm’s <code class="docutils literal notranslate"><span class="pre">FollowJointTrajectory</span></code> interface and the gripper’s <code class="docutils literal notranslate"><span class="pre">ParallelGripperCommand</span></code> interface. Its MoveIt controller file must match those running controllers. 2FG7 and the pipettor use separate driver nodes; see <a class="reference internal" href="end-effectors.html"><span class="std std-doc">end effectors</span></a> for their interfaces and mock-mode limitations. The official <a class="reference external" href="https://control.ros.org/jazzy/doc/getting_started/getting_started.html#architecture">ros2_control overview</a> explains the controller framework.</p>
+<p>CMS configures the speed-scaling broadcaster to run asynchronously at <strong>100 Hz</strong>. The UR5e controller loop remains <strong>500 Hz</strong>. Intermittent controller timing faults remain unresolved.</p>
+</section>
+<section id="runtime-and-gui-models">
+<h2>Runtime and GUI models<a class="headerlink" href="#runtime-and-gui-models" title="Link to this heading"></a></h2>
+<p>MoveIt and the UR driver expand the selected Xacro at startup. The GUI reads the existing file named by <code class="docutils literal notranslate"><span class="pre">grippers.&lt;tool&gt;.urdf_file</span></code> from the description package’s <code class="docutils literal notranslate"><span class="pre">urdf/</span></code> directory. It does not generate that file from Xacro or use MoveIt’s expanded description.</p>
+<figure class="architecture-figure">
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="robot model diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 1120" role="img" aria-labelledby="robot-model-title robot-model-desc">
+<title id="robot-model-title">One robot, two model-loading paths</title>
+<desc id="robot-model-desc">CMS bringup assembles geometry, planning semantics, YAML settings and arm calibration for MoveIt and the UR driver, while the GUI separately loads the expanded URDF selected by the beamline configuration.</desc>
+<defs><marker id="robot-model-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="robot-model-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="robot-model-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="960" height="1120" fill="#ffffff"/>
+<text x="40" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / CMS ROBOT MODEL</text>
+<text x="40" y="84" font-size="28" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">One robot, two model-loading paths</text>
+<text x="40" y="132" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">The selected beamline and active tool choose the xacro, SRDF branch and tool configuration.</text>
+<text x="40" y="192" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">PLANNING / BRINGUP</text>
+
+<path d="M 168,364 V 404 Q 168,412 176,412 H 408 Q 416,412 416,420 V 468" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<path d="M 472,364 V 380 Q 472,388 480,388 H 624 Q 632,388 632,396 V 468" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<line x1="784" y1="364" x2="784" y2="468" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<line x1="296" y1="532" x2="344" y2="532" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<line x1="168" y1="600" x2="168" y2="704" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<path d="M 416,600 V 644 Q 416,652 408,652 H 352 Q 344,652 344,660 V 704" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<line x1="784" y1="600" x2="784" y2="704" stroke="#235cb7" stroke-width="1.5" marker-end="url(#robot-model-arrow-accent)"/>
+<rect x="796" y="636" width="112" height="28" fill="#ffffff"/>
+<text x="808" y="656" font-size="16" font-family="ui-monospace, monospace" fill="#235cb7">PARAMETERS</text>
+
+<rect x="40" y="220" width="256" height="144" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="256" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Geometry</text>
+<text x="60" y="288" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">launch_urdf → xacro</text>
+<text x="60" y="320" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Links, joints and tool</text>
+<text x="60" y="348" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Meshes and mounting</text>
+
+<rect x="344" y="220" width="256" height="144" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="364" y="256" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Planning semantics</text>
+<text x="364" y="288" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">SRDF xacro</text>
+<text x="364" y="320" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Groups and named states</text>
+<text x="364" y="348" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Collision exclusions</text>
+
+<rect x="648" y="220" width="272" height="144" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="668" y="256" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Planning / control</text>
+<text x="668" y="288" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">YAML configuration</text>
+<text x="668" y="320" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Planners, IK and limits</text>
+<text x="668" y="348" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">MoveIt controller map</text>
+
+<rect x="40" y="468" width="256" height="132" rx="8" fill="#f3f6fb" stroke="#52647a"/>
+<text x="60" y="504" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Arm calibration</text>
+<text x="60" y="536" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">ur5e_calibration.yaml</text>
+<text x="60" y="568" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Shared by planning and TF</text>
+
+<rect x="344" y="468" width="576" height="132" rx="8" fill="#edf3ff" stroke="#235cb7"/>
+<text x="364" y="504" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">CMS bringup assembles the runtime model</text>
+<text x="364" y="536" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">robot_bringup.launch.py · MoveItConfigsBuilder</text>
+<text x="364" y="568" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Expanded URDF + SRDF + planning and execution settings</text>
+
+<rect x="40" y="704" width="392" height="104" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="740" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">UR driver + robot state publisher</text>
+<text x="60" y="772" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Controllers and calibrated robot TF</text>
+
+<rect x="528" y="704" width="392" height="104" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="548" y="740" font-size="20" font-family="ui-monospace, monospace" font-weight="600" fill="#18283b">move_group</text>
+<text x="548" y="772" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Planning, scene and MTC execution</text>
+<text x="40" y="848" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Bringup passes the selected xacro to the UR driver; both planning and TF use arm calibration.</text>
+
+<line x1="40" y1="880" x2="920" y2="880" stroke="#dbe3ee"/>
+<text x="40" y="912" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">GUI / SEPARATE FILE LOAD</text>
+<line x1="432" y1="996" x2="528" y2="996" stroke="#52647a" stroke-width="1.5" marker-end="url(#robot-model-arrow)"/>
+<rect x="444" y="956" width="72" height="28" fill="#ffffff"/>
+<text x="480" y="976" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">LOAD</text>
+<rect x="40" y="940" width="392" height="112" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="976" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Existing expanded URDF</text>
+<text x="60" y="1008" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">urdf_file → selected .urdf</text>
+<text x="60" y="1036" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">From the beamline description package</text>
+<rect x="528" y="940" width="392" height="112" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="548" y="976" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">GUI 3D viewer</text>
+<text x="548" y="1008" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">VisualizationPanel → URDFLoader</text>
+<text x="548" y="1036" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Local model and package meshes</text>
+<text x="40" y="1092" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Updating xacro does not regenerate the GUI’s selected URDF. Check the two models together.</text>
+</svg></div>
+<figcaption><a href="../diagrams/robot-model.html">Open the full-size diagram</a></figcaption>
+</figure><p>For ePick, CMS bringup forwards the selected cup profile to both MoveIt and the UR driver. The GUI still uses its separately generated URDF; keep it aligned with the <a class="reference internal" href="end-effectors.html#epick-cup-geometry"><span class="std std-ref">active cup geometry</span></a>.</p>
+</section>
+<section id="a-tool-model-change-in-simulation">
+<h2>A tool-model change in simulation<a class="headerlink" href="#a-tool-model-change-in-simulation" title="Link to this heading"></a></h2>
+<p>These RViz views show a mock Hand-E docking sequence. Both use the same viewpoint and arm joint positions at <code class="docutils literal notranslate"><span class="pre">safe_tool_exchange</span></code>.</p>
+<figure class="screenshot-figure align-default" id="id1">
+<a class="reference internal image-reference" href="../_images/rviz-hande.png"><img alt="RViz close-up before mock docking, with the Hand-E body and fingers below the wrist coupling and the camera beside the wrist." src="../_images/rviz-hande.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><strong>Before docking: <code class="docutils literal notranslate"><span class="pre">hande</span></code>.</strong> The model includes the Hand-E body and fingers. <a class="reference download internal" download="" href="../_downloads/581b9fbd45c2346b9f2511c84d484f17/rviz-hande.png"><span class="xref download myst">Open the full-resolution screenshot</span></a>.</span><a class="headerlink" href="#id1" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<figure class="screenshot-figure align-default" id="id2">
+<a class="reference internal image-reference" href="../_images/rviz-none.png"><img alt="RViz close-up after mock docking, with the wrist coupling and camera still present but the Hand-E body and fingers removed." src="../_images/rviz-none.png" style="width: 100%;" />
+</a>
+<figcaption>
+<p><span class="caption-text"><strong>After docking: <code class="docutils literal notranslate"><span class="pre">none</span></code>.</strong> The orchestrator restarted MoveIt with the no-tool model. <a class="reference download internal" download="" href="../_downloads/97081e5c5e19430d2a052d57c8b0899e/rviz-none.png"><span class="xref download myst">Open the full-resolution screenshot</span></a>.</span><a class="headerlink" href="#id2" title="Link to this image"></a></p>
+</figcaption>
+</figure>
+<p>The sequence was MoveTo → Pause → dock Hand-E → MoveTo, and all four steps succeeded. These images show a simulated model change; they do not verify physical release or coupling. See <a class="reference internal" href="../operate/tools.html#tool-exchange"><span class="std std-ref">tool exchange</span></a> for task settings.</p>
+</section>
+<section id="joystick-and-servo">
+<h2>Joystick and Servo<a class="headerlink" href="#joystick-and-servo" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">enable_joystick:=true</span></code> adds manual Cartesian control when the CMS stack starts. Joystick input passes through translation and rotation mappings to <a class="reference external" href="https://moveit.picknik.ai/main/doc/examples/realtime_servo/realtime_servo_tutorial.html">MoveIt Servo</a>, which sends joint trajectories to the arm controller.</p>
+<p>In <code class="docutils literal notranslate"><span class="pre">cms_moveit_config/</span></code>, <code class="docutils literal notranslate"><span class="pre">config/joystick_teleop.yaml</span></code> defines the controls and <code class="docutils literal notranslate"><span class="pre">config/servo.yaml</span></code> defines Servo behavior. The launch selects Cartesian input through Servo’s command-type service. Servo checks self/scene collisions, but this configuration disables Octomap collision checks.</p>
+<p>The executable <code class="docutils literal notranslate"><span class="pre">cms_servo_node</span></code> is built from <code class="docutils literal notranslate"><span class="pre">src/servo_node_jazzy.cpp</span></code>, a local adaptation with a Jazzy startup-clock workaround. It waits for a current robot state before starting its loop and provides its own pause service.</p>
+<p><strong>Servo operates outside the orchestrator’s task queue.</strong> Pausing or canceling a task does not stop joystick commands.</p>
+</section>
+<section id="when-changing-a-model">
+<h2>When changing a model<a class="headerlink" href="#when-changing-a-model" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p>Update the geometry, SRDF groups/states, controller joint names, tip frame, and calibration together.</p></li>
+<li><p>Regenerate the GUI’s expanded URDF when its Xacro or selected options change, and rebuild affected packages.</p></li>
+<li><p>Restart the affected runtime and GUI, then compare the loaded geometry, working tip, and joint states.</p></li>
+</ol>
+<p>Runtime startup only requires non-empty descriptions from MoveIt; it does not check model structure.</p>
+<p>The LIX calibration file still contains a replacement placeholder, and its deployment settings are incomplete. Follow <a class="reference internal" href="../integrations/beamlines.html"><span class="std std-doc">beamline adaptation</span></a> before using those packages for another installation.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Hardware and perception" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="end-effectors.html" class="btn btn-neutral float-right" title="End effectors" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

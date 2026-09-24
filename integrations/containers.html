@@ -1,0 +1,237 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Container images &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Beamline adaptation" href="beamlines.html" />
+    <link rel="prev" title="Bluesky and EPICS" href="bluesky-epics.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Integrations and deployment</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="mcp-agent.html">MCP and the direct agent</a></li>
+<li class="toctree-l2"><a class="reference internal" href="bluesky-epics.html">Bluesky and EPICS</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Container images</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#image-inventory">Image inventory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#a-local-build-does-not-necessarily-build-local-code">A local build does not necessarily build local code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#current-recipe-mismatches">Current recipe mismatches</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#publishing-and-client-networking">Publishing and client networking</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="beamlines.html">Beamline adaptation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Integrations and deployment</a></li>
+      <li class="breadcrumb-item active">Container images</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="container-images">
+<h1>Container images<a class="headerlink" href="#container-images" title="Link to this heading"></a></h1>
+<p>EROBS provides four container recipes. Choose one based on whether you need the robot stack, a Bluesky client, or EPICS integration.</p>
+<section id="image-inventory">
+<h2>Image inventory<a class="headerlink" href="#image-inventory" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Recipe</p></th>
+<th class="head"><p>Purpose</p></th>
+<th class="head"><p>Source input</p></th>
+<th class="head"><p>Automation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">docker/jazzy/Dockerfile</span></code></p></td>
+<td><p>Main Jazzy robot-stack image with ROS, motion and camera dependencies</p></td>
+<td><p>Clones EROBS <code class="docutils literal notranslate"><span class="pre">jazzy_dev</span></code>, then imports external repositories</p></td>
+<td><p>Manual workflow selection <code class="docutils literal notranslate"><span class="pre">erobs-jazzy</span></code> or <code class="docutils literal notranslate"><span class="pre">all</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">docker/bsui/Dockerfile</span></code></p></td>
+<td><p>Full Bluesky/ROS reference environment</p></td>
+<td><p>Clones <code class="docutils literal notranslate"><span class="pre">jazzy_dev</span></code> and builds a selected workspace</p></td>
+<td><p>Manual selection <code class="docutils literal notranslate"><span class="pre">beambot_bsui</span></code>; local helper</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">docker/bsui-minimal/Dockerfile</span></code></p></td>
+<td><p>Smaller client source set: interfaces, wrappers and CMS data</p></td>
+<td><p>Copies those directories from the local build context</p></td>
+<td><p>Local helper only</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">docker/epics/Dockerfile</span></code></p></td>
+<td><p>Jazzy/EPICS branch-specific environment</p></td>
+<td><p>Clones EROBS <code class="docutils literal notranslate"><span class="pre">epics_bridge</span></code></p></td>
+<td><p>Manual selection <code class="docutils literal notranslate"><span class="pre">jazzy_epics</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>“Minimal” describes the selected EROBS source set. The minimal recipe starts from <code class="docutils literal notranslate"><span class="pre">osrf/ros:jazzy-desktop-full</span></code>; it is not a ROS-core-only image.</p>
+<p>The Jazzy recipe contains the main robot stack. Check the deployed image revision and camera SDK compatibility before using it.</p>
+</section>
+<section id="a-local-build-does-not-necessarily-build-local-code">
+<h2>A local build does not necessarily build local code<a class="headerlink" href="#a-local-build-does-not-necessarily-build-local-code" title="Link to this heading"></a></h2>
+<p>The main Jazzy recipe clones from GitHub inside the image. Changing a local Python file and rebuilding that recipe does not automatically include the change. Its <code class="docutils literal notranslate"><span class="pre">CACHEBUST</span></code> argument forces the clone step to be reconsidered; it does not pin the cloned branch to a commit.</p>
+<p>For example, this is a local image build command, not a publish command:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>docker<span class="w"> </span>build<span class="w"> </span>-f<span class="w"> </span>docker/jazzy/Dockerfile<span class="w"> </span>-t<span class="w"> </span>erobs-jazzy:local<span class="w"> </span>.
+</pre></div>
+</div>
+<p>Before treating the result as a reproducible deployment, record the image digest, Dockerfile revision, cloned EROBS commit and imported repository commits. A workflow tag containing the checkout SHA alone is insufficient: the recipe can clone a different branch revision during the build.</p>
+<p>The main image skips selected packages, including the local OnRobot packages and ZED-related builds. Check the recipe’s package selection when adding a device.</p>
+</section>
+<section id="current-recipe-mismatches">
+<h2>Current recipe mismatches<a class="headerlink" href="#current-recipe-mismatches" title="Link to this heading"></a></h2>
+<p>The minimal recipe’s <code class="docutils literal notranslate"><span class="pre">COPY</span></code> inputs conflict with the root <code class="docutils literal notranslate"><span class="pre">.dockerignore</span></code>:</p>
+<ul class="simple">
+<li><p>The recipe copies <code class="docutils literal notranslate"><span class="pre">src/beambot_interfaces</span></code>, <code class="docutils literal notranslate"><span class="pre">src/bluesky_ros</span></code> and <code class="docutils literal notranslate"><span class="pre">src/cms</span></code>.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">.dockerignore</span></code> excludes everything except the Docker directory, including those inputs.</p></li>
+</ul>
+<p>Correct that recipe/context combination before using it. Docker cannot copy files excluded from the build context.</p>
+<p>The Jazzy and EPICS recipes contain commented VNC copy/startup lines, and VNC packages have been removed from their package lists. <code class="docutils literal notranslate"><span class="pre">docker/jazzy/start-vnc.sh</span></code> remains in the repository, but the current recipes do not start VNC.</p>
+<p>Older container examples pass <code class="docutils literal notranslate"><span class="pre">use_fake_hardware</span></code> to the main beambot launch. The launch declares <code class="docutils literal notranslate"><span class="pre">use_mock_hardware</span></code>. A mock deployment also needs an explicit beamline configuration and decisions about vision and pipettor servers; use <a class="reference internal" href="../start/setup.html"><span class="std std-doc">setup</span></a> and the <a class="reference internal" href="../reference/launch.html"><span class="std std-doc">launch reference</span></a>.</p>
+</section>
+<section id="publishing-and-client-networking">
+<h2>Publishing and client networking<a class="headerlink" href="#publishing-and-client-networking" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">.github/workflows/docker-publish.yml</span></code> is manually triggered and pushes image tags to GHCR. Its <code class="docutils literal notranslate"><span class="pre">all</span></code> option intentionally builds only the Jazzy image. The reference Bluesky and EPICS images need explicit selections; the minimal image is not a workflow option.</p>
+<p><code class="docutils literal notranslate"><span class="pre">docker/img_build.sh</span></code> also <strong>pushes</strong> the Bluesky images after building and tagging them. Use <code class="docutils literal notranslate"><span class="pre">docker</span> <span class="pre">build</span></code> for a local-only build.</p>
+<p>ROS clients and the robot container need compatible discovery/domain settings and reachable ROS transport. The recipes include site-specific Fast DDS discovery settings. Existing host-network/IPC examples are deployment choices for that environment, not a universal requirement that every container must share the host PID namespace. Start from the selected ROS networking configuration and verify discovery before sending any goal. The images do not set <code class="docutils literal notranslate"><span class="pre">ROS_SUPER_CLIENT</span></code>, so <code class="docutils literal notranslate"><span class="pre">ros2</span> <span class="pre">topic</span> <span class="pre">list</span></code> or <code class="docutils literal notranslate"><span class="pre">ros2</span> <span class="pre">node</span> <span class="pre">list</span></code> inside a container can show only part of the graph; export <code class="docutils literal notranslate"><span class="pre">ROS_SUPER_CLIENT=TRUE</span></code> in the shell you use for introspection, and check that the discovery-server hostnames resolve.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="bluesky-epics.html" class="btn btn-neutral float-left" title="Bluesky and EPICS" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="beamlines.html" class="btn btn-neutral float-right" title="Beamline adaptation" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,1476 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP robot tools &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Robot agent command line" href="src-beambot-beambot-agent-__main__-py.html" />
+    <link rel="prev" title="Task submission client" href="src-beambot-scripts-beambot_client-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-beambot_client-py.html">Task submission client</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">MCP robot tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-agent-__main__-py.html">Robot agent command line</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-agent-robot_agent-py.html">Robot agent client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-mtc_ophyd_device-py.html">Blocking Bluesky action device</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-mtc_ophyd_device_async-py.html">Background Bluesky action device</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-pv_service-py.html">EPICS value service</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-pv_to_topic-py.html">EPICS value topic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/clients-integrations.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/clients-integrations.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+      <li class="breadcrumb-item active">MCP robot tools</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="mcp-robot-tools">
+<h1>MCP robot tools<a class="headerlink" href="#mcp-robot-tools" title="Link to this heading"></a></h1>
+<p>Provide MCP tools for robot state, camera observations, pose editing, image analysis, and task construction. Most tools return JSON text; <code class="docutils literal notranslate"><span class="pre">ping()</span></code> returns plain text.</p>
+<p>Import requires ROS, OpenCV, and MCP and probes display settings. Beamline configuration is cached after its first successful load; pose files are reread for each registry operation. Image-saving tools may not report a failed <code class="docutils literal notranslate"><span class="pre">cv2.imwrite</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">src.beambot.mcp_server.beambot_mcp_server</span></code> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/clients-integrations.html"><span class="std std-doc">Clients and integrations</span></a> · <a class="reference internal" href="../../../integrations/index.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>MCP clients call the decorated tool functions for robot state, saved poses, camera observations, detection, and task construction. <code class="docutils literal notranslate"><span class="pre">main()</span></code> runs the stdio server. <code class="docutils literal notranslate"><span class="pre">ROS2Bridge</span></code> creates its node and background executor on first node access; the bridge callbacks maintain the caches used by tools.</p>
+<p>Choose the tool by its effect: <code class="docutils literal notranslate"><span class="pre">capture_image()</span></code> requests a Zivid capture or reads a ZED frame; detection tools analyse cached data; <code class="docutils literal notranslate"><span class="pre">vision_target()</span></code> and <code class="docutils literal notranslate"><span class="pre">pickup_tip()</span></code> return task JSON for a separate submission step. <code class="docutils literal notranslate"><span class="pre">stop_robot()</span></code> requests orchestrator cancellation, not a hardware emergency stop. Grid task generation shares <code class="docutils literal notranslate"><span class="pre">expand_grid_target()</span></code> with the orchestrator, so both paths apply the same grid rules.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-89b30c123eff3b85"><span class="std std-ref">main</span></a></p></td>
+<td><p>Configure stderr logging and run FastMCP’s stdio transport; on server exceptions append a traceback to the crash log, then always call bridge shutdown.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-b63fdc31f091b6e0"><span class="std std-ref">get_robot_state</span></a></p></td>
+<td><p>Return cached joint positions, active tool, execution state, and beamline identity. <code class="docutils literal notranslate"><span class="pre">system_running</span></code> only indicates that joint positions have arrived; it does not establish their freshness or overall system health.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-6dc38af599085b90"><span class="std std-ref">capture_image</span></a></p></td>
+<td><p>For Zivid call the existing /capture Trigger and wait for image plus optional cloud; for ZED use the latest stream frame or wait briefly for its first frame. Save the RGB cache as a BGR-encoded image.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-3b14674a6a658509"><span class="std std-ref">detect_objects</span></a></p></td>
+<td><p>Detect objects in the cached image using HSV, ArUco, or YOLO. YOLO receives an RGB-to-BGR conversion. Optionally add point-cloud coordinates, transform them to <code class="docutils literal notranslate"><span class="pre">base_link</span></code>, and save detected objects. This function does not capture images or execute tasks.  Depth lookup requires image-aligned, little-endian XYZ float32 records. It searches expanding square pixel rings and returns the first valid point without averaging.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-bf10256e8e39aef5"><span class="std std-ref">vision_target</span></a></p></td>
+<td><p>Build task JSON for a configured vision target and return it to the MCP client. Submission and execution are separate steps.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<p>For a configured <code class="docutils literal notranslate"><span class="pre">tip_rack</span></code> target, an MCP client can call <code class="docutils literal notranslate"><span class="pre">vision_target</span></code> with:</p>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span><span class="nt">"target_name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tip_rack"</span><span class="p">,</span><span class="w"> </span><span class="nt">"row"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="nt">"col"</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>The response contains a <code class="docutils literal notranslate"><span class="pre">task_json</span></code> string plus target metadata, or an <code class="docutils literal notranslate"><span class="pre">error</span></code>. Generating this document reads configuration and saved poses; it does not submit the task. Grid rows and columns are zero-based.</p>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="main">
+<span id="api-89b30c123eff3b85"></span><h3><code class="docutils literal notranslate"><span class="pre">main()</span></code><a class="headerlink" href="#main" title="Link to this heading"></a></h3>
+<p>Configure stderr logging and run FastMCP’s stdio transport; on server exceptions append a traceback to the crash log, then always call bridge shutdown.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1651">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None after server stops or a caught server Exception is logged.</p>
+<p><strong>Errors:</strong> MCP Exceptions are logged and swallowed after crash logging; crash-log writes and bridge cleanup can propagate. KeyboardInterrupt bypasses the Exception handler but still runs finally.</p>
+<p><strong>Side effects:</strong> Runs a blocking MCP server, logs to stderr, may append /tmp/beambot_mcp_crash.log and shuts down bridge/global ROS resources.</p>
+</section>
+<section id="get-robot-state">
+<span id="api-b63fdc31f091b6e0"></span><h3><code class="docutils literal notranslate"><span class="pre">get_robot_state()</span></code><a class="headerlink" href="#get-robot-state" title="Link to this heading"></a></h3>
+<p>Return cached joint positions, active tool, execution state, and beamline identity. <code class="docutils literal notranslate"><span class="pre">system_running</span></code> only indicates that joint positions have arrived; it does not establish their freshness or overall system health.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-575">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">get_robot_state</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> JSON with beamline (or null), system_running, gripper (unknown fallback), execution_state, joints_deg (name→two-decimal values or null), plus vacuum_status when active gripper is epick and a status exists. All cached joint positions are converted to degrees, including any nonrevolute entries.</p>
+<p><strong>Errors:</strong> Config errors are suppressed to beamline=null; bridge and malformed numeric data errors propagate.</p>
+<p><strong>Side effects:</strong> Initializes/reads ROS caches and reads beamline config; no motion.</p>
+</section>
+<section id="capture-image">
+<span id="api-6dc38af599085b90"></span><h3><code class="docutils literal notranslate"><span class="pre">capture_image()</span></code><a class="headerlink" href="#capture-image" title="Link to this heading"></a></h3>
+<p>For Zivid call the existing /capture Trigger and wait for image plus optional cloud; for ZED use the latest stream frame or wait briefly for its first frame. Save the RGB cache as a BGR-encoded image.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-793">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">capture_image</span><span class="p">(</span>
+    <span class="n">camera</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'zivid'</span><span class="p">,</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'3d'</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_IMAGE_PATH</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">camera</span></code></p></td>
+<td><p>Exact zivid or zed camera selector.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p>Only exact 3d sets need_cloud=True for Zivid; any other string behaves as image-only waiting. It does not select a distinct 2D acquisition service. ZED ignores it.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_path</span></code></p></td>
+<td><p>Image destination; parent directories are created and existing file may be overwritten.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Zivid response/data budget in seconds; ZED first-image wait is capped at five seconds.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> JSON {image_path,camera,camera_frame,width,height,has_pointcloud,capture_timestamp}; error JSON for unknown/unavailable camera or failed capture. has_pointcloud merely reports a nonempty cache and may describe a previous Zivid capture.</p>
+<p><strong>Errors:</strong> Expected capture/data failures return error JSON. ROS, OpenCV and filesystem errors can propagate; cv2.imwrite False is ignored.</p>
+<p><strong>Side effects:</strong> May initialize ROS, trigger Zivid, wait for streaming data, create directories and overwrite an image.</p>
+</section>
+<section id="detect-objects">
+<span id="api-3b14674a6a658509"></span><h3><code class="docutils literal notranslate"><span class="pre">detect_objects()</span></code><a class="headerlink" href="#detect-objects" title="Link to this heading"></a></h3>
+<p>Detect objects in the cached image using HSV, ArUco, or YOLO. YOLO receives an RGB-to-BGR conversion. Optionally add point-cloud coordinates, transform them to <code class="docutils literal notranslate"><span class="pre">base_link</span></code>, and save detected objects. This function does not capture images or execute tasks.</p>
+<p>Depth lookup requires image-aligned, little-endian XYZ float32 records. It searches expanding square pixel rings and returns the first valid point without averaging.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-874">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">detect_objects</span><span class="p">(</span>
+    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'hsv_color'</span><span class="p">,</span>
+    <span class="n">camera</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'zivid'</span><span class="p">,</span>
+    <span class="n">hue_low</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">hue_high</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">130</span><span class="p">,</span>
+    <span class="n">sat_min</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
+    <span class="n">val_min</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
+    <span class="n">min_area</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="n">marker_ids</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+    <span class="n">yolo_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'yolov8n.pt'</span><span class="p">,</span>
+    <span class="n">yolo_confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
+    <span class="n">yolo_classes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+    <span class="n">transform_to_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_ANNOTATED_PATH</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">method</span></code></p></td>
+<td><p>Exact hsv_color, marker or yolo.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">camera</span></code></p></td>
+<td><p>Cached data source: zivid or zed.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hue_low</span></code></p></td>
+<td><p>HSV lower hue bound on OpenCV scale; used only for hsv_color.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hue_high</span></code></p></td>
+<td><p>HSV upper hue bound; one nonwrapping interval for hsv_color.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sat_min</span></code></p></td>
+<td><p>HSV minimum saturation (0–255).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">val_min</span></code></p></td>
+<td><p>HSV minimum value/brightness (0–255).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">min_area</span></code></p></td>
+<td><p>Minimum external-contour area in square pixels for HSV.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">marker_ids</span></code></p></td>
+<td><p>Comma-separated integer IDs for marker mode; empty means all.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">yolo_model</span></code></p></td>
+<td><p>Generic YOLO weight/model path passed to the shared detector.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">yolo_confidence</span></code></p></td>
+<td><p>Minimum YOLO confidence fraction, conventionally 0–1, without local validation.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">yolo_classes</span></code></p></td>
+<td><p>Comma-separated numeric IDs if every token is digits, otherwise case-insensitive class names; empty keeps all.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">transform_to_base</span></code></p></td>
+<td><p>Request base_link coordinates for valid depth; failure leaves base_xyz null.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_path</span></code></p></td>
+<td><p>Annotated image destination; parent directories are created only for nonempty detections.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> JSON with detections/count/method/annotated_image_path/camera/coordinate_frame. Each detection has pixel_x/y, camera_xyz and base_xyz, plus area (HSV), marker_id/corners (marker), or class/confidence/bbox (YOLO). Empty detections return a smaller count=0 response without image path. coordinate_frame says base_link when requested even if transforms fail.</p>
+<p><strong>Errors:</strong> Unknown method/camera or missing image returns error JSON. Bad ID text, detector/model, depth, filesystem and OpenCV exceptions propagate; image-write false results are ignored.</p>
+<p><strong>Side effects:</strong> Reads ROS caches and TF, may load generic YOLO weights (its library may resolve/download named weights), and writes annotation; does not trigger acquisition or move hardware.</p>
+</section>
+<section id="vision-target">
+<span id="api-bf10256e8e39aef5"></span><h3><code class="docutils literal notranslate"><span class="pre">vision_target()</span></code><a class="headerlink" href="#vision-target" title="Link to this heading"></a></h3>
+<p>Build task JSON for a configured vision target and return it to the MCP client. Submission and execution are separate steps.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1613">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">vision_target</span><span class="p">(</span>
+    <span class="n">target_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">element_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">row</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">col</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">tag_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">target_name</span></code></p></td>
+<td><p>Exact key in config.vision_targets.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">element_index</span></code></p></td>
+<td><p>Zero-based row-major grid index; ignored for offset mode or when both row and col are nonnegative.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">row</span></code></p></td>
+<td><p>Zero-based explicit row; used only together with a nonnegative col.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">col</span></code></p></td>
+<td><p>Zero-based explicit column; used only together with a nonnegative row.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>Nonnegative marker ID override; any negative value uses cfg.marker_id.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Indented JSON string containing the builder success schema or error.</p>
+<p><strong>Errors:</strong> Propagates errors not handled by _build_vision_target_tasks.</p>
+<p><strong>Side effects:</strong> Reads config and pose files through the builder; does not command hardware.</p>
+</section>
+<section id="ping">
+<span id="api-89f37490436ff356"></span><h3><code class="docutils literal notranslate"><span class="pre">ping()</span></code><a class="headerlink" href="#ping" title="Link to this heading"></a></h3>
+<p>Confirm the MCP handler can execute without touching the lazy ROS bridge.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-556">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">ping</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Plain string pong, not JSON.</p>
+<p><strong>Errors:</strong> No explicit failure path.</p>
+</section>
+<section id="stop-robot">
+<span id="api-98ceed38fc768b93"></span><h3><code class="docutils literal notranslate"><span class="pre">stop_robot()</span></code><a class="headerlink" href="#stop-robot" title="Link to this heading"></a></h3>
+<p>Request cancellation of orchestrator goals in a worker thread and return a JSON response. This is software action cancellation, not a hardware emergency stop.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-562">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">stop_robot</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> JSON string with result containing the cancellation status message; no Boolean success field.</p>
+<p><strong>Errors:</strong> Bridge/future errors propagate; service/timeouts reported by cancel_all_goals remain ordinary result strings.</p>
+<p><strong>Side effects:</strong> Initializes ROS if needed and requests cancellation of all orchestrator goals; does not provide a hardware emergency stop.</p>
+</section>
+<section id="get-vacuum-status">
+<span id="api-f8825ea1ba0665b7"></span><h3><code class="docutils literal notranslate"><span class="pre">get_vacuum_status()</span></code><a class="headerlink" href="#get-vacuum-status" title="Link to this heading"></a></h3>
+<p>Report whether any ePick status has been received and interpret statuses 1/2 as object_detected. It does not check status age or enforce an interlock.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-625">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">get_vacuum_status</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> JSON with available and gripper; absent data adds note, present data adds status string and object_detected Boolean. Unknown integers are rendered UNKNOWN(n).</p>
+<p><strong>Errors:</strong> Bridge initialization errors propagate; no explicit service wait.</p>
+<p><strong>Side effects:</strong> Initializes ROS if needed and reads the cached vacuum status.</p>
+</section>
+<section id="get-saved-poses">
+<span id="api-0819a1dfa2dfa6c6"></span><h3><code class="docutils literal notranslate"><span class="pre">get_saved_poses()</span></code><a class="headerlink" href="#get-saved-poses" title="Link to this heading"></a></h3>
+<p>Read saved poses and optionally filter names by a case-insensitive substring.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-683">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">get_saved_poses</span><span class="p">(</span><span class="nb">filter</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">filter</span></code></p></td>
+<td><p>Substring matched against lowercased keys; empty string keeps all entries.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> JSON with poses and count, plus message for an initially empty registry; filtered-empty results omit that message.</p>
+<p><strong>Errors:</strong> File/YAML/invalid mapping or nonstring-key errors propagate rather than returning error JSON.</p>
+<p><strong>Side effects:</strong> Reads configuration and pose registry; does not initialize ROS.</p>
+</section>
+<section id="save-pose">
+<span id="api-e7f8bbeed57f411d"></span><h3><code class="docutils literal notranslate"><span class="pre">save_pose()</span></code><a class="headerlink" href="#save-pose" title="Link to this heading"></a></h3>
+<p>Add or replace a pose, using six explicit degree values or every cached joint position converted from radians. Round values to two decimals and rewrite the registry.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-707">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">save_pose</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">joints_deg</span><span class="p">:</span> <span class="nb">list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Registry key; no empty-name or naming-pattern validation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">joints_deg</span></code></p></td>
+<td><p>Explicit list must have length six and float-convertible values; None uses cached positions without reordering or enforcing six joints. Nonfinite values are not rejected.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">description</span></code></p></td>
+<td><p>Accepted but ignored; no comment or description is persisted.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> JSON {saved,joints_deg,overwritten,total_poses}; error JSON for wrong explicit length or unavailable live joint data.</p>
+<p><strong>Errors:</strong> Numeric conversion, YAML/file and malformed-registry errors propagate; only the two explicit checks return error JSON.</p>
+<p><strong>Side effects:</strong> Reads/replaces pose YAML; initializes ROS only when joints are omitted. Does not command motion.</p>
+</section>
+<section id="delete-pose">
+<span id="api-e33354ea2355446d"></span><h3><code class="docutils literal notranslate"><span class="pre">delete_pose()</span></code><a class="headerlink" href="#delete-pose" title="Link to this heading"></a></h3>
+<p>Remove one exact pose key from the registry and replace the file.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-745">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">delete_pose</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Case-sensitive saved pose name.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> JSON {deleted,remaining_poses}, or {error,available} listing keys when absent.</p>
+<p><strong>Errors:</strong> File/YAML/invalid registry errors propagate.</p>
+<p><strong>Side effects:</strong> Reads configuration/registry and writes the registry only when the name exists.</p>
+</section>
+<section id="set-cup-profile">
+<span id="api-86b6457d132b0f9e"></span><h3><code class="docutils literal notranslate"><span class="pre">set_cup_profile()</span></code><a class="headerlink" href="#set-cup-profile" title="Link to this heading"></a></h3>
+<p>Run ros2 param set for /beambot_orchestrator cup_profile; changing the string takes effect on a subsequent ePick MoveIt launch, not by rebuilding the current model.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-765">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">set_cup_profile</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Cup-profile string passed to ROS; this wrapper does not check suction_cups.yaml membership.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> JSON {cup_profile,message} for exit code zero; otherwise error JSON, with note on nonzero exit.</p>
+<p><strong>Errors:</strong> All subprocess exceptions including the five-second timeout become error JSON; CLI return-code failures use stderr.</p>
+<p><strong>Side effects:</strong> Runs a ROS CLI subprocess and changes the orchestrator parameter; no immediate launch/rebuild.</p>
+</section>
+<section id="detect-sample-yolo">
+<span id="api-e1cea1cfca23d395"></span><h3><code class="docutils literal notranslate"><span class="pre">detect_sample_yolo()</span></code><a class="headerlink" href="#detect-sample-yolo" title="Link to this heading"></a></h3>
+<p>Infer with the custom sample detector, select the highest-confidence box across results, and look up center depth with a 20-pixel search before transforming to base_link. Shared depth lookup assumes image-aligned little-endian XYZ float32 cloud records; it returns the first valid point on expanding square pixel rings, not an averaged depth.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1150">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">detect_sample_yolo</span><span class="p">(</span>
+    <span class="n">camera</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'zivid'</span><span class="p">,</span>
+    <span class="n">confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'/tmp/sample_detection_yolo.jpg'</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">camera</span></code></p></td>
+<td><p>zivid or zed cached RGB and cloud; both must exist.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">confidence</span></code></p></td>
+<td><p>YOLO confidence threshold fraction passed to model inference.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_path</span></code></p></td>
+<td><p>Annotation output path; parent directories are not created here.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> JSON with pickup_base_xyz (metres or null), detection_pixel, confidence, bbox, bbox_size_px, num_detections and annotated_image_path. No detections returns error JSON and still attempts to plot/save the first result.</p>
+<p><strong>Errors:</strong> Unknown/missing camera data and absent weight file return error JSON; other inference/depth/TF/image errors propagate. cv2.imwrite False is ignored.</p>
+<p><strong>Side effects:</strong> May initialize ROS/model, perform inference/TF lookup and overwrite an annotation; no acquisition or motion.</p>
+</section>
+<section id="get-point-3d">
+<span id="api-08b797f93b9546ad"></span><h3><code class="docutils literal notranslate"><span class="pre">get_point_3d()</span></code><a class="headerlink" href="#get-point-3d" title="Link to this heading"></a></h3>
+<p>Read a 3D point for a pixel in the cached RGB image. The optional GUI can adjust the pixel; the result can be transformed to <code class="docutils literal notranslate"><span class="pre">base_link</span></code>. A successful lookup attempts to save an annotated image even with <code class="docutils literal notranslate"><span class="pre">confirm=False</span></code>.</p>
+<p>Depth lookup requires image-aligned, little-endian XYZ float32 records. It searches expanding square pixel rings and returns the first valid point without averaging.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1235">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">get_point_3d</span><span class="p">(</span>
+    <span class="n">pixel_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">pixel_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">camera</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'zivid'</span><span class="p">,</span>
+    <span class="n">transform_to_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">search_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">confirm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'/tmp/beambot_point3d.jpg'</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pixel_x</span></code></p></td>
+<td><p>Original image column in pixels, checked before and after GUI adjustment.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pixel_y</span></code></p></td>
+<td><p>Original image row in pixels.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">camera</span></code></p></td>
+<td><p>zivid or zed cached image/cloud selector.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">transform_to_base</span></code></p></td>
+<td><p>If true, try stamped/latest TF; missing TF leaves base_xyz null.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">search_radius</span></code></p></td>
+<td><p>Nonnegative integer pixel radius passed to shared depth lookup; exact pixel is tried first, then expanding square perimeters. Negative radius skips neighborhood search; no local validation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">confirm</span></code></p></td>
+<td><p>Open the interactive point selector when true; it reuses /tmp/beambot_capture.jpg if present, which may not match the current cache/camera.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">save_path</span></code></p></td>
+<td><p>Annotation path; creates parent directories and may overwrite the file.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> JSON with pixel_x/y, camera_xyz (metres), camera/camera_frame, base_xyz (metres or null), base_frame and annotated_image_path. Returns error JSON for invalid data/pixels/depth/GUI failure, or cancelled=true after user cancellation.</p>
+<p><strong>Errors:</strong> Handled availability/bounds/selection errors become JSON; unexpected OpenCV, filesystem, depth or worker errors propagate. Image write success flags are ignored.</p>
+<p><strong>Side effects:</strong> May initialize ROS, create a fallback capture image, open GUI, query TF and write annotation; no robot command.</p>
+</section>
+<section id="get-tf-transform">
+<span id="api-e2e2378e7fe11547"></span><h3><code class="docutils literal notranslate"><span class="pre">get_tf_transform()</span></code><a class="headerlink" href="#get-tf-transform" title="Link to this heading"></a></h3>
+<p>Look up the latest source-to-target TF in a worker and report translation, quaternion, Euler angles and homogeneous matrix.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1363">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">get_tf_transform</span><span class="p">(</span>
+    <span class="n">source_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'flange'</span><span class="p">,</span>
+    <span class="n">target_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'base_link'</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">source_frame</span></code></p></td>
+<td><p>Frame coordinates are transformed from; default flange.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">target_frame</span></code></p></td>
+<td><p>Destination frame; default base_link.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Seconds passed to node.lookup_transform, which performs separate availability and lookup waits.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> JSON with source_frame, target_frame, translation xyz in metres, rotation_quaternion xyzw, rotation_rpy_degrees and matrix_4x4. Translation/quaternion/matrix round to six decimals and RPY to four; unavailable TF returns error JSON.</p>
+<p><strong>Errors:</strong> Bridge initialization, numeric and unexpected TF errors propagate; ordinary unavailable transforms become error JSON.</p>
+<p><strong>Side effects:</strong> Initializes bridge in worker if needed and reads TF; default flange does not substitute tool0 orientation.</p>
+</section>
+<section id="get-recent-logs">
+<span id="api-bd48a75dcdd208e7"></span><h3><code class="docutils literal notranslate"><span class="pre">get_recent_logs()</span></code><a class="headerlink" href="#get-recent-logs" title="Link to this heading"></a></h3>
+<p>Return recent matching ROS launch-log entries, newest first. Read the file while retaining its final 2,000 lines, then filter by severity and logger-name prefix.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1440">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">get_recent_logs</span><span class="p">(</span><span class="n">severity</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">'ERROR'</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">,</span> <span class="n">count</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">severity</span></code></p></td>
+<td><p>Case-insensitive minimum DEBUG/INFO/WARN/ERROR/FATAL; unrecognized values use ERROR threshold, while metadata retains the supplied text.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">logger</span></code></p></td>
+<td><p>Case-sensitive logger-name prefix; empty matches all.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">count</span></code></p></td>
+<td><p>Maximum accepted records; no validation means zero/negative still returns one matching record if one exists.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> JSON {logs,count,filter}; each log contains process, logger, severity and message. Missing/unreadable file returns error plus empty logs/count. Multiline/unmatched lines are omitted.</p>
+<p><strong>Errors:</strong> Read failures become error JSON; parsing uses a fixed regex and unknown log severities count as zero.</p>
+<p><strong>Side effects:</strong> Reads all of /tmp/beambot_launch.log in a worker to retain the tail; memory is bounded but file I/O is not.</p>
+</section>
+<section id="pickup-tip">
+<span id="api-fcb5fd2d4b9af2bf"></span><h3><code class="docutils literal notranslate"><span class="pre">pickup_tip()</span></code><a class="headerlink" href="#pickup-tip" title="Link to this heading"></a></h3>
+<p>Build task JSON for the configured <code class="docutils literal notranslate"><span class="pre">tip_rack</span></code> target without executing it. It uses the same grid expansion as the parser macro, through the MCP request format.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1635">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@mcp</span><span class="o">.</span><span class="n">tool</span><span class="p">()</span>
+<span class="k">async</span> <span class="n">pickup_tip</span><span class="p">(</span><span class="n">tip_index</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span> <span class="nb">int</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="nb">int</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tip_index</span></code></p></td>
+<td><p>Zero-based row-major element index; valid range comes from configured grid size, not a hard-coded 96.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">row</span></code></p></td>
+<td><p>Zero-based row override when both row and col are nonnegative.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">col</span></code></p></td>
+<td><p>Zero-based column override when both row and col are nonnegative.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Indented JSON containing task_json/grid metadata or builder error.</p>
+<p><strong>Errors:</strong> Configured-target, index and unhandled config/pose errors follow _build_vision_target_tasks.</p>
+<p><strong>Side effects:</strong> Reads configuration/poses and returns proposed tasks only.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="poses-file-path">
+<span id="api-37f67c1e7e5961cc"></span><h4><code class="docutils literal notranslate"><span class="pre">_poses_file_path()</span></code><a class="headerlink" href="#poses-file-path" title="Link to this heading"></a></h4>
+<p>Resolve poses_file from the active beamline config through the shared path resolver.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-106">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_poses_file_path</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Resolved path string; empty string when poses_file is empty or after a caught exception. Resolution is relative to the discovered workspace root, or the config directory if no src/ ancestor is found.</p>
+<p><strong>Errors:</strong> Catches all Exceptions and logs them. Empty resolution is hazardous for callers that resolve Path(“”) to the current directory.</p>
+<p><strong>Side effects:</strong> Reads beamline configuration and may log an error. The shared loader reads YAML only on its first successful call (or after explicit cache reset).</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-87ab88088cca07ae"><code>_read_poses_file</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-d570289a0caa82c9"><code>_write_poses_file</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-0819a1dfa2dfa6c6"><code>get_saved_poses</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="detect-display">
+<span id="api-04c9c31c9fbb43f6"></span><h4><code class="docutils literal notranslate"><span class="pre">_detect_display()</span></code><a class="headerlink" href="#detect-display" title="Link to this heading"></a></h4>
+<p>Use DISPLAY/XAUTHORITY from the environment, otherwise inspect desktop-process environments for DISPLAY and common Xauthority paths.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-120">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_detect_display</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> (display, xauth) strings; display falls back to :1 and xauth may remain empty.</p>
+<p><strong>Errors:</strong> The shell probe is bounded to three seconds and any probe exception falls back to :1; filesystem probe errors are not explicitly caught.</p>
+<p><strong>Side effects:</strong> May spawn a bash inspection command and test auth paths. Called at module import; does not set environment variables itself.</p>
+</section>
+<section id="detect-hsv-color">
+<span id="api-daa68cb8ba941804"></span><h4><code class="docutils literal notranslate"><span class="pre">_detect_hsv_color()</span></code><a class="headerlink" href="#detect-hsv-color" title="Link to this heading"></a></h4>
+<p>Threshold an RGB image in OpenCV HSV space, apply a 7×7 elliptical opening, and compute centroids of external contours passing the area threshold.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-153">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_detect_hsv_color</span><span class="p">(</span>
+    <span class="n">rgb_image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">hue_low</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">hue_high</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">130</span><span class="p">,</span>
+    <span class="n">sat_min</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
+    <span class="n">val_min</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
+    <span class="n">min_area</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rgb_image</span></code></p></td>
+<td><p>H×W×3 RGB image array accepted by cv2.cvtColor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">hue_low</span></code></p></td>
+<td><p>Inclusive HSV hue lower threshold, OpenCV hue scale approximately 0–179.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">hue_high</span></code></p></td>
+<td><p>Inclusive hue upper threshold; a single contiguous interval is used, without wraparound.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sat_min</span></code></p></td>
+<td><p>Inclusive saturation lower threshold, 0–255 scale.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">val_min</span></code></p></td>
+<td><p>Inclusive brightness/value lower threshold, 0–255 scale.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">min_area</span></code></p></td>
+<td><p>Minimum cv2 contour area in square pixels; equal area passes.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> List of (integer center_x, center_y, truncated contour_area) tuples sorted by descending area, or None if none survive.</p>
+<p><strong>Errors:</strong> OpenCV and numeric errors propagate; thresholds are not validated. Zero-moment contours are skipped.</p>
+<p><strong>Side effects:</strong> Allocates masks/contours only.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">image</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="mi">80</span><span class="p">,</span> <span class="mi">80</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">uint8</span><span class="p">)</span>
+<span class="n">image</span><span class="p">[</span><span class="mi">20</span><span class="p">:</span><span class="mi">60</span><span class="p">,</span> <span class="mi">20</span><span class="p">:</span><span class="mi">60</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">]</span>  <span class="c1"># Blue in RGB.</span>
+<span class="n">hits</span> <span class="o">=</span> <span class="n">_detect_hsv_color</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">hits</span> <span class="ow">and</span> <span class="n">hits</span><span class="p">[</span><span class="mi">0</span><span class="p">][:</span><span class="mi">2</span><span class="p">]</span> <span class="o">==</span> <span class="p">(</span><span class="mi">39</span><span class="p">,</span> <span class="mi">39</span><span class="p">)</span>
+</pre></div>
+</div>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-3b14674a6a658509"><code>detect_objects</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="detect-aruco-markers">
+<span id="api-8a78e9010b525d79"></span><h4><code class="docutils literal notranslate"><span class="pre">_detect_aruco_markers()</span></code><a class="headerlink" href="#detect-aruco-markers" title="Link to this heading"></a></h4>
+<p>Detect ArUco corners through the shared detection implementation, then compute mean-corner center pixels and optionally retain selected IDs.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-186">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_detect_aruco_markers</span><span class="p">(</span>
+    <span class="n">rgb_image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span>
+    <span class="n">marker_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">dictionary_name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'DICT_4X4_50'</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">,</span> <span class="nb">list</span><span class="p">]]</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rgb_image</span></code></p></td>
+<td><p>RGB image array.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">marker_ids</span></code></p></td>
+<td><p>List of integer marker IDs to retain; None keeps every ID, while an empty list keeps none.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dictionary_name</span></code></p></td>
+<td><p>One of DICT_4X4_50, DICT_4X4_100, DICT_5X5_50, DICT_5X5_100, DICT_6X6_50 or DICT_6X6_250; unknown names fall back to DICT_4X4_50.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> List of (cx, cy, marker_id, four-corner-list) tuples in detector order, or None for no retained markers.</p>
+<p><strong>Errors:</strong> OpenCV/shared detector errors propagate.</p>
+<p><strong>Side effects:</strong> Image analysis only.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-3b14674a6a658509"><code>detect_objects</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="annotate-image">
+<span id="api-8715e01bc84a7823"></span><h4><code class="docutils literal notranslate"><span class="pre">_annotate_image()</span></code><a class="headerlink" href="#annotate-image" title="Link to this heading"></a></h4>
+<p>Copy RGB to BGR and draw a green/red center plus a label for every detection, preferring base coordinates, then camera coordinates, when available.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-218">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_annotate_image</span><span class="p">(</span><span class="n">rgb_image</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">detections</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rgb_image</span></code></p></td>
+<td><p>RGB image array to copy.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">detections</span></code></p></td>
+<td><p>Dictionaries with pixel_x/pixel_y; optional marker_id, base_xyz or camera_xyz (metres) control labels.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> New BGR image array suitable for cv2.imwrite.</p>
+<p><strong>Errors:</strong> Missing pixel keys, invalid coordinates and OpenCV errors propagate.</p>
+<p><strong>Side effects:</strong> Allocates/draws into a new image; does not write a file.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-3b14674a6a658509"><code>detect_objects</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="resolve-camera-state">
+<span id="api-ff677df252005dc2"></span><h4><code class="docutils literal notranslate"><span class="pre">_resolve_camera_state()</span></code><a class="headerlink" href="#resolve-camera-state" title="Link to this heading"></a></h4>
+<p>Select the RGB/cloud/stamp caches and configured optical-frame name for a camera.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-534">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_resolve_camera_state</span><span class="p">(</span>
+    <span class="n">node</span><span class="p">:</span> <span class="n">ROS2BridgeNode</span><span class="p">,</span>
+    <span class="n">camera</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">PointCloud2</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="n">Any</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">node</span></code></p></td>
+<td><p>ROS2BridgeNode with cached Zivid and ZED data.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">camera</span></code></p></td>
+<td><p>Exact string zivid or zed.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> (rgb, cloud, stamp, frame); any cached data may be None and references are not copied or synchronized.</p>
+<p><strong>Errors:</strong> ValueError for an unknown camera.</p>
+<p><strong>Side effects:</strong> Reads node fields only.</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-3b14674a6a658509"><code>detect_objects</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-e1cea1cfca23d395"><code>detect_sample_yolo</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-08b797f93b9546ad"><code>get_point_3d</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="read-poses-file">
+<span id="api-87ab88088cca07ae"></span><h4><code class="docutils literal notranslate"><span class="pre">_read_poses_file()</span></code><a class="headerlink" href="#read-poses-file" title="Link to this heading"></a></h4>
+<p>Resolve the configured pose registry and yaml.safe_load its contents, substituting {} for missing paths or falsey YAML values.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-654">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_read_poses_file</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Loaded YAML value, normally a pose mapping, or {}; no mapping/entry validation is performed.</p>
+<p><strong>Errors:</strong> Read/YAML errors propagate. An unresolved empty configured path becomes the current directory and can raise IsADirectoryError.</p>
+<p><strong>Side effects:</strong> Reads beamline configuration and the pose registry.</p>
+<details class="api-references"><summary>Referenced in source (4)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-915b46ba2558c00d"><code>_build_vision_target_tasks</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-e33354ea2355446d"><code>delete_pose</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-0819a1dfa2dfa6c6"><code>get_saved_poses</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-e7f8bbeed57f411d"><code>save_pose</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="write-poses-file">
+<span id="api-d570289a0caa82c9"></span><h4><code class="docutils literal notranslate"><span class="pre">_write_poses_file()</span></code><a class="headerlink" href="#write-poses-file" title="Link to this heading"></a></h4>
+<p>Dump the complete pose mapping into a temporary file in the registry directory and replace the resolved destination.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-664">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_write_poses_file</span><span class="p">(</span><span class="n">poses</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Serializable pose registry, normally name→degree-list; existing comments/formatting are not preserved.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None after replacement.</p>
+<p><strong>Errors:</strong> Catches BaseException during dumping/replacement to remove the temp file, then rethrows; cleanup errors may mask the original. Resolution, mkdir and mkstemp failures propagate. No concurrent read-modify-write lock is used.</p>
+<p><strong>Side effects:</strong> Creates parent directories and replaces the pose YAML atomically at rename; does not fsync. An empty resolved path can target a directory and fail.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-e33354ea2355446d"><code>delete_pose</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-e7f8bbeed57f411d"><code>save_pose</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="capture-image-wait-for-zed">
+<span id="api-b88619900d4901ba"></span><h4><code class="docutils literal notranslate"><span class="pre">capture_image._wait_for_zed()</span></code><a class="headerlink" href="#capture-image-wait-for-zed" title="Link to this heading"></a></h4>
+<p>Poll the closed-over node every 0.1 seconds until a ZED RGB cache exists or min(timeout, 5) seconds expires.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-820">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_wait_for_zed</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Boolean indicating whether zed_rgb is non-None after polling.</p>
+<p><strong>Errors:</strong> Negative timeout results in no polling; other timing/access errors propagate.</p>
+<p><strong>Side effects:</strong> Sleeps in an asyncio executor worker; does not trigger ZED.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-6dc38af599085b90"><code>capture_image</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="transform-point-to-base">
+<span id="api-e8169fe70a839fc9"></span><h4><code class="docutils literal notranslate"><span class="pre">_transform_point_to_base()</span></code><a class="headerlink" href="#transform-point-to-base" title="Link to this heading"></a></h4>
+<p>Offload a stamped-then-latest TF lookup and homogeneous point transform to an asyncio worker.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1019">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">_transform_point_to_base</span><span class="p">(</span>
+    <span class="n">node</span><span class="p">:</span> <span class="n">ROS2BridgeNode</span><span class="p">,</span>
+    <span class="n">camera_xyz</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">],</span>
+    <span class="n">camera_frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">capture_stamp</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">node</span></code></p></td>
+<td><p>Bridge node providing lookup_transform.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">camera_xyz</span></code></p></td>
+<td><p>Three camera-frame coordinates in metres.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">camera_frame</span></code></p></td>
+<td><p>Source optical-frame name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">capture_stamp</span></code></p></td>
+<td><p>Optional ROS message timestamp; its lookup is preferred, but latest TF is used after failure.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> (x,y,z) float tuple in base_link metres, or None when neither TF lookup succeeds.</p>
+<p><strong>Errors:</strong> Unavailable TF is logged and returns None; numeric/attribute/worker exceptions propagate. Latest-TF fallback can represent a different robot pose than capture.</p>
+<p><strong>Side effects:</strong> Queries TF in a worker thread and logs fallback/failure.</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-3b14674a6a658509"><code>detect_objects</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-e1cea1cfca23d395"><code>detect_sample_yolo</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-08b797f93b9546ad"><code>get_point_3d</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="transform-point-to-base-do-transform">
+<span id="api-2013e920ed262684"></span><h4><code class="docutils literal notranslate"><span class="pre">_transform_point_to_base._do_transform()</span></code><a class="headerlink" href="#transform-point-to-base-do-transform" title="Link to this heading"></a></h4>
+<p>Use closed-over camera coordinates and node to get stamped TF when available, fall back to latest, then multiply a homogeneous point by quaternion rotation plus translation.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1028">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_do_transform</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Three base_link floats, or None after both TF attempts fail.</p>
+<p><strong>Errors:</strong> No broad catch; lookup helper handles TransformException, while malformed transforms/numbers propagate.</p>
+<p><strong>Side effects:</strong> Reads the TF buffer and logs fallback/errors in an executor worker.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-e8169fe70a839fc9"><code>_transform_point_to_base</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="confirm-point-via-gui">
+<span id="api-0b383502c8f59050"></span><h4><code class="docutils literal notranslate"><span class="pre">_confirm_point_via_gui()</span></code><a class="headerlink" href="#confirm-point-via-gui" title="Link to this heading"></a></h4>
+<p>Launch the sibling point_selector_gui.py with initial coordinates and detected X11 environment, then parse its JSON stdout.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1065">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">_confirm_point_via_gui</span><span class="p">(</span>
+    <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">pixel_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">pixel_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">120.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">image_path</span></code></p></td>
+<td><p>Image file displayed by the GUI subprocess.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pixel_x</span></code></p></td>
+<td><p>Initial image-column coordinate in original pixels.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pixel_y</span></code></p></td>
+<td><p>Initial image-row coordinate in original pixels.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Maximum communicate wait in seconds before killing the child.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Confirmed-point dictionary; None for a clean unconfirmed result; or an error dictionary. Nonzero child exits may return its parsed error JSON with stderr appended.</p>
+<p><strong>Errors:</strong> Missing script, launch/timeout and JSON parse failures become error dictionaries. A timeout kills without explicitly awaiting process reaping; malformed nonobject JSON can still raise later.</p>
+<p><strong>Side effects:</strong> Spawns a GUI process, displays an interactive window, captures stderr and may kill the child.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-08b797f93b9546ad"><code>get_point_3d</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="get-yolo-model">
+<span id="api-6e3ddf4ce5f9a57c"></span><h4><code class="docutils literal notranslate"><span class="pre">_get_yolo_model()</span></code><a class="headerlink" href="#get-yolo-model" title="Link to this heading"></a></h4>
+<p>Lazily load and cache Ultralytics YOLO from beambot/models/sample_detector.pt.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1133">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_get_yolo_model</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> The shared YOLO model instance; repeated calls return the cached object.</p>
+<p><strong>Errors:</strong> FileNotFoundError if weights are absent; ultralytics import/model-loading errors propagate.</p>
+<p><strong>Side effects:</strong> Reads model weights, initializes inference resources and logs first load; no locking around first load.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-e1cea1cfca23d395"><code>detect_sample_yolo</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="get-tf-transform-lookup">
+<span id="api-da4b9cd1690051e2"></span><h4><code class="docutils literal notranslate"><span class="pre">get_tf_transform._lookup()</span></code><a class="headerlink" href="#get-tf-transform-lookup" title="Link to this heading"></a></h4>
+<p>Initialize/access the bridge node in the worker and fetch the latest transform using the outer frame/timeout arguments.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1379">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_lookup</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> TransformStamped, or None when the node lookup fails.</p>
+<p><strong>Errors:</strong> Propagates bridge/lookup errors outside handled TF failures.</p>
+<p><strong>Side effects:</strong> May initialize ROS and queries TF in an executor worker.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-e2e2378e7fe11547"><code>get_tf_transform</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="get-recent-logs-read-tail">
+<span id="api-205afa124dc337ad"></span><h4><code class="docutils literal notranslate"><span class="pre">get_recent_logs._read_tail()</span></code><a class="headerlink" href="#get-recent-logs-read-tail" title="Link to this heading"></a></h4>
+<p>Read the complete launch log into a maxlen=2000 deque with replacement decoding for invalid text bytes.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1465">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_read_tail</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Deque containing the last up to 2,000 lines, or an exception-message string.</p>
+<p><strong>Errors:</strong> Catches all Exceptions during open/iteration and returns str(exception).</p>
+<p><strong>Side effects:</strong> Reads /tmp/beambot_launch.log in a background worker.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-bd48a75dcdd208e7"><code>get_recent_logs</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="load-beamline-config">
+<span id="api-d5a460eeba4a93e0"></span><h4><code class="docutils literal notranslate"><span class="pre">_load_beamline_config()</span></code><a class="headerlink" href="#load-beamline-config" title="Link to this heading"></a></h4>
+<p>Read the active beamline configuration with the shared loader and discard its path.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1512">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_beamline_config</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Shared cached config dictionary, or {} on any Exception; callers must not mutate the successful shared result.</p>
+<p><strong>Errors:</strong> Logs all caught configuration/import failures; caller-specific shape errors are not validated here.</p>
+<p><strong>Side effects:</strong> Reads configuration and may log errors. The shared loader reads YAML only on its first successful call (or after explicit cache reset).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-9d117fce2c230201"><code>_load_vision_targets</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="load-vision-targets">
+<span id="api-9d117fce2c230201"></span><h4><code class="docutils literal notranslate"><span class="pre">_load_vision_targets()</span></code><a class="headerlink" href="#load-vision-targets" title="Link to this heading"></a></h4>
+<p>Extract vision_targets from the shared beamline configuration.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1523">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_vision_targets</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Configured vision_targets value (shared with the cached config), or {} when absent; no explicit mapping validation.</p>
+<p><strong>Errors:</strong> Shared loader errors yield {}; malformed nonmapping config can propagate attribute errors.</p>
+<p><strong>Side effects:</strong> Reads beamline config via _load_beamline_config. The shared loader reads YAML only on its first successful call (or after explicit cache reset).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-915b46ba2558c00d"><code>_build_vision_target_tasks</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="build-vision-target-tasks">
+<span id="api-915b46ba2558c00d"></span><h4><code class="docutils literal notranslate"><span class="pre">_build_vision_target_tasks()</span></code><a class="headerlink" href="#build-vision-target-tasks" title="Link to this heading"></a></h4>
+<p>Build a configured scan-pose and vision approach without executing it. Offset mode inserts metre marker offsets; grid mode uses the same validated expansion as orchestrator pickup macros.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-1529">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_vision_target_tasks</span><span class="p">(</span>
+    <span class="n">target_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">element_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">row</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">col</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">tag_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">target_name</span></code></p></td>
+<td><p>Exact key in config.vision_targets.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">element_index</span></code></p></td>
+<td><p>Zero-based row-major grid index; ignored for offset mode or when both row and col are nonnegative.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">row</span></code></p></td>
+<td><p>Zero-based explicit row; used only together with a nonnegative col.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">col</span></code></p></td>
+<td><p>Zero-based explicit column; used only together with a nonnegative row.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>Nonnegative marker ID override; any negative value uses cfg.marker_id.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Dictionary containing task_json (a JSON string with start_gripper/tasks/poses), target and mode, or an error. Grid results add element {row,col,index} and offsets_mm by direction; near-zero row/column moves are omitted.</p>
+<p><strong>Errors:</strong> Unknown target/mode and ValueError from grid expansion return error dictionaries. Grid validation covers dimensions, indices, marker ID, finite offsets/pitches, directions and move definitions. Pose-file failures and offset-mode field/conversion errors can propagate; argument comparisons happen before grid validation. A scan pose can remain unresolved if absent from the registry.</p>
+<p><strong>Side effects:</strong> Reads configuration and poses; builds JSON only. No bridge initialization, detection, motion or action submission occurs.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-fcb5fd2d4b9af2bf"><code>pickup_tip</code></a> — src.beambot.mcp_server.beambot_mcp_server</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-bf10256e8e39aef5"><code>vision_target</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+</section>
+</section>
+<section id="ros2bridgenode">
+<h2><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode</span></code><a class="headerlink" href="#ros2bridgenode" title="Link to this heading"></a></h2>
+<p>Own ROS subscriptions, state caches, capture/cancel clients, and TF lookup for MCP tools. Cached values are observations, not freshness or system-health guarantees.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">Node</span></code>.</p>
+<section id="ros2bridgenode-init">
+<span id="api-97d25325acc82bf8"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode.__init__()</span></code><a class="headerlink" href="#ros2bridgenode-init" title="Link to this heading"></a></h3>
+<p>Create persistent Zivid/ZED image/cloud subscriptions, capture and cancel clients, a TF listener and robot-state caches. The ePick subscription is conditional on the optional epick_msgs import.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-257">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None; all observation caches start empty and capture events cleared.</p>
+<p><strong>Errors:</strong> ROS/CvBridge/executor-related construction errors propagate.</p>
+<p><strong>Side effects:</strong> Registers beambot_mcp_bridge, ROS clients/subscriptions and TF listener; logs initialization. No capture or motion is requested.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-f566c5cf3d56823e"><code>ROS2Bridge._ensure_initialized</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="ros2bridgenode-cancel-all-goals">
+<span id="api-b949a65b503ad22a"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode.cancel_all_goals()</span></code><a class="headerlink" href="#ros2bridgenode-cancel-all-goals" title="Link to this heading"></a></h3>
+<p>Send an empty CancelGoal request to /beambot_execution/_action/cancel_goal and summarize the number of goals being canceled. This is software action cancellation, not a hardware emergency stop.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-346">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cancel_all_goals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Human-readable status string for unavailable service, timeout, accepted cancellations, no active goals or no response.</p>
+<p><strong>Errors:</strong> Service discovery waits two seconds; future wait is five seconds. These failures become status strings; future exceptions propagate. The returned cancel return_code is not examined.</p>
+<p><strong>Side effects:</strong> Requests cancellation of all orchestrator goals; actual motion interruption depends on downstream action behavior.</p>
+</section>
+<section id="ros2bridgenode-trigger-capture">
+<span id="api-1ed6cc38526428b0"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode.trigger_capture()</span></code><a class="headerlink" href="#ros2bridgenode-trigger-capture" title="Link to this heading"></a></h3>
+<p>Trigger /capture, require its successful response and a newly signaled RGB image, and optionally require a newly signaled cloud. Capture timestamp is sampled just before the request; cached old data is retained.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-399">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trigger_capture</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mf">30.0</span><span class="p">,</span> <span class="n">need_cloud</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Seconds shared across response/image/cloud waits after discovery, with a minimum 0.1-second wait for each data event; service discovery can add three seconds.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">need_cloud</span></code></p></td>
+<td><p>True waits for both image and cloud; False waits only for image and does not change the capture service or clear old cloud data.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True after all requested events, False for service absence/failure or wait timeout.</p>
+<p><strong>Errors:</strong> Expected failures log and clear the waiting flag. Unexpected future exceptions or a None response can propagate without resetting the flag. No request-level serialization or timestamp matching is enforced.</p>
+<p><strong>Side effects:</strong> Triggers camera acquisition, records capture_stamp and blocks on events; updates waiting state.</p>
+</section>
+<section id="ros2bridgenode-lookup-transform">
+<span id="api-4ebdee9d4e1ae3df"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode.lookup_transform()</span></code><a class="headerlink" href="#ros2bridgenode-lookup-transform" title="Link to this heading"></a></h3>
+<p>Check TF availability and fetch the transform at an explicit ROS stamp or latest time.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-448">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">lookup_transform</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">target_frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">source_frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">stamp</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">timeout_sec</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">target_frame</span></code></p></td>
+<td><p>Destination frame name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">source_frame</span></code></p></td>
+<td><p>Source frame name.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">stamp</span></code></p></td>
+<td><p>ROS builtin time message; None requests latest transform.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout_sec</span></code></p></td>
+<td><p>Seconds supplied independently to can_transform and lookup_transform, so total blocking can exceed one timeout.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> TransformStamped mapping source_frame into target_frame, or None.</p>
+<p><strong>Errors:</strong> False availability and tf2 TransformException are logged and return None; invalid time/argument errors outside that exception class propagate.</p>
+<p><strong>Side effects:</strong> Queries the existing TF buffer and writes diagnostic logs.</p>
+</section>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="ros2bridgenode-on-zivid-image">
+<span id="api-fa058a1d6f433358"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode._on_zivid_image()</span></code><a class="headerlink" href="#ros2bridgenode-on-zivid-image" title="Link to this heading"></a></h4>
+<p>Convert the incoming image to rgb8 and signal the image event only while a capture wait is active.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-362">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_zivid_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">Image</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>Zivid sensor_msgs/Image from /color/image_color.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Conversion exceptions are logged and return early; last_rgb remains from an earlier successful frame.</p>
+<p><strong>Side effects:</strong> Updates last_rgb and may wake trigger_capture; does not retain the raw image message.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-97d25325acc82bf8"><code>ROS2BridgeNode.__init__</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="ros2bridgenode-on-zivid-cloud">
+<span id="api-2304c9318d7b7f24"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode._on_zivid_cloud()</span></code><a class="headerlink" href="#ros2bridgenode-on-zivid-cloud" title="Link to this heading"></a></h4>
+<p>Cache the most recent Zivid cloud and signal a capture waiter when active.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-371">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_zivid_cloud</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">PointCloud2</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>PointCloud2 from /points/xyzrgba.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No explicit validation or exception handling.</p>
+<p><strong>Side effects:</strong> Replaces last_cloud and may set _cloud_event.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-97d25325acc82bf8"><code>ROS2BridgeNode.__init__</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="ros2bridgenode-on-zed-image">
+<span id="api-3713ae72837862bb"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode._on_zed_image()</span></code><a class="headerlink" href="#ros2bridgenode-on-zed-image" title="Link to this heading"></a></h4>
+<p>Store the streaming image stamp, then convert the image to RGB for subsequent tools.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-376">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_zed_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">Image</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>ZED sensor_msgs/Image with header.stamp.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Conversion exceptions are logged; zed_stamp still advances while zed_rgb can remain stale.</p>
+<p><strong>Side effects:</strong> Updates zed_stamp and zed_rgb; does not retain the raw image message or synchronize image and cloud timestamps.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-97d25325acc82bf8"><code>ROS2BridgeNode.__init__</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="ros2bridgenode-on-zed-cloud">
+<span id="api-a908848ef56f3974"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode._on_zed_cloud()</span></code><a class="headerlink" href="#ros2bridgenode-on-zed-cloud" title="Link to this heading"></a></h4>
+<p>Keep the latest ZED registered cloud for image/depth tools.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-383">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_zed_cloud</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">PointCloud2</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>PointCloud2 from the configured ZED cloud topic.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No explicit validation or error handling.</p>
+<p><strong>Side effects:</strong> Replaces zed_cloud.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-97d25325acc82bf8"><code>ROS2BridgeNode.__init__</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="ros2bridgenode-on-joint-states">
+<span id="api-a88736a17b17670e"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode._on_joint_states()</span></code><a class="headerlink" href="#ros2bridgenode-on-joint-states" title="Link to this heading"></a></h4>
+<p>Copy incoming joint names and positions into the robot-state cache without filtering for arm joints.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-386">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_joint_states</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">JointState</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>JointState; position values remain in ROS joint units, normally radians for revolute joints.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed-message errors propagate; unequal arrays are not rejected.</p>
+<p><strong>Side effects:</strong> Replaces joint_names and joint_positions.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-97d25325acc82bf8"><code>ROS2BridgeNode.__init__</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="ros2bridgenode-on-current-gripper">
+<span id="api-9705b8523f6c4920"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode._on_current_gripper()</span></code><a class="headerlink" href="#ros2bridgenode-on-current-gripper" title="Link to this heading"></a></h4>
+<p>Cache the current tool/gripper name published by Beambot.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-390">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_current_gripper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">String</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>std_msgs/String whose data is the active gripper identifier.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Side effects:</strong> Updates current_gripper.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-97d25325acc82bf8"><code>ROS2BridgeNode.__init__</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="ros2bridgenode-on-execution-state">
+<span id="api-d1419d1280d2dfc1"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode._on_execution_state()</span></code><a class="headerlink" href="#ros2bridgenode-on-execution-state" title="Link to this heading"></a></h4>
+<p>Cache the orchestrator execution-state string verbatim.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-393">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_execution_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">:</span> <span class="n">String</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>std_msgs/String from /beambot/execution_state; the bridge does not normalize the state vocabulary.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Side effects:</strong> Updates execution_state.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-97d25325acc82bf8"><code>ROS2BridgeNode.__init__</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="ros2bridgenode-on-epick-status">
+<span id="api-4e1598c894371fbb"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2BridgeNode._on_epick_status()</span></code><a class="headerlink" href="#ros2bridgenode-on-epick-status" title="Link to this heading"></a></h4>
+<p>Convert and store the raw ePick detection-status integer.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-396">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_epick_status</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>ObjectDetectionStatus message; status is converted with int().</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Integer conversion and malformed-message errors propagate.</p>
+<p><strong>Side effects:</strong> Updates epick_status.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-97d25325acc82bf8"><code>ROS2BridgeNode.__init__</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+</section>
+</section>
+<section id="ros2bridge">
+<h2><code class="docutils literal notranslate"><span class="pre">ROS2Bridge</span></code><a class="headerlink" href="#ros2bridge" title="Link to this heading"></a></h2>
+<p>Manage lazy ROS initialization and the background executor. Access the <code class="docutils literal notranslate"><span class="pre">node</span></code> property to obtain the shared bridge node; <code class="docutils literal notranslate"><span class="pre">shutdown()</span></code> releases its ROS resources.</p>
+<section id="ros2bridge-init">
+<span id="api-2834d92040ed0d1e"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.__init__()</span></code><a class="headerlink" href="#ros2bridge-init" title="Link to this heading"></a></h3>
+<p>Initialize a dormant bridge with empty node/executor/thread references and a lock for first-use initialization.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-486">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Errors:</strong> Lock-allocation errors propagate.</p>
+<p><strong>Side effects:</strong> Allocates in-memory state only; does not initialize ROS.</p>
+</section>
+<section id="ros2bridge-node">
+<span id="api-708f585fe970d66c"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.node</span></code><a class="headerlink" href="#ros2bridge-node" title="Link to this heading"></a></h3>
+<p>Return the shared ROS bridge node, initializing it and its background executor on first access.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-519">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@property</span>
+<span class="n">node</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ROS2BridgeNode</span>
+</pre></div>
+</div>
+<p>Access this as an instance property, without parentheses.</p>
+<p><strong>Returns:</strong> ROS2BridgeNode instance.</p>
+<p><strong>Errors:</strong> Propagates first-use initialization failures.</p>
+<p><strong>Side effects:</strong> First access can initialize ROS and launch executor threads.</p>
+</section>
+<section id="ros2bridge-shutdown">
+<span id="api-171d229c4f490d08"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.shutdown()</span></code><a class="headerlink" href="#ros2bridge-shutdown" title="Link to this heading"></a></h3>
+<p>Shut down the executor, destroy the node and shut down the ROS context if still active.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-523">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Cleanup exceptions propagate and can prevent later steps. It does not reset _initialized, clear references or explicitly join the spin thread.</p>
+<p><strong>Side effects:</strong> Stops bridge ROS processing; can shut down a ROS context that existed before this bridge.</p>
+</section>
+<section id="id2">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<section id="ros2bridge-ensure-initialized">
+<span id="api-f566c5cf3d56823e"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge._ensure_initialized()</span></code><a class="headerlink" href="#ros2bridge-ensure-initialized" title="Link to this heading"></a></h4>
+<p>Use double-checked locking to initialize ROS if necessary, construct the bridge node and a four-thread executor, then start the daemon ros2-bridge spin thread once.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-493">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_ensure_initialized</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None; later calls return immediately when _initialized is true.</p>
+<p><strong>Errors:</strong> Initialization errors propagate and partial resources are not rolled back here.</p>
+<p><strong>Side effects:</strong> May initialize the global ROS context and start subscriptions/executor threads.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-708f585fe970d66c"><code>ROS2Bridge.node</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="ros2bridge-spin">
+<span id="api-2044e07c50c1c5a3"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge._spin()</span></code><a class="headerlink" href="#ros2bridge-spin" title="Link to this heading"></a></h4>
+<p>Run the stored executor’s spin loop in the bridge thread.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/beambot_mcp_server.py.html#L-512">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_spin</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None when spin exits or raises a caught Exception.</p>
+<p><strong>Errors:</strong> Logs any Exception without rethrowing or resetting _initialized.</p>
+<p><strong>Side effects:</strong> Processes ROS callbacks continuously in the background.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-f566c5cf3d56823e"><code>ROS2Bridge._ensure_initialized</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-scripts-beambot_client-py.html" class="btn btn-neutral float-left" title="Task submission client" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-beambot-agent-__main__-py.html" class="btn btn-neutral float-right" title="Robot agent command line" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

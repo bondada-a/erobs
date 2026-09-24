@@ -1,0 +1,531 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMS Servo controller &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Tools and end effectors" href="../subsystems/tools-end-effectors.html" />
+    <link rel="prev" title="Trajectory plan cache" href="src-beambot-beambot-core-plan_cache-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-move_to_server-py.html">MoveTo action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-move_to_stages-py.html">MoveTo planning stages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-base_stages-py.html">Shared motion stages</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-plan_cache-py.html">Trajectory plan cache</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">CMS Servo controller</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/motion-planning.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/motion-planning.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/motion-planning.html">Motion planning</a></li>
+      <li class="breadcrumb-item active">CMS Servo controller</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="cms-servo-controller">
+<h1>CMS Servo controller<a class="headerlink" href="#cms-servo-controller" title="Link to this heading"></a></h1>
+<p>Run the CMS MoveIt Servo node. It accepts joint-jog, twist, or pose commands and publishes controller commands and status.</p>
+<p>These functions require a live ROS/MoveIt stack and can command robot motion.</p>
+<p><code class="docutils literal notranslate"><span class="pre">src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp</span></code> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/motion-planning.html"><span class="std std-doc">Motion planning</span></a> · <a class="reference internal" href="../../../architecture/batching.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>CMS bringup uses this local MoveIt Servo executable for continuous joint, twist, or pose commands. Clients publish commands or use the pause and command-type services; they do not call its C++ callbacks directly.</p>
+<p><code class="docutils literal notranslate"><span class="pre">main()</span></code> creates the wrapper and spins its ROS node. The constructor starts <code class="docutils literal notranslate"><span class="pre">servoLoop()</span></code> on a worker thread; subscription callbacks retain incoming commands for that loop. Follow the loop when investigating stale commands, pauses, or controller output.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-e95010b3f8c3cc79"><span class="std std-ref">main</span></a></p></td>
+<td><p>Initialize ROS, construct the Servo wrapper, spin it in a multithreaded executor, and shut ROS down after spin returns.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-8618a525c45875e2"><span class="std std-ref">ServoNode::servoLoop</span></a></p></td>
+<td><p>Run the timed control loop, select the pending command type, compute the next state, and publish accepted output and status.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-263555c3e4fab5e0"><span class="std std-ref">ServoNode::pauseServo</span></a></p></td>
+<td><p>Pause or resume Servo processing and report the resulting state.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-a1d18cae7f859d97"><span class="std std-ref">ServoNode::switchCommandType</span></a></p></td>
+<td><p>Select a valid Servo command enum and report whether the resulting mode equals the request.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="main">
+<span id="api-e95010b3f8c3cc79"></span><h3><code class="docutils literal notranslate"><span class="pre">main()</span></code><a class="headerlink" href="#main" title="Link to this heading"></a></h3>
+<p>Initialize ROS, construct the Servo wrapper, spin it in a multithreaded executor, and shut ROS down after spin returns.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-429">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="o">**</span><span class="w"> </span><span class="n">argv</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">argc</span></code></p></td>
+<td><p>Number of process command-line arguments.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">argv</span></code></p></td>
+<td><p>Argument strings passed to rclcpp::init().</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> 0 after normal shutdown.</p>
+<p><strong>Errors:</strong> No local catch around construction or executor spinning.</p>
+<p><strong>Side effects:</strong> Starts ROS and the Servo worker. The process can command the robot through the configured controller output.</p>
+<p><strong>Used by:</strong> The CMS Servo executable entry point.</p>
+</section>
+</section>
+<section id="servonode">
+<h2><code class="docutils literal notranslate"><span class="pre">ServoNode</span></code><a class="headerlink" href="#servonode" title="Link to this heading"></a></h2>
+<p>Owns the ROS node, planning-scene monitor, Servo instance, and control-loop thread. ROS callbacks update its inputs; the worker computes and publishes controller commands. Destruction requests the worker to stop and joins it.</p>
+<section id="servonode-servoloop">
+<span id="api-8618a525c45875e2"></span><h3><code class="docutils literal notranslate"><span class="pre">ServoNode::servoLoop()</span></code><a class="headerlink" href="#servonode-servoloop" title="Link to this heading"></a></h3>
+<p>Run the timed control loop, select the pending command type, compute the next state, and publish accepted output and status.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-323">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">servoLoop</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> void when ROS stops or stop_servo_ becomes true.</p>
+<p><strong>Errors:</strong> INVALID and HALT_FOR_COLLISION states prevent command publication. Pending messages for an unexpected command type are cleared with a warning. No outer exception handler is installed.</p>
+<p><strong>Side effects:</strong> Waits for the initial robot state, updates smoothing and the command window, and publishes JointTrajectory or Float64MultiArray output plus ServoStatus. While paused it resets smoothing and sleeps.</p>
+<p><strong>Used by:</strong> The worker thread started by ServoNode().</p>
+</section>
+<section id="servonode-pauseservo">
+<span id="api-263555c3e4fab5e0"></span><h3><code class="docutils literal notranslate"><span class="pre">ServoNode::pauseServo()</span></code><a class="headerlink" href="#servonode-pauseservo" title="Link to this heading"></a></h3>
+<p>Pause or resume Servo processing and report the resulting state.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-148">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">pauseServo</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std_srvs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">SetBool</span><span class="o">::</span><span class="n">Request</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">request</span><span class="p">,</span>
+<span class="w">                           </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std_srvs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">SetBool</span><span class="o">::</span><span class="n">Response</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">response</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">request</span></code></p></td>
+<td><p>SetBool request: data=true pauses; data=false resumes.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">response</span></code></p></td>
+<td><p>Response object populated with success and a human-readable state message.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> void; writes response.success and response.message. An already active pause state is reported as success.</p>
+<p><strong>Errors:</strong> Underlying state reads and Servo operations are not caught locally. Resuming requests a blocking current-state read.</p>
+<p><strong>Side effects:</strong> Pausing disables collision checking. Resuming refreshes the current robot state, resets smoothing, clears the output rolling window, and restores collision checking. Pending input messages and their new-message flags are retained. Shared pause state changes under the mutex.</p>
+<p><strong>Used by:</strong> The ~/pause_servo service callback.</p>
+</section>
+<section id="servonode-switchcommandtype">
+<span id="api-a1d18cae7f859d97"></span><h3><code class="docutils literal notranslate"><span class="pre">ServoNode::switchCommandType()</span></code><a class="headerlink" href="#servonode-switchcommandtype" title="Link to this heading"></a></h3>
+<p>Select a valid Servo command enum and report whether the resulting mode equals the request.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-182">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">switchCommandType</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">moveit_msgs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ServoCommandType</span><span class="o">::</span><span class="n">Request</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">request</span><span class="p">,</span>
+<span class="w">                                  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">moveit_msgs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ServoCommandType</span><span class="o">::</span><span class="n">Response</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">response</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">request</span></code></p></td>
+<td><p>ServoCommandType request with command_type between CommandType::MIN and MAX.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">response</span></code></p></td>
+<td><p>Response object whose success field records whether the requested mode became active.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> void; result is written to response.success.</p>
+<p><strong>Errors:</strong> Out-of-range values log a warning and do not call setCommandType(). No exception recovery is provided.</p>
+<p><strong>Side effects:</strong> May change which input command type servoLoop() accepts.</p>
+<p><strong>Used by:</strong> The ~/switch_command_type service callback.</p>
+</section>
+<section id="servonode-get-node-base-interface">
+<span id="api-2762f3eeda10502f"></span><h3><code class="docutils literal notranslate"><span class="pre">ServoNode::get_node_base_interface()</span></code><a class="headerlink" href="#servonode-get-node-base-interface" title="Link to this heading"></a></h3>
+<p>Expose the underlying ROS node interface so an executor can manage this wrapper.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-54">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">rclcpp</span><span class="o">::</span><span class="n">node_interfaces</span><span class="o">::</span><span class="n">NodeBaseInterface</span><span class="o">::</span><span class="n">SharedPtr</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">get_node_base_interface</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> The node’s shared NodeBaseInterface pointer.</p>
+<p><strong>Side effects:</strong> Does not start or stop the executor.</p>
+<p><strong>Used by:</strong> main() passes the returned interface to MultiThreadedExecutor::add_node().</p>
+</section>
+<section id="servonode-servonode">
+<span id="api-3476634eb7764d9a"></span><h3><code class="docutils literal notranslate"><span class="pre">ServoNode::~ServoNode()</span></code><a class="headerlink" href="#servonode-servonode" title="Link to this heading"></a></h3>
+<p>Request that the servo loop stop, then join its worker thread if it is joinable.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-59">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">ServoNode</span><span class="o">::~</span><span class="n">ServoNode</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Destructor; no returned value.</p>
+<p><strong>Errors:</strong> No local recovery around thread joining.</p>
+<p><strong>Side effects:</strong> Sets stop_servo_ and blocks until the worker thread exits.</p>
+<p><strong>Used by:</strong> Object destruction after the owning shared pointer is released.</p>
+</section>
+<section id="api-a73a253b8317440c">
+<span id="id1"></span><h3><code class="docutils literal notranslate"><span class="pre">ServoNode::ServoNode()</span></code><a class="headerlink" href="#api-a73a253b8317440c" title="Link to this heading"></a></h3>
+<p>Create the ROS node, planning-scene monitor, Servo instance, command subscriptions, output publishers, control services, and worker thread.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-66">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">ServoNode</span><span class="o">::</span><span class="n">ServoNode</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">NodeOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="n">options</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">options</span></code></p></td>
+<td><p>ROS node options passed to the underlying node named servo_node.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Constructs a ServoNode instance.</p>
+<p><strong>Errors:</strong> Failure to obtain FIFO scheduling or a realtime kernel logs a warning and continues. ROS, parameter, planning-scene, and thread construction errors are not caught here.</p>
+<p><strong>Side effects:</strong> Creates ROS entities, attempts realtime scheduling, and starts servoLoop() on a separate thread. The active Servo stack can publish motion commands.</p>
+<p><strong>Used by:</strong> main() constructs the node before spinning the executor.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="servonode-jointjogcallback">
+<span id="api-1358140ba4e821e2"></span><h4><code class="docutils literal notranslate"><span class="pre">ServoNode::jointJogCallback()</span></code><a class="headerlink" href="#servonode-jointjogcallback" title="Link to this heading"></a></h4>
+<p>Retain the newest command for processing by the servo loop.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-198">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">jointJogCallback</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">control_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">JointJog</span><span class="o">::</span><span class="n">ConstSharedPtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>JointJog message containing joint names, velocities, optional displacements, and a timestamp.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> void.</p>
+<p><strong>Errors:</strong> No validation or local exception handling in the callback.</p>
+<p><strong>Side effects:</strong> Copies the message into latest_joint_jog_ and sets new_joint_jog_msg_. The callback itself does not compute or publish a trajectory.</p>
+<p><strong>Used by:</strong> The corresponding subscription created by ServoNode().</p>
+</section>
+<section id="servonode-twistcallback">
+<span id="api-3b7c617d1d5cfb92"></span><h4><code class="docutils literal notranslate"><span class="pre">ServoNode::twistCallback()</span></code><a class="headerlink" href="#servonode-twistcallback" title="Link to this heading"></a></h4>
+<p>Retain the newest command for processing by the servo loop.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-204">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">twistCallback</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">geometry_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">TwistStamped</span><span class="o">::</span><span class="n">ConstSharedPtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>TwistStamped message with linear/angular velocity, command frame, and timestamp.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> void.</p>
+<p><strong>Errors:</strong> No validation or local exception handling in the callback.</p>
+<p><strong>Side effects:</strong> Copies the message into latest_twist_ and sets new_twist_msg_. The callback itself does not compute or publish a trajectory.</p>
+<p><strong>Used by:</strong> The corresponding subscription created by ServoNode().</p>
+</section>
+<section id="servonode-posecallback">
+<span id="api-1a37dd48a5be3572"></span><h4><code class="docutils literal notranslate"><span class="pre">ServoNode::poseCallback()</span></code><a class="headerlink" href="#servonode-posecallback" title="Link to this heading"></a></h4>
+<p>Retain the newest command for processing by the servo loop.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-210">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">poseCallback</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">geometry_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">PoseStamped</span><span class="o">::</span><span class="n">ConstSharedPtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>PoseStamped target with position, quaternion orientation, frame, and timestamp.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> void.</p>
+<p><strong>Errors:</strong> No validation or local exception handling in the callback.</p>
+<p><strong>Side effects:</strong> Copies the message into latest_pose_ and sets new_pose_msg_. The callback itself does not compute or publish a trajectory.</p>
+<p><strong>Used by:</strong> The corresponding subscription created by ServoNode().</p>
+</section>
+<section id="servonode-processjointjogcommand">
+<span id="api-580001a4cfdcc88d"></span><h4><code class="docutils literal notranslate"><span class="pre">ServoNode::processJointJogCommand()</span></code><a class="headerlink" href="#servonode-processjointjogcommand" title="Link to this heading"></a></h4>
+<p>Convert a fresh joint-jog command into the next Servo state, or request a smooth halt for stale input.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-216">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">KinematicState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">processJointJogCommand</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">moveit</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">RobotStatePtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">robot_state</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot_state</span></code></p></td>
+<td><p>MoveIt robot state used as the starting state for the next Servo calculation.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> An optional KinematicState. Fresh input returns the Servo result; stale input returns a halt state only while smoothHalt() reports that stopping is still in progress.</p>
+<p><strong>Errors:</strong> Displacements are warned about and cleared; they are not executed. INVALID Servo status clears new_joint_jog_msg_. Staleness uses incoming_command_timeout. Exceptions from Servo or timestamp operations are not caught.</p>
+<p><strong>Side effects:</strong> Clears pending flags for the other command types and updates the active command flag. It computes a state; publication happens in servoLoop().</p>
+<p><strong>Used by:</strong> servoLoop(), after it checks the selected command type.</p>
+</section>
+<section id="servonode-processtwistcommand">
+<span id="api-513d71a78178ed7d"></span><h4><code class="docutils literal notranslate"><span class="pre">ServoNode::processTwistCommand()</span></code><a class="headerlink" href="#servonode-processtwistcommand" title="Link to this heading"></a></h4>
+<p>Convert a fresh twist command into the next Servo state, or request a smooth halt for stale input.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-254">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">KinematicState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">processTwistCommand</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">moveit</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">RobotStatePtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">robot_state</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot_state</span></code></p></td>
+<td><p>MoveIt robot state used as the starting state for the next Servo calculation.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> An optional KinematicState. Fresh input returns the Servo result; stale input returns a halt state only while smoothHalt() reports that stopping is still in progress.</p>
+<p><strong>Errors:</strong> INVALID Servo status clears new_twist_msg_. Staleness uses incoming_command_timeout. Exceptions from Servo or timestamp operations are not caught.</p>
+<p><strong>Side effects:</strong> Clears pending flags for the other command types and updates the active command flag. It computes a state; publication happens in servoLoop().</p>
+<p><strong>Used by:</strong> servoLoop(), after it checks the selected command type.</p>
+</section>
+<section id="servonode-processposecommand">
+<span id="api-a334517d83a767d3"></span><h4><code class="docutils literal notranslate"><span class="pre">ServoNode::processPoseCommand()</span></code><a class="headerlink" href="#servonode-processposecommand" title="Link to this heading"></a></h4>
+<p>Convert a fresh pose command into the next Servo state, or request a smooth halt for stale input.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp.html#L-290">Source</a></p>
+<div class="highlight-cpp notranslate"><div class="highlight"><pre><span></span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">KinematicState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">processPoseCommand</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">moveit</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">RobotStatePtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">robot_state</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot_state</span></code></p></td>
+<td><p>MoveIt robot state used as the starting state for the next Servo calculation.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> An optional KinematicState. Fresh input returns the Servo result; stale input returns a halt state only while smoothHalt() reports that stopping is still in progress.</p>
+<p><strong>Errors:</strong> INVALID Servo status clears new_pose_msg_. Staleness uses incoming_command_timeout. Exceptions from Servo or timestamp operations are not caught.</p>
+<p><strong>Side effects:</strong> Clears pending flags for the other command types and updates the active command flag. It computes a state; publication happens in servoLoop().</p>
+<p><strong>Used by:</strong> servoLoop(), after it checks the selected command type.</p>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-beambot-core-plan_cache-py.html" class="btn btn-neutral float-left" title="Trajectory plan cache" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../subsystems/tools-end-effectors.html" class="btn btn-neutral float-right" title="Tools and end effectors" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

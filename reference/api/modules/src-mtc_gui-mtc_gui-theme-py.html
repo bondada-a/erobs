@@ -1,0 +1,371 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GUI appearance &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Operator GUI launch" href="src-mtc_gui-launch-mtc_gui_client-launch-py.html" />
+    <link rel="prev" title="Chat agent modes" href="src-mtc_gui-mtc_gui-agent_modes-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main-py.html">GUI startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main_window-py.html">Operator window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-task_forms-py.html">Task editor forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-step_list_panel-py.html">Task queue display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-ros2_bridge-py.html">ROS and GUI bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-poses_panel-py.html">Pose browser and registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_dialogs-py.html">Pose editing dialogs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_io-py.html">Pose registry files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-camera_panel-py.html">Camera display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-visualization_panel-py.html">Robot and trajectory viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-resources-viewer-html.html">Embedded robot viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-chat_panel-py.html">Chat interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_bridge-py.html">Chat agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_modes-py.html">Chat agent modes</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">GUI appearance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-launch-mtc_gui_client-launch-py.html">Operator GUI launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/operator-gui.html">Operator GUI</a></li>
+      <li class="breadcrumb-item active">GUI appearance</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="gui-appearance">
+<h1>GUI appearance<a class="headerlink" href="#gui-appearance" title="Link to this heading"></a></h1>
+<p>Apply the shared colors, fonts, icons, and widget styles.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mtc_gui.theme</span></code> · <a href="../../../api-source/src/mtc_gui/mtc_gui/theme.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/operator-gui.html"><span class="std std-doc">Operator GUI</span></a> · <a class="reference internal" href="../../../operate/gui.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>Call <code class="docutils literal notranslate"><span class="pre">apply()</span></code> on the QApplication during startup. <code class="docutils literal notranslate"><span class="pre">toggle_dark_mode()</span></code> applies the same dark theme or restores the style’s standard palette and clears the stylesheet; it leaves the existing font and Fusion style in place. The main window’s appearance menu calls this helper.</p>
+<p>Widgets use the module’s constants and <code class="docutils literal notranslate"><span class="pre">icon()</span></code> helper for consistent appearance. Call <code class="docutils literal notranslate"><span class="pre">restyle()</span></code> after changing a dynamic property, such as the plan-cache badge’s status. Use these helpers on the GUI thread. Missing icon support falls back to an empty icon, and unavailable Inter fonts fall back to Sans Serif.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-6d77ea0ab15be465"><span class="std std-ref">apply</span></a></p></td>
+<td><p>Apply the shared Qt style, font, palette, and stylesheet.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-3f83893761964b81"><span class="std std-ref">toggle_dark_mode</span></a></p></td>
+<td><p>Apply the shared dark theme when enabled, or restore the style’s standard palette and clear the stylesheet when disabled.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-24511ef0ff445081"><span class="std std-ref">icon</span></a></p></td>
+<td><p>Create a qtawesome icon and degrade to an empty QIcon if icon generation fails.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-1f687cab6e7b45eb"><span class="std std-ref">restyle</span></a></p></td>
+<td><p>Reapply a widget’s stylesheet selectors after a property changes.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="apply">
+<span id="api-6d77ea0ab15be465"></span><h3><code class="docutils literal notranslate"><span class="pre">apply()</span></code><a class="headerlink" href="#apply" title="Link to this heading"></a></h3>
+<p>Apply the shared Qt style, font, palette, and stylesheet.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/theme.py.html#L-560">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">apply</span><span class="p">(</span><span class="n">app</span><span class="p">:</span> <span class="n">QApplication</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">app</span></code></p></td>
+<td><p>Running QApplication to style globally.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/font-loading errors propagate.</p>
+<p><strong>Side effects:</strong> Changes application style/font/palette/stylesheet and may register font files.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main-py.html#api-3a9a98c5b379f455"><code>main</code></a> — mtc_gui.main</li><li><a href="src-mtc_gui-mtc_gui-theme-py.html#api-3f83893761964b81"><code>toggle_dark_mode</code></a> — mtc_gui.theme</li></ul></details></section>
+<section id="toggle-dark-mode">
+<span id="api-3f83893761964b81"></span><h3><code class="docutils literal notranslate"><span class="pre">toggle_dark_mode()</span></code><a class="headerlink" href="#toggle-dark-mode" title="Link to this heading"></a></h3>
+<p>Apply the shared dark theme when enabled, or restore the style’s standard palette and clear the stylesheet when disabled.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/theme.py.html#L-572">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">toggle_dark_mode</span><span class="p">(</span><span class="n">app</span><span class="p">:</span> <span class="n">QApplication</span><span class="p">,</span> <span class="n">enabled</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">app</span></code></p></td>
+<td><p>QApplication to update.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p>Truthy selects the shared theme; false selects palette/stylesheet reset.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/theme exceptions propagate.</p>
+<p><strong>Side effects:</strong> Updates application appearance. The disabled branch does not undo the font or Fusion style previously set by theme.apply.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-f03797462e538243"><code>MTCMainWindow._toggle_dark_mode</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="icon">
+<span id="api-24511ef0ff445081"></span><h3><code class="docutils literal notranslate"><span class="pre">icon()</span></code><a class="headerlink" href="#icon" title="Link to this heading"></a></h3>
+<p>Create a qtawesome icon and degrade to an empty QIcon if icon generation fails.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/theme.py.html#L-550">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">icon</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">color</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="n">ON_SURFACE</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>qtawesome icon identifier, for example “mdi6.play”.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">color</span></code></p></td>
+<td><p>Icon color passed to qtawesome, defaulting to the theme’s primary text color.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> QIcon from qtawesome, or an empty QIcon.</p>
+<p><strong>Errors:</strong> Catches every Exception from qtawesome import/icon creation; fallback QIcon import/construction errors propagate.</p>
+<p><strong>Side effects:</strong> Lazily imports qtawesome and allocates an icon.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="restyle">
+<span id="api-1f687cab6e7b45eb"></span><h3><code class="docutils literal notranslate"><span class="pre">restyle()</span></code><a class="headerlink" href="#restyle" title="Link to this heading"></a></h3>
+<p>Reapply a widget’s stylesheet selectors after a property changes.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/theme.py.html#L-581">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">restyle</span><span class="p">(</span><span class="n">widget</span><span class="p">:</span> <span class="n">QWidget</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">widget</span></code></p></td>
+<td><p>QWidget whose style must be unpolished and polished again.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Invalid-widget/Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Calls style.unpolish, style.polish, and widget.update.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6d4fbd2781c44010"><code>MTCMainWindow._clear_plan_cache_warning</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-a185b3637dc2e5de"><code>MTCMainWindow._set_plan_cached</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="palette">
+<span id="api-aa48052af2b98368"></span><h4><code class="docutils literal notranslate"><span class="pre">_palette()</span></code><a class="headerlink" href="#palette" title="Link to this heading"></a></h4>
+<p>Build the dark palette used alongside the shared stylesheet.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/theme.py.html#L-508">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_palette</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">QPalette</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> New QPalette with themed window/base/text/button/link/highlight/placeholder roles and disabled text roles.</p>
+<p><strong>Errors:</strong> Qt color/palette errors propagate.</p>
+<p><strong>Side effects:</strong> Allocates a palette; does not apply it to the application.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-theme-py.html#api-6d77ea0ab15be465"><code>apply</code></a> — mtc_gui.theme</li></ul></details></section>
+<section id="load-fonts">
+<span id="api-462f568702fcbc8f"></span><h4><code class="docutils literal notranslate"><span class="pre">_load_fonts()</span></code><a class="headerlink" href="#load-fonts" title="Link to this heading"></a></h4>
+<p>Find or register Inter, falling back to Sans Serif when unavailable.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/theme.py.html#L-531">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_fonts</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Resolved family-name string; explicit file loading returns the first family exposed by that font.</p>
+<p><strong>Errors:</strong> Unsuccessful addApplicationFont results are skipped; unexpected Qt errors propagate.</p>
+<p><strong>Side effects:</strong> May register /usr/share/fonts/truetype/inter-vf/InterVariable.ttf or /usr/share/fonts/truetype/inter/Inter-Regular.otf with QFontDatabase.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-theme-py.html#api-6d77ea0ab15be465"><code>apply</code></a> — mtc_gui.theme</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-mtc_gui-mtc_gui-agent_modes-py.html" class="btn btn-neutral float-left" title="Chat agent modes" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-mtc_gui-launch-mtc_gui_client-launch-py.html" class="btn btn-neutral float-right" title="Operator GUI launch" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

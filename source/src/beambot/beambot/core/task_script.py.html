@@ -1,0 +1,937 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>src/beambot/beambot/core/task_script.py — EROBS source</title><style>body{font:16px system-ui;color:#18283b;margin:2rem}a{color:#235cb7}h1{font-size:1.3rem;overflow-wrap:anywhere}.source{overflow:auto}pre { line-height: 125%; }
+td.linenos .normal { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f0f0f0; }
+.highlight .c { color: #60A0B0; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #007020; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #60A0B0; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #60A0B0; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #007020 } /* Comment.Preproc */
+.highlight .cpf { color: #60A0B0; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #60A0B0; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #60A0B0; background-color: #FFF0F0 } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #F00 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #00A000 } /* Generic.Inserted */
+.highlight .go { color: #888 } /* Generic.Output */
+.highlight .gp { color: #C65D09; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #007020; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #007020; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #007020; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #007020 } /* Keyword.Pseudo */
+.highlight .kr { color: #007020; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #902000 } /* Keyword.Type */
+.highlight .m { color: #40A070 } /* Literal.Number */
+.highlight .s { color: #4070A0 } /* Literal.String */
+.highlight .na { color: #4070A0 } /* Name.Attribute */
+.highlight .nb { color: #007020 } /* Name.Builtin */
+.highlight .nc { color: #0E84B5; font-weight: bold } /* Name.Class */
+.highlight .no { color: #60ADD5 } /* Name.Constant */
+.highlight .nd { color: #555; font-weight: bold } /* Name.Decorator */
+.highlight .ni { color: #D55537; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #007020 } /* Name.Exception */
+.highlight .nf { color: #06287E } /* Name.Function */
+.highlight .nl { color: #002070; font-weight: bold } /* Name.Label */
+.highlight .nn { color: #0E84B5; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #062873; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #BB60D5 } /* Name.Variable */
+.highlight .ow { color: #007020; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #40A070 } /* Literal.Number.Bin */
+.highlight .mf { color: #40A070 } /* Literal.Number.Float */
+.highlight .mh { color: #40A070 } /* Literal.Number.Hex */
+.highlight .mi { color: #40A070 } /* Literal.Number.Integer */
+.highlight .mo { color: #40A070 } /* Literal.Number.Oct */
+.highlight .sa { color: #4070A0 } /* Literal.String.Affix */
+.highlight .sb { color: #4070A0 } /* Literal.String.Backtick */
+.highlight .sc { color: #4070A0 } /* Literal.String.Char */
+.highlight .dl { color: #4070A0 } /* Literal.String.Delimiter */
+.highlight .sd { color: #4070A0; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #4070A0 } /* Literal.String.Double */
+.highlight .se { color: #4070A0; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #4070A0 } /* Literal.String.Heredoc */
+.highlight .si { color: #70A0D0; font-style: italic } /* Literal.String.Interpol */
+.highlight .sx { color: #C65D09 } /* Literal.String.Other */
+.highlight .sr { color: #235388 } /* Literal.String.Regex */
+.highlight .s1 { color: #4070A0 } /* Literal.String.Single */
+.highlight .ss { color: #517918 } /* Literal.String.Symbol */
+.highlight .bp { color: #007020 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #06287E } /* Name.Function.Magic */
+.highlight .vc { color: #BB60D5 } /* Name.Variable.Class */
+.highlight .vg { color: #BB60D5 } /* Name.Variable.Global */
+.highlight .vi { color: #BB60D5 } /* Name.Variable.Instance */
+.highlight .vm { color: #BB60D5 } /* Name.Variable.Magic */
+.highlight .il { color: #40A070 } /* Literal.Number.Integer.Long */</style></head><body><a href="../../../../../reference/source.html">← Source browser</a><h1>src/beambot/beambot/core/task_script.py</h1><div class="source"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"><a href="#L-1">  1</a></span>
+<span class="normal"><a href="#L-2">  2</a></span>
+<span class="normal"><a href="#L-3">  3</a></span>
+<span class="normal"><a href="#L-4">  4</a></span>
+<span class="normal"><a href="#L-5">  5</a></span>
+<span class="normal"><a href="#L-6">  6</a></span>
+<span class="normal"><a href="#L-7">  7</a></span>
+<span class="normal"><a href="#L-8">  8</a></span>
+<span class="normal"><a href="#L-9">  9</a></span>
+<span class="normal"><a href="#L-10"> 10</a></span>
+<span class="normal"><a href="#L-11"> 11</a></span>
+<span class="normal"><a href="#L-12"> 12</a></span>
+<span class="normal"><a href="#L-13"> 13</a></span>
+<span class="normal"><a href="#L-14"> 14</a></span>
+<span class="normal"><a href="#L-15"> 15</a></span>
+<span class="normal"><a href="#L-16"> 16</a></span>
+<span class="normal"><a href="#L-17"> 17</a></span>
+<span class="normal"><a href="#L-18"> 18</a></span>
+<span class="normal"><a href="#L-19"> 19</a></span>
+<span class="normal"><a href="#L-20"> 20</a></span>
+<span class="normal"><a href="#L-21"> 21</a></span>
+<span class="normal"><a href="#L-22"> 22</a></span>
+<span class="normal"><a href="#L-23"> 23</a></span>
+<span class="normal"><a href="#L-24"> 24</a></span>
+<span class="normal"><a href="#L-25"> 25</a></span>
+<span class="normal"><a href="#L-26"> 26</a></span>
+<span class="normal"><a href="#L-27"> 27</a></span>
+<span class="normal"><a href="#L-28"> 28</a></span>
+<span class="normal"><a href="#L-29"> 29</a></span>
+<span class="normal"><a href="#L-30"> 30</a></span>
+<span class="normal"><a href="#L-31"> 31</a></span>
+<span class="normal"><a href="#L-32"> 32</a></span>
+<span class="normal"><a href="#L-33"> 33</a></span>
+<span class="normal"><a href="#L-34"> 34</a></span>
+<span class="normal"><a href="#L-35"> 35</a></span>
+<span class="normal"><a href="#L-36"> 36</a></span>
+<span class="normal"><a href="#L-37"> 37</a></span>
+<span class="normal"><a href="#L-38"> 38</a></span>
+<span class="normal"><a href="#L-39"> 39</a></span>
+<span class="normal"><a href="#L-40"> 40</a></span>
+<span class="normal"><a href="#L-41"> 41</a></span>
+<span class="normal"><a href="#L-42"> 42</a></span>
+<span class="normal"><a href="#L-43"> 43</a></span>
+<span class="normal"><a href="#L-44"> 44</a></span>
+<span class="normal"><a href="#L-45"> 45</a></span>
+<span class="normal"><a href="#L-46"> 46</a></span>
+<span class="normal"><a href="#L-47"> 47</a></span>
+<span class="normal"><a href="#L-48"> 48</a></span>
+<span class="normal"><a href="#L-49"> 49</a></span>
+<span class="normal"><a href="#L-50"> 50</a></span>
+<span class="normal"><a href="#L-51"> 51</a></span>
+<span class="normal"><a href="#L-52"> 52</a></span>
+<span class="normal"><a href="#L-53"> 53</a></span>
+<span class="normal"><a href="#L-54"> 54</a></span>
+<span class="normal"><a href="#L-55"> 55</a></span>
+<span class="normal"><a href="#L-56"> 56</a></span>
+<span class="normal"><a href="#L-57"> 57</a></span>
+<span class="normal"><a href="#L-58"> 58</a></span>
+<span class="normal"><a href="#L-59"> 59</a></span>
+<span class="normal"><a href="#L-60"> 60</a></span>
+<span class="normal"><a href="#L-61"> 61</a></span>
+<span class="normal"><a href="#L-62"> 62</a></span>
+<span class="normal"><a href="#L-63"> 63</a></span>
+<span class="normal"><a href="#L-64"> 64</a></span>
+<span class="normal"><a href="#L-65"> 65</a></span>
+<span class="normal"><a href="#L-66"> 66</a></span>
+<span class="normal"><a href="#L-67"> 67</a></span>
+<span class="normal"><a href="#L-68"> 68</a></span>
+<span class="normal"><a href="#L-69"> 69</a></span>
+<span class="normal"><a href="#L-70"> 70</a></span>
+<span class="normal"><a href="#L-71"> 71</a></span>
+<span class="normal"><a href="#L-72"> 72</a></span>
+<span class="normal"><a href="#L-73"> 73</a></span>
+<span class="normal"><a href="#L-74"> 74</a></span>
+<span class="normal"><a href="#L-75"> 75</a></span>
+<span class="normal"><a href="#L-76"> 76</a></span>
+<span class="normal"><a href="#L-77"> 77</a></span>
+<span class="normal"><a href="#L-78"> 78</a></span>
+<span class="normal"><a href="#L-79"> 79</a></span>
+<span class="normal"><a href="#L-80"> 80</a></span>
+<span class="normal"><a href="#L-81"> 81</a></span>
+<span class="normal"><a href="#L-82"> 82</a></span>
+<span class="normal"><a href="#L-83"> 83</a></span>
+<span class="normal"><a href="#L-84"> 84</a></span>
+<span class="normal"><a href="#L-85"> 85</a></span>
+<span class="normal"><a href="#L-86"> 86</a></span>
+<span class="normal"><a href="#L-87"> 87</a></span>
+<span class="normal"><a href="#L-88"> 88</a></span>
+<span class="normal"><a href="#L-89"> 89</a></span>
+<span class="normal"><a href="#L-90"> 90</a></span>
+<span class="normal"><a href="#L-91"> 91</a></span>
+<span class="normal"><a href="#L-92"> 92</a></span>
+<span class="normal"><a href="#L-93"> 93</a></span>
+<span class="normal"><a href="#L-94"> 94</a></span>
+<span class="normal"><a href="#L-95"> 95</a></span>
+<span class="normal"><a href="#L-96"> 96</a></span>
+<span class="normal"><a href="#L-97"> 97</a></span>
+<span class="normal"><a href="#L-98"> 98</a></span>
+<span class="normal"><a href="#L-99"> 99</a></span>
+<span class="normal"><a href="#L-100">100</a></span>
+<span class="normal"><a href="#L-101">101</a></span>
+<span class="normal"><a href="#L-102">102</a></span>
+<span class="normal"><a href="#L-103">103</a></span>
+<span class="normal"><a href="#L-104">104</a></span>
+<span class="normal"><a href="#L-105">105</a></span>
+<span class="normal"><a href="#L-106">106</a></span>
+<span class="normal"><a href="#L-107">107</a></span>
+<span class="normal"><a href="#L-108">108</a></span>
+<span class="normal"><a href="#L-109">109</a></span>
+<span class="normal"><a href="#L-110">110</a></span>
+<span class="normal"><a href="#L-111">111</a></span>
+<span class="normal"><a href="#L-112">112</a></span>
+<span class="normal"><a href="#L-113">113</a></span>
+<span class="normal"><a href="#L-114">114</a></span>
+<span class="normal"><a href="#L-115">115</a></span>
+<span class="normal"><a href="#L-116">116</a></span>
+<span class="normal"><a href="#L-117">117</a></span>
+<span class="normal"><a href="#L-118">118</a></span>
+<span class="normal"><a href="#L-119">119</a></span>
+<span class="normal"><a href="#L-120">120</a></span>
+<span class="normal"><a href="#L-121">121</a></span>
+<span class="normal"><a href="#L-122">122</a></span>
+<span class="normal"><a href="#L-123">123</a></span>
+<span class="normal"><a href="#L-124">124</a></span>
+<span class="normal"><a href="#L-125">125</a></span>
+<span class="normal"><a href="#L-126">126</a></span>
+<span class="normal"><a href="#L-127">127</a></span>
+<span class="normal"><a href="#L-128">128</a></span>
+<span class="normal"><a href="#L-129">129</a></span>
+<span class="normal"><a href="#L-130">130</a></span>
+<span class="normal"><a href="#L-131">131</a></span>
+<span class="normal"><a href="#L-132">132</a></span>
+<span class="normal"><a href="#L-133">133</a></span>
+<span class="normal"><a href="#L-134">134</a></span>
+<span class="normal"><a href="#L-135">135</a></span>
+<span class="normal"><a href="#L-136">136</a></span>
+<span class="normal"><a href="#L-137">137</a></span>
+<span class="normal"><a href="#L-138">138</a></span>
+<span class="normal"><a href="#L-139">139</a></span>
+<span class="normal"><a href="#L-140">140</a></span>
+<span class="normal"><a href="#L-141">141</a></span>
+<span class="normal"><a href="#L-142">142</a></span>
+<span class="normal"><a href="#L-143">143</a></span>
+<span class="normal"><a href="#L-144">144</a></span>
+<span class="normal"><a href="#L-145">145</a></span>
+<span class="normal"><a href="#L-146">146</a></span>
+<span class="normal"><a href="#L-147">147</a></span>
+<span class="normal"><a href="#L-148">148</a></span>
+<span class="normal"><a href="#L-149">149</a></span>
+<span class="normal"><a href="#L-150">150</a></span>
+<span class="normal"><a href="#L-151">151</a></span>
+<span class="normal"><a href="#L-152">152</a></span>
+<span class="normal"><a href="#L-153">153</a></span>
+<span class="normal"><a href="#L-154">154</a></span>
+<span class="normal"><a href="#L-155">155</a></span>
+<span class="normal"><a href="#L-156">156</a></span>
+<span class="normal"><a href="#L-157">157</a></span>
+<span class="normal"><a href="#L-158">158</a></span>
+<span class="normal"><a href="#L-159">159</a></span>
+<span class="normal"><a href="#L-160">160</a></span>
+<span class="normal"><a href="#L-161">161</a></span>
+<span class="normal"><a href="#L-162">162</a></span>
+<span class="normal"><a href="#L-163">163</a></span>
+<span class="normal"><a href="#L-164">164</a></span>
+<span class="normal"><a href="#L-165">165</a></span>
+<span class="normal"><a href="#L-166">166</a></span>
+<span class="normal"><a href="#L-167">167</a></span>
+<span class="normal"><a href="#L-168">168</a></span>
+<span class="normal"><a href="#L-169">169</a></span>
+<span class="normal"><a href="#L-170">170</a></span>
+<span class="normal"><a href="#L-171">171</a></span>
+<span class="normal"><a href="#L-172">172</a></span>
+<span class="normal"><a href="#L-173">173</a></span>
+<span class="normal"><a href="#L-174">174</a></span>
+<span class="normal"><a href="#L-175">175</a></span>
+<span class="normal"><a href="#L-176">176</a></span>
+<span class="normal"><a href="#L-177">177</a></span>
+<span class="normal"><a href="#L-178">178</a></span>
+<span class="normal"><a href="#L-179">179</a></span>
+<span class="normal"><a href="#L-180">180</a></span>
+<span class="normal"><a href="#L-181">181</a></span>
+<span class="normal"><a href="#L-182">182</a></span>
+<span class="normal"><a href="#L-183">183</a></span>
+<span class="normal"><a href="#L-184">184</a></span>
+<span class="normal"><a href="#L-185">185</a></span>
+<span class="normal"><a href="#L-186">186</a></span>
+<span class="normal"><a href="#L-187">187</a></span>
+<span class="normal"><a href="#L-188">188</a></span>
+<span class="normal"><a href="#L-189">189</a></span>
+<span class="normal"><a href="#L-190">190</a></span>
+<span class="normal"><a href="#L-191">191</a></span>
+<span class="normal"><a href="#L-192">192</a></span>
+<span class="normal"><a href="#L-193">193</a></span>
+<span class="normal"><a href="#L-194">194</a></span>
+<span class="normal"><a href="#L-195">195</a></span>
+<span class="normal"><a href="#L-196">196</a></span>
+<span class="normal"><a href="#L-197">197</a></span>
+<span class="normal"><a href="#L-198">198</a></span>
+<span class="normal"><a href="#L-199">199</a></span>
+<span class="normal"><a href="#L-200">200</a></span>
+<span class="normal"><a href="#L-201">201</a></span>
+<span class="normal"><a href="#L-202">202</a></span>
+<span class="normal"><a href="#L-203">203</a></span>
+<span class="normal"><a href="#L-204">204</a></span>
+<span class="normal"><a href="#L-205">205</a></span>
+<span class="normal"><a href="#L-206">206</a></span>
+<span class="normal"><a href="#L-207">207</a></span>
+<span class="normal"><a href="#L-208">208</a></span>
+<span class="normal"><a href="#L-209">209</a></span>
+<span class="normal"><a href="#L-210">210</a></span>
+<span class="normal"><a href="#L-211">211</a></span>
+<span class="normal"><a href="#L-212">212</a></span>
+<span class="normal"><a href="#L-213">213</a></span>
+<span class="normal"><a href="#L-214">214</a></span>
+<span class="normal"><a href="#L-215">215</a></span>
+<span class="normal"><a href="#L-216">216</a></span>
+<span class="normal"><a href="#L-217">217</a></span>
+<span class="normal"><a href="#L-218">218</a></span>
+<span class="normal"><a href="#L-219">219</a></span>
+<span class="normal"><a href="#L-220">220</a></span>
+<span class="normal"><a href="#L-221">221</a></span>
+<span class="normal"><a href="#L-222">222</a></span>
+<span class="normal"><a href="#L-223">223</a></span>
+<span class="normal"><a href="#L-224">224</a></span>
+<span class="normal"><a href="#L-225">225</a></span>
+<span class="normal"><a href="#L-226">226</a></span>
+<span class="normal"><a href="#L-227">227</a></span>
+<span class="normal"><a href="#L-228">228</a></span>
+<span class="normal"><a href="#L-229">229</a></span>
+<span class="normal"><a href="#L-230">230</a></span>
+<span class="normal"><a href="#L-231">231</a></span>
+<span class="normal"><a href="#L-232">232</a></span>
+<span class="normal"><a href="#L-233">233</a></span>
+<span class="normal"><a href="#L-234">234</a></span>
+<span class="normal"><a href="#L-235">235</a></span>
+<span class="normal"><a href="#L-236">236</a></span>
+<span class="normal"><a href="#L-237">237</a></span>
+<span class="normal"><a href="#L-238">238</a></span>
+<span class="normal"><a href="#L-239">239</a></span>
+<span class="normal"><a href="#L-240">240</a></span>
+<span class="normal"><a href="#L-241">241</a></span>
+<span class="normal"><a href="#L-242">242</a></span>
+<span class="normal"><a href="#L-243">243</a></span>
+<span class="normal"><a href="#L-244">244</a></span>
+<span class="normal"><a href="#L-245">245</a></span>
+<span class="normal"><a href="#L-246">246</a></span>
+<span class="normal"><a href="#L-247">247</a></span>
+<span class="normal"><a href="#L-248">248</a></span>
+<span class="normal"><a href="#L-249">249</a></span>
+<span class="normal"><a href="#L-250">250</a></span>
+<span class="normal"><a href="#L-251">251</a></span>
+<span class="normal"><a href="#L-252">252</a></span>
+<span class="normal"><a href="#L-253">253</a></span>
+<span class="normal"><a href="#L-254">254</a></span>
+<span class="normal"><a href="#L-255">255</a></span>
+<span class="normal"><a href="#L-256">256</a></span>
+<span class="normal"><a href="#L-257">257</a></span>
+<span class="normal"><a href="#L-258">258</a></span>
+<span class="normal"><a href="#L-259">259</a></span>
+<span class="normal"><a href="#L-260">260</a></span>
+<span class="normal"><a href="#L-261">261</a></span>
+<span class="normal"><a href="#L-262">262</a></span>
+<span class="normal"><a href="#L-263">263</a></span>
+<span class="normal"><a href="#L-264">264</a></span>
+<span class="normal"><a href="#L-265">265</a></span>
+<span class="normal"><a href="#L-266">266</a></span>
+<span class="normal"><a href="#L-267">267</a></span>
+<span class="normal"><a href="#L-268">268</a></span>
+<span class="normal"><a href="#L-269">269</a></span>
+<span class="normal"><a href="#L-270">270</a></span>
+<span class="normal"><a href="#L-271">271</a></span>
+<span class="normal"><a href="#L-272">272</a></span>
+<span class="normal"><a href="#L-273">273</a></span>
+<span class="normal"><a href="#L-274">274</a></span>
+<span class="normal"><a href="#L-275">275</a></span>
+<span class="normal"><a href="#L-276">276</a></span>
+<span class="normal"><a href="#L-277">277</a></span>
+<span class="normal"><a href="#L-278">278</a></span>
+<span class="normal"><a href="#L-279">279</a></span>
+<span class="normal"><a href="#L-280">280</a></span>
+<span class="normal"><a href="#L-281">281</a></span>
+<span class="normal"><a href="#L-282">282</a></span>
+<span class="normal"><a href="#L-283">283</a></span>
+<span class="normal"><a href="#L-284">284</a></span>
+<span class="normal"><a href="#L-285">285</a></span>
+<span class="normal"><a href="#L-286">286</a></span>
+<span class="normal"><a href="#L-287">287</a></span>
+<span class="normal"><a href="#L-288">288</a></span>
+<span class="normal"><a href="#L-289">289</a></span>
+<span class="normal"><a href="#L-290">290</a></span>
+<span class="normal"><a href="#L-291">291</a></span>
+<span class="normal"><a href="#L-292">292</a></span>
+<span class="normal"><a href="#L-293">293</a></span>
+<span class="normal"><a href="#L-294">294</a></span>
+<span class="normal"><a href="#L-295">295</a></span>
+<span class="normal"><a href="#L-296">296</a></span>
+<span class="normal"><a href="#L-297">297</a></span>
+<span class="normal"><a href="#L-298">298</a></span>
+<span class="normal"><a href="#L-299">299</a></span>
+<span class="normal"><a href="#L-300">300</a></span>
+<span class="normal"><a href="#L-301">301</a></span>
+<span class="normal"><a href="#L-302">302</a></span>
+<span class="normal"><a href="#L-303">303</a></span>
+<span class="normal"><a href="#L-304">304</a></span>
+<span class="normal"><a href="#L-305">305</a></span>
+<span class="normal"><a href="#L-306">306</a></span>
+<span class="normal"><a href="#L-307">307</a></span>
+<span class="normal"><a href="#L-308">308</a></span>
+<span class="normal"><a href="#L-309">309</a></span>
+<span class="normal"><a href="#L-310">310</a></span>
+<span class="normal"><a href="#L-311">311</a></span>
+<span class="normal"><a href="#L-312">312</a></span>
+<span class="normal"><a href="#L-313">313</a></span>
+<span class="normal"><a href="#L-314">314</a></span>
+<span class="normal"><a href="#L-315">315</a></span>
+<span class="normal"><a href="#L-316">316</a></span>
+<span class="normal"><a href="#L-317">317</a></span>
+<span class="normal"><a href="#L-318">318</a></span>
+<span class="normal"><a href="#L-319">319</a></span>
+<span class="normal"><a href="#L-320">320</a></span>
+<span class="normal"><a href="#L-321">321</a></span>
+<span class="normal"><a href="#L-322">322</a></span>
+<span class="normal"><a href="#L-323">323</a></span>
+<span class="normal"><a href="#L-324">324</a></span>
+<span class="normal"><a href="#L-325">325</a></span>
+<span class="normal"><a href="#L-326">326</a></span>
+<span class="normal"><a href="#L-327">327</a></span>
+<span class="normal"><a href="#L-328">328</a></span>
+<span class="normal"><a href="#L-329">329</a></span>
+<span class="normal"><a href="#L-330">330</a></span>
+<span class="normal"><a href="#L-331">331</a></span>
+<span class="normal"><a href="#L-332">332</a></span>
+<span class="normal"><a href="#L-333">333</a></span>
+<span class="normal"><a href="#L-334">334</a></span>
+<span class="normal"><a href="#L-335">335</a></span>
+<span class="normal"><a href="#L-336">336</a></span>
+<span class="normal"><a href="#L-337">337</a></span>
+<span class="normal"><a href="#L-338">338</a></span>
+<span class="normal"><a href="#L-339">339</a></span>
+<span class="normal"><a href="#L-340">340</a></span>
+<span class="normal"><a href="#L-341">341</a></span>
+<span class="normal"><a href="#L-342">342</a></span>
+<span class="normal"><a href="#L-343">343</a></span>
+<span class="normal"><a href="#L-344">344</a></span>
+<span class="normal"><a href="#L-345">345</a></span>
+<span class="normal"><a href="#L-346">346</a></span>
+<span class="normal"><a href="#L-347">347</a></span>
+<span class="normal"><a href="#L-348">348</a></span>
+<span class="normal"><a href="#L-349">349</a></span>
+<span class="normal"><a href="#L-350">350</a></span>
+<span class="normal"><a href="#L-351">351</a></span>
+<span class="normal"><a href="#L-352">352</a></span>
+<span class="normal"><a href="#L-353">353</a></span>
+<span class="normal"><a href="#L-354">354</a></span>
+<span class="normal"><a href="#L-355">355</a></span>
+<span class="normal"><a href="#L-356">356</a></span>
+<span class="normal"><a href="#L-357">357</a></span>
+<span class="normal"><a href="#L-358">358</a></span>
+<span class="normal"><a href="#L-359">359</a></span>
+<span class="normal"><a href="#L-360">360</a></span>
+<span class="normal"><a href="#L-361">361</a></span>
+<span class="normal"><a href="#L-362">362</a></span>
+<span class="normal"><a href="#L-363">363</a></span>
+<span class="normal"><a href="#L-364">364</a></span>
+<span class="normal"><a href="#L-365">365</a></span>
+<span class="normal"><a href="#L-366">366</a></span>
+<span class="normal"><a href="#L-367">367</a></span>
+<span class="normal"><a href="#L-368">368</a></span>
+<span class="normal"><a href="#L-369">369</a></span>
+<span class="normal"><a href="#L-370">370</a></span>
+<span class="normal"><a href="#L-371">371</a></span>
+<span class="normal"><a href="#L-372">372</a></span>
+<span class="normal"><a href="#L-373">373</a></span>
+<span class="normal"><a href="#L-374">374</a></span>
+<span class="normal"><a href="#L-375">375</a></span>
+<span class="normal"><a href="#L-376">376</a></span>
+<span class="normal"><a href="#L-377">377</a></span>
+<span class="normal"><a href="#L-378">378</a></span>
+<span class="normal"><a href="#L-379">379</a></span>
+<span class="normal"><a href="#L-380">380</a></span>
+<span class="normal"><a href="#L-381">381</a></span>
+<span class="normal"><a href="#L-382">382</a></span>
+<span class="normal"><a href="#L-383">383</a></span>
+<span class="normal"><a href="#L-384">384</a></span>
+<span class="normal"><a href="#L-385">385</a></span>
+<span class="normal"><a href="#L-386">386</a></span>
+<span class="normal"><a href="#L-387">387</a></span>
+<span class="normal"><a href="#L-388">388</a></span>
+<span class="normal"><a href="#L-389">389</a></span>
+<span class="normal"><a href="#L-390">390</a></span>
+<span class="normal"><a href="#L-391">391</a></span>
+<span class="normal"><a href="#L-392">392</a></span>
+<span class="normal"><a href="#L-393">393</a></span>
+<span class="normal"><a href="#L-394">394</a></span>
+<span class="normal"><a href="#L-395">395</a></span>
+<span class="normal"><a href="#L-396">396</a></span>
+<span class="normal"><a href="#L-397">397</a></span>
+<span class="normal"><a href="#L-398">398</a></span>
+<span class="normal"><a href="#L-399">399</a></span>
+<span class="normal"><a href="#L-400">400</a></span>
+<span class="normal"><a href="#L-401">401</a></span>
+<span class="normal"><a href="#L-402">402</a></span>
+<span class="normal"><a href="#L-403">403</a></span>
+<span class="normal"><a href="#L-404">404</a></span>
+<span class="normal"><a href="#L-405">405</a></span>
+<span class="normal"><a href="#L-406">406</a></span>
+<span class="normal"><a href="#L-407">407</a></span>
+<span class="normal"><a href="#L-408">408</a></span>
+<span class="normal"><a href="#L-409">409</a></span>
+<span class="normal"><a href="#L-410">410</a></span>
+<span class="normal"><a href="#L-411">411</a></span>
+<span class="normal"><a href="#L-412">412</a></span>
+<span class="normal"><a href="#L-413">413</a></span>
+<span class="normal"><a href="#L-414">414</a></span>
+<span class="normal"><a href="#L-415">415</a></span>
+<span class="normal"><a href="#L-416">416</a></span>
+<span class="normal"><a href="#L-417">417</a></span>
+<span class="normal"><a href="#L-418">418</a></span>
+<span class="normal"><a href="#L-419">419</a></span>
+<span class="normal"><a href="#L-420">420</a></span>
+<span class="normal"><a href="#L-421">421</a></span>
+<span class="normal"><a href="#L-422">422</a></span>
+<span class="normal"><a href="#L-423">423</a></span>
+<span class="normal"><a href="#L-424">424</a></span>
+<span class="normal"><a href="#L-425">425</a></span>
+<span class="normal"><a href="#L-426">426</a></span>
+<span class="normal"><a href="#L-427">427</a></span>
+<span class="normal"><a href="#L-428">428</a></span>
+<span class="normal"><a href="#L-429">429</a></span>
+<span class="normal"><a href="#L-430">430</a></span>
+<span class="normal"><a href="#L-431">431</a></span></pre></div></td><td class="code"><div><pre><span></span><a id="L-1" name="L-1"></a><span class="sd">"""Parse orchestrator task scripts and resolve named poses."""</span>
+<a id="L-2" name="L-2"></a>
+<a id="L-3" name="L-3"></a><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<a id="L-4" name="L-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">collections.abc</span><span class="w"> </span><span class="kn">import</span> <span class="n">Callable</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">,</span> <span class="n">Sequence</span>
+<a id="L-5" name="L-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">pathlib</span><span class="w"> </span><span class="kn">import</span> <span class="n">Path</span>
+<a id="L-6" name="L-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Any</span>
+<a id="L-7" name="L-7"></a>
+<a id="L-8" name="L-8"></a><span class="kn">import</span><span class="w"> </span><span class="nn">yaml</span>
+<a id="L-9" name="L-9"></a>
+<a id="L-10" name="L-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">beambot.config_loader</span><span class="w"> </span><span class="kn">import</span> <span class="n">is_finite_number</span>
+<a id="L-11" name="L-11"></a>
+<a id="L-12" name="L-12"></a>
+<a id="L-13" name="L-13"></a><span class="n">DRY_RUN_SUPPORTED_TYPES</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"moveto"</span><span class="p">,</span> <span class="s2">"end_effector"</span><span class="p">}</span>
+<a id="L-14" name="L-14"></a><span class="n">TASK_MACROS</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"pickup_tip"</span><span class="p">:</span> <span class="s2">"tip_rack"</span><span class="p">,</span> <span class="s2">"pickup_vial"</span><span class="p">:</span> <span class="s2">"vial_rack"</span><span class="p">}</span>
+<a id="L-15" name="L-15"></a><span class="n">SUPPORTED_TASK_TYPES</span> <span class="o">=</span> <span class="p">{</span>
+<a id="L-16" name="L-16"></a>    <span class="s2">"moveto"</span><span class="p">,</span>
+<a id="L-17" name="L-17"></a>    <span class="s2">"end_effector"</span><span class="p">,</span>
+<a id="L-18" name="L-18"></a>    <span class="s2">"tool_exchange"</span><span class="p">,</span>
+<a id="L-19" name="L-19"></a>    <span class="s2">"vision_task"</span><span class="p">,</span>
+<a id="L-20" name="L-20"></a>    <span class="s2">"vision_moveto"</span><span class="p">,</span>
+<a id="L-21" name="L-21"></a>    <span class="s2">"vision_scan"</span><span class="p">,</span>
+<a id="L-22" name="L-22"></a>    <span class="s2">"pick_sample"</span><span class="p">,</span>
+<a id="L-23" name="L-23"></a>    <span class="s2">"place_sample"</span><span class="p">,</span>
+<a id="L-24" name="L-24"></a>    <span class="s2">"pick_spincoater"</span><span class="p">,</span>
+<a id="L-25" name="L-25"></a>    <span class="s2">"place_spincoater"</span><span class="p">,</span>
+<a id="L-26" name="L-26"></a>    <span class="s2">"pipettor"</span><span class="p">,</span>
+<a id="L-27" name="L-27"></a>    <span class="s2">"pause"</span><span class="p">,</span>
+<a id="L-28" name="L-28"></a><span class="p">}</span>
+<a id="L-29" name="L-29"></a><span class="n">MOVETO_DIRECTIONS</span> <span class="o">=</span> <span class="p">(</span>
+<a id="L-30" name="L-30"></a>    <span class="s2">"forward"</span><span class="p">,</span>
+<a id="L-31" name="L-31"></a>    <span class="s2">"backward"</span><span class="p">,</span>
+<a id="L-32" name="L-32"></a>    <span class="s2">"left"</span><span class="p">,</span>
+<a id="L-33" name="L-33"></a>    <span class="s2">"right"</span><span class="p">,</span>
+<a id="L-34" name="L-34"></a>    <span class="s2">"up"</span><span class="p">,</span>
+<a id="L-35" name="L-35"></a>    <span class="s2">"down"</span><span class="p">,</span>
+<a id="L-36" name="L-36"></a>    <span class="s2">"x"</span><span class="p">,</span>
+<a id="L-37" name="L-37"></a>    <span class="s2">"-x"</span><span class="p">,</span>
+<a id="L-38" name="L-38"></a>    <span class="s2">"y"</span><span class="p">,</span>
+<a id="L-39" name="L-39"></a>    <span class="s2">"-y"</span><span class="p">,</span>
+<a id="L-40" name="L-40"></a>    <span class="s2">"z"</span><span class="p">,</span>
+<a id="L-41" name="L-41"></a>    <span class="s2">"-z"</span><span class="p">,</span>
+<a id="L-42" name="L-42"></a><span class="p">)</span>
+<a id="L-43" name="L-43"></a><span class="n">MOVETO_PLANNERS</span> <span class="o">=</span> <span class="p">(</span><span class="s2">""</span><span class="p">,</span> <span class="s2">"auto"</span><span class="p">,</span> <span class="s2">"joint"</span><span class="p">,</span> <span class="s2">"cartesian"</span><span class="p">,</span> <span class="s2">"pilz"</span><span class="p">,</span> <span class="s2">"pilz_ptp"</span><span class="p">)</span>
+<a id="L-44" name="L-44"></a><span class="n">GRID_DIRECTION_OPPOSITES</span> <span class="o">=</span> <span class="p">{</span>
+<a id="L-45" name="L-45"></a>    <span class="s2">"forward"</span><span class="p">:</span> <span class="s2">"backward"</span><span class="p">,</span>
+<a id="L-46" name="L-46"></a>    <span class="s2">"backward"</span><span class="p">:</span> <span class="s2">"forward"</span><span class="p">,</span>
+<a id="L-47" name="L-47"></a>    <span class="s2">"left"</span><span class="p">:</span> <span class="s2">"right"</span><span class="p">,</span>
+<a id="L-48" name="L-48"></a>    <span class="s2">"right"</span><span class="p">:</span> <span class="s2">"left"</span><span class="p">,</span>
+<a id="L-49" name="L-49"></a>    <span class="s2">"up"</span><span class="p">:</span> <span class="s2">"down"</span><span class="p">,</span>
+<a id="L-50" name="L-50"></a>    <span class="s2">"down"</span><span class="p">:</span> <span class="s2">"up"</span><span class="p">,</span>
+<a id="L-51" name="L-51"></a><span class="p">}</span>
+<a id="L-52" name="L-52"></a>
+<a id="L-53" name="L-53"></a>
+<a id="L-54" name="L-54"></a><span class="k">def</span><span class="w"> </span><span class="nf">moveto_goal_error</span><span class="p">(</span>
+<a id="L-55" name="L-55"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="L-56" name="L-56"></a>    <span class="n">target</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+<a id="L-57" name="L-57"></a>    <span class="n">direction</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+<a id="L-58" name="L-58"></a>    <span class="n">distance</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+<a id="L-59" name="L-59"></a>    <span class="n">cartesian_target</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="p">(),</span>
+<a id="L-60" name="L-60"></a>    <span class="n">planning_type</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span>
+<a id="L-61" name="L-61"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-62" name="L-62"></a><span class="w">    </span><span class="sd">"""Return why a MoveTo goal is invalid, or None when it is valid."""</span>
+<a id="L-63" name="L-63"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">planning_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">planning_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MOVETO_PLANNERS</span><span class="p">:</span>
+<a id="L-64" name="L-64"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">"Unknown MoveTo planning_type: </span><span class="si">{</span><span class="n">planning_type</span><span class="si">!r}</span><span class="s2">"</span>
+<a id="L-65" name="L-65"></a>
+<a id="L-66" name="L-66"></a>    <span class="n">named</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+<a id="L-67" name="L-67"></a>    <span class="n">relative</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">direction</span><span class="p">)</span> <span class="ow">or</span> <span class="n">distance</span> <span class="o">!=</span> <span class="mf">0.0</span>
+<a id="L-68" name="L-68"></a>    <span class="n">cartesian</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">cartesian_target</span><span class="p">)</span>
+<a id="L-69" name="L-69"></a>    <span class="k">if</span> <span class="nb">sum</span><span class="p">((</span><span class="n">named</span><span class="p">,</span> <span class="n">relative</span><span class="p">,</span> <span class="n">cartesian</span><span class="p">))</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+<a id="L-70" name="L-70"></a>        <span class="k">return</span> <span class="p">(</span>
+<a id="L-71" name="L-71"></a>            <span class="s2">"MoveTo goal must specify exactly one of target, "</span>
+<a id="L-72" name="L-72"></a>            <span class="s2">"direction/distance, or cartesian_target"</span>
+<a id="L-73" name="L-73"></a>        <span class="p">)</span>
+<a id="L-74" name="L-74"></a>
+<a id="L-75" name="L-75"></a>    <span class="k">if</span> <span class="n">named</span> <span class="ow">and</span> <span class="p">(</span><span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">target</span><span class="o">.</span><span class="n">strip</span><span class="p">()):</span>
+<a id="L-76" name="L-76"></a>        <span class="k">return</span> <span class="s2">"MoveTo target must be a non-empty string"</span>
+<a id="L-77" name="L-77"></a>    <span class="k">if</span> <span class="n">relative</span><span class="p">:</span>
+<a id="L-78" name="L-78"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">direction</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MOVETO_DIRECTIONS</span><span class="p">:</span>
+<a id="L-79" name="L-79"></a>            <span class="k">return</span> <span class="sa">f</span><span class="s2">"Unknown MoveTo direction: </span><span class="si">{</span><span class="n">direction</span><span class="si">!r}</span><span class="s2">"</span>
+<a id="L-80" name="L-80"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_finite_number</span><span class="p">(</span><span class="n">distance</span><span class="p">)</span> <span class="ow">or</span> <span class="n">distance</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="L-81" name="L-81"></a>            <span class="k">return</span> <span class="s2">"MoveTo distance must be a finite number greater than zero"</span>
+<a id="L-82" name="L-82"></a>    <span class="k">if</span> <span class="n">cartesian</span> <span class="ow">and</span> <span class="p">(</span>
+<a id="L-83" name="L-83"></a>        <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cartesian_target</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span>
+<a id="L-84" name="L-84"></a>        <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">cartesian_target</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">6</span><span class="p">)</span>
+<a id="L-85" name="L-85"></a>        <span class="ow">or</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">is_finite_number</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="k">for</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">cartesian_target</span><span class="p">)</span>
+<a id="L-86" name="L-86"></a>    <span class="p">):</span>
+<a id="L-87" name="L-87"></a>        <span class="k">return</span> <span class="s2">"MoveTo cartesian_target must contain exactly 3 or 6 finite numbers"</span>
+<a id="L-88" name="L-88"></a>    <span class="k">return</span> <span class="kc">None</span>
+<a id="L-89" name="L-89"></a>
+<a id="L-90" name="L-90"></a>
+<a id="L-91" name="L-91"></a><span class="k">def</span><span class="w"> </span><span class="nf">flange_offset_error</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s2">""</span><span class="p">,</span> <span class="n">distance</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
+<a id="L-92" name="L-92"></a><span class="w">    </span><span class="sd">"""Return why a flange offset is invalid, or None when it is valid/absent."""</span>
+<a id="L-93" name="L-93"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">direction</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="L-94" name="L-94"></a>        <span class="k">return</span> <span class="s2">"Flange offset direction must be a string"</span>
+<a id="L-95" name="L-95"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_finite_number</span><span class="p">(</span><span class="n">distance</span><span class="p">):</span>
+<a id="L-96" name="L-96"></a>        <span class="k">return</span> <span class="s2">"Flange offset distance must be a finite number greater than zero"</span>
+<a id="L-97" name="L-97"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">direction</span> <span class="ow">and</span> <span class="n">distance</span> <span class="o">==</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="L-98" name="L-98"></a>        <span class="k">return</span> <span class="kc">None</span>
+<a id="L-99" name="L-99"></a>    <span class="k">if</span> <span class="n">direction</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">MOVETO_DIRECTIONS</span><span class="p">:</span>
+<a id="L-100" name="L-100"></a>        <span class="k">return</span> <span class="sa">f</span><span class="s2">"Unknown flange offset direction: </span><span class="si">{</span><span class="n">direction</span><span class="si">!r}</span><span class="s2">"</span>
+<a id="L-101" name="L-101"></a>    <span class="k">if</span> <span class="n">distance</span> <span class="o">&lt;=</span> <span class="mf">0.0</span><span class="p">:</span>
+<a id="L-102" name="L-102"></a>        <span class="k">return</span> <span class="s2">"Flange offset distance must be a finite number greater than zero"</span>
+<a id="L-103" name="L-103"></a>    <span class="k">return</span> <span class="kc">None</span>
+<a id="L-104" name="L-104"></a>
+<a id="L-105" name="L-105"></a>
+<a id="L-106" name="L-106"></a><span class="k">def</span><span class="w"> </span><span class="nf">_load_poses_registry</span><span class="p">(</span>
+<a id="L-107" name="L-107"></a>    <span class="n">poses_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">on_warning</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span>
+<a id="L-108" name="L-108"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+<a id="L-109" name="L-109"></a>    <span class="n">path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="n">poses_file</span><span class="p">)</span>
+<a id="L-110" name="L-110"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">path</span><span class="o">.</span><span class="n">is_file</span><span class="p">():</span>
+<a id="L-111" name="L-111"></a>        <span class="k">return</span> <span class="p">{}</span>
+<a id="L-112" name="L-112"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="L-113" name="L-113"></a>        <span class="k">with</span> <span class="n">path</span><span class="o">.</span><span class="n">open</span><span class="p">()</span> <span class="k">as</span> <span class="n">stream</span><span class="p">:</span>
+<a id="L-114" name="L-114"></a>            <span class="k">return</span> <span class="n">yaml</span><span class="o">.</span><span class="n">safe_load</span><span class="p">(</span><span class="n">stream</span><span class="p">)</span> <span class="ow">or</span> <span class="p">{}</span>
+<a id="L-115" name="L-115"></a>    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>  <span class="c1"># noqa: BLE001 - unavailable registry is non-fatal</span>
+<a id="L-116" name="L-116"></a>        <span class="k">if</span> <span class="n">on_warning</span><span class="p">:</span>
+<a id="L-117" name="L-117"></a>            <span class="n">on_warning</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Failed to read poses registry: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-118" name="L-118"></a>        <span class="k">return</span> <span class="p">{}</span>
+<a id="L-119" name="L-119"></a>
+<a id="L-120" name="L-120"></a>
+<a id="L-121" name="L-121"></a><span class="k">def</span><span class="w"> </span><span class="nf">_finite_number</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">positive</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<a id="L-122" name="L-122"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_finite_number</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">positive</span> <span class="ow">and</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">):</span>
+<a id="L-123" name="L-123"></a>        <span class="n">qualifier</span> <span class="o">=</span> <span class="s2">" greater than zero"</span> <span class="k">if</span> <span class="n">positive</span> <span class="k">else</span> <span class="s2">""</span>
+<a id="L-124" name="L-124"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> must be a finite number</span><span class="si">{</span><span class="n">qualifier</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-125" name="L-125"></a>    <span class="k">return</span> <span class="nb">float</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+<a id="L-126" name="L-126"></a>
+<a id="L-127" name="L-127"></a>
+<a id="L-128" name="L-128"></a><span class="k">def</span><span class="w"> </span><span class="nf">_positive_int</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<a id="L-129" name="L-129"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span> <span class="o">&lt;=</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-130" name="L-130"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> must be a positive integer"</span><span class="p">)</span>
+<a id="L-131" name="L-131"></a>    <span class="k">return</span> <span class="n">value</span>
+<a id="L-132" name="L-132"></a>
+<a id="L-133" name="L-133"></a>
+<a id="L-134" name="L-134"></a><span class="k">def</span><span class="w"> </span><span class="nf">_grid_direction</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<a id="L-135" name="L-135"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">GRID_DIRECTION_OPPOSITES</span><span class="p">:</span>
+<a id="L-136" name="L-136"></a>        <span class="n">allowed</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">GRID_DIRECTION_OPPOSITES</span><span class="p">)</span>
+<a id="L-137" name="L-137"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2"> must be one of: </span><span class="si">{</span><span class="n">allowed</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-138" name="L-138"></a>    <span class="k">return</span> <span class="n">value</span>
+<a id="L-139" name="L-139"></a>
+<a id="L-140" name="L-140"></a>
+<a id="L-141" name="L-141"></a><span class="k">def</span><span class="w"> </span><span class="nf">expand_grid_target</span><span class="p">(</span>
+<a id="L-142" name="L-142"></a>    <span class="n">target_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="L-143" name="L-143"></a>    <span class="n">vision_targets</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<a id="L-144" name="L-144"></a>    <span class="n">task</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<a id="L-145" name="L-145"></a>    <span class="n">task_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">"task"</span><span class="p">,</span>
+<a id="L-146" name="L-146"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<a id="L-147" name="L-147"></a><span class="w">    </span><span class="sd">"""Expand a grid vision target into scan, marker and row/column move tasks.</span>
+<a id="L-148" name="L-148"></a>
+<a id="L-149" name="L-149"></a><span class="sd">    task supplies row/col or element_index, optional config overrides and, for</span>
+<a id="L-150" name="L-150"></a><span class="sd">    pickup_vial, a pipettor_operation. Also return the resolved element and the</span>
+<a id="L-151" name="L-151"></a><span class="sd">    row/column moves so callers can report them. Raise ValueError when invalid.</span>
+<a id="L-152" name="L-152"></a><span class="sd">    """</span>
+<a id="L-153" name="L-153"></a>    <span class="n">target_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"vision_targets.</span><span class="si">{</span><span class="n">target_name</span><span class="si">}</span><span class="s2">"</span>
+<a id="L-154" name="L-154"></a>    <span class="n">base_config</span> <span class="o">=</span> <span class="n">vision_targets</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">target_name</span><span class="p">)</span>
+<a id="L-155" name="L-155"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base_config</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-156" name="L-156"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2">: missing or invalid </span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2"> configuration"</span><span class="p">)</span>
+<a id="L-157" name="L-157"></a>    <span class="n">override</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"config"</span><span class="p">,</span> <span class="p">{})</span>
+<a id="L-158" name="L-158"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">override</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-159" name="L-159"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2">.config must be an object"</span><span class="p">)</span>
+<a id="L-160" name="L-160"></a>    <span class="n">override_grid</span> <span class="o">=</span> <span class="n">override</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"grid"</span><span class="p">,</span> <span class="p">{})</span>
+<a id="L-161" name="L-161"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">override_grid</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-162" name="L-162"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2">.config.grid must be an object"</span><span class="p">)</span>
+<a id="L-163" name="L-163"></a>    <span class="n">config</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">base_config</span><span class="p">,</span> <span class="o">**</span><span class="n">override</span><span class="p">}</span>
+<a id="L-164" name="L-164"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"grid"</span><span class="p">),</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-165" name="L-165"></a>        <span class="n">config</span><span class="p">[</span><span class="s2">"grid"</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">base_config</span><span class="p">[</span><span class="s2">"grid"</span><span class="p">],</span> <span class="o">**</span><span class="n">override_grid</span><span class="p">}</span>
+<a id="L-166" name="L-166"></a>    <span class="k">if</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"mode"</span><span class="p">)</span> <span class="o">!=</span> <span class="s2">"grid"</span><span class="p">:</span>
+<a id="L-167" name="L-167"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.mode must be 'grid'"</span><span class="p">)</span>
+<a id="L-168" name="L-168"></a>
+<a id="L-169" name="L-169"></a>    <span class="n">marker_id</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"marker_id"</span><span class="p">)</span>
+<a id="L-170" name="L-170"></a>    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">marker_id</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">marker_id</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">or</span> <span class="n">marker_id</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+<a id="L-171" name="L-171"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.marker_id must be a non-negative integer"</span><span class="p">)</span>
+<a id="L-172" name="L-172"></a>    <span class="n">scan_pose</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"scan_pose"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+<a id="L-173" name="L-173"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scan_pose</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="L-174" name="L-174"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.scan_pose must be a string"</span><span class="p">)</span>
+<a id="L-175" name="L-175"></a>
+<a id="L-176" name="L-176"></a>    <span class="n">grid</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"grid"</span><span class="p">)</span>
+<a id="L-177" name="L-177"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">grid</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-178" name="L-178"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.grid must be an object"</span><span class="p">)</span>
+<a id="L-179" name="L-179"></a>    <span class="n">rows</span> <span class="o">=</span> <span class="n">_positive_int</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"rows"</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.grid.rows"</span><span class="p">)</span>
+<a id="L-180" name="L-180"></a>    <span class="n">cols</span> <span class="o">=</span> <span class="n">_positive_int</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cols"</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.grid.cols"</span><span class="p">)</span>
+<a id="L-181" name="L-181"></a>
+<a id="L-182" name="L-182"></a>    <span class="k">if</span> <span class="s2">"row"</span> <span class="ow">in</span> <span class="n">task</span> <span class="ow">or</span> <span class="s2">"col"</span> <span class="ow">in</span> <span class="n">task</span><span class="p">:</span>
+<a id="L-183" name="L-183"></a>        <span class="k">if</span> <span class="s2">"row"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">task</span> <span class="ow">or</span> <span class="s2">"col"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">task</span><span class="p">:</span>
+<a id="L-184" name="L-184"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2"> must provide both row and col"</span><span class="p">)</span>
+<a id="L-185" name="L-185"></a>        <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="n">task</span><span class="p">[</span><span class="s2">"row"</span><span class="p">],</span> <span class="n">task</span><span class="p">[</span><span class="s2">"col"</span><span class="p">]</span>
+<a id="L-186" name="L-186"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="L-187" name="L-187"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2">.row must be an integer"</span><span class="p">)</span>
+<a id="L-188" name="L-188"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">col</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="L-189" name="L-189"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2">.col must be an integer"</span><span class="p">)</span>
+<a id="L-190" name="L-190"></a>    <span class="k">else</span><span class="p">:</span>
+<a id="L-191" name="L-191"></a>        <span class="n">element_index</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"element_index"</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+<a id="L-192" name="L-192"></a>        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">element_index</span><span class="p">,</span> <span class="nb">bool</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">element_index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+<a id="L-193" name="L-193"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2">.element_index must be an integer"</span><span class="p">)</span>
+<a id="L-194" name="L-194"></a>        <span class="n">row</span><span class="p">,</span> <span class="n">col</span> <span class="o">=</span> <span class="nb">divmod</span><span class="p">(</span><span class="n">element_index</span><span class="p">,</span> <span class="n">cols</span><span class="p">)</span>
+<a id="L-195" name="L-195"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">row</span> <span class="o">&lt;</span> <span class="n">rows</span> <span class="ow">or</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">col</span> <span class="o">&lt;</span> <span class="n">cols</span><span class="p">:</span>
+<a id="L-196" name="L-196"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="L-197" name="L-197"></a>            <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2"> row=</span><span class="si">{</span><span class="n">row</span><span class="si">}</span><span class="s2">, col=</span><span class="si">{</span><span class="n">col</span><span class="si">}</span><span class="s2"> out of range "</span>
+<a id="L-198" name="L-198"></a>            <span class="sa">f</span><span class="s2">"(max: </span><span class="si">{</span><span class="n">rows</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">, </span><span class="si">{</span><span class="n">cols</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2">)"</span>
+<a id="L-199" name="L-199"></a>        <span class="p">)</span>
+<a id="L-200" name="L-200"></a>
+<a id="L-201" name="L-201"></a>    <span class="n">marker_offset</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"marker_offset"</span><span class="p">,</span> <span class="p">{})</span>
+<a id="L-202" name="L-202"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">marker_offset</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-203" name="L-203"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.marker_offset must be an object"</span><span class="p">)</span>
+<a id="L-204" name="L-204"></a>    <span class="n">default_pitch</span> <span class="o">=</span> <span class="n">_finite_number</span><span class="p">(</span>
+<a id="L-205" name="L-205"></a>        <span class="n">grid</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pitch"</span><span class="p">,</span> <span class="mf">0.009</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.grid.pitch"</span><span class="p">,</span> <span class="n">positive</span><span class="o">=</span><span class="kc">True</span>
+<a id="L-206" name="L-206"></a>    <span class="p">)</span>
+<a id="L-207" name="L-207"></a>
+<a id="L-208" name="L-208"></a>    <span class="c1"># Columns and rows share one rule: start at the A1 offset (default: the</span>
+<a id="L-209" name="L-209"></a>    <span class="c1"># marker offset magnitude) and step one pitch per index along the axis.</span>
+<a id="L-210" name="L-210"></a>    <span class="n">axis_moves</span> <span class="o">=</span> <span class="p">{}</span>
+<a id="L-211" name="L-211"></a>    <span class="k">for</span> <span class="n">axis</span><span class="p">,</span> <span class="n">axis_name</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">default_direction</span><span class="p">,</span> <span class="n">marker_key</span> <span class="ow">in</span> <span class="p">(</span>
+<a id="L-212" name="L-212"></a>        <span class="p">(</span><span class="s2">"col"</span><span class="p">,</span> <span class="s2">"column"</span><span class="p">,</span> <span class="n">col</span><span class="p">,</span> <span class="s2">"left"</span><span class="p">,</span> <span class="s2">"x"</span><span class="p">),</span>
+<a id="L-213" name="L-213"></a>        <span class="p">(</span><span class="s2">"row"</span><span class="p">,</span> <span class="s2">"row"</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="s2">"up"</span><span class="p">,</span> <span class="s2">"y"</span><span class="p">),</span>
+<a id="L-214" name="L-214"></a>    <span class="p">):</span>
+<a id="L-215" name="L-215"></a>        <span class="n">prefix</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.grid.</span><span class="si">{</span><span class="n">axis</span><span class="si">}</span><span class="s2">"</span>
+<a id="L-216" name="L-216"></a>        <span class="n">pitch</span> <span class="o">=</span> <span class="n">_finite_number</span><span class="p">(</span>
+<a id="L-217" name="L-217"></a>            <span class="n">grid</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">axis</span><span class="si">}</span><span class="s2">_pitch"</span><span class="p">,</span> <span class="n">default_pitch</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_pitch"</span><span class="p">,</span> <span class="n">positive</span><span class="o">=</span><span class="kc">True</span>
+<a id="L-218" name="L-218"></a>        <span class="p">)</span>
+<a id="L-219" name="L-219"></a>        <span class="n">direction</span> <span class="o">=</span> <span class="n">_grid_direction</span><span class="p">(</span>
+<a id="L-220" name="L-220"></a>            <span class="n">grid</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">axis</span><span class="si">}</span><span class="s2">_direction"</span><span class="p">,</span> <span class="n">default_direction</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_direction"</span>
+<a id="L-221" name="L-221"></a>        <span class="p">)</span>
+<a id="L-222" name="L-222"></a>        <span class="n">away</span> <span class="o">=</span> <span class="n">GRID_DIRECTION_OPPOSITES</span><span class="p">[</span><span class="n">direction</span><span class="p">]</span>
+<a id="L-223" name="L-223"></a>        <span class="n">increasing</span> <span class="o">=</span> <span class="n">_grid_direction</span><span class="p">(</span>
+<a id="L-224" name="L-224"></a>            <span class="n">grid</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">axis</span><span class="si">}</span><span class="s2">_increasing"</span><span class="p">,</span> <span class="n">away</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_increasing"</span>
+<a id="L-225" name="L-225"></a>        <span class="p">)</span>
+<a id="L-226" name="L-226"></a>        <span class="k">if</span> <span class="n">increasing</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="n">direction</span><span class="p">,</span> <span class="n">away</span><span class="p">):</span>
+<a id="L-227" name="L-227"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_increasing must follow the </span><span class="si">{</span><span class="n">axis_name</span><span class="si">}</span><span class="s2"> axis"</span><span class="p">)</span>
+<a id="L-228" name="L-228"></a>        <span class="n">marker</span> <span class="o">=</span> <span class="n">_finite_number</span><span class="p">(</span>
+<a id="L-229" name="L-229"></a>            <span class="n">marker_offset</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">marker_key</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.marker_offset.</span><span class="si">{</span><span class="n">marker_key</span><span class="si">}</span><span class="s2">"</span>
+<a id="L-230" name="L-230"></a>        <span class="p">)</span>
+<a id="L-231" name="L-231"></a>        <span class="n">offset</span> <span class="o">=</span> <span class="n">_finite_number</span><span class="p">(</span><span class="n">grid</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">axis</span><span class="si">}</span><span class="s2">_offset"</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">marker</span><span class="p">)),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">prefix</span><span class="si">}</span><span class="s2">_offset"</span><span class="p">)</span>
+<a id="L-232" name="L-232"></a>        <span class="n">offset</span> <span class="o">+=</span> <span class="n">index</span> <span class="o">*</span> <span class="n">pitch</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="n">increasing</span> <span class="o">==</span> <span class="n">direction</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+<a id="L-233" name="L-233"></a>        <span class="n">axis_moves</span><span class="p">[</span><span class="n">axis</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">direction</span> <span class="k">if</span> <span class="n">offset</span> <span class="o">&gt;=</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">away</span><span class="p">,</span> <span class="nb">abs</span><span class="p">(</span><span class="n">offset</span><span class="p">))</span>
+<a id="L-234" name="L-234"></a>
+<a id="L-235" name="L-235"></a>    <span class="n">moves</span> <span class="o">=</span> <span class="n">config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"moves"</span><span class="p">)</span>
+<a id="L-236" name="L-236"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">moves</span><span class="p">,</span> <span class="n">Sequence</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">moves</span><span class="p">,</span> <span class="p">(</span><span class="nb">str</span><span class="p">,</span> <span class="nb">bytes</span><span class="p">))</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">moves</span><span class="p">:</span>
+<a id="L-237" name="L-237"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.moves must be a non-empty list"</span><span class="p">)</span>
+<a id="L-238" name="L-238"></a>    <span class="n">move_tasks</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-239" name="L-239"></a>    <span class="k">for</span> <span class="n">move_index</span><span class="p">,</span> <span class="n">move</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">moves</span><span class="p">):</span>
+<a id="L-240" name="L-240"></a>        <span class="n">move_path</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.moves[</span><span class="si">{</span><span class="n">move_index</span><span class="si">}</span><span class="s2">]"</span>
+<a id="L-241" name="L-241"></a>        <span class="k">if</span> <span class="n">move</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">"column_offset"</span><span class="p">,</span> <span class="s2">"row_offset"</span><span class="p">):</span>
+<a id="L-242" name="L-242"></a>            <span class="n">direction</span><span class="p">,</span> <span class="n">distance</span> <span class="o">=</span> <span class="n">axis_moves</span><span class="p">[</span><span class="s2">"col"</span> <span class="k">if</span> <span class="n">move</span> <span class="o">==</span> <span class="s2">"column_offset"</span> <span class="k">else</span> <span class="s2">"row"</span><span class="p">]</span>
+<a id="L-243" name="L-243"></a>            <span class="k">if</span> <span class="n">distance</span> <span class="o">&lt;=</span> <span class="mf">1e-6</span><span class="p">:</span>
+<a id="L-244" name="L-244"></a>                <span class="k">continue</span>
+<a id="L-245" name="L-245"></a>        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">move</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-246" name="L-246"></a>            <span class="n">direction</span> <span class="o">=</span> <span class="n">_grid_direction</span><span class="p">(</span><span class="n">move</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"direction"</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">move_path</span><span class="si">}</span><span class="s2">.direction"</span><span class="p">)</span>
+<a id="L-247" name="L-247"></a>            <span class="n">distance</span> <span class="o">=</span> <span class="n">_finite_number</span><span class="p">(</span>
+<a id="L-248" name="L-248"></a>                <span class="n">move</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"distance"</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">move_path</span><span class="si">}</span><span class="s2">.distance"</span><span class="p">,</span> <span class="n">positive</span><span class="o">=</span><span class="kc">True</span>
+<a id="L-249" name="L-249"></a>            <span class="p">)</span>
+<a id="L-250" name="L-250"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="L-251" name="L-251"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="L-252" name="L-252"></a>                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">move_path</span><span class="si">}</span><span class="s2"> must be column_offset, row_offset, or a move object"</span>
+<a id="L-253" name="L-253"></a>            <span class="p">)</span>
+<a id="L-254" name="L-254"></a>        <span class="n">move_tasks</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+<a id="L-255" name="L-255"></a>            <span class="p">{</span>
+<a id="L-256" name="L-256"></a>                <span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"moveto"</span><span class="p">,</span>
+<a id="L-257" name="L-257"></a>                <span class="s2">"target"</span><span class="p">:</span> <span class="s2">""</span><span class="p">,</span>
+<a id="L-258" name="L-258"></a>                <span class="s2">"planning_type"</span><span class="p">:</span> <span class="s2">"cartesian"</span><span class="p">,</span>
+<a id="L-259" name="L-259"></a>                <span class="s2">"direction"</span><span class="p">:</span> <span class="n">direction</span><span class="p">,</span>
+<a id="L-260" name="L-260"></a>                <span class="s2">"distance"</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">distance</span><span class="p">,</span> <span class="mi">6</span><span class="p">),</span>
+<a id="L-261" name="L-261"></a>            <span class="p">}</span>
+<a id="L-262" name="L-262"></a>        <span class="p">)</span>
+<a id="L-263" name="L-263"></a>
+<a id="L-264" name="L-264"></a>    <span class="n">operation</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"pipettor_operation"</span><span class="p">)</span>
+<a id="L-265" name="L-265"></a>    <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"task_type"</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"pickup_vial"</span> <span class="ow">and</span> <span class="n">operation</span><span class="p">:</span>
+<a id="L-266" name="L-266"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">operation</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="L-267" name="L-267"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2">.pipettor_operation must be a string"</span><span class="p">)</span>
+<a id="L-268" name="L-268"></a>        <span class="k">if</span> <span class="n">operation</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">{</span><span class="s2">"SUCK"</span><span class="p">,</span> <span class="s2">"EXPEL"</span><span class="p">,</span> <span class="s2">"RINSE"</span><span class="p">}:</span>
+<a id="L-269" name="L-269"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="L-270" name="L-270"></a>                <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2">.pipettor_operation must be SUCK, EXPEL, or RINSE"</span>
+<a id="L-271" name="L-271"></a>            <span class="p">)</span>
+<a id="L-272" name="L-272"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="n">move_tasks</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">moves</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">],</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-273" name="L-273"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">target_path</span><span class="si">}</span><span class="s2">.moves must end with a retreat move"</span><span class="p">)</span>
+<a id="L-274" name="L-274"></a>        <span class="n">volume</span> <span class="o">=</span> <span class="n">_finite_number</span><span class="p">(</span><span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"volume_pct"</span><span class="p">,</span> <span class="mf">0.5</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2">.volume_pct"</span><span class="p">)</span>
+<a id="L-275" name="L-275"></a>        <span class="n">operations</span> <span class="o">=</span> <span class="p">[</span><span class="n">operation</span><span class="p">]</span>
+<a id="L-276" name="L-276"></a>        <span class="k">if</span> <span class="n">operation</span> <span class="o">==</span> <span class="s2">"RINSE"</span><span class="p">:</span>
+<a id="L-277" name="L-277"></a>            <span class="n">count</span> <span class="o">=</span> <span class="n">_positive_int</span><span class="p">(</span>
+<a id="L-278" name="L-278"></a>                <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"rinse_count"</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="sa">f</span><span class="s2">"</span><span class="si">{</span><span class="n">task_path</span><span class="si">}</span><span class="s2">.rinse_count"</span>
+<a id="L-279" name="L-279"></a>            <span class="p">)</span>
+<a id="L-280" name="L-280"></a>            <span class="n">operations</span> <span class="o">=</span> <span class="p">[</span><span class="s2">"SUCK"</span><span class="p">,</span> <span class="s2">"EXPEL"</span><span class="p">]</span> <span class="o">*</span> <span class="n">count</span> <span class="o">+</span> <span class="p">[</span><span class="s2">"SUCK"</span><span class="p">]</span>
+<a id="L-281" name="L-281"></a>        <span class="n">move_tasks</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="p">[</span>
+<a id="L-282" name="L-282"></a>            <span class="p">{</span><span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"pipettor"</span><span class="p">,</span> <span class="s2">"operation"</span><span class="p">:</span> <span class="n">op</span><span class="p">,</span> <span class="s2">"volume_pct"</span><span class="p">:</span> <span class="n">volume</span><span class="p">}</span>
+<a id="L-283" name="L-283"></a>            <span class="k">for</span> <span class="n">op</span> <span class="ow">in</span> <span class="n">operations</span>
+<a id="L-284" name="L-284"></a>        <span class="p">]</span>
+<a id="L-285" name="L-285"></a>
+<a id="L-286" name="L-286"></a>    <span class="n">expanded</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-287" name="L-287"></a>    <span class="k">if</span> <span class="n">scan_pose</span><span class="p">:</span>
+<a id="L-288" name="L-288"></a>        <span class="n">expanded</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"moveto"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="n">scan_pose</span><span class="p">})</span>
+<a id="L-289" name="L-289"></a>    <span class="n">expanded</span><span class="o">.</span><span class="n">append</span><span class="p">({</span><span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"vision_moveto"</span><span class="p">,</span> <span class="s2">"tag_id"</span><span class="p">:</span> <span class="n">marker_id</span><span class="p">})</span>
+<a id="L-290" name="L-290"></a>    <span class="n">expanded</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">move_tasks</span><span class="p">)</span>
+<a id="L-291" name="L-291"></a>    <span class="n">element</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"row"</span><span class="p">:</span> <span class="n">row</span><span class="p">,</span> <span class="s2">"col"</span><span class="p">:</span> <span class="n">col</span><span class="p">,</span> <span class="s2">"index"</span><span class="p">:</span> <span class="n">row</span> <span class="o">*</span> <span class="n">cols</span> <span class="o">+</span> <span class="n">col</span><span class="p">,</span> <span class="s2">"moves"</span><span class="p">:</span> <span class="n">axis_moves</span><span class="p">}</span>
+<a id="L-292" name="L-292"></a>    <span class="k">return</span> <span class="n">expanded</span><span class="p">,</span> <span class="n">element</span>
+<a id="L-293" name="L-293"></a>
+<a id="L-294" name="L-294"></a>
+<a id="L-295" name="L-295"></a><span class="k">def</span><span class="w"> </span><span class="nf">_expand_task_macros</span><span class="p">(</span>
+<a id="L-296" name="L-296"></a>    <span class="n">tasks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="n">vision_targets</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+<a id="L-297" name="L-297"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]:</span>
+<a id="L-298" name="L-298"></a>    <span class="n">expanded</span> <span class="o">=</span> <span class="p">[]</span>
+<a id="L-299" name="L-299"></a>    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">task</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+<a id="L-300" name="L-300"></a>        <span class="k">if</span> <span class="n">task</span><span class="p">[</span><span class="s2">"task_type"</span><span class="p">]</span> <span class="ow">in</span> <span class="n">TASK_MACROS</span><span class="p">:</span>
+<a id="L-301" name="L-301"></a>            <span class="n">macro_tasks</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">expand_grid_target</span><span class="p">(</span>
+<a id="L-302" name="L-302"></a>                <span class="n">TASK_MACROS</span><span class="p">[</span><span class="n">task</span><span class="p">[</span><span class="s2">"task_type"</span><span class="p">]],</span> <span class="n">vision_targets</span><span class="p">,</span> <span class="n">task</span><span class="p">,</span> <span class="sa">f</span><span class="s2">"tasks[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">]"</span>
+<a id="L-303" name="L-303"></a>            <span class="p">)</span>
+<a id="L-304" name="L-304"></a>            <span class="n">expanded</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">macro_tasks</span><span class="p">)</span>
+<a id="L-305" name="L-305"></a>        <span class="k">else</span><span class="p">:</span>
+<a id="L-306" name="L-306"></a>            <span class="n">expanded</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span><span class="n">task</span><span class="p">))</span>
+<a id="L-307" name="L-307"></a>    <span class="k">return</span> <span class="n">expanded</span>
+<a id="L-308" name="L-308"></a>
+<a id="L-309" name="L-309"></a>
+<a id="L-310" name="L-310"></a><span class="k">def</span><span class="w"> </span><span class="nf">parse_task_script</span><span class="p">(</span>
+<a id="L-311" name="L-311"></a>    <span class="n">full_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="L-312" name="L-312"></a>    <span class="o">*</span><span class="p">,</span>
+<a id="L-313" name="L-313"></a>    <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+<a id="L-314" name="L-314"></a>    <span class="n">grippers</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<a id="L-315" name="L-315"></a>    <span class="n">poses_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<a id="L-316" name="L-316"></a>    <span class="n">vision_targets</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<a id="L-317" name="L-317"></a>    <span class="n">on_info</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="L-318" name="L-318"></a>    <span class="n">on_warning</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<a id="L-319" name="L-319"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">str</span><span class="p">]:</span>
+<a id="L-320" name="L-320"></a><span class="w">    </span><span class="sd">"""Parse task JSON, expand macros, and resolve missing named poses.</span>
+<a id="L-321" name="L-321"></a>
+<a id="L-322" name="L-322"></a><span class="sd">    Return (start_gripper, tasks, poses_json).</span>
+<a id="L-323" name="L-323"></a><span class="sd">    """</span>
+<a id="L-324" name="L-324"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="n">full_json</span><span class="p">:</span>
+<a id="L-325" name="L-325"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Goal missing required full_json"</span><span class="p">)</span>
+<a id="L-326" name="L-326"></a>
+<a id="L-327" name="L-327"></a>    <span class="k">try</span><span class="p">:</span>
+<a id="L-328" name="L-328"></a>        <span class="n">script</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">full_json</span><span class="p">)</span>
+<a id="L-329" name="L-329"></a>    <span class="k">except</span> <span class="n">json</span><span class="o">.</span><span class="n">JSONDecodeError</span> <span class="k">as</span> <span class="n">error</span><span class="p">:</span>
+<a id="L-330" name="L-330"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Invalid JSON: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span> <span class="kn">from</span><span class="w"> </span><span class="nn">error</span>
+<a id="L-331" name="L-331"></a>
+<a id="L-332" name="L-332"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">script</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-333" name="L-333"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Task script root must be an object"</span><span class="p">)</span>
+<a id="L-334" name="L-334"></a>    <span class="k">if</span> <span class="s2">"start_gripper"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">script</span><span class="p">:</span>
+<a id="L-335" name="L-335"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Task script missing 'start_gripper'"</span><span class="p">)</span>
+<a id="L-336" name="L-336"></a>    <span class="k">if</span> <span class="s2">"tasks"</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">script</span><span class="p">:</span>
+<a id="L-337" name="L-337"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"Task script missing 'tasks'"</span><span class="p">)</span>
+<a id="L-338" name="L-338"></a>
+<a id="L-339" name="L-339"></a>    <span class="n">start_gripper</span> <span class="o">=</span> <span class="n">script</span><span class="p">[</span><span class="s2">"start_gripper"</span><span class="p">]</span>
+<a id="L-340" name="L-340"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">start_gripper</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+<a id="L-341" name="L-341"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"start_gripper must be a string"</span><span class="p">)</span>
+<a id="L-342" name="L-342"></a>    <span class="k">if</span> <span class="n">start_gripper</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">grippers</span><span class="p">:</span>
+<a id="L-343" name="L-343"></a>        <span class="n">available</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">grippers</span><span class="p">)</span>
+<a id="L-344" name="L-344"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Unknown gripper: </span><span class="si">{</span><span class="n">start_gripper</span><span class="si">}</span><span class="s2"> (available: </span><span class="si">{</span><span class="n">available</span><span class="si">}</span><span class="s2">)"</span><span class="p">)</span>
+<a id="L-345" name="L-345"></a>
+<a id="L-346" name="L-346"></a>    <span class="n">tasks</span> <span class="o">=</span> <span class="n">script</span><span class="p">[</span><span class="s2">"tasks"</span><span class="p">]</span>
+<a id="L-347" name="L-347"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">tasks</span><span class="p">:</span>
+<a id="L-348" name="L-348"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"tasks must be a non-empty list"</span><span class="p">)</span>
+<a id="L-349" name="L-349"></a>    <span class="n">allowed_input</span> <span class="o">=</span> <span class="n">SUPPORTED_TASK_TYPES</span> <span class="o">|</span> <span class="n">TASK_MACROS</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+<a id="L-350" name="L-350"></a>    <span class="n">allowed</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">allowed_input</span><span class="p">))</span>
+<a id="L-351" name="L-351"></a>    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">task</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+<a id="L-352" name="L-352"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">task</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-353" name="L-353"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"tasks[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">] must be an object"</span><span class="p">)</span>
+<a id="L-354" name="L-354"></a>        <span class="n">task_type</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"task_type"</span><span class="p">)</span>
+<a id="L-355" name="L-355"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">task_type</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">task_type</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">allowed_input</span><span class="p">:</span>
+<a id="L-356" name="L-356"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"tasks[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">].task_type must be one of: </span><span class="si">{</span><span class="n">allowed</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-357" name="L-357"></a>
+<a id="L-358" name="L-358"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">vision_targets</span><span class="p">,</span> <span class="n">Mapping</span><span class="p">):</span>
+<a id="L-359" name="L-359"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">"vision_targets configuration must be an object"</span><span class="p">)</span>
+<a id="L-360" name="L-360"></a>    <span class="n">tasks</span> <span class="o">=</span> <span class="n">_expand_task_macros</span><span class="p">(</span><span class="n">tasks</span><span class="p">,</span> <span class="n">vision_targets</span><span class="p">)</span>
+<a id="L-361" name="L-361"></a>
+<a id="L-362" name="L-362"></a>    <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">task</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tasks</span><span class="p">):</span>
+<a id="L-363" name="L-363"></a>        <span class="n">task_type</span> <span class="o">=</span> <span class="n">task</span><span class="p">[</span><span class="s2">"task_type"</span><span class="p">]</span>
+<a id="L-364" name="L-364"></a>        <span class="k">if</span> <span class="n">task_type</span> <span class="o">==</span> <span class="s2">"end_effector"</span> <span class="ow">and</span> <span class="s2">"end_effector_type"</span> <span class="ow">in</span> <span class="n">task</span><span class="p">:</span>
+<a id="L-365" name="L-365"></a>            <span class="n">gripper</span> <span class="o">=</span> <span class="n">task</span><span class="p">[</span><span class="s2">"end_effector_type"</span><span class="p">]</span>
+<a id="L-366" name="L-366"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">gripper</span><span class="p">,</span> <span class="nb">str</span><span class="p">)</span> <span class="ow">or</span> <span class="n">gripper</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">grippers</span><span class="p">:</span>
+<a id="L-367" name="L-367"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="L-368" name="L-368"></a>                    <span class="sa">f</span><span class="s2">"tasks[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">].end_effector_type: unknown gripper </span><span class="si">{</span><span class="n">gripper</span><span class="si">!r}</span><span class="s2">"</span>
+<a id="L-369" name="L-369"></a>                <span class="p">)</span>
+<a id="L-370" name="L-370"></a>        <span class="n">error</span> <span class="o">=</span> <span class="n">flange_offset_error</span><span class="p">(</span>
+<a id="L-371" name="L-371"></a>            <span class="n">direction</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"offset_direction"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+<a id="L-372" name="L-372"></a>            <span class="n">distance</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"offset_distance"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+<a id="L-373" name="L-373"></a>        <span class="p">)</span>
+<a id="L-374" name="L-374"></a>        <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+<a id="L-375" name="L-375"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"tasks[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">]: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-376" name="L-376"></a>        <span class="k">if</span> <span class="n">task_type</span> <span class="o">==</span> <span class="s2">"moveto"</span><span class="p">:</span>
+<a id="L-377" name="L-377"></a>            <span class="n">error</span> <span class="o">=</span> <span class="n">moveto_goal_error</span><span class="p">(</span>
+<a id="L-378" name="L-378"></a>                <span class="n">target</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"target"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+<a id="L-379" name="L-379"></a>                <span class="n">direction</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"direction"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+<a id="L-380" name="L-380"></a>                <span class="n">distance</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"distance"</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span>
+<a id="L-381" name="L-381"></a>                <span class="n">cartesian_target</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"cartesian_target"</span><span class="p">,</span> <span class="p">()),</span>
+<a id="L-382" name="L-382"></a>                <span class="n">planning_type</span><span class="o">=</span><span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"planning_type"</span><span class="p">,</span> <span class="s2">""</span><span class="p">),</span>
+<a id="L-383" name="L-383"></a>            <span class="p">)</span>
+<a id="L-384" name="L-384"></a>            <span class="k">if</span> <span class="n">error</span><span class="p">:</span>
+<a id="L-385" name="L-385"></a>                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s2">"tasks[</span><span class="si">{</span><span class="n">index</span><span class="si">}</span><span class="s2">]: </span><span class="si">{</span><span class="n">error</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-386" name="L-386"></a>
+<a id="L-387" name="L-387"></a>    <span class="k">if</span> <span class="n">dry_run</span><span class="p">:</span>
+<a id="L-388" name="L-388"></a>        <span class="n">unsupported</span> <span class="o">=</span> <span class="p">[</span>
+<a id="L-389" name="L-389"></a>            <span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"task_type"</span><span class="p">,</span> <span class="s2">"?"</span><span class="p">))</span>
+<a id="L-390" name="L-390"></a>            <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">task</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">tasks</span><span class="p">)</span>
+<a id="L-391" name="L-391"></a>            <span class="k">if</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"task_type"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">DRY_RUN_SUPPORTED_TYPES</span>
+<a id="L-392" name="L-392"></a>        <span class="p">]</span>
+<a id="L-393" name="L-393"></a>        <span class="k">if</span> <span class="n">unsupported</span><span class="p">:</span>
+<a id="L-394" name="L-394"></a>            <span class="n">bad</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+<a id="L-395" name="L-395"></a>                <span class="sa">f</span><span class="s2">"step </span><span class="si">{</span><span class="n">index</span><span class="w"> </span><span class="o">+</span><span class="w"> </span><span class="mi">1</span><span class="si">}</span><span class="s2"> (</span><span class="si">{</span><span class="n">task_type</span><span class="si">}</span><span class="s2">)"</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">task_type</span> <span class="ow">in</span> <span class="n">unsupported</span>
+<a id="L-396" name="L-396"></a>            <span class="p">)</span>
+<a id="L-397" name="L-397"></a>            <span class="n">allowed</span> <span class="o">=</span> <span class="s2">", "</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="n">DRY_RUN_SUPPORTED_TYPES</span><span class="p">))</span>
+<a id="L-398" name="L-398"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+<a id="L-399" name="L-399"></a>                <span class="sa">f</span><span class="s2">"Dry-run not supported for: </span><span class="si">{</span><span class="n">bad</span><span class="si">}</span><span class="s2">. "</span>
+<a id="L-400" name="L-400"></a>                <span class="sa">f</span><span class="s2">"v1 supports only: </span><span class="si">{</span><span class="n">allowed</span><span class="si">}</span><span class="s2">. "</span>
+<a id="L-401" name="L-401"></a>                <span class="s2">"Run without dry_run (or with use_mock_hardware) for full task types."</span>
+<a id="L-402" name="L-402"></a>            <span class="p">)</span>
+<a id="L-403" name="L-403"></a>
+<a id="L-404" name="L-404"></a>    <span class="n">poses</span> <span class="o">=</span> <span class="n">script</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"poses"</span><span class="p">,</span> <span class="p">{})</span>
+<a id="L-405" name="L-405"></a>    <span class="n">pose_keys_needed</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+<a id="L-406" name="L-406"></a>    <span class="k">for</span> <span class="n">task</span> <span class="ow">in</span> <span class="n">tasks</span><span class="p">:</span>
+<a id="L-407" name="L-407"></a>        <span class="n">target</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"target"</span><span class="p">,</span> <span class="s2">""</span><span class="p">)</span>
+<a id="L-408" name="L-408"></a>        <span class="k">if</span> <span class="n">target</span> <span class="ow">and</span> <span class="n">target</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">poses</span><span class="p">:</span>
+<a id="L-409" name="L-409"></a>            <span class="n">pose_keys_needed</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+<a id="L-410" name="L-410"></a>        <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">"scan_positions"</span><span class="p">,</span> <span class="p">[]):</span>
+<a id="L-411" name="L-411"></a>            <span class="k">if</span> <span class="n">key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">poses</span><span class="p">:</span>
+<a id="L-412" name="L-412"></a>                <span class="n">pose_keys_needed</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+<a id="L-413" name="L-413"></a>        <span class="k">for</span> <span class="n">field</span> <span class="ow">in</span> <span class="p">(</span>
+<a id="L-414" name="L-414"></a>            <span class="s2">"scan_pose"</span><span class="p">,</span>
+<a id="L-415" name="L-415"></a>            <span class="s2">"approach_pose"</span><span class="p">,</span>
+<a id="L-416" name="L-416"></a>            <span class="s2">"target_pose"</span><span class="p">,</span>
+<a id="L-417" name="L-417"></a>            <span class="s2">"place_pose"</span><span class="p">,</span>
+<a id="L-418" name="L-418"></a>            <span class="s2">"pickup_pose"</span><span class="p">,</span>
+<a id="L-419" name="L-419"></a>        <span class="p">):</span>
+<a id="L-420" name="L-420"></a>            <span class="n">value</span> <span class="o">=</span> <span class="n">task</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">field</span><span class="p">)</span>
+<a id="L-421" name="L-421"></a>            <span class="k">if</span> <span class="n">value</span> <span class="ow">and</span> <span class="n">value</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">poses</span><span class="p">:</span>
+<a id="L-422" name="L-422"></a>                <span class="n">pose_keys_needed</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+<a id="L-423" name="L-423"></a>
+<a id="L-424" name="L-424"></a>    <span class="k">if</span> <span class="n">pose_keys_needed</span><span class="p">:</span>
+<a id="L-425" name="L-425"></a>        <span class="n">registry</span> <span class="o">=</span> <span class="n">_load_poses_registry</span><span class="p">(</span><span class="n">poses_file</span><span class="p">,</span> <span class="n">on_warning</span><span class="p">)</span>
+<a id="L-426" name="L-426"></a>        <span class="n">resolved</span> <span class="o">=</span> <span class="p">[</span><span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">pose_keys_needed</span> <span class="k">if</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">registry</span><span class="p">]</span>
+<a id="L-427" name="L-427"></a>        <span class="n">poses</span><span class="o">.</span><span class="n">update</span><span class="p">((</span><span class="n">key</span><span class="p">,</span> <span class="n">registry</span><span class="p">[</span><span class="n">key</span><span class="p">])</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">resolved</span><span class="p">)</span>
+<a id="L-428" name="L-428"></a>        <span class="k">if</span> <span class="n">resolved</span> <span class="ow">and</span> <span class="n">on_info</span><span class="p">:</span>
+<a id="L-429" name="L-429"></a>            <span class="n">on_info</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Auto-resolved </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">resolved</span><span class="p">)</span><span class="si">}</span><span class="s2"> pose(s) from registry: </span><span class="si">{</span><span class="n">resolved</span><span class="si">}</span><span class="s2">"</span><span class="p">)</span>
+<a id="L-430" name="L-430"></a>
+<a id="L-431" name="L-431"></a>    <span class="k">return</span> <span class="n">start_gripper</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">poses</span><span class="p">)</span>
+</pre></div></td></tr></table></div>
+</div></body></html>

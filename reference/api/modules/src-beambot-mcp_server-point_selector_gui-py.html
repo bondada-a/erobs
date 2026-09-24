@@ -1,0 +1,413 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Image point selector &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Survey viewpoint teaching" href="scripts-survey_mapping-teach_survey_poses-py.html" />
+    <link rel="prev" title="Octomap pipeline launch" href="src-beambot-launch-octomap_mapping-launch-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-__init__-py.html">Camera backend selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zivid-py.html">Zivid camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zed-py.html">ZED camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-image_detection-py.html">Image and marker geometry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-spincoater_detection-py.html">Spincoater image detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-yolo_object_detection-py.html">YOLO object detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_task_detection-py.html">Vision task detector adapters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-motion_target-py.html">Vision motion targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_engine-py.html">Shared vision engine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_scan_server-py.html">Marker scan action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_task_server-py.html">Vision task action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-vision_task_stages-py.html">Vision task coordination</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-pointcloud_relay-py.html">Point-cloud filtering relay</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-octomap_to_planning_scene-py.html">Octomap scene bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-launch-octomap_mapping-launch-py.html">Octomap pipeline launch</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Image point selector</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-teach_survey_poses-py.html">Survey viewpoint teaching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-run_survey-py.html">Survey capture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-merge_survey_bag-py.html">Survey point-cloud merger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/perception.html">Perception and mapping</a></li>
+      <li class="breadcrumb-item active">Image point selector</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="image-point-selector">
+<h1>Image point selector<a class="headerlink" href="#image-point-selector" title="Link to this heading"></a></h1>
+<p>Show a Tk image window for pixel selection and return the result to the MCP process as JSON. Display configuration is probed by <code class="docutils literal notranslate"><span class="pre">main()</span></code>, not at import.</p>
+<p><code class="docutils literal notranslate"><span class="pre">src.beambot.mcp_server.point_selector_gui</span></code> · <a href="../../../api-source/src/beambot/mcp_server/point_selector_gui.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/perception.html"><span class="std std-doc">Perception and mapping</span></a> · <a class="reference internal" href="../../../architecture/perception.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>The MCP depth tool starts this script as a separate process when a person must confirm a pixel. <code class="docutils literal notranslate"><span class="pre">main()</span></code> reads the image and optional initial coordinates, runs the selector, and prints one JSON result to stdout. A Tk installation and usable display are required.</p>
+<p><code class="docutils literal notranslate"><span class="pre">PointSelector.run()</span></code> manages the window and input callbacks. The displayed image may be scaled down, but returned coordinates always refer to the original image.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-f291b340d56f8b9c"><span class="std std-ref">main</span></a></p></td>
+<td><p>Fill missing display credentials, parse image path/title and an optional coordinate pair, run the selector and print its JSON result for the parent MCP process.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-7d13b2800e6c0e41"><span class="std std-ref">PointSelector.run</span></a></p></td>
+<td><p>Show the selector window and wait for confirmation or cancellation. Mouse clicks choose original-image pixel coordinates; keyboard and window callbacks finish the selection.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="main">
+<span id="api-f291b340d56f8b9c"></span><h3><code class="docutils literal notranslate"><span class="pre">main()</span></code><a class="headerlink" href="#main" title="Link to this heading"></a></h3>
+<p>Fill missing display credentials, parse image path/title and an optional coordinate pair, run the selector and print its JSON result for the parent MCP process.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/mcp_server/point_selector_gui.py.html#L-171">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">main</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None on normal selection/cancel; exits status 1 on a caught GUI/image Exception.</p>
+<p><strong>Errors:</strong> Argparse errors exit; GUI construction/run Exceptions produce {confirmed:false,error} on stdout before exit(1). A lone –x or –y is ignored.</p>
+<p><strong>Side effects:</strong> May probe the desktop session and set DISPLAY/XAUTHORITY, then reads the image and opens a GUI; prints a single result line.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="ensure-display">
+<span id="api-62498d6b4edb73fa"></span><h4><code class="docutils literal notranslate"><span class="pre">_ensure_display()</span></code><a class="headerlink" href="#ensure-display" title="Link to this heading"></a></h4>
+<p>Fill missing DISPLAY from a desktop-process environment probe or :1, then choose the first existing common Xauthority path.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/point_selector_gui.py.html#L-23">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_ensure_display</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> The three-second shell probe catches all Exceptions and uses :1; other filesystem errors propagate.</p>
+<p><strong>Side effects:</strong> May spawn bash/read process environment and modifies this process’s DISPLAY/XAUTHORITY. Runs at import.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-point_selector_gui-py.html#api-f291b340d56f8b9c"><code>main</code></a> — src.beambot.mcp_server.point_selector_gui</li></ul></details></section>
+</section>
+</section>
+<section id="pointselector">
+<h2><code class="docutils literal notranslate"><span class="pre">PointSelector</span></code><a class="headerlink" href="#pointselector" title="Link to this heading"></a></h2>
+<p>Display an image with a movable crosshair and return the selected original-image pixel coordinates together with a confirmation flag.</p>
+<section id="pointselector-run">
+<span id="api-7d13b2800e6c0e41"></span><h3><code class="docutils literal notranslate"><span class="pre">PointSelector.run()</span></code><a class="headerlink" href="#pointselector-run" title="Link to this heading"></a></h3>
+<p>Show the selector window and wait for confirmation or cancellation. Mouse clicks choose original-image pixel coordinates; keyboard and window callbacks finish the selection.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/mcp_server/point_selector_gui.py.html#L-101">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> {pixel_x,pixel_y,confirmed:true} after confirming a selected point; otherwise {confirmed:false}.</p>
+<p><strong>Errors:</strong> Tk/display exceptions propagate to main(); confirming without any selected point leaves the window open.</p>
+<p><strong>Side effects:</strong> Creates an interactive GUI and blocks; selection and result mutate in response to events.</p>
+</section>
+<section id="pointselector-init">
+<span id="api-3a3b5a844abe3a8d"></span><h3><code class="docutils literal notranslate"><span class="pre">PointSelector.__init__()</span></code><a class="headerlink" href="#pointselector-init" title="Link to this heading"></a></h3>
+<p>Open the image and prepare a resized display image while preserving original-pixel selection coordinates.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/mcp_server/point_selector_gui.py.html#L-56">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">image_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">initial_point</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">int</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">title</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'Point Selector'</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">image_path</span></code></p></td>
+<td><p>Image file path accepted by Pillow.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">initial_point</span></code></p></td>
+<td><p>Optional (column,row) in original pixels; not clamped at construction.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">title</span></code></p></td>
+<td><p>Window title used later by run().</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; initializes scale/display dimensions/current_point/result.</p>
+<p><strong>Errors:</strong> Image decoding/I/O or invalid dimensions can propagate errors.</p>
+<p><strong>Side effects:</strong> Reads image data and allocates a scaled image; does not open the Tk window yet.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-point_selector_gui-py.html#api-f291b340d56f8b9c"><code>main</code></a> — src.beambot.mcp_server.point_selector_gui</li></ul></details></section>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="pointselector-draw-crosshair">
+<span id="api-1a1b64f238638f10"></span><h4><code class="docutils literal notranslate"><span class="pre">PointSelector._draw_crosshair()</span></code><a class="headerlink" href="#pointselector-draw-crosshair" title="Link to this heading"></a></h4>
+<p>Copy the scaled display image and draw a red crosshair plus original-coordinate label at the current selection, then wrap it for Tk.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/point_selector_gui.py.html#L-82">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_draw_crosshair</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ImageTk</span><span class="o">.</span><span class="n">PhotoImage</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> ImageTk.PhotoImage; must be retained by caller to keep it displayed.</p>
+<p><strong>Errors:</strong> Requires a live Tk interpreter; Pillow/Tk drawing errors propagate.</p>
+<p><strong>Side effects:</strong> Allocates a Tk image; leaves the base image unchanged.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-mcp_server-point_selector_gui-py.html#api-7d13b2800e6c0e41"><code>PointSelector.run</code></a> — src.beambot.mcp_server.point_selector_gui</li><li><a href="src-beambot-mcp_server-point_selector_gui-py.html#api-c107c124210a052c"><code>PointSelector.run._update_display</code></a> — src.beambot.mcp_server.point_selector_gui</li></ul></details></section>
+<section id="pointselector-run-update-display">
+<span id="api-c107c124210a052c"></span><h4><code class="docutils literal notranslate"><span class="pre">PointSelector.run._update_display()</span></code><a class="headerlink" href="#pointselector-run-update-display" title="Link to this heading"></a></h4>
+<p>Redraw the crosshair into a retained PhotoImage and replace the canvas image item.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/mcp_server/point_selector_gui.py.html#L-127">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_update_display</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Pillow/Tk errors propagate through the event callback.</p>
+<p><strong>Side effects:</strong> Updates self._tk_photo and the live canvas.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-point_selector_gui-py.html#api-9f4d36335eb8a440"><code>PointSelector.run._on_click</code></a> — src.beambot.mcp_server.point_selector_gui</li></ul></details></section>
+<section id="pointselector-run-on-click">
+<span id="api-9f4d36335eb8a440"></span><h4><code class="docutils literal notranslate"><span class="pre">PointSelector.run._on_click()</span></code><a class="headerlink" href="#pointselector-run-on-click" title="Link to this heading"></a></h4>
+<p>Convert click coordinates from the scaled canvas to original pixels, clamp to image bounds and redraw the selection.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/point_selector_gui.py.html#L-131">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_click</span><span class="p">(</span><span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event</span></code></p></td>
+<td><p>Tk mouse event whose x/y are canvas pixel coordinates.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Invalid event/scale errors propagate.</p>
+<p><strong>Side effects:</strong> Updates current_point and refreshes the GUI.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-point_selector_gui-py.html#api-7d13b2800e6c0e41"><code>PointSelector.run</code></a> — src.beambot.mcp_server.point_selector_gui</li></ul></details></section>
+<section id="pointselector-run-on-confirm">
+<span id="api-3966683f43c6eb25"></span><h4><code class="docutils literal notranslate"><span class="pre">PointSelector.run._on_confirm()</span></code><a class="headerlink" href="#pointselector-run-on-confirm" title="Link to this heading"></a></h4>
+<p>When a point exists, store its original pixel coordinates with confirmed=true and destroy the window.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/point_selector_gui.py.html#L-140">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_confirm</span><span class="p">(</span><span class="n">event</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event</span></code></p></td>
+<td><p>Optional Tk key event; ignored.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; no operation when current_point is None.</p>
+<p><strong>Errors:</strong> Tk destroy errors propagate. Initial coordinates are not validated here.</p>
+<p><strong>Side effects:</strong> Sets result and closes the GUI when a selection exists.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-point_selector_gui-py.html#api-7d13b2800e6c0e41"><code>PointSelector.run</code></a> — src.beambot.mcp_server.point_selector_gui</li></ul></details></section>
+<section id="pointselector-run-on-cancel">
+<span id="api-69858863a5978684"></span><h4><code class="docutils literal notranslate"><span class="pre">PointSelector.run._on_cancel()</span></code><a class="headerlink" href="#pointselector-run-on-cancel" title="Link to this heading"></a></h4>
+<p>Mark selection unconfirmed and destroy the Tk window.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/mcp_server/point_selector_gui.py.html#L-149">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_cancel</span><span class="p">(</span><span class="n">event</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event</span></code></p></td>
+<td><p>Optional key/window event; ignored.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Tk errors propagate.</p>
+<p><strong>Side effects:</strong> Sets result={confirmed:false} and closes the GUI.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-mcp_server-point_selector_gui-py.html#api-7d13b2800e6c0e41"><code>PointSelector.run</code></a> — src.beambot.mcp_server.point_selector_gui</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-launch-octomap_mapping-launch-py.html" class="btn btn-neutral float-left" title="Octomap pipeline launch" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="scripts-survey_mapping-teach_survey_poses-py.html" class="btn btn-neutral float-right" title="Survey viewpoint teaching" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,559 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chat agent connection &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Chat agent modes" href="src-mtc_gui-mtc_gui-agent_modes-py.html" />
+    <link rel="prev" title="Chat interface" href="src-mtc_gui-mtc_gui-chat_panel-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main-py.html">GUI startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main_window-py.html">Operator window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-task_forms-py.html">Task editor forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-step_list_panel-py.html">Task queue display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-ros2_bridge-py.html">ROS and GUI bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-poses_panel-py.html">Pose browser and registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_dialogs-py.html">Pose editing dialogs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_io-py.html">Pose registry files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-camera_panel-py.html">Camera display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-visualization_panel-py.html">Robot and trajectory viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-resources-viewer-html.html">Embedded robot viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-chat_panel-py.html">Chat interface</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Chat agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_modes-py.html">Chat agent modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-theme-py.html">GUI appearance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-launch-mtc_gui_client-launch-py.html">Operator GUI launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/operator-gui.html">Operator GUI</a></li>
+      <li class="breadcrumb-item active">Chat agent connection</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="chat-agent-connection">
+<h1>Chat agent connection<a class="headerlink" href="#chat-agent-connection" title="Link to this heading"></a></h1>
+<p>Connect the Qt chat interface to <code class="docutils literal notranslate"><span class="pre">RobotAgent</span></code> on a background asyncio thread.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mtc_gui.agent_bridge</span></code> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/operator-gui.html"><span class="std std-doc">Operator GUI</span></a> · <a class="reference internal" href="../../../operate/gui.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MTCMainWindow</span></code> creates <code class="docutils literal notranslate"><span class="pre">AgentBridge</span></code>, connects its signals, registers the task-document getter, then calls <code class="docutils literal notranslate"><span class="pre">connect_agent()</span></code>. The window submits messages with <code class="docutils literal notranslate"><span class="pre">send_message()</span></code> and calls <code class="docutils literal notranslate"><span class="pre">disconnect()</span></code> on closure. Agent coroutines run in the background; connected Qt slots update widgets on the GUI thread.</p>
+<p>Queue proposals and execution requests reach the window through signals. In Run mode, <code class="docutils literal notranslate"><span class="pre">execute_queue</span></code> waits for the window to call <code class="docutils literal notranslate"><span class="pre">notify_execution_complete()</span></code>. Changing modes rebuilds the agent and resolves any pending execution wait as interrupted; it does not itself cancel the robot’s active goal.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-1d9f4925265f4b6d"><span class="std std-ref">AgentBridge.connect_agent</span></a></p></td>
+<td><p>Start a daemon thread that connects RobotAgent and then keeps an asyncio event loop running.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-ccbf44d27fd95aa9"><span class="std std-ref">AgentBridge.send_message</span></a></p></td>
+<td><p>Schedule a chat coroutine on the background loop when an agent is present.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-09ec04a51602f8b6"><span class="std std-ref">AgentBridge.set_mode</span></a></p></td>
+<td><p>Schedule mode validation and agent reconstruction on the background event loop.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-c276a8eae70fbd38"><span class="std std-ref">AgentBridge.notify_execution_complete</span></a></p></td>
+<td><p>Deliver the GUI execution result to a waiting execute_queue call and broadcast it through Qt.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-14a6ac4a8e3c94b4"><span class="std std-ref">AgentBridge.disconnect</span></a></p></td>
+<td><p>Schedule asynchronous agent cleanup on a running loop and wait at most three seconds for its thread.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<p>Connect an existing chat panel to an already connected agent bridge on the GUI thread. The main window uses the same signals while also coordinating queue changes and execution results.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># panel: an existing ChatPanel; bridge: its connected AgentBridge.</span>
+<span class="n">panel</span><span class="o">.</span><span class="n">message_submitted</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">panel</span><span class="o">.</span><span class="n">append_user</span><span class="p">)</span>
+<span class="n">panel</span><span class="o">.</span><span class="n">message_submitted</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">bridge</span><span class="o">.</span><span class="n">send_message</span><span class="p">)</span>
+<span class="n">bridge</span><span class="o">.</span><span class="n">response_received</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">panel</span><span class="o">.</span><span class="n">append_assistant</span><span class="p">)</span>
+<span class="n">bridge</span><span class="o">.</span><span class="n">thinking_changed</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">panel</span><span class="o">.</span><span class="n">set_thinking</span><span class="p">)</span>
+<span class="n">bridge</span><span class="o">.</span><span class="n">error_occurred</span><span class="o">.</span><span class="n">connect</span><span class="p">(</span><span class="n">panel</span><span class="o">.</span><span class="n">append_error</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This wiring submits chat messages. In Run mode, agent tool requests may also request queue execution through the main window’s existing handlers.</p>
+</section>
+<section id="agentbridge">
+<h2><code class="docutils literal notranslate"><span class="pre">AgentBridge</span></code><a class="headerlink" href="#agentbridge" title="Link to this heading"></a></h2>
+<p>Own the chat agent, its background event loop, and the Qt signals used by the main window. Public methods schedule work; the <code class="docutils literal notranslate"><span class="pre">_async_*</span></code> methods and local-tool dispatcher run on the agent thread.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QObject</span></code>.</p>
+<section id="agentbridge-connect-agent">
+<span id="api-1d9f4925265f4b6d"></span><h3><code class="docutils literal notranslate"><span class="pre">AgentBridge.connect_agent()</span></code><a class="headerlink" href="#agentbridge-connect-agent" title="Link to this heading"></a></h3>
+<p>Start a daemon thread that connects RobotAgent and then keeps an asyncio event loop running.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-48">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">connect_agent</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None; connection completion is signaled through connected(tool_count).</p>
+<p><strong>Errors:</strong> Thread-start failures propagate; _async_connect catches connection failures. No guard prevents duplicate starts.</p>
+<p><strong>Side effects:</strong> Creates and starts _thread; asynchronous work subsequently updates _loop and _agent.</p>
+</section>
+<section id="agentbridge-send-message">
+<span id="api-ccbf44d27fd95aa9"></span><h3><code class="docutils literal notranslate"><span class="pre">AgentBridge.send_message()</span></code><a class="headerlink" href="#agentbridge-send-message" title="Link to this heading"></a></h3>
+<p>Schedule a chat coroutine on the background loop when an agent is present.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-60">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">send_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>User message passed unchanged to RobotAgent.chat.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; the concurrent future from scheduling is intentionally not returned.</p>
+<p><strong>Errors:</strong> Emits error_occurred(“Agent not connected”) if the loop or agent is missing; coroutine-scheduling errors otherwise propagate.</p>
+<p><strong>Side effects:</strong> Queues _async_chat, which emits thinking, tool, response, and error signals.</p>
+</section>
+<section id="agentbridge-set-mode">
+<span id="api-09ec04a51602f8b6"></span><h3><code class="docutils literal notranslate"><span class="pre">AgentBridge.set_mode()</span></code><a class="headerlink" href="#agentbridge-set-mode" title="Link to this heading"></a></h3>
+<p>Schedule mode validation and agent reconstruction on the background event loop.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-81">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p>Requested GUI mode, normally “plan” or “run”; validated in _async_set_mode.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Emits error_occurred when no loop exists; scheduling failures propagate.</p>
+<p><strong>Side effects:</strong> Queues _async_set_mode; no immediate mode-state mutation occurs here.</p>
+</section>
+<section id="agentbridge-notify-execution-complete">
+<span id="api-c276a8eae70fbd38"></span><h3><code class="docutils literal notranslate"><span class="pre">AgentBridge.notify_execution_complete()</span></code><a class="headerlink" href="#agentbridge-notify-execution-complete" title="Link to this heading"></a></h3>
+<p>Deliver the GUI execution result to a waiting execute_queue call and broadcast it through Qt.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-88">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">notify_execution_complete</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">success</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">error</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">completed</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">total</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>Whether execution succeeded.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">error</span></code></p></td>
+<td><p>Execution failure detail, or an empty string for success.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">completed</span></code></p></td>
+<td><p>Count of completed task steps.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">total</span></code></p></td>
+<td><p>Total task-step count.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No local exception handling; schedules set_result only when the observed pending future is unfinished.</p>
+<p><strong>Side effects:</strong> Uses call_soon_threadsafe to resolve the asyncio future with (success, error, completed, total); always emits execution_outcome with those four values.</p>
+</section>
+<section id="agentbridge-disconnect">
+<span id="api-14a6ac4a8e3c94b4"></span><h3><code class="docutils literal notranslate"><span class="pre">AgentBridge.disconnect()</span></code><a class="headerlink" href="#agentbridge-disconnect" title="Link to this heading"></a></h3>
+<p>Schedule asynchronous agent cleanup on a running loop and wait at most three seconds for its thread.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-72">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Scheduling/join errors propagate; asynchronous disconnect failures are not surfaced through an error signal here.</p>
+<p><strong>Side effects:</strong> Schedules _async_disconnect, joins the thread with a timeout, and clears _thread even if that timeout expires.</p>
+</section>
+<section id="agentbridge-init">
+<span id="api-698dcda6b771697d"></span><h3><code class="docutils literal notranslate"><span class="pre">AgentBridge.__init__()</span></code><a class="headerlink" href="#agentbridge-init" title="Link to this heading"></a></h3>
+<p>Create a disconnected chat bridge in Plan mode.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-33">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional QObject parent controlling Qt object ownership.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Qt construction errors propagate.</p>
+<p><strong>Side effects:</strong> Initializes bridge state; starts no thread and makes no connection.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-973399863ba4bf14"><code>MTCMainWindow._build_right_tabs</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="agentbridge-set-config-getter">
+<span id="api-e661e8c3bd84672d"></span><h3><code class="docutils literal notranslate"><span class="pre">AgentBridge.set_config_getter()</span></code><a class="headerlink" href="#agentbridge-set-config-getter" title="Link to this heading"></a></h3>
+<p>Store the callable used by get_current_tasks to read the GUI configuration.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-44">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_config_getter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">fn</span></code></p></td>
+<td><p>Zero-argument callable returning a mapping with tasks and start_gripper. It is invoked directly from the agent loop thread, so the caller supplies any thread-safety guarantees.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No callable validation.</p>
+<p><strong>Side effects:</strong> Replaces _get_config_fn.</p>
+</section>
+<section id="agentbridge-clear-history">
+<span id="api-fc90e0a7bd889679"></span><h3><code class="docutils literal notranslate"><span class="pre">AgentBridge.clear_history()</span></code><a class="headerlink" href="#agentbridge-clear-history" title="Link to this heading"></a></h3>
+<p>Clear the current RobotAgent conversation when an agent exists.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-67">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">clear_history</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No local exception handling or synchronization is added around the agent call.</p>
+<p><strong>Side effects:</strong> Mutates the agent’s conversation history; does nothing while disconnected.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="agentbridge-connect-agent-run-loop">
+<span id="api-69238d945181d6f9"></span><h4><code class="docutils literal notranslate"><span class="pre">AgentBridge.connect_agent._run_loop()</span></code><a class="headerlink" href="#agentbridge-connect-agent-run-loop" title="Link to this heading"></a></h4>
+<p>Run the agent’s asyncio event loop inside its daemon thread.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-51">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_run_loop</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None when the event loop stops.</p>
+<p><strong>Errors:</strong> Loop creation/running errors are not caught here; connection failures are handled by _async_connect.</p>
+<p><strong>Side effects:</strong> Sets _loop and the thread-local event loop; performs agent connection and runs the loop.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-agent_bridge-py.html#api-1d9f4925265f4b6d"><code>AgentBridge.connect_agent</code></a> — mtc_gui.agent_bridge</li></ul></details></section>
+<section id="agentbridge-async-connect">
+<span id="api-d5dcb773a5f1fb4c"></span><h4><code class="docutils literal notranslate"><span class="pre">AgentBridge._async_connect()</span></code><a class="headerlink" href="#agentbridge-async-connect" title="Link to this heading"></a></h4>
+<p>Construct RobotAgent with the current banner, local schemas, dispatch callback, and MCP filter, then connect it.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-110">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">_async_connect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Catches Exception and emits “Connection failed: …”; an assigned but unsuccessfully connected agent is not cleared.</p>
+<p><strong>Side effects:</strong> Imports RobotAgent, assigns _agent, opens its connections, and emits connected(len(tools)) on success.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-agent_bridge-py.html#api-69238d945181d6f9"><code>AgentBridge.connect_agent._run_loop</code></a> — mtc_gui.agent_bridge</li></ul></details></section>
+<section id="agentbridge-async-chat">
+<span id="api-48db09bc3270f561"></span><h4><code class="docutils literal notranslate"><span class="pre">AgentBridge._async_chat()</span></code><a class="headerlink" href="#agentbridge-async-chat" title="Link to this heading"></a></h4>
+<p>Run one agent conversation turn while exposing progress and final text to Qt.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-125">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">_async_chat</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>User message sent unchanged to the agent.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Catches Exception and emits error_occurred(str(error)); thinking_changed(False) is emitted in finally.</p>
+<p><strong>Side effects:</strong> Emits thinking_changed(True), tool_called events from the nested callback, response_received on success, and thinking_changed(False).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-agent_bridge-py.html#api-ccbf44d27fd95aa9"><code>AgentBridge.send_message</code></a> — mtc_gui.agent_bridge</li></ul></details></section>
+<section id="agentbridge-async-chat-on-tool">
+<span id="api-4815fbc96997911c"></span><h4><code class="docutils literal notranslate"><span class="pre">AgentBridge._async_chat.on_tool()</span></code><a class="headerlink" href="#agentbridge-async-chat-on-tool" title="Link to this heading"></a></h4>
+<p>Convert an agent tool callback into the compact chat-log signal.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-129">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">on_tool</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">args</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Tool name shown by the chat panel.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">args</span></code></p></td>
+<td><p>JSON-serializable tool-argument object; serialized output is truncated to 200 characters.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">result</span></code></p></td>
+<td><p>Tool-result text; false values become an empty string, and displayed text is limited to 500 characters.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Serialization/type errors escape to the surrounding _async_chat exception handler.</p>
+<p><strong>Side effects:</strong> Emits tool_called(name, args_json_prefix, result_prefix).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-agent_bridge-py.html#api-48db09bc3270f561"><code>AgentBridge._async_chat</code></a> — mtc_gui.agent_bridge</li></ul></details></section>
+<section id="agentbridge-async-disconnect">
+<span id="api-5c8a56f1b8d0dc6c"></span><h4><code class="docutils literal notranslate"><span class="pre">AgentBridge._async_disconnect()</span></code><a class="headerlink" href="#agentbridge-async-disconnect" title="Link to this heading"></a></h4>
+<p>Disconnect and release the agent, then stop the background event loop.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-141">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">_async_disconnect</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Agent disconnect exceptions propagate, but loop.stop still runs in finally; _agent is cleared only after a successful disconnect.</p>
+<p><strong>Side effects:</strong> Closes agent connections, clears _agent on success, and stops _loop.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-agent_bridge-py.html#api-14a6ac4a8e3c94b4"><code>AgentBridge.disconnect</code></a> — mtc_gui.agent_bridge</li></ul></details></section>
+<section id="agentbridge-async-set-mode">
+<span id="api-ca72bafbc322d299"></span><h4><code class="docutils literal notranslate"><span class="pre">AgentBridge._async_set_mode()</span></code><a class="headerlink" href="#agentbridge-async-set-mode" title="Link to this heading"></a></h4>
+<p>Rebuild the agent for the selected mode and interrupt any pending execution-result wait.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-149">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">_async_set_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p>“plan” or “run”; requesting the current mode simply re-emits mode_changed.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Unsupported modes emit error_occurred and mode_changed(current_mode). Teardown/reconnect exceptions become error signals; mode_changed(requested_mode) still fires after a reconnect failure.</p>
+<p><strong>Side effects:</strong> May resolve the pending future to (False, “Mode changed mid-execution”, 0, 0), disconnect the old agent, update _mode/_agent, reconnect, and emit connected and mode_changed.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-agent_bridge-py.html#api-09ec04a51602f8b6"><code>AgentBridge.set_mode</code></a> — mtc_gui.agent_bridge</li></ul></details></section>
+<section id="agentbridge-local-dispatch">
+<span id="api-11afc544d27fa1e6"></span><h4><code class="docutils literal notranslate"><span class="pre">AgentBridge._local_dispatch()</span></code><a class="headerlink" href="#agentbridge-local-dispatch" title="Link to this heading"></a></h4>
+<p>Handle the agent’s local queue tools and route queue changes or execution requests to the window.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/agent_bridge.py.html#L-197">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">async</span> <span class="n">_local_dispatch</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">arguments</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Exact local tool name; unrecognized names produce an error string.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">arguments</span></code></p></td>
+<td><p>Tool argument mapping. propose_tasks uses tasks (false values become []), optional start_gripper, poses, and replace (default True); get_current_tasks and execute_queue ignore arguments.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Human-readable tool-result text, except get_current_tasks returns indented JSON containing start_gripper and tasks. execute_queue waits and returns “Execution succeeded/failed (completed/total steps)[: error]”.</p>
+<p><strong>Errors:</strong> propose_tasks checks only that the normalized tasks value is a list. Missing config getter, non-Run execute requests, and duplicate pending executions return explanatory strings. All Exception failures become “Local dispatch error in name: …”.</p>
+<p><strong>Side effects:</strong> Emits tasks_proposed(tasks, options), tasks_cleared(), or execution_requested(); calls the config getter directly; creates and clears an awaited execution future. Task-proposal signals are not awaited.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-agent_bridge-py.html#api-d5dcb773a5f1fb4c"><code>AgentBridge._async_connect</code></a> — mtc_gui.agent_bridge</li><li><a href="src-mtc_gui-mtc_gui-agent_bridge-py.html#api-ca72bafbc322d299"><code>AgentBridge._async_set_mode</code></a> — mtc_gui.agent_bridge</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-mtc_gui-mtc_gui-chat_panel-py.html" class="btn btn-neutral float-left" title="Chat interface" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-mtc_gui-mtc_gui-agent_modes-py.html" class="btn btn-neutral float-right" title="Chat agent modes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

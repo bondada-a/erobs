@@ -1,0 +1,888 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Shared vision engine &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Marker scan action server" href="src-beambot-beambot-action_servers-vision_scan_server-py.html" />
+    <link rel="prev" title="Vision motion targets" href="src-beambot-beambot-vision-motion_target-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-__init__-py.html">Camera backend selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zivid-py.html">Zivid camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zed-py.html">ZED camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-image_detection-py.html">Image and marker geometry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-spincoater_detection-py.html">Spincoater image detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-yolo_object_detection-py.html">YOLO object detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_task_detection-py.html">Vision task detector adapters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-motion_target-py.html">Vision motion targets</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Shared vision engine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_scan_server-py.html">Marker scan action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_task_server-py.html">Vision task action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-vision_task_stages-py.html">Vision task coordination</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-pointcloud_relay-py.html">Point-cloud filtering relay</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-octomap_to_planning_scene-py.html">Octomap scene bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-launch-octomap_mapping-launch-py.html">Octomap pipeline launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-mcp_server-point_selector_gui-py.html">Image point selector</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-teach_survey_poses-py.html">Survey viewpoint teaching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-run_survey-py.html">Survey capture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-merge_survey_bag-py.html">Survey point-cloud merger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/perception.html">Perception and mapping</a></li>
+      <li class="breadcrumb-item active">Shared vision engine</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="shared-vision-engine">
+<h1>Shared vision engine<a class="headerlink" href="#shared-vision-engine" title="Link to this heading"></a></h1>
+<p>Shared vision engine for camera acquisition, capture-time TF, multi-view scans, approach geometry, and configured collision objects. It also inherits MTC helpers from BaseStages. Some functions capture or move hardware; others only compute geometry. Its scan cache belongs to this engine instance and is not shared with other servers.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.vision.vision_engine</span></code> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/perception.html"><span class="std std-doc">Perception and mapping</span></a> · <a class="reference internal" href="../../../architecture/perception.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>Vision servers and sample stages own a <code class="docutils literal notranslate"><span class="pre">VisionEngine</span></code> to connect a camera backend with TF and motion support. Start with <code class="docutils literal notranslate"><span class="pre">detect_and_transform_tag()</span></code> or <code class="docutils literal notranslate"><span class="pre">detect_and_transform_sample_roi()</span></code> for base-frame results; <code class="docutils literal notranslate"><span class="pre">compute_approach_pose()</span></code> converts a detected pose into a tool approach.</p>
+<p><code class="docutils literal notranslate"><span class="pre">scan_all_tags()</span></code> and <code class="docutils literal notranslate"><span class="pre">detect_tag_multiposition()</span></code> also move the arm through scan poses. The tag cache belongs to the engine instance. Marker-linked collision objects are experimental and only added when configured; <code class="docutils literal notranslate"><span class="pre">reset_tf()</span></code> replaces transform resources after robot-model changes.</p>
+<p>Related data types:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">ObjectInfo</span></code>: Configured collision primitive dimensions and marker-local placement offset.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">GripperDetection</span></code>: Resolved tool-tip frame and the configured vertical offset used for approach geometry.</p></li>
+</ul>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-ade1b19649190357"><span class="std std-ref">VisionEngine.detect_and_transform_tag</span></a></p></td>
+<td><p>Try marker capture and base-frame conversion until one succeeds or the configured retry count is exhausted.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-a19fca15bd89840a"><span class="std std-ref">VisionEngine.detect_and_transform_sample_roi</span></a></p></td>
+<td><p>Retry backend sample-ROI capture and transform the first successful pickup pose into base_link.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-c65f5137adf6ffce"><span class="std std-ref">VisionEngine.compute_approach_pose</span></a></p></td>
+<td><p>Choose an IK frame, rotate marker-local offsets into base_link, add a vertical offset, and construct a tool-down approach orientation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-acc304a7b2c979b1"><span class="std std-ref">VisionEngine.scan_all_tags</span></a></p></td>
+<td><p>Visit scan poses, capture all visible markers repeatedly, and cache averages for markers seen at least twice.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-e6aa2789609faab7"><span class="std std-ref">VisionEngine.reset_tf</span></a></p></td>
+<td><p>Replace cached transforms and restart the listener to receive latched transforms after model changes.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="visionengine">
+<h2><code class="docutils literal notranslate"><span class="pre">VisionEngine</span></code><a class="headerlink" href="#visionengine" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">BaseStages</span></code> subclass combining camera acquisition, pose transforms, scan motion, approach geometry, and configured scene objects. Calls range from geometry calculations to hardware capture/motion, as identified in each method’s effects.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseStages</span></code>.</p>
+<section id="visionengine-detect-and-transform-tag">
+<span id="api-ade1b19649190357"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionEngine.detect_and_transform_tag()</span></code><a class="headerlink" href="#visionengine-detect-and-transform-tag" title="Link to this heading"></a></h3>
+<p>Try marker capture and base-frame conversion until one succeeds or the configured retry count is exhausted.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-392">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">detect_and_transform_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="o">=</span><span class="mf">45.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStamped</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>Requested marker ID.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Seconds given to each backend attempt; retries, settling, TF waits, and scene acknowledgement can add time.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> First usable base_link PoseStamped or None after all attempts return unsuccessful results.</p>
+<p><strong>Errors:</strong> Ordinary empty/untransformable results are retried. Backend exceptions and collision-scene update exceptions propagate instead of being retried by a catch block.</p>
+<p><strong>Side effects:</strong> Triggers up to 1+retry_count captures, sleeps between retries, broadcasts detection TF, and may apply a configured collision object. Does not populate the scan cache.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-433914006c169915"><code>VisionEngine.detect_tag_multiposition</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-detect-and-transform-sample-roi">
+<span id="api-a19fca15bd89840a"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionEngine.detect_and_transform_sample_roi()</span></code><a class="headerlink" href="#visionengine-detect-and-transform-sample-roi" title="Link to this heading"></a></h3>
+<p>Retry backend sample-ROI capture and transform the first successful pickup pose into base_link.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-485">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">detect_and_transform_sample_roi</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">tag_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">strategy</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'farthest_edge'</span><span class="p">,</span>
+    <span class="n">edge_inset_mm</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">45.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStamped</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>Anchor marker ID.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">strategy</span></code></p></td>
+<td><p>Pickup selection strategy forwarded to the backend.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">edge_inset_mm</span></code></p></td>
+<td><p>Sample inset in millimetres.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Per-attempt backend timeout in seconds, not a total retry budget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> PoseStamped in base_link or None after unsuccessful attempts.</p>
+<p><strong>Errors:</strong> None results and failed transforms are retried. A backend lacking detect_sample_roi, such as the current ZED module, raises AttributeError; other backend exceptions are not caught.</p>
+<p><strong>Side effects:</strong> Triggers camera acquisition, sleeps between retries, and broadcasts <code class="docutils literal notranslate"><span class="pre">sample_roi_tag&lt;id&gt;</span></code>. It does not add a collision object or populate scan cache.</p>
+</section>
+<section id="visionengine-compute-approach-pose">
+<span id="api-c65f5137adf6ffce"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionEngine.compute_approach_pose()</span></code><a class="headerlink" href="#visionengine-compute-approach-pose" title="Link to this heading"></a></h3>
+<p>Choose an IK frame, rotate marker-local offsets into base_link, add a vertical offset, and construct a tool-down approach orientation.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-619">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">compute_approach_pose</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">target</span><span class="p">:</span> <span class="n">PoseStamped</span><span class="p">,</span>
+    <span class="n">z_offset_override</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">marker_offset_x</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">marker_offset_y</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">marker_offset_z</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">ik_frame_override</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">PoseStamped</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">target</span></code></p></td>
+<td><p>PoseStamped assumed to already be in base_link. Its header is reused.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">z_offset_override</span></code></p></td>
+<td><p>Metres along base Z; zero selects the configured tool offset rather than requesting zero clearance.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_x</span></code></p></td>
+<td><p>Metres along marker-local X.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_y</span></code></p></td>
+<td><p>Metres along marker-local Y.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_z</span></code></p></td>
+<td><p>Metres along marker-local Z, before the separate base-Z offset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ik_frame_override</span></code></p></td>
+<td><p>Explicit IK frame. Otherwise a configured non-flange frame is used, then configured TF tip-frame detection.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> (new approach PoseStamped, selected IK frame string). Orientation uses roll=180°, pitch=0°, and yaw derived after rotating marker orientation by 180° about Z.</p>
+<p><strong>Errors:</strong> No explicit input-frame, reachability, collision, or finite-value validation. Configuration, TF, and quaternion calculation errors can propagate.</p>
+<p><strong>Side effects:</strong> Reads configuration and may wait for tool-frame TF; logs geometry. Does not plan or execute motion.</p>
+</section>
+<section id="visionengine-scan-all-tags">
+<span id="api-acc304a7b2c979b1"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionEngine.scan_all_tags()</span></code><a class="headerlink" href="#visionengine-scan-all-tags" title="Link to this heading"></a></h3>
+<p>Visit scan poses, capture all visible markers repeatedly, and cache averages for markers seen at least twice.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-169">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">scan_all_tags</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">scan_positions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
+    <span class="n">scans_per_position</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">3</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">10.0</span><span class="p">,</span>
+    <span class="n">settle_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scan_positions</span></code></p></td>
+<td><p>Sequence of six-joint poses in radians; _move_to_joint_pose checks each length.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scans_per_position</span></code></p></td>
+<td><p>Number of captures per reached pose; nonpositive values produce no captures at that pose.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Seconds passed to each individual backend capture, not a deadline for the whole scan.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">settle_time</span></code></p></td>
+<td><p>Positive seconds to sleep after each successful move.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Number of marker IDs with averaged poses stored in _tag_pose_cache. Markers with only one usable detection are excluded.</p>
+<p><strong>Errors:</strong> Failed scan moves and unavailable transforms are skipped. Camera/averaging exceptions can propagate; no outer recovery or return-to-start move is provided.</p>
+<p><strong>Side effects:</strong> Clears the existing cache before scanning, executes PTP arm moves, captures images, waits for settling, and stores averaged base-frame poses. Does not publish the cache to another process.</p>
+</section>
+<section id="visionengine-reset-tf">
+<span id="api-e6aa2789609faab7"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionEngine.reset_tf()</span></code><a class="headerlink" href="#visionengine-reset-tf" title="Link to this heading"></a></h3>
+<p>Replace cached transforms and restart the listener to receive latched transforms after model changes.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-547">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">reset_tf</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> TF/listener errors propagate.</p>
+<p><strong>Side effects:</strong> Unregisters the former listener, replaces _tf_buffer with a new Buffer, and creates a listener for it. It does not clear _tag_pose_cache.</p>
+</section>
+<section id="visionengine-init">
+<span id="api-d3deb29a48308616"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionEngine.__init__()</span></code><a class="headerlink" href="#visionengine-init" title="Link to this heading"></a></h3>
+<p>Initialize shared motion support, camera selection, TF resources, scene client, collision-object configuration, and an empty scan cache.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-62">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">rclpy_node</span><span class="p">,</span>
+    <span class="n">arm_group</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+    <span class="n">ik_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+    <span class="n">camera_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">camera_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">marker_dictionary</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">retry_count</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">retry_delay</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">settle_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">rclpy_node</span></code></p></td>
+<td><p>ROS node owning clients, TF resources, clock, and logger.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">arm_group</span></code></p></td>
+<td><p>MoveIt arm group forwarded to BaseStages; empty lets the base configuration choose it.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ik_frame</span></code></p></td>
+<td><p>Configured IK tip frame; empty/flange permits later tool-frame detection for approach geometry.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">camera_type</span></code></p></td>
+<td><p>Required truthy backend key, currently zivid or zed.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">camera_frame</span></code></p></td>
+<td><p>Required camera TF frame used to transform detections into base_link.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">marker_dictionary</span></code></p></td>
+<td><p>Required marker dictionary name sent to the backend.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">retry_count</span></code></p></td>
+<td><p>Retries after the first detection attempt; None selects 3.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">retry_delay</span></code></p></td>
+<td><p>Seconds between retry attempts; None selects 0.5.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">settle_time</span></code></p></td>
+<td><p>Pre-capture settling seconds passed to compatible backends; None selects 0.3.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; initializes an engine instance.</p>
+<p><strong>Errors:</strong> After base initialization, missing camera fields raise ValueError. Backend imports/client/TF construction errors propagate. Retry/time values are not range-validated.</p>
+<p><strong>Side effects:</strong> Initializes BaseStages, creates TF listener/broadcaster and ROS clients, loads cached beamline configuration, and logs. Does not itself request detection or dispatch a scan move.</p>
+<details class="api-references"><summary>Referenced in source (4)</summary><ul><li><a href="src-beambot-beambot-action_servers-vision_scan_server-py.html#api-f8f3b9440d00cea0"><code>VisionActionServer.create_stages</code></a> — beambot.action_servers.vision_scan_server</li><li><a href="src-beambot-beambot-stages-pick_sample_stages-py.html#api-7db2c8da4416721d"><code>PickSampleStages._run_vision</code></a> — beambot.stages.pick_sample_stages</li><li><a href="src-beambot-beambot-stages-place_sample_stages-py.html#api-aee268c8efd2bf1f"><code>PlaceSampleStages._run_vision</code></a> — beambot.stages.place_sample_stages</li><li><a href="src-beambot-beambot-stages-vision_task_stages-py.html#api-2eaed71b8974ed64"><code>VisionTaskStages.__init__</code></a> — beambot.stages.vision_task_stages</li></ul></details></section>
+<section id="visionengine-get-cached-pose">
+<span id="api-08ec0b60365c3380"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionEngine.get_cached_pose()</span></code><a class="headerlink" href="#visionengine-get-cached-pose" title="Link to this heading"></a></h3>
+<p>Return a pose from this engine’s scan cache.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-165">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_cached_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStamped</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>Marker ID used as the dictionary key.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Stored PoseStamped object or None; it is returned without copying or freshness checks.</p>
+<p><strong>Side effects:</strong> Reads _tag_pose_cache without triggering detection or motion.</p>
+</section>
+<section id="visionengine-detect-tag-multiposition">
+<span id="api-433914006c169915"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionEngine.detect_tag_multiposition()</span></code><a class="headerlink" href="#visionengine-detect-tag-multiposition" title="Link to this heading"></a></h3>
+<p>Visit supplied scan poses and average at least two successful detections of one marker.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-243">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">detect_tag_multiposition</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">tag_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">scan_positions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]],</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">45.0</span><span class="p">,</span>
+    <span class="n">settle_time</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.3</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStamped</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>Marker ID to detect.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scan_positions</span></code></p></td>
+<td><p>Joint-pose sequence in radians.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Seconds per detection attempt; each position can also incur engine retries and retry delay.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">settle_time</span></code></p></td>
+<td><p>Positive settling sleep after reaching each scan pose, in seconds.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Averaged base_link PoseStamped or None if fewer than two detections succeed. This method does not insert the average into _tag_pose_cache.</p>
+<p><strong>Errors:</strong> Move/detection failures are logged and skipped. Exceptions from delegated detection, scene updates, or averaging can propagate.</p>
+<p><strong>Side effects:</strong> Moves the arm, captures detections, logs spread, and can broadcast detection TF/update configured collision objects through detect_and_transform_tag(). Leaves the arm at the final reached pose.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="visionengine-load-vision-objects-config">
+<span id="api-51046d4a0ac3626c"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._load_vision_objects_config()</span></code><a class="headerlink" href="#visionengine-load-vision-objects-config" title="Link to this heading"></a></h4>
+<p>Read marker-keyed collision-object definitions from beamline configuration.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-133">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_vision_objects_config</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None; valid entries populate _object_database.</p>
+<p><strong>Errors:</strong> Configuration-load exceptions are logged and return. Entries with missing keys, invalid tag IDs, or type/value errors are logged and skipped. A non-mapping collision_objects container can still raise outside the per-entry handler.</p>
+<p><strong>Side effects:</strong> Reads process-cached YAML and stores ObjectInfo records. Existing entries are not cleared on repeated calls; geometry dimensions are not fully validated here.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-d3deb29a48308616"><code>VisionEngine.__init__</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-move-to-joint-pose">
+<span id="api-bb77288edc57bac0"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._move_to_joint_pose()</span></code><a class="headerlink" href="#visionengine-move-to-joint-pose" title="Link to this heading"></a></h4>
+<p>Build and execute a PTP scan move from six radian-valued joint angles.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-310">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_move_to_joint_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">joint_positions</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">joint_positions</span></code></p></td>
+<td><p>Exactly six joint angles in radians, zipped against DEFAULT_JOINT_NAMES.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True if load_plan_execute() reports no error; otherwise False.</p>
+<p><strong>Errors:</strong> Wrong length returns False with a log. A returned planning/execution error also becomes False. Stage/model/planner exceptions are not caught here.</p>
+<p><strong>Side effects:</strong> Creates an MTC task and dispatches real arm trajectory execution through shared motion helpers.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-433914006c169915"><code>VisionEngine.detect_tag_multiposition</code></a> — beambot.vision.vision_engine</li><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-acc304a7b2c979b1"><code>VisionEngine.scan_all_tags</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-average-poses">
+<span id="api-b103c8e9be185452"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._average_poses()</span></code><a class="headerlink" href="#visionengine-average-poses" title="Link to this heading"></a></h4>
+<p>Average positions arithmetically and average quaternions after aligning signs to the first quaternion.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-341">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_average_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">PoseStamped</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">PoseStamped</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>At least two PoseStamped values already expressed in a common frame.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> New PoseStamped using the first input header and a normalized mean quaternion; None for fewer than two inputs.</p>
+<p><strong>Errors:</strong> No frame consistency, finite-value, or zero-quaternion-norm validation. Degenerate quaternions can produce nonfinite values; malformed inputs can raise.</p>
+<p><strong>Side effects:</strong> Allocates a pose and numeric arrays; no capture, TF request, or motion.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-433914006c169915"><code>VisionEngine.detect_tag_multiposition</code></a> — beambot.vision.vision_engine</li><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-acc304a7b2c979b1"><code>VisionEngine.scan_all_tags</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-single-detection-attempt">
+<span id="api-77921b6220d93662"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._single_detection_attempt()</span></code><a class="headerlink" href="#visionengine-single-detection-attempt" title="Link to this heading"></a></h4>
+<p>Request one marker from the configured backend using engine camera and settling settings.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-425">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_single_detection_attempt</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">DetectionResult</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>Single requested marker ID.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Per-backend capture budget in seconds.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> DetectionResult if its markers list is nonempty, otherwise None. Exact marker matching is done later.</p>
+<p><strong>Errors:</strong> Backend exceptions propagate. Empty marker results are logged and converted to None.</p>
+<p><strong>Side effects:</strong> Triggers camera acquisition through the backend and logs; no motion is added here.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-ade1b19649190357"><code>VisionEngine.detect_and_transform_tag</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-process-detection-result">
+<span id="api-156d9cc30c285b1a"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._process_detection_result()</span></code><a class="headerlink" href="#visionengine-process-detection-result" title="Link to this heading"></a></h4>
+<p>Find the requested marker, transform it to base_link, and update its detection frame and configured collision object.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-446">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_process_detection_result</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">tag_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">detection_result</span><span class="p">:</span> <span class="n">DetectionResult</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStamped</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>Marker ID to select from detection_result.markers.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">detection_result</span></code></p></td>
+<td><p>DetectionResult containing camera-frame poses and an optional capture timestamp.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Transformed PoseStamped, or None when the marker is absent or the transform is unavailable.</p>
+<p><strong>Errors:</strong> Invalid configured collision geometry or failed planning-scene acknowledgement can raise after TF has been broadcast. Other message errors are not caught.</p>
+<p><strong>Side effects:</strong> Broadcasts <code class="docutils literal notranslate"><span class="pre">aruco_&lt;id&gt;</span></code> and may call /apply_planning_scene. Does not write the averaged scan cache.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-ade1b19649190357"><code>VisionEngine.detect_and_transform_tag</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-transform-to-base-link">
+<span id="api-60740a5a8f77f2b7"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._transform_to_base_link()</span></code><a class="headerlink" href="#visionengine-transform-to-base-link" title="Link to this heading"></a></h4>
+<p>Transform a camera-frame pose at its capture time, or use the latest available transform when no timestamp was supplied.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-555">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_transform_to_base_link</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">pose_camera</span><span class="p">:</span> <span class="n">Pose</span><span class="p">,</span>
+    <span class="n">capture_stamp</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStamped</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pose_camera</span></code></p></td>
+<td><p>Geometry Pose expressed in the configured camera frame.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">capture_stamp</span></code></p></td>
+<td><p>Optional ROS Time message; None selects latest TF, with the pose header stamped from the node clock.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> PoseStamped with frame_id=base_link, or None if the transform cannot be obtained.</p>
+<p><strong>Errors:</strong> A false can_transform result or TransformException logs and returns None. Other message/conversion errors propagate. Availability and lookup calls each have a two-second timeout.</p>
+<p><strong>Side effects:</strong> Waits on the TF buffer and allocates messages; does not broadcast or command motion.</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-156d9cc30c285b1a"><code>VisionEngine._process_detection_result</code></a> — beambot.vision.vision_engine</li><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-a19fca15bd89840a"><code>VisionEngine.detect_and_transform_sample_roi</code></a> — beambot.vision.vision_engine</li><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-acc304a7b2c979b1"><code>VisionEngine.scan_all_tags</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-broadcast-detection-tf">
+<span id="api-fd49b05b366bdaad"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._broadcast_detection_tf()</span></code><a class="headerlink" href="#visionengine-broadcast-detection-tf" title="Link to this heading"></a></h4>
+<p>Publish a named detection frame relative to base_link.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-605">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_broadcast_detection_tf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">frame_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">pose</span><span class="p">:</span> <span class="n">PoseStamped</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frame_name</span></code></p></td>
+<td><p>Child TF frame ID to broadcast.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pose</span></code></p></td>
+<td><p>PoseStamped whose numeric pose is assumed to already be in base_link; its header frame is not validated.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Message/TF publication errors propagate.</p>
+<p><strong>Side effects:</strong> Broadcasts one transform stamped with the current node time, rather than the original capture time.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-156d9cc30c285b1a"><code>VisionEngine._process_detection_result</code></a> — beambot.vision.vision_engine</li><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-a19fca15bd89840a"><code>VisionEngine.detect_and_transform_sample_roi</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-apply-flange-offset">
+<span id="api-e615c2704ce6f9a1"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._apply_flange_offset()</span></code><a class="headerlink" href="#visionengine-apply-flange-offset" title="Link to this heading"></a></h4>
+<p>Shift an existing pose along the current flange axes after rotating the selected direction into base_link.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-703">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_apply_flange_offset</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">pose</span><span class="p">:</span> <span class="n">PoseStamped</span><span class="p">,</span>
+    <span class="n">direction</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStamped</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pose</span></code></p></td>
+<td><p>PoseStamped in base_link, modified in place.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p>DIRECTION_VECTORS alias. forward/x=+X, backward/-x=-X, right/y=-Y, left/-y=+Y, up/z=+Z, down/-z=-Z in flange coordinates.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">distance</span></code></p></td>
+<td><p>Displacement in metres; this helper itself does not enforce positivity or finiteness.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> The same PoseStamped object after its position changes.</p>
+<p><strong>Errors:</strong> Unknown direction raises ValueError. TransformException becomes RuntimeError. Other numeric errors propagate.</p>
+<p><strong>Side effects:</strong> Queries latest base_link←flange TF with a two-second timeout, mutates the supplied pose, and logs the offset.</p>
+</section>
+<section id="visionengine-move-to-approach">
+<span id="api-54c9b124a12789a9"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._move_to_approach()</span></code><a class="headerlink" href="#visionengine-move-to-approach" title="Link to this heading"></a></h4>
+<p>Resolve deterministic IK and execute a constrained PTP joint goal, or a constrained LIN pose goal when IK has no solution.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-745">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_move_to_approach</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">approach</span><span class="p">:</span> <span class="n">PoseStamped</span><span class="p">,</span>
+    <span class="n">ik_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+    <span class="n">constraints</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'str | None'</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">approach</span></code></p></td>
+<td><p>Target PoseStamped, normally in base_link.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">ik_frame</span></code></p></td>
+<td><p>IK tip frame; empty invokes configured-frame detection.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">constraints</span></code></p></td>
+<td><p>Optional MoveIt Constraints object applied to the motion stage; None leaves path constraints unset.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None on success, or an error string from load_plan_execute().</p>
+<p><strong>Errors:</strong> No catch for model/stage/IK errors. An unavailable deterministic joint goal changes the planning path to LIN; no further fallback chain is added here.</p>
+<p><strong>Side effects:</strong> Builds and executes an MTC motion task with any supplied path constraints.</p>
+</section>
+<section id="visionengine-detect-current-gripper">
+<span id="api-26c15f3e83efbff8"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._detect_current_gripper()</span></code><a class="headerlink" href="#visionengine-detect-current-gripper" title="Link to this heading"></a></h4>
+<p>Find the first configured tip frame visible in TF and obtain its vertical offset.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-777">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_detect_current_gripper</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GripperDetection</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> GripperDetection(frame, z_offset), falling back to (flange, 0.0). This is frame availability, not a physical attachment sensor.</p>
+<p><strong>Errors:</strong> No local exception handler. Each can_transform check may wait up to one second.</p>
+<p><strong>Side effects:</strong> Reads configured tip frames, queries TF in order, and logs the fallback.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-54c9b124a12789a9"><code>VisionEngine._move_to_approach</code></a> — beambot.vision.vision_engine</li><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-c65f5137adf6ffce"><code>VisionEngine.compute_approach_pose</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-z-offset-for-frame">
+<span id="api-c122d9b2285b7e81"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._z_offset_for_frame()</span></code><a class="headerlink" href="#visionengine-z-offset-for-frame" title="Link to this heading"></a></h4>
+<p>Look up the beamline’s vertical offset for a tip frame.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-794">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@staticmethod</span>
+<span class="n">_z_offset_for_frame</span><span class="p">(</span><span class="n">ik_frame</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ik_frame</span></code></p></td>
+<td><p>Configured tip frame name.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Configured float offset in metres, with helper default 0.0 when unavailable.</p>
+<p><strong>Errors:</strong> Delegates fallback/error handling to config_loader.z_offset_for_tip_frame().</p>
+<p><strong>Side effects:</strong> Reads shared beamline configuration through the helper; no model relaunch.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-26c15f3e83efbff8"><code>VisionEngine._detect_current_gripper</code></a> — beambot.vision.vision_engine</li><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-c65f5137adf6ffce"><code>VisionEngine.compute_approach_pose</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-add-collision-object-for-tag">
+<span id="api-b053dc3240453b2f"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._add_collision_object_for_tag()</span></code><a class="headerlink" href="#visionengine-add-collision-object-for-tag" title="Link to this heading"></a></h4>
+<p>Add the configured collision primitive at a detected marker pose. Marker-linked collision objects are experimental.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-802">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_add_collision_object_for_tag</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag_id</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">tag_pose</span><span class="p">:</span> <span class="n">PoseStamped</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>Marker ID used to look up _object_database.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tag_pose</span></code></p></td>
+<td><p>Detected PoseStamped used as the marker frame for the object offset.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; an unconfigured tag returns immediately.</p>
+<p><strong>Errors:</strong> ValueError for unsupported shape/dimension count. Only box with three dimensions and cylinder with two are accepted; service acknowledgement failures propagate.</p>
+<p><strong>Side effects:</strong> Calculates object placement, creates a CollisionObject.ADD message, calls /apply_planning_scene, and logs success after acknowledgement. Cylinder dimensions follow SolidPrimitive order (height, radius).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-156d9cc30c285b1a"><code>VisionEngine._process_detection_result</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-calculate-object-pose">
+<span id="api-5d81a03e2a6ba02b"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._calculate_object_pose()</span></code><a class="headerlink" href="#visionengine-calculate-object-pose" title="Link to this heading"></a></h4>
+<p>Rotate a marker-local offset into the marker pose’s frame while preserving its orientation.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-833">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_calculate_object_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tag_pose</span><span class="p">:</span> <span class="n">PoseStamped</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">PoseStamped</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tag_pose</span></code></p></td>
+<td><p>PoseStamped with the marker position/orientation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">offset</span></code></p></td>
+<td><p>Three-element marker-local XYZ displacement in metres.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> New PoseStamped with translated position; header and orientation are assigned from the input.</p>
+<p><strong>Errors:</strong> No dimension, frame, or finite-value validation; array/quaternion errors propagate.</p>
+<p><strong>Side effects:</strong> Allocates a result and numeric arrays; does not query TF or publish the object.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-b053dc3240453b2f"><code>VisionEngine._add_collision_object_for_tag</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+<section id="visionengine-apply-collision-object">
+<span id="api-2a50653c20b17da7"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionEngine._apply_collision_object()</span></code><a class="headerlink" href="#visionengine-apply-collision-object" title="Link to this heading"></a></h4>
+<p>Submit one world collision-object change and require a successful MoveGroup response.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/vision/vision_engine.py.html#L-857">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_apply_collision_object</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">obj</span><span class="p">:</span> <span class="n">CollisionObject</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">obj</span></code></p></td>
+<td><p>CollisionObject to append to a PlanningScene diff.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None after acknowledgement.</p>
+<p><strong>Errors:</strong> RuntimeError for missing service, a two-second future timeout, absent response, or success=false. Other service/future errors propagate. A timed-out future is not canceled here.</p>
+<p><strong>Side effects:</strong> Calls /apply_planning_scene and waits; can change the planning environment even if later task execution fails.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-vision-vision_engine-py.html#api-b053dc3240453b2f"><code>VisionEngine._add_collision_object_for_tag</code></a> — beambot.vision.vision_engine</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-beambot-vision-motion_target-py.html" class="btn btn-neutral float-left" title="Vision motion targets" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-beambot-action_servers-vision_scan_server-py.html" class="btn btn-neutral float-right" title="Marker scan action server" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

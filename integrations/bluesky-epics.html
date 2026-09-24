@@ -1,0 +1,268 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bluesky and EPICS &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Container images" href="containers.html" />
+    <link rel="prev" title="MCP and the direct agent" href="mcp-agent.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Integrations and deployment</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="mcp-agent.html">MCP and the direct agent</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Bluesky and EPICS</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#files-and-responsibilities">Files and responsibilities</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#goal-and-waiting-behavior">Goal and waiting behavior</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#current-support-boundary">Current support boundary</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#epics-read-utilities">EPICS read utilities</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="containers.html">Container images</a></li>
+<li class="toctree-l2"><a class="reference internal" href="beamlines.html">Beamline adaptation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Integrations and deployment</a></li>
+      <li class="breadcrumb-item active">Bluesky and EPICS</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="bluesky-and-epics">
+<h1>Bluesky and EPICS<a class="headerlink" href="#bluesky-and-epics" title="Link to this heading"></a></h1>
+<p>The Bluesky integration wraps EROBS’s main action as a device with a <code class="docutils literal notranslate"><span class="pre">set()</span></code> method. A <a class="reference external" href="https://blueskyproject.io/bluesky/main/plans.html">Bluesky plan</a> can ask that device to execute task JSON and monitor the returned status. EPICS utilities in the same directory expose individual process variables to ROS through <a class="reference external" href="https://pyepics.github.io/pyepics/overview.html">PyEpics</a>, independently of that action path.</p>
+<section id="files-and-responsibilities">
+<h2>Files and responsibilities<a class="headerlink" href="#files-and-responsibilities" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>File under <code class="docutils literal notranslate"><span class="pre">src/bluesky_ros/</span></code></p></th>
+<th class="head"><p>Responsibility</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../reference/api/modules/src-bluesky_ros-mtc_ophyd_device-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">mtc_ophyd_device.py</span></code></span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MTCExecutionDevice</span></code>: sends a goal and spins until its status completes</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../reference/api/modules/src-bluesky_ros-mtc_ophyd_device_async-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">mtc_ophyd_device_async.py</span></code></span></a></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync</span></code>: handles action callbacks in a background thread</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../reference/api/modules/src-bluesky_ros-simple_mtc_bluesky-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">simple_mtc_bluesky.py</span></code></span></a></p></td>
+<td><p>Small RunEngine integration example</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../reference/api/modules/src-bluesky_ros-pv_to_topic-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">pv_to_topic.py</span></code></span></a></p></td>
+<td><p>Monitor one PV and publish numeric values to ROS</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../reference/api/modules/src-bluesky_ros-pv_service-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">pv_service.py</span></code></span></a></p></td>
+<td><p>Answer a ROS service request with a PV read</p></td>
+</tr>
+</tbody>
+</table>
+<p>This directory is a Python source package, not a colcon package: it has no <code class="docutils literal notranslate"><span class="pre">package.xml</span></code> or setup metadata. Building <code class="docutils literal notranslate"><span class="pre">beambot_interfaces</span></code> supplies the generated action interface but does not install <code class="docutils literal notranslate"><span class="pre">bluesky_ros</span></code> itself.</p>
+<p>From an EROBS checkout, its import parent is <code class="docutils literal notranslate"><span class="pre">src/</span></code>:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span><span class="nb">export</span><span class="w"> </span><span class="nv">PYTHONPATH</span><span class="o">=</span><span class="s2">"</span><span class="nv">$PWD</span><span class="s2">/src</span><span class="si">${</span><span class="nv">PYTHONPATH</span><span class="p">:+:</span><span class="nv">$PYTHONPATH</span><span class="si">}</span><span class="s2">"</span>
+</pre></div>
+</div>
+<p>This command only selects Python source. The host also needs the appropriate ROS environment, generated <code class="docutils literal notranslate"><span class="pre">beambot_interfaces</span></code>, Bluesky and Ophyd dependencies.</p>
+</section>
+<section id="goal-and-waiting-behavior">
+<h2>Goal and waiting behavior<a class="headerlink" href="#goal-and-waiting-behavior" title="Link to this heading"></a></h2>
+<p>Both wrappers target <code class="docutils literal notranslate"><span class="pre">beambot_execution</span></code> and populate <code class="docutils literal notranslate"><span class="pre">MTCExecution.Goal.full_json</span></code>. A string ending in <code class="docutils literal notranslate"><span class="pre">.json</span></code> is treated as a filename and read; other input is treated as raw JSON text. They do not translate individual pick/place actions or rewrite old task schemas. A task file must already satisfy the current <a class="reference internal" href="../reference/tasks.html"><span class="std std-doc">task reference</span></a>.</p>
+<p>Compare <a class="reference internal" href="../reference/api/modules/src-bluesky_ros-mtc_ophyd_device-py.html#api-3caf6ccfae667371"><span class="std std-ref">MTCExecutionDevice.set()</span></a> and <a class="reference internal" href="../reference/api/modules/src-bluesky_ros-mtc_ophyd_device_async-py.html#api-2868a1ac4af9e555"><span class="std std-ref">MTCExecutionDeviceAsync.set()</span></a> when choosing when control returns to the plan:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Wrapper</p></th>
+<th class="head"><p>Waiting behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Synchronous</p></td>
+<td><p>Spins ROS callbacks until the status completes. RunEngine’s <code class="docutils literal notranslate"><span class="pre">wait=False</span></code> does not remove this blocking wait.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Async</p></td>
+<td><p>Waits up to ten seconds for the action server, submits the goal, then starts a background spin thread. The returned status can be monitored while the plan continues.</p></td>
+</tr>
+</tbody>
+</table>
+<p>For illustration, a plan using an already configured async device has this shape:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">bluesky.plan_stubs</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">bps</span>
+
+
+<span class="k">def</span><span class="w"> </span><span class="nf">sample_plan</span><span class="p">(</span><span class="n">robot</span><span class="p">,</span> <span class="n">motor</span><span class="p">,</span> <span class="n">task_file</span><span class="p">,</span> <span class="n">measurement_position</span><span class="p">):</span>
+    <span class="k">yield from</span> <span class="n">bps</span><span class="o">.</span><span class="n">abs_set</span><span class="p">(</span><span class="n">robot</span><span class="p">,</span> <span class="n">task_file</span><span class="p">,</span> <span class="n">wait</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">yield from</span> <span class="n">bps</span><span class="o">.</span><span class="n">mv</span><span class="p">(</span><span class="n">motor</span><span class="p">,</span> <span class="n">measurement_position</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Running this plan executes the supplied robot task, waits for completion, then moves the motor. Supply configured devices and deployment-specific targets.</p>
+</section>
+<section id="current-support-boundary">
+<h2>Current support boundary<a class="headerlink" href="#current-support-boundary" title="Link to this heading"></a></h2>
+<p>End-to-end operation is unverified. The wrappers submit the main JSON action and have the error-handling defects described below.</p>
+<p>Both wrappers reverse the canceled and aborted status labels:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>ROS status</p></th>
+<th class="head"><p>Correct meaning</p></th>
+<th class="head"><p>Wrapper label</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>5</p></td>
+<td><p>Canceled</p></td>
+<td><p>Aborted</p></td>
+</tr>
+<tr class="row-odd"><td><p>6</p></td>
+<td><p>Aborted</p></td>
+<td><p>Canceled</p></td>
+</tr>
+</tbody>
+</table>
+<p>Both branches mark the Bluesky status as failed. The incorrect label affects error diagnosis.</p>
+<p>The synchronous wrapper also ignores the boolean result of its server-availability wait. Rejection, unavailable server, cancellation, aborted action, cleanup and repeated submissions all need integration checks. Check the returned action result as well as the Bluesky status.</p>
+</section>
+<section id="epics-read-utilities">
+<h2>EPICS read utilities<a class="headerlink" href="#epics-read-utilities" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">pv_to_topic.py</span> <span class="pre">PV_NAME</span></code> calls <code class="docutils literal notranslate"><span class="pre">epics.camonitor()</span></code> and publishes changes as <code class="docutils literal notranslate"><span class="pre">std_msgs/msg/Float64</span></code> on <code class="docutils literal notranslate"><span class="pre">/pv_value</span></code>. Its callback converts the value with <code class="docutils literal notranslate"><span class="pre">float()</span></code>, so the intended input is a numeric PV. It is not a generic mapping for strings, arrays or disconnected values.</p>
+<p><code class="docutils literal notranslate"><span class="pre">pv_service.py</span> <span class="pre">PV_NAME</span></code> offers <code class="docutils literal notranslate"><span class="pre">/get_pv</span></code> using <code class="docutils literal notranslate"><span class="pre">std_srvs/srv/Trigger</span></code>. Each request calls <code class="docutils literal notranslate"><span class="pre">epics.caget()</span></code>, marks success when the result is not <code class="docutils literal notranslate"><span class="pre">None</span></code>, and places the textual value in <code class="docutils literal notranslate"><span class="pre">response.message</span></code>.</p>
+<p>Both names are fixed in the source’s default namespace. Neither utility writes PVs. The local scripts are distinct from <code class="docutils literal notranslate"><span class="pre">docker/epics</span></code>, whose image recipe clones a separate <code class="docutils literal notranslate"><span class="pre">epics_bridge</span></code> branch. Review that branch separately when using the image.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="mcp-agent.html" class="btn btn-neutral float-left" title="MCP and the direct agent" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="containers.html" class="btn btn-neutral float-right" title="Container images" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

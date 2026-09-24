@@ -1,0 +1,279 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task execution &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Batching and caches" href="batching.html" />
+    <link rel="prev" title="Architecture" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Architecture</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Task execution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#accept-and-validate">Accept and validate</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#prepare-moveit">Prepare MoveIt</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#run-the-sequence">Run the sequence</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#plan-a-movement">Plan a movement</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#preview-instead-of-execute">Preview instead of execute</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#return-the-result">Return the result</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="batching.html">Batching and caches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lifecycle.html">Tool and MoveIt lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="perception.html">Perception and vision execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration and deployment boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#from-task-script-to-execution">From task script to execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#main-components">Main components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#process-boundaries">Process boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#explore-the-architecture">Explore the architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Architecture</a></li>
+      <li class="breadcrumb-item active">Task execution</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="task-execution">
+<h1>Task execution<a class="headerlink" href="#task-execution" title="Link to this heading"></a></h1>
+<p>The orchestrator runs a task script from validation through planning, execution, and the final result. Clients submit the JSON in <code class="docutils literal notranslate"><span class="pre">MTCExecution.full_json</span></code> to <code class="docutils literal notranslate"><span class="pre">/beambot_execution</span></code>; the separate <code class="docutils literal notranslate"><span class="pre">dry_run</span></code> field selects a plan-only preview.</p>
+<figure class="architecture-figure">
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="execution diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="execution-title execution-desc">
+<title id="execution-title">Task execution flow</title>
+<desc id="execution-desc">The orchestrator prepares a robot model, processes execution units through MTC or child actions, and returns a final action result.</desc>
+<defs><marker id="execution-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="execution-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="execution-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  SEQUENCE</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">Task execution flow</text><line x1="120" y1="188" x2="120" y2="652" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="380" y1="188" x2="380" y2="652" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="640" y1="188" x2="640" y2="652" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="880" y1="188" x2="880" y2="652" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><line x1="1136" y1="188" x2="1136" y2="652" stroke="#dbe3ee" stroke-width="1.5" stroke-dasharray="6,4"/><rect x="324" y="352" width="844" height="252" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><rect x="324" y="352" width="48" height="24" rx="2" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="348" y="368" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">LOOP</text><text x="440" y="380" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">for each execution unit</text><rect x="376" y="224" width="8" height="416" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="636" y="276" width="8" height="52" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="876" y="416" width="8" height="144" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><rect x="1132" y="464" width="8" height="48" rx="0" fill="#f3f6fb" stroke="#52647a" stroke-width="1" /><line x1="120" y1="224" x2="380" y2="224" stroke="#52647a" stroke-width="1.5" marker-end="url(#execution-arrow)"/><rect x="192.0" y="180" width="112" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="248" y="200" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">JSON GOAL</text><line x1="380" y1="276" x2="640" y2="276" stroke="#52647a" stroke-width="1.5" marker-end="url(#execution-arrow)"/><rect x="444.0" y="232" width="136" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="512" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">ENSURE MODEL</text><line x1="640" y1="328" x2="380" y2="328" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#execution-arrow)"/><rect x="448.0" y="284" width="128" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="512" y="304" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">MODEL READY</text><line x1="380" y1="416" x2="880" y2="416" stroke="#52647a" stroke-width="1.5" marker-end="url(#execution-arrow)"/><rect x="688.0" y="372" width="152" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="764" y="392" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">DISPATCH UNIT</text><line x1="880" y1="464" x2="1136" y2="464" stroke="#52647a" stroke-width="1.5" marker-end="url(#execution-arrow)"/><rect x="928.0" y="420" width="160" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="1008" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">PLAN / EXECUTE</text><line x1="1136" y1="512" x2="880" y2="512" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#execution-arrow)"/><rect x="964.0" y="468" width="88" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="1008" y="488" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">OUTCOME</text><line x1="880" y1="560" x2="380" y2="560" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#execution-arrow)"/><rect x="696.0" y="516" width="128" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="760" y="536" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">UNIT RESULT</text><line x1="380" y1="640" x2="120" y2="640" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#execution-arrow)"/><rect x="180.0" y="596" width="136" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="248" y="616" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">FINAL RESULT</text><rect x="40.0" y="120" width="160" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="120" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Task client</text><text x="120" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">MTCExecution</text><rect x="276.0" y="120" width="208" height="68" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="380" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Orchestrator</text><text x="380" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">validate · group</text><rect x="528.0" y="120" width="224" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="640" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">MoveIt lifecycle</text><text x="640" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">model readiness</text><rect x="776.0" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="880" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Task execution</text><text x="880" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">batch / action</text><rect x="1032.0" y="120" width="208" height="68" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1136" y="152" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">MTC / controllers</text><text x="1136" y="176" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">plan · execute</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Successful motion with fresh planning. Cached replay and dry-run preview change the execution step.</text>
+</svg></div>
+<figcaption><a href="../diagrams/execution.html">Open the full-size diagram</a></figcaption>
+</figure><section id="accept-and-validate">
+<h2>Accept and validate<a class="headerlink" href="#accept-and-validate" title="Link to this heading"></a></h2>
+<p>The orchestrator accepts one goal at a time. It rejects new goals while another sequence is active or the orchestrator is faulted.</p>
+<p><a class="reference internal" href="../reference/api/modules/src-beambot-beambot-core-task_script-py.html#api-b8bca22fbe551621"><span class="std std-ref">parse_task_script()</span></a> prepares the script before MoveIt startup:</p>
+<ol class="arabic simple">
+<li><p>Check the JSON structure, configured <code class="docutils literal notranslate"><span class="pre">start_gripper</span></code>, and nonempty task list.</p></li>
+<li><p>Validate task types, then expand pickup macros into task steps.</p></li>
+<li><p>Check MoveTo target modes, explicitly selected end-effector names, flange offsets, and preview compatibility.</p></li>
+<li><p>Look up missing pose names in the configured registry. Inline poses take precedence.</p></li>
+</ol>
+<p>An invalid task type rejects the whole script before execution. Successful parsing does not guarantee that every pose exists or that a movement is feasible; task servers and planners check those later. See <a class="reference internal" href="../operate/tasks.html"><span class="std std-doc">task scripts</span></a> for the input format.</p>
+</section>
+<section id="prepare-moveit">
+<h2>Prepare MoveIt<a class="headerlink" href="#prepare-moveit" title="Link to this heading"></a></h2>
+<p>The orchestrator asks the lifecycle manager for a MoveIt stack matching <code class="docutils literal notranslate"><span class="pre">start_gripper</span></code>. The manager reuses a healthy matching stack or launches and verifies a replacement. If initialization fails, execution stops before the first step.</p>
+<p><code class="docutils literal notranslate"><span class="pre">start_gripper</span></code> selects the initial tool model; it does not perform a physical tool exchange. Model changes during the sequence follow the <a class="reference internal" href="lifecycle.html"><span class="std std-doc">tool and MoveIt lifecycle</span></a>.</p>
+</section>
+<section id="run-the-sequence">
+<h2>Run the sequence<a class="headerlink" href="#run-the-sequence" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../reference/api/modules/src-beambot-beambot-core-task_batching-py.html#api-6e108160a3047728"><span class="std std-ref">group_into_batches()</span></a> divides the expanded task list into <strong>execution units</strong>. With batching enabled, consecutive <code class="docutils literal notranslate"><span class="pre">moveto</span></code> and <code class="docutils literal notranslate"><span class="pre">end_effector</span></code> steps share one MTC task. Every other task forms its own unit. With batching disabled, each step is a separate unit.</p>
+<p>Before each unit, the orchestrator checks cancellation, pending pause, and whether its MoveIt subprocess is still running. A <code class="docutils literal notranslate"><span class="pre">pause</span></code> task waits for Resume or cancellation. Pause and cancellation do not interrupt an active unit; see <a class="reference internal" href="../operate/controls.html"><span class="std std-doc">execution controls</span></a>. A unit that fails while cancellation is pending faults the orchestrator.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Task</p></th>
+<th class="head"><p>Execution route</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Batched MoveTo and end-effector steps</p></td>
+<td><p>Stage builders run inside the orchestrator and form one MTC task</p></td>
+</tr>
+<tr class="row-odd"><td><p>Unbatched MoveTo or end-effector step</p></td>
+<td><p>Its ROS action server builds and executes the task</p></td>
+</tr>
+<tr class="row-even"><td><p>Tool exchange</p></td>
+<td><p>The exchange manager coordinates dock/load actions and model changes</p></td>
+</tr>
+<tr class="row-odd"><td><p>Vision task or vision preset</p></td>
+<td><p>The unified vision-task server detects a feature, computes a target, and handles the requested operation</p></td>
+</tr>
+<tr class="row-even"><td><p>Pick/place with <code class="docutils literal notranslate"><span class="pre">use_vision:</span> <span class="pre">false</span></code></p></td>
+<td><p>The sample pick/place server runs the configured non-vision sequence</p></td>
+</tr>
+<tr class="row-odd"><td><p>Vision scan</p></td>
+<td><p>The scan server measures markers and updates its own cache</p></td>
+</tr>
+<tr class="row-even"><td><p>Pipettor</p></td>
+<td><p>The pipettor server forwards the operation to the external driver</p></td>
+</tr>
+</tbody>
+</table>
+<p>The <a class="reference internal" href="../reference/modules.html"><span class="std std-doc">module guide</span></a> links these routes to their implementations. Automatic vacuum-loss checks are currently disabled.</p>
+</section>
+<section id="plan-a-movement">
+<h2>Plan a movement<a class="headerlink" href="#plan-a-movement" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">BaseStages</span></code> creates the MTC task and loads its robot model. <a class="reference internal" href="../reference/api/modules/src-beambot-beambot-stages-move_to_stages-py.html#api-bfce38ed98bd08c6"><span class="std std-ref">MoveToStages.add_to_task()</span></a> builds stages for a named pose, Cartesian target, or relative move.</p>
+<p>Automatic planner selection depends on the target. <a class="reference external" href="https://moveit.picknik.ai/main/doc/how_to_guides/pilz_industrial_motion_planner/pilz_industrial_motion_planner.html">Pilz</a> provides point-to-point motion (<code class="docutils literal notranslate"><span class="pre">PTP</span></code>) and straight-line Cartesian motion (<code class="docutils literal notranslate"><span class="pre">LIN</span></code>):</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>MoveTo target</p></th>
+<th class="head"><p>Automatic fallback order</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Named joint pose or SRDF state</p></td>
+<td><p>PTP → configured planning pipeline</p></td>
+</tr>
+<tr class="row-odd"><td><p>Cartesian target</p></td>
+<td><p>PTP if deterministic inverse kinematics succeeds → LIN → CartesianPath</p></td>
+</tr>
+<tr class="row-even"><td><p>Relative move</p></td>
+<td><p>LIN → CartesianPath → PTP</p></td>
+</tr>
+</tbody>
+</table>
+<p>For Cartesian targets, IK starts from a rounded copy of the current joints, so repeated requests usually pick the same joint solution. PTP moves in joint space, so the tool does not follow a straight line. Set <code class="docutils literal notranslate"><span class="pre">planning_type</span></code> to <code class="docutils literal notranslate"><span class="pre">pilz</span></code> when a straight path matters.</p>
+<p>An omitted <code class="docutils literal notranslate"><span class="pre">planning_type</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;auto&quot;</span></code>, and <code class="docutils literal notranslate"><span class="pre">&quot;joint&quot;</span></code> all select this automatic behavior. The configured pipeline uses STOMP when its parameters are available, otherwise OMPL/RRTstar. Tool exchange and vision build their own motion sequences.</p>
+<p>A successful plan becomes a serialized solution, which the shared execution code submits to MoveIt’s <code class="docutils literal notranslate"><span class="pre">execute_task_solution</span></code> action. Eligible single-batch goals can reuse a stored solution when expanded tasks, resolved poses, model identity, and starting joints match; see <a class="reference internal" href="batching.html"><span class="std std-doc">batching and caches</span></a>.</p>
+</section>
+<section id="preview-instead-of-execute">
+<h2>Preview instead of execute<a class="headerlink" href="#preview-instead-of-execute" title="Link to this heading"></a></h2>
+<p>With <code class="docutils literal notranslate"><span class="pre">dry_run:</span> <span class="pre">true</span></code>, only <code class="docutils literal notranslate"><span class="pre">moveto</span></code> and <code class="docutils literal notranslate"><span class="pre">end_effector</span></code> steps are accepted. The orchestrator still prepares MoveIt and plans the request, then publishes a <code class="docutils literal notranslate"><span class="pre">DisplayTrajectory</span></code> on <code class="docutils literal notranslate"><span class="pre">/beambot/preview_trajectory</span></code> instead of executing it.</p>
+<p>Preview stays inside the orchestrator even when batching is disabled. In that case, each step is planned from the live robot state, rather than the previous step’s planned endpoint. It therefore does not verify the transitions between those steps. See <a class="reference internal" href="batching.html#preview-start-states"><span class="std std-ref">preview start states</span></a>.</p>
+</section>
+<section id="return-the-result">
+<h2>Return the result<a class="headerlink" href="#return-the-result" title="Link to this heading"></a></h2>
+<p>The result reports <code class="docutils literal notranslate"><span class="pre">success</span></code>, <code class="docutils literal notranslate"><span class="pre">error_message</span></code>, <code class="docutils literal notranslate"><span class="pre">completed_steps</span></code>, and <code class="docutils literal notranslate"><span class="pre">total_steps</span></code>. Counts refer to the expanded task list. A failed batch adds no completed steps, even if part of its motion occurred. A cancellation request received during the final unit is checked before reporting success.</p>
+<p>An ordinary task failure aborts the remaining sequence. Child-action waits distinguish server availability, goal acceptance, and completion; timeouts fault the orchestrator and block new goals. Each planned unit must be accepted by the MoveIt executor within 10 s and finish within 120 s. Exceeding either aborts the unit and faults the orchestrator; the error begins with <code class="docutils literal notranslate"><span class="pre">REPLAY_TIMEOUT</span></code> even for a fresh plan. Use <a class="reference internal" href="../operate/controls.html"><span class="std std-doc">execution controls</span></a> to interpret the state and recover.</p>
+<p>Cached replay has one exception to ordinary failure handling: an error other than <code class="docutils literal notranslate"><span class="pre">REPLAY_TIMEOUT</span></code> triggers fresh planning and execution of the entire eligible batch. Earlier effects may repeat. A replay timeout aborts without another dispatch; see <a class="reference internal" href="batching.html#replay-failure-handling"><span class="std std-ref">replay failure handling</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="Architecture" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="batching.html" class="btn btn-neutral float-right" title="Batching and caches" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

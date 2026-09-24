@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Anatomy of a named-move task — EROBS</title>
+<!-- Diagram Design, Cathryn Lavery, MIT; upstream 8d8b2993ee2256ee7dfc0eeb3b5713aba3b60792. Editable HTML is the diagram source.
+Source: examples/named-move.json; beambot/core/task_script.py:351-463; beambot/stages/move_to_stages.py:269-309. -->
+<style>html,body{margin:0;background:#ffffff;color:#18283b;font-family:system-ui, sans-serif}main{min-width:960px;max-width:960px;margin:0 auto}svg{display:block;width:100%;height:auto}@media print{main{max-width:none}}</style></head>
+<body><main><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 904" role="img" aria-labelledby="task-anatomy-title task-anatomy-desc" font-family="system-ui, sans-serif" fill="#18283b">
+<title id="task-anatomy-title">Anatomy of a named-move task</title>
+<desc id="task-anatomy-desc">The complete named-move example has start_gripper none, an inline example_home pose containing six joint angles in degrees, and one moveto task whose target is example_home. Inline pose data takes priority; the parser fills missing names from the registry. If a MoveTo name remains absent, its motion stage tries an SRDF named state. These are illustrative parser inputs, not a validated robot motion.</desc>
+<defs>
+<marker id="task-anatomy-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker>
+<marker id="task-anatomy-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker>
+<marker id="task-anatomy-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker>
+</defs>
+<rect x="0" y="0" width="960" height="904" fill="#ffffff"/>
+<text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS  /  TASK ANATOMY</text>
+<text x="48" y="84" font-size="28" font-weight="600">Anatomy of a named-move task</text>
+<text x="48" y="120" font-size="20" fill="#52647a">One document declares the starting tool, named poses, and ordered work.</text>
+
+<!-- The code is complete JSON, reformatted from examples/named-move.json. -->
+<rect x="48" y="160" width="520" height="468" rx="8" fill="#f3f6fb" stroke="#dbe3ee"/>
+<text x="72" y="192" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">named-move.json</text>
+<line x1="568" y1="252" x2="608" y2="252" stroke="#52647a" stroke-width="1.5"/>
+<line x1="568" y1="340" x2="608" y2="340" stroke="#52647a" stroke-width="1.5"/>
+<line x1="568" y1="492" x2="608" y2="492" stroke="#52647a" stroke-width="1.5"/>
+<g font-family="ui-monospace, monospace" font-size="20">
+<text x="72" y="228">{</text>
+<text x="96" y="256">"start_gripper": "none",</text>
+<text x="96" y="284">"poses": {</text>
+<text x="120" y="312" fill="#235cb7">"example_home":</text>
+<text x="144" y="340">[0, -90, 90, -90, -90, 0]</text>
+<text x="96" y="368">},</text>
+<text x="96" y="396">"tasks": [</text>
+<text x="120" y="424">{</text>
+<text x="144" y="452">"task_type": "moveto",</text>
+<text x="144" y="480">"target": <tspan fill="#235cb7">"example_home"</tspan></text>
+<text x="120" y="508">}</text>
+<text x="96" y="536">]</text>
+<text x="72" y="564">}</text>
+</g>
+<text x="72" y="604" font-size="16" fill="#52647a">The same pose name connects the task to its joint values.</text>
+
+<text x="624" y="232" font-size="20" font-weight="600">Starting tool model</text>
+<text x="624" y="260" font-size="16" fill="#52647a">A key in the beamline’s grippers.</text>
+<text x="624" y="284" font-size="16" fill="#52647a">Declares the already attached tool.</text>
+<text x="624" y="328" font-size="20" font-weight="600">Inline pose values</text>
+<text x="624" y="356" font-size="16" fill="#52647a">Six joint angles, in degrees.</text>
+<text x="624" y="380" font-size="16" fill="#52647a">This example supplies its own pose.</text>
+<text x="624" y="464" font-size="20" font-weight="600">Ordered task list</text>
+<text x="624" y="492" font-size="16" fill="#52647a">One MoveTo step in this example.</text>
+<text x="624" y="516" font-size="16" fill="#52647a">target is a name, not XYZ.</text>
+<text x="624" y="564" font-size="16" fill="#52647a">The list must be nonempty.</text>
+
+<text x="48" y="684" font-size="20" font-weight="600">How a named target is resolved</text>
+<line x1="288" y1="748" x2="336" y2="748" stroke="#52647a" stroke-width="1.5" marker-end="url(#task-anatomy-arrow)"/>
+<line x1="600" y1="748" x2="648" y2="748" stroke="#52647a" stroke-width="1.5" marker-end="url(#task-anatomy-arrow)"/>
+<text x="48" y="728" font-size="20" font-weight="600">1  Inline pose</text>
+<text x="48" y="764" font-size="16" fill="#52647a">Use the document’s value.</text>
+<text x="48" y="788" font-size="16" fill="#52647a">example_home resolves here.</text>
+<text x="360" y="728" font-size="20" font-weight="600">2  Pose registry</text>
+<text x="360" y="764" font-size="16" fill="#52647a">Fill names absent from poses.</text>
+<text x="360" y="788" font-size="16" fill="#52647a">Inline values keep priority.</text>
+<text x="672" y="728" font-size="20" font-weight="600">3  SRDF state</text>
+<text x="672" y="764" font-size="16" fill="#52647a">If still absent, MoveTo tries</text>
+<text x="672" y="788" font-size="16" fill="#52647a">the robot model’s named state.</text>
+<line x1="48" y1="836" x2="912" y2="836" stroke="#dbe3ee"/>
+<text x="48" y="868" font-size="16" fill="#52647a">Illustrative parser input. Parsing does not establish reachability or collision clearance.</text>
+</svg></main></body></html>

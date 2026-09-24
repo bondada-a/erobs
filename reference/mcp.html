@@ -1,0 +1,368 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MCP tool reference &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Launch arguments" href="launch.html" />
+    <link rel="prev" title="ROS action contracts" href="actions.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="modules.html">Module map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/index.html">Function and method reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="actions.html">ROS action contracts</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">MCP tool reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#ping">ping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#stop-robot">stop_robot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-robot-state">get_robot_state</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-vacuum-status">get_vacuum_status</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-saved-poses">get_saved_poses</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#save-pose">save_pose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#delete-pose">delete_pose</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#set-cup-profile">set_cup_profile</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#capture-image">capture_image</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detect-objects">detect_objects</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detect-sample-yolo">detect_sample_yolo</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-point-3d">get_point_3d</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-tf-transform">get_tf_transform</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#get-recent-logs">get_recent_logs</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vision-target">vision_target</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pickup-tip">pickup_tip</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Reference</a></li>
+      <li class="breadcrumb-item active">MCP tool reference</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="mcp-tool-reference">
+<h1>MCP tool reference<a class="headerlink" href="#mcp-tool-reference" title="Link to this heading"></a></h1>
+<p>The custom Beambot server exposes the tools below. The generic ROS MCP server handles general ROS operations, including action submission. A helper that returns task JSON does not itself run that task.</p>
+<p>Most tools return JSON encoded as a string; <code class="docutils literal notranslate"><span class="pre">ping</span></code> returns plain text. Check the returned <code class="docutils literal notranslate"><span class="pre">error</span></code> or <code class="docutils literal notranslate"><span class="pre">available</span></code> fields for operation status. Each entry lists the signature and effects.</p>
+<p>Implementation: <code class="docutils literal notranslate"><span class="pre">src/beambot/mcp_server/beambot_mcp_server.py</span></code>.</p>
+<p>Named path defaults: <code class="docutils literal notranslate"><span class="pre">DEFAULT_IMAGE_PATH</span> <span class="pre">=</span> <span class="pre">'/tmp/beambot_capture.jpg'</span></code>; <code class="docutils literal notranslate"><span class="pre">DEFAULT_ANNOTATED_PATH</span> <span class="pre">=</span> <span class="pre">'/tmp/beambot_detection.jpg'</span></code>.</p>
+<section id="ping">
+<h2>ping<a class="headerlink" href="#ping" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> Connectivity.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">ping</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Returns <code class="docutils literal notranslate"><span class="pre">pong</span></code>; does not initialize the ROS bridge.</p>
+</section>
+<section id="stop-robot">
+<h2>stop_robot<a class="headerlink" href="#stop-robot" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> Execution control.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stop_robot</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Requests cancellation of all orchestrator goals. This is software cancellation, not a hardware emergency stop. It does not interrupt the motion in progress: cancellation takes effect after the active task or batch.</p>
+</section>
+<section id="get-robot-state">
+<h2>get_robot_state<a class="headerlink" href="#get-robot-state" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> ROS observation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_robot_state</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Reports the configured <code class="docutils literal notranslate"><span class="pre">beamline</span></code> name, cached joint positions, gripper, and execution state. With ePick attached and a status received, it also includes <code class="docutils literal notranslate"><span class="pre">vacuum_status</span></code>. <code class="docutils literal notranslate"><span class="pre">system_running</span></code> means joint data has been received, not that every component is healthy. States include <code class="docutils literal notranslate"><span class="pre">RUNNING</span></code>, <code class="docutils literal notranslate"><span class="pre">COMPLETING_TASK</span></code>, <code class="docutils literal notranslate"><span class="pre">PAUSED</span></code>, <code class="docutils literal notranslate"><span class="pre">CANCELING</span></code>, <code class="docutils literal notranslate"><span class="pre">FAULTED</span></code>, and <code class="docutils literal notranslate"><span class="pre">IDLE</span></code>. Joint values are converted to degrees.</p>
+</section>
+<section id="get-vacuum-status">
+<h2>get_vacuum_status<a class="headerlink" href="#get-vacuum-status" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> ROS observation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_vacuum_status</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Reports the latest ePick status and whether any status has arrived. This observation is distinct from the disabled orchestrator vacuum-loss abort path.</p>
+</section>
+<section id="get-saved-poses">
+<h2>get_saved_poses<a class="headerlink" href="#get-saved-poses" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> File read.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_saved_poses</span><span class="p">(</span><span class="nb">filter</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Returns pose names and six-joint degree arrays, optionally filtered by a case-insensitive name substring.</p>
+</section>
+<section id="save-pose">
+<h2>save_pose<a class="headerlink" href="#save-pose" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> File write.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">save_pose</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">joints_deg</span><span class="p">:</span> <span class="nb">list</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">description</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Adds or overwrites a pose. Explicit joints are converted to six numeric degree values; omitted joints are read from the robot. The <code class="docutils literal notranslate"><span class="pre">description</span></code> parameter is accepted but not stored.</p>
+</section>
+<section id="delete-pose">
+<h2>delete_pose<a class="headerlink" href="#delete-pose" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> File write.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">delete_pose</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Removes a named pose from the registry, or returns an error when it is absent.</p>
+</section>
+<section id="set-cup-profile">
+<h2>set_cup_profile<a class="headerlink" href="#set-cup-profile" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> Runtime setting.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_cup_profile</span><span class="p">(</span><span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Sets the orchestrator’s cup_profile ROS parameter. Setting the parameter does not itself rebuild the model. Because the cup profile is part of the model identity, the next ePick goal relaunches MoveIt with the new geometry.</p>
+</section>
+<section id="capture-image">
+<h2>capture_image<a class="headerlink" href="#capture-image" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> Camera operation / file write.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">capture_image</span><span class="p">(</span>
+    <span class="n">camera</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'zivid'</span><span class="p">,</span>
+    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'3d'</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_IMAGE_PATH</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">30.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Triggers Zivid capture or reads the available camera stream; saves an image. For Zivid, both modes call /capture; mode=3d additionally waits for a point cloud. Other mode strings skip that wait; they do not select the separate 2D capture service. Camera support still depends on the deployed driver.</p>
+</section>
+<section id="detect-objects">
+<h2>detect_objects<a class="headerlink" href="#detect-objects" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> Image analysis / file write.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">detect_objects</span><span class="p">(</span>
+    <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'hsv_color'</span><span class="p">,</span>
+    <span class="n">camera</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'zivid'</span><span class="p">,</span>
+    <span class="n">hue_low</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span>
+    <span class="n">hue_high</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">130</span><span class="p">,</span>
+    <span class="n">sat_min</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
+    <span class="n">val_min</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">80</span><span class="p">,</span>
+    <span class="n">min_area</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">200</span><span class="p">,</span>
+    <span class="n">marker_ids</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+    <span class="n">yolo_model</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'yolov8n.pt'</span><span class="p">,</span>
+    <span class="n">yolo_confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.25</span><span class="p">,</span>
+    <span class="n">yolo_classes</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+    <span class="n">transform_to_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="n">DEFAULT_ANNOTATED_PATH</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Processes the last image using HSV, ArUco, or YOLO detection and writes an annotated image when something is detected. The cached RGB image is converted to BGR before YOLO inference. Optional 3D conversion uses the point cloud and TF. This does not submit a motion task.</p>
+</section>
+<section id="detect-sample-yolo">
+<h2>detect_sample_yolo<a class="headerlink" href="#detect-sample-yolo" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> Image analysis / file write.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">detect_sample_yolo</span><span class="p">(</span>
+    <span class="n">camera</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'zivid'</span><span class="p">,</span>
+    <span class="n">confidence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'/tmp/sample_detection_yolo.jpg'</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Runs the sample detector on the last image, derives available 3D coordinates, and writes an annotation. Requires its model and camera data.</p>
+</section>
+<section id="get-point-3d">
+<h2>get_point_3d<a class="headerlink" href="#get-point-3d" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> Point-cloud analysis / file write / optional UI.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_point_3d</span><span class="p">(</span>
+    <span class="n">pixel_x</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">pixel_y</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">camera</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'zivid'</span><span class="p">,</span>
+    <span class="n">transform_to_base</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">search_radius</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span>
+    <span class="n">confirm</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">True</span><span class="p">,</span>
+    <span class="n">save_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'/tmp/beambot_point3d.jpg'</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Looks up a pixel in the last point cloud, optionally confirms selection in a UI, and can transform to base_link. A successful lookup saves an annotated image to save_path, including when confirm=False. Search radius supports finding a nearby valid point; no robot movement is submitted.</p>
+</section>
+<section id="get-tf-transform">
+<h2>get_tf_transform<a class="headerlink" href="#get-tf-transform" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> ROS observation.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_tf_transform</span><span class="p">(</span>
+    <span class="n">source_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'flange'</span><span class="p">,</span>
+    <span class="n">target_frame</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'base_link'</span><span class="p">,</span>
+    <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">2.0</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Returns translation, quaternion, degree RPY, and a 4×4 matrix for source_frame → target_frame. The default source is flange; do not interchange flange and tool0 orientation conventions.</p>
+</section>
+<section id="get-recent-logs">
+<h2>get_recent_logs<a class="headerlink" href="#get-recent-logs" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> File read.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">get_recent_logs</span><span class="p">(</span><span class="n">severity</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">'ERROR'</span><span class="p">,</span> <span class="n">logger</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">,</span> <span class="n">count</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">30</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Filters the tail of /tmp/beambot_launch.log by severity and logger prefix. Returns newest matching records first. A different launch method may not create this file.</p>
+</section>
+<section id="vision-target">
+<h2>vision_target<a class="headerlink" href="#vision-target" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> Task builder.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">vision_target</span><span class="p">(</span>
+    <span class="n">target_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">element_index</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
+    <span class="n">row</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">col</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+    <span class="n">tag_id</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Returns task_json for a configured offset or grid target. It does not execute it. Grid indices are zero-based; explicit row and column take precedence over element_index. Grid validation and expansion use the same helper as pickup task macros.</p>
+</section>
+<section id="pickup-tip">
+<h2>pickup_tip<a class="headerlink" href="#pickup-tip" title="Link to this heading"></a></h2>
+<p><strong>Effect:</strong> Task builder.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pickup_tip</span><span class="p">(</span><span class="n">tip_index</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">row</span><span class="p">:</span> <span class="nb">int</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span> <span class="n">col</span><span class="p">:</span> <span class="nb">int</span><span class="o">=-</span><span class="mi">1</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p>Builds a tip_rack task using vision_target’s helper. The MCP request and parser macro use different interfaces but share grid expansion. It does not execute the returned JSON.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="actions.html" class="btn btn-neutral float-left" title="ROS action contracts" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="launch.html" class="btn btn-neutral float-right" title="Launch arguments" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,363 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Callback timing reports &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Motion planning" href="../subsystems/motion-planning.html" />
+    <link rel="prev" title="Traced task runner" href="src-beambot-scripts-perf_trace_run-sh.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-task_script-py.html">Task parsing and validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-task_batching-py.html">Task batching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-orchestrator-py.html">Task orchestrator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-base_action_server-py.html">Shared action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-capture_octomap-py.html">Mapping capture sequence</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-perf_trace_run-sh.html">Traced task runner</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Callback timing reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/task-execution.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/task-execution.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/task-execution.html">Task execution</a></li>
+      <li class="breadcrumb-item active">Callback timing reports</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="callback-timing-reports">
+<h1>Callback timing reports<a class="headerlink" href="#callback-timing-reports" title="Link to this heading"></a></h1>
+<p>Generate Markdown timing reports from recorded ROS callback traces using pandas and tracetools_analysis.</p>
+<p><code class="docutils literal notranslate"><span class="pre">src.beambot.scripts.perf_trace_summarize</span></code> · <a href="../../../api-source/src/beambot/scripts/perf_trace_summarize.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/task-execution.html"><span class="std std-doc">Task execution</span></a> · <a class="reference internal" href="../../../architecture/execution.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">main()</span></code> to read an existing ros2_tracing CTF directory and produce a Markdown report. <code class="docutils literal notranslate"><span class="pre">collect_callback_stats()</span></code> builds the underlying table; the other helpers format the report. No robot or ROS node is started by this script.</p>
+<p>Interpret the values as callback execution durations and cumulative callback time. They are not message transport latency or end-to-end task duration; overlapping callbacks can contribute time concurrently.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-dadbf45ac6759f74"><span class="std std-ref">main</span></a></p></td>
+<td><p>Load a CTF trace, compute callback statistics and emit top cumulative-time callbacks, p95 callbacks with at least three samples, and owner rollups.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-4feacbff21862933"><span class="std std-ref">collect_callback_stats</span></a></p></td>
+<td><p>For callback objects present in the trace instances table, collect duration statistics and resolve symbols/owners with fallbacks for missing registration data.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<p>From a sourced workspace, summarise an existing trace:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>ros2<span class="w"> </span>run<span class="w"> </span>beambot<span class="w"> </span>perf_trace_summarize.py<span class="w"> </span>trace_session<span class="w"> </span>--out<span class="w"> </span>report.md
+</pre></div>
+</div>
+<p>The report lists the top 20 entries in each table by default. <code class="docutils literal notranslate"><span class="pre">--out</span></code> replaces an existing report at that path.</p>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="main">
+<span id="api-dadbf45ac6759f74"></span><h3><code class="docutils literal notranslate"><span class="pre">main()</span></code><a class="headerlink" href="#main" title="Link to this heading"></a></h3>
+<p>Load a CTF trace, compute callback statistics and emit top cumulative-time callbacks, p95 callbacks with at least three samples, and owner rollups.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/scripts/perf_trace_summarize.py.html#L-105">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">main</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> 0 after report output, 1 for no callback data, 2 for missing trace path.</p>
+<p><strong>Errors:</strong> Trace load/process and report-write errors propagate; argparse handles CLI syntax. –top is not range-checked and inherits pandas.head behavior.</p>
+<p><strong>Side effects:</strong> Reads trace files, prints progress to stderr and writes Markdown to stdout or overwrites –out.</p>
+</section>
+<section id="collect-callback-stats">
+<span id="api-4feacbff21862933"></span><h3><code class="docutils literal notranslate"><span class="pre">collect_callback_stats()</span></code><a class="headerlink" href="#collect-callback-stats" title="Link to this heading"></a></h3>
+<p>For callback objects present in the trace instances table, collect duration statistics and resolve symbols/owners with fallbacks for missing registration data.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/scripts/perf_trace_summarize.py.html#L-36">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_callback_stats</span><span class="p">(</span><span class="n">util</span><span class="p">:</span> <span class="n">Ros2DataModelUtil</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">util</span></code></p></td>
+<td><p>Ros2DataModelUtil with callback_instances, callback_symbols, duration and owner lookup support.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> DataFrame with symbol, owner, count, mean_s, p50_s, p95_s, max_s, total_s; all duration columns are seconds. No valid callbacks yields an empty DataFrame without fixed columns.</p>
+<p><strong>Errors:</strong> Duration lookup Exceptions skip that callback; missing symbol KeyError/AttributeError uses a synthetic name; owner lookup Exceptions use (unknown). Duration conversion/aggregation errors propagate.</p>
+<p><strong>Side effects:</strong> Reads trace data and allocates a DataFrame; no ROS runtime work.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-scripts-perf_trace_summarize-py.html#api-dadbf45ac6759f74"><code>main</code></a> — src.beambot.scripts.perf_trace_summarize</li></ul></details></section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="format-duration">
+<span id="api-d704f8dab18117c5"></span><h4><code class="docutils literal notranslate"><span class="pre">format_duration()</span></code><a class="headerlink" href="#format-duration" title="Link to this heading"></a></h4>
+<p>Convert a timedelta or numeric seconds into microseconds below one millisecond, milliseconds below one second, otherwise seconds.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/scripts/perf_trace_summarize.py.html#L-23">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">format_duration</span><span class="p">(</span><span class="n">td</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">Timedelta</span> <span class="o">|</span> <span class="n">np</span><span class="o">.</span><span class="n">timedelta64</span> <span class="o">|</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">td</span></code></p></td>
+<td><p>pandas.Timedelta, NumPy timedelta64 or float-convertible seconds.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Formatted string: one decimal for us, two for ms or s. Negative values also follow the us branch.</p>
+<p><strong>Errors:</strong> Invalid timedelta/numeric conversion errors propagate; no finite-value validation.</p>
+<p><strong>Side effects:</strong> Pure formatting.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">assert</span> <span class="n">format_duration</span><span class="p">(</span><span class="mf">0.00025</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"250.0 us"</span>
+<span class="k">assert</span> <span class="n">format_duration</span><span class="p">(</span><span class="mf">0.25</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"250.00 ms"</span>
+<span class="k">assert</span> <span class="n">format_duration</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"2.00 s"</span>
+</pre></div>
+</div>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-scripts-perf_trace_summarize-py.html#api-dadbf45ac6759f74"><code>main</code></a> — src.beambot.scripts.perf_trace_summarize</li><li><a href="src-beambot-scripts-perf_trace_summarize-py.html#api-effcc6ae93ea4274"><code>md_table</code></a> — src.beambot.scripts.perf_trace_summarize</li></ul></details></section>
+<section id="truncate">
+<span id="api-6c6d99fc48a782a1"></span><h4><code class="docutils literal notranslate"><span class="pre">truncate()</span></code><a class="headerlink" href="#truncate" title="Link to this heading"></a></h4>
+<p>Preserve text within width, otherwise keep width-1 characters and append a Unicode ellipsis.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/scripts/perf_trace_summarize.py.html#L-80">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">truncate</span><span class="p">(</span><span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">width</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>String to shorten.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">width</span></code></p></td>
+<td><p>Nominal character count; zero/negative widths still return an ellipsis for most nonempty input.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Original or truncated string; character count rather than display-column width.</p>
+<p><strong>Errors:</strong> Nonstring inputs/invalid width types can raise.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">assert</span> <span class="n">truncate</span><span class="p">(</span><span class="s2">"abcdef"</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"abc…"</span>
+<span class="k">assert</span> <span class="n">truncate</span><span class="p">(</span><span class="s2">"abc"</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">==</span> <span class="s2">"abc"</span>
+</pre></div>
+</div>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-scripts-perf_trace_summarize-py.html#api-effcc6ae93ea4274"><code>md_table</code></a> — src.beambot.scripts.perf_trace_summarize</li></ul></details></section>
+<section id="md-table">
+<span id="api-effcc6ae93ea4274"></span><h4><code class="docutils literal notranslate"><span class="pre">md_table()</span></code><a class="headerlink" href="#md-table" title="Link to this heading"></a></h4>
+<p>Render selected DataFrame columns as a Markdown table, formatting float columns ending in _s as durations and truncating headers/text.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/scripts/perf_trace_summarize.py.html#L-86">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">md_table</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">columns</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">,</span> <span class="nb">int</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">df</span></code></p></td>
+<td><p>DataFrame whose rows contain all named source columns.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">columns</span></code></p></td>
+<td><p>Sequence of (column_name, header_text, character_width) tuples.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Markdown table string without a trailing newline. Integer cells are not truncated; pipes/newlines in strings are not escaped.</p>
+<p><strong>Errors:</strong> Missing columns and formatting/type errors propagate.</p>
+<p><strong>Side effects:</strong> Creates text only.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-scripts-perf_trace_summarize-py.html#api-dadbf45ac6759f74"><code>main</code></a> — src.beambot.scripts.perf_trace_summarize</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-scripts-perf_trace_run-sh.html" class="btn btn-neutral float-left" title="Traced task runner" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../subsystems/motion-planning.html" class="btn btn-neutral float-right" title="Motion planning" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

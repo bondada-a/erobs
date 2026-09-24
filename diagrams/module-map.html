@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Where each behavior belongs — EROBS</title>
+<!-- Diagram Design, Cathryn Lavery, MIT; upstream 8d8b2993ee2256ee7dfc0eeb3b5713aba3b60792. Editable HTML is the diagram source.
+Source: src/mtc_gui/mtc_gui/{main_window,ros2_bridge}.py; src/beambot/beambot/action_servers/{orchestrator,base_action_server,vision_task_server}.py; beambot/stages/vision_task_stages.py; beambot/vision/vision_engine.py; beambot/config_loader.py.
+Responsibility map with selected calls; not a complete import graph or strict dependency hierarchy. -->
+<style>html,body{margin:0;background:#ffffff;color:#18283b;font-family:system-ui, sans-serif}main{min-width:960px;max-width:960px;margin:0 auto}svg{display:block;width:100%;height:auto}@media print{main{max-width:none}}</style></head>
+<body><main><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 928" role="img" aria-labelledby="module-map-title module-map-desc">
+<title id="module-map-title">Where each behavior belongs</title>
+<desc id="module-map-desc">The GUI crosses a ROS action boundary into action servers, which compose core helpers and task stages; perception and shared beamline configuration have their own responsibilities and cross-cutting dependencies.</desc>
+<defs><marker id="module-map-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="module-map-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="module-map-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="960" height="928" fill="#ffffff"/>
+<text x="40" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / MODULE MAP</text>
+<text x="40" y="84" font-size="28" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Where each behavior belongs</text>
+<text x="40" y="116" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Find the area responsible for a feature, then follow its module into the reference.</text>
+
+<!-- Selected runtime relationships. -->
+<line x1="320" y1="240" x2="532" y2="240" stroke="#235cb7" stroke-width="1.5" marker-end="url(#module-map-arrow-link)"/>
+<rect x="352" y="200" width="148" height="28" fill="#ffffff"/>
+<text x="428" y="220" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#235cb7">ROS ACTION</text>
+<path d="M 604,312 V 336 Q 604,344 596,344 H 176 Q 168,344 168,352 V 408" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#module-map-arrow)"/>
+<path d="M 728,312 V 368 Q 728,376 720,376 H 480 Q 472,376 472,384 V 408" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#module-map-arrow)"/>
+<line x1="600" y1="504" x2="648" y2="504" stroke="#52647a" stroke-width="1.5" marker-end="url(#module-map-arrow)"/>
+
+<rect x="40" y="164" width="280" height="148" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="200" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">GUI composition</text>
+<text x="60" y="232" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">mtc_gui/</text>
+<text x="60" y="264" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Forms, queue and viewers</text>
+<text x="60" y="292" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">ros2_bridge.py → Qt</text>
+
+<rect x="532" y="164" width="388" height="148" rx="8" fill="#edf3ff" stroke="#235cb7"/>
+<text x="552" y="200" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Action boundaries</text>
+<text x="552" y="232" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/action_servers/</text>
+<text x="552" y="264" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Orchestrator and task servers</text>
+<text x="552" y="292" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Admission, feedback and results</text>
+
+<rect x="40" y="408" width="256" height="224" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="60" y="444" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Execution support</text>
+<text x="60" y="476" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/core/</text>
+<text x="60" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Task parsing and batching</text>
+<text x="60" y="536" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Plan cache and lifecycle</text>
+<text x="60" y="564" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Tool-change coordination</text>
+
+<rect x="344" y="408" width="256" height="224" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="364" y="444" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Task stages</text>
+<text x="364" y="476" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/stages/</text>
+<text x="364" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">MTC task construction</text>
+<text x="364" y="536" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Shared motion helpers</text>
+<text x="364" y="564" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Per-task execution</text>
+
+<rect x="648" y="408" width="272" height="224" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="668" y="444" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Perception &amp; mapping</text>
+<text x="668" y="476" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/vision/</text>
+<text x="668" y="504" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">camera/ · detection/</text>
+<text x="668" y="536" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Capture, detection and TF</text>
+<text x="668" y="564" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Lookup and goal geometry</text>
+<text x="668" y="600" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/mapping/</text>
+
+<rect x="40" y="664" width="880" height="128" rx="8" fill="#f3f6fb" stroke="#52647a"/>
+<text x="60" y="700" font-size="20" font-family="system-ui, sans-serif" font-weight="600" fill="#18283b">Shared beamline configuration</text>
+<text x="60" y="732" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">beambot/config_loader.py + selected beamline YAML</text>
+<text x="60" y="764" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Consumed across launch, GUI, action servers, stages and perception.</text>
+
+<text x="40" y="836" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Selected calls are shown. VisionEngine also inherits BaseStages; these are responsibility groups.</text>
+<line x1="40" y1="868" x2="920" y2="868" stroke="#dbe3ee"/>
+<line x1="40" y1="900" x2="88" y2="900" stroke="#52647a" stroke-width="1.5"/>
+<text x="104" y="904" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Python composition / calls</text>
+<line x1="488" y1="900" x2="536" y2="900" stroke="#235cb7" stroke-width="1.5"/>
+<text x="552" y="904" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">ROS action boundary</text>
+</svg></main></body></html>

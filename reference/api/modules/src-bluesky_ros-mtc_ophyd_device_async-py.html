@@ -1,0 +1,514 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Background Bluesky action device &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="EPICS value service" href="src-bluesky_ros-pv_service-py.html" />
+    <link rel="prev" title="Blocking Bluesky action device" href="src-bluesky_ros-mtc_ophyd_device-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-beambot_client-py.html">Task submission client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-mcp_server-beambot_mcp_server-py.html">MCP robot tools</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-agent-__main__-py.html">Robot agent command line</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-agent-robot_agent-py.html">Robot agent client</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-mtc_ophyd_device-py.html">Blocking Bluesky action device</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Background Bluesky action device</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-pv_service-py.html">EPICS value service</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-bluesky_ros-pv_to_topic-py.html">EPICS value topic</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/clients-integrations.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/clients-integrations.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+      <li class="breadcrumb-item active">Background Bluesky action device</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="background-bluesky-action-device">
+<h1>Background Bluesky action device<a class="headerlink" href="#background-bluesky-action-device" title="Link to this heading"></a></h1>
+<p>Submit orchestrator tasks from Bluesky and process completion in a background ROS thread.</p>
+<p><code class="docutils literal notranslate"><span class="pre">bluesky_ros.mtc_ophyd_device_async</span></code> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/clients-integrations.html"><span class="std std-doc">Clients and integrations</span></a> · <a class="reference internal" href="../../../integrations/index.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>Use <code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync.set()</span></code> when the Bluesky plan should receive a status while ROS callbacks continue in a background thread. Initialize ROS first. The call can still wait up to ten seconds for server discovery before returning; it supports one current goal, not independent overlapping submissions.</p>
+<p>The normal result callback completes the status and stops the thread. <code class="docutils literal notranslate"><span class="pre">stop(success=False)</span></code> requests cancellation while keeping result processing active. As in the blocking wrapper, canceled and aborted status labels are currently reversed, although both report failure.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-2868a1ac4af9e555"><span class="std std-ref">MTCExecutionDeviceAsync.set</span></a></p></td>
+<td><p>Submit a task and start a background thread to process its result. Server discovery can block for ten seconds before the status is returned; prior background spinning is stopped first.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-37fef5216c7e108e"><span class="std std-ref">MTCExecutionDeviceAsync.stop</span></a></p></td>
+<td><p>Request cancellation when <code class="docutils literal notranslate"><span class="pre">success=False</span></code>; leave the task running when <code class="docutils literal notranslate"><span class="pre">success=True</span></code>. Keep processing callbacks until the normal action result arrives.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-793df5d1c78ae0b3"><span class="std std-ref">MTCExecutionDeviceAsync.cancel_goal</span></a></p></td>
+<td><p>Send an asynchronous cancel request for the retained handle and install a logging-only completion callback.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="mtcexecutiondeviceasync">
+<h2><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync</span></code><a class="headerlink" href="#mtcexecutiondeviceasync" title="Link to this heading"></a></h2>
+<p>A ROS node implementing the Bluesky movable interface with one background callback thread and one active execution status.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">Node</span></code>, <code class="docutils literal notranslate"><span class="pre">Movable</span></code>.</p>
+<section id="mtcexecutiondeviceasync-set">
+<span id="api-2868a1ac4af9e555"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync.set()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-set" title="Link to this heading"></a></h3>
+<p>Submit a task and start a background thread to process its result. Server discovery can block for ten seconds before the status is returned; prior background spinning is stopped first.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-90">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_path_or_string</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">json_path_or_string</span></code></p></td>
+<td><p>Task-file path ending in .json or JSON text accepted by the goal builder.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> ActionStatus immediately after send/thread startup, or an already-failed status for server unavailability. It can block during prior-thread join, file read and discovery.</p>
+<p><strong>Errors:</strong> File/build/send errors propagate; server timeout becomes status exception. Does not explicitly cancel the previous goal or reset _goal_handle before replacing current status, so concurrent/repeated use is unsafe.</p>
+<p><strong>Side effects:</strong> May read a file, submit robot tasks, stop/start callback threads and log progress.</p>
+</section>
+<section id="mtcexecutiondeviceasync-stop">
+<span id="api-37fef5216c7e108e"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync.stop()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-stop" title="Link to this heading"></a></h3>
+<p>Request cancellation when <code class="docutils literal notranslate"><span class="pre">success=False</span></code>; leave the task running when <code class="docutils literal notranslate"><span class="pre">success=True</span></code>. Keep processing callbacks until the normal action result arrives.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-250">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">success</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>Keyword-only Boolean: False requests cancellation; True represents normal plan completion and leaves background execution active.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; cancellation return value is ignored.</p>
+<p><strong>Errors:</strong> cancel_goal errors propagate.</p>
+<p><strong>Side effects:</strong> Logs and may send cancel request; does not shut down the node or thread directly.</p>
+</section>
+<section id="mtcexecutiondeviceasync-cancel-goal">
+<span id="api-793df5d1c78ae0b3"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync.cancel_goal()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-cancel-goal" title="Link to this heading"></a></h3>
+<p>Send an asynchronous cancel request for the retained handle and install a logging-only completion callback.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-221">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cancel_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> False if no handle exists, otherwise True once the request is scheduled; does not mean cancellation was accepted.</p>
+<p><strong>Errors:</strong> Request creation errors propagate; completion errors are handled by cancel_done. A completed/stale retained handle is still eligible.</p>
+<p><strong>Side effects:</strong> Requests ROS action cancellation; relies on ongoing ROS spinning and does not itself update the status.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-37fef5216c7e108e"><code>MTCExecutionDeviceAsync.stop</code></a> — bluesky_ros.mtc_ophyd_device_async</li></ul></details></section>
+<section id="mtcexecutiondeviceasync-init">
+<span id="api-0eb1896690b75434"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync.__init__()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-init" title="Link to this heading"></a></h3>
+<p>Initialize a ROS node with Bluesky name/parent attributes, resolve the MTCExecution action type and create a beambot_execution client plus background-spin state and lock.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-30">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="s1">'mtc_executor'</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>ROS node name and Bluesky device name.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kwargs</span></code></p></td>
+<td><p>Additional Node constructor keyword arguments, not Ophyd device arguments.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; active goal/status/futures start None.</p>
+<p><strong>Errors:</strong> ROS/type-resolution/client setup errors propagate; does not call rclpy.init().</p>
+<p><strong>Side effects:</strong> Creates ROS node/client and an in-memory thread lock.</p>
+</section>
+<section id="mtcexecutiondeviceasync-construct-goal-message">
+<span id="api-a6c0f86f935a6df8"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync.construct_goal_message()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-construct-goal-message" title="Link to this heading"></a></h3>
+<p>Populate full_json from a file only when the input is a string ending exactly in .json; otherwise assign the input directly as JSON text.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-50">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">construct_goal_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">json_path_or_string</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">json_path_or_string</span></code></p></td>
+<td><p>String file path with .json suffix or raw JSON string. Path objects are not recognized as paths; no JSON syntax/schema check occurs.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> MTCExecution.Goal with full_json populated.</p>
+<p><strong>Errors:</strong> File errors and ROS message type-assignment errors propagate.</p>
+<p><strong>Side effects:</strong> May read a task file; does not submit it.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-2868a1ac4af9e555"><code>MTCExecutionDeviceAsync.set</code></a> — bluesky_ros.mtc_ophyd_device_async</li></ul></details></section>
+<section id="mtcexecutiondeviceasync-del">
+<span id="api-eb6c5bf9d5fde147"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync.__del__()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-del" title="Link to this heading"></a></h3>
+<p>Invoke the spin-stop helper when the object is finalized.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-272">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__del__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No guard for partially initialized attributes or interpreter teardown; finalizer exceptions may be reported by Python.</p>
+<p><strong>Side effects:</strong> May stop/join callback thread; does not explicitly cancel goals, destroy node or shut down ROS.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="mtcexecutiondeviceasync-spin-in-background">
+<span id="api-33e38b2d48ce17b8"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync._spin_in_background()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-spin-in-background" title="Link to this heading"></a></h4>
+<p>Process ROS callbacks while _spinning is true, stopping once the current status is done or spin_once raises, then clear spin-thread bookkeeping under the lock.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-71">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_spin_in_background</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None after the loop exits.</p>
+<p><strong>Errors:</strong> spin_once Exceptions log and end the thread but do not explicitly fail the status, potentially leaving a pending status.</p>
+<p><strong>Side effects:</strong> Runs ROS callbacks in a daemon thread and resets _spinning/_spin_thread.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-2868a1ac4af9e555"><code>MTCExecutionDeviceAsync.set</code></a> — bluesky_ros.mtc_ophyd_device_async</li></ul></details></section>
+<section id="mtcexecutiondeviceasync-stop-spinning">
+<span id="api-40839ba003d95c0c"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync._stop_spinning()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-stop-spinning" title="Link to this heading"></a></h4>
+<p>Set the stop flag, wait up to one second for another live spin thread, then clear its reference; avoid joining from that same thread.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-135">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_stop_spinning</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No exception catch. Join holds _spin_lock, which the worker also needs for final cleanup; timeout can expire before the thread exits.</p>
+<p><strong>Side effects:</strong> Changes thread bookkeeping and may block one second; does not cancel a goal or destroy ROS resources.</p>
+<details class="api-references"><summary>Referenced in source (4)</summary><ul><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-eb6c5bf9d5fde147"><code>MTCExecutionDeviceAsync.__del__</code></a> — bluesky_ros.mtc_ophyd_device_async</li><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-132f433793cb3da5"><code>MTCExecutionDeviceAsync._goal_response_callback</code></a> — bluesky_ros.mtc_ophyd_device_async</li><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-aa8293cf3d5d19d5"><code>MTCExecutionDeviceAsync._result_callback</code></a> — bluesky_ros.mtc_ophyd_device_async</li><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-2868a1ac4af9e555"><code>MTCExecutionDeviceAsync.set</code></a> — bluesky_ros.mtc_ophyd_device_async</li></ul></details></section>
+<section id="mtcexecutiondeviceasync-feedback-callback">
+<span id="api-406b84cdac63d61e"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync._feedback_callback()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-feedback-callback" title="Link to this heading"></a></h4>
+<p>Log the current step/action, one-decimal progress percentage and status message from MTC feedback.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-146">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_feedback_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feedback_msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">feedback_msg</span></code></p></td>
+<td><p>MTCExecution feedback wrapper with feedback.current_step/current_action/progress_percentage/status_message.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed feedback/logging errors propagate.</p>
+<p><strong>Side effects:</strong> Writes an INFO ROS log.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-2868a1ac4af9e555"><code>MTCExecutionDeviceAsync.set</code></a> — bluesky_ros.mtc_ophyd_device_async</li></ul></details></section>
+<section id="mtcexecutiondeviceasync-goal-response-callback">
+<span id="api-132f433793cb3da5"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync._goal_response_callback()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-goal-response-callback" title="Link to this heading"></a></h4>
+<p>Handle send-future exceptions/rejection by failing status and stopping spinning; otherwise retain the goal and attach the result callback.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-157">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_goal_response_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">future</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">future</span></code></p></td>
+<td><p>Completed asynchronous send-goal future.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Catches future.result Exceptions; malformed/None handles and failures after result retrieval can still propagate.</p>
+<p><strong>Side effects:</strong> Mutates goal/status/future state, logs and may stop the callback thread or invoke failure cancellation.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-2868a1ac4af9e555"><code>MTCExecutionDeviceAsync.set</code></a> — bluesky_ros.mtc_ophyd_device_async</li></ul></details></section>
+<section id="mtcexecutiondeviceasync-result-callback">
+<span id="api-aa8293cf3d5d19d5"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync._result_callback()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-result-callback" title="Link to this heading"></a></h4>
+<p>Translate raw status 4 into success, 5 into a Task aborted exception with server detail, 6 into Task canceled, and other statuses into an Unknown status exception; then stop spinning.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-180">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_result_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">future</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">future</span></code></p></td>
+<td><p>Completed action result future with status and result payload.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; updates the current Ophyd status if one exists.</p>
+<p><strong>Errors:</strong> Catches future.result Exceptions and fails status; subsequent malformed payload/status errors may propagate. Numeric 5/6 labels are reversed relative to ROS 2 standard statuses.</p>
+<p><strong>Side effects:</strong> Logs outcome, changes Ophyd status and stops spinning; failure hooks can request cancellation, while the goal handle remains retained.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-132f433793cb3da5"><code>MTCExecutionDeviceAsync._goal_response_callback</code></a> — bluesky_ros.mtc_ophyd_device_async</li></ul></details></section>
+<section id="mtcexecutiondeviceasync-cancel-goal-cancel-done">
+<span id="api-fddae38475bbc977"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCExecutionDeviceAsync.cancel_goal.cancel_done()</span></code><a class="headerlink" href="#mtcexecutiondeviceasync-cancel-goal-cancel-done" title="Link to this heading"></a></h4>
+<p>Log whether the cancel response contains any goals_canceling entries.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-237">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cancel_done</span><span class="p">(</span><span class="n">future</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">future</span></code></p></td>
+<td><p>Completed cancellation future.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Catches any response/access Exception and logs it.</p>
+<p><strong>Side effects:</strong> Writes logs only; does not change device status or restart spinning.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-793df5d1c78ae0b3"><code>MTCExecutionDeviceAsync.cancel_goal</code></a> — bluesky_ros.mtc_ophyd_device_async</li></ul></details></section>
+</section>
+</section>
+<section id="actionstatus">
+<h2><code class="docutils literal notranslate"><span class="pre">ActionStatus</span></code><a class="headerlink" href="#actionstatus" title="Link to this heading"></a></h2>
+<p>Track an execution result for Ophyd and request cancellation through the device when the status fails.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">DeviceStatus</span></code>.</p>
+<section id="actionstatus-init">
+<span id="api-54dbe914e162e077"></span><h3><code class="docutils literal notranslate"><span class="pre">ActionStatus.__init__()</span></code><a class="headerlink" href="#actionstatus-init" title="Link to this heading"></a></h3>
+<p>Initialize an Ophyd DeviceStatus tied to the ROS action device.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-17">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">device</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">device</span></code></p></td>
+<td><p>Device whose cancel_goal() is called by the failure hook.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">kwargs</span></code></p></td>
+<td><p>Keyword arguments forwarded to DeviceStatus, such as timeout/settle-time options supported by installed Ophyd.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Base DeviceStatus validation/construction errors propagate.</p>
+<p><strong>Side effects:</strong> Creates status bookkeeping; no ROS goal is sent.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-bluesky_ros-mtc_ophyd_device_async-py.html#api-2868a1ac4af9e555"><code>MTCExecutionDeviceAsync.set</code></a> — bluesky_ros.mtc_ophyd_device_async</li></ul></details></section>
+<section id="actionstatus-handle-failure">
+<span id="api-0bf0494cf9f74ea6"></span><h3><code class="docutils literal notranslate"><span class="pre">ActionStatus._handle_failure()</span></code><a class="headerlink" href="#actionstatus-handle-failure" title="Link to this heading"></a></h3>
+<p>Log a debug message and request cancellation through the attached device when Ophyd marks the status failed.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/bluesky_ros/mtc_ophyd_device_async.py.html#L-20">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_handle_failure</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None; cancel_goal return value is discarded.</p>
+<p><strong>Errors:</strong> Cancellation errors propagate; no local catch.</p>
+<p><strong>Side effects:</strong> May send ROS action cancellation asynchronously.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-bluesky_ros-mtc_ophyd_device-py.html" class="btn btn-neutral float-left" title="Blocking Bluesky action device" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-bluesky_ros-pv_service-py.html" class="btn btn-neutral float-right" title="EPICS value service" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

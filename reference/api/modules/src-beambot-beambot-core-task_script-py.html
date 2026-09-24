@@ -1,0 +1,577 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task parsing and validation &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Task batching" href="src-beambot-beambot-core-task_batching-py.html" />
+    <link rel="prev" title="Task execution" href="../subsystems/task-execution.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a><ul class="current">
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Task parsing and validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-task_batching-py.html">Task batching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-orchestrator-py.html">Task orchestrator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-base_action_server-py.html">Shared action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-capture_octomap-py.html">Mapping capture sequence</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-perf_trace_run-sh.html">Traced task runner</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-perf_trace_summarize-py.html">Callback timing reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/task-execution.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/task-execution.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/task-execution.html">Task execution</a></li>
+      <li class="breadcrumb-item active">Task parsing and validation</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="task-parsing-and-validation">
+<h1>Task parsing and validation<a class="headerlink" href="#task-parsing-and-validation" title="Link to this heading"></a></h1>
+<p>Validate task scripts, expand configured grid targets, and resolve named poses. Device readiness, planning, and execution occur later.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.core.task_script</span></code> · <a href="../../../api-source/src/beambot/beambot/core/task_script.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/task-execution.html"><span class="std std-doc">Task execution</span></a> · <a class="reference internal" href="../../../architecture/execution.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>The orchestrator calls <code class="docutils literal notranslate"><span class="pre">parse_task_script()</span></code> before setting up execution. Supply JSON text and the beamline’s gripper, pose-registry, and vision-target settings; it returns <code class="docutils literal notranslate"><span class="pre">(start_gripper,</span> <span class="pre">tasks,</span> <span class="pre">poses_json)</span></code>. The input <code class="docutils literal notranslate"><span class="pre">dry_run</span></code> flag controls validation and is not part of the return value.</p>
+<p><code class="docutils literal notranslate"><span class="pre">expand_grid_target()</span></code> is shared by parser pickup macros and MCP grid-target builders. The motion validators check MoveTo and flange-offset fields at other entry points. These functions do not check reachability, collisions, hardware readiness, or every task-specific field.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-b8bca22fbe551621"><span class="std std-ref">parse_task_script</span></a></p></td>
+<td><p>Parse and validate a task document, expand macros, and fill missing named poses from the registry. Validate start/explicit end-effector names, supported task types, MoveTo/flange offsets, and dry-run restrictions. Unresolved pose names remain for downstream resolution.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-06d9d50b6647ed57"><span class="std std-ref">expand_grid_target</span></a></p></td>
+<td><p>Expand a configured grid target into optional scan motion, marker approach, and relative moves. Return the expanded tasks plus the selected element and row/column displacement metadata.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-25c3f9aa24c48080"><span class="std std-ref">moveto_goal_error</span></a></p></td>
+<td><p>Check that exactly one named, relative or Cartesian target is selected and that planner, direction, distance and Cartesian values satisfy the MoveTo contract.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-0dbdfe4e7a3696b8"><span class="std std-ref">flange_offset_error</span></a></p></td>
+<td><p>Validate either an absent flange-frame offset or a supported direction with a finite positive distance. Booleans are rejected as distances.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<p>This example parses an inline pose without reading a registry or starting ROS. The zero-valued pose illustrates the document structure; it is not an operating pose recommendation. Parsing does not plan or execute motion.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">beambot.core.task_script</span><span class="w"> </span><span class="kn">import</span> <span class="n">parse_task_script</span>
+
+<span class="n">document</span> <span class="o">=</span> <span class="p">{</span>
+    <span class="s2">"start_gripper"</span><span class="p">:</span> <span class="s2">"none"</span><span class="p">,</span>
+    <span class="s2">"poses"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"example_pose"</span><span class="p">:</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">]},</span>
+    <span class="s2">"tasks"</span><span class="p">:</span> <span class="p">[{</span><span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"moveto"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="s2">"example_pose"</span><span class="p">}],</span>
+<span class="p">}</span>
+<span class="n">gripper</span><span class="p">,</span> <span class="n">tasks</span><span class="p">,</span> <span class="n">poses_json</span> <span class="o">=</span> <span class="n">parse_task_script</span><span class="p">(</span>
+    <span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">document</span><span class="p">),</span>
+    <span class="n">dry_run</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+    <span class="n">grippers</span><span class="o">=</span><span class="p">{</span><span class="s2">"none"</span><span class="p">:</span> <span class="p">{}},</span>
+    <span class="n">poses_file</span><span class="o">=</span><span class="s2">"unused.yaml"</span><span class="p">,</span>
+    <span class="n">vision_targets</span><span class="o">=</span><span class="p">{},</span>
+<span class="p">)</span>
+<span class="k">assert</span> <span class="n">gripper</span> <span class="o">==</span> <span class="s2">"none"</span>
+<span class="k">assert</span> <span class="n">tasks</span> <span class="o">==</span> <span class="n">document</span><span class="p">[</span><span class="s2">"tasks"</span><span class="p">]</span>
+<span class="k">assert</span> <span class="n">json</span><span class="o">.</span><span class="n">loads</span><span class="p">(</span><span class="n">poses_json</span><span class="p">)</span> <span class="o">==</span> <span class="n">document</span><span class="p">[</span><span class="s2">"poses"</span><span class="p">]</span>
+</pre></div>
+</div>
+<p>In the orchestrator, the gripper mapping and registry path come from the selected beamline configuration.</p>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="parse-task-script">
+<span id="api-b8bca22fbe551621"></span><h3><code class="docutils literal notranslate"><span class="pre">parse_task_script()</span></code><a class="headerlink" href="#parse-task-script" title="Link to this heading"></a></h3>
+<p>Parse and validate a task document, expand macros, and fill missing named poses from the registry. Validate start/explicit end-effector names, supported task types, MoveTo/flange offsets, and dry-run restrictions. Unresolved pose names remain for downstream resolution.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/beambot/core/task_script.py.html#L-310">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">parse_task_script</span><span class="p">(</span>
+    <span class="n">full_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span>
+    <span class="n">grippers</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">poses_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">vision_targets</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">on_info</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">on_warning</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">full_json</span></code></p></td>
+<td><p>JSON text containing start_gripper, nonempty tasks and optional poses.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dry_run</span></code></p></td>
+<td><p>Restrict expanded tasks to moveto and end_effector when true; used for validation only and not returned.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers</span></code></p></td>
+<td><p>Mapping of accepted start_gripper and explicitly selected end_effector_type names.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_file</span></code></p></td>
+<td><p>YAML registry filename consulted only when referenced names are absent from inline poses.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets</span></code></p></td>
+<td><p>Mapping of vision target configurations used for pickup macros; must be a mapping even without macros.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">on_info</span></code></p></td>
+<td><p>Optional callback announcing resolved registry poses.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">on_warning</span></code></p></td>
+<td><p>Optional callback for registry-read failures.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> (start_gripper, expanded_tasks, poses_json). The caller retains its requested dry_run flag separately.</p>
+<p><strong>Errors:</strong> Raises ValueError for JSON/envelope/task/motion/macro errors, unknown or non-string explicit end_effector_type values, and unsupported dry-run tasks. Pose container shapes and many task-specific fields are not fully validated and may raise downstream Python errors. Callback exceptions propagate.</p>
+<p><strong>Side effects:</strong> May read the poses registry and invoke logging callbacks; modifies only the newly parsed inline pose mapping.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-7101b1b1589d4518"><code>MTCOrchestratorServer._execute</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="expand-grid-target">
+<span id="api-06d9d50b6647ed57"></span><h3><code class="docutils literal notranslate"><span class="pre">expand_grid_target()</span></code><a class="headerlink" href="#expand-grid-target" title="Link to this heading"></a></h3>
+<p>Expand a configured grid target into optional scan motion, marker approach, and relative moves. Return the expanded tasks plus the selected element and row/column displacement metadata.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/core/task_script.py.html#L-141">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">expand_grid_target</span><span class="p">(</span>
+    <span class="n">target_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">vision_targets</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">task</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+    <span class="n">task_path</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">'task'</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">target_name</span></code></p></td>
+<td><p>Grid target key in vision_targets, such as tip_rack or vial_rack.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets</span></code></p></td>
+<td><p>Mapping of target names to grid configurations.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task</span></code></p></td>
+<td><p>Row/col or element_index selection with optional config overrides. task_type=pickup_vial also enables optional SUCK, EXPEL, or RINSE insertion.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">task_path</span></code></p></td>
+<td><p>Label used in validation errors, default task; parser callers pass tasks[index]. It is not a filesystem path.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> (expanded_tasks, element). element contains zero-based row, col, row-major index, and moves mapping col/row to (direction, distance_metres). Axis offsets no larger than 1 micrometre are omitted from the task list but remain in metadata.</p>
+<p><strong>Errors:</strong> Raises ValueError for missing/invalid grid configuration, marker ID, addresses, directions, pitches, offsets, move lists, or vial-operation fields. Pitch defaults to 0.009 m; increasing indices default opposite the configured column/row directions. Vial operations require a final retreat move; RINSE emits SUCK/EXPEL pairs followed by a final SUCK.</p>
+<p><strong>Side effects:</strong> Builds new task and metadata containers without file access, ROS initialization, or motion. The original target/task mappings are not modified.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">beambot.core.task_script</span><span class="w"> </span><span class="kn">import</span> <span class="n">expand_grid_target</span>
+
+<span class="n">targets</span> <span class="o">=</span> <span class="p">{</span><span class="s2">"rack"</span><span class="p">:</span> <span class="p">{</span>
+    <span class="s2">"mode"</span><span class="p">:</span> <span class="s2">"grid"</span><span class="p">,</span> <span class="s2">"marker_id"</span><span class="p">:</span> <span class="mi">4</span><span class="p">,</span>
+    <span class="s2">"grid"</span><span class="p">:</span> <span class="p">{</span><span class="s2">"rows"</span><span class="p">:</span> <span class="mi">2</span><span class="p">,</span> <span class="s2">"cols"</span><span class="p">:</span> <span class="mi">3</span><span class="p">},</span>
+    <span class="s2">"moves"</span><span class="p">:</span> <span class="p">[</span><span class="s2">"column_offset"</span><span class="p">,</span> <span class="s2">"row_offset"</span><span class="p">],</span>
+<span class="p">}}</span>
+<span class="n">tasks</span><span class="p">,</span> <span class="n">element</span> <span class="o">=</span> <span class="n">expand_grid_target</span><span class="p">(</span><span class="s2">"rack"</span><span class="p">,</span> <span class="n">targets</span><span class="p">,</span> <span class="p">{</span><span class="s2">"row"</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">"col"</span><span class="p">:</span> <span class="mi">1</span><span class="p">})</span>
+<span class="k">assert</span> <span class="n">tasks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"vision_moveto"</span><span class="p">,</span> <span class="s2">"tag_id"</span><span class="p">:</span> <span class="mi">4</span><span class="p">}</span>
+<span class="k">assert</span> <span class="n">element</span><span class="p">[</span><span class="s2">"index"</span><span class="p">]</span> <span class="o">==</span> <span class="mi">4</span>
+<span class="k">assert</span> <span class="n">element</span><span class="p">[</span><span class="s2">"moves"</span><span class="p">]</span> <span class="o">==</span> <span class="p">{</span><span class="s2">"col"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"right"</span><span class="p">,</span> <span class="mf">0.009</span><span class="p">),</span> <span class="s2">"row"</span><span class="p">:</span> <span class="p">(</span><span class="s2">"down"</span><span class="p">,</span> <span class="mf">0.009</span><span class="p">)}</span>
+</pre></div>
+</div>
+<p>This example builds task data only. Its grid geometry is illustrative.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-core-task_script-py.html#api-c43b5d3c75234ed2"><code>_expand_task_macros</code></a> — beambot.core.task_script</li><li><a href="src-beambot-mcp_server-beambot_mcp_server-py.html#api-915b46ba2558c00d"><code>_build_vision_target_tasks</code></a> — src.beambot.mcp_server.beambot_mcp_server</li></ul></details></section>
+<section id="moveto-goal-error">
+<span id="api-25c3f9aa24c48080"></span><h3><code class="docutils literal notranslate"><span class="pre">moveto_goal_error()</span></code><a class="headerlink" href="#moveto-goal-error" title="Link to this heading"></a></h3>
+<p>Check that exactly one named, relative or Cartesian target is selected and that planner, direction, distance and Cartesian values satisfy the MoveTo contract.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/core/task_script.py.html#L-54">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">moveto_goal_error</span><span class="p">(</span>
+    <span class="o">*</span><span class="p">,</span>
+    <span class="n">target</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+    <span class="n">direction</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+    <span class="n">distance</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="mf">0.0</span><span class="p">,</span>
+    <span class="n">cartesian_target</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="p">(),</span>
+    <span class="n">planning_type</span><span class="p">:</span> <span class="n">Any</span> <span class="o">=</span> <span class="s1">''</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">target</span></code></p></td>
+<td><p>Named target string; empty selects no named goal.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p>Relative direction alias; empty selects no relative direction.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">distance</span></code></p></td>
+<td><p>Relative travel in metres; must be finite and positive when relative mode is selected.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cartesian_target</span></code></p></td>
+<td><p>Sequence of exactly three XYZ metre values or six XYZ metres plus roll/pitch/yaw degrees; empty selects no Cartesian goal.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">planning_type</span></code></p></td>
+<td><p>Planner selector: empty, auto, joint, cartesian, pilz or pilz_ptp.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None for a valid goal; otherwise the first explanatory error string.</p>
+<p><strong>Errors:</strong> Ordinary invalid scalar/sequence inputs produce messages, not exceptions. Objects with ambiguous truth values or unsupported comparisons can still raise.</p>
+<p><strong>Example</strong></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">beambot.core.task_script</span><span class="w"> </span><span class="kn">import</span> <span class="n">moveto_goal_error</span>
+<span class="k">assert</span> <span class="n">moveto_goal_error</span><span class="p">(</span><span class="n">direction</span><span class="o">=</span><span class="s2">"up"</span><span class="p">,</span> <span class="n">distance</span><span class="o">=</span><span class="mf">0.05</span><span class="p">)</span> <span class="ow">is</span> <span class="kc">None</span>
+<span class="k">assert</span> <span class="s2">"exactly one"</span> <span class="ow">in</span> <span class="n">moveto_goal_error</span><span class="p">()</span>
+</pre></div>
+</div>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-core-task_script-py.html#api-b8bca22fbe551621"><code>parse_task_script</code></a> — beambot.core.task_script</li><li><a href="src-beambot-beambot-stages-move_to_stages-py.html#api-bfce38ed98bd08c6"><code>MoveToStages.add_to_task</code></a> — beambot.stages.move_to_stages</li></ul></details></section>
+<section id="flange-offset-error">
+<span id="api-0dbdfe4e7a3696b8"></span><h3><code class="docutils literal notranslate"><span class="pre">flange_offset_error()</span></code><a class="headerlink" href="#flange-offset-error" title="Link to this heading"></a></h3>
+<p>Validate either an absent flange-frame offset or a supported direction with a finite positive distance. Booleans are rejected as distances.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/beambot/beambot/core/task_script.py.html#L-91">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">flange_offset_error</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">direction</span><span class="p">:</span> <span class="n">Any</span><span class="o">=</span><span class="s1">''</span><span class="p">,</span> <span class="n">distance</span><span class="p">:</span> <span class="n">Any</span><span class="o">=</span><span class="mf">0.0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p>Direction alias; empty is valid only with zero distance.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">distance</span></code></p></td>
+<td><p>Offset distance in metres; zero denotes absence when direction is empty.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None when absent or valid; otherwise the first explanatory error string.</p>
+<p><strong>Errors:</strong> No explicit exceptions for normal malformed inputs; reports them as strings.</p>
+<details class="api-references"><summary>Referenced in source (4)</summary><ul><li><a href="src-beambot-beambot-core-task_script-py.html#api-b8bca22fbe551621"><code>parse_task_script</code></a> — beambot.core.task_script</li><li><a href="src-beambot-beambot-stages-pick_sample_stages-py.html#api-443489d0b5aceebd"><code>PickSampleStages.run</code></a> — beambot.stages.pick_sample_stages</li><li><a href="src-beambot-beambot-stages-place_sample_stages-py.html#api-b900eaf4301d8b33"><code>PlaceSampleStages.run</code></a> — beambot.stages.place_sample_stages</li><li><a href="src-beambot-beambot-stages-vision_task_stages-py.html#api-bf1ff32a636bc214"><code>VisionTaskStages.run</code></a> — beambot.stages.vision_task_stages</li></ul></details></section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="load-poses-registry">
+<span id="api-897119f93e497147"></span><h4><code class="docutils literal notranslate"><span class="pre">_load_poses_registry()</span></code><a class="headerlink" href="#load-poses-registry" title="Link to this heading"></a></h4>
+<p>Load an existing YAML pose registry, treating unavailable or unreadable content as a nonfatal lookup failure.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/task_script.py.html#L-106">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_poses_registry</span><span class="p">(</span>
+    <span class="n">poses_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">on_warning</span><span class="p">:</span> <span class="n">Callable</span><span class="p">[[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses_file</span></code></p></td>
+<td><p>YAML filename; a nonexistent regular file yields an empty mapping.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">on_warning</span></code></p></td>
+<td><p>Optional callback receiving a warning when opening or parsing fails.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Parsed truthy YAML value, or {} for a missing, empty or failed registry. The root type is not checked here.</p>
+<p><strong>Errors:</strong> Catches read/parse exceptions; a warning callback that raises still propagates.</p>
+<p><strong>Side effects:</strong> Checks and reads a file; may invoke the warning callback.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-task_script-py.html#api-b8bca22fbe551621"><code>parse_task_script</code></a> — beambot.core.task_script</li></ul></details></section>
+<section id="finite-number">
+<span id="api-6d907311d7f0e4f8"></span><h4><code class="docutils literal notranslate"><span class="pre">_finite_number()</span></code><a class="headerlink" href="#finite-number" title="Link to this heading"></a></h4>
+<p>Reject booleans, non-real values, infinities, NaN and, optionally, zero or negatives before float conversion.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/task_script.py.html#L-121">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_finite_number</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">positive</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">value</span></code></p></td>
+<td><p>Value to validate.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">path</span></code></p></td>
+<td><p>Human-readable field path used in the error.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">positive</span></code></p></td>
+<td><p>Require greater than zero when true.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Validated value converted to float.</p>
+<p><strong>Errors:</strong> Raises ValueError naming the field when validation fails.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-task_script-py.html#api-06d9d50b6647ed57"><code>expand_grid_target</code></a> — beambot.core.task_script</li></ul></details></section>
+<section id="positive-int">
+<span id="api-ea839872af24020a"></span><h4><code class="docutils literal notranslate"><span class="pre">_positive_int()</span></code><a class="headerlink" href="#positive-int" title="Link to this heading"></a></h4>
+<p>Require a Python integer greater than zero, explicitly excluding booleans.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/task_script.py.html#L-128">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_positive_int</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">value</span></code></p></td>
+<td><p>Value to validate.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">path</span></code></p></td>
+<td><p>Human-readable field path used in the error.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> The original positive integer.</p>
+<p><strong>Errors:</strong> Raises ValueError for zero, negatives, booleans and non-integers.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-task_script-py.html#api-06d9d50b6647ed57"><code>expand_grid_target</code></a> — beambot.core.task_script</li></ul></details></section>
+<section id="grid-direction">
+<span id="api-37ff4574b13c9f67"></span><h4><code class="docutils literal notranslate"><span class="pre">_grid_direction()</span></code><a class="headerlink" href="#grid-direction" title="Link to this heading"></a></h4>
+<p>Validate the six word-based grid directions used by pickup macro moves.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/task_script.py.html#L-134">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_grid_direction</span><span class="p">(</span><span class="n">value</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">path</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">value</span></code></p></td>
+<td><p>Expected forward, backward, left, right, up or down.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">path</span></code></p></td>
+<td><p>Human-readable field path used in the error.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> The accepted direction string.</p>
+<p><strong>Errors:</strong> Raises ValueError listing allowed directions for invalid values.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-task_script-py.html#api-06d9d50b6647ed57"><code>expand_grid_target</code></a> — beambot.core.task_script</li></ul></details></section>
+<section id="expand-task-macros">
+<span id="api-c43b5d3c75234ed2"></span><h4><code class="docutils literal notranslate"><span class="pre">_expand_task_macros()</span></code><a class="headerlink" href="#expand-task-macros" title="Link to this heading"></a></h4>
+<p>Expand recognized pickup macros in order and shallow-copy all other task dictionaries.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/core/task_script.py.html#L-295">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_expand_task_macros</span><span class="p">(</span>
+    <span class="n">tasks</span><span class="p">:</span> <span class="n">Sequence</span><span class="p">[</span><span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">vision_targets</span><span class="p">:</span> <span class="n">Mapping</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tasks</span></code></p></td>
+<td><p>Validated task mappings with task_type fields.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets</span></code></p></td>
+<td><p>Rack configurations forwarded to pickup expansion.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Flat list of tasks with macros replaced by their executable steps.</p>
+<p><strong>Errors:</strong> Macro validation errors propagate; missing task_type raises KeyError.</p>
+<p><strong>Side effects:</strong> None; nested values in copied non-macro tasks remain shared.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-core-task_script-py.html#api-b8bca22fbe551621"><code>parse_task_script</code></a> — beambot.core.task_script</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../subsystems/task-execution.html" class="btn btn-neutral float-left" title="Task execution" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-beambot-core-task_batching-py.html" class="btn btn-neutral float-right" title="Task batching" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

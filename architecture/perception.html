@@ -1,0 +1,293 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Perception and vision execution &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Configuration and deployment boundaries" href="configuration.html" />
+    <link rel="prev" title="Tool and MoveIt lifecycle" href="lifecycle.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Architecture</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="execution.html">Task execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="batching.html">Batching and caches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lifecycle.html">Tool and MoveIt lifecycle</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Perception and vision execution</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#task-flow">Task flow</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#detection-and-camera-capture">Detection and camera capture</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#capture-time-and-coordinates">Capture time and coordinates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#goal-computation-and-execution">Goal computation and execution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#cartesian-approach">Cartesian approach</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#spincoater-alignment">Spincoater alignment</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#execution-limits">Execution limits</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#separate-scan-and-mapping-paths">Separate scan and mapping paths</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration and deployment boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#from-task-script-to-execution">From task script to execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#main-components">Main components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#process-boundaries">Process boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#explore-the-architecture">Explore the architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Architecture</a></li>
+      <li class="breadcrumb-item active">Perception and vision execution</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="perception-and-vision-execution">
+<h1>Perception and vision execution<a class="headerlink" href="#perception-and-vision-execution" title="Link to this heading"></a></h1>
+<p>EROBS uses camera measurements to calculate an approach pose or align a tool with a detected feature. Vision-enabled task presets run through the unified vision-task server: <strong>prepare → detect → calculate a target → execute → report</strong>.</p>
+<p>For task selection and examples, see <a class="reference internal" href="../operate/vision.html"><span class="std std-doc">vision-guided tasks</span></a>. This page explains how those requests run inside EROBS.</p>
+<section id="task-flow">
+<h2>Task flow<a class="headerlink" href="#task-flow" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../reference/api/modules/src-beambot-beambot-action_servers-vision_task_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">action_servers/vision_task_server.py</span></code></span></a> receives <code class="docutils literal notranslate"><span class="pre">/beambot_vision_task</span></code> goals and delegates to <a class="reference internal" href="../reference/api/modules/src-beambot-beambot-stages-vision_task_stages-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">stages/vision_task_stages.py</span></code></span></a>. Paths on this page are relative to <code class="docutils literal notranslate"><span class="pre">src/beambot/beambot/</span></code> unless stated otherwise.</p>
+<ol class="arabic simple">
+<li><p><strong>Prepare.</strong> Check flange offsets and sample-ROI settings. If <code class="docutils literal notranslate"><span class="pre">scan_pose</span></code> is set, perform any requested gripper pre-opening and move there. Allow the arm to settle before detection.</p></li>
+<li><p><strong>Detect.</strong> Select the requested detector and obtain a marker pose, sample pickup point, or spincoater angle. Multi-position marker detection can add scan movements here.</p></li>
+<li><p><strong>Calculate a target.</strong> Convert the measurement into a Cartesian pose or six-joint configuration. With <code class="docutils literal notranslate"><span class="pre">approach_pose</span></code> and <code class="docutils literal notranslate"><span class="pre">detect_only</span></code>, return the calculated pose instead.</p></li>
+<li><p><strong>Execute.</strong> Build and run the motion, including any requested gripper operation or retreat.</p></li>
+<li><p><strong>Report.</strong> Return success or an error. A failed stage stops the remaining sequence.</p></li>
+</ol>
+<figure class="architecture-figure">
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="vision diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="vision-title vision-desc">
+<title id="vision-title">Vision turns a detection into a motion target</title>
+<desc id="vision-desc">A vision task prepares the scan, runs its detector and goal computer, optionally executes a Cartesian or joint target, and reports a result.</desc>
+<defs><marker id="vision-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="vision-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="vision-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  DATA FLOW</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">Vision turns a detection into a motion target</text><rect x="48" y="160" width="1184" height="104" rx="0" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="64" y="216" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">PREPARATION</text><rect x="48" y="264" width="1184" height="104" rx="0" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="64" y="320" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">PERCEPTION</text><rect x="48" y="368" width="1184" height="104" rx="0" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="64" y="424" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">MOTION</text><rect x="48" y="472" width="1184" height="104" rx="0" fill="#ffffff" stroke="#dbe3ee" stroke-width="1" /><text x="64" y="528" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">RESULT</text><rect x="256" y="112" width="40" height="24" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="276" y="128" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">01</text><text x="276" y="152" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">PREPARE</text><rect x="464" y="112" width="40" height="24" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="484" y="128" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">02</text><text x="484" y="152" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">DETECT</text><rect x="672" y="112" width="40" height="24" rx="4" fill="#edf3ff" stroke="#dbe3ee" stroke-width="1" /><text x="692" y="128" font-size="16" font-family="ui-monospace, monospace" fill="#235cb7" text-anchor="middle" font-weight="400">03</text><text x="692" y="152" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">TARGET</text><rect x="880" y="112" width="40" height="24" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="900" y="128" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">04</text><text x="900" y="152" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">EXECUTE</text><rect x="1088" y="112" width="40" height="24" rx="4" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="1108" y="128" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">05</text><text x="1108" y="152" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">REPORT</text><line x1="176" y1="160" x2="176" y2="576" stroke="#dbe3ee" stroke-width="1.5"/><path d="M 368,208 H 476 Q 484,208 484,216 V 272" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#vision-arrow)"/><line x1="576" y1="312" x2="600" y2="312" stroke="#52647a" stroke-width="1.5" marker-end="url(#vision-arrow)"/><path d="M 784,344 H 892 Q 900,344 900,352 V 376" fill="none" stroke="#235cb7" stroke-width="1.5" marker-end="url(#vision-arrow-accent)"/><rect x="800.0" y="300" width="80" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="840" y="320" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">TARGET</text><path d="M 992,416 H 1072 Q 1080,416 1080,424 V 480" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#vision-arrow)"/><path d="M 784,280 H 1140 Q 1148,280 1148,288 V 480" fill="none" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#vision-arrow)"/><rect x="184" y="168" width="184" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="276" y="196" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Prepare scan</text><text x="276" y="220" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">open / move</text><text x="276" y="244" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">optional</text><rect x="392" y="272" width="184" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="484" y="300" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Detector</text><text x="484" y="324" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">image / cached</text><text x="484" y="348" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">pose</text><rect x="600" y="272" width="184" height="88" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="692" y="300" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Goal computer</text><text x="692" y="324" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">pose / joints</text><text x="692" y="348" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">or return pose</text><rect x="808" y="376" width="184" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="900" y="404" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">MTC execution</text><text x="900" y="428" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">Cartesian /</text><text x="900" y="452" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">joints</text><rect x="1016" y="480" width="184" height="88" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1108" y="508" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Action result</text><text x="1108" y="532" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">pose · success ·</text><text x="1108" y="556" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">error</text><text x="184" y="616" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Solid: normal data handoff</text><line x1="496" y1="612" x2="536" y2="612" stroke="#52647a" stroke-width="1.5" stroke-dasharray="6,4" marker-end="url(#vision-arrow)"/><text x="552" y="616" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Dashed: approach_pose with detect_only</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Detect Only skips the computed approach. Earlier scan moves can still occur; j6_snap ignores this flag.</text>
+</svg></div>
+<figcaption><a href="../diagrams/vision.html">Open the full-size diagram</a></figcaption>
+</figure></section>
+<section id="detection-and-camera-capture">
+<h2>Detection and camera capture<a class="headerlink" href="#detection-and-camera-capture" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../reference/api/modules/src-beambot-beambot-vision-vision_task_detection-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">vision/vision_task_detection.py</span></code></span></a> maps detector names to these operations:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Detector</p></th>
+<th class="head"><p>Measurement</p></th>
+<th class="head"><p>Target calculation</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">marker</span></code></p></td>
+<td><p>ArUco marker pose in <code class="docutils literal notranslate"><span class="pre">base_link</span></code>; checks a local cache first, but only batch tag scans fill it, so the unified server normally captures</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">sample_roi</span></code></p></td>
+<td><p>Pickup point inside a marker-anchored region of interest (ROI), projected from the image onto the marker plane with a sample-thickness adjustment</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">spincoater_pocket</span></code></p></td>
+<td><p>Pocket angle from a flash-lit 2D image</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">j6_snap</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">spincoater_sample</span></code></p></td>
+<td><p>Sample angle from 2D image segmentation</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">j6_snap</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">sample_roi</span></code> does not use depth at the sample pixel, which is often sparse on thin or poorly reflecting samples. The projection assumes the sample lies flat on the marker plane.</p>
+<p>Shared image processing lives in <code class="docutils literal notranslate"><span class="pre">vision/detection/image_detection.py</span></code> and <code class="docutils literal notranslate"><span class="pre">vision/detection/spincoater_detection.py</span></code>. The reusable learned object detector is in <code class="docutils literal notranslate"><span class="pre">vision/detection/yolo_object_detection.py</span></code>. See the <a class="reference internal" href="../reference/api/subsystems/perception.html"><span class="std std-doc">vision function reference</span></a> for individual functions.</p>
+<p><a class="reference internal" href="../reference/api/modules/src-beambot-beambot-vision-vision_engine-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">vision/vision_engine.py</span></code></span></a> coordinates capture and transforms. The vision servers read <code class="docutils literal notranslate"><span class="pre">camera.type</span></code>, <code class="docutils literal notranslate"><span class="pre">camera.frame</span></code>, and <code class="docutils literal notranslate"><span class="pre">camera.marker_dictionary</span></code> from the beamline configuration and pass them to it; it raises an error if any is missing. Camera adapters live in <code class="docutils literal notranslate"><span class="pre">vision/camera/</span></code>; Zivid capture uses <code class="docutils literal notranslate"><span class="pre">vision/camera/zivid.py</span></code>, with presets under <strong><code class="docutils literal notranslate"><span class="pre">src/beambot/config/zivid/</span></code></strong>. The retained ZED adapter has known limitations; see <a class="reference internal" href="../hardware/cameras.html"><span class="std std-doc">camera support</span></a>.</p>
+<p>The unified server warms the spincoater sample model in a background thread. The model is <code class="docutils literal notranslate"><span class="pre">models/spincoater_sample_seg.pt</span></code> in the installed <code class="docutils literal notranslate"><span class="pre">beambot</span></code> package share directory. A warmup failure is logged but does not prevent startup.</p>
+</section>
+<section id="capture-time-and-coordinates">
+<h2>Capture time and coordinates<a class="headerlink" href="#capture-time-and-coordinates" title="Link to this heading"></a></h2>
+<p>Marker and sample-ROI detections start in the camera frame. <code class="docutils literal notranslate"><span class="pre">VisionEngine</span></code> uses <a class="reference external" href="https://docs.ros.org/en/jazzy/Concepts/Intermediate/About-Tf2.html">ROS TF</a> to transform them into <code class="docutils literal notranslate"><span class="pre">base_link</span></code> before calculating an approach.</p>
+<p>The Zivid adapter records a timestamp immediately before requesting capture. This approximates capture time; it is not the hardware exposure timestamp. The engine requests the transform at that time and uses the latest transform only when no timestamp is supplied. An unavailable transform fails the detection.</p>
+<p>For a wrist-mounted camera, the timestamp connects the measurement to the arm’s position during capture. Using the arm’s later position could shift the target. See <a class="reference internal" href="../start/concepts.html#frames-are-part-of-the-request"><span class="std std-ref">frame conventions</span></a> and <a class="reference internal" href="../hardware/calibration-scenes.html#arm-and-camera-calibration"><span class="std std-ref">camera calibration</span></a>.</p>
+</section>
+<section id="goal-computation-and-execution">
+<h2>Goal computation and execution<a class="headerlink" href="#goal-computation-and-execution" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../reference/api/modules/src-beambot-beambot-vision-motion_target-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">vision/motion_target.py</span></code></span></a> provides two target calculations, selected by <code class="docutils literal notranslate"><span class="pre">goal_computer</span></code>.</p>
+<section id="cartesian-approach">
+<h3>Cartesian approach<a class="headerlink" href="#cartesian-approach" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code> combines the detected pose with marker-relative offsets, a base-frame Z offset, and a downward tool orientation using marker-derived yaw. An optional flange-relative displacement is applied afterwards. A zero <code class="docutils literal notranslate"><span class="pre">z_offset</span></code> selects the tool’s configured default.</p>
+<p>The resulting <code class="docutils literal notranslate"><span class="pre">CartesianTarget</span></code> contains the approach pose, working frame, and optional gripper state and retreat pose. The executor attempts inverse kinematics and plans the approach. When a gripper operation or retreat is requested, it combines them with the approach in one MTC task.</p>
+</section>
+<section id="spincoater-alignment">
+<h3>Spincoater alignment<a class="headerlink" href="#spincoater-alignment" title="Link to this heading"></a></h3>
+<p><code class="docutils literal notranslate"><span class="pre">j6_snap</span></code> starts from a named six-joint pose and adjusts joint 6 using the detected angle and calibration offset. Square symmetry limits the correction to (−45°, 45°]. For example, a detected angle of 80° with no calibration offset produces a −10° correction.</p>
+<p>The resulting <code class="docutils literal notranslate"><span class="pre">JointTarget</span></code> specifies all six joints, so reaching it can move the whole arm. The corrected joint move, optional forward contact, and optional gripper operation each use a separate planning and execution cycle.</p>
+</section>
+<section id="execution-limits">
+<h3>Execution limits<a class="headerlink" href="#execution-limits" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Setting or result</p></th>
+<th class="head"><p>Current behavior</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">detect_only</span></code> with <code class="docutils literal notranslate"><span class="pre">approach_pose</span></code></p></td>
+<td><p>Returns the calculated approach pose without executing it. Earlier gripper opening and scan movements can still occur.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">detect_only</span></code> with <code class="docutils literal notranslate"><span class="pre">j6_snap</span></code></p></td>
+<td><p>Ignored; the target can be executed.</p></td>
+</tr>
+<tr class="row-even"><td><p>Path constraints</p></td>
+<td><p>Applied to the named <code class="docutils literal notranslate"><span class="pre">scan_pose</span></code> move, Cartesian approach/retreat, and joint-target positioning/contact moves. Multi-position <code class="docutils literal notranslate"><span class="pre">scan_positions</span></code> moves use a separate helper without constraints.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">motion_kind</span></code> result</p></td>
+<td><p>On success, reports <code class="docutils literal notranslate"><span class="pre">NONE</span></code> when a detection-only pose is returned; otherwise reports <code class="docutils literal notranslate"><span class="pre">CARTESIAN_POSE</span></code>, including joint-target execution.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vacuum_ok</span></code> result</p></td>
+<td><p>True on successful requests because the vacuum check is disabled; it does not confirm a successful grasp.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="separate-scan-and-mapping-paths">
+<h2>Separate scan and mapping paths<a class="headerlink" href="#separate-scan-and-mapping-paths" title="Link to this heading"></a></h2>
+<p><a class="reference internal" href="../reference/api/modules/src-beambot-beambot-action_servers-vision_scan_server-py.html"><span class="std std-doc"><code class="docutils literal notranslate"><span class="pre">action_servers/vision_scan_server.py</span></code></span></a> serves <code class="docutils literal notranslate"><span class="pre">/beambot_vision_scan</span></code>. It averages marker measurements across scan positions and stores them in its own <code class="docutils literal notranslate"><span class="pre">VisionEngine</span></code>. <strong>Its cache is separate from the unified task server’s cache:</strong> a standalone scan does not supply detections to a later Vision MoveTo task.</p>
+<p>Tool exchange resets the unified vision-task server’s TF buffer. The standalone scan server has no corresponding reset service.</p>
+<p>Pick/place requests with <code class="docutils literal notranslate"><span class="pre">use_vision:</span> <span class="pre">false</span></code> use <code class="docutils literal notranslate"><span class="pre">action_servers/sample_pick_place_server.py</span></code>. Vision-enabled presets use the unified server described above.</p>
+<p>Optional occupancy mapping starts from <strong><code class="docutils literal notranslate"><span class="pre">src/beambot/launch/octomap_mapping.launch.py</span></code></strong>. <code class="docutils literal notranslate"><span class="pre">mapping/pointcloud_relay.py</span></code> feeds clouds to the Octomap server; <code class="docutils literal notranslate"><span class="pre">mapping/octomap_to_planning_scene.py</span></code> forwards maps to MoveIt. The bridge copies the incoming map without transforming it and publishes updates without waiting for acknowledgement. It forwards at most one update per <code class="docutils literal notranslate"><span class="pre">min_update_interval</span></code> (0.5 s by default) and drops the rest, so the planning scene can miss the latest map change. Check the map frame and placement when enabling this separate workflow; see <a class="reference internal" href="../hardware/calibration-scenes.html#octomap-path"><span class="std std-ref">Octomap configuration</span></a>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="lifecycle.html" class="btn btn-neutral float-left" title="Tool and MoveIt lifecycle" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="configuration.html" class="btn btn-neutral float-right" title="Configuration and deployment boundaries" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

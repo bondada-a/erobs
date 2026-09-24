@@ -1,0 +1,69 @@
+/* EROBS additions for sphinx_rtd_theme. */
+:root { --erobs-blue: #235cb7; --erobs-border: #dbe3ee; --erobs-muted: #52647a; --erobs-panel: #f3f6fb; }
+
+/* Wider text column so tables and 960px-wide diagrams fit without scrolling; RTD's default is 800px. */
+.wy-nav-content { max-width: 1100px; }
+
+/* RTD stops table cells wrapping; long descriptions then run off the page. */
+.wy-table-responsive table td, .wy-table-responsive table th { white-space: normal; }
+.wy-table-responsive table td { vertical-align: top; }
+table.docutils td:first-child, table.docutils th:first-child { min-width: 8rem; }
+table.docutils { width: 100%; }
+td p, th p { margin: .35rem 0 !important; line-height: 1.5; font-size: inherit !important; }
+code.literal { overflow-wrap: anywhere; }
+
+/* Home page. */
+.hero-label { font-size: .78rem; letter-spacing: .11em; text-transform: uppercase; font-weight: 700; color: var(--erobs-blue); margin-bottom: .5rem; }
+.intro { font-size: 1.1rem; max-width: 44rem; color: var(--erobs-muted); }
+.reader-paths { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1.75rem 0; }
+.reader-path { border: 1px solid var(--erobs-border); border-top: 3px solid var(--erobs-blue); border-radius: 4px; padding: 1.2rem; }
+.reader-path h2, .reader-path h3 { margin: 0 0 .5rem; font-size: 1.25rem; }
+.reader-path p { margin: .5rem 0; }
+.reader-path a { font-weight: 600; }
+
+/* Diagrams and screenshots: always the light diagram palette (the theme has no dark mode). */
+.architecture-figure, .screenshot-figure { margin: 1.8rem 0; }
+.screenshot-figure img { display: block; max-width: 100%; height: auto; border-radius: 5px; border: 1px solid var(--erobs-border); }
+.diagram-scroll { overflow-x: auto; border: 1px solid var(--erobs-border); border-radius: 5px; background: #fff; }
+.diagram-scroll svg { display: block; width: 100%; height: auto; min-width: 960px; }
+.architecture-figure figcaption, .screenshot-figure figcaption { font-size: .85rem; margin-top: .45rem; color: var(--erobs-muted); }
+
+/* Diagram gallery. */
+.visual-gallery { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1.25rem; margin: 1.75rem 0; }
+.visual-card { display: flex; flex-direction: column; border: 1px solid var(--erobs-border); border-radius: 5px; overflow: hidden; text-decoration: none; }
+.visual-card:hover { border-color: var(--erobs-blue); }
+.visual-thumbnail { display: block; height: 15rem; border-bottom: 1px solid var(--erobs-border); }
+.visual-thumbnail svg { display: block; width: 100%; height: 100%; }
+.visual-card-title { padding: 1rem 1rem .5rem; color: #404040; font-weight: 650; line-height: 1.4; }
+.visual-card-hint { padding: 0 1rem 1rem; font-size: .85rem; }
+
+/* API reference. */
+.api-references { margin: 1rem 0; }
+.api-references summary { cursor: pointer; color: var(--erobs-blue); }
+.api-symbols table { table-layout: fixed; }
+.api-symbols th, .api-symbols td { width: 50%; overflow-wrap: anywhere; }
+
+a:focus-visible, button:focus-visible, input:focus-visible, [tabindex]:focus-visible { outline: 3px solid var(--erobs-blue); outline-offset: 3px; }
+@media (max-width: 650px) { .reader-paths, .visual-gallery { grid-template-columns: 1fr; } }
+@media print { .reader-paths { display: block; } .diagram-scroll svg { min-width: 0; } .diagram-scroll { overflow: visible; } }
+
+/* Long identifiers (module paths, method names) must wrap on phones instead of widening the page. */
+.rst-content p, .rst-content li, .rst-content td, .rst-content h1, .rst-content h2, .rst-content h3 { overflow-wrap: break-word; }
+.rst-content code { white-space: normal; overflow-wrap: anywhere; }
+
+/* RTD's default link (#2980b9) and inline-code red (#e74c3c) fall below WCAG AA contrast on white. */
+.rst-content a, .rst-content a:visited { color: #235cb7; }
+.rst-content a:hover { color: #17417f; }
+.rst-content code.literal { color: #b3261e; }
+.rst-content a code.literal, .rst-content a code.xref { color: #235cb7; }
+
+.skip-link { position: absolute; left: -999px; top: .5rem; z-index: 1000; padding: .5rem .75rem; background: #fff; color: #235cb7; border: 2px solid #235cb7; border-radius: 4px; }
+.skip-link:focus { left: .5rem; }
+#main-content:focus { outline: none; }
+
+/* On phones the closed menu sits off-screen; keep its links out of the Tab order until it opens. */
+@media (max-width: 768px) { .wy-nav-side:not(.shift) { visibility: hidden; } }
+.wy-nav-top [data-toggle="wy-nav-top"]:focus-visible { outline: 3px solid #fff; outline-offset: 3px; }
+
+/* Work-in-progress notice above each page title. */
+.wip-banner { margin: 0 0 1.5rem; padding: .6rem .9rem; background: #fff8e1; border-left: 4px solid #e0a800; border-radius: 3px; color: #4a3b00; font-size: .92rem; line-height: 1.5; }

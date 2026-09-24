@@ -1,0 +1,662 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROS and GUI bridge &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Pose browser and registry" href="src-mtc_gui-mtc_gui-poses_panel-py.html" />
+    <link rel="prev" title="Task queue display" href="src-mtc_gui-mtc_gui-step_list_panel-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main-py.html">GUI startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main_window-py.html">Operator window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-task_forms-py.html">Task editor forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-step_list_panel-py.html">Task queue display</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">ROS and GUI bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-poses_panel-py.html">Pose browser and registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_dialogs-py.html">Pose editing dialogs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_io-py.html">Pose registry files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-camera_panel-py.html">Camera display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-visualization_panel-py.html">Robot and trajectory viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-resources-viewer-html.html">Embedded robot viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-chat_panel-py.html">Chat interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_bridge-py.html">Chat agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_modes-py.html">Chat agent modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-theme-py.html">GUI appearance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-launch-mtc_gui_client-launch-py.html">Operator GUI launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/operator-gui.html">Operator GUI</a></li>
+      <li class="breadcrumb-item active">ROS and GUI bridge</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="ros-and-gui-bridge">
+<h1>ROS and GUI bridge<a class="headerlink" href="#ros-and-gui-bridge" title="Link to this heading"></a></h1>
+<p>Translate ROS messages, action results, and service responses into Qt signals.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mtc_gui.ros2_bridge</span></code> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/operator-gui.html"><span class="std std-doc">Operator GUI</span></a> · <a class="reference internal" href="../../../operate/gui.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>The GUI startup creates <code class="docutils literal notranslate"><span class="pre">ROS2Bridge</span></code> and calls <code class="docutils literal notranslate"><span class="pre">init_ros2()</span></code>; the main window connects its signals to the panels. A <code class="docutils literal notranslate"><span class="pre">ROS2Spinner</span></code> services the node in a QThread. Separate daemon workers wait for action and service responses so those waits do not block the GUI. The application entry point calls <code class="docutils literal notranslate"><span class="pre">shutdown()</span></code> during cleanup.</p>
+<p><code class="docutils literal notranslate"><span class="pre">execute_task()</span></code> submits a complete task JSON document to <code class="docutils literal notranslate"><span class="pre">beambot_execution</span></code> and can cause robot motion; <code class="docutils literal notranslate"><span class="pre">dry_run=True</span></code> requests a plan-only preview. <code class="docutils literal notranslate"><span class="pre">stop_execution()</span></code> sets a flag and returns immediately. The worker skips submission if it sees that flag before sending, or waits for acceptance and requests cancellation once. After submission, it continues waiting for the server’s terminal result, even if cancellation fails.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-e9f33ff41f91d583"><span class="std std-ref">ROS2Bridge.init_ros2</span></a></p></td>
+<td><p>Initialize rclpy and the mtc_gui_client node, register subscriptions and clients, then start a Qt spin thread.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-f7e2917e74665d5b"><span class="std std-ref">ROS2Bridge.execute_task</span></a></p></td>
+<td><p>Submit a task JSON document to the orchestrator on a background worker.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-040bc72a340422b0"><span class="std std-ref">ROS2Bridge.stop_execution</span></a></p></td>
+<td><p>Request a stop while leaving the worker to wait for the final task result.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-7d6b004555393005"><span class="std std-ref">ROS2Bridge.trigger_capture</span></a></p></td>
+<td><p>Request the /capture_2d Trigger service through the shared background helper.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-1a7444488793e653"><span class="std std-ref">ROS2Bridge.shutdown</span></a></p></td>
+<td><p>Stop the spinner, wait up to three seconds for its QThread, destroy the node, and shut down rclpy.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="ros2bridge">
+<h2><code class="docutils literal notranslate"><span class="pre">ROS2Bridge</span></code><a class="headerlink" href="#ros2bridge" title="Link to this heading"></a></h2>
+<p>Own the GUI’s ROS node, subscriptions, clients, and worker coordination. Its signals carry data back to GUI-thread widgets; action and service methods communicate with the running EROBS system.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QObject</span></code>.</p>
+<section id="ros2bridge-init-ros2">
+<span id="api-e9f33ff41f91d583"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.init_ros2()</span></code><a class="headerlink" href="#ros2bridge-init-ros2" title="Link to this heading"></a></h3>
+<p>Initialize rclpy and the mtc_gui_client node, register subscriptions and clients, then start a Qt spin thread.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-85">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">init_ros2</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> True on complete setup; False when ROS is unavailable or setup raises.</p>
+<p><strong>Errors:</strong> Catches Exception and emits “ROS2 init failed: …”. Partial setup is not rolled back.</p>
+<p><strong>Side effects:</strong> Subscribes to /color/image_color, /joint_states, /beambot/current_gripper, /beambot/execution_state, and /beambot/preview_trajectory; the last three use reliable transient-local QoS. Creates beambot_execution action and capture/pause/resume clients, optional Zivid marker client, starts QThread, and emits a log message.</p>
+</section>
+<section id="ros2bridge-execute-task">
+<span id="api-f7e2917e74665d5b"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.execute_task()</span></code><a class="headerlink" href="#ros2bridge-execute-task" title="Link to this heading"></a></h3>
+<p>Submit a task JSON document to the orchestrator on a background worker.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-219">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">execute_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">config_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">config_json</span></code></p></td>
+<td><p>Serialized task script passed verbatim to Goal.full_json; this method does not parse or validate JSON.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">dry_run</span></code></p></td>
+<td><p>Value assigned to Goal.dry_run; True requests orchestrator planning/preview without execution.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; results arrive as action_result_received(status, error_message, completed_steps, total_steps).</p>
+<p><strong>Errors:</strong> Thread-start errors propagate; worker handles client/server/goal/result failures. There is no guard against concurrent invocations.</p>
+<p><strong>Side effects:</strong> Resets the shared stop flag and starts a worker that can dispatch robot motion unless dry_run is True.</p>
+</section>
+<section id="ros2bridge-stop-execution">
+<span id="api-040bc72a340422b0"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.stop_execution()</span></code><a class="headerlink" href="#ros2bridge-stop-execution" title="Link to this heading"></a></h3>
+<p>Request a stop while leaving the worker to wait for the final task result.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-295">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stop_execution</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No validation of whether an action is active.</p>
+<p><strong>Side effects:</strong> Sets _stop_execution and logs “Stopping… waiting for task completion”. Does not synchronously cancel a goal or emit a completion result; the worker handles the flag before submission or after acceptance.</p>
+</section>
+<section id="ros2bridge-trigger-capture">
+<span id="api-7d6b004555393005"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.trigger_capture()</span></code><a class="headerlink" href="#ros2bridge-trigger-capture" title="Link to this heading"></a></h3>
+<p>Request the /capture_2d Trigger service through the shared background helper.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-308">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trigger_capture</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Unavailable clients and service failures are logged by _call_trigger_service.</p>
+<p><strong>Side effects:</strong> Starts capture service work when a client exists; image arrival remains a separate subscription event.</p>
+</section>
+<section id="ros2bridge-shutdown">
+<span id="api-1a7444488793e653"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.shutdown()</span></code><a class="headerlink" href="#ros2bridge-shutdown" title="Link to this heading"></a></h3>
+<p>Stop the spinner, wait up to three seconds for its QThread, destroy the node, and shut down rclpy.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-142">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">shutdown</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Exceptions in rclpy.shutdown are suppressed, including the missing-rclpy case; earlier stop/thread/node errors propagate.</p>
+<p><strong>Side effects:</strong> Requests thread termination, destroys the ROS node and context. Stored node/client references are not reset.</p>
+</section>
+<section id="ros2bridge-init">
+<span id="api-9e42449c553db343"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.__init__()</span></code><a class="headerlink" href="#ros2bridge-init" title="Link to this heading"></a></h3>
+<p>Create a disconnected ROS bridge and prepare optional image conversion.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-66">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional QObject parent.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> CvBridge/Qt construction errors propagate.</p>
+<p><strong>Side effects:</strong> Creates CvBridge only when ROS imports succeeded; no node, subscriptions, or threads are started.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main-py.html#api-3a9a98c5b379f455"><code>main</code></a> — mtc_gui.main</li></ul></details></section>
+<section id="ros2bridge-available">
+<span id="api-7e300db3414d50b4"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.available</span></code><a class="headerlink" href="#ros2bridge-available" title="Link to this heading"></a></h3>
+<p>Report whether optional ROS imports succeeded and a node has been assigned.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-82">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@property</span>
+<span class="n">available</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Access this as an instance property, without parentheses.</p>
+<p><strong>Returns:</strong> Boolean; it does not check whether the node/context/server is still live.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-2a94cc2e7ce4dea3"><code>ROS2Bridge.test_server._test</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-pause-task">
+<span id="api-5e899dc6d079c8ae"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.pause_task()</span></code><a class="headerlink" href="#ros2bridge-pause-task" title="Link to this heading"></a></h3>
+<p>Request beambot/pause using the shared Trigger-service helper.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-311">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">pause_task</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Unavailable clients and service failures are logged by the helper.</p>
+<p><strong>Side effects:</strong> Starts a background pause request; no local execution-state value is changed.</p>
+</section>
+<section id="ros2bridge-resume-task">
+<span id="api-58a40bb14b644d67"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.resume_task()</span></code><a class="headerlink" href="#ros2bridge-resume-task" title="Link to this heading"></a></h3>
+<p>Request beambot/resume using the shared Trigger-service helper.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-314">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">resume_task</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Unavailable clients and service failures are logged by the helper.</p>
+<p><strong>Side effects:</strong> Starts a background resume request; no local execution-state value is changed.</p>
+</section>
+<section id="ros2bridge-trigger-marker-detection">
+<span id="api-db9c7ceacc9eb761"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.trigger_marker_detection()</span></code><a class="headerlink" href="#ros2bridge-trigger-marker-detection" title="Link to this heading"></a></h3>
+<p>Start a background Zivid marker request if the optional marker client exists.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-344">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">trigger_marker_detection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Missing client logs “Marker detection: service not available”; thread-start errors propagate.</p>
+<p><strong>Side effects:</strong> Starts the nested detection worker; does not update detections immediately.</p>
+</section>
+<section id="ros2bridge-test-server">
+<span id="api-5b04df7ae8faed84"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.test_server()</span></code><a class="headerlink" href="#ros2bridge-test-server" title="Link to this heading"></a></h3>
+<p>Launch a daemon connectivity check for beambot_execution.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-374">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">test_server</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Thread-start errors propagate; the nested check has no exception handler.</p>
+<p><strong>Side effects:</strong> Starts the nested server-check worker and reports through logs only.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="ros2bridge-on-image">
+<span id="api-da76a91517797cd7"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge._on_image()</span></code><a class="headerlink" href="#ros2bridge-on-image" title="Link to this heading"></a></h4>
+<p>Convert a ROS Image to BGR8 pixels and forward it to the GUI.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-157">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>sensor_msgs/Image camera message.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Catches conversion/emission exceptions and prints “Image callback error: …”.</p>
+<p><strong>Side effects:</strong> Emits image_received with a numpy BGR image.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-e9f33ff41f91d583"><code>ROS2Bridge.init_ros2</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-on-joint-state">
+<span id="api-0ce6914f629c0f1c"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge._on_joint_state()</span></code><a class="headerlink" href="#ros2bridge-on-joint-state" title="Link to this heading"></a></h4>
+<p>Select the configured arm joints from a JointState and convert radians to degrees rounded to two decimals.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-164">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_joint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>sensor_msgs/JointState with name and position sequences; extra joints are ignored.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Silently emits nothing if any configured arm joint is missing. Other errors are printed as joint-state callback errors.</p>
+<p><strong>Side effects:</strong> Emits joint_state_received with angles in arm_joint_names() order when all joints exist.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-e9f33ff41f91d583"><code>ROS2Bridge.init_ros2</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-on-gripper">
+<span id="api-5dfdaa8f6a4c6015"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge._on_gripper()</span></code><a class="headerlink" href="#ros2bridge-on-gripper" title="Link to this heading"></a></h4>
+<p>Forward the current-gripper topic string to Qt.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-175">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_gripper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>std_msgs/String whose data is the gripper name.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Attribute/signal errors propagate.</p>
+<p><strong>Side effects:</strong> Emits gripper_changed(msg.data).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-e9f33ff41f91d583"><code>ROS2Bridge.init_ros2</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-on-execution-state">
+<span id="api-4522342997752a24"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge._on_execution_state()</span></code><a class="headerlink" href="#ros2bridge-on-execution-state" title="Link to this heading"></a></h4>
+<p>Cache and forward the orchestrator’s execution-state string.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-178">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_execution_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>std_msgs/String state message; contents are not validated.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Attribute/signal errors propagate.</p>
+<p><strong>Side effects:</strong> Sets execution_state and emits execution_state_changed(msg.data).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-e9f33ff41f91d583"><code>ROS2Bridge.init_ros2</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-on-preview-trajectory">
+<span id="api-1402b735967e07f8"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge._on_preview_trajectory()</span></code><a class="headerlink" href="#ros2bridge-on-preview-trajectory" title="Link to this heading"></a></h4>
+<p>Combine preview segments into timed waypoints, preserving each waypoint’s joint names.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-182">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_preview_trajectory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>moveit_msgs/DisplayTrajectory; each joint trajectory supplies joint_names, positions, and time_from_start seconds/nanoseconds.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Skips segments without names or points. Catches other failures and prints a preview callback error.</p>
+<p><strong>Side effects:</strong> Emits preview_trajectory_received([], waypoints) when nonempty, where each waypoint is (joint_names, positions, cumulative_seconds); logs point count/duration. Segment offsets advance by that segment’s maximum point time.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-e9f33ff41f91d583"><code>ROS2Bridge.init_ros2</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-execute-task-run">
+<span id="api-1dad83924aaa5bbe"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.execute_task._run()</span></code><a class="headerlink" href="#ros2bridge-execute-task-run" title="Link to this heading"></a></h4>
+<p>Submit the goal, handle stop requests, and forward the server’s terminal result.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-230">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_run</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Missing client/server or a rejected goal emits status 0 and zero counts. A stop handled before submission emits STATUS_CANCELED with zero counts and sends no goal. Server discovery waits up to 10 seconds; acceptance and result polling have no overall timeout. Cancellation-call exceptions are logged while result waiting continues; cancellation responses are not inspected. Other exceptions emit a log and status 0.</p>
+<p><strong>Side effects:</strong> Sends MTCExecution(full_json, dry_run), retains an accepted goal handle until result or failure, and requests cancellation at most once when stopped. A Stop request during acceptance remains pending until a handle arrives. For submitted goals, forwards the actual server status, error and completed/total counts; completion may still be successful. Clears _current_goal_handle in finally.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-f7e2917e74665d5b"><code>ROS2Bridge.execute_task</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-on-action-feedback">
+<span id="api-642938b21f55432e"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge._on_action_feedback()</span></code><a class="headerlink" href="#ros2bridge-on-action-feedback" title="Link to this heading"></a></h4>
+<p>Unpack MTCExecution feedback into the five-value Qt signal.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-299">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_action_feedback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">feedback_msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">feedback_msg</span></code></p></td>
+<td><p>Action feedback wrapper whose feedback exposes progress_percentage, current_step, current_action, current_gripper, and status_message.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed feedback/signal errors propagate.</p>
+<p><strong>Side effects:</strong> Emits action_feedback_received(progress, step, action, gripper, message).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-1dad83924aaa5bbe"><code>ROS2Bridge.execute_task._run</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-call-trigger-service">
+<span id="api-855cb0f42cfd7a19"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge._call_trigger_service()</span></code><a class="headerlink" href="#ros2bridge-call-trigger-service" title="Link to this heading"></a></h4>
+<p>Start a daemon worker for a named std_srvs/Trigger client, or log that the client is unavailable.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-317">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_call_trigger_service</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">client</span></code></p></td>
+<td><p>rclpy Trigger service client, or a false value when unavailable.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Human-readable operation label inserted into every log message.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Missing client logs and returns; thread-start errors propagate.</p>
+<p><strong>Side effects:</strong> Starts the nested service worker; exposes outcomes only through log signals.</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-5e899dc6d079c8ae"><code>ROS2Bridge.pause_task</code></a> — mtc_gui.ros2_bridge</li><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-58a40bb14b644d67"><code>ROS2Bridge.resume_task</code></a> — mtc_gui.ros2_bridge</li><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-7d6b004555393005"><code>ROS2Bridge.trigger_capture</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-call-trigger-service-call">
+<span id="api-70b2d5107ae10163"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge._call_trigger_service._call()</span></code><a class="headerlink" href="#ros2bridge-call-trigger-service-call" title="Link to this heading"></a></h4>
+<p>Wait for a Trigger service and report its response or timeout through the log signal.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-322">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_call</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Waits at most two seconds for service readiness and five seconds for a response; timeout does not cancel the request. All Exception failures become log messages.</p>
+<p><strong>Side effects:</strong> Sends Trigger.Request(), polls at 0.01 seconds, and emits labeled service response/error logs.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-855cb0f42cfd7a19"><code>ROS2Bridge._call_trigger_service</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-trigger-marker-detection-detect">
+<span id="api-6c60cfc8d32606a8"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.trigger_marker_detection._detect()</span></code><a class="headerlink" href="#ros2bridge-trigger-marker-detection-detect" title="Link to this heading"></a></h4>
+<p>Capture and detect ArUco IDs 0–49 using the aruco4x4_50 dictionary.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-349">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_detect</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Waits two seconds for the service and ten seconds for a result; logs readiness, timeout, unsuccessful-response, and Exception failures. Timeout does not cancel the request.</p>
+<p><strong>Side effects:</strong> Calls CaptureAndDetectMarkers asynchronously; on success emits detection_received(response.detection_result.detected_markers).</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-db9c7ceacc9eb761"><code>ROS2Bridge.trigger_marker_detection</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2bridge-test-server-test">
+<span id="api-2a94cc2e7ce4dea3"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Bridge.test_server._test()</span></code><a class="headerlink" href="#ros2bridge-test-server-test" title="Link to this heading"></a></h4>
+<p>Check bridge availability and wait up to three seconds for the action server.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-376">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_test</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Unavailable bridge logs and returns; action-client exceptions propagate from the worker.</p>
+<p><strong>Side effects:</strong> Emits ROS-unavailable, testing, running, or server-unavailable log messages; sends no goal.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-5b04df7ae8faed84"><code>ROS2Bridge.test_server</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+</section>
+</section>
+<section id="ros2spinner">
+<h2><code class="docutils literal notranslate"><span class="pre">ROS2Spinner</span></code><a class="headerlink" href="#ros2spinner" title="Link to this heading"></a></h2>
+<p>Service ROS callbacks inside the QThread owned by ROS2Bridge. The bridge starts <code class="docutils literal notranslate"><span class="pre">run()</span></code> through the thread’s started signal and requests loop termination with <code class="docutils literal notranslate"><span class="pre">stop()</span></code>.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QObject</span></code>.</p>
+<section id="ros2spinner-init">
+<span id="api-8e02bd52fe8c86f4"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Spinner.__init__()</span></code><a class="headerlink" href="#ros2spinner-init" title="Link to this heading"></a></h3>
+<p>Store the ROS node and initialize the spin-worker running flag.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-35">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">node</span></code></p></td>
+<td><p>rclpy node to spin from the worker’s QThread.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> QObject construction errors propagate.</p>
+<p><strong>Side effects:</strong> Sets node and _running=True.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-e9f33ff41f91d583"><code>ROS2Bridge.init_ros2</code></a> — mtc_gui.ros2_bridge</li></ul></details></section>
+<section id="ros2spinner-stop">
+<span id="api-bec6baeab1b99d86"></span><h3><code class="docutils literal notranslate"><span class="pre">ROS2Spinner.stop()</span></code><a class="headerlink" href="#ros2spinner-stop" title="Link to this heading"></a></h3>
+<p>Request that the next spin-loop condition end the worker.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-48">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Side effects:</strong> Sets _running=False; does not join the thread.</p>
+</section>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="ros2spinner-run">
+<span id="api-8205dfee4cf19ccc"></span><h4><code class="docutils literal notranslate"><span class="pre">ROS2Spinner.run()</span></code><a class="headerlink" href="#ros2spinner-run" title="Link to this heading"></a></h4>
+<p>Spin the node in 0.1-second increments until stopped or the ROS context shuts down.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/ros2_bridge.py.html#L-40">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Prints a spin exception and exits the loop; does not re-raise it.</p>
+<p><strong>Side effects:</strong> Services ROS callbacks on the calling worker thread.</p>
+</section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-mtc_gui-mtc_gui-step_list_panel-py.html" class="btn btn-neutral float-left" title="Task queue display" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-mtc_gui-mtc_gui-poses_panel-py.html" class="btn btn-neutral float-right" title="Pose browser and registry" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

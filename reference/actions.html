@@ -1,0 +1,1417 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROS action contracts &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="MCP tool reference" href="mcp.html" />
+    <link rel="prev" title="Task JSON reference" href="tasks.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="modules.html">Module map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/index.html">Function and method reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">ROS action contracts</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#endeffectoraction">EndEffectorAction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#goal">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#result">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#feedback">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#mtcexecution">MTCExecution</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id1">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id2">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id3">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#movetoaction">MoveToAction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id4">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id5">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id6">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#picksampleaction">PickSampleAction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id7">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id8">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id9">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#pipettoraction">PipettorAction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id10">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id11">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id12">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#placesampleaction">PlaceSampleAction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id13">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id14">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id15">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#toolexchangeaction">ToolExchangeAction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id16">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id17">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id18">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#visionscanaction">VisionScanAction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id19">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id20">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id21">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#visiontaskaction">VisionTaskAction</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id22">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id23">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id24">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#movetonamedstate">MoveToNamedState</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id25">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id26">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id27">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#orchestratortask">OrchestratorTask</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id28">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id29">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id30">Feedback</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#printmessage">PrintMessage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#id31">Goal</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id32">Result</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#id33">Feedback</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Reference</a></li>
+      <li class="breadcrumb-item active">ROS action contracts</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="ros-action-contracts">
+<h1>ROS action contracts<a class="headerlink" href="#ros-action-contracts" title="Link to this heading"></a></h1>
+<p>EROBS clients submit task scripts through <code class="docutils literal notranslate"><span class="pre">MTCExecution</span></code>. This reference lists its fields and those of the task action servers. A <a class="reference external" href="https://docs.ros.org/en/jazzy/Concepts/Basic/About-Actions.html">ROS action</a> carries a goal, progress feedback, and a terminal result.</p>
+<p>Fields and comments come from the <code class="docutils literal notranslate"><span class="pre">.action</span></code> definitions. Use the <a class="reference internal" href="tasks.html"><span class="std std-doc">task reference</span></a> for JSON inputs and the <a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution guide</span></a> for runtime behavior. Tutorial actions use separate interfaces.</p>
+<section id="endeffectoraction">
+<h2>EndEffectorAction<a class="headerlink" href="#endeffectoraction" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/beambot_interfaces/action/EndEffectorAction.action</span></code>.</p>
+<p>Default endpoint: <code class="docutils literal notranslate"><span class="pre">/beambot_endeffector</span></code>.</p>
+<section id="goal">
+<h3>Goal<a class="headerlink" href="#goal" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gripper_group</span></code></p></td>
+<td><p>MoveIt group; empty skips the operation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">end_effector_action</span></code></p></td>
+<td><p>Named SRDF state for the group.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">robot_model_revision</span></code></p></td>
+<td><p>Orchestrator-managed; empty disables cross-goal model reuse</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="result">
+<h3>Result<a class="headerlink" href="#result" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="feedback">
+<h3>Feedback<a class="headerlink" href="#feedback" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>No fields declared.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="mtcexecution">
+<h2>MTCExecution<a class="headerlink" href="#mtcexecution" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/beambot_interfaces/action/MTCExecution.action</span></code>.</p>
+<p>Default endpoint: <code class="docutils literal notranslate"><span class="pre">/beambot_execution</span></code>.</p>
+<section id="id1">
+<h3>Goal<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">full_json</span></code></p></td>
+<td><p>Task script JSON.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dry_run</span></code></p></td>
+<td><p>Plan-only preview; moveto/end_effector only.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id2">
+<h3>Result<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">completed_steps</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">total_steps</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detected_position</span></code></p></td>
+<td><p>XYZ (m).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detected_orientation</span></code></p></td>
+<td><p>Quaternion [x,y,z,w].</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id3">
+<h3>Feedback<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">current_step</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">current_action</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">progress_percentage</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">status_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">current_gripper</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="movetoaction">
+<h2>MoveToAction<a class="headerlink" href="#movetoaction" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/beambot_interfaces/action/MoveToAction.action</span></code>.</p>
+<p>Default endpoint: <code class="docutils literal notranslate"><span class="pre">/beambot_moveto</span></code>.</p>
+<section id="id4">
+<h3>Goal<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">target</span></code></p></td>
+<td><p>Pose key or SRDF state.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">planning_type</span></code></p></td>
+<td><p>“”/auto/joint: auto; cartesian; pilz: LIN; pilz_ptp: PTP.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p>IK frame: forward/backward/left/right/up/down; x/-x/y/-y/z/-z.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">distance</span></code></p></td>
+<td><p>Relative distance (m); finite and &gt; 0.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">cartesian_target</span></code></p></td>
+<td><p>XYZ (m), optionally followed by roll/pitch/yaw (deg).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frame_id</span></code></p></td>
+<td><p>Cartesian frame; empty = base_link.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Pose name: six joint angles (deg).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">constraints_json</span></code></p></td>
+<td><p>Empty = no constraints.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">robot_model_revision</span></code></p></td>
+<td><p>Model cache key; empty disables cross-goal reuse.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id5">
+<h3>Result<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id6">
+<h3>Feedback<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>No fields declared.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="picksampleaction">
+<h2>PickSampleAction<a class="headerlink" href="#picksampleaction" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/beambot_interfaces/action/PickSampleAction.action</span></code>.</p>
+<p>Default endpoint: <code class="docutils literal notranslate"><span class="pre">/beambot_pick_sample</span></code>.</p>
+<section id="id7">
+<h3>Goal<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">use_vision</span></code></p></td>
+<td><p>False uses named joint poses.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detection_type</span></code></p></td>
+<td><p>marker (default) or sample_roi.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>ArUco ID.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sample_index</span></code></p></td>
+<td><p>Reserved; unused.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">z_offset</span></code></p></td>
+<td><p>base_link Z offset (m); 0 = gripper default.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scan_pose</span></code></p></td>
+<td><p>Scan/retreat pose key.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_x</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_y</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_z</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">offset_direction</span></code></p></td>
+<td><p>Flange-frame direction.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">offset_distance</span></code></p></td>
+<td><p>Offset (m); &gt; 0 when direction is set.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ik_frame</span></code></p></td>
+<td><p>Empty = auto-detect.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">strategy</span></code></p></td>
+<td><p>sample_roi; empty = farthest_edge.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">edge_inset_mm</span></code></p></td>
+<td><p>sample_roi; 0 = 6.5 mm.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code></p></td>
+<td><p>Approach/retreat pose key.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">target_pose</span></code></p></td>
+<td><p>Grasp pose key.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gripper_group</span></code></p></td>
+<td><p>MoveIt gripper group.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gripper_states_json</span></code></p></td>
+<td><p>Maps grasp/release to SRDF states.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Pose name: six joint angles (deg).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">constraints_json</span></code></p></td>
+<td><p>Empty = no constraints.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">robot_model_revision</span></code></p></td>
+<td><p>Model cache key; empty disables cross-goal reuse.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id8">
+<h3>Result<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">vacuum_ok</span></code></p></td>
+<td><p>True if detected or unchecked; only valid on success.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detected_position</span></code></p></td>
+<td><p>XYZ (m).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detected_orientation</span></code></p></td>
+<td><p>Quaternion [x,y,z,w].</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id9">
+<h3>Feedback<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">current_stage</span></code></p></td>
+<td><p>Not currently published.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="pipettoraction">
+<h2>PipettorAction<a class="headerlink" href="#pipettoraction" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/beambot_interfaces/action/PipettorAction.action</span></code>.</p>
+<p>Default endpoint: <code class="docutils literal notranslate"><span class="pre">/beambot_pipettor</span></code>.</p>
+<section id="id10">
+<h3>Goal<a class="headerlink" href="#id10" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">operation</span></code></p></td>
+<td><p>SUCK, EXPEL, EJECT_TIP, SET_LED.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">volume_pct</span></code></p></td>
+<td><p>Currently ignored by the pipettor driver.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">std_msgs/ColorRGBA</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">led_color</span></code></p></td>
+<td><p>SET_LED color.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Unused.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id11">
+<h3>Result<a class="headerlink" href="#id11" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id12">
+<h3>Feedback<a class="headerlink" href="#id12" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>No fields declared.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="placesampleaction">
+<h2>PlaceSampleAction<a class="headerlink" href="#placesampleaction" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/beambot_interfaces/action/PlaceSampleAction.action</span></code>.</p>
+<p>Default endpoint: <code class="docutils literal notranslate"><span class="pre">/beambot_place_sample</span></code>.</p>
+<section id="id13">
+<h3>Goal<a class="headerlink" href="#id13" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">use_vision</span></code></p></td>
+<td><p>False uses named joint poses.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detection_type</span></code></p></td>
+<td><p>Always uses marker detection.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>ArUco ID.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">z_offset</span></code></p></td>
+<td><p>base_link Z offset (m); 0 = gripper default.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scan_pose</span></code></p></td>
+<td><p>Scan/retreat pose key.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_x</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_y</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_z</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">offset_direction</span></code></p></td>
+<td><p>Flange-frame direction.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">offset_distance</span></code></p></td>
+<td><p>Offset (m); &gt; 0 when direction is set.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ik_frame</span></code></p></td>
+<td><p>Empty = auto-detect.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code></p></td>
+<td><p>Approach/retreat pose key.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">target_pose</span></code></p></td>
+<td><p>Place pose key.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gripper_group</span></code></p></td>
+<td><p>MoveIt gripper group.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gripper_states_json</span></code></p></td>
+<td><p>Maps grasp/release to SRDF states.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Pose name: six joint angles (deg).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">constraints_json</span></code></p></td>
+<td><p>Empty = no constraints.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">robot_model_revision</span></code></p></td>
+<td><p>Model cache key; empty disables cross-goal reuse.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id14">
+<h3>Result<a class="headerlink" href="#id14" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detected_position</span></code></p></td>
+<td><p>XYZ (m).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detected_orientation</span></code></p></td>
+<td><p>Quaternion [x,y,z,w].</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id15">
+<h3>Feedback<a class="headerlink" href="#id15" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">current_stage</span></code></p></td>
+<td><p>Not currently published.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="toolexchangeaction">
+<h2>ToolExchangeAction<a class="headerlink" href="#toolexchangeaction" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/beambot_interfaces/action/ToolExchangeAction.action</span></code>.</p>
+<p>Default endpoint: <code class="docutils literal notranslate"><span class="pre">/beambot_toolexchange</span></code>.</p>
+<section id="id16">
+<h3>Goal<a class="headerlink" href="#id16" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">operation</span></code></p></td>
+<td><p>load or dock.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Configured gripper to load/dock.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">current_attached_gripper</span></code></p></td>
+<td><p>Current gripper; none if detached.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">dock_number</span></code></p></td>
+<td><p>Physical dock number; range not validated.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code></p></td>
+<td><p>Approach joint-pose key.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Pose name: six joint angles (deg).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">robot_model_revision</span></code></p></td>
+<td><p>Model cache key; empty disables cross-goal reuse.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id17">
+<h3>Result<a class="headerlink" href="#id17" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id18">
+<h3>Feedback<a class="headerlink" href="#id18" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>No fields declared.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="visionscanaction">
+<h2>VisionScanAction<a class="headerlink" href="#visionscanaction" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/beambot_interfaces/action/VisionScanAction.action</span></code>.</p>
+<p>Default endpoint: <code class="docutils literal notranslate"><span class="pre">/beambot_vision_scan</span></code>.</p>
+<section id="id19">
+<h3>Goal<a class="headerlink" href="#id19" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scan_positions_flat</span></code></p></td>
+<td><p>Flattened six-joint poses (rad).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">num_scan_positions</span></code></p></td>
+<td><p>Must match flattened pose count.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scans_per_position</span></code></p></td>
+<td><p>Captures per pose; &lt;= 0 uses 3.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Per-capture timeout (s); &lt;= 0 uses 10.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Unused by scan server.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">robot_model_revision</span></code></p></td>
+<td><p>Model cache key; empty disables cross-goal reuse.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id20">
+<h3>Result<a class="headerlink" href="#id20" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tags_detected</span></code></p></td>
+<td><p>Unique tags cached.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id21">
+<h3>Feedback<a class="headerlink" href="#id21" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">status</span></code></p></td>
+<td><p>Not currently published.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="visiontaskaction">
+<h2>VisionTaskAction<a class="headerlink" href="#visiontaskaction" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/beambot_interfaces/action/VisionTaskAction.action</span></code>.</p>
+<p>Default endpoint: <code class="docutils literal notranslate"><span class="pre">/beambot_vision_task</span></code>.</p>
+<section id="id22">
+<h3>Goal<a class="headerlink" href="#id22" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detector</span></code></p></td>
+<td><p>marker (default), sample_roi, spincoater_pocket, spincoater_sample.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">goal_computer</span></code></p></td>
+<td><p>approach_pose (default) or j6_snap.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p>ArUco ID or sample_roi anchor.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">sample_index</span></code></p></td>
+<td><p>Reserved; unused.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>marker/sample_roi timeout (s).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">strategy</span></code></p></td>
+<td><p>sample_roi; empty = farthest_edge.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">edge_inset_mm</span></code></p></td>
+<td><p>sample_roi inset; 0 = no inset.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scan_positions_flat</span></code></p></td>
+<td><p>marker scans: flattened six-joint poses (rad).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">num_scan_positions</span></code></p></td>
+<td><p>0 = single-position detection.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">z_offset</span></code></p></td>
+<td><p>base_link Z offset (m); 0 = gripper default.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_x</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_y</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_z</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">offset_direction</span></code></p></td>
+<td><p>Flange-frame direction.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">offset_distance</span></code></p></td>
+<td><p>Offset (m); &gt; 0 when direction is set.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">target_pose</span></code></p></td>
+<td><p>Joint-pose key; joint 6 is corrected.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">k_offset</span></code></p></td>
+<td><p>Calibration offset (deg).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">forward_distance</span></code></p></td>
+<td><p>Forward move after positioning (m); 0 = none.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">scan_pose</span></code></p></td>
+<td><p>Pre-detection pose key; empty skips the move.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">terminal_action</span></code></p></td>
+<td><p>grasp/release or SRDF state; empty = none.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gripper_group</span></code></p></td>
+<td><p>MoveIt gripper group.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">gripper_states_json</span></code></p></td>
+<td><p>Maps grasp/release to SRDF states.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pre_open</span></code></p></td>
+<td><p>Open gripper before the scan_pose move.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">retreat_pose</span></code></p></td>
+<td><p>approach_pose retreat key; empty = none.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">ik_frame</span></code></p></td>
+<td><p>approach_pose IK frame; empty = auto-detect.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Pose name: six joint angles (deg).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">constraints_json</span></code></p></td>
+<td><p>Empty = no constraints.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detect_only</span></code></p></td>
+<td><p>Skips approach_pose execution, not scans; ignored by j6_snap.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">robot_model_revision</span></code></p></td>
+<td><p>Model cache key; empty disables cross-goal reuse.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id23">
+<h3>Result<a class="headerlink" href="#id23" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">vacuum_ok</span></code></p></td>
+<td><p>True if detected or unchecked; only valid on success.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detected_position</span></code></p></td>
+<td><p>XYZ (m).</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">float64[]</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">detected_orientation</span></code></p></td>
+<td><p>Quaternion [x,y,z,w].</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">motion_kind</span></code></p></td>
+<td><p>NONE or CARTESIAN_POSE (also reported for joint moves).</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id24">
+<h3>Feedback<a class="headerlink" href="#id24" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>No fields declared.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="movetonamedstate">
+<h2>MoveToNamedState<a class="headerlink" href="#movetonamedstate" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/demos/hello_orchestrator_py_interfaces/action/MoveToNamedState.action</span></code>.</p>
+<p>Tutorial interface: inspect the demo server/client for its endpoint and behavior.</p>
+<section id="id25">
+<h3>Goal<a class="headerlink" href="#id25" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">target_pose</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id26">
+<h3>Result<a class="headerlink" href="#id26" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id27">
+<h3>Feedback<a class="headerlink" href="#id27" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>No fields declared.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="orchestratortask">
+<h2>OrchestratorTask<a class="headerlink" href="#orchestratortask" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/demos/hello_orchestrator_py_interfaces/action/OrchestratorTask.action</span></code>.</p>
+<p>Tutorial interface: inspect the demo server/client for its endpoint and behavior.</p>
+<section id="id28">
+<h3>Goal<a class="headerlink" href="#id28" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">task_json</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id29">
+<h3>Result<a class="headerlink" href="#id29" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">completed_steps</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id30">
+<h3>Feedback<a class="headerlink" href="#id30" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">current_step</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">int32</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">total_steps</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">current_action</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+<section id="printmessage">
+<h2>PrintMessage<a class="headerlink" href="#printmessage" title="Link to this heading"></a></h2>
+<p>Source: <code class="docutils literal notranslate"><span class="pre">src/demos/hello_orchestrator_py_interfaces/action/PrintMessage.action</span></code>.</p>
+<p>Tutorial interface: inspect the demo server/client for its endpoint and behavior.</p>
+<section id="id31">
+<h3>Goal<a class="headerlink" href="#id31" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id32">
+<h3>Result<a class="headerlink" href="#id32" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">bool</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">success</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">string</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">error_message</span></code></p></td>
+<td><p>—</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="id33">
+<h3>Feedback<a class="headerlink" href="#id33" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Field</p></th>
+<th class="head"><p>Contract notes</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>—</p></td>
+<td><p>—</p></td>
+<td><p>No fields declared.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="tasks.html" class="btn btn-neutral float-left" title="Task JSON reference" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="mcp.html" class="btn btn-neutral float-right" title="MCP tool reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

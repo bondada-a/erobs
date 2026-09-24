@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Coordinates need a frame and units — EROBS</title>
+<!-- Diagram Design, Cathryn Lavery, MIT; upstream 8d8b2993ee2256ee7dfc0eeb3b5713aba3b60792. -->
+<style>html,body{margin:0;background:#ffffff;color:#18283b;font-family:system-ui, sans-serif}main{min-width:960px;max-width:960px;margin:0 auto}svg{display:block;width:100%;height:auto}</style></head>
+<body><main><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 736" role="img" aria-labelledby="frames-units-title frames-units-desc">
+<title id="frames-units-title">Coordinates need a frame and units</title>
+<desc id="frames-units-desc">A conceptual XY view compares a Cartesian position expressed in base_link with a forward displacement along an IK frame rotated ninety degrees. Forward is positive local X, so its direction in the room follows the frame. Distances use metres; task joint angles use degrees while ROS revolute joint states use radians. Illustrative coordinates are not calibrated robot targets.</desc>
+<defs>
+<marker id="frames-units-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#52647a"/></marker>
+<marker id="frames-units-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+<marker id="frames-units-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+</defs>
+<rect width="960" height="736" fill="#ffffff"/>
+<text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / SPATIAL CONVENTIONS</text>
+<text x="48" y="84" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Coordinates need a frame and units</text>
+<text x="48" y="128" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Conceptual XY view. The right-hand frame is rotated 90°; geometry is illustrative.</text>
+<line x1="480" y1="176" x2="480" y2="536" stroke="#dbe3ee"/>
+<text x="48" y="196" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Absolute position</text>
+<text x="528" y="196" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Relative displacement</text>
+<!-- Coordinate axes and projection guides, not software-flow connectors. -->
+<line x1="112" y1="416" x2="400" y2="416" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<line x1="112" y1="416" x2="112" y2="232" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<path d="M304 416 V288 H112" fill="none" stroke="#52647a" stroke-dasharray="4,4"/>
+<circle cx="112" cy="416" r="4" fill="#18283b"/>
+<circle cx="304" cy="288" r="8" fill="#235cb7"/>
+<text x="404" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">+X</text>
+<text x="72" y="240" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">+Y</text>
+<text x="320" y="272" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Target</text>
+<text x="288" y="444" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">0.30 m</text>
+<text x="48" y="288" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">0.20 m</text>
+<text x="112" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">frame_id: "base_link"</text>
+<text x="112" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Position is measured from this origin.</text>
+<line x1="680" y1="416" x2="536" y2="416" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<line x1="680" y1="416" x2="680" y2="240" stroke="#52647a" stroke-width="1.5" marker-end="url(#frames-units-arrow)"/>
+<line x1="704" y1="416" x2="704" y2="304" stroke="#235cb7" stroke-width="3" marker-end="url(#frames-units-arrow-accent)"/>
+<circle cx="680" cy="416" r="4" fill="#18283b"/>
+<text x="528" y="444" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">local +Y</text>
+<text x="696" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">local +X</text>
+<rect x="724" y="316" width="180" height="72" fill="#ffffff"/>
+<text x="732" y="340" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">forward</text>
+<text x="732" y="372" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">distance: 0.01</text>
+<text x="576" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">selected IK frame</text>
+<text x="576" y="508" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">The local direction rotates with it.</text>
+<line x1="48" y1="556" x2="912" y2="556" stroke="#dbe3ee"/>
+<text x="48" y="596" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">DISTANCE</text>
+<text x="48" y="636" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">10 mm = 0.01 m</text>
+<text x="528" y="596" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">REVOLUTE JOINT ANGLE</text>
+<text x="528" y="636" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">90° = π/2 rad</text>
+<text x="528" y="668" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">task pose → ROS arm joint state</text>
+<text x="48" y="712" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">These are unit conventions, not calibrated targets. Prismatic joint positions use metres.</text>
+</svg></main></body></html>

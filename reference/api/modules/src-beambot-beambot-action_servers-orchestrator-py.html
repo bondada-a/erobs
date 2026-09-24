@@ -1,0 +1,996 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task orchestrator &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Shared action server" href="src-beambot-beambot-action_servers-base_action_server-py.html" />
+    <link rel="prev" title="Task batching" href="src-beambot-beambot-core-task_batching-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-task_script-py.html">Task parsing and validation</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-core-task_batching-py.html">Task batching</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Task orchestrator</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-base_action_server-py.html">Shared action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-capture_octomap-py.html">Mapping capture sequence</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-perf_trace_run-sh.html">Traced task runner</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-scripts-perf_trace_summarize-py.html">Callback timing reports</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/task-execution.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/task-execution.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/task-execution.html">Task execution</a></li>
+      <li class="breadcrumb-item active">Task orchestrator</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="task-orchestrator">
+<h1>Task orchestrator<a class="headerlink" href="#task-orchestrator" title="Link to this heading"></a></h1>
+<p>Validate task scripts and coordinate tool setup, motion batches, child actions, cached replay, pause, and cancellation.</p>
+<p>Only a goal containing one batch is eligible for trajectory replay. Pause and cancellation are checked at execution boundaries. Vacuum monitoring is disabled.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.action_servers.orchestrator</span></code> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/task-execution.html"><span class="std std-doc">Task execution</span></a> · <a class="reference internal" href="../../../architecture/execution.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>This is the main execution path for task JSON submitted through <code class="docutils literal notranslate"><span class="pre">MTCExecution</span></code>. Read <code class="docutils literal notranslate"><span class="pre">_execute()</span></code> first: it parses the document, starts the selected tool model, groups tasks, then dispatches batches or individual actions. <code class="docutils literal notranslate"><span class="pre">_execute_batch()</span></code> handles combined motion planning and eligible cached replay; <code class="docutils literal notranslate"><span class="pre">_execute_step()</span></code> routes other operations.</p>
+<p>The class owns task state, pause/resume services, and child action clients. Clients submit goals and service requests; the underscore methods explain the execution flow and are not a separate client API. Cache identity uses expanded tasks and resolved pose values, not just the submitted JSON text.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-aae65f7587cf48fa"><span class="std std-ref">main</span></a></p></td>
+<td><p>Run MTCOrchestratorServer using the shared multithreaded ROS runner.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-7101b1b1589d4518"><span class="std std-ref">MTCOrchestratorServer._execute</span></a></p></td>
+<td><p>Run the task document from parsing through completion. Select the start tool, initialize MoveIt, group tasks, and dispatch with boundary pause/cancel checks. Eligible single-batch goals use expanded tasks, resolved poses, model revision, and start joints for cache identity. Dry runs plan/preview but still perform lifecycle startup.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-25cf2c21c2b2a9d0"><span class="std std-ref">MTCOrchestratorServer._execute_batch</span></a></p></td>
+<td><p>Plan or replay one motion/gripper batch. Replay failure can trigger fresh planning, but <code class="docutils literal notranslate"><span class="pre">REPLAY_TIMEOUT</span></code> never starts a second trajectory. Fresh plans may be previewed and retained for caching.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-28e28986328156c4"><span class="std std-ref">MTCOrchestratorServer._execute_step</span></a></p></td>
+<td><p>Dispatch a single task to motion, gripper, tool-exchange, vision, scan or pipettor handlers. Pause tasks are handled by the main loop before this method.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="main">
+<span id="api-aae65f7587cf48fa"></span><h3><code class="docutils literal notranslate"><span class="pre">main()</span></code><a class="headerlink" href="#main" title="Link to this heading"></a></h3>
+<p>Run MTCOrchestratorServer using the shared multithreaded ROS runner.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-1211">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">main</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">args</span></code></p></td>
+<td><p>Optional ROS initialization arguments.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None after server shutdown.</p>
+<p><strong>Errors:</strong> Runner construction/spin errors propagate except a handled KeyboardInterrupt or external shutdown.</p>
+<p><strong>Side effects:</strong> Initializes ROS, creates/spins the orchestrator and, on spin exit, destroys the node (which stops MoveIt) and shuts down the context.</p>
+</section>
+</section>
+<section id="mtcorchestratorserver">
+<h2><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer</span></code><a class="headerlink" href="#mtcorchestratorserver" title="Link to this heading"></a></h2>
+<p>Top-level ROS node for multi-step execution. It coordinates MoveIt lifecycle, tools, child actions, feedback, and cached plans. It uses its own admission and fault handling rather than inheriting <code class="docutils literal notranslate"><span class="pre">BaseActionServer</span></code>.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">Node</span></code>.</p>
+<section id="mtcorchestratorserver-execute">
+<span id="api-7101b1b1589d4518"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._execute()</span></code><a class="headerlink" href="#mtcorchestratorserver-execute" title="Link to this heading"></a></h3>
+<p>Run the task document from parsing through completion. Select the start tool, initialize MoveIt, group tasks, and dispatch with boundary pause/cancel checks. Eligible single-batch goals use expanded tasks, resolved poses, model revision, and start joints for cache identity. Dry runs plan/preview but still perform lifecycle startup.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-373">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal_handle</span><span class="p">:</span> <span class="n">ServerGoalHandle</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MTCExecution</span><span class="o">.</span><span class="n">Result</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">goal_handle</span></code></p></td>
+<td><p>MTCExecution handle carrying full_json and optional dry_run.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> MTCExecution.Result with expanded total/completed counts, success/error and any retained detected pose.</p>
+<p><strong>Errors:</strong> Parser ValueError aborts cleanly. Handled launch/dispatch failures abort; TIMEOUT/REPLAY_TIMEOUT or cancellation during a failed unit can fault the server. Unexpected exceptions reach _execute_callback and fault it.</p>
+<p><strong>Side effects:</strong> Can change reported gripper, launch/configure hardware, plan/preview/execute tasks, cache serialized plans and publish feedback/state. Vacuum checks and bookkeeping are disabled; eligible end-effector actions may share a batch with motion.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-53a4ac6200b058cb"><code>MTCOrchestratorServer._execute_callback</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-execute-batch">
+<span id="api-25cf2c21c2b2a9d0"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._execute_batch()</span></code><a class="headerlink" href="#mtcorchestratorserver-execute-batch" title="Link to this heading"></a></h3>
+<p>Plan or replay one motion/gripper batch. Replay failure can trigger fresh planning, but <code class="docutils literal notranslate"><span class="pre">REPLAY_TIMEOUT</span></code> never starts a second trajectory. Fresh plans may be previewed and retained for caching.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-690">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_execute_batch</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">batch_tasks</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]],</span>
+    <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+    <span class="n">dry_run</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+    <span class="n">cached_plan</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">batch_tasks</span></code></p></td>
+<td><p>Ordered moveto/end_effector task dictionaries.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Serialized named pose mapping.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dry_run</span></code></p></td>
+<td><p>Plan and preview without executing fresh task motion when true.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cached_plan</span></code></p></td>
+<td><p>Optional serialized MTC solution message itself, not a wrapper dictionary. The caller normally supplies it only for live execution.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> True for empty input or successful replay/plan/execution; False with _last_error for handled failures.</p>
+<p><strong>Errors:</strong> Unknown batch types and helper errors return False; construction/JSON exceptions propagate. A supplied cached_plan is replayed before checking dry_run.</p>
+<p><strong>Side effects:</strong> Creates/plans/executes MTC tasks, may publish preview and set _last_planned_sol_msg; always closes the constructed MoveToStages TF listener in finally.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-7101b1b1589d4518"><code>MTCOrchestratorServer._execute</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-execute-step">
+<span id="api-28e28986328156c4"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._execute_step()</span></code><a class="headerlink" href="#mtcorchestratorserver-execute-step" title="Link to this heading"></a></h3>
+<p>Dispatch a single task to motion, gripper, tool-exchange, vision, scan or pipettor handlers. Pause tasks are handled by the main loop before this method.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-663">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_execute_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task_type</span></code></p></td>
+<td><p>Task type string.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task dictionary passed to its handler.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Serialized named joint poses.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Delegated boolean success, or False for unknown types.</p>
+<p><strong>Errors:</strong> Unknown type sets _last_error; handler exceptions propagate.</p>
+<p><strong>Side effects:</strong> Logs and may execute child hardware actions or lifecycle changes.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-7101b1b1589d4518"><code>MTCOrchestratorServer._execute</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-init">
+<span id="api-57d981ad9cf493dd"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer.__init__()</span></code><a class="headerlink" href="#mtcorchestratorserver-init" title="Link to this heading"></a></h3>
+<p>Create the task coordinator and its ROS endpoints. Load beamline/tool/pose settings, initialize pause, fault, and cache state, and construct lifecycle and tool-exchange managers. Vacuum monitoring is not instantiated.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-58">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Errors:</strong> Missing required configuration keys, configuration resolution and ROS resource initialization errors propagate.</p>
+<p><strong>Side effects:</strong> Creates beambot_execution and seven child-action clients, tool exchange clients, pause/resume services and state/gripper publishers; publishes IDLE and unknown. Does not launch MoveIt until a goal executes.</p>
+</section>
+<section id="mtcorchestratorserver-destroy-node">
+<span id="api-7d0892002f79d8ef"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer.destroy_node()</span></code><a class="headerlink" href="#mtcorchestratorserver-destroy-node" title="Link to this heading"></a></h3>
+<p>Stop the MoveIt launch session, then destroy the ROS node.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-237">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">destroy_node</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> An error while stopping MoveIt propagates before the node’s ROS entities are destroyed.</p>
+<p><strong>Side effects:</strong> Calls kill_current_process(drain=False) while rclpy is still running, which clears the model revision and stops MoveIt’s process group. Skips the discovery drain because no launch follows. Then destroys the node’s publishers, services and action endpoints.</p>
+<p><strong>Used by:</strong> run_server() during shutdown.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="mtcorchestratorserver-goal-callback">
+<span id="api-4ff1b709be1afa3d"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._goal_callback()</span></code><a class="headerlink" href="#mtcorchestratorserver-goal-callback" title="Link to this heading"></a></h4>
+<p>Reserve the orchestrator under a lock only when neither faulted nor executing. Script validation happens later.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-245">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_goal_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal_request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">GoalResponse</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">goal_request</span></code></p></td>
+<td><p>Incoming MTCExecution request; its contents are unused here.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> ACCEPT after reservation, otherwise REJECT.</p>
+<p><strong>Errors:</strong> No payload validation or exception conversion.</p>
+<p><strong>Side effects:</strong> Sets _executing on acceptance; logs rejections.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-cancel-callback">
+<span id="api-9fdbaad6c563cc9c"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._cancel_callback()</span></code><a class="headerlink" href="#mtcorchestratorserver-cancel-callback" title="Link to this heading"></a></h4>
+<p>Accept cancellation and announce CANCELING; the execution loop checks the request after the active batch or single action completes.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-257">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_cancel_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal_handle</span><span class="p">:</span> <span class="n">ServerGoalHandle</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">CancelResponse</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">goal_handle</span></code></p></td>
+<td><p>Goal handle; unused by this callback.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> CancelResponse.ACCEPT.</p>
+<p><strong>Errors:</strong> Publication errors propagate.</p>
+<p><strong>Side effects:</strong> Publishes CANCELING and logs; does not directly stop a trajectory or cancel an active child.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-pause-callback">
+<span id="api-da3149c07d5102e7"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._pause_callback()</span></code><a class="headerlink" href="#mtcorchestratorserver-pause-callback" title="Link to this heading"></a></h4>
+<p>Under the execution lock, accept a new pause request only while executing and neither paused nor already pending.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-265">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_pause_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">request</span></code></p></td>
+<td><p>Trigger request; unused.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">response</span></code></p></td>
+<td><p>Response object to populate.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Same response, with success and a reason describing accepted or rejected pause.</p>
+<p><strong>Errors:</strong> No exception conversion.</p>
+<p><strong>Side effects:</strong> Sets _pause_requested, publishes COMPLETING_TASK and logs when accepted.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-resume-callback">
+<span id="api-5807f1f4e489d2fa"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._resume_callback()</span></code><a class="headerlink" href="#mtcorchestratorserver-resume-callback" title="Link to this heading"></a></h4>
+<p>Resume only an actively paused execution by clearing the paused flag and setting its event. A merely pending pause cannot be resumed here.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-295">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_resume_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">request</span></code></p></td>
+<td><p>Trigger request; unused.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">response</span></code></p></td>
+<td><p>Response object to populate.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Same response with success=True when resumed, otherwise Not currently paused.</p>
+<p><strong>Errors:</strong> No exception conversion.</p>
+<p><strong>Side effects:</strong> Changes _is_paused/_pause_event and logs; the waiting execution thread publishes RUNNING.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-handle-pause">
+<span id="api-a876f231d1642702"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._handle_pause()</span></code><a class="headerlink" href="#mtcorchestratorserver-handle-pause" title="Link to this heading"></a></h4>
+<p>Enter paused state, publish completed-step feedback and wait in 0.5 s intervals for resume or cancellation. Explicit pause tasks can identify the active uncompleted step separately.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-311">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_handle_pause</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">feedback</span><span class="p">:</span> <span class="n">MTCExecution</span><span class="o">.</span><span class="n">Feedback</span><span class="p">,</span>
+    <span class="n">goal_handle</span><span class="p">:</span> <span class="n">ServerGoalHandle</span><span class="p">,</span>
+    <span class="n">completed_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">total_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">active_step</span><span class="p">:</span> <span class="nb">int</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">feedback</span></code></p></td>
+<td><p>Mutable execution feedback object.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">goal_handle</span></code></p></td>
+<td><p>Goal handle used for feedback and cancel checks.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">completed_steps</span></code></p></td>
+<td><p>Count of fully completed tasks.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">total_steps</span></code></p></td>
+<td><p>Total expanded task count; zero yields 0% progress.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">active_step</span></code></p></td>
+<td><p>Optional one-based explicit pause-task number.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None when resumed or a cancel request is observed.</p>
+<p><strong>Errors:</strong> Feedback/publication errors propagate.</p>
+<p><strong>Side effects:</strong> Clears pending pause, updates pause event/flags, publishes PAUSED and repeated feedback, then RUNNING on resume; cancellation exits without publishing RUNNING.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-7101b1b1589d4518"><code>MTCOrchestratorServer._execute</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-execute-callback">
+<span id="api-53a4ac6200b058cb"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._execute_callback()</span></code><a class="headerlink" href="#mtcorchestratorserver-execute-callback" title="Link to this heading"></a></h4>
+<p>Run the orchestration loop, permanently fault on an uncaught exception, then publish FAULTED or IDLE. Only a nonfaulted exit releases the executing reservation.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-360">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_execute_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal_handle</span><span class="p">:</span> <span class="n">ServerGoalHandle</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">goal_handle</span></code></p></td>
+<td><p>Accepted MTCExecution handle.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Result returned by _execute.</p>
+<p><strong>Errors:</strong> Uncaught execution exceptions are re-raised after setting _faulted; no failed result is synthesized here.</p>
+<p><strong>Side effects:</strong> Updates fault/busy state and publishes final execution state.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-create-moveto-goal">
+<span id="api-61ab8ecc70a88d31"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._create_moveto_goal()</span></code><a class="headerlink" href="#mtcorchestratorserver-create-moveto-goal" title="Link to this heading"></a></h4>
+<p>Copy MoveTo selectors, convert travel/Cartesian values to floats, attach pose JSON and serialize optional constraints. Missing frame_id defaults to base_link.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-769">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_create_moveto_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">MoveToAction</span><span class="o">.</span><span class="n">Goal</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task dictionary with target/planning_type/direction/distance/cartesian_target and optional frame/constraints.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Resolved pose registry JSON.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> MoveToAction.Goal; model revision is populated later by _send_and_wait for child actions.</p>
+<p><strong>Errors:</strong> Float conversion, malformed iterables, JSON serialization and message assignment errors propagate.</p>
+<p><strong>Side effects:</strong> Allocates a goal without planning or sending it.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-0f5b591500c4912d"><code>MTCOrchestratorServer._call_moveto</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-25cf2c21c2b2a9d0"><code>MTCOrchestratorServer._execute_batch</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-create-endeffector-goal">
+<span id="api-e0806c9830d357de"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._create_endeffector_goal()</span></code><a class="headerlink" href="#mtcorchestratorserver-create-endeffector-goal" title="Link to this heading"></a></h4>
+<p>Select the explicit end_effector_type or current gripper, look up its SRDF group, and copy the requested end-effector state.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-786">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_create_endeffector_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">EndEffectorAction</span><span class="o">.</span><span class="n">Goal</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task dictionary; unknown gripper types yield an empty group.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> EndEffectorAction.Goal.</p>
+<p><strong>Errors:</strong> Malformed mapping/message values can raise; unknown gripper names are not rejected here.</p>
+<p><strong>Side effects:</strong> Allocates a goal. Empty group becomes a downstream no-op.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-d1afaf6f484111bc"><code>MTCOrchestratorServer._call_endeffector</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-25cf2c21c2b2a9d0"><code>MTCOrchestratorServer._execute_batch</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-send-and-wait">
+<span id="api-670df1277b3228fd"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._send_and_wait()</span></code><a class="headerlink" href="#mtcorchestratorserver-send-and-wait" title="Link to this heading"></a></h4>
+<p>Reset the last error, attach the active model revision when the goal supports it, send the child goal and wait without spinning. Success follows result.success, not the action wrapper status.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-798">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_send_and_wait</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">client</span><span class="p">:</span> <span class="n">ActionClient</span><span class="p">,</span> <span class="n">goal</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">timeout</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">client</span></code></p></td>
+<td><p>ActionClient for the operation.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">goal</span></code></p></td>
+<td><p>Mutable goal message.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">name</span></code></p></td>
+<td><p>Operation label used in logs/errors.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p>Result wait limit in seconds, excluding 5 s discovery and 10 s acceptance waits.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Child result.success on completion; False for missing revision, unavailable server, rejection, timeout or failed child result.</p>
+<p><strong>Errors:</strong> Acceptance/result timeouts set _faulted; result timeout requests cancellation without waiting for acknowledgement. Future/transport exceptions propagate. _last_result is replaced only after receiving a result, so earlier failures can leave it stale.</p>
+<p><strong>Side effects:</strong> Mutates goal revision and orchestrator error/result/fault fields, sends hardware actions and may request cancellation.</p>
+<details class="api-references"><summary>Referenced in source (8)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-d1afaf6f484111bc"><code>MTCOrchestratorServer._call_endeffector</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-0f5b591500c4912d"><code>MTCOrchestratorServer._call_moveto</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-ed4d8bf3a5d83d38"><code>MTCOrchestratorServer._call_pick_sample_hardcoded</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-ff225d0cd3baec8b"><code>MTCOrchestratorServer._call_pipettor</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-86b4e4a89f9e7398"><code>MTCOrchestratorServer._call_place_sample_hardcoded</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-03e7b89eacebbd39"><code>MTCOrchestratorServer._call_vision_scan</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-4cba02c6a4c519d5"><code>MTCOrchestratorServer._call_vision_task</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-call-moveto">
+<span id="api-0f5b591500c4912d"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._call_moveto()</span></code><a class="headerlink" href="#mtcorchestratorserver-call-moveto" title="Link to this heading"></a></h4>
+<p>Build a MoveTo goal and send it with the configured moveto result timeout.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-849">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_call_moveto</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task dictionary consumed by _create_moveto_goal.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Named pose JSON forwarded to the goal.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Boolean child success.</p>
+<p><strong>Errors:</strong> Builder/transport exceptions propagate; handled child failures update _last_error.</p>
+<p><strong>Side effects:</strong> Sends a motion action and may fault on timeout.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-28e28986328156c4"><code>MTCOrchestratorServer._execute_step</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-call-endeffector">
+<span id="api-d1afaf6f484111bc"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._call_endeffector()</span></code><a class="headerlink" href="#mtcorchestratorserver-call-endeffector" title="Link to this heading"></a></h4>
+<p>Build an SRDF gripper-state goal and send it with the configured end_effector timeout.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-856">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_call_endeffector</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task dictionary consumed by _create_endeffector_goal.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Accepted for dispatcher compatibility; unused.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Boolean child success.</p>
+<p><strong>Errors:</strong> Builder/transport exceptions propagate; handled child failures update _last_error.</p>
+<p><strong>Side effects:</strong> Sends a gripper action and may fault on timeout.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-28e28986328156c4"><code>MTCOrchestratorServer._execute_step</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-handle-tool-exchange">
+<span id="api-f50b0e7f68504103"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._handle_tool_exchange()</span></code><a class="headerlink" href="#mtcorchestratorserver-handle-tool-exchange" title="Link to this heading"></a></h4>
+<p>Delegate exchange using the current gripper and configured timeout, copying a nonempty manager error on failure.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-866">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_handle_tool_exchange</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Validated tool-exchange task fields.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Named pose JSON for approach motion.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Boolean exchange/synchronization success.</p>
+<p><strong>Errors:</strong> Manager exceptions propagate; last_error is copied only when supplied by the manager.</p>
+<p><strong>Side effects:</strong> May change voltage, move/dock/load tools, update current gripper, relaunch MoveIt and reset vision TF.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-28e28986328156c4"><code>MTCOrchestratorServer._execute_step</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-call-pipettor">
+<span id="api-ff225d0cd3baec8b"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._call_pipettor()</span></code><a class="headerlink" href="#mtcorchestratorserver-call-pipettor" title="Link to this heading"></a></h4>
+<p>Build a pipettor goal, convert volume and optional RGB values to floats, force supplied color alpha to 1.0 and send with the configured timeout.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-877">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_call_pipettor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task with operation, optional volume_pct (default 0.0) and optional led_color RGB mapping.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Pose JSON forwarded although the pipettor stage does not use it.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Boolean child success.</p>
+<p><strong>Errors:</strong> Numeric/shape/message/transport errors propagate; values are not range-checked here.</p>
+<p><strong>Side effects:</strong> Sends a pipettor/LED command and records child result/error.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-28e28986328156c4"><code>MTCOrchestratorServer._execute_step</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-call-vision-scan">
+<span id="api-03e7b89eacebbd39"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._call_vision_scan()</span></code><a class="headerlink" href="#mtcorchestratorserver-call-vision-scan" title="Link to this heading"></a></h4>
+<p>Resolve scan_positions names from pose JSON, convert each available pose’s degrees to radians, flatten and send a scan goal; missing names are skipped.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-940">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_call_vision_scan</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task containing nonempty scan_positions plus scans_per_position (default 3) and timeout (default 10 s).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Named joint-pose JSON in degrees.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> False with an error if no names/no resolved positions; otherwise child scan success.</p>
+<p><strong>Errors:</strong> JSON/numeric errors propagate; pose lengths are not checked here and are checked by the scan server.</p>
+<p><strong>Side effects:</strong> Logs missing names and dispatches multi-position robot scanning that populates the scan server’s cache.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-28e28986328156c4"><code>MTCOrchestratorServer._execute_step</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-call-vision-task">
+<span id="api-4cba02c6a4c519d5"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._call_vision_task()</span></code><a class="headerlink" href="#mtcorchestratorserver-call-vision-task" title="Link to this heading"></a></h4>
+<p>Route nonvision pick/place to legacy sample handlers; otherwise merge preset and explicit fields, map legacy detection_type unless detector is explicit, wait up to 10 s of requested settling, build/send a generic vision goal and retain returned position/orientation arrays.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-986">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_call_vision_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task_type</span></code></p></td>
+<td><p>Canonical vision_task or recognized legacy/preset task type.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task overrides; explicit fields take precedence over preset fields.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Named pose JSON.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Boolean child success.</p>
+<p><strong>Errors:</strong> Conversion/build/transport errors propagate. Negative settle values skip the delay; no general finite-value validation is performed here.</p>
+<p><strong>Side effects:</strong> May sleep before sending, execute vision/motion and replace retained detected pose; vacuum bookkeeping is disabled.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-28e28986328156c4"><code>MTCOrchestratorServer._execute_step</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-build-vision-goal">
+<span id="api-549183322b5bb48c"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._build_vision_goal()</span></code><a class="headerlink" href="#mtcorchestratorserver-build-vision-goal" title="Link to this heading"></a></h4>
+<p>Translate merged task settings into a <code class="docutils literal notranslate"><span class="pre">VisionTaskAction</span></code> goal. Resolve target-pose precedence, tool states, retreat behavior, and degree-to-radian scan arrays. Group/state selection honors <code class="docutils literal notranslate"><span class="pre">cfg.gripper</span></code>; default vertical offset and IK frame use the current gripper.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-1041">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_vision_goal</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cfg</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cfg</span></code></p></td>
+<td><p>Merged task/preset mapping with detector, goal-computer, target and execution settings.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Named six-joint degree poses serialized as JSON.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> VisionTaskAction.Goal with perception/geometry/execution fields.</p>
+<p><strong>Errors:</strong> Numeric conversion, JSON serialization/decoding and message assignment errors propagate; unknown grippers yield an empty group/state map.</p>
+<p><strong>Side effects:</strong> Allocates a goal, reads current gripper configuration, and logs skipped/multi-position scan names.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-4cba02c6a4c519d5"><code>MTCOrchestratorServer._call_vision_task</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-gripper-ik-frame">
+<span id="api-f0903b543118f848"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._gripper_ik_frame()</span></code><a class="headerlink" href="#mtcorchestratorserver-gripper-ik-frame" title="Link to this heading"></a></h4>
+<p>Resolve the current gripper’s configured tip frame through the shared configuration helper.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-1112">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_gripper_ik_frame</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Tip frame, falling back to flange on absent/unreadable configuration.</p>
+<p><strong>Errors:</strong> Configuration helper suppresses lookup failures.</p>
+<p><strong>Side effects:</strong> May initialize shared configuration cache.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-549183322b5bb48c"><code>MTCOrchestratorServer._build_vision_goal</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-gripper-z-offset">
+<span id="api-ef4c49d9b67acb21"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._gripper_z_offset()</span></code><a class="headerlink" href="#mtcorchestratorserver-gripper-z-offset" title="Link to this heading"></a></h4>
+<p>Read the current gripper z_offset and convert it to float.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-1118">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_gripper_z_offset</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Configured offset in metres, or 0.0 if the gripper/key is absent.</p>
+<p><strong>Errors:</strong> Malformed mapping or nonnumeric configured value raises.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-549183322b5bb48c"><code>MTCOrchestratorServer._build_vision_goal</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-call-pick-sample-hardcoded">
+<span id="api-ed4d8bf3a5d83d38"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._call_pick_sample_hardcoded()</span></code><a class="headerlink" href="#mtcorchestratorserver-call-pick-sample-hardcoded" title="Link to this heading"></a></h4>
+<p>Build a legacy pick sample goal with use_vision=False, named approach/target poses and selected gripper states, then send it using the operation-specific timeout.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-1122">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_call_pick_sample_hardcoded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task dictionary with optional gripper override, approach_pose, target_pose and constraints.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Named joint-pose JSON in degrees.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Boolean child success.</p>
+<p><strong>Errors:</strong> JSON serialization, message assignment and transport errors propagate; unknown gripper gives an empty group/states.</p>
+<p><strong>Side effects:</strong> Executes named-pose sample pick through its child action; no vacuum bookkeeping is performed.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-4cba02c6a4c519d5"><code>MTCOrchestratorServer._call_vision_task</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-call-place-sample-hardcoded">
+<span id="api-86b4e4a89f9e7398"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._call_place_sample_hardcoded()</span></code><a class="headerlink" href="#mtcorchestratorserver-call-place-sample-hardcoded" title="Link to this heading"></a></h4>
+<p>Build a legacy place sample goal with use_vision=False, named approach/target poses and selected gripper states, then send it using the operation-specific timeout.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-1143">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_call_place_sample_hardcoded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">poses_json</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task dictionary with optional gripper override, approach_pose, target_pose and constraints.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">poses_json</span></code></p></td>
+<td><p>Named joint-pose JSON in degrees.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Boolean child success.</p>
+<p><strong>Errors:</strong> JSON serialization, message assignment and transport errors propagate; unknown gripper gives an empty group/states.</p>
+<p><strong>Side effects:</strong> Executes named-pose sample place through its child action; no vacuum bookkeeping is performed.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-4cba02c6a4c519d5"><code>MTCOrchestratorServer._call_vision_task</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-publish-state">
+<span id="api-d4b84d4a9d8a884f"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._publish_state()</span></code><a class="headerlink" href="#mtcorchestratorserver-publish-state" title="Link to this heading"></a></h4>
+<p>Publish an execution-state string on the transient-local state publisher.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-1173">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_publish_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">state</span></code></p></td>
+<td><p>State text, such as IDLE, RUNNING, PAUSED, CANCELING or FAULTED.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> ROS message/publication errors propagate; state vocabulary is not validated here.</p>
+<p><strong>Side effects:</strong> Publishes beambot/execution_state.</p>
+<details class="api-references"><summary>Referenced in source (6)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-9fdbaad6c563cc9c"><code>MTCOrchestratorServer._cancel_callback</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-7101b1b1589d4518"><code>MTCOrchestratorServer._execute</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-53a4ac6200b058cb"><code>MTCOrchestratorServer._execute_callback</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-a876f231d1642702"><code>MTCOrchestratorServer._handle_pause</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-da3149c07d5102e7"><code>MTCOrchestratorServer._pause_callback</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-publish-gripper">
+<span id="api-cacd90e1f67daa90"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._publish_gripper()</span></code><a class="headerlink" href="#mtcorchestratorserver-publish-gripper" title="Link to this heading"></a></h4>
+<p>Publish the supplied attached-gripper label on the transient-local gripper publisher.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-1179">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_publish_gripper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gripper</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Gripper name or initialization label such as unknown.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> ROS message/publication errors propagate.</p>
+<p><strong>Side effects:</strong> Publishes beambot/current_gripper without changing _current_gripper.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-35156a36d7969518"><code>MTCOrchestratorServer._set_current_gripper</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-set-current-gripper">
+<span id="api-35156a36d7969518"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._set_current_gripper()</span></code><a class="headerlink" href="#mtcorchestratorserver-set-current-gripper" title="Link to this heading"></a></h4>
+<p>Assign the active gripper and publish the new label immediately.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-1185">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_set_current_gripper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gripper</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>New gripper label.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Publication errors propagate after the local assignment.</p>
+<p><strong>Side effects:</strong> Mutates _current_gripper and publishes it; does not independently verify attachment.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-57d981ad9cf493dd"><code>MTCOrchestratorServer.__init__</code></a> — beambot.action_servers.orchestrator</li><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-7101b1b1589d4518"><code>MTCOrchestratorServer._execute</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+<section id="mtcorchestratorserver-update-feedback">
+<span id="api-e81a0301e597d56b"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCOrchestratorServer._update_feedback()</span></code><a class="headerlink" href="#mtcorchestratorserver-update-feedback" title="Link to this heading"></a></h4>
+<p>Populate action label, current gripper, status text and current_step/total_steps percentage, then publish the same feedback object.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/orchestrator.py.html#L-1189">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_update_feedback</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">feedback</span><span class="p">:</span> <span class="n">MTCExecution</span><span class="o">.</span><span class="n">Feedback</span><span class="p">,</span>
+    <span class="n">goal_handle</span><span class="p">:</span> <span class="n">ServerGoalHandle</span><span class="p">,</span>
+    <span class="n">current_step</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">total_steps</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span>
+    <span class="n">task_type</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">feedback</span></code></p></td>
+<td><p>Mutable MTCExecution.Feedback message.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">goal_handle</span></code></p></td>
+<td><p>Goal handle receiving feedback.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">current_step</span></code></p></td>
+<td><p>Reported step number; callers may use the active step rather than the completed count.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">total_steps</span></code></p></td>
+<td><p>Expanded task count; nonpositive totals yield 0% progress.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task_type</span></code></p></td>
+<td><p>Action description; empty means Task completed.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Publication/type errors propagate; step range is not clamped.</p>
+<p><strong>Side effects:</strong> Mutates feedback fields and publishes feedback.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-orchestrator-py.html#api-7101b1b1589d4518"><code>MTCOrchestratorServer._execute</code></a> — beambot.action_servers.orchestrator</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-beambot-core-task_batching-py.html" class="btn btn-neutral float-left" title="Task batching" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-beambot-action_servers-base_action_server-py.html" class="btn btn-neutral float-right" title="Shared action server" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

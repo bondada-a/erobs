@@ -1,0 +1,880 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Robot and trajectory viewer &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Embedded robot viewer" href="src-mtc_gui-mtc_gui-resources-viewer-html.html" />
+    <link rel="prev" title="Camera display" href="src-mtc_gui-mtc_gui-camera_panel-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main-py.html">GUI startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main_window-py.html">Operator window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-task_forms-py.html">Task editor forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-step_list_panel-py.html">Task queue display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-ros2_bridge-py.html">ROS and GUI bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-poses_panel-py.html">Pose browser and registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_dialogs-py.html">Pose editing dialogs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_io-py.html">Pose registry files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-camera_panel-py.html">Camera display</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Robot and trajectory viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-resources-viewer-html.html">Embedded robot viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-chat_panel-py.html">Chat interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_bridge-py.html">Chat agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_modes-py.html">Chat agent modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-theme-py.html">GUI appearance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-launch-mtc_gui_client-launch-py.html">Operator GUI launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/operator-gui.html">Operator GUI</a></li>
+      <li class="breadcrumb-item active">Robot and trajectory viewer</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="robot-and-trajectory-viewer">
+<h1>Robot and trajectory viewer<a class="headerlink" href="#robot-and-trajectory-viewer" title="Link to this heading"></a></h1>
+<p>Display the robot, task previews, and configured obstacles in an embedded 3D viewer.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mtc_gui.visualization_panel</span></code> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/operator-gui.html"><span class="std std-doc">Operator GUI</span></a> · <a class="reference internal" href="../../../operate/gui.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MTCMainWindow</span></code> creates <code class="docutils literal notranslate"><span class="pre">VisualizationPanel</span></code> and connects joint, gripper, and trajectory signals. The panel starts a loopback HTTP server for viewer assets and robot meshes, then waits for the embedded WebEngine page before loading the model. Its controls and previews affect the display only.</p>
+<p>Use <code class="docutils literal notranslate"><span class="pre">preview_pose()</span></code> and <code class="docutils literal notranslate"><span class="pre">end_preview()</span></code> around a task editor’s goal preview; <code class="docutils literal notranslate"><span class="pre">play_trajectory()</span></code> animates an orchestrator preview. Pose lists use degrees, while trajectory waypoint positions use radians. Python uses the configured arm-joint order, but the JavaScript viewer still expects six fixed UR joint names. <code class="docutils literal notranslate"><span class="pre">closeEvent()</span></code> stops the panel’s timer and mesh server.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-7d8cb76a37043688"><span class="std std-ref">VisualizationPanel.__init__</span></a></p></td>
+<td><p>Locate robot assets, create the viewer controls, and start local asset serving.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-87230e983ac3f175"><span class="std std-ref">VisualizationPanel.preview_pose</span></a></p></td>
+<td><p>Display a six-angle goal preview and temporarily suppress live pose updates.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-a383e48fdf0a1a16"><span class="std std-ref">VisualizationPanel.end_preview</span></a></p></td>
+<td><p>Release a goal-pose preview and restore the most recently cached live pose.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-dbe68d9a58afe3aa"><span class="std std-ref">VisualizationPanel.play_trajectory</span></a></p></td>
+<td><p>Convert trajectory waypoints into arm poses and animate them in the viewer.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-8614f700f9caed3a"><span class="std std-ref">VisualizationPanel.stop_preview</span></a></p></td>
+<td><p>Stop trajectory playback and clear its active interpolation track.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="visualizationpanel">
+<h2><code class="docutils literal notranslate"><span class="pre">VisualizationPanel</span></code><a class="headerlink" href="#visualizationpanel" title="Link to this heading"></a></h2>
+<p>Own the WebEngine view, robot model selection, preview state, and visual scene. Updates arrive on the GUI thread; the panel does not command the robot.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QWidget</span></code>.</p>
+<section id="visualizationpanel-init">
+<span id="api-7d8cb76a37043688"></span><h3><code class="docutils literal notranslate"><span class="pre">VisualizationPanel.__init__()</span></code><a class="headerlink" href="#visualizationpanel-init" title="Link to this heading"></a></h3>
+<p>Locate robot assets, create the viewer controls, and start local asset serving.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-265">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ros2_bridge</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ros2_bridge</span></code></p></td>
+<td><p>Optional bridge reference retained as ros2; this constructor does not connect its signals.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent widget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Description-package lookup falls back to cms_robot_description; other package/UI/server failures propagate.</p>
+<p><strong>Side effects:</strong> Creates an inactive 33 ms preview timer, resolves paths/packages, creates WebEngine or fallback UI, and starts mesh server/page loading when WebEngine is available. Initial gripper name is epick.</p>
+</section>
+<section id="visualizationpanel-preview-pose">
+<span id="api-87230e983ac3f175"></span><h3><code class="docutils literal notranslate"><span class="pre">VisualizationPanel.preview_pose()</span></code><a class="headerlink" href="#visualizationpanel-preview-pose" title="Link to this heading"></a></h3>
+<p>Display a six-angle goal preview and temporarily suppress live pose updates.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-466">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">preview_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_deg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pose_deg</span></code></p></td>
+<td><p>List or tuple of exactly six values in degrees; contents are not checked for numeric validity.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Returns for unreadied page or wrong container/length; Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Sets _preview_hold=True and calls window.updateJoints with a list. This is display-only.</p>
+</section>
+<section id="visualizationpanel-end-preview">
+<span id="api-a383e48fdf0a1a16"></span><h3><code class="docutils literal notranslate"><span class="pre">VisualizationPanel.end_preview()</span></code><a class="headerlink" href="#visualizationpanel-end-preview" title="Link to this heading"></a></h3>
+<p>Release a goal-pose preview and restore the most recently cached live pose.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-477">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">end_preview</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Clears _preview_hold and, when ready with a truthy cached pose, sends it to window.updateJoints.</p>
+</section>
+<section id="visualizationpanel-play-trajectory">
+<span id="api-dbe68d9a58afe3aa"></span><h3><code class="docutils literal notranslate"><span class="pre">VisualizationPanel.play_trajectory()</span></code><a class="headerlink" href="#visualizationpanel-play-trajectory" title="Link to this heading"></a></h3>
+<p>Convert trajectory waypoints into arm poses and animate them in the viewer.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-501">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">play_trajectory</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_unused_names</span><span class="p">,</span> <span class="n">waypoints</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">_unused_names</span></code></p></td>
+<td><p>Ignored compatibility signal argument; names come from each waypoint.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">waypoints</span></code></p></td>
+<td><p>Sequence of (joint_names, positions_in_radians, cumulative_seconds). Named positions may include arm or gripper joints; complete arm samples are converted to degrees rounded to three decimals.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Returns before readiness or for no points; malformed names/positions/times raise. Does not validate chronological order or that all points have six arm joints.</p>
+<p><strong>Side effects:</strong> Seeds from the first complete arm sample or six zeros, holds the last arm state across partial/gripper-only points, stores the full track, duration from its last point, and monotonic start; shows preview controls and starts the timer. It does not set _preview_hold, so live updates can interleave with playback.</p>
+</section>
+<section id="visualizationpanel-stop-preview">
+<span id="api-8614f700f9caed3a"></span><h3><code class="docutils literal notranslate"><span class="pre">VisualizationPanel.stop_preview()</span></code><a class="headerlink" href="#visualizationpanel-stop-preview" title="Link to this heading"></a></h3>
+<p>Stop trajectory playback and clear its active interpolation track.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-544">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stop_preview</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Stops timer, clears label, hides Stop Preview, and clears _preview_arm_track. It does not restore live pose, clear saved waypoints, or change goal-preview hold.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-dda3f106806fe941"><code>VisualizationPanel._setup_ui</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-closeevent">
+<span id="api-c348e056398b6f16"></span><h3><code class="docutils literal notranslate"><span class="pre">VisualizationPanel.closeEvent()</span></code><a class="headerlink" href="#visualizationpanel-closeevent" title="Link to this heading"></a></h3>
+<p>Stop preview timing and the mesh server before delegating widget closure.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-649">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">closeEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event</span></code></p></td>
+<td><p>QCloseEvent passed unchanged to the base widget handler.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Server shutdown/Qt errors propagate; readiness polling is not explicitly stopped here.</p>
+<p><strong>Side effects:</strong> Stops preview timer, shuts down loopback server when present, then invokes QWidget.closeEvent.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="visualizationpanel-setup-ui">
+<span id="api-dda3f106806fe941"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._setup_ui()</span></code><a class="headerlink" href="#visualizationpanel-setup-ui" title="Link to this heading"></a></h4>
+<p>Create the 3D viewport and display-only controls, or a fallback message if WebEngine is unavailable.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-308">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_setup_ui</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Without WebEngine creates an installation hint and returns; other Qt failures propagate.</p>
+<p><strong>Side effects:</strong> Creates toolbar/status widgets and web_view when available; no ROS goal is sent by these controls.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-7d8cb76a37043688"><code>VisualizationPanel.__init__</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-referenced-packages">
+<span id="api-3aa06d2e38658ef3"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._referenced_packages()</span></code><a class="headerlink" href="#visualizationpanel-referenced-packages" title="Link to this heading"></a></h4>
+<p>Collect package references from each distinct URDF named by configured grippers.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-371">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_referenced_packages</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Union of package references, or the full known-package set when configuration loading fails, no URDF names are declared, or _urdf_dir is None.</p>
+<p><strong>Errors:</strong> Malformed gripper mappings and non-OSError file failures may propagate. Individual unreadable files produce empty sets through _packages_referenced_by_urdf, not the broad fallback claimed by the docstring.</p>
+<p><strong>Side effects:</strong> Loads beamline configuration and reads declared URDF files.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-7d8cb76a37043688"><code>VisualizationPanel.__init__</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-start-server">
+<span id="api-676a62461b828969"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._start_server()</span></code><a class="headerlink" href="#visualizationpanel-start-server" title="Link to this heading"></a></h4>
+<p>Serve the viewer locally and begin loading viewer.html into WebEngine.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-400">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_start_server</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No-op without WebEngine. Socket/server/Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Creates/starts _MeshServer, updates status with the port, connects loadFinished, and loads the loopback static URL.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-7d8cb76a37043688"><code>VisualizationPanel.__init__</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-on-page-loaded">
+<span id="api-1267c5197b8fc331"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._on_page_loaded()</span></code><a class="headerlink" href="#visualizationpanel-on-page-loaded" title="Link to this heading"></a></h4>
+<p>Start readiness polling after a successful browser page load.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-415">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_page_loaded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ok</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ok</span></code></p></td>
+<td><p>QWebEngine loadFinished Boolean; False shows failure and returns.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Shows Waiting for JS, creates _ready_poll, connects readiness checks, and starts it every 100 ms after success.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-676a62461b828969"><code>VisualizationPanel._start_server</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-check-ready">
+<span id="api-565455463e367c22"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._check_ready()</span></code><a class="headerlink" href="#visualizationpanel-check-ready" title="Link to this heading"></a></h4>
+<p>Ask JavaScript whether the viewer has set window._vizReady to true.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-425">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_check_ready</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Runs a WebEngine script and routes its asynchronous result to _on_ready_result.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-1267c5197b8fc331"><code>VisualizationPanel._on_page_loaded</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-on-ready-result">
+<span id="api-3ca85ee819bd0f5c"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._on_ready_result()</span></code><a class="headerlink" href="#visualizationpanel-on-ready-result" title="Link to this heading"></a></h4>
+<p>Finish readiness polling and load the current robot model and scene when JavaScript is ready.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-430">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_ready_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ready</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ready</span></code></p></td>
+<td><p>Result of the window._vizReady equality check; false values leave polling active.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Stops readiness timer, sets _page_ready=True, updates status, calls _load_urdf and _reload_scene.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-565455463e367c22"><code>VisualizationPanel._check_ready</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-load-urdf">
+<span id="api-414c032730d9d6ad"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._load_urdf()</span></code><a class="headerlink" href="#visualizationpanel-load-urdf" title="Link to this heading"></a></h4>
+<p>Load the configured gripper’s robot URDF through the local mesh server.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-438">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_urdf</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gripper</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Gripper name passed to gripper_urdf_file, with ur_standalone.urdf as the fallback filename.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No-op before page readiness. Configuration import/lookup, missing server, or Qt failures propagate.</p>
+<p><strong>Side effects:</strong> Builds a loopback URDF URL and runs window.loadRobot(url, port); does not await or report JavaScript load success.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-3ca85ee819bd0f5c"><code>VisualizationPanel._on_ready_result</code></a> — mtc_gui.visualization_panel</li><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-564226d9af7ffd62"><code>VisualizationPanel.set_gripper</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-set-gripper">
+<span id="api-564226d9af7ffd62"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel.set_gripper()</span></code><a class="headerlink" href="#visualizationpanel-set-gripper" title="Link to this heading"></a></h4>
+<p>Normalize the selected gripper to lowercase and request its visual robot model.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-448">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">set_gripper</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gripper_name</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper_name</span></code></p></td>
+<td><p>String gripper selection.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Sets _current_gripper and calls _load_urdf, which waits for page readiness by returning early when necessary.</p>
+</section>
+<section id="visualizationpanel-on-joint-state">
+<span id="api-bf3f631bcd4140af"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._on_joint_state()</span></code><a class="headerlink" href="#visualizationpanel-on-joint-state" title="Link to this heading"></a></h4>
+<p>Cache live joint angles and update the viewer unless a goal preview is held.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-453">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_joint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_deg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pose_deg</span></code></p></td>
+<td><p>Joint-angle list in configured arm order, conventionally six numeric degrees values; this handler does not validate shape or types. The JavaScript consumer maps array positions to its hardcoded UR joint-name order.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No-op before readiness; malformed/Qt errors otherwise propagate.</p>
+<p><strong>Side effects:</strong> Caches the latest pose only after readiness, suppresses updates during _preview_hold, throttles by monotonic 0.033 s, and runs window.updateJoints.</p>
+</section>
+<section id="visualizationpanel-reset-view">
+<span id="api-c22afe90512c9ede"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._reset_view()</span></code><a class="headerlink" href="#visualizationpanel-reset-view" title="Link to this heading"></a></h4>
+<p>Reset the JavaScript camera view when the page is ready.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-485">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_reset_view</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Runs window.resetView(); no-op before readiness.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-dda3f106806fe941"><code>VisualizationPanel._setup_ui</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-home-pose">
+<span id="api-1b3a16124a0b4f25"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._home_pose()</span></code><a class="headerlink" href="#visualizationpanel-home-pose" title="Link to this heading"></a></h4>
+<p>Show the viewer’s home pose when the page is ready.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-489">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_home_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Runs window.setHomePose(); changes only visualization, not robot joint state.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-dda3f106806fe941"><code>VisualizationPanel._setup_ui</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-toggle-demo">
+<span id="api-fc4bde684b389dca"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._toggle_demo()</span></code><a class="headerlink" href="#visualizationpanel-toggle-demo" title="Link to this heading"></a></h4>
+<p>Enable or disable the viewer’s demonstration animation.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-493">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_toggle_demo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checked</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">checked</span></code></p></td>
+<td><p>Boolean toggle state serialized as JavaScript true/false.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Runs window.demoMode when ready; controls only the local viewer.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-dda3f106806fe941"><code>VisualizationPanel._setup_ui</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-tick-preview">
+<span id="api-513c7a2ecea38e18"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._tick_preview()</span></code><a class="headerlink" href="#visualizationpanel-tick-preview" title="Link to this heading"></a></h4>
+<p>Advance visual trajectory playback by interpolating between timed arm poses.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-551">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_tick_preview</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Empty track stops timer. Invalid track data/Qt errors propagate; times before the first point or outside a matching segment cause no update.</p>
+<p><strong>Side effects:</strong> Uses monotonic elapsed time and a linear scan, sends three-decimal interpolated joints, or snaps to final pose and stops at completion. Shows PREVIEW done and schedules label clearing after two seconds; completed track remains stored.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-7d8cb76a37043688"><code>VisualizationPanel.__init__</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="visualizationpanel-reload-scene">
+<span id="api-7a4f24162113fbe6"></span><h4><code class="docutils literal notranslate"><span class="pre">VisualizationPanel._reload_scene()</span></code><a class="headerlink" href="#visualizationpanel-reload-scene" title="Link to this heading"></a></h4>
+<p>Load supported obstacle shapes from the configured scene into the viewer.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-589">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_reload_scene</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Missing path and YAML read/parse exceptions update status and return. Per-obstacle KeyError/TypeError/ValueError entries are skipped; unsupported types are skipped. A nonmapping YAML root, malformed obstacle object raising AttributeError, short box size raising IndexError, or JavaScript-call error can still propagate despite the docstring’s broader promise.</p>
+<p><strong>Side effects:</strong> Reads YAML and emits window.setSceneObstacles([{name,type,pos:[x,y,z],rot:[roll,pitch,yaw],dims:{size|height,radius}}]); positions and dimensions are interpreted as metres and rotations as radians by viewer.html, with no per-obstacle frame transform in this Python path. JavaScript replaces the existing displayed obstacle list. Updates obstacle/skipped count status; makes no planning-scene service call.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-3ca85ee819bd0f5c"><code>VisualizationPanel._on_ready_result</code></a> — mtc_gui.visualization_panel</li><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-dda3f106806fe941"><code>VisualizationPanel._setup_ui</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="load-arm-joints">
+<span id="api-c85649dc5f530bbd"></span><h4><code class="docutils literal notranslate"><span class="pre">_load_arm_joints()</span></code><a class="headerlink" href="#load-arm-joints" title="Link to this heading"></a></h4>
+<p>Read configured arm-joint order, falling back to the six standard UR joint names.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-29">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_arm_joints</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> List of joint-name strings; the module stores the result once in _ARM_JOINTS. The bundled JavaScript still has its own hardcoded six-name UR order; this helper does not configure it.</p>
+<p><strong>Errors:</strong> Catches all Exception failures from the config-loader import/call.</p>
+<p><strong>Side effects:</strong> Loads beamline joint configuration when available.</p>
+</section>
+<section id="base-packages">
+<span id="api-0f53295149c58a18"></span><h4><code class="docutils literal notranslate"><span class="pre">_base_packages()</span></code><a class="headerlink" href="#base-packages" title="Link to this heading"></a></h4>
+<p>Resolve required arm and beamline description package names.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-45">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_base_packages</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> [“ur_description”, configured_description_package], or [“ur_description”, “cms_robot_description”] on failure.</p>
+<p><strong>Errors:</strong> Catches all Exception failures.</p>
+<p><strong>Side effects:</strong> Consults config_loader; module caches the result in _BASE_PACKAGES.</p>
+</section>
+<section id="packages-referenced-by-urdf">
+<span id="api-6934552f1f1a8ea8"></span><h4><code class="docutils literal notranslate"><span class="pre">_packages_referenced_by_urdf()</span></code><a class="headerlink" href="#packages-referenced-by-urdf" title="Link to this heading"></a></h4>
+<p>Extract unique package names from package:// references in URDF text.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-70">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_packages_referenced_by_urdf</span><span class="p">(</span><span class="n">urdf_path</span><span class="p">:</span> <span class="n">Path</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">urdf_path</span></code></p></td>
+<td><p>Path object supporting read_text; content is scanned with a regular expression rather than parsed as XML.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Set of referenced package names, or an empty set after an OSError.</p>
+<p><strong>Errors:</strong> Catches only OSError; decoding/type errors propagate.</p>
+<p><strong>Side effects:</strong> Reads the URDF file.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-3aa06d2e38658ef3"><code>VisualizationPanel._referenced_packages</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="find-workspace-roots">
+<span id="api-e512cf9721c26304"></span><h4><code class="docutils literal notranslate"><span class="pre">_find_workspace_roots()</span></code><a class="headerlink" href="#find-workspace-roots" title="Link to this heading"></a></h4>
+<p>Locate a source/install workspace from this module’s ancestry, optionally including an ancestor main workspace.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-79">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_find_workspace_roots</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> List of Path roots. Fallback is Path(<strong>file</strong>).resolve().parents[3] when no matching ancestor is found.</p>
+<p><strong>Errors:</strong> Filesystem/path errors are not caught.</p>
+<p><strong>Side effects:</strong> Checks ancestor src/install directories; does not change the workspace.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-7d8cb76a37043688"><code>VisualizationPanel.__init__</code></a> — mtc_gui.visualization_panel</li><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-82cb09793bdf9811"><code>_resolve_packages</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="resolve-packages">
+<span id="api-82cb09793bdf9811"></span><h4><code class="docutils literal notranslate"><span class="pre">_resolve_packages()</span></code><a class="headerlink" href="#resolve-packages" title="Link to this heading"></a></h4>
+<p>Map required description packages to installed or workspace source directories.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-100">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_resolve_packages</span><span class="p">(</span><span class="n">required</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="kc">None</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">required</span></code></p></td>
+<td><p>Optional package-name set; None starts with all known descriptions. Base packages are always included, even for an empty set.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Dict of package name to directory string; packages that cannot be located are omitted.</p>
+<p><strong>Errors:</strong> Missing ament import and per-package ament lookup failures are tolerated; other filesystem/type errors propagate.</p>
+<p><strong>Side effects:</strong> Checks ament and fixed /opt/ros/jazzy/workspace install/source candidates; reads no meshes and writes no files.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-7d8cb76a37043688"><code>VisualizationPanel.__init__</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="resolve-scene-yaml">
+<span id="api-cd13ecee7404dfff"></span><h4><code class="docutils literal notranslate"><span class="pre">_resolve_scene_yaml()</span></code><a class="headerlink" href="#resolve-scene-yaml" title="Link to this heading"></a></h4>
+<p>Resolve the active beamline’s scene_file to an existing file.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-173">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_resolve_scene_yaml</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Path to the scene YAML, or None for missing configuration, absent scene_file, nonexistent file, or any caught failure.</p>
+<p><strong>Errors:</strong> Catches all Exception failures from config/path resolution.</p>
+<p><strong>Side effects:</strong> Loads beamline configuration and checks the candidate file.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-7a4f24162113fbe6"><code>VisualizationPanel._reload_scene</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+</section>
+</section>
+<section id="meshrequesthandler">
+<h2><code class="docutils literal notranslate"><span class="pre">_MeshRequestHandler</span></code><a class="headerlink" href="#meshrequesthandler" title="Link to this heading"></a></h2>
+<p>Map viewer URLs to static, URDF, and package files. Filesystem containment checks keep requests within the configured roots.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">SimpleHTTPRequestHandler</span></code>.</p>
+<section id="meshrequesthandler-init">
+<span id="api-e0afebdf61160457"></span><h3><code class="docutils literal notranslate"><span class="pre">_MeshRequestHandler.__init__()</span></code><a class="headerlink" href="#meshrequesthandler-init" title="Link to this heading"></a></h3>
+<p>Attach viewer route roots before the standard HTTP request handler processes a request.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-195">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="n">package_map</span><span class="p">,</span> <span class="n">resources_dir</span><span class="p">,</span> <span class="n">urdf_dir</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">args</span></code></p></td>
+<td><p>Positional SimpleHTTPRequestHandler arguments, normally request socket, client address, and server.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">package_map</span></code></p></td>
+<td><p>Mapping of ROS package names to share/source directories.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">resources_dir</span></code></p></td>
+<td><p>Root for viewer HTML/JavaScript/static files.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">urdf_dir</span></code></p></td>
+<td><p>Root for configured robot URDF files.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">kwargs</span></code></p></td>
+<td><p>Keyword arguments forwarded to SimpleHTTPRequestHandler.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Standard HTTP-handler and filesystem errors follow base-class behavior.</p>
+<p><strong>Side effects:</strong> Stores routing roots and delegates request handling to SimpleHTTPRequestHandler.</p>
+</section>
+<section id="id2">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<section id="meshrequesthandler-translate-path">
+<span id="api-d27bdfd19bb8e702"></span><h4><code class="docutils literal notranslate"><span class="pre">_MeshRequestHandler.translate_path()</span></code><a class="headerlink" href="#meshrequesthandler-translate-path" title="Link to this heading"></a></h4>
+<p>Decode the URL path and route static, URDF, or package requests through containment-checked filesystem resolution.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-201">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">translate_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">path</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">path</span></code></p></td>
+<td><p>HTTP request URL/path; query and fragment are removed via urlsplit and percent escapes decoded once.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Filesystem path string. /<strong>static</strong>/ uses resources_dir, /<strong>urdf</strong>/ uses urdf_dir, known /package/… uses package_map; all other paths fall back under resources_dir.</p>
+<p><strong>Errors:</strong> URL/path errors propagate; traversal is redirected by _resolve_under rather than explicitly raising an HTTP error.</p>
+<p><strong>Side effects:</strong> Resolves filesystem paths; does not itself open the response file.</p>
+</section>
+<section id="meshrequesthandler-resolve-under">
+<span id="api-35130d92e11a822a"></span><h4><code class="docutils literal notranslate"><span class="pre">_MeshRequestHandler._resolve_under()</span></code><a class="headerlink" href="#meshrequesthandler-resolve-under" title="Link to this heading"></a></h4>
+<p>Resolve a relative path and prevent it from escaping its resolved root, including through symlinks.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-224">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@staticmethod</span>
+<span class="n">_resolve_under</span><span class="p">(</span><span class="n">root</span><span class="p">,</span> <span class="n">relative</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">root</span></code></p></td>
+<td><p>Allowed filesystem directory.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">relative</span></code></p></td>
+<td><p>Path component interpreted beneath root; may contain traversal components that are checked after resolution.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Resolved candidate path string when contained, otherwise root/.beambot-path-denied.</p>
+<p><strong>Errors:</strong> Path-resolution errors propagate; denial uses a sentinel filename and does not itself guarantee that filename is absent.</p>
+<p><strong>Side effects:</strong> Performs path resolution only.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-d27bdfd19bb8e702"><code>_MeshRequestHandler.translate_path</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="meshrequesthandler-end-headers">
+<span id="api-c877a7a247cc24cc"></span><h4><code class="docutils literal notranslate"><span class="pre">_MeshRequestHandler.end_headers()</span></code><a class="headerlink" href="#meshrequesthandler-end-headers" title="Link to this heading"></a></h4>
+<p>Attach a one-hour public cache directive to every HTTP response before finishing headers.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-231">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">end_headers</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> HTTP header/output failures from send_header or the base end_headers propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Sends Cache-Control: public, max-age=3600 and delegates to the base end_headers.</p>
+</section>
+<section id="meshrequesthandler-log-message">
+<span id="api-dced43601df0143b"></span><h4><code class="docutils literal notranslate"><span class="pre">_MeshRequestHandler.log_message()</span></code><a class="headerlink" href="#meshrequesthandler-log-message" title="Link to this heading"></a></h4>
+<p>Suppress the standard HTTP request-log output.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-235">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">log_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">format</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">format</span></code></p></td>
+<td><p>Ignored logging format string supplied by the HTTP handler.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">args</span></code></p></td>
+<td><p>Ignored formatting arguments.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No validation or error handling.</p>
+<p><strong>Side effects:</strong> None; deliberately emits no request logs.</p>
+</section>
+</section>
+</section>
+<section id="meshserver">
+<h2><code class="docutils literal notranslate"><span class="pre">_MeshServer</span></code><a class="headerlink" href="#meshserver" title="Link to this heading"></a></h2>
+<p>Serve local viewer files and robot meshes on an ephemeral loopback port. VisualizationPanel starts and stops its daemon thread.</p>
+<section id="meshserver-init">
+<span id="api-d0b326995303ea7f"></span><h3><code class="docutils literal notranslate"><span class="pre">_MeshServer.__init__()</span></code><a class="headerlink" href="#meshserver-init" title="Link to this heading"></a></h3>
+<p>Bind the viewer’s HTTP server to an ephemeral loopback port.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-242">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">package_map</span><span class="p">,</span> <span class="n">resources_dir</span><span class="p">,</span> <span class="n">urdf_dir</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">package_map</span></code></p></td>
+<td><p>Package route mapping passed to each request handler.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">resources_dir</span></code></p></td>
+<td><p>Viewer static-resource root.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">urdf_dir</span></code></p></td>
+<td><p>Robot URDF root.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Bind/server construction failures propagate.</p>
+<p><strong>Side effects:</strong> Opens an HTTP listening socket at 127.0.0.1:0, records the assigned port, and creates but does not start the serving thread.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-visualization_panel-py.html#api-676a62461b828969"><code>VisualizationPanel._start_server</code></a> — mtc_gui.visualization_panel</li></ul></details></section>
+<section id="meshserver-start">
+<span id="api-624d293de44b4e7e"></span><h3><code class="docutils literal notranslate"><span class="pre">_MeshServer.start()</span></code><a class="headerlink" href="#meshserver-start" title="Link to this heading"></a></h3>
+<p>Start the prepared daemon HTTP-serving thread.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-253">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">start</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Thread errors propagate; repeated starts are not guarded.</p>
+<p><strong>Side effects:</strong> Begins serving viewer/URDF/mesh resources over loopback.</p>
+</section>
+<section id="meshserver-stop">
+<span id="api-fc6932e7bbdb1ccc"></span><h3><code class="docutils literal notranslate"><span class="pre">_MeshServer.stop()</span></code><a class="headerlink" href="#meshserver-stop" title="Link to this heading"></a></h3>
+<p>Shut down serving, close the listening socket, and join the worker for up to one second.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/visualization_panel.py.html#L-256">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">stop</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Server/thread errors propagate; this assumes serve_forever was started.</p>
+<p><strong>Side effects:</strong> Stops HTTP service and closes its socket.</p>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-mtc_gui-mtc_gui-camera_panel-py.html" class="btn btn-neutral float-left" title="Camera display" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-mtc_gui-mtc_gui-resources-viewer-html.html" class="btn btn-neutral float-right" title="Embedded robot viewer" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

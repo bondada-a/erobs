@@ -1,0 +1,371 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vision task action server &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Vision task coordination" href="src-beambot-beambot-stages-vision_task_stages-py.html" />
+    <link rel="prev" title="Marker scan action server" href="src-beambot-beambot-action_servers-vision_scan_server-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-__init__-py.html">Camera backend selection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zivid-py.html">Zivid camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-camera-zed-py.html">ZED camera backend</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-image_detection-py.html">Image and marker geometry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-spincoater_detection-py.html">Spincoater image detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-detection-yolo_object_detection-py.html">YOLO object detection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_task_detection-py.html">Vision task detector adapters</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-motion_target-py.html">Vision motion targets</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-vision-vision_engine-py.html">Shared vision engine</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-action_servers-vision_scan_server-py.html">Marker scan action server</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Vision task action server</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-stages-vision_task_stages-py.html">Vision task coordination</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-pointcloud_relay-py.html">Point-cloud filtering relay</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-beambot-mapping-octomap_to_planning_scene-py.html">Octomap scene bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-launch-octomap_mapping-launch-py.html">Octomap pipeline launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-beambot-mcp_server-point_selector_gui-py.html">Image point selector</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-teach_survey_poses-py.html">Survey viewpoint teaching</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-run_survey-py.html">Survey capture</a></li>
+<li class="toctree-l4"><a class="reference internal" href="scripts-survey_mapping-merge_survey_bag-py.html">Survey point-cloud merger</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/perception.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/perception.html">Perception and mapping</a></li>
+      <li class="breadcrumb-item active">Vision task action server</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="vision-task-action-server">
+<h1>Vision task action server<a class="headerlink" href="#vision-task-action-server" title="Link to this heading"></a></h1>
+<p>Expose generic vision-task execution and TF reset, and warm the spincoater inference model in a daemon thread. motion_kind is inferred from the detected-pose result rather than the executed target type.</p>
+<p><code class="docutils literal notranslate"><span class="pre">beambot.action_servers.vision_task_server</span></code> · <a href="../../../api-source/src/beambot/beambot/action_servers/vision_task_server.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/perception.html"><span class="std std-doc">Perception and mapping</span></a> · <a class="reference internal" href="../../../architecture/perception.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p>The orchestrator sends generic detector-and-motion requests to <code class="docutils literal notranslate"><span class="pre">beambot_vision_task</span></code>. This server constructs <code class="docutils literal notranslate"><span class="pre">VisionTaskStages</span></code>, delegates each goal, and copies detection and execution results into <code class="docutils literal notranslate"><span class="pre">VisionTaskAction.Result</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">create_stages()</span></code> connects beamline camera settings to the coordinator. Startup also warms the spincoater model in a background thread; the TF-reset service updates the engine after tool-model changes.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-dd2b5f1f0febe797"><span class="std std-ref">main</span></a></p></td>
+<td><p>Run VisionTaskActionServer through the shared multithreaded ROS server runner.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-17292add6948db6d"><span class="std std-ref">VisionTaskActionServer.create_stages</span></a></p></td>
+<td><p>Load beamline camera settings and construct the generic vision coordinator.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-6924574cbcbdb796"><span class="std std-ref">VisionTaskActionServer._execute</span></a></p></td>
+<td><p>Run vision stages, map error strings to failed results, and copy unchecked vacuum_ok and optional detected approach. motion_kind is NONE when last_detected_pose is truthy, otherwise CARTESIAN_POSE, including joint-target executions.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="main">
+<span id="api-dd2b5f1f0febe797"></span><h3><code class="docutils literal notranslate"><span class="pre">main()</span></code><a class="headerlink" href="#main" title="Link to this heading"></a></h3>
+<p>Run VisionTaskActionServer through the shared multithreaded ROS server runner.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/vision_task_server.py.html#L-104">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">main</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">args</span></code></p></td>
+<td><p>Optional ROS initialization arguments; None uses normal rclpy argument handling.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None when the server exits.</p>
+<p><strong>Errors:</strong> KeyboardInterrupt during spin is handled by run_server; initialization/construction and other executor errors propagate.</p>
+<p><strong>Side effects:</strong> Initializes ROS, constructs the action node, spins until shutdown and destroys the node/context.</p>
+</section>
+</section>
+<section id="visiontaskactionserver">
+<h2><code class="docutils literal notranslate"><span class="pre">VisionTaskActionServer</span></code><a class="headerlink" href="#visiontaskactionserver" title="Link to this heading"></a></h2>
+<p>Concrete <code class="docutils literal notranslate"><span class="pre">BaseActionServer</span></code> around the generic vision coordinator. Its execution override supplies vision-specific result fields; camera, detection, and motion sequencing live in <code class="docutils literal notranslate"><span class="pre">VisionTaskStages</span></code>.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseActionServer</span></code>.</p>
+<section id="visiontaskactionserver-create-stages">
+<span id="api-17292add6948db6d"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionTaskActionServer.create_stages()</span></code><a class="headerlink" href="#visiontaskactionserver-create-stages" title="Link to this heading"></a></h3>
+<p>Load beamline camera settings and construct the generic vision coordinator.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/vision_task_server.py.html#L-49">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">create_stages</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> VisionTaskStages instance.</p>
+<p><strong>Errors:</strong> Configuration or VisionTaskStages initialization errors propagate.</p>
+<p><strong>Side effects:</strong> Reads configuration, initializes the vision engine and logs camera configuration.</p>
+</section>
+<section id="visiontaskactionserver-execute">
+<span id="api-6924574cbcbdb796"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionTaskActionServer._execute()</span></code><a class="headerlink" href="#visiontaskactionserver-execute" title="Link to this heading"></a></h3>
+<p>Run vision stages, map error strings to failed results, and copy unchecked vacuum_ok and optional detected approach. motion_kind is NONE when last_detected_pose is truthy, otherwise CARTESIAN_POSE, including joint-target executions.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/vision_task_server.py.html#L-66">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">goal_handle</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">goal_handle</span></code></p></td>
+<td><p>Accepted VisionTaskAction handle.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> VisionTaskAction.Result with optional metre XYZ and XYZW quaternion.</p>
+<p><strong>Errors:</strong> Stage exceptions propagate to the base wrapper.</p>
+<p><strong>Side effects:</strong> Runs perception/motion; fills result fields. Goal finalization belongs to BaseActionServer.</p>
+</section>
+<section id="visiontaskactionserver-init">
+<span id="api-852da9d8a20e89fd"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionTaskActionServer.__init__()</span></code><a class="headerlink" href="#visiontaskactionserver-init" title="Link to this heading"></a></h3>
+<p>Register beambot_vision_task and its TF reset service, then start best-effort spincoater model warmup.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/vision_task_server.py.html#L-14">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Errors:</strong> Vision/configuration/ROS initialization errors propagate; warmup errors are handled in its worker.</p>
+<p><strong>Side effects:</strong> Creates stage/camera/ROS resources and starts a daemon inference thread.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="visiontaskactionserver-warmup-spincoater-model">
+<span id="api-9acb05d18393bd35"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionTaskActionServer._warmup_spincoater_model()</span></code><a class="headerlink" href="#visiontaskactionserver-warmup-spincoater-model" title="Link to this heading"></a></h4>
+<p>Start a daemon thread that loads the shared sample detector and performs one dummy inference to initialize its resources.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/vision_task_server.py.html#L-28">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_warmup_spincoater_model</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None immediately after starting the thread.</p>
+<p><strong>Errors:</strong> Thread-start errors propagate; worker exceptions are logged and suppressed.</p>
+<p><strong>Side effects:</strong> Starts a background thread; may load model weights and initialize inference resources.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-vision_task_server-py.html#api-852da9d8a20e89fd"><code>VisionTaskActionServer.__init__</code></a> — beambot.action_servers.vision_task_server</li></ul></details></section>
+<section id="visiontaskactionserver-warmup-spincoater-model-warmup">
+<span id="api-9313bfe0790ca94c"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionTaskActionServer._warmup_spincoater_model._warmup()</span></code><a class="headerlink" href="#visiontaskactionserver-warmup-spincoater-model-warmup" title="Link to this heading"></a></h4>
+<p>Load the spincoater sample model and infer on a black 640×640 uint8 RGB image with confidence 0.5.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/vision_task_server.py.html#L-31">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_warmup</span><span class="p">()</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Catches import/load/inference exceptions and logs a skipped-warmup warning.</p>
+<p><strong>Side effects:</strong> Loads/caches model weights, allocates a dummy image and initializes model inference resources; logs readiness.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-vision_task_server-py.html#api-9acb05d18393bd35"><code>VisionTaskActionServer._warmup_spincoater_model</code></a> — beambot.action_servers.vision_task_server</li></ul></details></section>
+<section id="visiontaskactionserver-reset-tf-callback">
+<span id="api-fee99c0cbc7042f3"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionTaskActionServer._reset_tf_callback()</span></code><a class="headerlink" href="#visiontaskactionserver-reset-tf-callback" title="Link to this heading"></a></h4>
+<p>Delegate stage TF reset and populate a successful Trigger response.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/beambot/beambot/action_servers/vision_task_server.py.html#L-97">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_reset_tf_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">,</span> <span class="n">response</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">request</span></code></p></td>
+<td><p>Trigger request; unused.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">response</span></code></p></td>
+<td><p>Response object to populate.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Same response with success=True and reset message.</p>
+<p><strong>Errors:</strong> Reset exceptions propagate.</p>
+<p><strong>Side effects:</strong> Replaces engine TF resources and mutates response.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-beambot-beambot-action_servers-vision_task_server-py.html#api-852da9d8a20e89fd"><code>VisionTaskActionServer.__init__</code></a> — beambot.action_servers.vision_task_server</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-beambot-beambot-action_servers-vision_scan_server-py.html" class="btn btn-neutral float-left" title="Marker scan action server" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-beambot-beambot-stages-vision_task_stages-py.html" class="btn btn-neutral float-right" title="Vision task coordination" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

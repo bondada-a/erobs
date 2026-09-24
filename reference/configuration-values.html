@@ -1,0 +1,719 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CMS configuration values &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Commands and startup scripts" href="commands.html" />
+    <link rel="prev" title="Beamline configuration" href="configuration.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="modules.html">Module map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/index.html">Function and method reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">CMS configuration values</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#beamline">beamline</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#poses-file">poses_file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#scene-file">scene_file</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#robot">robot</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#grippers">grippers</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#camera">camera</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vision-targets">vision_targets</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tool-exchange">tool_exchange</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Reference</a></li>
+      <li class="breadcrumb-item active">CMS configuration values</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="cms-configuration-values">
+<h1>CMS configuration values<a class="headerlink" href="#cms-configuration-values" title="Link to this heading"></a></h1>
+<p>Generated from <code class="docutils literal notranslate"><span class="pre">src/beambot/config/cms_beamline.yaml</span></code> in the documented source. Values are specific to CMS. Use the <a class="reference internal" href="configuration.html"><span class="std std-doc">configuration guide</span></a> for field meanings and precedence; calibrate values separately for another installation.</p>
+<section id="beamline">
+<h2>beamline<a class="headerlink" href="#beamline" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Configured value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beamline</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;cms&quot;</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="poses-file">
+<h2>poses_file<a class="headerlink" href="#poses-file" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Configured value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;src/cms/poses.yaml&quot;</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="scene-file">
+<h2>scene_file<a class="headerlink" href="#scene-file" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Configured value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scene_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;src/beambot/config/beamline_scene.yaml&quot;</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="robot">
+<h2>robot<a class="headerlink" href="#robot" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Configured value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot.ip</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;xf11bm-robot1.nsls2.bnl.local&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">robot.arm_group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_arm&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot.ik_frame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;flange&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">robot.velocity_scaling</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.2</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot.acceleration_scaling</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.2</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">robot.moveit_config_package</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;cms_moveit_config&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">robot.description_package</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;cms_robot_description&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">robot.arm_joints</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[&quot;shoulder_pan_joint&quot;,</span> <span class="pre">&quot;shoulder_lift_joint&quot;,</span> <span class="pre">&quot;elbow_joint&quot;,</span> <span class="pre">&quot;wrist_1_joint&quot;,</span> <span class="pre">&quot;wrist_2_joint&quot;,</span> <span class="pre">&quot;wrist_3_joint&quot;]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="grippers">
+<h2>grippers<a class="headerlink" href="#grippers" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Configured value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.moveit_package</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;cms_moveit_config&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.gripper_arg</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;none&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.tool_voltage</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.gripper_group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.states</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.tip_frame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;flange&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.z_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.urdf_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_standalone.urdf&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.payload_mass</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.43</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.payload_cog.x</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.038</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.payload_cog.y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.022</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.payload_cog.z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.055</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.launch_urdf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_standalone.xacro&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.moveit_controllers_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;none/moveit_controllers.yaml&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.use_tool_communication</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.none.tool_comm_params</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.moveit_package</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;cms_moveit_config&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.gripper_arg</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hande&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.tool_voltage</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">24</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.gripper_group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hande_gripper&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.states.grasp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hande_closed&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.states.release</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hande_open&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.tip_frame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;robotiq_hande_end&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.z_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.02</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.urdf_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_with_zivid_hande.urdf&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.payload_mass</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2.52</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.payload_cog.x</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.018</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.payload_cog.y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.013</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.payload_cog.z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.031</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.launch_urdf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_with_zivid_hande.xacro&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.moveit_controllers_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;hande/moveit_controllers.yaml&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.use_tool_communication</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.hande.tool_comm_params</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.moveit_package</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;cms_moveit_config&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.gripper_arg</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;epick&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.tool_voltage</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">24</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.gripper_group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;epick_gripper&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.cup_profile</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;3mm_dia_external_air&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.z_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.007</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.states.grasp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;vacuum_on&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.states.release</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;vacuum_off&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.tip_frame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;epick_tip&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.urdf_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_with_zivid_epick.urdf&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.payload_mass</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2.15</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.payload_cog.x</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.018</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.payload_cog.y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.015</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.payload_cog.z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.036</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.launch_urdf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_with_zivid_epick.xacro&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.moveit_controllers_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;epick/moveit_controllers.yaml&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.use_tool_communication</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.tool_comm_params.tool_baud_rate</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">115200</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.tool_comm_params.tool_parity</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.tool_comm_params.tool_stop_bits</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.tool_comm_params.tool_rx_idle_chars</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.5</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.epick.tool_comm_params.tool_tx_idle_chars</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">3.5</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.moveit_package</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;cms_moveit_config&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.gripper_arg</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;2fg7&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.tool_voltage</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">24</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.gripper_group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;2fg7_gripper&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.states.grasp</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;2fg7_closed&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.states.release</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;2fg7_open&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.tip_frame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;2fg7_tip&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.z_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.urdf_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_with_zivid_2fg7.urdf&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.payload_mass</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2.21</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.payload_cog.x</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.018</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.payload_cog.y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.013</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.payload_cog.z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.031</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.launch_urdf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_with_zivid_2fg7.xacro&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.moveit_controllers_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;2fg7/moveit_controllers.yaml&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.use_tool_communication</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.tool_comm_params.tool_baud_rate</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1000000</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.tool_comm_params.tool_parity</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.tool_comm_params.tool_stop_bits</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.tool_comm_params.tool_rx_idle_chars</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.5</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.2fg7.tool_comm_params.tool_tx_idle_chars</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">3.5</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.moveit_package</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;cms_moveit_config&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.gripper_arg</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;pipettor&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.tool_voltage</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">24</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.gripper_group</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.states</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.tip_frame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;pipette_tip_link&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.z_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.urdf_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_with_zivid_pipettor.urdf&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.payload_mass</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.63</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.payload_cog.x</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.01</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.payload_cog.y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.01</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.payload_cog.z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.02</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.launch_urdf</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;ur_with_zivid_pipettor.xacro&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.moveit_controllers_file</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;pipettor/moveit_controllers.yaml&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.use_tool_communication</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">true</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grippers.pipettor.tool_comm_params</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="camera">
+<h2>camera<a class="headerlink" href="#camera" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Configured value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">camera.type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;zivid&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">camera.frame</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;zivid_optical_frame&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">camera.marker_dictionary</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;aruco4x4_50&quot;</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="vision-targets">
+<h2>vision_targets<a class="headerlink" href="#vision-targets" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Configured value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;grid&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.marker_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">10</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.scan_pose</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;pipettor_scan&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.start_gripper</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;pipettor&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.marker_offset.x</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.marker_offset.y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">-0.062</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.grid.rows</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">8</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.grid.cols</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">12</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.grid.pitch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0091</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.grid.row_direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;up&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.grid.col_direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;left&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack.moves</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[{&quot;direction&quot;:</span> <span class="pre">&quot;forward&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.05},</span> <span class="pre">&quot;column_offset&quot;,</span> <span class="pre">&quot;row_offset&quot;,</span> <span class="pre">{&quot;direction&quot;:</span> <span class="pre">&quot;forward&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.031},</span> <span class="pre">{&quot;direction&quot;:</span> <span class="pre">&quot;backward&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.158}]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;grid&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.marker_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">25</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.scan_pose</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;pipettor_scan&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.start_gripper</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;pipettor&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.grid.rows</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.grid.cols</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">5</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.grid.col_pitch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.022</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.grid.row_pitch</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.044</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.grid.col_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.003</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.grid.row_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.082</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.grid.col_direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;right&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.grid.col_increasing</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;right&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.grid.row_direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;up&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.grid.row_increasing</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;down&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack.moves</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[{&quot;direction&quot;:</span> <span class="pre">&quot;backward&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.02},</span> <span class="pre">&quot;column_offset&quot;,</span> <span class="pre">&quot;row_offset&quot;,</span> <span class="pre">{&quot;direction&quot;:</span> <span class="pre">&quot;forward&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.063},</span> <span class="pre">{&quot;direction&quot;:</span> <span class="pre">&quot;backward&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.073}]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.sample.mode</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;offset&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.sample.marker_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.sample.scan_pose</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;sample_scan_1&quot;</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.sample.start_gripper</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;epick&quot;</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.sample.marker_offset.x</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.02</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.sample.marker_offset.y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.sample.marker_offset.z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_targets.sample.z_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="tool-exchange">
+<h2>tool_exchange<a class="headerlink" href="#tool-exchange" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Key</p></th>
+<th class="head"><p>Configured value</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tool_exchange.dock_spacing_m</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.1524</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tool_exchange.reference_dock</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">3</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tool_exchange.load_sequence</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[{&quot;direction&quot;:</span> <span class="pre">&quot;forward&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.2},</span> <span class="pre">{&quot;direction&quot;:</span> <span class="pre">&quot;up&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.15},</span> <span class="pre">{&quot;direction&quot;:</span> <span class="pre">&quot;backward&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.2}]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tool_exchange.dock_sequence</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[{&quot;direction&quot;:</span> <span class="pre">&quot;forward&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.2},</span> <span class="pre">{&quot;direction&quot;:</span> <span class="pre">&quot;down&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.15},</span> <span class="pre">{&quot;direction&quot;:</span> <span class="pre">&quot;backward&quot;,</span> <span class="pre">&quot;distance&quot;:</span> <span class="pre">0.2}]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="configuration.html" class="btn btn-neutral float-left" title="Beamline configuration" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="commands.html" class="btn btn-neutral float-right" title="Commands and startup scripts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

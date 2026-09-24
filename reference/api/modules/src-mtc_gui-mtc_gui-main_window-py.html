@@ -1,0 +1,1206 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operator window &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Task editor forms" href="src-mtc_gui-mtc_gui-task_forms-py.html" />
+    <link rel="prev" title="GUI startup" href="src-mtc_gui-mtc_gui-main-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main-py.html">GUI startup</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Operator window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-task_forms-py.html">Task editor forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-step_list_panel-py.html">Task queue display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-ros2_bridge-py.html">ROS and GUI bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-poses_panel-py.html">Pose browser and registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_dialogs-py.html">Pose editing dialogs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_io-py.html">Pose registry files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-camera_panel-py.html">Camera display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-visualization_panel-py.html">Robot and trajectory viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-resources-viewer-html.html">Embedded robot viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-chat_panel-py.html">Chat interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_bridge-py.html">Chat agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_modes-py.html">Chat agent modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-theme-py.html">GUI appearance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-launch-mtc_gui_client-launch-py.html">Operator GUI launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/operator-gui.html">Operator GUI</a></li>
+      <li class="breadcrumb-item active">Operator window</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="operator-window">
+<h1>Operator window<a class="headerlink" href="#operator-window" title="Link to this heading"></a></h1>
+<p>Coordinate task editing, saved runs, pose management, chat, and execution controls.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mtc_gui.main_window</span></code> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/operator-gui.html"><span class="std std-doc">Operator GUI</span></a> · <a class="reference internal" href="../../../operate/gui.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">main()</span></code> creates <code class="docutils literal notranslate"><span class="pre">MTCMainWindow</span></code> with the application’s <code class="docutils literal notranslate"><span class="pre">ROS2Bridge</span></code>. The window owns the active task document, builds the panels, connects their signals, loads beamline poses, and starts its <code class="docutils literal notranslate"><span class="pre">AgentBridge</span></code>. Registry poses remain in <code class="docutils literal notranslate"><span class="pre">PosesPanel</span></code>; <code class="docutils literal notranslate"><span class="pre">config.poses</span></code> holds task-only overrides.</p>
+<p>For execution, <code class="docutils literal notranslate"><span class="pre">_execute()</span></code> packages all tasks or a selected suffix and calls <code class="docutils literal notranslate"><span class="pre">ROS2Bridge.execute_task()</span></code>. Feedback and results update the queue and chat through callbacks. Most methods below are handlers for existing controls, not a separate scripting API. Follow <code class="docutils literal notranslate"><span class="pre">_connect_signals()</span></code> when changing a workflow, and keep widget changes on the GUI thread.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-8f62f868ef524315"><span class="std std-ref">MTCMainWindow.__init__</span></a></p></td>
+<td><p>Load the beamline configuration, create the task document and panels, and connect the bridges.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-4c4a45942de42772"><span class="std std-ref">MTCMainWindow._connect_signals</span></a></p></td>
+<td><p>Connect panel and bridge signals, register the document getter, and start the agent connection.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-acb4ea544a4fcdc8"><span class="std std-ref">MTCMainWindow._edit_task_by_index</span></a></p></td>
+<td><p>Open a task editor and apply its accepted result, including any task-only joint pose.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-a0cbbf8e2158c6de"><span class="std std-ref">MTCMainWindow._execute</span></a></p></td>
+<td><p>Validate queue/slice and supported preview types, then dispatch JSON with the selected starting gripper.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-2ef8b565d018fba2"><span class="std std-ref">MTCMainWindow._on_result</span></a></p></td>
+<td><p>Finish the execution display, update cache status, and return any agent-requested outcome.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="mtcmainwindow">
+<h2><code class="docutils literal notranslate"><span class="pre">MTCMainWindow</span></code><a class="headerlink" href="#mtcmainwindow" title="Link to this heading"></a></h2>
+<p>Own the operator application’s document and coordinate its panels and bridges. Button and signal handlers edit that document or submit it through ROS2Bridge. <code class="docutils literal notranslate"><span class="pre">closeEvent()</span></code> disconnects the agent; the application entry point owns ROS cleanup.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QMainWindow</span></code>.</p>
+<section id="mtcmainwindow-init">
+<span id="api-8f62f868ef524315"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCMainWindow.__init__()</span></code><a class="headerlink" href="#mtcmainwindow-init" title="Link to this heading"></a></h3>
+<p>Load the beamline configuration, create the task document and panels, and connect the bridges.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-212">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ros2</span><span class="p">:</span> <span class="n">ROS2Bridge</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">ros2</span></code></p></td>
+<td><p>ROS2Bridge for robot state and action/service requests; the application entry point owns its shutdown.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Beamline-file loading soft-fails; malformed nested config, UI, registry, and bridge errors can still propagate.</p>
+<p><strong>Side effects:</strong> Initializes home inline pose and empty queue; logical default gripper is none, first declared, or empty. Builds widgets, starts agent connection through _connect_signals, and loads poses. The combo initially selects its first declared item, which can differ from config’s logical default.</p>
+</section>
+<section id="mtcmainwindow-connect-signals">
+<span id="api-4c4a45942de42772"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._connect_signals()</span></code><a class="headerlink" href="#mtcmainwindow-connect-signals" title="Link to this heading"></a></h3>
+<p>Connect panel and bridge signals, register the document getter, and start the agent connection.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-675">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_connect_signals</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Projects initial execution state, registers all bridge callbacks, supplies AgentBridge a lambda returning self.config directly, and calls connect_agent. The getter neither snapshots the gripper combo nor marshals through Qt.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-8f62f868ef524315"><code>MTCMainWindow.__init__</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-edit-task-by-index">
+<span id="api-acb4ea544a4fcdc8"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._edit_task_by_index()</span></code><a class="headerlink" href="#mtcmainwindow-edit-task-by-index" title="Link to this heading"></a></h3>
+<p>Open a task editor and apply its accepted result, including any task-only joint pose.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-958">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_edit_task_by_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">idx</span></code></p></td>
+<td><p>Zero-based task index; out-of-range or pause steps are ignored.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Form errors propagate but redocking runs in finally. Malformed accepted metadata can fail while applying results; no independent editability check.</p>
+<p><strong>Side effects:</strong> Inline poses override registry names for display. Detaches viewer, opens modal editor, moves _inline_joint_pose into config.poses, replaces task, refreshes, and logs. Viewer is detached even for a non-MoveTo form, then restored.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-execute">
+<span id="api-a0cbbf8e2158c6de"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._execute()</span></code><a class="headerlink" href="#mtcmainwindow-execute" title="Link to this heading"></a></h3>
+<p>Validate queue/slice and supported preview types, then dispatch JSON with the selected starting gripper.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1033">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_execute</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">start_index</span><span class="p">:</span> <span class="nb">int</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_index</span></code></p></td>
+<td><p>Zero-based first submitted task; zero submits the whole queue. Prefix effects are not reconstructed.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Empty tasks warn; invalid index returns. Dry Run rejects types outside moveto/end_effector. Other schema/serialization/Qt errors propagate; no independent connection/server-state/pending-goal check.</p>
+<p><strong>Side effects:</strong> Snapshots gripper into config, slices tasks in a shallow config copy, sets pending/dry-run/offset flags, projects controls, shows progress/row timers, then calls ros2.execute_task. Non-dry dispatch can command hardware.</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-82e796628291bd57"><code>MTCMainWindow._execute_from_selected</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c66bbb70af1fe6ce"><code>MTCMainWindow._on_agent_execute_requested</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-result">
+<span id="api-2ef8b565d018fba2"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_result()</span></code><a class="headerlink" href="#mtcmainwindow-on-result" title="Link to this heading"></a></h3>
+<p>Finish the execution display, update cache status, and return any agent-requested outcome.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1126">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_result</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">status</span><span class="p">,</span> <span class="n">error_msg</span><span class="p">,</span> <span class="n">completed</span><span class="p">,</span> <span class="n">total</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">status</span></code></p></td>
+<td><p>ROS GoalStatus integer; SUCCEEDED/CANCELED get separate branches, all others fail.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">error_msg</span></code></p></td>
+<td><p>Error text; CACHE_ prefix triggers the cache-invalid explanation dialog.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">completed</span></code></p></td>
+<td><p>Completed steps in the submitted suffix.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">total</span></code></p></td>
+<td><p>Server-reported total submitted steps used in logs and agent outcome.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No exception handler; malformed error strings/Qt failures can interrupt cleanup.</p>
+<p><strong>Side effects:</strong> Clears pending/dry-run flags, finalizes rows, marks successful Dry Run cached, clears badge after successful real run, logs failures/cancellation, and may show cache warning. Agent runs notify bridge; resets initiator/offset and projects the last server state without forcing IDLE.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-closeevent">
+<span id="api-25d7b09cf664c973"></span><h3><code class="docutils literal notranslate"><span class="pre">MTCMainWindow.closeEvent()</span></code><a class="headerlink" href="#mtcmainwindow-closeevent" title="Link to this heading"></a></h3>
+<p>Disconnect the agent and accept window closure.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1478">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">closeEvent</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">event</span></code></p></td>
+<td><p>QCloseEvent accepted after agent disconnection returns.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Agent-disconnection errors propagate and prevent this handler from accepting the event.</p>
+<p><strong>Side effects:</strong> Calls agent_bridge.disconnect and event.accept. ROS cleanup belongs to main() after the event loop exits; this handler does not explicitly stop the VisualizationPanel server or cancel a robot goal.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="mtcmainwindow-build-menu">
+<span id="api-f5c9697fd4602817"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._build_menu()</span></code><a class="headerlink" href="#mtcmainwindow-build-menu" title="Link to this heading"></a></h4>
+<p>Create the application menus and keyboard shortcuts.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-255">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_menu</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Connects load/save/exit, copy/paste, dark toggle, and About; stores clipboard actions for installation on the step list.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-8f62f868ef524315"><code>MTCMainWindow.__init__</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-build-central">
+<span id="api-1f857cbbd756a8f1"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._build_central()</span></code><a class="headerlink" href="#mtcmainwindow-build-central" title="Link to this heading"></a></h4>
+<p>Arrange the configuration strip and the three main panes.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-289">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_central</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Displays YAML robot.ip, creates gripper/test/pose controls, connects gripper changes to cache-badge invalidation, and sizes three panes. Save Current Pose appears only when ROS2_AVAILABLE is true.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-8f62f868ef524315"><code>MTCMainWindow.__init__</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-build-sidebar">
+<span id="api-6a79ece84303041e"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._build_sidebar()</span></code><a class="headerlink" href="#mtcmainwindow-build-sidebar" title="Link to this heading"></a></h4>
+<p>Create the task palette, pose browser, and saved-run controls.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-356">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_sidebar</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QWidget</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> The left QTabWidget.</p>
+<p><strong>Errors:</strong> Qt/run-directory errors propagate; individual run JSON errors are handled by _refresh_runs_list.</p>
+<p><strong>Side effects:</strong> Creates 13 palette entries, template placeholder, PosesPanel signal connections, and run CRUD controls; refreshing runs may create src/cms/runs.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-1f857cbbd756a8f1"><code>MTCMainWindow._build_central</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-build-center-pane">
+<span id="api-c6169263d29e4033"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._build_center_pane()</span></code><a class="headerlink" href="#mtcmainwindow-build-center-pane" title="Link to this heading"></a></h4>
+<p>Create the task queue, execution controls, and activity log.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-510">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_center_pane</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QWidget</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> New center-pane QWidget.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Wires Execute/From Selected/Pause/Resume/Stop, edits/reorder/clipboard, creates Dry Run and hidden cache/progress UI. Replay-promise text is not a server-cache eligibility check.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-1f857cbbd756a8f1"><code>MTCMainWindow._build_central</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-build-right-tabs">
+<span id="api-973399863ba4bf14"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._build_right_tabs()</span></code><a class="headerlink" href="#mtcmainwindow-build-right-tabs" title="Link to this heading"></a></h4>
+<p>Create Chat and any available Camera and 3D View tabs.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-653">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_right_tabs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">QWidget</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> The right QTabWidget.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Creates ChatPanel/AgentBridge; ROS2_AVAILABLE gates CameraPanel, WEBENGINE_AVAILABLE gates VisualizationPanel and its mesh server. Initializes viewer-docking state.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-1f857cbbd756a8f1"><code>MTCMainWindow._build_central</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-add-task">
+<span id="api-cfd00b4d8943c845"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._add_task()</span></code><a class="headerlink" href="#mtcmainwindow-add-task" title="Link to this heading"></a></h4>
+<p>Append a deep copy of a task template.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-728">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_add_task</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">task_type</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">task_type</span></code></p></td>
+<td><p>Template key; unknown keys create a minimal {task_type: value} step.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Copy/config/render errors propagate; no local editing-state guard.</p>
+<p><strong>Side effects:</strong> Mutates config.tasks, refreshes rows/cache badge, and logs the added type.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6a79ece84303041e"><code>MTCMainWindow._build_sidebar</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-add-moveto-for-pose">
+<span id="api-244214c0c8b31205"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._add_moveto_for_pose()</span></code><a class="headerlink" href="#mtcmainwindow-add-moveto-for-pose" title="Link to this heading"></a></h4>
+<p>Append a joint-planned MoveTo step referencing a pose name.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-738">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_add_moveto_for_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pose_name</span></code></p></td>
+<td><p>Nonempty pose activation/drop target; registry membership is not checked.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Empty names return; template/config/render errors propagate. No local editing-state guard.</p>
+<p><strong>Side effects:</strong> Copies moveto template, sets target, appends, refreshes, and logs.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6a79ece84303041e"><code>MTCMainWindow._build_sidebar</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-remove-task">
+<span id="api-91ec19837ece9afe"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._remove_task()</span></code><a class="headerlink" href="#mtcmainwindow-remove-task" title="Link to this heading"></a></h4>
+<p>Delete selected valid queue indices in descending order.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-750">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_remove_task</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No selection returns; invalid indices are skipped. Config/render errors propagate.</p>
+<p><strong>Side effects:</strong> Removes tasks and refreshes rows/cache badge; no independent editability check.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-clear-tasks">
+<span id="api-269c0d3171216e1b"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._clear_tasks()</span></code><a class="headerlink" href="#mtcmainwindow-clear-tasks" title="Link to this heading"></a></h4>
+<p>Confirm removal of every step in a nonempty sequence.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-759">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_clear_tasks</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Empty queue or non-Yes response returns; Qt/config errors propagate.</p>
+<p><strong>Side effects:</strong> Shows Yes/Cancel with Cancel default; clears config.tasks, refreshes, and logs when confirmed.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-copy-steps">
+<span id="api-86e086d84d212ead"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._copy_steps()</span></code><a class="headerlink" href="#mtcmainwindow-copy-steps" title="Link to this heading"></a></h4>
+<p>Copy selected task dictionaries as custom-MIME JSON and plain text.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-776">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_copy_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No selection returns; &gt;1,000,000 encoded bytes logs and returns. Index/serialization/Qt errors propagate. Copy does not enforce the 1,000-step paste limit.</p>
+<p><strong>Side effects:</strong> Writes application/x-erobs-task-steps+json and equivalent text to the system clipboard; logs count. Associated pose definitions are not copied separately.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-f5c9697fd4602817"><code>MTCMainWindow._build_menu</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-paste-steps">
+<span id="api-21b89f11de1a4f4e"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._paste_steps()</span></code><a class="headerlink" href="#mtcmainwindow-paste-steps" title="Link to this heading"></a></h4>
+<p>Validate custom clipboard JSON and insert imported steps after the last selected row or at queue end.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-794">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_paste_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Silently rejects disabled editing, absent MIME, empty/&gt;1,000,000-byte data, JSON ValueError/RecursionError, nonlist/empty/&gt;1,000-step roots, nondict items, unsupported/nonstring types, and task_summary KeyError/TypeError/ValueError/IndexError/OverflowError. This is renderability validation, not full backend-schema validation.</p>
+<p><strong>Side effects:</strong> Accepts configured defaults plus vision_task; mutates only after all items validate, refreshes, selects pasted range, and logs. No pose-registry import or execution occurs.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-f5c9697fd4602817"><code>MTCMainWindow._build_menu</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-tasks-proposed">
+<span id="api-0a62d2a1b0b76aeb"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_tasks_proposed()</span></code><a class="headerlink" href="#mtcmainwindow-on-tasks-proposed" title="Link to this heading"></a></h4>
+<p>Replace/extend agent-proposed tasks and apply recognized gripper/inline-pose options.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-840">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_tasks_proposed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tasks</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">options</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tasks</span></code></p></td>
+<td><p>Proposed list; elements are not individually validated or deep-copied.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">options</span></code></p></td>
+<td><p>replace defaults True; truthy start_gripper is applied only if it matches the combo; truthy poses merges into config.poses.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed tasks/options or rendering can fail after mutation; no running/editing-state guard.</p>
+<p><strong>Side effects:</strong> Replaces queue with list(tasks) or extends it, may change combo/inline poses, refreshes, and logs. config.start_gripper is updated later at dispatch/save.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-agent-tasks-cleared">
+<span id="api-9604696ec7fb5862"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_agent_tasks_cleared()</span></code><a class="headerlink" href="#mtcmainwindow-on-agent-tasks-cleared" title="Link to this heading"></a></h4>
+<p>Clear the queue for the agent-local clear tool.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-861">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_agent_tasks_cleared</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Config/render errors propagate; no confirmation or editability check.</p>
+<p><strong>Side effects:</strong> Replaces config.tasks with [], refreshes rows/cache badge, and logs removed count.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-agent-execute-requested">
+<span id="api-c66bbb70af1fe6ce"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_agent_execute_requested()</span></code><a class="headerlink" href="#mtcmainwindow-on-agent-execute-requested" title="Link to this heading"></a></h4>
+<p>Reject an occupied accepted-goal handle or empty queue, then invoke normal Execute as agent-initiated.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-868">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_agent_execute_requested</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Prechecks notify bridge failure with zero counts. Checks _current_goal_handle, not _goal_pending or server state. _execute early returns, including unsupported Dry Run, do not resolve the pending agent future here.</p>
+<p><strong>Side effects:</strong> Sets initiator to agent, logs, and calls _execute using the current Dry Run and gripper controls.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-agent-mode-changed">
+<span id="api-392d5812950c7add"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_agent_mode_changed()</span></code><a class="headerlink" href="#mtcmainwindow-on-agent-mode-changed" title="Link to this heading"></a></h4>
+<p>Replace visible chat with a mode-change notice after bridge acknowledgment.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-884">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_agent_mode_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p>Normally plan/run; displayed verbatim in status and uppercased in the notice.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Clears chat widgets, syncs/reenables radios, changes status, appends reset notice, and logs. Agent reconstruction/history reset belongs to AgentBridge.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-move-up">
+<span id="api-2515b0e96a658b15"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._move_up()</span></code><a class="headerlink" href="#mtcmainwindow-move-up" title="Link to this heading"></a></h4>
+<p>Swap one selected task with its predecessor.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-894">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_move_up</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Zero/multiple selection or first row returns; stale index/config/render errors propagate.</p>
+<p><strong>Side effects:</strong> Swaps queue entries, refreshes/cache-invalidates, and selects the moved row; no independent editability check.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-move-down">
+<span id="api-54287578e600f2b6"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._move_down()</span></code><a class="headerlink" href="#mtcmainwindow-move-down" title="Link to this heading"></a></h4>
+<p>Swap one selected task with its successor.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-906">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_move_down</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Zero/multiple selection or last row returns; stale index/config/render errors propagate.</p>
+<p><strong>Side effects:</strong> Swaps queue entries, refreshes/cache-invalidates, and selects the moved row; no independent editability check.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-reorder-steps">
+<span id="api-2a548b2824832795"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._reorder_steps()</span></code><a class="headerlink" href="#mtcmainwindow-reorder-steps" title="Link to this heading"></a></h4>
+<p>Apply a validated permutation of original indices from an internal drag.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-918">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_reorder_steps</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">order</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">moved_rows</span><span class="p">:</span> <span class="nb">list</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">order</span></code></p></td>
+<td><p>New ordering as original row identities; length and set must match range(len(tasks)).</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">moved_rows</span></code></p></td>
+<td><p>Original identities to reselect after rebuilding the queue.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Disabled editing/invalid permutation causes refresh and return; unhashable/type errors propagate.</p>
+<p><strong>Side effects:</strong> Reorders config.tasks, refreshes rows/cache badge, and selects dragged rows at new positions.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-detach-viz-for-form">
+<span id="api-b02da0751b2c151b"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._detach_viz_for_form()</span></code><a class="headerlink" href="#mtcmainwindow-detach-viz-for-form" title="Link to this heading"></a></h4>
+<p>Remove the 3D tab so a form can embed its viewer.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-935">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_detach_viz_for_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No-op without available viewer or when already floating; Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Stores old tab index, removes the tab when present, and marks floating. MoveToForm performs reparenting.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-acb4ea544a4fcdc8"><code>MTCMainWindow._edit_task_by_index</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-redock-viz-after-form">
+<span id="api-ec37f9cb41106e8e"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._redock_viz_after_form()</span></code><a class="headerlink" href="#mtcmainwindow-redock-viz-after-form" title="Link to this heading"></a></h4>
+<p>Restore a detached viewer near its former tab position.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-946">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_redock_viz_after_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No-op without viewer or when not floating; Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Restores Widget flags, inserts/shows viewer with saved title, and clears floating state.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-acb4ea544a4fcdc8"><code>MTCMainWindow._edit_task_by_index</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-refresh-tree">
+<span id="api-b9a96cf05f4bf6a8"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._refresh_tree()</span></code><a class="headerlink" href="#mtcmainwindow-refresh-tree" title="Link to this heading"></a></h4>
+<p>Refresh queue rows from the task document and clear the preview-cache badge.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-990">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_refresh_tree</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed/missing tasks and summary/widget failures propagate.</p>
+<p><strong>Side effects:</strong> Refreshes StepListPanel, resetting row states, and hides badge; does not clear the server’s cache.</p>
+<details class="api-references"><summary>Referenced in source (13)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-244214c0c8b31205"><code>MTCMainWindow._add_moveto_for_pose</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-cfd00b4d8943c845"><code>MTCMainWindow._add_task</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-269c0d3171216e1b"><code>MTCMainWindow._clear_tasks</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-acb4ea544a4fcdc8"><code>MTCMainWindow._edit_task_by_index</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-a495b71e46612de2"><code>MTCMainWindow._load_json</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-ec9daa738f081efe"><code>MTCMainWindow._load_run</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-54287578e600f2b6"><code>MTCMainWindow._move_down</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-2515b0e96a658b15"><code>MTCMainWindow._move_up</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-9604696ec7fb5862"><code>MTCMainWindow._on_agent_tasks_cleared</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-0a62d2a1b0b76aeb"><code>MTCMainWindow._on_tasks_proposed</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-21b89f11de1a4f4e"><code>MTCMainWindow._paste_steps</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-91ec19837ece9afe"><code>MTCMainWindow._remove_task</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-2a548b2824832795"><code>MTCMainWindow._reorder_steps</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-set-plan-cached">
+<span id="api-a185b3637dc2e5de"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._set_plan_cached()</span></code><a class="headerlink" href="#mtcmainwindow-set-plan-cached" title="Link to this heading"></a></h4>
+<p>Show success-preview status, a temporary warning, or no cache badge.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-995">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_set_plan_cached</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cached</span><span class="p">:</span> <span class="nb">bool</span><span class="p">,</span> <span class="n">reason</span><span class="p">:</span> <span class="nb">str</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">cached</span></code></p></td>
+<td><p>True selects the green cached message regardless of reason.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">reason</span></code></p></td>
+<td><p>Warning text when cached=False; empty hides the badge.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Updates text/status property/visibility and restyles. Warnings schedule unconditional clearing after eight seconds; no server cache query/mutation.</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-1f857cbbd756a8f1"><code>MTCMainWindow._build_central</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-2ef8b565d018fba2"><code>MTCMainWindow._on_result</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-b9a96cf05f4bf6a8"><code>MTCMainWindow._refresh_tree</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-clear-plan-cache-warning">
+<span id="api-6d4fbd2781c44010"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._clear_plan_cache_warning()</span></code><a class="headerlink" href="#mtcmainwindow-clear-plan-cache-warning" title="Link to this heading"></a></h4>
+<p>Hide and clear the cache badge, restoring its success property.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1016">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_clear_plan_cache_warning</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Erases text, hides/repolishes label, sets status=success. An old scheduled warning callback can also clear a newer badge.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-a185b3637dc2e5de"><code>MTCMainWindow._set_plan_cached</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-execute-from-selected">
+<span id="api-82e796628291bd57"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._execute_from_selected()</span></code><a class="headerlink" href="#mtcmainwindow-execute-from-selected" title="Link to this heading"></a></h4>
+<p>Submit a queue suffix only when exactly one row is selected.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1028">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_execute_from_selected</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Calls _execute(selected_index); other selection counts do nothing.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-execution-state">
+<span id="api-de768afbfe1d0a88"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_execution_state()</span></code><a class="headerlink" href="#mtcmainwindow-on-execution-state" title="Link to this heading"></a></h4>
+<p>Store server state, clear pending status for active states, and project controls.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1073">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_execution_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">state</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">state</span></code></p></td>
+<td><p>IDLE, RUNNING, COMPLETING_TASK, PAUSED, or an unknown state string.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Unknown states log and disable controls through projection; no exception handler.</p>
+<p><strong>Side effects:</strong> Sets state; RUNNING/COMPLETING_TASK/PAUSED clear _goal_pending, while IDLE does not; calls projection.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-project-execution-state">
+<span id="api-6ff0d7328b59cdcd"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._project_execution_state()</span></code><a class="headerlink" href="#mtcmainwindow-project-execution-state" title="Link to this heading"></a></h4>
+<p>Apply state-derived execution, editability, and pause flags to the controls.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1081">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_project_execution_state</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Updates Execute/From Selected/Pause/Resume/Stop, task palette/edit buttons/gripper/Dry Run, step-list drag/edit state, and pause indicator. File menus, run loading, pose controls, and agent queue updates remain separately enabled.</p>
+<details class="api-references"><summary>Referenced in source (4)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-a0cbbf8e2158c6de"><code>MTCMainWindow._execute</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-de768afbfe1d0a88"><code>MTCMainWindow._on_execution_state</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-2ef8b565d018fba2"><code>MTCMainWindow._on_result</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-update-execute-from-selected">
+<span id="api-fd9b85e2a44dec13"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._update_execute_from_selected()</span></code><a class="headerlink" href="#mtcmainwindow-update-execute-from-selected" title="Link to this heading"></a></h4>
+<p>Enable suffix execution when Execute is enabled and exactly one row is selected.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1103">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_update_execute_from_selected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">_</span></code></p></td>
+<td><p>Ignored optional selection_changed payload, normally a list of row indices.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Changes execute_from_btn enabled state.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c6169263d29e4033"><code>MTCMainWindow._build_center_pane</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6ff0d7328b59cdcd"><code>MTCMainWindow._project_execution_state</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-feedback">
+<span id="api-ce9918b73461caf5"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_feedback()</span></code><a class="headerlink" href="#mtcmainwindow-on-feedback" title="Link to this heading"></a></h4>
+<p>Map feedback into the full queue’s progress and update the activity log.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1108">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_feedback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">progress</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">action</span><span class="p">,</span> <span class="n">gripper</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">progress</span></code></p></td>
+<td><p>Submitted-suffix progress percentage.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>One-based step within the submitted suffix.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">action</span></code></p></td>
+<td><p>Current action/task-type label.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Reported gripper, logged but not applied to the combo here.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>Reported status-message text.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Numeric/config/widget failures propagate; total zero yields zero progress.</p>
+<p><strong>Side effects:</strong> Sets progress to (start_index + progress/100 × remaining)/total ×100, forwards row feedback, and logs the offset step number.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-joint-state">
+<span id="api-f196332467e25f2c"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_joint_state()</span></code><a class="headerlink" href="#mtcmainwindow-on-joint-state" title="Link to this heading"></a></h4>
+<p>Cache the latest degree-valued pose for saving and editor snapshots.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1177">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_joint_state</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pose</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pose</span></code></p></td>
+<td><p>Joint-angle list from ROS2Bridge, retained by reference.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No explicit validation or failure handling; the payload is assigned directly.</p>
+<p><strong>Side effects:</strong> Assigns current_robot_pose only.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-gripper-changed">
+<span id="api-60a306ac16ee2928"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_gripper_changed()</span></code><a class="headerlink" href="#mtcmainwindow-on-gripper-changed" title="Link to this heading"></a></h4>
+<p>Select an exactly matching reported gripper in the combo.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1180">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_gripper_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">gripper</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Current-gripper topic string; matching is case-sensitive.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Unknown names are ignored; Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Changes combo, potentially invalidating the cache badge, but does not directly update config.start_gripper.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-load-json">
+<span id="api-a495b71e46612de2"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._load_json()</span></code><a class="headerlink" href="#mtcmainwindow-load-json" title="Link to this heading"></a></h4>
+<p>Choose and load a JSON file as the active task configuration.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1187">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Cancel returns. Read/update/render exceptions show a critical dialog; config is replaced before schema/render validation and is not rolled back.</p>
+<p><strong>Side effects:</strong> Reads file, replaces config, syncs recognized gripper, sets current_json_file, refreshes/cache-invalidates, and logs.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-f5c9697fd4602817"><code>MTCMainWindow._build_menu</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-save-json">
+<span id="api-7df6e6d67e714a47"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._save_json()</span></code><a class="headerlink" href="#mtcmainwindow-save-json" title="Link to this heading"></a></h4>
+<p>Choose a destination and write indented JSON with the current gripper selection.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1206">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_save_json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Cancel returns; exceptions show a critical dialog. Direct non-atomic overwrite can leave a truncated file.</p>
+<p><strong>Side effects:</strong> Mutates config.start_gripper, writes chosen file, and logs. Does not update current_json_file or append an extension.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-f5c9697fd4602817"><code>MTCMainWindow._build_menu</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-runs-dir">
+<span id="api-ce7f8b0529fd52e1"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._runs_dir()</span></code><a class="headerlink" href="#mtcmainwindow-runs-dir" title="Link to this heading"></a></h4>
+<p>Locate or create the CMS saved-runs directory from the beamline configuration path.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1222">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_runs_dir</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">'Path | None'</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> workspace/src/cms/runs Path or None without config path/matching ancestor.</p>
+<p><strong>Errors:</strong> Path/mkdir errors propagate; filesystem root is not checked by the walk.</p>
+<p><strong>Side effects:</strong> Creates the runs directory if needed; location is CMS-specific regardless of beamline identity.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-8a59b5f9d8e96b03"><code>MTCMainWindow._refresh_runs_list</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-78d3857f7837d12d"><code>MTCMainWindow._save_run</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-refresh-runs-list">
+<span id="api-8a59b5f9d8e96b03"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._refresh_runs_list()</span></code><a class="headerlink" href="#mtcmainwindow-refresh-runs-list" title="Link to this heading"></a></h4>
+<p>List sorted *.json run files using run_name or the filename stem.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1238">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_refresh_runs_list</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Per-file read/JSON failures fall back to stem; directory/Qt errors and invalid display-name types can propagate.</p>
+<p><strong>Side effects:</strong> Clears/rebuilds run list, may create its directory, reads JSON metadata, and stores paths in item UserRole.</p>
+<details class="api-references"><summary>Referenced in source (4)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6a79ece84303041e"><code>MTCMainWindow._build_sidebar</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-036facb68909bf01"><code>MTCMainWindow._delete_run</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-3c5d59e893eda1e0"><code>MTCMainWindow._rename_run</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-78d3857f7837d12d"><code>MTCMainWindow._save_run</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-save-run">
+<span id="api-78d3857f7837d12d"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._save_run()</span></code><a class="headerlink" href="#mtcmainwindow-save-run" title="Link to this heading"></a></h4>
+<p>Prompt for display name/filename, confirm overwrites, and save a copied task document.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1256">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_save_run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Missing directory/empty queue warns; blank/canceled prompts return. Save/copy/refresh errors show a critical dialog; directory resolution is outside the handler. Writes are non-atomic.</p>
+<p><strong>Side effects:</strong> Trims names, replaces spaces and / with _, appends .json, deep-copies config, writes run_name/current combo gripper, logs and refreshes. It preserves existing config.poses without stripping entries.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6a79ece84303041e"><code>MTCMainWindow._build_sidebar</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-load-run">
+<span id="api-ec9daa738f081efe"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._load_run()</span></code><a class="headerlink" href="#mtcmainwindow-load-run" title="Link to this heading"></a></h4>
+<p>Load the file path stored by a run-list item into the active document.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1312">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">item</span><span class="p">:</span> <span class="s1">'QListWidgetItem'</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">item</span></code></p></td>
+<td><p>QListWidgetItem carrying path in UserRole and display name in text.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Missing path returns. Read/update/render exceptions show a critical dialog; prior config is not restored after a render failure.</p>
+<p><strong>Side effects:</strong> Reads JSON, replaces config, syncs recognized gripper, sets current_json_file, refreshes/cache-invalidates, and logs.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6a79ece84303041e"><code>MTCMainWindow._build_sidebar</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-rename-run">
+<span id="api-3c5d59e893eda1e0"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._rename_run()</span></code><a class="headerlink" href="#mtcmainwindow-rename-run" title="Link to this heading"></a></h4>
+<p>Change the selected run’s run_name field while retaining its filename.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1330">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_rename_run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No item/canceled/blank/unchanged name returns; read/write/refresh errors show a critical dialog. Direct overwrite can truncate on failure.</p>
+<p><strong>Side effects:</strong> Prompts, reads JSON, rewrites with trimmed name, logs, and rebuilds list.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6a79ece84303041e"><code>MTCMainWindow._build_sidebar</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-delete-run">
+<span id="api-036facb68909bf01"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._delete_run()</span></code><a class="headerlink" href="#mtcmainwindow-delete-run" title="Link to this heading"></a></h4>
+<p>Confirm and remove the selected named-run file.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1357">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_delete_run</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No selection/non-Yes returns; unlink/refresh failures show a critical dialog.</p>
+<p><strong>Side effects:</strong> Shows confirmation, unlinks path, logs, and refreshes; leaves any active in-memory document intact.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6a79ece84303041e"><code>MTCMainWindow._build_sidebar</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-log">
+<span id="api-c5ccc2f635f3bd16"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._log()</span></code><a class="headerlink" href="#mtcmainwindow-log" title="Link to this heading"></a></h4>
+<p>Append an activity message with local HH:MM:SS timestamp.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1380">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_log</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">msg</span></code></p></td>
+<td><p>Text interpolated into QTextEdit.append; unlike chat bubbles, no explicit PlainText mode is set here.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Appends to status_log only; no file or ROS logging.</p>
+<details class="api-references"><summary>Referenced in source (23)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-244214c0c8b31205"><code>MTCMainWindow._add_moveto_for_pose</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-cfd00b4d8943c845"><code>MTCMainWindow._add_task</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-269c0d3171216e1b"><code>MTCMainWindow._clear_tasks</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-86e086d84d212ead"><code>MTCMainWindow._copy_steps</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-036facb68909bf01"><code>MTCMainWindow._delete_run</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-acb4ea544a4fcdc8"><code>MTCMainWindow._edit_task_by_index</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-b89e12901ea2651f"><code>MTCMainWindow._load_beamline_poses</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-a495b71e46612de2"><code>MTCMainWindow._load_json</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-ec9daa738f081efe"><code>MTCMainWindow._load_run</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-c66bbb70af1fe6ce"><code>MTCMainWindow._on_agent_execute_requested</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-392d5812950c7add"><code>MTCMainWindow._on_agent_mode_changed</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-9604696ec7fb5862"><code>MTCMainWindow._on_agent_tasks_cleared</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-de768afbfe1d0a88"><code>MTCMainWindow._on_execution_state</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-ce9918b73461caf5"><code>MTCMainWindow._on_feedback</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-2bcaff109ba938d6"><code>MTCMainWindow._on_poses_loaded</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-2ef8b565d018fba2"><code>MTCMainWindow._on_result</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-0a62d2a1b0b76aeb"><code>MTCMainWindow._on_tasks_proposed</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-21b89f11de1a4f4e"><code>MTCMainWindow._paste_steps</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-3c5d59e893eda1e0"><code>MTCMainWindow._rename_run</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6e65a45be09845d6"><code>MTCMainWindow._save_current_pose</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-7df6e6d67e714a47"><code>MTCMainWindow._save_json</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-78d3857f7837d12d"><code>MTCMainWindow._save_run</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-toggle-dark-mode">
+<span id="api-f03797462e538243"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._toggle_dark_mode()</span></code><a class="headerlink" href="#mtcmainwindow-toggle-dark-mode" title="Link to this heading"></a></h4>
+<p>Forward the menu preference to the shared theme helper.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1384">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_toggle_dark_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">enabled</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">enabled</span></code></p></td>
+<td><p>Dark-mode action checked state.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Calls theme.toggle_dark_mode(self._app(), enabled), changing application appearance.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-f5c9697fd4602817"><code>MTCMainWindow._build_menu</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-app">
+<span id="api-d35bb404075d4e2c"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._app()</span></code><a class="headerlink" href="#mtcmainwindow-app" title="Link to this heading"></a></h4>
+<p>Retrieve the current QApplication singleton.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1387">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_app</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> QApplication.instance(), possibly None outside an initialized Qt app.</p>
+<p><strong>Errors:</strong> Import/Qt errors propagate.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-f03797462e538243"><code>MTCMainWindow._toggle_dark_mode</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-show-about">
+<span id="api-2e786dfa0617d988"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._show_about()</span></code><a class="headerlink" href="#mtcmainwindow-show-about" title="Link to this heading"></a></h4>
+<p>Display GUI identity and beambot_execution action-server information.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1392">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_show_about</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Shows the About message box.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-f5c9697fd4602817"><code>MTCMainWindow._build_menu</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-load-beamline-yaml">
+<span id="api-227d79b019f5fce7"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._load_beamline_yaml()</span></code><a class="headerlink" href="#mtcmainwindow-load-beamline-yaml" title="Link to this heading"></a></h4>
+<p>Read BEAMBOT_BEAMLINE_CONFIG and accept a YAML mapping root.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1406">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_beamline_yaml</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> (config_dict, absolute_path_string), or ({}, None) for unset/missing/invalid configuration.</p>
+<p><strong>Errors:</strong> Unset/missing paths/nonmapping roots record a diagnostic. Read/parse exceptions are caught; earlier path normalization failures can propagate. Empty/false YAML values become {} before the mapping check.</p>
+<p><strong>Side effects:</strong> Reads environment/file, strips path text, expands ~, normalizes .. with abspath without following symlinks, and sets _pending_log on failure.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-8f62f868ef524315"><code>MTCMainWindow.__init__</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-load-beamline-poses">
+<span id="api-b89e12901ea2651f"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._load_beamline_poses()</span></code><a class="headerlink" href="#mtcmainwindow-load-beamline-poses" title="Link to this heading"></a></h4>
+<p>Load the referenced pose registry and flush any deferred startup diagnostic.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1433">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_load_beamline_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Registry-load errors propagate and can prevent pending-log cleanup.</p>
+<p><strong>Side effects:</strong> Calls panel.load_from_beamline_config for the startup path, then logs/deletes _pending_log when present.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-8f62f868ef524315"><code>MTCMainWindow.__init__</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-poses-loaded">
+<span id="api-2bcaff109ba938d6"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_poses_loaded()</span></code><a class="headerlink" href="#mtcmainwindow-on-poses-loaded" title="Link to this heading"></a></h4>
+<p>Log registry size without copying registry entries into inline document poses.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1441">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_poses_loaded</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">poses</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Registry mapping from PosesPanel; used only for len().</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Appends count to the log; does not change config.poses or invalidate the cache badge.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6a79ece84303041e"><code>MTCMainWindow._build_sidebar</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-manage-poses">
+<span id="api-3943323f2a857a41"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._manage_poses()</span></code><a class="headerlink" href="#mtcmainwindow-manage-poses" title="Link to this heading"></a></h4>
+<p>Run the registry-manager dialog whose individual edits persist immediately.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1445">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_manage_poses</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Constructs/executes PosesManagerDialog; no aggregate result is applied afterward.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-1f857cbbd756a8f1"><code>MTCMainWindow._build_central</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-save-current-pose">
+<span id="api-6e65a45be09845d6"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._save_current_pose()</span></code><a class="headerlink" href="#mtcmainwindow-save-current-pose" title="Link to this heading"></a></h4>
+<p>Save the cached robot pose to the registry or task document as chosen in the dialog.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1449">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_save_current_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Missing pose warns. False registry save warns; other widget/persistence errors propagate.</p>
+<p><strong>Side effects:</strong> Runs SavePoseDialog; registry choice writes through panel.save_pose, inline choice updates config.poses. Logs either success; inline saving neither writes a file nor clears the cache badge.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-1f857cbbd756a8f1"><code>MTCMainWindow._build_central</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="mtcmainwindow-on-chat-message">
+<span id="api-4c0b5c1b7075280f"></span><h4><code class="docutils literal notranslate"><span class="pre">MTCMainWindow._on_chat_message()</span></code><a class="headerlink" href="#mtcmainwindow-on-chat-message" title="Link to this heading"></a></h4>
+<p>Display the user message and submit it to AgentBridge.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-1474">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_chat_message</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>User text, normally trimmed by ChatPanel.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Appends a user bubble and schedules agent chat; bridge signals expose failures.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-4c4a45942de42772"><code>MTCMainWindow._connect_signals</code></a> — mtc_gui.main_window</li></ul></details></section>
+</section>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="task-summary">
+<span id="api-704aabcb981a6633"></span><h3><code class="docutils literal notranslate"><span class="pre">task_summary()</span></code><a class="headerlink" href="#task-summary" title="Link to this heading"></a></h3>
+<p>Format one task as the short description shown in a queue row.</p>
+<p><strong>Function</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-143">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">task_summary</span><span class="p">(</span><span class="n">step</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task mapping whose task_type selects formatting; uses target/direction/Cartesian, detection/tag, scan count, gripper action, normalized volume, and grid-coordinate fields.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Summary string; unknown and spincoater types fall back to raw task_type. MoveTo shows a truthy direction as relative even with zero distance; vision_moveto always labels the target ArUco, including sample_roi.</p>
+<p><strong>Errors:</strong> Malformed values can raise; clipboard paste uses this function as a renderability check.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-21b89f11de1a4f4e"><code>MTCMainWindow._paste_steps</code></a> — mtc_gui.main_window</li><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-b9a96cf05f4bf6a8"><code>MTCMainWindow._refresh_tree</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="build-task-defaults">
+<span id="api-0b17c3c407fa3ac2"></span><h4><code class="docutils literal notranslate"><span class="pre">_build_task_defaults()</span></code><a class="headerlink" href="#build-task-defaults" title="Link to this heading"></a></h4>
+<p>Construct fresh templates for 13 task types using beamline gripper, dock, and marker defaults.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-53">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_task_defaults</span><span class="p">(</span><span class="n">beamline_config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">beamline_config</span></code></p></td>
+<td><p>Beamline mapping; {} is supported. Uses grippers.*.states.grasp, tool_exchange.reference_dock, and camera.marker_dictionary.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Mapping task_type → template dict. Tool exchange prefers the first non-none gripper; end effector uses the first gripper with states and its grasp action. Missing choices become empty strings; dock defaults to 1 and marker dictionary to aruco4x4_50.</p>
+<p><strong>Errors:</strong> Malformed nested mappings raise; None is not fully supported because tool_exchange is accessed unconditionally.</p>
+<p><strong>Side effects:</strong> None; allocates new template lists/dicts.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-8f62f868ef524315"><code>MTCMainWindow.__init__</code></a> — mtc_gui.main_window</li></ul></details></section>
+<section id="execution-controls">
+<span id="api-251fa7261f9584d5"></span><h4><code class="docutils literal notranslate"><span class="pre">_execution_controls()</span></code><a class="headerlink" href="#execution-controls" title="Link to this heading"></a></h4>
+<p>Project server state and local goal-pending status into six control flags.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/main_window.py.html#L-199">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_execution_controls</span><span class="p">(</span><span class="n">state</span><span class="p">,</span> <span class="n">goal_pending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">state</span></code></p></td>
+<td><p>IDLE, RUNNING, COMPLETING_TASK, PAUSED, or unknown/None.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">goal_pending</span></code></p></td>
+<td><p>Truthy overrides server state and enables only Stop.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Tuple (execute, pause, resume, stop, editing, paused). IDLE=(T,F,F,F,T,F); RUNNING=(F,T,F,T,F,F); COMPLETING_TASK=(F,F,F,T,F,F); PAUSED=(F,F,T,T,F,T); unknown=(F,F,F,F,F,F).</p>
+<p><strong>Errors:</strong> Unhashable state can raise when no pending override applies.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-main_window-py.html#api-6ff0d7328b59cdcd"><code>MTCMainWindow._project_execution_state</code></a> — mtc_gui.main_window</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-mtc_gui-mtc_gui-main-py.html" class="btn btn-neutral float-left" title="GUI startup" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-mtc_gui-mtc_gui-task_forms-py.html" class="btn btn-neutral float-right" title="Task editor forms" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

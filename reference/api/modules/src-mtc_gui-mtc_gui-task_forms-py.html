@@ -1,0 +1,1634 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task editor forms &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="Task queue display" href="src-mtc_gui-mtc_gui-step_list_panel-py.html" />
+    <link rel="prev" title="Operator window" href="src-mtc_gui-mtc_gui-main_window-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/perception.html">Perception and mapping</a></li>
+<li class="toctree-l3 current"><a class="reference internal" href="../subsystems/operator-gui.html">Operator GUI</a><ul class="current">
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main-py.html">GUI startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-main_window-py.html">Operator window</a></li>
+<li class="toctree-l4 current"><a class="current reference internal" href="#">Task editor forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-step_list_panel-py.html">Task queue display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-ros2_bridge-py.html">ROS and GUI bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-poses_panel-py.html">Pose browser and registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_dialogs-py.html">Pose editing dialogs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-pose_io-py.html">Pose registry files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-camera_panel-py.html">Camera display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-visualization_panel-py.html">Robot and trajectory viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-resources-viewer-html.html">Embedded robot viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-chat_panel-py.html">Chat interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_bridge-py.html">Chat agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-agent_modes-py.html">Chat agent modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-mtc_gui-theme-py.html">GUI appearance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="src-mtc_gui-launch-mtc_gui_client-launch-py.html">Operator GUI launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../subsystems/operator-gui.html#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../subsystems/examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+          <li class="breadcrumb-item"><a href="../subsystems/operator-gui.html">Operator GUI</a></li>
+      <li class="breadcrumb-item active">Task editor forms</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="task-editor-forms">
+<h1>Task editor forms<a class="headerlink" href="#task-editor-forms" title="Link to this heading"></a></h1>
+<p>Edit task dictionaries through a modal form selected by <code class="docutils literal notranslate"><span class="pre">task_type</span></code>.</p>
+<p><code class="docutils literal notranslate"><span class="pre">mtc_gui.task_forms</span></code> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html">Source</a></p>
+<p><a class="reference internal" href="../subsystems/operator-gui.html"><span class="std std-doc">Operator GUI</span></a> · <a class="reference internal" href="../../../operate/gui.html"><span class="std std-doc">Guide</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<section id="how-it-is-used">
+<h2>How it is used<a class="headerlink" href="#how-it-is-used" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">MTCMainWindow</span></code> calls <code class="docutils literal notranslate"><span class="pre">open_task_form()</span></code> with a task, its queue index, and the available poses. The helper selects one of the registered editors for 12 task types and returns the accepted task or <code class="docutils literal notranslate"><span class="pre">None</span></code>. Forms edit a deep copy and do not dispatch commands. Widget construction and editing run on the GUI thread.</p>
+<p>Each form supplies <code class="docutils literal notranslate"><span class="pre">build_form()</span></code> and <code class="docutils literal notranslate"><span class="pre">collect_values()</span></code> through <code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code>. Most editors preserve unrelated fields. Move To can return <code class="docutils literal notranslate"><span class="pre">_inline_joint_pose</span></code> metadata for the window to move into the document’s pose overrides; grid editors write a complete <code class="docutils literal notranslate"><span class="pre">config</span></code> override. These serialization details matter when adding a form or changing the task schema.</p>
+</section>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Callable</p></th>
+<th class="head"><p>Purpose</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-1e874a358e709f90"><span class="std std-ref">open_task_form</span></a></p></td>
+<td><p>Select a concrete editor by task_type, run it modally, and return only an accepted result.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-ac085c91f9307bb1"><span class="std std-ref">BaseTaskForm.build_form</span></a></p></td>
+<td><p>Subclass hook for adding task-specific controls during construction.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-9f2c5aa008816a59"><span class="std std-ref">BaseTaskForm.collect_values</span></a></p></td>
+<td><p>Subclass hook for converting the current controls into a task dictionary.</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="#api-382126c964b12204"><span class="std std-ref">MoveToForm.collect_values</span></a></p></td>
+<td><p>Serialize the selected Move To mode and remove fields from inactive modes.</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="#api-b4fb0d3a56460d08"><span class="std std-ref">_GridSelectorForm.collect_values</span></a></p></td>
+<td><p>Validate grid directions and serialize the selected cell with a complete configuration override.</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="example">
+<h2>Example<a class="headerlink" href="#example" title="Link to this heading"></a></h2>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Requires PyQt6 and a configured Qt platform; no ROS or hardware.</span>
+<span class="c1"># Use an existing QApplication in an application or test harness.</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">mtc_gui.task_forms</span><span class="w"> </span><span class="kn">import</span> <span class="n">MoveToForm</span>
+
+<span class="n">form</span> <span class="o">=</span> <span class="n">MoveToForm</span><span class="p">({</span><span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"moveto"</span><span class="p">,</span> <span class="s2">"target"</span><span class="p">:</span> <span class="s2">"moveit_home"</span><span class="p">},</span> <span class="mi">0</span><span class="p">,</span> <span class="p">{})</span>
+<span class="n">form</span><span class="o">.</span><span class="n">mode_combo</span><span class="o">.</span><span class="n">setCurrentText</span><span class="p">(</span><span class="s2">"Relative move"</span><span class="p">)</span>
+<span class="n">form</span><span class="o">.</span><span class="n">direction</span><span class="o">.</span><span class="n">setCurrentText</span><span class="p">(</span><span class="s2">"up"</span><span class="p">)</span>
+<span class="n">form</span><span class="o">.</span><span class="n">distance</span><span class="o">.</span><span class="n">setValue</span><span class="p">(</span><span class="mf">0.05</span><span class="p">)</span>
+<span class="k">assert</span> <span class="n">form</span><span class="o">.</span><span class="n">collect_values</span><span class="p">()</span> <span class="o">==</span> <span class="p">{</span>
+    <span class="s2">"task_type"</span><span class="p">:</span> <span class="s2">"moveto"</span><span class="p">,</span> <span class="s2">"direction"</span><span class="p">:</span> <span class="s2">"up"</span><span class="p">,</span> <span class="s2">"distance"</span><span class="p">:</span> <span class="mf">0.05</span>
+<span class="p">}</span>
+<span class="n">form</span><span class="o">.</span><span class="n">deleteLater</span><span class="p">()</span>
+</pre></div>
+</div>
+</section>
+<section id="functions">
+<h2>Functions<a class="headerlink" href="#functions" title="Link to this heading"></a></h2>
+<section id="open-task-form">
+<span id="api-1e874a358e709f90"></span><h3><code class="docutils literal notranslate"><span class="pre">open_task_form()</span></code><a class="headerlink" href="#open-task-form" title="Link to this heading"></a></h3>
+<p>Select a concrete editor by task_type, run it modally, and return only an accepted result.</p>
+<p><strong>Entry point</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-102">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">open_task_form</span><span class="p">(</span>
+    <span class="n">step</span><span class="p">,</span>
+    <span class="n">step_index</span><span class="p">,</span>
+    <span class="n">poses</span><span class="p">,</span>
+    <span class="n">parent</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">current_pose</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">preview_cb</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">end_preview_cb</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">viz_widget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task mapping to edit; BaseTaskForm deep-copies it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">step_index</span></code></p></td>
+<td><p>Zero-based queue index used in the title as Step index + 1.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Mapping of named poses to six joint angles in degrees; stored by reference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent QWidget.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">current_pose</span></code></p></td>
+<td><p>Optional current six-joint pose in degrees used by Read current pose; this is a snapshot, not a polling callback.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">preview_cb</span></code></p></td>
+<td><p>Optional callable receiving a six-angle degree list for visual preview only.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">end_preview_cb</span></code></p></td>
+<td><p>Optional zero-argument callback restoring normal viewer state.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">viz_widget</span></code></p></td>
+<td><p>Optional live viewer widget temporarily reparented into the editor and detached when the dialog ends.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Edited step mapping when accepted; None when canceled or no form exists.</p>
+<p><strong>Errors:</strong> Unknown task types show a warning. Constructor/modal-loop failures propagate; form-save validation catches only ValueError/KeyError.</p>
+<p><strong>Side effects:</strong> Creates and executes a modal dialog; only MoveTo receives current-pose/preview/viewer arguments. pause has no dispatch entry.</p>
+</section>
+<section id="internal-callbacks-and-helpers">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#internal-callbacks-and-helpers" title="Link to this heading"></a></h3>
+<section id="configured-grippers">
+<span id="api-9e4d4bd50514036c"></span><h4><code class="docutils literal notranslate"><span class="pre">_configured_grippers()</span></code><a class="headerlink" href="#configured-grippers" title="Link to this heading"></a></h4>
+<p>Read declared gripper names from the active beamline configuration.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-39">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_configured_grippers</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> List of grippers mapping keys in configuration order, or [] on failure.</p>
+<p><strong>Errors:</strong> Catches all Exception failures, including missing configuration or malformed grippers.</p>
+<p><strong>Side effects:</strong> Reads beamline configuration through config_loader, which reuses its cached configuration after a successful load.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-1d7eedc0c4534917"><code>ToolExchangeForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="grippers-with-states">
+<span id="api-175a1a06534cd9a8"></span><h4><code class="docutils literal notranslate"><span class="pre">_grippers_with_states()</span></code><a class="headerlink" href="#grippers-with-states" title="Link to this heading"></a></h4>
+<p>Read gripper names whose configuration contains a truthy states block.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-50">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_grippers_with_states</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> List of eligible gripper names in configuration order; [] on any failure.</p>
+<p><strong>Errors:</strong> Catches all Exception failures; a malformed entry can discard the entire result.</p>
+<p><strong>Side effects:</strong> Reads beamline configuration through config_loader, which reuses its cached configuration after a successful load.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-6ddc21df81841cf7"><code>EndEffectorForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="end-effector-actions">
+<span id="api-92d5e5418185008c"></span><h4><code class="docutils literal notranslate"><span class="pre">_end_effector_actions()</span></code><a class="headerlink" href="#end-effector-actions" title="Link to this heading"></a></h4>
+<p>Collect unique truthy grasp/release action names across configured grippers, preserving first-seen order.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-69">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_end_effector_actions</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> List of action values, normally strings; [] on any failure. The result is a union, not filtered by the currently selected gripper.</p>
+<p><strong>Errors:</strong> Catches all Exception failures; action value types are not validated.</p>
+<p><strong>Side effects:</strong> Reads beamline configuration through config_loader, which reuses its cached configuration after a successful load.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-6ddc21df81841cf7"><code>EndEffectorForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="vision-target-config">
+<span id="api-333f0b5e10a76ee8"></span><h4><code class="docutils literal notranslate"><span class="pre">_vision_target_config()</span></code><a class="headerlink" href="#vision-target-config" title="Link to this heading"></a></h4>
+<p>Read one named vision target from the active beamline configuration.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-87">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_vision_target_config</span><span class="p">(</span><span class="n">target_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">target_name</span></code></p></td>
+<td><p>vision_targets key, such as tip_rack or vial_rack.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Configured target value, conventionally a dict; {} if absent or loading fails.</p>
+<p><strong>Errors:</strong> Catches all Exception failures; a present nonmapping target value is returned unchanged.</p>
+<p><strong>Side effects:</strong> Reads beamline configuration through config_loader, which reuses its cached configuration after a successful load.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-3f977d48420b3258"><code>_GridSelectorForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+</section>
+</section>
+<section id="basetaskform">
+<h2><code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code><a class="headerlink" href="#basetaskform" title="Link to this heading"></a></h2>
+<p>Provide the modal dialog, working task copy, field helpers, and save handling. Subclasses implement <code class="docutils literal notranslate"><span class="pre">build_form()</span></code> and <code class="docutils literal notranslate"><span class="pre">collect_values()</span></code>; the constructor calls <code class="docutils literal notranslate"><span class="pre">build_form()</span></code> before returning.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">QDialog</span></code>.</p>
+<section id="basetaskform-build-form">
+<span id="api-ac085c91f9307bb1"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.build_form()</span></code><a class="headerlink" href="#basetaskform-build-form" title="Link to this heading"></a></h3>
+<p>Subclass hook for adding task-specific controls during construction.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-181">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No validation or exception handling.</p>
+<p><strong>Side effects:</strong> None; this base implementation has no body beyond pass.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-427fd37832e1850f"><code>BaseTaskForm.__init__</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="basetaskform-collect-values">
+<span id="api-9f2c5aa008816a59"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.collect_values()</span></code><a class="headerlink" href="#basetaskform-collect-values" title="Link to this heading"></a></h3>
+<p>Subclass hook for converting the current controls into a task dictionary.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-184">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> The deep-copied self.step mapping itself, not a second copy.</p>
+<p><strong>Errors:</strong> No validation.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-d5c6792c4ecd4671"><code>BaseTaskForm._on_save</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="basetaskform-init">
+<span id="api-427fd37832e1850f"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.__init__()</span></code><a class="headerlink" href="#basetaskform-init" title="Link to this heading"></a></h3>
+<p>Copy the task, build the modal dialog, and call the subclass’s form builder.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-142">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">step_index</span><span class="p">,</span> <span class="n">poses</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task mapping to edit; BaseTaskForm deep-copies it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">step_index</span></code></p></td>
+<td><p>Zero-based queue index used in the title as Step index + 1.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Mapping of named poses to six joint angles in degrees; stored by reference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent QWidget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None; result starts as None.</p>
+<p><strong>Errors:</strong> Deep-copy, Qt, and subclass build_form failures propagate.</p>
+<p><strong>Side effects:</strong> Stores step/poses, builds controls, invokes build_form, and connects Save/Cancel.</p>
+</section>
+<section id="basetaskform-add-combo">
+<span id="api-ac0f2b681a5765f4"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.add_combo()</span></code><a class="headerlink" href="#basetaskform-add-combo" title="Link to this heading"></a></h3>
+<p>Add a fixed-choice combo initialized from the task’s value when that text is present.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-196">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_combo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">options</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">label</span></code></p></td>
+<td><p>Form-row label.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">key</span></code></p></td>
+<td><p>Task field used to select current text.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">options</span></code></p></td>
+<td><p>Ordered list of string options; first entry is the fallback when a value is missing or unmatched.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Created QComboBox.</p>
+<p><strong>Errors:</strong> Qt/option-type errors propagate; unmatched saved values are silently replaced by the combo’s first choice.</p>
+<p><strong>Side effects:</strong> Adds a combo row to self.form.</p>
+</section>
+<section id="basetaskform-add-text">
+<span id="api-f4fce44b1cfd0d0b"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.add_text()</span></code><a class="headerlink" href="#basetaskform-add-text" title="Link to this heading"></a></h3>
+<p>Add a line edit initialized by stringifying a task field.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-206">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_text</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="s1">''</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">label</span></code></p></td>
+<td><p>Form-row label.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">key</span></code></p></td>
+<td><p>Task field to display.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>Fallback value when key is absent; also converted to str.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Created QLineEdit.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Adds a text-entry row to self.form.</p>
+</section>
+<section id="basetaskform-add-float">
+<span id="api-3d4076e96bbf3730"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.add_float()</span></code><a class="headerlink" href="#basetaskform-add-float" title="Link to this heading"></a></h3>
+<p>Add a bounded decimal spin box initialized with float(task field).</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-211">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_float</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mf">0.0</span><span class="p">,</span> <span class="n">min_val</span><span class="o">=-</span><span class="mf">999.0</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mf">999.0</span><span class="p">,</span> <span class="n">decimals</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">label</span></code></p></td>
+<td><p>Form-row label.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">key</span></code></p></td>
+<td><p>Task field to display.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>Fallback numeric value.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">min_val</span></code></p></td>
+<td><p>Inclusive lower widget bound.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_val</span></code></p></td>
+<td><p>Inclusive upper widget bound.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">decimals</span></code></p></td>
+<td><p>Number of displayed/retained decimal places.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Created QDoubleSpinBox.</p>
+<p><strong>Errors:</strong> float conversion/Qt errors propagate; the widget clamps to its bounds.</p>
+<p><strong>Side effects:</strong> Adds a numeric row to self.form.</p>
+</section>
+<section id="basetaskform-add-int">
+<span id="api-f7acfe6a87acaa94"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.add_int()</span></code><a class="headerlink" href="#basetaskform-add-int" title="Link to this heading"></a></h3>
+<p>Add an integer spin box initialized with int(task field).</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-221">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_int</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">min_val</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">max_val</span><span class="o">=</span><span class="mi">999</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">label</span></code></p></td>
+<td><p>Form-row label.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">key</span></code></p></td>
+<td><p>Task field to display.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>Fallback integer value.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">min_val</span></code></p></td>
+<td><p>Inclusive lower widget bound.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">max_val</span></code></p></td>
+<td><p>Inclusive upper widget bound.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Created QSpinBox.</p>
+<p><strong>Errors:</strong> int conversion/Qt errors propagate; the widget clamps to its bounds.</p>
+<p><strong>Side effects:</strong> Adds an integer row to self.form.</p>
+</section>
+<section id="basetaskform-add-check">
+<span id="api-3097fd2b13e9408e"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.add_check()</span></code><a class="headerlink" href="#basetaskform-add-check" title="Link to this heading"></a></h3>
+<p>Add a checkbox initialized using the task field’s Python truth value.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-228">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">label</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">label</span></code></p></td>
+<td><p>Form-row label.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">key</span></code></p></td>
+<td><p>Task field to read.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">default</span></code></p></td>
+<td><p>Fallback value converted through bool; strings such as “false” remain truthy.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Created QCheckBox.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Adds a checkbox row to self.form.</p>
+</section>
+<section id="basetaskform-add-section">
+<span id="api-95871a214d51dd5e"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.add_section()</span></code><a class="headerlink" href="#basetaskform-add-section" title="Link to this heading"></a></h3>
+<p>Add a titled group with its own form layout.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-234">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_section</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">title</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">title</span></code></p></td>
+<td><p>Group-box heading.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> QFormLayout attached to the new QGroupBox.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Adds the group as a row in the parent form.</p>
+</section>
+<section id="basetaskform-add-hint">
+<span id="api-8bf69edf9868fec4"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.add_hint()</span></code><a class="headerlink" href="#basetaskform-add-hint" title="Link to this heading"></a></h3>
+<p>Append small gray word-wrapped explanatory text to the form.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-240">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_hint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>Hint text shown in a QLabel.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Creates and adds the hint label.</p>
+</section>
+<section id="basetaskform-add-offset-row">
+<span id="api-ef280aadd075fd25"></span><h3><code class="docutils literal notranslate"><span class="pre">BaseTaskForm.add_offset_row()</span></code><a class="headerlink" href="#basetaskform-add-offset-row" title="Link to this heading"></a></h3>
+<p>Add up to three X/Y/Z decimal offsets from named task fields.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-246">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">add_offset_row</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">section</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">keys</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">section</span></code></p></td>
+<td><p>QFormLayout receiving the horizontal offset row.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">prefix</span></code></p></td>
+<td><p>Row label preceding the X/Y/Z fields.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">keys</span></code></p></td>
+<td><p>Sequence of task keys zipped with X/Y/Z; at most three are used.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Mapping from each used key to its QDoubleSpinBox.</p>
+<p><strong>Errors:</strong> float conversion/Qt errors propagate; values are constrained to −1…1 with four decimals.</p>
+<p><strong>Side effects:</strong> Adds bounded offset widgets; callers conventionally express distances in metres.</p>
+</section>
+<section id="id1">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id1" title="Link to this heading"></a></h3>
+<section id="basetaskform-on-save">
+<span id="api-d5c6792c4ecd4671"></span><h4><code class="docutils literal notranslate"><span class="pre">BaseTaskForm._on_save()</span></code><a class="headerlink" href="#basetaskform-on-save" title="Link to this heading"></a></h4>
+<p>Collect the edited task and accept the dialog, or display a conversion error.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-187">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_on_save</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Catches ValueError and KeyError from collection or acceptance; other exceptions propagate.</p>
+<p><strong>Side effects:</strong> Sets result before accepting; on caught failure displays Invalid Input and leaves the dialog open.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-427fd37832e1850f"><code>BaseTaskForm.__init__</code></a> — mtc_gui.task_forms</li></ul></details></section>
+</section>
+</section>
+<section id="movetoform">
+<h2><code class="docutils literal notranslate"><span class="pre">MoveToForm</span></code><a class="headerlink" href="#movetoform" title="Link to this heading"></a></h2>
+<p>Edit named, relative, Cartesian, or explicit-joint Move To targets. Optional viewer callbacks preview joint goals without executing motion.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code>.</p>
+<section id="movetoform-collect-values">
+<span id="api-382126c964b12204"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveToForm.collect_values()</span></code><a class="headerlink" href="#movetoform-collect-values" title="Link to this heading"></a></h3>
+<p>Serialize the selected Move To mode and remove fields from inactive modes.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-533">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> A shallow copy of the working task. Named: target + planning_type=”joint”. Relative: direction + distance (m). Cartesian: planning_type, frame_id, and XYZ metres with RPY degrees appended only if any angle is nonzero. Joint: target + planning_type=”joint” + _inline_joint_pose={name, values}.</p>
+<p><strong>Errors:</strong> No validation that a named target is nonempty or a relative distance is positive; widget/type errors propagate.</p>
+<p><strong>Side effects:</strong> None beyond reading widgets. Joint mode reuses an existing six-value target name or generates moveto_joints_{step_index+1}; the caller must consume the temporary metadata into config.poses before dispatch.</p>
+</section>
+<section id="movetoform-init">
+<span id="api-f08c03a585864dc6"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveToForm.__init__()</span></code><a class="headerlink" href="#movetoform-init" title="Link to this heading"></a></h3>
+<p>Store the pose snapshot and viewer callbacks before building the editor.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-285">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span>
+    <span class="bp">self</span><span class="p">,</span>
+    <span class="n">step</span><span class="p">,</span>
+    <span class="n">step_index</span><span class="p">,</span>
+    <span class="n">poses</span><span class="p">,</span>
+    <span class="n">parent</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">current_pose</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">preview_cb</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">end_preview_cb</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+    <span class="n">viz_widget</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task mapping to edit; BaseTaskForm deep-copies it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">step_index</span></code></p></td>
+<td><p>Zero-based queue index used in the title as Step index + 1.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Mapping of named poses to six joint angles in degrees; stored by reference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent QWidget.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">current_pose</span></code></p></td>
+<td><p>Optional current six-joint pose in degrees used by Read current pose; this is a snapshot, not a polling callback.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">preview_cb</span></code></p></td>
+<td><p>Optional callable receiving a six-angle degree list for visual preview only.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">end_preview_cb</span></code></p></td>
+<td><p>Optional zero-argument callback restoring normal viewer state.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">viz_widget</span></code></p></td>
+<td><p>Optional live viewer widget temporarily reparented into the editor and detached when the dialog ends.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Base/dialog construction and malformed initial task errors propagate.</p>
+<p><strong>Side effects:</strong> Stores preview context and creates the move editor; build_form may invoke preview callbacks and reparent the supplied viewer.</p>
+</section>
+<section id="movetoform-build-form">
+<span id="api-8f4b3b6783f41704"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveToForm.build_form()</span></code><a class="headerlink" href="#movetoform-build-form" title="Link to this heading"></a></h3>
+<p>Build named, relative, Cartesian, and six-joint move editors and connect visual previews.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-314">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed saved numeric/sequence fields or preview callbacks can raise. Widget bounds clamp distances to 0…2 m, Cartesian XYZ to ±2 m, and joint/RPY angles to ±360 degrees.</p>
+<p><strong>Side effects:</strong> Creates mode groups, editable named target list with moveit_home, planning/frame/direction controls, presets/current-pose controls; applies initial mode, emits visual preview, and optionally embeds the supplied viewer.</p>
+</section>
+<section id="movetoform-done">
+<span id="api-7fba3ca2e7d3069c"></span><h3><code class="docutils literal notranslate"><span class="pre">MoveToForm.done()</span></code><a class="headerlink" href="#movetoform-done" title="Link to this heading"></a></h3>
+<p>Restore viewer preview state and detach an embedded viewer before completing the modal dialog.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-526">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">done</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">r</span></code></p></td>
+<td><p>Qt dialog result code passed to QDialog.done.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Callback/Qt errors propagate and can prevent later cleanup calls.</p>
+<p><strong>Side effects:</strong> Calls end_preview_cb when present, removes viz_widget’s parent, then invokes the base done handler.</p>
+</section>
+<section id="id2">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id2" title="Link to this heading"></a></h3>
+<section id="movetoform-detect-mode">
+<span id="api-d5c9230f22013deb"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveToForm._detect_mode()</span></code><a class="headerlink" href="#movetoform-detect-mode" title="Link to this heading"></a></h4>
+<p>Choose the initial branch using relative, Cartesian, registered-joint, then named-target precedence.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-303">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_detect_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> “Relative move” for truthy direction and nonzero float(distance); else “Cartesian target” for truthy cartesian_target; else “Joint values” for a target mapped to a truthy six-element value; else “Named target”.</p>
+<p><strong>Errors:</strong> Invalid distance conversions or unsized pose values propagate; the joint-value branch checks length, not numeric/list type.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-8f4b3b6783f41704"><code>MoveToForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="movetoform-apply-joint-preset">
+<span id="api-ee0eb9c08b0e0a22"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveToForm._apply_joint_preset()</span></code><a class="headerlink" href="#movetoform-apply-joint-preset" title="Link to this heading"></a></h4>
+<p>Set each joint editor from the matching preset angle.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-481">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_apply_joint_preset</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">values</span></code></p></td>
+<td><p>Joint-angle sequence in degrees; zip limits updates to six widgets.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Updates joint spin boxes; their valueChanged connections may trigger preview callbacks repeatedly.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-8f4b3b6783f41704"><code>MoveToForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="movetoform-read-current-pose">
+<span id="api-0383099a51265ea3"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveToForm._read_current_pose()</span></code><a class="headerlink" href="#movetoform-read-current-pose" title="Link to this heading"></a></h4>
+<p>Copy the pose snapshot supplied when the dialog opened into the joint editors.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-485">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_read_current_pose</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> When current_pose is None, shows No Pose and returns. Invalid values/Qt errors otherwise propagate.</p>
+<p><strong>Side effects:</strong> Changes joint values and may issue visual preview callbacks; does not query ROS.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-8f4b3b6783f41704"><code>MoveToForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="movetoform-apply-mode">
+<span id="api-434318eb826fda69"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveToForm._apply_mode()</span></code><a class="headerlink" href="#movetoform-apply-mode" title="Link to this heading"></a></h4>
+<p>Show only the selected move branch and update the explanatory/preview display.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-494">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_apply_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">mode</span></code></p></td>
+<td><p>One of the four mode labels; unknown text hides all groups and clears the explanation.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Toggles named/relative/Cartesian/planning/joint groups, sets explanatory text, and calls _emit_preview.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-8f4b3b6783f41704"><code>MoveToForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="movetoform-emit-preview">
+<span id="api-e7a46a8dac050c9d"></span><h4><code class="docutils literal notranslate"><span class="pre">MoveToForm._emit_preview()</span></code><a class="headerlink" href="#movetoform-emit-preview" title="Link to this heading"></a></h4>
+<p>Preview explicit joint values or a known six-value named pose; end preview for unsupported goal representations.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-509">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_emit_preview</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">_</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">_</span></code></p></td>
+<td><p>Ignored Qt signal payload, such as changed spin-box value or target text.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Returns immediately without preview_cb. Callback/widget errors propagate; named targets must map to a list/tuple of length six.</p>
+<p><strong>Side effects:</strong> Invokes preview_cb with a new degree-valued list, or end_preview_cb for unknown named/relative/Cartesian modes. No robot motion is requested.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-434318eb826fda69"><code>MoveToForm._apply_mode</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-8f4b3b6783f41704"><code>MoveToForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+</section>
+</section>
+<section id="gridselectorform">
+<h2><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm</span></code><a class="headerlink" href="#gridselectorform" title="Link to this heading"></a></h2>
+<p>Share grid selection and target-configuration editing between rack forms. It merges beamline defaults with task overrides and serializes the complete edited configuration.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code>.</p>
+<section id="gridselectorform-collect-values">
+<span id="api-b4fb0d3a56460d08"></span><h3><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm.collect_values()</span></code><a class="headerlink" href="#gridselectorform-collect-values" title="Link to this heading"></a></h3>
+<p>Validate grid directions and serialize the selected cell with a complete configuration override.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1285">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task copy with zero-based row/col, position label, and a replacement config={mode:”grid”, marker_id, scan_pose, grid:{rows,cols,row_pitch,col_pitch,row_offset,col_offset,row_direction,col_direction,row_increasing,col_increasing}, moves:[offset sentinels or {direction,distance}]}. Distances are metres.</p>
+<p><strong>Errors:</strong> Raises ValueError if row/column increasing directions are neither the corresponding base direction nor its opposite; unknown base directions can raise KeyError. Does not check whether row and column axes differ.</p>
+<p><strong>Side effects:</strong> None beyond reading widgets; unrepresented prior config keys are dropped from the returned config.</p>
+</section>
+<section id="gridselectorform-build-form">
+<span id="api-3f977d48420b3258"></span><h3><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm.build_form()</span></code><a class="headerlink" href="#gridselectorform-build-form" title="Link to this heading"></a></h3>
+<p>Build the grid editor from beamline defaults merged with task overrides.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-977">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Nonmapping target/override values are guarded, but malformed nested grids/dimensions can raise. Initial dimensions are converted directly before the later spin-box limits apply.</p>
+<p><strong>Side effects:</strong> Deep-copies target configuration, shallow-merges non-grid override keys, merges grid keys separately, builds cells/config widgets, wires resizing, and sizes the dialog.</p>
+</section>
+<section id="id3">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id3" title="Link to this heading"></a></h3>
+<section id="gridselectorform-add-layout-hint">
+<span id="api-6ba4ddd70426c9d0"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._add_layout_hint()</span></code><a class="headerlink" href="#gridselectorform-add-layout-hint" title="Link to this heading"></a></h4>
+<p>Add a small word-wrapped hint to a supplied form layout.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1038">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@staticmethod</span>
+<span class="n">_add_layout_hint</span><span class="p">(</span><span class="n">layout</span><span class="p">,</span> <span class="n">text</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">layout</span></code></p></td>
+<td><p>QFormLayout receiving the label.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>Explanatory text to display.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Creates a QLabel and adds it as a layout row.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-3f977d48420b3258"><code>_GridSelectorForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-build-grid">
+<span id="api-d134169b2ec63987"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._build_grid()</span></code><a class="headerlink" href="#gridselectorform-build-grid" title="Link to this heading"></a></h4>
+<p>Recreate labeled grid buttons and clamp the selected cell to the current dimensions.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1044">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No positive-dimension validation here; zero dimensions can leave selected indices at −1. Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Removes old layout widgets via deleteLater, resets button mapping, builds row letters/column numbers and click handlers, then styles the selected cell.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-a3089a602332f666"><code>_GridSelectorForm._resize_grid</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-3f977d48420b3258"><code>_GridSelectorForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-resize-grid">
+<span id="api-a3089a602332f666"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._resize_grid()</span></code><a class="headerlink" href="#gridselectorform-resize-grid" title="Link to this heading"></a></h4>
+<p>Apply row/column count widget values and rebuild the position selector.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1079">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_resize_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Sets dimensions, rebuilds cells, clamps selection through _build_grid, and refreshes the selected-cell label.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-3f977d48420b3258"><code>_GridSelectorForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-distance-spin">
+<span id="api-cb1accd4aea667ad"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._distance_spin()</span></code><a class="headerlink" href="#gridselectorform-distance-spin" title="Link to this heading"></a></h4>
+<p>Create a six-decimal metre-distance editor with a 0.001 increment.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1086">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@staticmethod</span>
+<span class="n">_distance_spin</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">positive</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">value</span></code></p></td>
+<td><p>Initial numeric value converted with float.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">positive</span></code></p></td>
+<td><p>True selects a 0.000001 minimum; False selects −2.0. Both use a 2.0 maximum.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Created QDoubleSpinBox.</p>
+<p><strong>Errors:</strong> Numeric/Qt errors propagate; widget clamps out-of-range values.</p>
+<p><strong>Side effects:</strong> Allocates a spin box; caller inserts it in a layout.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-0c2e7ad7038413ff"><code>_GridSelectorForm._add_move</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-30000dffbc5eabb6"><code>_GridSelectorForm._build_config</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-direction-combo">
+<span id="api-4324a6f66319ea7e"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._direction_combo()</span></code><a class="headerlink" href="#gridselectorform-direction-combo" title="Link to this heading"></a></h4>
+<p>Create a combo for the six flange-direction names.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1094">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_direction_combo</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">value</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">value</span></code></p></td>
+<td><p>Initial direction text; unmatched values leave the first option, forward, selected.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Created QComboBox.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Allocates and initializes the combo.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-0c2e7ad7038413ff"><code>_GridSelectorForm._add_move</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-30000dffbc5eabb6"><code>_GridSelectorForm._build_config</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-build-config">
+<span id="api-30000dffbc5eabb6"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._build_config()</span></code><a class="headerlink" href="#gridselectorform-build-config" title="Link to this heading"></a></h4>
+<p>Build marker/scan, grid geometry, axis-direction, and ordered movement controls from merged target settings.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1100">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_build_config</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_cfg</span><span class="p">,</span> <span class="n">grid_cfg</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">target_cfg</span></code></p></td>
+<td><p>Merged vision-target mapping containing marker_id, scan_pose, marker_offset, and moves.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">grid_cfg</span></code></p></td>
+<td><p>Grid mapping for dimensions, pitch/row_pitch/col_pitch, offsets, and axis directions/increasing directions.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed values raise. Row/column direction keys outside _OPPOSITE raise KeyError even when an increasing override is present, because the default expression is evaluated eagerly. Widget limits are rows 1…26, columns 1…99, distance ±2 m, and positive pitch/fixed distance at least 1e-6 m.</p>
+<p><strong>Side effects:</strong> Adds configuration groups and movement table. Offset defaults use absolute marker_offset y/x; pitch defaults to 0.009 m. Adds a default fixed move when moves is empty.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-3f977d48420b3258"><code>_GridSelectorForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-add-move">
+<span id="api-0c2e7ad7038413ff"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._add_move()</span></code><a class="headerlink" href="#gridselectorform-add-move" title="Link to this heading"></a></h4>
+<p>Append a fixed or computed-offset movement row and select it.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1202">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_add_move</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">move</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">move</span></code></p></td>
+<td><p>“column_offset” or “row_offset” sentinel, or {direction, distance} mapping for a fixed move. None and other values create forward 0.01 m, including a button’s false checked payload.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed numeric values/Qt errors propagate; fixed-distance widget clamps to 1e-6…2 m.</p>
+<p><strong>Side effects:</strong> Creates kind/direction/distance cell widgets and connects enablement to movement kind.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-30000dffbc5eabb6"><code>_GridSelectorForm._build_config</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-d56242102a63b04c"><code>_GridSelectorForm._set_moves</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-add-move-toggle-fixed">
+<span id="api-18cea3fc6a536b79"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._add_move.toggle_fixed()</span></code><a class="headerlink" href="#gridselectorform-add-move-toggle-fixed" title="Link to this heading"></a></h4>
+<p>Enable direction and distance only for a fixed movement row.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1220">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">toggle_fixed</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>Kind-combo text; only “Fixed move” enables editable motion values.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Changes the two captured cell widgets’ enabled state.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-0c2e7ad7038413ff"><code>_GridSelectorForm._add_move</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-move-value">
+<span id="api-6391b1458bad117b"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._move_value()</span></code><a class="headerlink" href="#gridselectorform-move-value" title="Link to this heading"></a></h4>
+<p>Read one movement row into the task configuration representation.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1229">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_move_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">row</span></code></p></td>
+<td><p>Zero-based table row containing the three expected cell widgets.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> “column_offset”, “row_offset”, or {“direction”: string, “distance”: metres_float}.</p>
+<p><strong>Errors:</strong> Invalid rows/missing widgets raise; no local guard.</p>
+<p><strong>Side effects:</strong> None beyond reading table widgets.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-c29eeb5741ff3ee5"><code>_GridSelectorForm._move_selected</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-b4fb0d3a56460d08"><code>_GridSelectorForm.collect_values</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-set-moves">
+<span id="api-d56242102a63b04c"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._set_moves()</span></code><a class="headerlink" href="#gridselectorform-set-moves" title="Link to this heading"></a></h4>
+<p>Replace every movement row from serialized movement values.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1240">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_set_moves</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">moves</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">moves</span></code></p></td>
+<td><p>Iterable of offset sentinels or fixed-move mappings accepted by _add_move.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Row-construction failures propagate after old rows have been cleared.</p>
+<p><strong>Side effects:</strong> Clears the table and appends new rows; the last appended row becomes current, and an empty iterable leaves no rows.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-c29eeb5741ff3ee5"><code>_GridSelectorForm._move_selected</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-remove-move">
+<span id="api-5640dad02124f103"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._remove_move()</span></code><a class="headerlink" href="#gridselectorform-remove-move" title="Link to this heading"></a></h4>
+<p>Remove the selected movement while preserving at least one table row.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1245">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_remove_move</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Returns when the table has one or zero rows; Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Removes selected row, or row zero when there is no selection, and selects the nearest remaining row.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-30000dffbc5eabb6"><code>_GridSelectorForm._build_config</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-move-selected">
+<span id="api-c29eeb5741ff3ee5"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._move_selected()</span></code><a class="headerlink" href="#gridselectorform-move-selected" title="Link to this heading"></a></h4>
+<p>Swap the selected movement with a row delta and rebuild the table.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1252">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_move_selected</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">delta</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">delta</span></code></p></td>
+<td><p>Row offset, normally −1 for Up or +1 for Down; larger values swap directly rather than shifting intervening rows.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No selected row or an out-of-bounds destination is a no-op; serialization/Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Serializes rows, swaps two values, rebuilds widgets, and selects the destination.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-30000dffbc5eabb6"><code>_GridSelectorForm._build_config</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-cell-name">
+<span id="api-2d4f6129cb460728"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._cell_name()</span></code><a class="headerlink" href="#gridselectorform-cell-name" title="Link to this heading"></a></h4>
+<p>Format a zero-based grid coordinate as a row letter and one-based column number.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1264">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_cell_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">row</span></code></p></td>
+<td><p>Zero-based row; row 0 maps to A. Values above 25 continue Unicode characters rather than producing spreadsheet-style AA.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">col</span></code></p></td>
+<td><p>Zero-based column; displayed as col + 1.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> Cell label such as A1 or B5.</p>
+<p><strong>Errors:</strong> No bounds checking; invalid numeric types or chr range errors propagate.</p>
+<details class="api-references"><summary>Referenced in source (5)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-d134169b2ec63987"><code>_GridSelectorForm._build_grid</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-a3089a602332f666"><code>_GridSelectorForm._resize_grid</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-015d13774c66718c"><code>_GridSelectorForm._select_cell</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-3f977d48420b3258"><code>_GridSelectorForm.build_form</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-b4fb0d3a56460d08"><code>_GridSelectorForm.collect_values</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-select-cell">
+<span id="api-015d13774c66718c"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._select_cell()</span></code><a class="headerlink" href="#gridselectorform-select-cell" title="Link to this heading"></a></h4>
+<p>Store a clicked grid coordinate and update its visible selection.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1267">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_select_cell</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">row</span><span class="p">,</span> <span class="n">col</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">row</span></code></p></td>
+<td><p>Zero-based selected row.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">col</span></code></p></td>
+<td><p>Zero-based selected column.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> No grid-bounds validation; Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Updates selected indices, button styling/check states, and the cell-name label.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-d134169b2ec63987"><code>_GridSelectorForm._build_grid</code></a> — mtc_gui.task_forms</li></ul></details></section>
+<section id="gridselectorform-update-selection">
+<span id="api-eaf15e6cf0ea46e3"></span><h4><code class="docutils literal notranslate"><span class="pre">_GridSelectorForm._update_selection()</span></code><a class="headerlink" href="#gridselectorform-update-selection" title="Link to this heading"></a></h4>
+<p>Mark only the stored selected coordinate checked with green emphasis.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1273">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_update_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Iterates grid buttons and updates their checked states/styles.</p>
+<details class="api-references"><summary>Referenced in source (2)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-d134169b2ec63987"><code>_GridSelectorForm._build_grid</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-015d13774c66718c"><code>_GridSelectorForm._select_cell</code></a> — mtc_gui.task_forms</li></ul></details></section>
+</section>
+</section>
+<section id="sampleform">
+<h2><code class="docutils literal notranslate"><span class="pre">SampleForm</span></code><a class="headerlink" href="#sampleform" title="Link to this heading"></a></h2>
+<p>Share the Pick Sample and Place Sample editor. It switches between vision-based inputs and explicit approach/target poses.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code>.</p>
+<section id="sampleform-init">
+<span id="api-3bbd5f0158c0cbeb"></span><h3><code class="docutils literal notranslate"><span class="pre">SampleForm.__init__()</span></code><a class="headerlink" href="#sampleform-init" title="Link to this heading"></a></h3>
+<p>Select Pick Sample only for pick_sample; all other task types use Place Sample.</p>
+<p><strong>Lifecycle</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-579">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">step</span><span class="p">,</span> <span class="n">step_index</span><span class="p">,</span> <span class="n">poses</span><span class="p">,</span> <span class="n">parent</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">step</span></code></p></td>
+<td><p>Task mapping to edit; BaseTaskForm deep-copies it.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">step_index</span></code></p></td>
+<td><p>Zero-based queue index used in the title as Step index + 1.</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Mapping of named poses to six joint angles in degrees; stored by reference.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">parent</span></code></p></td>
+<td><p>Optional parent QWidget.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Errors:</strong> Base/dialog errors propagate.</p>
+<p><strong>Side effects:</strong> Sets mode/title and builds the shared vision-versus-hardcoded editor.</p>
+</section>
+<section id="sampleform-build-form">
+<span id="api-20c6e0f381789d35"></span><h3><code class="docutils literal notranslate"><span class="pre">SampleForm.build_form()</span></code><a class="headerlink" href="#sampleform-build-form" title="Link to this heading"></a></h3>
+<p>Build the vision-guided and explicit-pose alternatives for sample handling.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-584">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed initial numeric/text fields and Qt errors propagate; widgets constrain tag ID 0…999, Z offset ±0.1 m, marker offsets ±1 m, and flange distance 0…1 m.</p>
+<p><strong>Side effects:</strong> Creates and initializes controls; connects a visibility toggle and applies it immediately. It does not expose an editor for every possible task field, including sample_index.</p>
+</section>
+<section id="sampleform-collect-values">
+<span id="api-402b637f90827acd"></span><h3><code class="docutils literal notranslate"><span class="pre">SampleForm.collect_values()</span></code><a class="headerlink" href="#sampleform-collect-values" title="Link to this heading"></a></h3>
+<p>Serialize the selected sample approach and remove fields belonging to the disabled branch.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-649">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task copy with use_vision. Vision writes detection_type, tag_id, scan_pose, z_offset, nonzero marker offsets, and optional flange direction/distance, removing approach_pose/target_pose. Hardcoded writes approach_pose/target_pose and removes listed vision fields, including sample_index.</p>
+<p><strong>Errors:</strong> No pose-name or detection-target validation beyond widget constraints.</p>
+<p><strong>Side effects:</strong> None beyond reading widgets; unrelated source fields remain in the copy.</p>
+</section>
+<section id="id4">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id4" title="Link to this heading"></a></h3>
+<section id="sampleform-build-form-toggle">
+<span id="api-6ea5270da9c91c52"></span><h4><code class="docutils literal notranslate"><span class="pre">SampleForm.build_form.toggle()</span></code><a class="headerlink" href="#sampleform-build-form-toggle" title="Link to this heading"></a></h4>
+<p>Switch between the vision and hardcoded pose sections.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-640">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">toggle</span><span class="p">(</span><span class="n">checked</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">checked</span></code></p></td>
+<td><p>Boolean vision-enabled state produced from the checkbox.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Shows vision_group when true and hardcoded_group when false.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-20c6e0f381789d35"><code>SampleForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+</section>
+</section>
+<section id="visionscanform">
+<h2><code class="docutils literal notranslate"><span class="pre">VisionScanForm</span></code><a class="headerlink" href="#visionscanform" title="Link to this heading"></a></h2>
+<p>Edit the ordered scan poses, capture count per pose, and timeout for a vision scan.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code>.</p>
+<section id="visionscanform-build-form">
+<span id="api-117613c61a6bf8cb"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionScanForm.build_form()</span></code><a class="headerlink" href="#visionscanform-build-form" title="Link to this heading"></a></h3>
+<p>Create multiline scan-pose entry and controls for scans per position and timeout.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-694">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed initial scan list/numbers and Qt errors propagate; scans are constrained to 1…20 and timeout to 1…120 seconds.</p>
+<p><strong>Side effects:</strong> Builds the pose-list text area and scan settings. Its hint identifies the scan server as the owner of averaged marker poses; building the form makes no camera/service call.</p>
+</section>
+<section id="visionscanform-collect-values">
+<span id="api-f70fc7d1a2ea30be"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionScanForm.collect_values()</span></code><a class="headerlink" href="#visionscanform-collect-values" title="Link to this heading"></a></h3>
+<p>Normalize nonblank pose-name lines and serialize scan count and timeout.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-709">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task copy with scan_positions as trimmed nonempty strings, scans_per_position integer, and timeout seconds float.</p>
+<p><strong>Errors:</strong> No check that positions exist or the list is nonempty.</p>
+<p><strong>Side effects:</strong> None beyond reading widgets.</p>
+</section>
+</section>
+<section id="toolexchangeform">
+<h2><code class="docutils literal notranslate"><span class="pre">ToolExchangeForm</span></code><a class="headerlink" href="#toolexchangeform" title="Link to this heading"></a></h2>
+<p>Edit the load or dock operation, configured gripper, dock number, and approach pose.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code>.</p>
+<section id="toolexchangeform-build-form">
+<span id="api-1d7eedc0c4534917"></span><h3><code class="docutils literal notranslate"><span class="pre">ToolExchangeForm.build_form()</span></code><a class="headerlink" href="#toolexchangeform-build-form" title="Link to this heading"></a></h3>
+<p>Build load/dock operation, configured gripper, dock-number, and approach-pose controls.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-723">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Configuration helper failures yield an empty gripper combo; numeric/Qt errors propagate. Dock number is constrained to 1…10.</p>
+<p><strong>Side effects:</strong> Creates controls and connects future operation changes to automatic approach-name replacement; does not call that replacement during initial construction.</p>
+</section>
+<section id="toolexchangeform-collect-values">
+<span id="api-478572d46d0cb1ed"></span><h3><code class="docutils literal notranslate"><span class="pre">ToolExchangeForm.collect_values()</span></code><a class="headerlink" href="#toolexchangeform-collect-values" title="Link to this heading"></a></h3>
+<p>Serialize operation, gripper selection, dock number, and approach pose.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-740">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task copy with operation, gripper, dock_number, and approach_pose.</p>
+<p><strong>Errors:</strong> No gripper/pose existence validation; empty gripper text is possible when configuration was unavailable.</p>
+<p><strong>Side effects:</strong> None beyond reading widgets.</p>
+</section>
+<section id="id5">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id5" title="Link to this heading"></a></h3>
+<section id="toolexchangeform-build-form-update-approach">
+<span id="api-27e2f3b9335ceba6"></span><h4><code class="docutils literal notranslate"><span class="pre">ToolExchangeForm.build_form.update_approach()</span></code><a class="headerlink" href="#toolexchangeform-build-form-update-approach" title="Link to this heading"></a></h4>
+<p>Replace the approach pose with the conventional name when operation changes.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-732">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">update_approach</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>Operation text; “load” sets load_approach, “dock” sets dock_approach, other strings leave the field unchanged.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Overwrites approach line-edit text, including any previous custom entry.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-1d7eedc0c4534917"><code>ToolExchangeForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+</section>
+</section>
+<section id="endeffectorform">
+<h2><code class="docutils literal notranslate"><span class="pre">EndEffectorForm</span></code><a class="headerlink" href="#endeffectorform" title="Link to this heading"></a></h2>
+<p>Choose a configured gripper with named states and an end-effector action. Offered actions are the union across configured grippers.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code>.</p>
+<section id="endeffectorform-build-form">
+<span id="api-6ddc21df81841cf7"></span><h3><code class="docutils literal notranslate"><span class="pre">EndEffectorForm.build_form()</span></code><a class="headerlink" href="#endeffectorform-build-form" title="Link to this heading"></a></h3>
+<p>Offer configured state-bearing grippers and the union of all grasp/release actions.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-753">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Configuration lookup failures yield empty option lists; Qt errors propagate.</p>
+<p><strong>Side effects:</strong> Creates two independent combos; changing the gripper does not filter the action combo.</p>
+</section>
+<section id="endeffectorform-collect-values">
+<span id="api-c9e22a5509079911"></span><h3><code class="docutils literal notranslate"><span class="pre">EndEffectorForm.collect_values()</span></code><a class="headerlink" href="#endeffectorform-collect-values" title="Link to this heading"></a></h3>
+<p>Serialize the chosen end-effector type and action strings.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-761">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task copy with end_effector_type and end_effector_action.</p>
+<p><strong>Errors:</strong> Does not validate that the selected action belongs to the chosen gripper; empty values remain possible.</p>
+<p><strong>Side effects:</strong> None beyond reading widgets.</p>
+</section>
+</section>
+<section id="visionmovetoform">
+<h2><code class="docutils literal notranslate"><span class="pre">VisionMoveToForm</span></code><a class="headerlink" href="#visionmovetoform" title="Link to this heading"></a></h2>
+<p>Edit marker or sample-ROI detection options, offsets, and the detect-only flag for vision-guided Move To.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code>.</p>
+<section id="visionmovetoform-build-form">
+<span id="api-306a01973e15491f"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionMoveToForm.build_form()</span></code><a class="headerlink" href="#visionmovetoform-build-form" title="Link to this heading"></a></h3>
+<p>Build detection, offset, timeout, and detect-only controls for vision-guided Move To.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-772">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed numeric fields and Qt errors propagate. Bounds include tag 0…999, edge inset 0…999 mm, Z ±0.1 m, timeout 1…120 s, marker offsets ±1 m, and flange distance 0…1 m.</p>
+<p><strong>Side effects:</strong> Creates widgets, connects detection-type visibility changes, and applies initial visibility; sends no detection or motion request.</p>
+</section>
+<section id="visionmovetoform-collect-values">
+<span id="api-d3dc873f1731125e"></span><h3><code class="docutils literal notranslate"><span class="pre">VisionMoveToForm.collect_values()</span></code><a class="headerlink" href="#visionmovetoform-collect-values" title="Link to this heading"></a></h3>
+<p>Serialize detection options while removing the inactive detector’s fields and zero/disabled offsets.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-872">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task copy with detection_type, tag_id, z_offset (m), timeout (s), detect_only, optional nonzero marker offsets and flange direction/distance. sample_roi adds strategy/edge_inset_mm and removes marker_dictionary; marker adds marker_dictionary and removes strategy/edge_inset_mm.</p>
+<p><strong>Errors:</strong> No cross-field or target-existence validation beyond widget constraints.</p>
+<p><strong>Side effects:</strong> None beyond reading widgets.</p>
+</section>
+<section id="id6">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id6" title="Link to this heading"></a></h3>
+<section id="visionmovetoform-apply-detection-type">
+<span id="api-30cd5c6ceab93198"></span><h4><code class="docutils literal notranslate"><span class="pre">VisionMoveToForm._apply_detection_type()</span></code><a class="headerlink" href="#visionmovetoform-apply-detection-type" title="Link to this heading"></a></h4>
+<p>Show sample-ROI strategy/inset controls or the ArUco dictionary selector.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-866">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_apply_detection_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">detection_type</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">detection_type</span></code></p></td>
+<td><p>“sample_roi” selects ROI controls; all other values show dictionary controls.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Toggles dictionary label/combo and the sample-ROI group.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-306a01973e15491f"><code>VisionMoveToForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+</section>
+</section>
+<section id="pipettorform">
+<h2><code class="docutils literal notranslate"><span class="pre">PipettorForm</span></code><a class="headerlink" href="#pipettorform" title="Link to this heading"></a></h2>
+<p>Edit the pipettor operation, normalized volume, and LED color. The color preview only changes the editor’s display.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code>.</p>
+<section id="pipettorform-build-form">
+<span id="api-ac318f0f55e76310"></span><h3><code class="docutils literal notranslate"><span class="pre">PipettorForm.build_form()</span></code><a class="headerlink" href="#pipettorform-build-form" title="Link to this heading"></a></h3>
+<p>Build SUCK/EXPEL/EJECT_TIP/SET_LED controls, normalized volume, and RGB color preview.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-906">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Malformed led_color/numbers and Qt errors propagate. Volume and each RGB channel are constrained to 0…1, despite the Volume % label.</p>
+<p><strong>Side effects:</strong> Creates operation/volume/color editors, initializes a swatch, and connects RGB changes to swatch repainting.</p>
+</section>
+<section id="pipettorform-collect-values">
+<span id="api-a3575887db954d38"></span><h3><code class="docutils literal notranslate"><span class="pre">PipettorForm.collect_values()</span></code><a class="headerlink" href="#pipettorform-collect-values" title="Link to this heading"></a></h3>
+<p>Serialize the pipettor operation, normalized volume, and RGB color for every operation.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-950">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task copy with operation, volume_pct float 0…1, and led_color={r,g,b}, each 0…1.</p>
+<p><strong>Errors:</strong> No operation-specific validation or removal of unused volume/color fields.</p>
+<p><strong>Side effects:</strong> None beyond reading widgets.</p>
+</section>
+<section id="id7">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id7" title="Link to this heading"></a></h3>
+<section id="pipettorform-update-preview">
+<span id="api-944d04249ce4e5a0"></span><h4><code class="docutils literal notranslate"><span class="pre">PipettorForm._update_preview()</span></code><a class="headerlink" href="#pipettorform-update-preview" title="Link to this heading"></a></h4>
+<p>Convert normalized RGB widget values to integer 0–255 channels for the color swatch.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-942">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_update_preview</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Replaces the preview label stylesheet; does not command a physical LED.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-ac318f0f55e76310"><code>PipettorForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+</section>
+</section>
+<section id="pickuptipform">
+<h2><code class="docutils literal notranslate"><span class="pre">PickupTipForm</span></code><a class="headerlink" href="#pickuptipform" title="Link to this heading"></a></h2>
+<p>Specialize the grid editor for a tip rack and its selected pickup cell.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">_GridSelectorForm</span></code>.</p>
+<section id="pickuptipform-build-form">
+<span id="api-981629b993e9e9cf"></span><h3><code class="docutils literal notranslate"><span class="pre">PickupTipForm.build_form()</span></code><a class="headerlink" href="#pickuptipform-build-form" title="Link to this heading"></a></h3>
+<p>Build the tip_rack grid editor and explain the vision-aligned pickup.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1326">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Inherited grid/config and Qt errors propagate; grid dimensions come from the configured target and task overrides.</p>
+<p><strong>Side effects:</strong> Creates grid/config controls and tip-specific explanatory text.</p>
+</section>
+</section>
+<section id="pickupvialform">
+<h2><code class="docutils literal notranslate"><span class="pre">PickupVialForm</span></code><a class="headerlink" href="#pickupvialform" title="Link to this heading"></a></h2>
+<p>Specialize the grid editor for a vial rack and optional pipettor operations, including rinse count.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">_GridSelectorForm</span></code>.</p>
+<section id="pickupvialform-build-form">
+<span id="api-80b119c70ab4cb80"></span><h3><code class="docutils literal notranslate"><span class="pre">PickupVialForm.build_form()</span></code><a class="headerlink" href="#pickupvialform-build-form" title="Link to this heading"></a></h3>
+<p>Build the vial_rack grid editor and optional SUCK/EXPEL/RINSE operation controls.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1338">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Inherited grid and numeric/Qt errors propagate; volume is 0…1 and rinse count 1…100. Grid dimensions come from the configured target and task overrides.</p>
+<p><strong>Side effects:</strong> Creates operation/volume/rinse fields, connects their enablement, and adds vial-specific hints.</p>
+</section>
+<section id="pickupvialform-collect-values">
+<span id="api-ae3397ce060ed2cc"></span><h3><code class="docutils literal notranslate"><span class="pre">PickupVialForm.collect_values()</span></code><a class="headerlink" href="#pickupvialform-collect-values" title="Link to this heading"></a></h3>
+<p>Extend the grid result with optional pipettor settings while removing obsolete operation fields.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1383">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Grid-form task result plus pipettor_operation and volume_pct when operation is not “None”; rinse_count only for RINSE. “None” removes all three fields.</p>
+<p><strong>Errors:</strong> Inherited axis validation can raise ValueError/KeyError; widget errors propagate.</p>
+<p><strong>Side effects:</strong> None beyond reading widgets.</p>
+</section>
+<section id="id8">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id8" title="Link to this heading"></a></h3>
+<section id="pickupvialform-build-form-toggle-volume">
+<span id="api-38f36f2d04f61176"></span><h4><code class="docutils literal notranslate"><span class="pre">PickupVialForm.build_form._toggle_volume()</span></code><a class="headerlink" href="#pickupvialform-build-form-toggle-volume" title="Link to this heading"></a></h4>
+<p>Enable volume for any requested operation and rinse count only for RINSE.</p>
+<p><strong>Callback</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1370">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">_toggle_volume</span><span class="p">(</span><span class="n">text</span><span class="p">)</span>
+</pre></div>
+</div>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Parameter</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">text</span></code></p></td>
+<td><p>Operation combo text; “None” disables volume and every value other than “RINSE” disables rinse count.</p></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Qt/widget errors propagate; no local exception handler.</p>
+<p><strong>Side effects:</strong> Updates vial-volume and rinse-count enabled states.</p>
+<details class="api-references"><summary>Referenced in source (1)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-80b119c70ab4cb80"><code>PickupVialForm.build_form</code></a> — mtc_gui.task_forms</li></ul></details></section>
+</section>
+</section>
+<section id="spincoaterform">
+<h2><code class="docutils literal notranslate"><span class="pre">SpincoaterForm</span></code><a class="headerlink" href="#spincoaterform" title="Link to this heading"></a></h2>
+<p>Share the Pick Spincoater and Place Spincoater editor, including scan/target poses, insertion distance, wrist correction, and placement-only release.</p>
+<p><strong>Inherits from:</strong> <code class="docutils literal notranslate"><span class="pre">BaseTaskForm</span></code>.</p>
+<section id="spincoaterform-title">
+<span id="api-b6f3bb820e8a97d4"></span><h3><code class="docutils literal notranslate"><span class="pre">SpincoaterForm.TITLE</span></code><a class="headerlink" href="#spincoaterform-title" title="Link to this heading"></a></h3>
+<p>Select the pick/place title from the task variant.</p>
+<p><strong>Method</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1408">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@property</span>
+<span class="n">TITLE</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Access this as an instance property, without parentheses.</p>
+<p><strong>Returns:</strong> “Pick from Spincoater” or “Place on Spincoater”.</p>
+<p><strong>Errors:</strong> Requires self.step to have been initialized.</p>
+</section>
+<section id="spincoaterform-build-form">
+<span id="api-f638485f6207cf8c"></span><h3><code class="docutils literal notranslate"><span class="pre">SpincoaterForm.build_form()</span></code><a class="headerlink" href="#spincoaterform-build-form" title="Link to this heading"></a></h3>
+<p>Build scan/target poses, forward insertion distance, wrist correction, and placement-only vacuum release.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1411">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">build_form</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> None.</p>
+<p><strong>Errors:</strong> Numeric/Qt errors propagate; forward_distance is 0…0.05 m and k_offset is −90…90 degrees.</p>
+<p><strong>Side effects:</strong> Creates controls using pickup_pose for picks or place_pose for placements; both default target text to spincoater_place. Placement adds release=True by default.</p>
+</section>
+<section id="spincoaterform-collect-values">
+<span id="api-841cffc107719fd5"></span><h3><code class="docutils literal notranslate"><span class="pre">SpincoaterForm.collect_values()</span></code><a class="headerlink" href="#spincoaterform-collect-values" title="Link to this heading"></a></h3>
+<p>Serialize spincoater pose, forward-distance, and wrist-offset settings for the selected variant.</p>
+<p><strong>Extension hook</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1433">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">collect_values</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p><strong>Returns:</strong> Task copy with scan_pose, pickup_pose or place_pose, forward_distance in metres, k_offset in degrees, and placement-only release from its checkbox.</p>
+<p><strong>Errors:</strong> No pose-existence validation; widget errors propagate.</p>
+<p><strong>Side effects:</strong> None beyond reading widgets. Unrelated fields, including an old release field on a pick task, remain because the result starts from the task copy.</p>
+</section>
+<section id="id9">
+<h3>Internal callbacks and helpers<a class="headerlink" href="#id9" title="Link to this heading"></a></h3>
+<section id="spincoaterform-is-pick">
+<span id="api-52fea6f5a54c3008"></span><h4><code class="docutils literal notranslate"><span class="pre">SpincoaterForm._is_pick</span></code><a class="headerlink" href="#spincoaterform-is-pick" title="Link to this heading"></a></h4>
+<p>Determine whether this task uses the spincoater pickup variant.</p>
+<p><strong>Internal helper</strong> · <a href="../../../api-source/src/mtc_gui/mtc_gui/task_forms.py.html#L-1404">Source</a></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@property</span>
+<span class="n">_is_pick</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Access this as an instance property, without parentheses.</p>
+<p><strong>Returns:</strong> True only when task_type equals “pick_spincoater”.</p>
+<p><strong>Errors:</strong> No extra validation.</p>
+<details class="api-references"><summary>Referenced in source (3)</summary><ul><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-b6f3bb820e8a97d4"><code>SpincoaterForm.TITLE</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-f638485f6207cf8c"><code>SpincoaterForm.build_form</code></a> — mtc_gui.task_forms</li><li><a href="src-mtc_gui-mtc_gui-task_forms-py.html#api-841cffc107719fd5"><code>SpincoaterForm.collect_values</code></a> — mtc_gui.task_forms</li></ul></details></section>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="src-mtc_gui-mtc_gui-main_window-py.html" class="btn btn-neutral float-left" title="Operator window" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="src-mtc_gui-mtc_gui-step_list_panel-py.html" class="btn btn-neutral float-right" title="Task queue display" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

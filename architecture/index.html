@@ -1,0 +1,252 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Architecture &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Task execution" href="execution.html" />
+    <link rel="prev" title="Execution controls" href="../operate/controls.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Architecture</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="execution.html">Task execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="batching.html">Batching and caches</a></li>
+<li class="toctree-l2"><a class="reference internal" href="lifecycle.html">Tool and MoveIt lifecycle</a></li>
+<li class="toctree-l2"><a class="reference internal" href="perception.html">Perception and vision execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Configuration and deployment boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#from-task-script-to-execution">From task script to execution</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#main-components">Main components</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#process-boundaries">Process boundaries</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#explore-the-architecture">Explore the architecture</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">Architecture</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="architecture">
+<h1>Architecture<a class="headerlink" href="#architecture" title="Link to this heading"></a></h1>
+<p>EROBS coordinates robot motion, tool changes, and vision from an ordered JSON task script. The orchestrator manages the sequence; task stages build motion plans; MoveIt and device drivers carry them out.</p>
+<p>The platform uses ROS 2 Jazzy, <a class="reference external" href="https://moveit.picknik.ai/main/doc/concepts/move_group.html">MoveIt 2</a>, and <a class="reference external" href="https://moveit.picknik.ai/main/doc/concepts/moveit_task_constructor/moveit_task_constructor.html">MoveIt Task Constructor (MTC)</a>. The operator GUI communicates with the runtime through ROS actions, services, and topics.</p>
+<figure class="architecture-figure">
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="system diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 720" role="img" aria-labelledby="system-title system-desc">
+<title id="system-title">From task requests to robot motion</title>
+<desc id="system-desc">Task clients send JSON goals to the orchestrator, which runs batch stages or child action servers; direct clients can also call child actions.</desc>
+<defs><marker id="system-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#52647a"/></marker><marker id="system-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker><marker id="system-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M 0,0 L 8,4 L 0,8 Z" fill="#235cb7"/></marker></defs>
+<rect x="0" y="0" width="1280" height="720" rx="0" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">EROBS  /  ARCHITECTURE</text><text x="48" y="84" font-size="28" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="start" font-weight="600">From task requests to robot motion</text><rect x="40" y="132" width="256" height="440" rx="8" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="64" y="160" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">CLIENTS</text><rect x="344" y="132" width="584" height="440" rx="8" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="368" y="160" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">TASK EXECUTION</text><rect x="976" y="132" width="256" height="440" rx="8" fill="#f3f6fb" stroke="#dbe3ee" stroke-width="1" /><text x="1000" y="160" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="start" font-weight="400">MOTION / DEVICES</text><line x1="264" y1="232" x2="376" y2="232" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><line x1="600" y1="232" x2="680" y2="232" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><line x1="896" y1="232" x2="1000" y2="232" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><path d="M 488,280 V 436 Q 488,444 496,444 H 680" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><line x1="264" y1="488" x2="680" y2="488" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><path d="M 896,436 H 944 Q 952,436 952,428 V 316 Q 952,308 960,308 H 1080 Q 1088,308 1088,300 V 280" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><line x1="896" y1="484" x2="1000" y2="484" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><line x1="1136" y1="280" x2="1136" y2="440" stroke="#52647a" stroke-width="1.5" marker-end="url(#system-arrow)"/><rect x="292.0" y="192" width="56" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="320" y="212" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">GOAL</text><rect x="920.0" y="192" width="56" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="948" y="212" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">PLAN</text><rect x="508.0" y="404" width="96" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="556" y="424" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">DISPATCH</text><rect x="392.0" y="448" width="152" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="468" y="468" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">DIRECT ACTION</text><rect x="1148.0" y="340" width="88" height="24" rx="2" fill="#ffffff" stroke="#ffffff" stroke-width="1" /><text x="1192" y="360" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">EXECUTE</text><rect x="64" y="184" width="200" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="164" y="228" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Task clients</text><text x="164" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">GUI · JSON · MCP</text><rect x="64" y="440" width="200" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="164" y="484" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Direct clients</text><text x="164" y="508" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">actions · surveys</text><rect x="376" y="184" width="224" height="96" rx="8" fill="#edf3ff" stroke="#235cb7" stroke-width="1" /><text x="488" y="228" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Orchestrator</text><text x="488" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">beambot_execution</text><rect x="680" y="184" width="216" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="788" y="216" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Batch stages</text><text x="788" y="240" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">moveto ·</text><text x="788" y="264" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">end_effector</text><rect x="680" y="408" width="216" height="128" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="788" y="456" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Task action servers</text><text x="788" y="480" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">vision · tool ·</text><text x="788" y="504" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">devices</text><rect x="1000" y="184" width="216" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1108" y="228" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">MTC / MoveIt</text><text x="1108" y="252" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">plan and execute</text><rect x="1000" y="440" width="216" height="96" rx="8" fill="#ffffff" stroke="#52647a" stroke-width="1" /><text x="1108" y="472" font-size="20" font-family="system-ui, sans-serif" fill="#18283b" text-anchor="middle" font-weight="600">Robot and tools</text><text x="1108" y="496" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">controllers /</text><text x="1108" y="520" font-size="16" font-family="ui-monospace, monospace" fill="#52647a" text-anchor="middle" font-weight="400">device I/O</text><line x1="48" y1="660" x2="1232" y2="660" stroke="#dbe3ee" stroke-width="1.5"/><text x="48" y="692" font-size="16" font-family="system-ui, sans-serif" fill="#52647a" text-anchor="start" font-weight="400">Solid arrows show principal calls. Device actions may bypass MoveIt; perception details are shown separately.</text>
+</svg></div>
+<figcaption><a href="../diagrams/system.html">Open the full-size diagram</a></figcaption>
+</figure><div class="toctree-wrapper compound">
+</div>
+<section id="from-task-script-to-execution">
+<h2>From task script to execution<a class="headerlink" href="#from-task-script-to-execution" title="Link to this heading"></a></h2>
+<ol class="arabic simple">
+<li><p><strong>Submit.</strong> The GUI or another client sends the script to <code class="docutils literal notranslate"><span class="pre">/beambot_execution</span></code>.</p></li>
+<li><p><strong>Prepare.</strong> The orchestrator validates the script, resolves named poses, and prepares MoveIt for the selected tool.</p></li>
+<li><p><strong>Plan and execute.</strong> Compatible MoveTo and end-effector steps share an MTC task. Other operations run through their task servers or orchestrator helpers. Vision tasks first turn camera measurements into motion targets.</p></li>
+<li><p><strong>Report.</strong> The orchestrator publishes progress and returns a result to the client. Pause and cancellation take effect at execution boundaries; see <a class="reference internal" href="../operate/controls.html"><span class="std std-doc">execution controls</span></a>.</p></li>
+</ol>
+</section>
+<section id="main-components">
+<h2>Main components<a class="headerlink" href="#main-components" title="Link to this heading"></a></h2>
+<p>The main runtime package is <code class="docutils literal notranslate"><span class="pre">src/beambot/beambot/</span></code>. Paths in this table are relative to that directory.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Component</p></th>
+<th class="head"><p>Responsibility</p></th>
+<th class="head"><p>Main files or folders</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Orchestrator</p></td>
+<td><p>Validate and coordinate a complete task sequence</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">action_servers/orchestrator.py</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Task preparation</p></td>
+<td><p>Parse scripts, resolve poses, and group compatible steps</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core/task_script.py</span></code>, <code class="docutils literal notranslate"><span class="pre">core/task_batching.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Task servers and stages</p></td>
+<td><p>Accept individual action goals and implement motion, gripper, tool-exchange, and vision operations</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">action_servers/</span></code>, <code class="docutils literal notranslate"><span class="pre">stages/</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>MoveIt and tool management</p></td>
+<td><p>Start and replace the tool-specific robot stack; coordinate tool exchange and plan reuse</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">core/moveit_lifecycle_manager.py</span></code>, <code class="docutils literal notranslate"><span class="pre">core/tool_exchange_manager.py</span></code>, <code class="docutils literal notranslate"><span class="pre">core/plan_cache.py</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Vision</p></td>
+<td><p>Acquire camera data, detect features, and calculate motion targets</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">vision/</span></code>, with <code class="docutils literal notranslate"><span class="pre">vision/camera/</span></code> and <code class="docutils literal notranslate"><span class="pre">vision/detection/</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p>Mapping</p></td>
+<td><p>Relay point clouds and pass Octomap updates to MoveIt’s planning scene</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">mapping/</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p>Configuration</p></td>
+<td><p>Load the selected beamline YAML and resolve its file paths</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">config_loader.py</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>The GUI lives in <code class="docutils literal notranslate"><span class="pre">src/mtc_gui/mtc_gui/</span></code>. Robot descriptions and MoveIt configurations live in <code class="docutils literal notranslate"><span class="pre">src/custom-ur-descriptions/</span></code>; local tool drivers and overlays live in <code class="docutils literal notranslate"><span class="pre">src/end_effectors/</span></code>. The <a class="reference internal" href="../reference/modules.html"><span class="std std-doc">module guide</span></a> connects these components to their function reference.</p>
+</section>
+<section id="process-boundaries">
+<h2>Process boundaries<a class="headerlink" href="#process-boundaries" title="Link to this heading"></a></h2>
+<p><strong>The orchestrator owns MoveIt startup.</strong> It starts the robot stack when a task needs it and manages model changes during tool exchange. See <a class="reference internal" href="lifecycle.html"><span class="std std-doc">MoveIt lifecycle</span></a>.</p>
+<p><strong>Task servers run separately.</strong> Most use <code class="docutils literal notranslate"><span class="pre">BaseActionServer</span></code> to accept one goal at a time. The sample server shares that limit across its pick and place endpoints. Batched MoveTo and end-effector stages run inside the orchestrator process instead of sending child action goals.</p>
+<p><strong>Caches belong to their owning process.</strong> The vision-scan and unified vision-task servers keep separate marker caches. A scan result is not automatically available to a later unified vision task.</p>
+<p>Vision and pipettor servers are optional launch groups. Mapping uses the separate <code class="docutils literal notranslate"><span class="pre">octomap_mapping.launch.py</span></code> launch file. See <a class="reference internal" href="configuration.html"><span class="std std-doc">configuration and deployment boundaries</span></a> for how these components are enabled.</p>
+</section>
+<section id="explore-the-architecture">
+<h2>Explore the architecture<a class="headerlink" href="#explore-the-architecture" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="execution.html"><span class="std std-doc">Task execution</span></a></p></li>
+<li><p><a class="reference internal" href="batching.html"><span class="std std-doc">Batching and caches</span></a></p></li>
+<li><p><a class="reference internal" href="lifecycle.html"><span class="std std-doc">Tool and MoveIt lifecycle</span></a></p></li>
+<li><p><a class="reference internal" href="perception.html"><span class="std std-doc">Perception and vision execution</span></a></p></li>
+<li><p><a class="reference internal" href="configuration.html"><span class="std std-doc">Configuration and deployment boundaries</span></a></p></li>
+</ul>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../operate/controls.html" class="btn btn-neutral float-left" title="Execution controls" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="execution.html" class="btn btn-neutral float-right" title="Task execution" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

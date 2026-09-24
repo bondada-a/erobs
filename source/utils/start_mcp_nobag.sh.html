@@ -1,0 +1,279 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>utils/start_mcp_nobag.sh — EROBS source</title><style>body{font:16px system-ui;color:#18283b;margin:2rem}a{color:#235cb7}h1{font-size:1.3rem;overflow-wrap:anywhere}.source{overflow:auto}pre { line-height: 125%; }
+td.linenos .normal { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f0f0f0; }
+.highlight .c { color: #60A0B0; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #007020; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #60A0B0; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #60A0B0; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #007020 } /* Comment.Preproc */
+.highlight .cpf { color: #60A0B0; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #60A0B0; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #60A0B0; background-color: #FFF0F0 } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #F00 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #00A000 } /* Generic.Inserted */
+.highlight .go { color: #888 } /* Generic.Output */
+.highlight .gp { color: #C65D09; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #007020; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #007020; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #007020; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #007020 } /* Keyword.Pseudo */
+.highlight .kr { color: #007020; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #902000 } /* Keyword.Type */
+.highlight .m { color: #40A070 } /* Literal.Number */
+.highlight .s { color: #4070A0 } /* Literal.String */
+.highlight .na { color: #4070A0 } /* Name.Attribute */
+.highlight .nb { color: #007020 } /* Name.Builtin */
+.highlight .nc { color: #0E84B5; font-weight: bold } /* Name.Class */
+.highlight .no { color: #60ADD5 } /* Name.Constant */
+.highlight .nd { color: #555; font-weight: bold } /* Name.Decorator */
+.highlight .ni { color: #D55537; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #007020 } /* Name.Exception */
+.highlight .nf { color: #06287E } /* Name.Function */
+.highlight .nl { color: #002070; font-weight: bold } /* Name.Label */
+.highlight .nn { color: #0E84B5; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #062873; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #BB60D5 } /* Name.Variable */
+.highlight .ow { color: #007020; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #40A070 } /* Literal.Number.Bin */
+.highlight .mf { color: #40A070 } /* Literal.Number.Float */
+.highlight .mh { color: #40A070 } /* Literal.Number.Hex */
+.highlight .mi { color: #40A070 } /* Literal.Number.Integer */
+.highlight .mo { color: #40A070 } /* Literal.Number.Oct */
+.highlight .sa { color: #4070A0 } /* Literal.String.Affix */
+.highlight .sb { color: #4070A0 } /* Literal.String.Backtick */
+.highlight .sc { color: #4070A0 } /* Literal.String.Char */
+.highlight .dl { color: #4070A0 } /* Literal.String.Delimiter */
+.highlight .sd { color: #4070A0; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #4070A0 } /* Literal.String.Double */
+.highlight .se { color: #4070A0; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #4070A0 } /* Literal.String.Heredoc */
+.highlight .si { color: #70A0D0; font-style: italic } /* Literal.String.Interpol */
+.highlight .sx { color: #C65D09 } /* Literal.String.Other */
+.highlight .sr { color: #235388 } /* Literal.String.Regex */
+.highlight .s1 { color: #4070A0 } /* Literal.String.Single */
+.highlight .ss { color: #517918 } /* Literal.String.Symbol */
+.highlight .bp { color: #007020 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #06287E } /* Name.Function.Magic */
+.highlight .vc { color: #BB60D5 } /* Name.Variable.Class */
+.highlight .vg { color: #BB60D5 } /* Name.Variable.Global */
+.highlight .vi { color: #BB60D5 } /* Name.Variable.Instance */
+.highlight .vm { color: #BB60D5 } /* Name.Variable.Magic */
+.highlight .il { color: #40A070 } /* Literal.Number.Integer.Long */</style></head><body><a href="../../reference/source.html">← Source browser</a><h1>utils/start_mcp_nobag.sh</h1><div class="source"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"><a href="#L-1">  1</a></span>
+<span class="normal"><a href="#L-2">  2</a></span>
+<span class="normal"><a href="#L-3">  3</a></span>
+<span class="normal"><a href="#L-4">  4</a></span>
+<span class="normal"><a href="#L-5">  5</a></span>
+<span class="normal"><a href="#L-6">  6</a></span>
+<span class="normal"><a href="#L-7">  7</a></span>
+<span class="normal"><a href="#L-8">  8</a></span>
+<span class="normal"><a href="#L-9">  9</a></span>
+<span class="normal"><a href="#L-10"> 10</a></span>
+<span class="normal"><a href="#L-11"> 11</a></span>
+<span class="normal"><a href="#L-12"> 12</a></span>
+<span class="normal"><a href="#L-13"> 13</a></span>
+<span class="normal"><a href="#L-14"> 14</a></span>
+<span class="normal"><a href="#L-15"> 15</a></span>
+<span class="normal"><a href="#L-16"> 16</a></span>
+<span class="normal"><a href="#L-17"> 17</a></span>
+<span class="normal"><a href="#L-18"> 18</a></span>
+<span class="normal"><a href="#L-19"> 19</a></span>
+<span class="normal"><a href="#L-20"> 20</a></span>
+<span class="normal"><a href="#L-21"> 21</a></span>
+<span class="normal"><a href="#L-22"> 22</a></span>
+<span class="normal"><a href="#L-23"> 23</a></span>
+<span class="normal"><a href="#L-24"> 24</a></span>
+<span class="normal"><a href="#L-25"> 25</a></span>
+<span class="normal"><a href="#L-26"> 26</a></span>
+<span class="normal"><a href="#L-27"> 27</a></span>
+<span class="normal"><a href="#L-28"> 28</a></span>
+<span class="normal"><a href="#L-29"> 29</a></span>
+<span class="normal"><a href="#L-30"> 30</a></span>
+<span class="normal"><a href="#L-31"> 31</a></span>
+<span class="normal"><a href="#L-32"> 32</a></span>
+<span class="normal"><a href="#L-33"> 33</a></span>
+<span class="normal"><a href="#L-34"> 34</a></span>
+<span class="normal"><a href="#L-35"> 35</a></span>
+<span class="normal"><a href="#L-36"> 36</a></span>
+<span class="normal"><a href="#L-37"> 37</a></span>
+<span class="normal"><a href="#L-38"> 38</a></span>
+<span class="normal"><a href="#L-39"> 39</a></span>
+<span class="normal"><a href="#L-40"> 40</a></span>
+<span class="normal"><a href="#L-41"> 41</a></span>
+<span class="normal"><a href="#L-42"> 42</a></span>
+<span class="normal"><a href="#L-43"> 43</a></span>
+<span class="normal"><a href="#L-44"> 44</a></span>
+<span class="normal"><a href="#L-45"> 45</a></span>
+<span class="normal"><a href="#L-46"> 46</a></span>
+<span class="normal"><a href="#L-47"> 47</a></span>
+<span class="normal"><a href="#L-48"> 48</a></span>
+<span class="normal"><a href="#L-49"> 49</a></span>
+<span class="normal"><a href="#L-50"> 50</a></span>
+<span class="normal"><a href="#L-51"> 51</a></span>
+<span class="normal"><a href="#L-52"> 52</a></span>
+<span class="normal"><a href="#L-53"> 53</a></span>
+<span class="normal"><a href="#L-54"> 54</a></span>
+<span class="normal"><a href="#L-55"> 55</a></span>
+<span class="normal"><a href="#L-56"> 56</a></span>
+<span class="normal"><a href="#L-57"> 57</a></span>
+<span class="normal"><a href="#L-58"> 58</a></span>
+<span class="normal"><a href="#L-59"> 59</a></span>
+<span class="normal"><a href="#L-60"> 60</a></span>
+<span class="normal"><a href="#L-61"> 61</a></span>
+<span class="normal"><a href="#L-62"> 62</a></span>
+<span class="normal"><a href="#L-63"> 63</a></span>
+<span class="normal"><a href="#L-64"> 64</a></span>
+<span class="normal"><a href="#L-65"> 65</a></span>
+<span class="normal"><a href="#L-66"> 66</a></span>
+<span class="normal"><a href="#L-67"> 67</a></span>
+<span class="normal"><a href="#L-68"> 68</a></span>
+<span class="normal"><a href="#L-69"> 69</a></span>
+<span class="normal"><a href="#L-70"> 70</a></span>
+<span class="normal"><a href="#L-71"> 71</a></span>
+<span class="normal"><a href="#L-72"> 72</a></span>
+<span class="normal"><a href="#L-73"> 73</a></span>
+<span class="normal"><a href="#L-74"> 74</a></span>
+<span class="normal"><a href="#L-75"> 75</a></span>
+<span class="normal"><a href="#L-76"> 76</a></span>
+<span class="normal"><a href="#L-77"> 77</a></span>
+<span class="normal"><a href="#L-78"> 78</a></span>
+<span class="normal"><a href="#L-79"> 79</a></span>
+<span class="normal"><a href="#L-80"> 80</a></span>
+<span class="normal"><a href="#L-81"> 81</a></span>
+<span class="normal"><a href="#L-82"> 82</a></span>
+<span class="normal"><a href="#L-83"> 83</a></span>
+<span class="normal"><a href="#L-84"> 84</a></span>
+<span class="normal"><a href="#L-85"> 85</a></span>
+<span class="normal"><a href="#L-86"> 86</a></span>
+<span class="normal"><a href="#L-87"> 87</a></span>
+<span class="normal"><a href="#L-88"> 88</a></span>
+<span class="normal"><a href="#L-89"> 89</a></span>
+<span class="normal"><a href="#L-90"> 90</a></span>
+<span class="normal"><a href="#L-91"> 91</a></span>
+<span class="normal"><a href="#L-92"> 92</a></span>
+<span class="normal"><a href="#L-93"> 93</a></span>
+<span class="normal"><a href="#L-94"> 94</a></span>
+<span class="normal"><a href="#L-95"> 95</a></span>
+<span class="normal"><a href="#L-96"> 96</a></span>
+<span class="normal"><a href="#L-97"> 97</a></span>
+<span class="normal"><a href="#L-98"> 98</a></span>
+<span class="normal"><a href="#L-99"> 99</a></span>
+<span class="normal"><a href="#L-100">100</a></span>
+<span class="normal"><a href="#L-101">101</a></span>
+<span class="normal"><a href="#L-102">102</a></span></pre></div></td><td class="code"><div><pre><span></span><a id="L-1" name="L-1"></a><span class="ch">#!/bin/bash</span>
+<a id="L-2" name="L-2"></a><span class="c1"># Start rosbridge + beambot for MCP access — WITHOUT the experiment rosbag.</span>
+<a id="L-3" name="L-3"></a><span class="c1">#</span>
+<a id="L-4" name="L-4"></a><span class="c1"># This is start_mcp.sh minus the persistent `ros2 bag record`. Use it when you</span>
+<a id="L-5" name="L-5"></a><span class="c1"># want to record bags yourself — e.g. survey mapping, where</span>
+<a id="L-6" name="L-6"></a><span class="c1"># scripts/survey_mapping/run_survey.py spawns its OWN bag of just the survey</span>
+<a id="L-7" name="L-7"></a><span class="c1"># topics. Running the start_mcp.sh recorder at the same time would double-record</span>
+<a id="L-8" name="L-8"></a><span class="c1"># the ~5M-point Zivid clouds into the big experiment bag (wasteful, and it muddies</span>
+<a id="L-9" name="L-9"></a><span class="c1"># which clouds belong to the survey). Everything else — rosbridge + beambot</span>
+<a id="L-10" name="L-10"></a><span class="c1"># bringup — is identical to start_mcp.sh.</span>
+<a id="L-11" name="L-11"></a><span class="c1">#</span>
+<a id="L-12" name="L-12"></a><span class="c1"># Usage: ./utils/start_mcp_nobag.sh [beambot launch args]</span>
+<a id="L-13" name="L-13"></a><span class="c1"># Examples:</span>
+<a id="L-14" name="L-14"></a><span class="c1">#   ./utils/start_mcp_nobag.sh</span>
+<a id="L-15" name="L-15"></a><span class="c1">#   ./utils/start_mcp_nobag.sh use_mock_hardware:=true enable_vision:=false enable_pipettor:=false</span>
+<a id="L-16" name="L-16"></a><span class="c1">#   ./utils/start_mcp_nobag.sh enable_vision:=false</span>
+<a id="L-17" name="L-17"></a>
+<a id="L-18" name="L-18"></a><span class="nb">set</span><span class="w"> </span>-e
+<a id="L-19" name="L-19"></a>
+<a id="L-20" name="L-20"></a><span class="nv">WORKSPACE_DIR</span><span class="o">=</span><span class="s2">"</span><span class="k">$(</span><span class="nb">cd</span><span class="w"> </span><span class="s2">"</span><span class="k">$(</span>dirname<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">BASH_SOURCE</span><span class="p">[0]</span><span class="si">}</span><span class="s2">"</span><span class="k">)</span><span class="s2">/.."</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">pwd</span><span class="k">)</span><span class="s2">"</span>
+<a id="L-21" name="L-21"></a>
+<a id="L-22" name="L-22"></a><span class="c1"># Source ROS2 + workspace</span>
+<a id="L-23" name="L-23"></a><span class="nb">source</span><span class="w"> </span>/opt/ros/jazzy/setup.bash
+<a id="L-24" name="L-24"></a><span class="nb">source</span><span class="w"> </span><span class="s2">"</span><span class="nv">$WORKSPACE_DIR</span><span class="s2">/install/setup.bash"</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="o">{</span>
+<a id="L-25" name="L-25"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"Workspace not built. Run: cd \"</span><span class="nv">$WORKSPACE_DIR</span><span class="s2">\" &amp;&amp; colcon build &amp;&amp; source install/setup.bash"</span>
+<a id="L-26" name="L-26"></a><span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="L-27" name="L-27"></a><span class="o">}</span>
+<a id="L-28" name="L-28"></a>
+<a id="L-29" name="L-29"></a><span class="c1"># Beamline config is the single source of truth for the deployment site.</span>
+<a id="L-30" name="L-30"></a><span class="c1"># We refuse to launch without it — silent CMS-fallback would mask a</span>
+<a id="L-31" name="L-31"></a><span class="c1"># misconfiguration on a different beamline machine.</span>
+<a id="L-32" name="L-32"></a><span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span>-z<span class="w"> </span><span class="s2">"</span><span class="si">${</span><span class="nv">BEAMBOT_BEAMLINE_CONFIG</span><span class="k">:-</span><span class="si">}</span><span class="s2">"</span><span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="L-33" name="L-33"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"ERROR: BEAMBOT_BEAMLINE_CONFIG is not set."</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<a id="L-34" name="L-34"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"Export it before launching, e.g.:"</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<a id="L-35" name="L-35"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"    export BEAMBOT_BEAMLINE_CONFIG=\"</span><span class="nv">$WORKSPACE_DIR</span><span class="s2">/src/beambot/config/cms_beamline.yaml\""</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<a id="L-36" name="L-36"></a><span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="L-37" name="L-37"></a><span class="k">fi</span>
+<a id="L-38" name="L-38"></a><span class="k">if</span><span class="w"> </span><span class="o">[[</span><span class="w"> </span>!<span class="w"> </span>-f<span class="w"> </span><span class="s2">"</span><span class="nv">$BEAMBOT_BEAMLINE_CONFIG</span><span class="s2">"</span><span class="w"> </span><span class="o">]]</span><span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="L-39" name="L-39"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"ERROR: BEAMBOT_BEAMLINE_CONFIG points at missing file: </span><span class="nv">$BEAMBOT_BEAMLINE_CONFIG</span><span class="s2">"</span><span class="w"> </span>&gt;<span class="p">&amp;</span><span class="m">2</span>
+<a id="L-40" name="L-40"></a><span class="w">    </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="L-41" name="L-41"></a><span class="k">fi</span>
+<a id="L-42" name="L-42"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"Beamline config: </span><span class="nv">$BEAMBOT_BEAMLINE_CONFIG</span><span class="s2">"</span>
+<a id="L-43" name="L-43"></a>
+<a id="L-44" name="L-44"></a><span class="c1"># Cleanup on exit. PIDs are populated as children are spawned below; guard</span>
+<a id="L-45" name="L-45"></a><span class="c1"># against re-entry so a second Ctrl-C while wait is unwinding doesn't confuse</span>
+<a id="L-46" name="L-46"></a><span class="c1"># bash's variable-scope stack (pop_var_context warning).</span>
+<a id="L-47" name="L-47"></a><span class="nv">_cleanup_ran</span><span class="o">=</span><span class="m">0</span>
+<a id="L-48" name="L-48"></a>cleanup<span class="o">()</span><span class="w"> </span><span class="o">{</span>
+<a id="L-49" name="L-49"></a><span class="w">    </span><span class="o">((</span><span class="w"> </span>_cleanup_ran<span class="w"> </span><span class="o">))</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="k">return</span>
+<a id="L-50" name="L-50"></a><span class="w">    </span><span class="nv">_cleanup_ran</span><span class="o">=</span><span class="m">1</span>
+<a id="L-51" name="L-51"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">""</span>
+<a id="L-52" name="L-52"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"Shutting down..."</span>
+<a id="L-53" name="L-53"></a><span class="w">    </span><span class="o">[[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$ROSBRIDGE_PID</span><span class="s2">"</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">kill</span><span class="w"> </span><span class="s2">"</span><span class="nv">$ROSBRIDGE_PID</span><span class="s2">"</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<a id="L-54" name="L-54"></a><span class="w">    </span><span class="o">[[</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$BEAMBOT_PID</span><span class="s2">"</span><span class="w"> </span><span class="o">]]</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="nb">kill</span><span class="w"> </span><span class="s2">"</span><span class="nv">$BEAMBOT_PID</span><span class="s2">"</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<a id="L-55" name="L-55"></a><span class="w">    </span><span class="nb">wait</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
+<a id="L-56" name="L-56"></a><span class="w">    </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"Done."</span>
+<a id="L-57" name="L-57"></a><span class="o">}</span>
+<a id="L-58" name="L-58"></a><span class="nb">trap</span><span class="w"> </span>cleanup<span class="w"> </span>EXIT
+<a id="L-59" name="L-59"></a><span class="nb">trap</span><span class="w"> </span><span class="s1">'exit 130'</span><span class="w"> </span>INT
+<a id="L-60" name="L-60"></a><span class="nb">trap</span><span class="w"> </span><span class="s1">'exit 143'</span><span class="w"> </span>TERM
+<a id="L-61" name="L-61"></a>
+<a id="L-62" name="L-62"></a><span class="c1"># Start rosbridge in background</span>
+<a id="L-63" name="L-63"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"Starting rosbridge on port 9090..."</span>
+<a id="L-64" name="L-64"></a>ros2<span class="w"> </span>launch<span class="w"> </span>rosbridge_server<span class="w"> </span>rosbridge_websocket_launch.xml<span class="w"> </span><span class="p">&amp;</span>
+<a id="L-65" name="L-65"></a><span class="nv">ROSBRIDGE_PID</span><span class="o">=</span><span class="nv">$!</span>
+<a id="L-66" name="L-66"></a>
+<a id="L-67" name="L-67"></a><span class="c1"># Wait for rosbridge to be ready</span>
+<a id="L-68" name="L-68"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"Waiting for rosbridge..."</span>
+<a id="L-69" name="L-69"></a><span class="k">for</span><span class="w"> </span>i<span class="w"> </span><span class="k">in</span><span class="w"> </span><span class="k">$(</span>seq<span class="w"> </span><span class="m">1</span><span class="w"> </span><span class="m">15</span><span class="k">)</span><span class="p">;</span><span class="w"> </span><span class="k">do</span>
+<a id="L-70" name="L-70"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>timeout<span class="w"> </span><span class="m">1</span><span class="w"> </span>bash<span class="w"> </span>-c<span class="w"> </span><span class="s2">"echo &gt;/dev/tcp/127.0.0.1/9090"</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="L-71" name="L-71"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"rosbridge ready."</span>
+<a id="L-72" name="L-72"></a><span class="w">        </span><span class="k">break</span>
+<a id="L-73" name="L-73"></a><span class="w">    </span><span class="k">fi</span>
+<a id="L-74" name="L-74"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span>!<span class="w"> </span><span class="nb">kill</span><span class="w"> </span>-0<span class="w"> </span><span class="s2">"</span><span class="nv">$ROSBRIDGE_PID</span><span class="s2">"</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null<span class="p">;</span><span class="w"> </span><span class="k">then</span>
+<a id="L-75" name="L-75"></a><span class="w">        </span><span class="nb">echo</span><span class="w"> </span><span class="s2">"ERROR: rosbridge failed to start."</span>
+<a id="L-76" name="L-76"></a><span class="w">        </span><span class="nb">exit</span><span class="w"> </span><span class="m">1</span>
+<a id="L-77" name="L-77"></a><span class="w">    </span><span class="k">fi</span>
+<a id="L-78" name="L-78"></a><span class="w">    </span>sleep<span class="w"> </span><span class="m">1</span>
+<a id="L-79" name="L-79"></a><span class="k">done</span>
+<a id="L-80" name="L-80"></a>
+<a id="L-81" name="L-81"></a><span class="c1"># Start beambot with any extra args passed to this script</span>
+<a id="L-82" name="L-82"></a><span class="c1"># Tee output to log file so erobs-mcp-server can read it for get_recent_logs</span>
+<a id="L-83" name="L-83"></a><span class="nv">BEAMBOT_LOG</span><span class="o">=</span><span class="s2">"/tmp/beambot_launch.log"</span>
+<a id="L-84" name="L-84"></a>&gt;<span class="w"> </span><span class="s2">"</span><span class="nv">$BEAMBOT_LOG</span><span class="s2">"</span><span class="w">  </span><span class="c1"># Truncate on start</span>
+<a id="L-85" name="L-85"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"Starting beambot..."</span>
+<a id="L-86" name="L-86"></a>ros2<span class="w"> </span>launch<span class="w"> </span>beambot<span class="w"> </span>beambot_bringup.launch.py<span class="w"> </span><span class="s2">"</span><span class="nv">$@</span><span class="s2">"</span><span class="w"> </span><span class="m">2</span>&gt;<span class="p">&amp;</span><span class="m">1</span><span class="w"> </span><span class="p">|</span><span class="w"> </span>tee<span class="w"> </span><span class="s2">"</span><span class="nv">$BEAMBOT_LOG</span><span class="s2">"</span><span class="w"> </span><span class="p">&amp;</span>
+<a id="L-87" name="L-87"></a><span class="nv">BEAMBOT_PID</span><span class="o">=</span><span class="nv">$!</span>
+<a id="L-88" name="L-88"></a>
+<a id="L-89" name="L-89"></a><span class="c1"># NOTE: no `ros2 bag record` here (the difference from start_mcp.sh).</span>
+<a id="L-90" name="L-90"></a><span class="c1"># Record bags yourself — e.g. run_survey.py spawns its own survey bag.</span>
+<a id="L-91" name="L-91"></a>
+<a id="L-92" name="L-92"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">""</span>
+<a id="L-93" name="L-93"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"=== MCP Ready (no experiment bag) ==="</span>
+<a id="L-94" name="L-94"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"  rosbridge:  PID </span><span class="nv">$ROSBRIDGE_PID</span><span class="s2"> (port 9090)"</span>
+<a id="L-95" name="L-95"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"  beambot:    PID </span><span class="nv">$BEAMBOT_PID</span><span class="s2">"</span>
+<a id="L-96" name="L-96"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"  rosbag:     NOT started (use run_survey.py / ros2 bag record yourself)"</span>
+<a id="L-97" name="L-97"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"  Press Ctrl+C to stop all"</span>
+<a id="L-98" name="L-98"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">"====================================="</span>
+<a id="L-99" name="L-99"></a><span class="nb">echo</span><span class="w"> </span><span class="s2">""</span>
+<a id="L-100" name="L-100"></a>
+<a id="L-101" name="L-101"></a><span class="c1"># Wait for either to exit</span>
+<a id="L-102" name="L-102"></a><span class="nb">wait</span><span class="w"> </span>-n<span class="w"> </span><span class="s2">"</span><span class="nv">$ROSBRIDGE_PID</span><span class="s2">"</span><span class="w"> </span><span class="s2">"</span><span class="nv">$BEAMBOT_PID</span><span class="s2">"</span><span class="w"> </span><span class="m">2</span>&gt;/dev/null
+</pre></div></td></tr></table></div>
+</div></body></html>

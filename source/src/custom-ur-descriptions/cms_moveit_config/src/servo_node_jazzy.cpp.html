@@ -1,0 +1,951 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp — EROBS source</title><style>body{font:16px system-ui;color:#18283b;margin:2rem}a{color:#235cb7}h1{font-size:1.3rem;overflow-wrap:anywhere}.source{overflow:auto}pre { line-height: 125%; }
+td.linenos .normal { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+span.linenos { color: #666666; background-color: transparent; padding-left: 5px; padding-right: 5px; }
+td.linenos .special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+span.linenos.special { color: #000000; background-color: #ffffc0; padding-left: 5px; padding-right: 5px; }
+.highlight .hll { background-color: #ffffcc }
+.highlight { background: #f0f0f0; }
+.highlight .c { color: #60A0B0; font-style: italic } /* Comment */
+.highlight .err { border: 1px solid #F00 } /* Error */
+.highlight .k { color: #007020; font-weight: bold } /* Keyword */
+.highlight .o { color: #666 } /* Operator */
+.highlight .ch { color: #60A0B0; font-style: italic } /* Comment.Hashbang */
+.highlight .cm { color: #60A0B0; font-style: italic } /* Comment.Multiline */
+.highlight .cp { color: #007020 } /* Comment.Preproc */
+.highlight .cpf { color: #60A0B0; font-style: italic } /* Comment.PreprocFile */
+.highlight .c1 { color: #60A0B0; font-style: italic } /* Comment.Single */
+.highlight .cs { color: #60A0B0; background-color: #FFF0F0 } /* Comment.Special */
+.highlight .gd { color: #A00000 } /* Generic.Deleted */
+.highlight .ge { font-style: italic } /* Generic.Emph */
+.highlight .ges { font-weight: bold; font-style: italic } /* Generic.EmphStrong */
+.highlight .gr { color: #F00 } /* Generic.Error */
+.highlight .gh { color: #000080; font-weight: bold } /* Generic.Heading */
+.highlight .gi { color: #00A000 } /* Generic.Inserted */
+.highlight .go { color: #888 } /* Generic.Output */
+.highlight .gp { color: #C65D09; font-weight: bold } /* Generic.Prompt */
+.highlight .gs { font-weight: bold } /* Generic.Strong */
+.highlight .gu { color: #800080; font-weight: bold } /* Generic.Subheading */
+.highlight .gt { color: #04D } /* Generic.Traceback */
+.highlight .kc { color: #007020; font-weight: bold } /* Keyword.Constant */
+.highlight .kd { color: #007020; font-weight: bold } /* Keyword.Declaration */
+.highlight .kn { color: #007020; font-weight: bold } /* Keyword.Namespace */
+.highlight .kp { color: #007020 } /* Keyword.Pseudo */
+.highlight .kr { color: #007020; font-weight: bold } /* Keyword.Reserved */
+.highlight .kt { color: #902000 } /* Keyword.Type */
+.highlight .m { color: #40A070 } /* Literal.Number */
+.highlight .s { color: #4070A0 } /* Literal.String */
+.highlight .na { color: #4070A0 } /* Name.Attribute */
+.highlight .nb { color: #007020 } /* Name.Builtin */
+.highlight .nc { color: #0E84B5; font-weight: bold } /* Name.Class */
+.highlight .no { color: #60ADD5 } /* Name.Constant */
+.highlight .nd { color: #555; font-weight: bold } /* Name.Decorator */
+.highlight .ni { color: #D55537; font-weight: bold } /* Name.Entity */
+.highlight .ne { color: #007020 } /* Name.Exception */
+.highlight .nf { color: #06287E } /* Name.Function */
+.highlight .nl { color: #002070; font-weight: bold } /* Name.Label */
+.highlight .nn { color: #0E84B5; font-weight: bold } /* Name.Namespace */
+.highlight .nt { color: #062873; font-weight: bold } /* Name.Tag */
+.highlight .nv { color: #BB60D5 } /* Name.Variable */
+.highlight .ow { color: #007020; font-weight: bold } /* Operator.Word */
+.highlight .w { color: #BBB } /* Text.Whitespace */
+.highlight .mb { color: #40A070 } /* Literal.Number.Bin */
+.highlight .mf { color: #40A070 } /* Literal.Number.Float */
+.highlight .mh { color: #40A070 } /* Literal.Number.Hex */
+.highlight .mi { color: #40A070 } /* Literal.Number.Integer */
+.highlight .mo { color: #40A070 } /* Literal.Number.Oct */
+.highlight .sa { color: #4070A0 } /* Literal.String.Affix */
+.highlight .sb { color: #4070A0 } /* Literal.String.Backtick */
+.highlight .sc { color: #4070A0 } /* Literal.String.Char */
+.highlight .dl { color: #4070A0 } /* Literal.String.Delimiter */
+.highlight .sd { color: #4070A0; font-style: italic } /* Literal.String.Doc */
+.highlight .s2 { color: #4070A0 } /* Literal.String.Double */
+.highlight .se { color: #4070A0; font-weight: bold } /* Literal.String.Escape */
+.highlight .sh { color: #4070A0 } /* Literal.String.Heredoc */
+.highlight .si { color: #70A0D0; font-style: italic } /* Literal.String.Interpol */
+.highlight .sx { color: #C65D09 } /* Literal.String.Other */
+.highlight .sr { color: #235388 } /* Literal.String.Regex */
+.highlight .s1 { color: #4070A0 } /* Literal.String.Single */
+.highlight .ss { color: #517918 } /* Literal.String.Symbol */
+.highlight .bp { color: #007020 } /* Name.Builtin.Pseudo */
+.highlight .fm { color: #06287E } /* Name.Function.Magic */
+.highlight .vc { color: #BB60D5 } /* Name.Variable.Class */
+.highlight .vg { color: #BB60D5 } /* Name.Variable.Global */
+.highlight .vi { color: #BB60D5 } /* Name.Variable.Instance */
+.highlight .vm { color: #BB60D5 } /* Name.Variable.Magic */
+.highlight .il { color: #40A070 } /* Literal.Number.Integer.Long */</style></head><body><a href="../../../../../reference/source.html">← Source browser</a><h1>src/custom-ur-descriptions/cms_moveit_config/src/servo_node_jazzy.cpp</h1><div class="source"><div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span class="normal"><a href="#L-1">  1</a></span>
+<span class="normal"><a href="#L-2">  2</a></span>
+<span class="normal"><a href="#L-3">  3</a></span>
+<span class="normal"><a href="#L-4">  4</a></span>
+<span class="normal"><a href="#L-5">  5</a></span>
+<span class="normal"><a href="#L-6">  6</a></span>
+<span class="normal"><a href="#L-7">  7</a></span>
+<span class="normal"><a href="#L-8">  8</a></span>
+<span class="normal"><a href="#L-9">  9</a></span>
+<span class="normal"><a href="#L-10"> 10</a></span>
+<span class="normal"><a href="#L-11"> 11</a></span>
+<span class="normal"><a href="#L-12"> 12</a></span>
+<span class="normal"><a href="#L-13"> 13</a></span>
+<span class="normal"><a href="#L-14"> 14</a></span>
+<span class="normal"><a href="#L-15"> 15</a></span>
+<span class="normal"><a href="#L-16"> 16</a></span>
+<span class="normal"><a href="#L-17"> 17</a></span>
+<span class="normal"><a href="#L-18"> 18</a></span>
+<span class="normal"><a href="#L-19"> 19</a></span>
+<span class="normal"><a href="#L-20"> 20</a></span>
+<span class="normal"><a href="#L-21"> 21</a></span>
+<span class="normal"><a href="#L-22"> 22</a></span>
+<span class="normal"><a href="#L-23"> 23</a></span>
+<span class="normal"><a href="#L-24"> 24</a></span>
+<span class="normal"><a href="#L-25"> 25</a></span>
+<span class="normal"><a href="#L-26"> 26</a></span>
+<span class="normal"><a href="#L-27"> 27</a></span>
+<span class="normal"><a href="#L-28"> 28</a></span>
+<span class="normal"><a href="#L-29"> 29</a></span>
+<span class="normal"><a href="#L-30"> 30</a></span>
+<span class="normal"><a href="#L-31"> 31</a></span>
+<span class="normal"><a href="#L-32"> 32</a></span>
+<span class="normal"><a href="#L-33"> 33</a></span>
+<span class="normal"><a href="#L-34"> 34</a></span>
+<span class="normal"><a href="#L-35"> 35</a></span>
+<span class="normal"><a href="#L-36"> 36</a></span>
+<span class="normal"><a href="#L-37"> 37</a></span>
+<span class="normal"><a href="#L-38"> 38</a></span>
+<span class="normal"><a href="#L-39"> 39</a></span>
+<span class="normal"><a href="#L-40"> 40</a></span>
+<span class="normal"><a href="#L-41"> 41</a></span>
+<span class="normal"><a href="#L-42"> 42</a></span>
+<span class="normal"><a href="#L-43"> 43</a></span>
+<span class="normal"><a href="#L-44"> 44</a></span>
+<span class="normal"><a href="#L-45"> 45</a></span>
+<span class="normal"><a href="#L-46"> 46</a></span>
+<span class="normal"><a href="#L-47"> 47</a></span>
+<span class="normal"><a href="#L-48"> 48</a></span>
+<span class="normal"><a href="#L-49"> 49</a></span>
+<span class="normal"><a href="#L-50"> 50</a></span>
+<span class="normal"><a href="#L-51"> 51</a></span>
+<span class="normal"><a href="#L-52"> 52</a></span>
+<span class="normal"><a href="#L-53"> 53</a></span>
+<span class="normal"><a href="#L-54"> 54</a></span>
+<span class="normal"><a href="#L-55"> 55</a></span>
+<span class="normal"><a href="#L-56"> 56</a></span>
+<span class="normal"><a href="#L-57"> 57</a></span>
+<span class="normal"><a href="#L-58"> 58</a></span>
+<span class="normal"><a href="#L-59"> 59</a></span>
+<span class="normal"><a href="#L-60"> 60</a></span>
+<span class="normal"><a href="#L-61"> 61</a></span>
+<span class="normal"><a href="#L-62"> 62</a></span>
+<span class="normal"><a href="#L-63"> 63</a></span>
+<span class="normal"><a href="#L-64"> 64</a></span>
+<span class="normal"><a href="#L-65"> 65</a></span>
+<span class="normal"><a href="#L-66"> 66</a></span>
+<span class="normal"><a href="#L-67"> 67</a></span>
+<span class="normal"><a href="#L-68"> 68</a></span>
+<span class="normal"><a href="#L-69"> 69</a></span>
+<span class="normal"><a href="#L-70"> 70</a></span>
+<span class="normal"><a href="#L-71"> 71</a></span>
+<span class="normal"><a href="#L-72"> 72</a></span>
+<span class="normal"><a href="#L-73"> 73</a></span>
+<span class="normal"><a href="#L-74"> 74</a></span>
+<span class="normal"><a href="#L-75"> 75</a></span>
+<span class="normal"><a href="#L-76"> 76</a></span>
+<span class="normal"><a href="#L-77"> 77</a></span>
+<span class="normal"><a href="#L-78"> 78</a></span>
+<span class="normal"><a href="#L-79"> 79</a></span>
+<span class="normal"><a href="#L-80"> 80</a></span>
+<span class="normal"><a href="#L-81"> 81</a></span>
+<span class="normal"><a href="#L-82"> 82</a></span>
+<span class="normal"><a href="#L-83"> 83</a></span>
+<span class="normal"><a href="#L-84"> 84</a></span>
+<span class="normal"><a href="#L-85"> 85</a></span>
+<span class="normal"><a href="#L-86"> 86</a></span>
+<span class="normal"><a href="#L-87"> 87</a></span>
+<span class="normal"><a href="#L-88"> 88</a></span>
+<span class="normal"><a href="#L-89"> 89</a></span>
+<span class="normal"><a href="#L-90"> 90</a></span>
+<span class="normal"><a href="#L-91"> 91</a></span>
+<span class="normal"><a href="#L-92"> 92</a></span>
+<span class="normal"><a href="#L-93"> 93</a></span>
+<span class="normal"><a href="#L-94"> 94</a></span>
+<span class="normal"><a href="#L-95"> 95</a></span>
+<span class="normal"><a href="#L-96"> 96</a></span>
+<span class="normal"><a href="#L-97"> 97</a></span>
+<span class="normal"><a href="#L-98"> 98</a></span>
+<span class="normal"><a href="#L-99"> 99</a></span>
+<span class="normal"><a href="#L-100">100</a></span>
+<span class="normal"><a href="#L-101">101</a></span>
+<span class="normal"><a href="#L-102">102</a></span>
+<span class="normal"><a href="#L-103">103</a></span>
+<span class="normal"><a href="#L-104">104</a></span>
+<span class="normal"><a href="#L-105">105</a></span>
+<span class="normal"><a href="#L-106">106</a></span>
+<span class="normal"><a href="#L-107">107</a></span>
+<span class="normal"><a href="#L-108">108</a></span>
+<span class="normal"><a href="#L-109">109</a></span>
+<span class="normal"><a href="#L-110">110</a></span>
+<span class="normal"><a href="#L-111">111</a></span>
+<span class="normal"><a href="#L-112">112</a></span>
+<span class="normal"><a href="#L-113">113</a></span>
+<span class="normal"><a href="#L-114">114</a></span>
+<span class="normal"><a href="#L-115">115</a></span>
+<span class="normal"><a href="#L-116">116</a></span>
+<span class="normal"><a href="#L-117">117</a></span>
+<span class="normal"><a href="#L-118">118</a></span>
+<span class="normal"><a href="#L-119">119</a></span>
+<span class="normal"><a href="#L-120">120</a></span>
+<span class="normal"><a href="#L-121">121</a></span>
+<span class="normal"><a href="#L-122">122</a></span>
+<span class="normal"><a href="#L-123">123</a></span>
+<span class="normal"><a href="#L-124">124</a></span>
+<span class="normal"><a href="#L-125">125</a></span>
+<span class="normal"><a href="#L-126">126</a></span>
+<span class="normal"><a href="#L-127">127</a></span>
+<span class="normal"><a href="#L-128">128</a></span>
+<span class="normal"><a href="#L-129">129</a></span>
+<span class="normal"><a href="#L-130">130</a></span>
+<span class="normal"><a href="#L-131">131</a></span>
+<span class="normal"><a href="#L-132">132</a></span>
+<span class="normal"><a href="#L-133">133</a></span>
+<span class="normal"><a href="#L-134">134</a></span>
+<span class="normal"><a href="#L-135">135</a></span>
+<span class="normal"><a href="#L-136">136</a></span>
+<span class="normal"><a href="#L-137">137</a></span>
+<span class="normal"><a href="#L-138">138</a></span>
+<span class="normal"><a href="#L-139">139</a></span>
+<span class="normal"><a href="#L-140">140</a></span>
+<span class="normal"><a href="#L-141">141</a></span>
+<span class="normal"><a href="#L-142">142</a></span>
+<span class="normal"><a href="#L-143">143</a></span>
+<span class="normal"><a href="#L-144">144</a></span>
+<span class="normal"><a href="#L-145">145</a></span>
+<span class="normal"><a href="#L-146">146</a></span>
+<span class="normal"><a href="#L-147">147</a></span>
+<span class="normal"><a href="#L-148">148</a></span>
+<span class="normal"><a href="#L-149">149</a></span>
+<span class="normal"><a href="#L-150">150</a></span>
+<span class="normal"><a href="#L-151">151</a></span>
+<span class="normal"><a href="#L-152">152</a></span>
+<span class="normal"><a href="#L-153">153</a></span>
+<span class="normal"><a href="#L-154">154</a></span>
+<span class="normal"><a href="#L-155">155</a></span>
+<span class="normal"><a href="#L-156">156</a></span>
+<span class="normal"><a href="#L-157">157</a></span>
+<span class="normal"><a href="#L-158">158</a></span>
+<span class="normal"><a href="#L-159">159</a></span>
+<span class="normal"><a href="#L-160">160</a></span>
+<span class="normal"><a href="#L-161">161</a></span>
+<span class="normal"><a href="#L-162">162</a></span>
+<span class="normal"><a href="#L-163">163</a></span>
+<span class="normal"><a href="#L-164">164</a></span>
+<span class="normal"><a href="#L-165">165</a></span>
+<span class="normal"><a href="#L-166">166</a></span>
+<span class="normal"><a href="#L-167">167</a></span>
+<span class="normal"><a href="#L-168">168</a></span>
+<span class="normal"><a href="#L-169">169</a></span>
+<span class="normal"><a href="#L-170">170</a></span>
+<span class="normal"><a href="#L-171">171</a></span>
+<span class="normal"><a href="#L-172">172</a></span>
+<span class="normal"><a href="#L-173">173</a></span>
+<span class="normal"><a href="#L-174">174</a></span>
+<span class="normal"><a href="#L-175">175</a></span>
+<span class="normal"><a href="#L-176">176</a></span>
+<span class="normal"><a href="#L-177">177</a></span>
+<span class="normal"><a href="#L-178">178</a></span>
+<span class="normal"><a href="#L-179">179</a></span>
+<span class="normal"><a href="#L-180">180</a></span>
+<span class="normal"><a href="#L-181">181</a></span>
+<span class="normal"><a href="#L-182">182</a></span>
+<span class="normal"><a href="#L-183">183</a></span>
+<span class="normal"><a href="#L-184">184</a></span>
+<span class="normal"><a href="#L-185">185</a></span>
+<span class="normal"><a href="#L-186">186</a></span>
+<span class="normal"><a href="#L-187">187</a></span>
+<span class="normal"><a href="#L-188">188</a></span>
+<span class="normal"><a href="#L-189">189</a></span>
+<span class="normal"><a href="#L-190">190</a></span>
+<span class="normal"><a href="#L-191">191</a></span>
+<span class="normal"><a href="#L-192">192</a></span>
+<span class="normal"><a href="#L-193">193</a></span>
+<span class="normal"><a href="#L-194">194</a></span>
+<span class="normal"><a href="#L-195">195</a></span>
+<span class="normal"><a href="#L-196">196</a></span>
+<span class="normal"><a href="#L-197">197</a></span>
+<span class="normal"><a href="#L-198">198</a></span>
+<span class="normal"><a href="#L-199">199</a></span>
+<span class="normal"><a href="#L-200">200</a></span>
+<span class="normal"><a href="#L-201">201</a></span>
+<span class="normal"><a href="#L-202">202</a></span>
+<span class="normal"><a href="#L-203">203</a></span>
+<span class="normal"><a href="#L-204">204</a></span>
+<span class="normal"><a href="#L-205">205</a></span>
+<span class="normal"><a href="#L-206">206</a></span>
+<span class="normal"><a href="#L-207">207</a></span>
+<span class="normal"><a href="#L-208">208</a></span>
+<span class="normal"><a href="#L-209">209</a></span>
+<span class="normal"><a href="#L-210">210</a></span>
+<span class="normal"><a href="#L-211">211</a></span>
+<span class="normal"><a href="#L-212">212</a></span>
+<span class="normal"><a href="#L-213">213</a></span>
+<span class="normal"><a href="#L-214">214</a></span>
+<span class="normal"><a href="#L-215">215</a></span>
+<span class="normal"><a href="#L-216">216</a></span>
+<span class="normal"><a href="#L-217">217</a></span>
+<span class="normal"><a href="#L-218">218</a></span>
+<span class="normal"><a href="#L-219">219</a></span>
+<span class="normal"><a href="#L-220">220</a></span>
+<span class="normal"><a href="#L-221">221</a></span>
+<span class="normal"><a href="#L-222">222</a></span>
+<span class="normal"><a href="#L-223">223</a></span>
+<span class="normal"><a href="#L-224">224</a></span>
+<span class="normal"><a href="#L-225">225</a></span>
+<span class="normal"><a href="#L-226">226</a></span>
+<span class="normal"><a href="#L-227">227</a></span>
+<span class="normal"><a href="#L-228">228</a></span>
+<span class="normal"><a href="#L-229">229</a></span>
+<span class="normal"><a href="#L-230">230</a></span>
+<span class="normal"><a href="#L-231">231</a></span>
+<span class="normal"><a href="#L-232">232</a></span>
+<span class="normal"><a href="#L-233">233</a></span>
+<span class="normal"><a href="#L-234">234</a></span>
+<span class="normal"><a href="#L-235">235</a></span>
+<span class="normal"><a href="#L-236">236</a></span>
+<span class="normal"><a href="#L-237">237</a></span>
+<span class="normal"><a href="#L-238">238</a></span>
+<span class="normal"><a href="#L-239">239</a></span>
+<span class="normal"><a href="#L-240">240</a></span>
+<span class="normal"><a href="#L-241">241</a></span>
+<span class="normal"><a href="#L-242">242</a></span>
+<span class="normal"><a href="#L-243">243</a></span>
+<span class="normal"><a href="#L-244">244</a></span>
+<span class="normal"><a href="#L-245">245</a></span>
+<span class="normal"><a href="#L-246">246</a></span>
+<span class="normal"><a href="#L-247">247</a></span>
+<span class="normal"><a href="#L-248">248</a></span>
+<span class="normal"><a href="#L-249">249</a></span>
+<span class="normal"><a href="#L-250">250</a></span>
+<span class="normal"><a href="#L-251">251</a></span>
+<span class="normal"><a href="#L-252">252</a></span>
+<span class="normal"><a href="#L-253">253</a></span>
+<span class="normal"><a href="#L-254">254</a></span>
+<span class="normal"><a href="#L-255">255</a></span>
+<span class="normal"><a href="#L-256">256</a></span>
+<span class="normal"><a href="#L-257">257</a></span>
+<span class="normal"><a href="#L-258">258</a></span>
+<span class="normal"><a href="#L-259">259</a></span>
+<span class="normal"><a href="#L-260">260</a></span>
+<span class="normal"><a href="#L-261">261</a></span>
+<span class="normal"><a href="#L-262">262</a></span>
+<span class="normal"><a href="#L-263">263</a></span>
+<span class="normal"><a href="#L-264">264</a></span>
+<span class="normal"><a href="#L-265">265</a></span>
+<span class="normal"><a href="#L-266">266</a></span>
+<span class="normal"><a href="#L-267">267</a></span>
+<span class="normal"><a href="#L-268">268</a></span>
+<span class="normal"><a href="#L-269">269</a></span>
+<span class="normal"><a href="#L-270">270</a></span>
+<span class="normal"><a href="#L-271">271</a></span>
+<span class="normal"><a href="#L-272">272</a></span>
+<span class="normal"><a href="#L-273">273</a></span>
+<span class="normal"><a href="#L-274">274</a></span>
+<span class="normal"><a href="#L-275">275</a></span>
+<span class="normal"><a href="#L-276">276</a></span>
+<span class="normal"><a href="#L-277">277</a></span>
+<span class="normal"><a href="#L-278">278</a></span>
+<span class="normal"><a href="#L-279">279</a></span>
+<span class="normal"><a href="#L-280">280</a></span>
+<span class="normal"><a href="#L-281">281</a></span>
+<span class="normal"><a href="#L-282">282</a></span>
+<span class="normal"><a href="#L-283">283</a></span>
+<span class="normal"><a href="#L-284">284</a></span>
+<span class="normal"><a href="#L-285">285</a></span>
+<span class="normal"><a href="#L-286">286</a></span>
+<span class="normal"><a href="#L-287">287</a></span>
+<span class="normal"><a href="#L-288">288</a></span>
+<span class="normal"><a href="#L-289">289</a></span>
+<span class="normal"><a href="#L-290">290</a></span>
+<span class="normal"><a href="#L-291">291</a></span>
+<span class="normal"><a href="#L-292">292</a></span>
+<span class="normal"><a href="#L-293">293</a></span>
+<span class="normal"><a href="#L-294">294</a></span>
+<span class="normal"><a href="#L-295">295</a></span>
+<span class="normal"><a href="#L-296">296</a></span>
+<span class="normal"><a href="#L-297">297</a></span>
+<span class="normal"><a href="#L-298">298</a></span>
+<span class="normal"><a href="#L-299">299</a></span>
+<span class="normal"><a href="#L-300">300</a></span>
+<span class="normal"><a href="#L-301">301</a></span>
+<span class="normal"><a href="#L-302">302</a></span>
+<span class="normal"><a href="#L-303">303</a></span>
+<span class="normal"><a href="#L-304">304</a></span>
+<span class="normal"><a href="#L-305">305</a></span>
+<span class="normal"><a href="#L-306">306</a></span>
+<span class="normal"><a href="#L-307">307</a></span>
+<span class="normal"><a href="#L-308">308</a></span>
+<span class="normal"><a href="#L-309">309</a></span>
+<span class="normal"><a href="#L-310">310</a></span>
+<span class="normal"><a href="#L-311">311</a></span>
+<span class="normal"><a href="#L-312">312</a></span>
+<span class="normal"><a href="#L-313">313</a></span>
+<span class="normal"><a href="#L-314">314</a></span>
+<span class="normal"><a href="#L-315">315</a></span>
+<span class="normal"><a href="#L-316">316</a></span>
+<span class="normal"><a href="#L-317">317</a></span>
+<span class="normal"><a href="#L-318">318</a></span>
+<span class="normal"><a href="#L-319">319</a></span>
+<span class="normal"><a href="#L-320">320</a></span>
+<span class="normal"><a href="#L-321">321</a></span>
+<span class="normal"><a href="#L-322">322</a></span>
+<span class="normal"><a href="#L-323">323</a></span>
+<span class="normal"><a href="#L-324">324</a></span>
+<span class="normal"><a href="#L-325">325</a></span>
+<span class="normal"><a href="#L-326">326</a></span>
+<span class="normal"><a href="#L-327">327</a></span>
+<span class="normal"><a href="#L-328">328</a></span>
+<span class="normal"><a href="#L-329">329</a></span>
+<span class="normal"><a href="#L-330">330</a></span>
+<span class="normal"><a href="#L-331">331</a></span>
+<span class="normal"><a href="#L-332">332</a></span>
+<span class="normal"><a href="#L-333">333</a></span>
+<span class="normal"><a href="#L-334">334</a></span>
+<span class="normal"><a href="#L-335">335</a></span>
+<span class="normal"><a href="#L-336">336</a></span>
+<span class="normal"><a href="#L-337">337</a></span>
+<span class="normal"><a href="#L-338">338</a></span>
+<span class="normal"><a href="#L-339">339</a></span>
+<span class="normal"><a href="#L-340">340</a></span>
+<span class="normal"><a href="#L-341">341</a></span>
+<span class="normal"><a href="#L-342">342</a></span>
+<span class="normal"><a href="#L-343">343</a></span>
+<span class="normal"><a href="#L-344">344</a></span>
+<span class="normal"><a href="#L-345">345</a></span>
+<span class="normal"><a href="#L-346">346</a></span>
+<span class="normal"><a href="#L-347">347</a></span>
+<span class="normal"><a href="#L-348">348</a></span>
+<span class="normal"><a href="#L-349">349</a></span>
+<span class="normal"><a href="#L-350">350</a></span>
+<span class="normal"><a href="#L-351">351</a></span>
+<span class="normal"><a href="#L-352">352</a></span>
+<span class="normal"><a href="#L-353">353</a></span>
+<span class="normal"><a href="#L-354">354</a></span>
+<span class="normal"><a href="#L-355">355</a></span>
+<span class="normal"><a href="#L-356">356</a></span>
+<span class="normal"><a href="#L-357">357</a></span>
+<span class="normal"><a href="#L-358">358</a></span>
+<span class="normal"><a href="#L-359">359</a></span>
+<span class="normal"><a href="#L-360">360</a></span>
+<span class="normal"><a href="#L-361">361</a></span>
+<span class="normal"><a href="#L-362">362</a></span>
+<span class="normal"><a href="#L-363">363</a></span>
+<span class="normal"><a href="#L-364">364</a></span>
+<span class="normal"><a href="#L-365">365</a></span>
+<span class="normal"><a href="#L-366">366</a></span>
+<span class="normal"><a href="#L-367">367</a></span>
+<span class="normal"><a href="#L-368">368</a></span>
+<span class="normal"><a href="#L-369">369</a></span>
+<span class="normal"><a href="#L-370">370</a></span>
+<span class="normal"><a href="#L-371">371</a></span>
+<span class="normal"><a href="#L-372">372</a></span>
+<span class="normal"><a href="#L-373">373</a></span>
+<span class="normal"><a href="#L-374">374</a></span>
+<span class="normal"><a href="#L-375">375</a></span>
+<span class="normal"><a href="#L-376">376</a></span>
+<span class="normal"><a href="#L-377">377</a></span>
+<span class="normal"><a href="#L-378">378</a></span>
+<span class="normal"><a href="#L-379">379</a></span>
+<span class="normal"><a href="#L-380">380</a></span>
+<span class="normal"><a href="#L-381">381</a></span>
+<span class="normal"><a href="#L-382">382</a></span>
+<span class="normal"><a href="#L-383">383</a></span>
+<span class="normal"><a href="#L-384">384</a></span>
+<span class="normal"><a href="#L-385">385</a></span>
+<span class="normal"><a href="#L-386">386</a></span>
+<span class="normal"><a href="#L-387">387</a></span>
+<span class="normal"><a href="#L-388">388</a></span>
+<span class="normal"><a href="#L-389">389</a></span>
+<span class="normal"><a href="#L-390">390</a></span>
+<span class="normal"><a href="#L-391">391</a></span>
+<span class="normal"><a href="#L-392">392</a></span>
+<span class="normal"><a href="#L-393">393</a></span>
+<span class="normal"><a href="#L-394">394</a></span>
+<span class="normal"><a href="#L-395">395</a></span>
+<span class="normal"><a href="#L-396">396</a></span>
+<span class="normal"><a href="#L-397">397</a></span>
+<span class="normal"><a href="#L-398">398</a></span>
+<span class="normal"><a href="#L-399">399</a></span>
+<span class="normal"><a href="#L-400">400</a></span>
+<span class="normal"><a href="#L-401">401</a></span>
+<span class="normal"><a href="#L-402">402</a></span>
+<span class="normal"><a href="#L-403">403</a></span>
+<span class="normal"><a href="#L-404">404</a></span>
+<span class="normal"><a href="#L-405">405</a></span>
+<span class="normal"><a href="#L-406">406</a></span>
+<span class="normal"><a href="#L-407">407</a></span>
+<span class="normal"><a href="#L-408">408</a></span>
+<span class="normal"><a href="#L-409">409</a></span>
+<span class="normal"><a href="#L-410">410</a></span>
+<span class="normal"><a href="#L-411">411</a></span>
+<span class="normal"><a href="#L-412">412</a></span>
+<span class="normal"><a href="#L-413">413</a></span>
+<span class="normal"><a href="#L-414">414</a></span>
+<span class="normal"><a href="#L-415">415</a></span>
+<span class="normal"><a href="#L-416">416</a></span>
+<span class="normal"><a href="#L-417">417</a></span>
+<span class="normal"><a href="#L-418">418</a></span>
+<span class="normal"><a href="#L-419">419</a></span>
+<span class="normal"><a href="#L-420">420</a></span>
+<span class="normal"><a href="#L-421">421</a></span>
+<span class="normal"><a href="#L-422">422</a></span>
+<span class="normal"><a href="#L-423">423</a></span>
+<span class="normal"><a href="#L-424">424</a></span>
+<span class="normal"><a href="#L-425">425</a></span>
+<span class="normal"><a href="#L-426">426</a></span>
+<span class="normal"><a href="#L-427">427</a></span>
+<span class="normal"><a href="#L-428">428</a></span>
+<span class="normal"><a href="#L-429">429</a></span>
+<span class="normal"><a href="#L-430">430</a></span>
+<span class="normal"><a href="#L-431">431</a></span>
+<span class="normal"><a href="#L-432">432</a></span>
+<span class="normal"><a href="#L-433">433</a></span>
+<span class="normal"><a href="#L-434">434</a></span>
+<span class="normal"><a href="#L-435">435</a></span>
+<span class="normal"><a href="#L-436">436</a></span>
+<span class="normal"><a href="#L-437">437</a></span>
+<span class="normal"><a href="#L-438">438</a></span></pre></div></td><td class="code"><div><pre><span></span><a id="L-1" name="L-1"></a><span class="cm">/*******************************************************************************</span>
+<a id="L-2" name="L-2"></a><span class="cm"> * BSD 3-Clause License</span>
+<a id="L-3" name="L-3"></a><span class="cm"> *</span>
+<a id="L-4" name="L-4"></a><span class="cm"> * Copyright (c) 2019, Los Alamos National Security, LLC</span>
+<a id="L-5" name="L-5"></a><span class="cm"> * All rights reserved.</span>
+<a id="L-6" name="L-6"></a><span class="cm"> *</span>
+<a id="L-7" name="L-7"></a><span class="cm"> * Redistribution and use in source and binary forms, with or without</span>
+<a id="L-8" name="L-8"></a><span class="cm"> * modification, are permitted provided that the following conditions are met:</span>
+<a id="L-9" name="L-9"></a><span class="cm"> *</span>
+<a id="L-10" name="L-10"></a><span class="cm"> * * Redistributions of source code must retain the above copyright notice, this</span>
+<a id="L-11" name="L-11"></a><span class="cm"> *   list of conditions and the following disclaimer.</span>
+<a id="L-12" name="L-12"></a><span class="cm"> *</span>
+<a id="L-13" name="L-13"></a><span class="cm"> * * Redistributions in binary form must reproduce the above copyright notice,</span>
+<a id="L-14" name="L-14"></a><span class="cm"> *   this list of conditions and the following disclaimer in the documentation</span>
+<a id="L-15" name="L-15"></a><span class="cm"> *   and/or other materials provided with the distribution.</span>
+<a id="L-16" name="L-16"></a><span class="cm"> *</span>
+<a id="L-17" name="L-17"></a><span class="cm"> * * Neither the name of the copyright holder nor the names of its</span>
+<a id="L-18" name="L-18"></a><span class="cm"> *   contributors may be used to endorse or promote products derived from</span>
+<a id="L-19" name="L-19"></a><span class="cm"> *   this software without specific prior written permission.</span>
+<a id="L-20" name="L-20"></a><span class="cm"> *</span>
+<a id="L-21" name="L-21"></a><span class="cm"> * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"</span>
+<a id="L-22" name="L-22"></a><span class="cm"> * AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE</span>
+<a id="L-23" name="L-23"></a><span class="cm"> * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE</span>
+<a id="L-24" name="L-24"></a><span class="cm"> * ARE</span>
+<a id="L-25" name="L-25"></a><span class="cm"> * DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE</span>
+<a id="L-26" name="L-26"></a><span class="cm"> * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL</span>
+<a id="L-27" name="L-27"></a><span class="cm"> * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR</span>
+<a id="L-28" name="L-28"></a><span class="cm"> * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER</span>
+<a id="L-29" name="L-29"></a><span class="cm"> * CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,</span>
+<a id="L-30" name="L-30"></a><span class="cm"> * OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE</span>
+<a id="L-31" name="L-31"></a><span class="cm"> * OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.</span>
+<a id="L-32" name="L-32"></a><span class="cm"> *******************************************************************************/</span>
+<a id="L-33" name="L-33"></a>
+<a id="L-34" name="L-34"></a><span class="cm">/*      Title       : servo_node.cpp</span>
+<a id="L-35" name="L-35"></a><span class="cm"> *      Project     : moveit_servo</span>
+<a id="L-36" name="L-36"></a><span class="cm"> *      Created     : 12/31/2018</span>
+<a id="L-37" name="L-37"></a><span class="cm"> *      Author      : Andy Zelenak, V Mohammed Ibrahim</span>
+<a id="L-38" name="L-38"></a><span class="cm"> *      Based on    : MoveIt 2.12.4; local Jazzy startup-clock workaround below</span>
+<a id="L-39" name="L-39"></a><span class="cm"> *</span>
+<a id="L-40" name="L-40"></a><span class="cm"> */</span>
+<a id="L-41" name="L-41"></a>
+<a id="L-42" name="L-42"></a><span class="cp">#if __has_include(&lt;realtime_tools/realtime_helpers.hpp&gt;)</span>
+<a id="L-43" name="L-43"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;realtime_tools/realtime_helpers.hpp&gt;</span>
+<a id="L-44" name="L-44"></a><span class="cp">#else</span>
+<a id="L-45" name="L-45"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;realtime_tools/thread_priority.hpp&gt;</span>
+<a id="L-46" name="L-46"></a><span class="cp">#endif</span>
+<a id="L-47" name="L-47"></a>
+<a id="L-48" name="L-48"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;moveit/utils/logger.hpp&gt;</span>
+<a id="L-49" name="L-49"></a><span class="cp">#include</span><span class="w"> </span><span class="cpf">&lt;moveit_servo/servo_node.hpp&gt;</span>
+<a id="L-50" name="L-50"></a>
+<a id="L-51" name="L-51"></a><span class="k">namespace</span><span class="w"> </span><span class="nn">moveit_servo</span>
+<a id="L-52" name="L-52"></a><span class="p">{</span>
+<a id="L-53" name="L-53"></a>
+<a id="L-54" name="L-54"></a><span class="n">rclcpp</span><span class="o">::</span><span class="n">node_interfaces</span><span class="o">::</span><span class="n">NodeBaseInterface</span><span class="o">::</span><span class="n">SharedPtr</span><span class="w"> </span><span class="nf">ServoNode::get_node_base_interface</span><span class="p">()</span>
+<a id="L-55" name="L-55"></a><span class="p">{</span>
+<a id="L-56" name="L-56"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_node_base_interface</span><span class="p">();</span>
+<a id="L-57" name="L-57"></a><span class="p">}</span>
+<a id="L-58" name="L-58"></a>
+<a id="L-59" name="L-59"></a><span class="n">ServoNode</span><span class="o">::~</span><span class="n">ServoNode</span><span class="p">()</span>
+<a id="L-60" name="L-60"></a><span class="p">{</span>
+<a id="L-61" name="L-61"></a><span class="w">  </span><span class="n">stop_servo_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<a id="L-62" name="L-62"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">servo_loop_thread_</span><span class="p">.</span><span class="n">joinable</span><span class="p">())</span>
+<a id="L-63" name="L-63"></a><span class="w">    </span><span class="n">servo_loop_thread_</span><span class="p">.</span><span class="n">join</span><span class="p">();</span>
+<a id="L-64" name="L-64"></a><span class="p">}</span>
+<a id="L-65" name="L-65"></a>
+<a id="L-66" name="L-66"></a><span class="n">ServoNode</span><span class="o">::</span><span class="n">ServoNode</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">NodeOptions</span><span class="o">&amp;</span><span class="w"> </span><span class="n">options</span><span class="p">)</span>
+<a id="L-67" name="L-67"></a><span class="w">  </span><span class="o">:</span><span class="w"> </span><span class="n">node_</span><span class="p">{</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Node</span><span class="o">&gt;</span><span class="p">(</span><span class="s">"servo_node"</span><span class="p">,</span><span class="w"> </span><span class="n">options</span><span class="p">)</span><span class="w"> </span><span class="p">}</span>
+<a id="L-68" name="L-68"></a><span class="w">  </span><span class="p">,</span><span class="w"> </span><span class="n">stop_servo_</span><span class="p">{</span><span class="w"> </span><span class="nb">false</span><span class="w"> </span><span class="p">}</span>
+<a id="L-69" name="L-69"></a><span class="w">  </span><span class="p">,</span><span class="w"> </span><span class="n">servo_paused_</span><span class="p">{</span><span class="w"> </span><span class="nb">false</span><span class="w"> </span><span class="p">}</span>
+<a id="L-70" name="L-70"></a><span class="w">  </span><span class="p">,</span><span class="w"> </span><span class="n">new_joint_jog_msg_</span><span class="p">{</span><span class="w"> </span><span class="nb">false</span><span class="w"> </span><span class="p">}</span>
+<a id="L-71" name="L-71"></a><span class="w">  </span><span class="p">,</span><span class="w"> </span><span class="n">new_twist_msg_</span><span class="p">{</span><span class="w"> </span><span class="nb">false</span><span class="w"> </span><span class="p">}</span>
+<a id="L-72" name="L-72"></a><span class="w">  </span><span class="p">,</span><span class="w"> </span><span class="n">new_pose_msg_</span><span class="p">{</span><span class="w"> </span><span class="nb">false</span><span class="w"> </span><span class="p">}</span>
+<a id="L-73" name="L-73"></a><span class="p">{</span>
+<a id="L-74" name="L-74"></a><span class="w">  </span><span class="n">moveit</span><span class="o">::</span><span class="n">setNodeLoggerName</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_name</span><span class="p">());</span>
+<a id="L-75" name="L-75"></a>
+<a id="L-76" name="L-76"></a><span class="w">  </span><span class="c1">// Configure SCHED_FIFO and priority</span>
+<a id="L-77" name="L-77"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">realtime_tools</span><span class="o">::</span><span class="n">configure_sched_fifo</span><span class="p">(</span><span class="n">servo_params_</span><span class="p">.</span><span class="n">thread_priority</span><span class="p">))</span>
+<a id="L-78" name="L-78"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-79" name="L-79"></a><span class="w">    </span><span class="n">RCLCPP_INFO_STREAM</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_logger</span><span class="p">(),</span><span class="w"> </span><span class="s">"Enabled SCHED_FIFO and higher thread priority."</span><span class="p">);</span>
+<a id="L-80" name="L-80"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-81" name="L-81"></a><span class="w">  </span><span class="k">else</span>
+<a id="L-82" name="L-82"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-83" name="L-83"></a><span class="w">    </span><span class="n">RCLCPP_WARN_STREAM</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_logger</span><span class="p">(),</span><span class="w"> </span><span class="s">"Could not enable FIFO RT scheduling policy. Continuing with the default."</span><span class="p">);</span>
+<a id="L-84" name="L-84"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-85" name="L-85"></a>
+<a id="L-86" name="L-86"></a><span class="w">  </span><span class="c1">// Check if a realtime kernel is available</span>
+<a id="L-87" name="L-87"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">realtime_tools</span><span class="o">::</span><span class="n">has_realtime_kernel</span><span class="p">())</span>
+<a id="L-88" name="L-88"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-89" name="L-89"></a><span class="w">    </span><span class="n">RCLCPP_WARN_STREAM</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_logger</span><span class="p">(),</span><span class="w"> </span><span class="s">"Realtime kernel is recommended for better performance."</span><span class="p">);</span>
+<a id="L-90" name="L-90"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-91" name="L-91"></a>
+<a id="L-92" name="L-92"></a><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">servo</span><span class="o">::</span><span class="n">ParamListener</span><span class="o">&gt;</span><span class="w"> </span><span class="n">servo_param_listener</span><span class="w"> </span><span class="o">=</span>
+<a id="L-93" name="L-93"></a><span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">servo</span><span class="o">::</span><span class="n">ParamListener</span><span class="o">&gt;</span><span class="p">(</span><span class="n">node_</span><span class="p">,</span><span class="w"> </span><span class="s">"moveit_servo"</span><span class="p">);</span>
+<a id="L-94" name="L-94"></a>
+<a id="L-95" name="L-95"></a><span class="w">  </span><span class="c1">// Create Servo instance</span>
+<a id="L-96" name="L-96"></a><span class="w">  </span><span class="n">planning_scene_monitor_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">createPlanningSceneMonitor</span><span class="p">(</span><span class="n">node_</span><span class="p">,</span><span class="w"> </span><span class="n">servo_param_listener</span><span class="o">-&gt;</span><span class="n">get_params</span><span class="p">());</span>
+<a id="L-97" name="L-97"></a><span class="w">  </span><span class="n">servo_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_unique</span><span class="o">&lt;</span><span class="n">Servo</span><span class="o">&gt;</span><span class="p">(</span><span class="n">node_</span><span class="p">,</span><span class="w"> </span><span class="n">servo_param_listener</span><span class="p">,</span><span class="w"> </span><span class="n">planning_scene_monitor_</span><span class="p">);</span>
+<a id="L-98" name="L-98"></a>
+<a id="L-99" name="L-99"></a><span class="w">  </span><span class="n">servo_params_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getParams</span><span class="p">();</span>
+<a id="L-100" name="L-100"></a>
+<a id="L-101" name="L-101"></a><span class="w">  </span><span class="c1">// Create subscriber for jointjog</span>
+<a id="L-102" name="L-102"></a><span class="w">  </span><span class="n">joint_jog_subscriber_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">create_subscription</span><span class="o">&lt;</span><span class="n">control_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">JointJog</span><span class="o">&gt;</span><span class="p">(</span>
+<a id="L-103" name="L-103"></a><span class="w">      </span><span class="n">servo_params_</span><span class="p">.</span><span class="n">joint_command_in_topic</span><span class="p">,</span><span class="w"> </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">SystemDefaultsQoS</span><span class="p">(),</span>
+<a id="L-104" name="L-104"></a><span class="w">      </span><span class="p">[</span><span class="k">this</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">control_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">JointJog</span><span class="o">::</span><span class="n">ConstSharedPtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">jointJogCallback</span><span class="p">(</span><span class="n">msg</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+<a id="L-105" name="L-105"></a>
+<a id="L-106" name="L-106"></a><span class="w">  </span><span class="c1">// Create subscriber for twist</span>
+<a id="L-107" name="L-107"></a><span class="w">  </span><span class="n">twist_subscriber_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">create_subscription</span><span class="o">&lt;</span><span class="n">geometry_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">TwistStamped</span><span class="o">&gt;</span><span class="p">(</span>
+<a id="L-108" name="L-108"></a><span class="w">      </span><span class="n">servo_params_</span><span class="p">.</span><span class="n">cartesian_command_in_topic</span><span class="p">,</span><span class="w"> </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">SystemDefaultsQoS</span><span class="p">(),</span>
+<a id="L-109" name="L-109"></a><span class="w">      </span><span class="p">[</span><span class="k">this</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">geometry_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">TwistStamped</span><span class="o">::</span><span class="n">ConstSharedPtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">twistCallback</span><span class="p">(</span><span class="n">msg</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+<a id="L-110" name="L-110"></a>
+<a id="L-111" name="L-111"></a><span class="w">  </span><span class="c1">// Create subscriber for pose</span>
+<a id="L-112" name="L-112"></a><span class="w">  </span><span class="n">pose_subscriber_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">create_subscription</span><span class="o">&lt;</span><span class="n">geometry_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">PoseStamped</span><span class="o">&gt;</span><span class="p">(</span>
+<a id="L-113" name="L-113"></a><span class="w">      </span><span class="n">servo_params_</span><span class="p">.</span><span class="n">pose_command_in_topic</span><span class="p">,</span><span class="w"> </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">SystemDefaultsQoS</span><span class="p">(),</span>
+<a id="L-114" name="L-114"></a><span class="w">      </span><span class="p">[</span><span class="k">this</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">geometry_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">PoseStamped</span><span class="o">::</span><span class="n">ConstSharedPtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span><span class="w"> </span><span class="p">{</span><span class="w"> </span><span class="k">return</span><span class="w"> </span><span class="n">poseCallback</span><span class="p">(</span><span class="n">msg</span><span class="p">);</span><span class="w"> </span><span class="p">});</span>
+<a id="L-115" name="L-115"></a>
+<a id="L-116" name="L-116"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">servo_params_</span><span class="p">.</span><span class="n">command_out_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">"trajectory_msgs/JointTrajectory"</span><span class="p">)</span>
+<a id="L-117" name="L-117"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-118" name="L-118"></a><span class="w">    </span><span class="n">trajectory_publisher_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">create_publisher</span><span class="o">&lt;</span><span class="n">trajectory_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">JointTrajectory</span><span class="o">&gt;</span><span class="p">(</span>
+<a id="L-119" name="L-119"></a><span class="w">        </span><span class="n">servo_params_</span><span class="p">.</span><span class="n">command_out_topic</span><span class="p">,</span><span class="w"> </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">SystemDefaultsQoS</span><span class="p">());</span>
+<a id="L-120" name="L-120"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-121" name="L-121"></a><span class="w">  </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">servo_params_</span><span class="p">.</span><span class="n">command_out_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">"std_msgs/Float64MultiArray"</span><span class="p">)</span>
+<a id="L-122" name="L-122"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-123" name="L-123"></a><span class="w">    </span><span class="n">multi_array_publisher_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">create_publisher</span><span class="o">&lt;</span><span class="n">std_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">Float64MultiArray</span><span class="o">&gt;</span><span class="p">(</span><span class="n">servo_params_</span><span class="p">.</span><span class="n">command_out_topic</span><span class="p">,</span>
+<a id="L-124" name="L-124"></a><span class="w">                                                                                       </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">SystemDefaultsQoS</span><span class="p">());</span>
+<a id="L-125" name="L-125"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-126" name="L-126"></a><span class="w">  </span><span class="c1">// Create status publisher</span>
+<a id="L-127" name="L-127"></a><span class="w">  </span><span class="n">status_publisher_</span><span class="w"> </span><span class="o">=</span>
+<a id="L-128" name="L-128"></a><span class="w">      </span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">create_publisher</span><span class="o">&lt;</span><span class="n">moveit_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">ServoStatus</span><span class="o">&gt;</span><span class="p">(</span><span class="n">servo_params_</span><span class="p">.</span><span class="n">status_topic</span><span class="p">,</span><span class="w"> </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">SystemDefaultsQoS</span><span class="p">());</span>
+<a id="L-129" name="L-129"></a>
+<a id="L-130" name="L-130"></a><span class="w">  </span><span class="c1">// Create service to enable switching command type</span>
+<a id="L-131" name="L-131"></a><span class="w">  </span><span class="n">switch_command_type_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">create_service</span><span class="o">&lt;</span><span class="n">moveit_msgs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ServoCommandType</span><span class="o">&gt;</span><span class="p">(</span>
+<a id="L-132" name="L-132"></a><span class="w">      </span><span class="s">"~/switch_command_type"</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="k">this</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">moveit_msgs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ServoCommandType</span><span class="o">::</span><span class="n">Request</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">request</span><span class="p">,</span>
+<a id="L-133" name="L-133"></a><span class="w">                                      </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">moveit_msgs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ServoCommandType</span><span class="o">::</span><span class="n">Response</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">response</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="L-134" name="L-134"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">switchCommandType</span><span class="p">(</span><span class="n">request</span><span class="p">,</span><span class="w"> </span><span class="n">response</span><span class="p">);</span>
+<a id="L-135" name="L-135"></a><span class="w">      </span><span class="p">});</span>
+<a id="L-136" name="L-136"></a>
+<a id="L-137" name="L-137"></a><span class="w">  </span><span class="c1">// Create service to pause/unpause servoing</span>
+<a id="L-138" name="L-138"></a><span class="w">  </span><span class="n">pause_servo_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">create_service</span><span class="o">&lt;</span><span class="n">std_srvs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">SetBool</span><span class="o">&gt;</span><span class="p">(</span>
+<a id="L-139" name="L-139"></a><span class="w">      </span><span class="s">"~/pause_servo"</span><span class="p">,</span><span class="w"> </span><span class="p">[</span><span class="k">this</span><span class="p">](</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std_srvs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">SetBool</span><span class="o">::</span><span class="n">Request</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">request</span><span class="p">,</span>
+<a id="L-140" name="L-140"></a><span class="w">                              </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std_srvs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">SetBool</span><span class="o">::</span><span class="n">Response</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">response</span><span class="p">)</span><span class="w"> </span><span class="p">{</span>
+<a id="L-141" name="L-141"></a><span class="w">        </span><span class="k">return</span><span class="w"> </span><span class="n">pauseServo</span><span class="p">(</span><span class="n">request</span><span class="p">,</span><span class="w"> </span><span class="n">response</span><span class="p">);</span>
+<a id="L-142" name="L-142"></a><span class="w">      </span><span class="p">});</span>
+<a id="L-143" name="L-143"></a>
+<a id="L-144" name="L-144"></a><span class="w">  </span><span class="c1">// Start the servoing loop</span>
+<a id="L-145" name="L-145"></a><span class="w">  </span><span class="n">servo_loop_thread_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="kr">thread</span><span class="p">(</span><span class="o">&amp;</span><span class="n">ServoNode</span><span class="o">::</span><span class="n">servoLoop</span><span class="p">,</span><span class="w"> </span><span class="k">this</span><span class="p">);</span>
+<a id="L-146" name="L-146"></a><span class="p">}</span>
+<a id="L-147" name="L-147"></a>
+<a id="L-148" name="L-148"></a><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">pauseServo</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std_srvs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">SetBool</span><span class="o">::</span><span class="n">Request</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">request</span><span class="p">,</span>
+<a id="L-149" name="L-149"></a><span class="w">                           </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">std_srvs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">SetBool</span><span class="o">::</span><span class="n">Response</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">response</span><span class="p">)</span>
+<a id="L-150" name="L-150"></a><span class="p">{</span>
+<a id="L-151" name="L-151"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">servo_paused_</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">request</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">)</span>
+<a id="L-152" name="L-152"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-153" name="L-153"></a><span class="w">    </span><span class="n">std</span><span class="o">::</span><span class="n">string</span><span class="w"> </span><span class="n">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Requested pause state is already active."</span><span class="p">;</span>
+<a id="L-154" name="L-154"></a><span class="w">    </span><span class="n">RCLCPP_INFO</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_logger</span><span class="p">(),</span><span class="w"> </span><span class="s">"%s"</span><span class="p">,</span><span class="w"> </span><span class="n">message</span><span class="p">.</span><span class="n">c_str</span><span class="p">());</span>
+<a id="L-155" name="L-155"></a><span class="w">    </span><span class="n">response</span><span class="o">-&gt;</span><span class="n">success</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<a id="L-156" name="L-156"></a><span class="w">    </span><span class="n">response</span><span class="o">-&gt;</span><span class="n">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">message</span><span class="p">;</span>
+<a id="L-157" name="L-157"></a><span class="w">    </span><span class="k">return</span><span class="p">;</span>
+<a id="L-158" name="L-158"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-159" name="L-159"></a><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock_guard</span><span class="p">(</span><span class="n">lock_</span><span class="p">);</span>
+<a id="L-160" name="L-160"></a><span class="w">  </span><span class="n">servo_paused_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">request</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">;</span>
+<a id="L-161" name="L-161"></a><span class="w">  </span><span class="n">response</span><span class="o">-&gt;</span><span class="n">success</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">servo_paused_</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">request</span><span class="o">-&gt;</span><span class="n">data</span><span class="p">);</span>
+<a id="L-162" name="L-162"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">servo_paused_</span><span class="p">)</span>
+<a id="L-163" name="L-163"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-164" name="L-164"></a><span class="w">    </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">setCollisionChecking</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
+<a id="L-165" name="L-165"></a><span class="w">    </span><span class="n">response</span><span class="o">-&gt;</span><span class="n">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Servoing disabled"</span><span class="p">;</span>
+<a id="L-166" name="L-166"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-167" name="L-167"></a><span class="w">  </span><span class="k">else</span>
+<a id="L-168" name="L-168"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-169" name="L-169"></a><span class="w">    </span><span class="c1">// Reset the smoothing plugin with the robot's current state in case the robot moved between pausing and unpausing.</span>
+<a id="L-170" name="L-170"></a><span class="w">    </span><span class="n">last_commanded_state_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getCurrentRobotState</span><span class="p">(</span><span class="nb">true</span><span class="w"> </span><span class="cm">/* block for current robot state */</span><span class="p">);</span>
+<a id="L-171" name="L-171"></a><span class="w">    </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">resetSmoothing</span><span class="p">(</span><span class="n">last_commanded_state_</span><span class="p">);</span>
+<a id="L-172" name="L-172"></a>
+<a id="L-173" name="L-173"></a><span class="w">    </span><span class="c1">// clear out the command rolling window and reset last commanded state to be the current state</span>
+<a id="L-174" name="L-174"></a><span class="w">    </span><span class="n">joint_cmd_rolling_window_</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<a id="L-175" name="L-175"></a>
+<a id="L-176" name="L-176"></a><span class="w">    </span><span class="c1">// reactivate collision checking</span>
+<a id="L-177" name="L-177"></a><span class="w">    </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">setCollisionChecking</span><span class="p">(</span><span class="nb">true</span><span class="p">);</span>
+<a id="L-178" name="L-178"></a><span class="w">    </span><span class="n">response</span><span class="o">-&gt;</span><span class="n">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s">"Servoing enabled"</span><span class="p">;</span>
+<a id="L-179" name="L-179"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-180" name="L-180"></a><span class="p">}</span>
+<a id="L-181" name="L-181"></a>
+<a id="L-182" name="L-182"></a><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">switchCommandType</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">moveit_msgs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ServoCommandType</span><span class="o">::</span><span class="n">Request</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">request</span><span class="p">,</span>
+<a id="L-183" name="L-183"></a><span class="w">                                  </span><span class="k">const</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">shared_ptr</span><span class="o">&lt;</span><span class="n">moveit_msgs</span><span class="o">::</span><span class="n">srv</span><span class="o">::</span><span class="n">ServoCommandType</span><span class="o">::</span><span class="n">Response</span><span class="o">&gt;&amp;</span><span class="w"> </span><span class="n">response</span><span class="p">)</span>
+<a id="L-184" name="L-184"></a><span class="p">{</span>
+<a id="L-185" name="L-185"></a><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">is_valid</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">request</span><span class="o">-&gt;</span><span class="n">command_type</span><span class="w"> </span><span class="o">&gt;=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">CommandType</span><span class="o">::</span><span class="n">MIN</span><span class="p">))</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<a id="L-186" name="L-186"></a><span class="w">                        </span><span class="p">(</span><span class="n">request</span><span class="o">-&gt;</span><span class="n">command_type</span><span class="w"> </span><span class="o">&lt;=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">CommandType</span><span class="o">::</span><span class="n">MAX</span><span class="p">));</span>
+<a id="L-187" name="L-187"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">is_valid</span><span class="p">)</span>
+<a id="L-188" name="L-188"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-189" name="L-189"></a><span class="w">    </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">setCommandType</span><span class="p">(</span><span class="k">static_cast</span><span class="o">&lt;</span><span class="n">CommandType</span><span class="o">&gt;</span><span class="p">(</span><span class="n">request</span><span class="o">-&gt;</span><span class="n">command_type</span><span class="p">));</span>
+<a id="L-190" name="L-190"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-191" name="L-191"></a><span class="w">  </span><span class="k">else</span>
+<a id="L-192" name="L-192"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-193" name="L-193"></a><span class="w">    </span><span class="n">RCLCPP_WARN_STREAM</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_logger</span><span class="p">(),</span><span class="w"> </span><span class="s">"Unknown command type "</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="n">request</span><span class="o">-&gt;</span><span class="n">command_type</span><span class="w"> </span><span class="o">&lt;&lt;</span><span class="w"> </span><span class="s">" requested"</span><span class="p">);</span>
+<a id="L-194" name="L-194"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-195" name="L-195"></a><span class="w">  </span><span class="n">response</span><span class="o">-&gt;</span><span class="n">success</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">request</span><span class="o">-&gt;</span><span class="n">command_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getCommandType</span><span class="p">()));</span>
+<a id="L-196" name="L-196"></a><span class="p">}</span>
+<a id="L-197" name="L-197"></a>
+<a id="L-198" name="L-198"></a><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">jointJogCallback</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">control_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">JointJog</span><span class="o">::</span><span class="n">ConstSharedPtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span>
+<a id="L-199" name="L-199"></a><span class="p">{</span>
+<a id="L-200" name="L-200"></a><span class="w">  </span><span class="n">latest_joint_jog_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">msg</span><span class="p">;</span>
+<a id="L-201" name="L-201"></a><span class="w">  </span><span class="n">new_joint_jog_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<a id="L-202" name="L-202"></a><span class="p">}</span>
+<a id="L-203" name="L-203"></a>
+<a id="L-204" name="L-204"></a><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">twistCallback</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">geometry_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">TwistStamped</span><span class="o">::</span><span class="n">ConstSharedPtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span>
+<a id="L-205" name="L-205"></a><span class="p">{</span>
+<a id="L-206" name="L-206"></a><span class="w">  </span><span class="n">latest_twist_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">msg</span><span class="p">;</span>
+<a id="L-207" name="L-207"></a><span class="w">  </span><span class="n">new_twist_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<a id="L-208" name="L-208"></a><span class="p">}</span>
+<a id="L-209" name="L-209"></a>
+<a id="L-210" name="L-210"></a><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">poseCallback</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">geometry_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">PoseStamped</span><span class="o">::</span><span class="n">ConstSharedPtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">msg</span><span class="p">)</span>
+<a id="L-211" name="L-211"></a><span class="p">{</span>
+<a id="L-212" name="L-212"></a><span class="w">  </span><span class="n">latest_pose_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">*</span><span class="n">msg</span><span class="p">;</span>
+<a id="L-213" name="L-213"></a><span class="w">  </span><span class="n">new_pose_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">true</span><span class="p">;</span>
+<a id="L-214" name="L-214"></a><span class="p">}</span>
+<a id="L-215" name="L-215"></a>
+<a id="L-216" name="L-216"></a><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">KinematicState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">processJointJogCommand</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">moveit</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">RobotStatePtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">robot_state</span><span class="p">)</span>
+<a id="L-217" name="L-217"></a><span class="p">{</span>
+<a id="L-218" name="L-218"></a><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">KinematicState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+<a id="L-219" name="L-219"></a><span class="w">  </span><span class="c1">// Reject any other command types that had arrived simultaneously.</span>
+<a id="L-220" name="L-220"></a><span class="w">  </span><span class="n">new_twist_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">new_pose_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<a id="L-221" name="L-221"></a>
+<a id="L-222" name="L-222"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">latest_joint_jog_</span><span class="p">.</span><span class="n">displacements</span><span class="p">.</span><span class="n">empty</span><span class="p">())</span>
+<a id="L-223" name="L-223"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-224" name="L-224"></a><span class="w">    </span><span class="n">RCLCPP_WARN</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_logger</span><span class="p">(),</span><span class="w"> </span><span class="s">"Joint jog command displacements field is not yet supported, ignoring."</span><span class="p">);</span>
+<a id="L-225" name="L-225"></a><span class="w">    </span><span class="n">latest_joint_jog_</span><span class="p">.</span><span class="n">displacements</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span><span class="w">  </span><span class="c1">// Only warn once per message.</span>
+<a id="L-226" name="L-226"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-227" name="L-227"></a>
+<a id="L-228" name="L-228"></a><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">command_stale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">latest_joint_jog_</span><span class="p">.</span><span class="n">header</span><span class="p">.</span><span class="n">stamp</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;=</span>
+<a id="L-229" name="L-229"></a><span class="w">                             </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">servo_params_</span><span class="p">.</span><span class="n">incoming_command_timeout</span><span class="p">);</span>
+<a id="L-230" name="L-230"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">command_stale</span><span class="p">)</span>
+<a id="L-231" name="L-231"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-232" name="L-232"></a><span class="w">    </span><span class="n">JointJogCommand</span><span class="w"> </span><span class="n">command</span><span class="p">{</span><span class="w"> </span><span class="n">latest_joint_jog_</span><span class="p">.</span><span class="n">joint_names</span><span class="p">,</span><span class="w"> </span><span class="n">latest_joint_jog_</span><span class="p">.</span><span class="n">velocities</span><span class="w"> </span><span class="p">};</span>
+<a id="L-233" name="L-233"></a><span class="w">    </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getNextJointState</span><span class="p">(</span><span class="n">robot_state</span><span class="p">,</span><span class="w"> </span><span class="n">command</span><span class="p">);</span>
+<a id="L-234" name="L-234"></a><span class="w">    </span><span class="c1">// If the command failed, stop trying to process this message</span>
+<a id="L-235" name="L-235"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getStatus</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">StatusCode</span><span class="o">::</span><span class="n">INVALID</span><span class="p">)</span>
+<a id="L-236" name="L-236"></a><span class="w">    </span><span class="p">{</span>
+<a id="L-237" name="L-237"></a><span class="w">      </span><span class="n">new_joint_jog_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<a id="L-238" name="L-238"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-239" name="L-239"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-240" name="L-240"></a><span class="w">  </span><span class="k">else</span>
+<a id="L-241" name="L-241"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-242" name="L-242"></a><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">smoothHalt</span><span class="p">(</span><span class="n">last_commanded_state_</span><span class="p">);</span>
+<a id="L-243" name="L-243"></a><span class="w">    </span><span class="n">new_joint_jog_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">!</span><span class="n">result</span><span class="p">.</span><span class="n">first</span><span class="p">;</span>
+<a id="L-244" name="L-244"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">new_joint_jog_msg_</span><span class="p">)</span>
+<a id="L-245" name="L-245"></a><span class="w">    </span><span class="p">{</span>
+<a id="L-246" name="L-246"></a><span class="w">      </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">result</span><span class="p">.</span><span class="n">second</span><span class="p">;</span>
+<a id="L-247" name="L-247"></a><span class="w">      </span><span class="n">RCLCPP_DEBUG_STREAM</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_logger</span><span class="p">(),</span><span class="w"> </span><span class="s">"Joint jog command timed out. Halting to a stop."</span><span class="p">);</span>
+<a id="L-248" name="L-248"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-249" name="L-249"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-250" name="L-250"></a>
+<a id="L-251" name="L-251"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">next_joint_state</span><span class="p">;</span>
+<a id="L-252" name="L-252"></a><span class="p">}</span>
+<a id="L-253" name="L-253"></a>
+<a id="L-254" name="L-254"></a><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">KinematicState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">processTwistCommand</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">moveit</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">RobotStatePtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">robot_state</span><span class="p">)</span>
+<a id="L-255" name="L-255"></a><span class="p">{</span>
+<a id="L-256" name="L-256"></a><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">KinematicState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+<a id="L-257" name="L-257"></a>
+<a id="L-258" name="L-258"></a><span class="w">  </span><span class="c1">// Mark latest twist command as processed.</span>
+<a id="L-259" name="L-259"></a><span class="w">  </span><span class="c1">// Reject any other command types that had arrived simultaneously.</span>
+<a id="L-260" name="L-260"></a><span class="w">  </span><span class="n">new_joint_jog_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">new_pose_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<a id="L-261" name="L-261"></a>
+<a id="L-262" name="L-262"></a><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">command_stale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">latest_twist_</span><span class="p">.</span><span class="n">header</span><span class="p">.</span><span class="n">stamp</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;=</span>
+<a id="L-263" name="L-263"></a><span class="w">                             </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">servo_params_</span><span class="p">.</span><span class="n">incoming_command_timeout</span><span class="p">);</span>
+<a id="L-264" name="L-264"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">command_stale</span><span class="p">)</span>
+<a id="L-265" name="L-265"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-266" name="L-266"></a><span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">Eigen</span><span class="o">::</span><span class="n">Vector</span><span class="o">&lt;</span><span class="kt">double</span><span class="p">,</span><span class="w"> </span><span class="mi">6</span><span class="o">&gt;</span><span class="w"> </span><span class="n">velocities</span><span class="p">{</span><span class="w"> </span><span class="n">latest_twist_</span><span class="p">.</span><span class="n">twist</span><span class="p">.</span><span class="n">linear</span><span class="p">.</span><span class="n">x</span><span class="p">,</span><span class="w">  </span><span class="n">latest_twist_</span><span class="p">.</span><span class="n">twist</span><span class="p">.</span><span class="n">linear</span><span class="p">.</span><span class="n">y</span><span class="p">,</span>
+<a id="L-267" name="L-267"></a><span class="w">                                               </span><span class="n">latest_twist_</span><span class="p">.</span><span class="n">twist</span><span class="p">.</span><span class="n">linear</span><span class="p">.</span><span class="n">z</span><span class="p">,</span><span class="w">  </span><span class="n">latest_twist_</span><span class="p">.</span><span class="n">twist</span><span class="p">.</span><span class="n">angular</span><span class="p">.</span><span class="n">x</span><span class="p">,</span>
+<a id="L-268" name="L-268"></a><span class="w">                                               </span><span class="n">latest_twist_</span><span class="p">.</span><span class="n">twist</span><span class="p">.</span><span class="n">angular</span><span class="p">.</span><span class="n">y</span><span class="p">,</span><span class="w"> </span><span class="n">latest_twist_</span><span class="p">.</span><span class="n">twist</span><span class="p">.</span><span class="n">angular</span><span class="p">.</span><span class="n">z</span><span class="w"> </span><span class="p">};</span>
+<a id="L-269" name="L-269"></a><span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">TwistCommand</span><span class="w"> </span><span class="n">command</span><span class="p">{</span><span class="w"> </span><span class="n">latest_twist_</span><span class="p">.</span><span class="n">header</span><span class="p">.</span><span class="n">frame_id</span><span class="p">,</span><span class="w"> </span><span class="n">velocities</span><span class="w"> </span><span class="p">};</span>
+<a id="L-270" name="L-270"></a><span class="w">    </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getNextJointState</span><span class="p">(</span><span class="n">robot_state</span><span class="p">,</span><span class="w"> </span><span class="n">command</span><span class="p">);</span>
+<a id="L-271" name="L-271"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getStatus</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">StatusCode</span><span class="o">::</span><span class="n">INVALID</span><span class="p">)</span>
+<a id="L-272" name="L-272"></a><span class="w">    </span><span class="p">{</span>
+<a id="L-273" name="L-273"></a><span class="w">      </span><span class="n">new_twist_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<a id="L-274" name="L-274"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-275" name="L-275"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-276" name="L-276"></a><span class="w">  </span><span class="k">else</span>
+<a id="L-277" name="L-277"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-278" name="L-278"></a><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">smoothHalt</span><span class="p">(</span><span class="n">last_commanded_state_</span><span class="p">);</span>
+<a id="L-279" name="L-279"></a><span class="w">    </span><span class="n">new_twist_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">!</span><span class="n">result</span><span class="p">.</span><span class="n">first</span><span class="p">;</span>
+<a id="L-280" name="L-280"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">new_twist_msg_</span><span class="p">)</span>
+<a id="L-281" name="L-281"></a><span class="w">    </span><span class="p">{</span>
+<a id="L-282" name="L-282"></a><span class="w">      </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">result</span><span class="p">.</span><span class="n">second</span><span class="p">;</span>
+<a id="L-283" name="L-283"></a><span class="w">      </span><span class="n">RCLCPP_DEBUG_STREAM</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_logger</span><span class="p">(),</span><span class="w"> </span><span class="s">"Twist command timed out. Halting to a stop."</span><span class="p">);</span>
+<a id="L-284" name="L-284"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-285" name="L-285"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-286" name="L-286"></a>
+<a id="L-287" name="L-287"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">next_joint_state</span><span class="p">;</span>
+<a id="L-288" name="L-288"></a><span class="p">}</span>
+<a id="L-289" name="L-289"></a>
+<a id="L-290" name="L-290"></a><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">KinematicState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">processPoseCommand</span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="n">moveit</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">RobotStatePtr</span><span class="o">&amp;</span><span class="w"> </span><span class="n">robot_state</span><span class="p">)</span>
+<a id="L-291" name="L-291"></a><span class="p">{</span>
+<a id="L-292" name="L-292"></a><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">KinematicState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+<a id="L-293" name="L-293"></a>
+<a id="L-294" name="L-294"></a><span class="w">  </span><span class="c1">// Mark latest pose command as processed.</span>
+<a id="L-295" name="L-295"></a><span class="w">  </span><span class="c1">// Reject any other command types that had arrived simultaneously.</span>
+<a id="L-296" name="L-296"></a><span class="w">  </span><span class="n">new_joint_jog_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">new_twist_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<a id="L-297" name="L-297"></a>
+<a id="L-298" name="L-298"></a><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">command_stale</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">now</span><span class="p">()</span><span class="w"> </span><span class="o">-</span><span class="w"> </span><span class="n">latest_pose_</span><span class="p">.</span><span class="n">header</span><span class="p">.</span><span class="n">stamp</span><span class="p">)</span><span class="w"> </span><span class="o">&gt;=</span>
+<a id="L-299" name="L-299"></a><span class="w">                             </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">Duration</span><span class="o">::</span><span class="n">from_seconds</span><span class="p">(</span><span class="n">servo_params_</span><span class="p">.</span><span class="n">incoming_command_timeout</span><span class="p">);</span>
+<a id="L-300" name="L-300"></a><span class="w">  </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="o">!</span><span class="n">command_stale</span><span class="p">)</span>
+<a id="L-301" name="L-301"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-302" name="L-302"></a><span class="w">    </span><span class="k">const</span><span class="w"> </span><span class="n">PoseCommand</span><span class="w"> </span><span class="n">command</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">poseFromPoseStamped</span><span class="p">(</span><span class="n">latest_pose_</span><span class="p">);</span>
+<a id="L-303" name="L-303"></a><span class="w">    </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getNextJointState</span><span class="p">(</span><span class="n">robot_state</span><span class="p">,</span><span class="w"> </span><span class="n">command</span><span class="p">);</span>
+<a id="L-304" name="L-304"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getStatus</span><span class="p">()</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">StatusCode</span><span class="o">::</span><span class="n">INVALID</span><span class="p">)</span>
+<a id="L-305" name="L-305"></a><span class="w">    </span><span class="p">{</span>
+<a id="L-306" name="L-306"></a><span class="w">      </span><span class="n">new_pose_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<a id="L-307" name="L-307"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-308" name="L-308"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-309" name="L-309"></a><span class="w">  </span><span class="k">else</span>
+<a id="L-310" name="L-310"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-311" name="L-311"></a><span class="w">    </span><span class="k">auto</span><span class="w"> </span><span class="n">result</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">smoothHalt</span><span class="p">(</span><span class="n">last_commanded_state_</span><span class="p">);</span>
+<a id="L-312" name="L-312"></a><span class="w">    </span><span class="n">new_pose_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="o">!</span><span class="n">result</span><span class="p">.</span><span class="n">first</span><span class="p">;</span>
+<a id="L-313" name="L-313"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">new_pose_msg_</span><span class="p">)</span>
+<a id="L-314" name="L-314"></a><span class="w">    </span><span class="p">{</span>
+<a id="L-315" name="L-315"></a><span class="w">      </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">result</span><span class="p">.</span><span class="n">second</span><span class="p">;</span>
+<a id="L-316" name="L-316"></a><span class="w">      </span><span class="n">RCLCPP_DEBUG_STREAM</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_logger</span><span class="p">(),</span><span class="w"> </span><span class="s">"Pose command timed out. Halting to a stop."</span><span class="p">);</span>
+<a id="L-317" name="L-317"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-318" name="L-318"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-319" name="L-319"></a>
+<a id="L-320" name="L-320"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="n">next_joint_state</span><span class="p">;</span>
+<a id="L-321" name="L-321"></a><span class="p">}</span>
+<a id="L-322" name="L-322"></a>
+<a id="L-323" name="L-323"></a><span class="kt">void</span><span class="w"> </span><span class="n">ServoNode</span><span class="o">::</span><span class="n">servoLoop</span><span class="p">()</span>
+<a id="L-324" name="L-324"></a><span class="p">{</span>
+<a id="L-325" name="L-325"></a><span class="w">  </span><span class="n">moveit_msgs</span><span class="o">::</span><span class="n">msg</span><span class="o">::</span><span class="n">ServoStatus</span><span class="w"> </span><span class="n">status_msg</span><span class="p">;</span>
+<a id="L-326" name="L-326"></a><span class="w">  </span><span class="n">std</span><span class="o">::</span><span class="n">optional</span><span class="o">&lt;</span><span class="n">KinematicState</span><span class="o">&gt;</span><span class="w"> </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+<a id="L-327" name="L-327"></a><span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">WallRate</span><span class="w"> </span><span class="nf">servo_frequency</span><span class="p">(</span><span class="mi">1</span><span class="w"> </span><span class="o">/</span><span class="w"> </span><span class="n">servo_params_</span><span class="p">.</span><span class="n">publish_period</span><span class="p">);</span>
+<a id="L-328" name="L-328"></a>
+<a id="L-329" name="L-329"></a><span class="w">  </span><span class="n">KinematicState</span><span class="w"> </span><span class="n">current_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getCurrentRobotState</span><span class="p">(</span><span class="nb">true</span><span class="w"> </span><span class="cm">/* block for current robot state */</span><span class="p">);</span>
+<a id="L-330" name="L-330"></a><span class="w">  </span><span class="n">last_commanded_state_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current_state</span><span class="p">;</span>
+<a id="L-331" name="L-331"></a><span class="w">  </span><span class="c1">// Ensure the filter is up to date</span>
+<a id="L-332" name="L-332"></a><span class="w">  </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">resetSmoothing</span><span class="p">(</span><span class="n">current_state</span><span class="p">);</span>
+<a id="L-333" name="L-333"></a>
+<a id="L-334" name="L-334"></a><span class="w">  </span><span class="c1">// Get the robot state and joint model group info.</span>
+<a id="L-335" name="L-335"></a><span class="w">  </span><span class="n">moveit</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">RobotStatePtr</span><span class="w"> </span><span class="n">robot_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">planning_scene_monitor_</span><span class="o">-&gt;</span><span class="n">getStateMonitor</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">getCurrentState</span><span class="p">();</span>
+<a id="L-336" name="L-336"></a><span class="w">  </span><span class="k">const</span><span class="w"> </span><span class="n">moveit</span><span class="o">::</span><span class="n">core</span><span class="o">::</span><span class="n">JointModelGroup</span><span class="o">*</span><span class="w"> </span><span class="n">joint_model_group</span><span class="w"> </span><span class="o">=</span>
+<a id="L-337" name="L-337"></a><span class="w">      </span><span class="n">robot_state</span><span class="o">-&gt;</span><span class="n">getJointModelGroup</span><span class="p">(</span><span class="n">servo_params_</span><span class="p">.</span><span class="n">move_group_name</span><span class="p">);</span>
+<a id="L-338" name="L-338"></a>
+<a id="L-339" name="L-339"></a><span class="w">  </span><span class="k">while</span><span class="w"> </span><span class="p">(</span><span class="n">rclcpp</span><span class="o">::</span><span class="n">ok</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">stop_servo_</span><span class="p">)</span>
+<a id="L-340" name="L-340"></a><span class="w">  </span><span class="p">{</span>
+<a id="L-341" name="L-341"></a><span class="w">    </span><span class="c1">// Skip processing if servoing is disabled.</span>
+<a id="L-342" name="L-342"></a><span class="w">    </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">servo_paused_</span><span class="p">)</span>
+<a id="L-343" name="L-343"></a><span class="w">    </span><span class="p">{</span>
+<a id="L-344" name="L-344"></a><span class="w">      </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">resetSmoothing</span><span class="p">(</span><span class="n">current_state</span><span class="p">);</span>
+<a id="L-345" name="L-345"></a><span class="w">      </span><span class="n">servo_frequency</span><span class="p">.</span><span class="n">sleep</span><span class="p">();</span>
+<a id="L-346" name="L-346"></a><span class="w">      </span><span class="k">continue</span><span class="p">;</span>
+<a id="L-347" name="L-347"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-348" name="L-348"></a>
+<a id="L-349" name="L-349"></a><span class="w">    </span><span class="p">{</span><span class="w">  </span><span class="c1">// scope for mutex-protected operations</span>
+<a id="L-350" name="L-350"></a><span class="w">      </span><span class="n">std</span><span class="o">::</span><span class="n">lock_guard</span><span class="o">&lt;</span><span class="n">std</span><span class="o">::</span><span class="n">mutex</span><span class="o">&gt;</span><span class="w"> </span><span class="n">lock_guard</span><span class="p">(</span><span class="n">lock_</span><span class="p">);</span>
+<a id="L-351" name="L-351"></a><span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="kt">bool</span><span class="w"> </span><span class="n">use_trajectory</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_params_</span><span class="p">.</span><span class="n">command_out_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="s">"trajectory_msgs/JointTrajectory"</span><span class="p">;</span>
+<a id="L-352" name="L-352"></a><span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">cur_time</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">now</span><span class="p">();</span>
+<a id="L-353" name="L-353"></a>
+<a id="L-354" name="L-354"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">use_trajectory</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="o">!</span><span class="n">joint_cmd_rolling_window_</span><span class="p">.</span><span class="n">empty</span><span class="p">()</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">joint_cmd_rolling_window_</span><span class="p">.</span><span class="n">back</span><span class="p">().</span><span class="n">time_stamp</span><span class="w"> </span><span class="o">&gt;</span><span class="w"> </span><span class="n">cur_time</span><span class="p">)</span>
+<a id="L-355" name="L-355"></a><span class="w">      </span><span class="p">{</span>
+<a id="L-356" name="L-356"></a><span class="w">        </span><span class="n">current_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">joint_cmd_rolling_window_</span><span class="p">.</span><span class="n">back</span><span class="p">();</span>
+<a id="L-357" name="L-357"></a><span class="w">      </span><span class="p">}</span>
+<a id="L-358" name="L-358"></a><span class="w">      </span><span class="k">else</span>
+<a id="L-359" name="L-359"></a><span class="w">      </span><span class="p">{</span>
+<a id="L-360" name="L-360"></a><span class="w">        </span><span class="c1">// if all joint_cmd_rolling_window_ is empty or all commands in it are outdated, use current robot state</span>
+<a id="L-361" name="L-361"></a><span class="w">        </span><span class="n">joint_cmd_rolling_window_</span><span class="p">.</span><span class="n">clear</span><span class="p">();</span>
+<a id="L-362" name="L-362"></a><span class="w">        </span><span class="n">current_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getCurrentRobotState</span><span class="p">(</span><span class="nb">false</span><span class="w"> </span><span class="cm">/* block for current robot state */</span><span class="p">);</span>
+<a id="L-363" name="L-363"></a><span class="w">        </span><span class="n">current_state</span><span class="p">.</span><span class="n">velocities</span><span class="w"> </span><span class="o">*=</span><span class="w"> </span><span class="mf">0.0</span><span class="p">;</span>
+<a id="L-364" name="L-364"></a><span class="w">      </span><span class="p">}</span>
+<a id="L-365" name="L-365"></a>
+<a id="L-366" name="L-366"></a><span class="w">      </span><span class="c1">// update robot state values</span>
+<a id="L-367" name="L-367"></a><span class="w">      </span><span class="n">robot_state</span><span class="o">-&gt;</span><span class="n">setJointGroupPositions</span><span class="p">(</span><span class="n">joint_model_group</span><span class="p">,</span><span class="w"> </span><span class="n">current_state</span><span class="p">.</span><span class="n">positions</span><span class="p">);</span>
+<a id="L-368" name="L-368"></a><span class="w">      </span><span class="n">robot_state</span><span class="o">-&gt;</span><span class="n">setJointGroupVelocities</span><span class="p">(</span><span class="n">joint_model_group</span><span class="p">,</span><span class="w"> </span><span class="n">current_state</span><span class="p">.</span><span class="n">velocities</span><span class="p">);</span>
+<a id="L-369" name="L-369"></a>
+<a id="L-370" name="L-370"></a><span class="w">      </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">nullopt</span><span class="p">;</span>
+<a id="L-371" name="L-371"></a><span class="w">      </span><span class="k">const</span><span class="w"> </span><span class="n">CommandType</span><span class="w"> </span><span class="n">expected_type</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getCommandType</span><span class="p">();</span>
+<a id="L-372" name="L-372"></a>
+<a id="L-373" name="L-373"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expected_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">CommandType</span><span class="o">::</span><span class="n">JOINT_JOG</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">new_joint_jog_msg_</span><span class="p">)</span>
+<a id="L-374" name="L-374"></a><span class="w">      </span><span class="p">{</span>
+<a id="L-375" name="L-375"></a><span class="w">        </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">processJointJogCommand</span><span class="p">(</span><span class="n">robot_state</span><span class="p">);</span>
+<a id="L-376" name="L-376"></a><span class="w">      </span><span class="p">}</span>
+<a id="L-377" name="L-377"></a><span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expected_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">CommandType</span><span class="o">::</span><span class="n">TWIST</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">new_twist_msg_</span><span class="p">)</span>
+<a id="L-378" name="L-378"></a><span class="w">      </span><span class="p">{</span>
+<a id="L-379" name="L-379"></a><span class="w">        </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">processTwistCommand</span><span class="p">(</span><span class="n">robot_state</span><span class="p">);</span>
+<a id="L-380" name="L-380"></a><span class="w">      </span><span class="p">}</span>
+<a id="L-381" name="L-381"></a><span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">expected_type</span><span class="w"> </span><span class="o">==</span><span class="w"> </span><span class="n">CommandType</span><span class="o">::</span><span class="n">POSE</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="n">new_pose_msg_</span><span class="p">)</span>
+<a id="L-382" name="L-382"></a><span class="w">      </span><span class="p">{</span>
+<a id="L-383" name="L-383"></a><span class="w">        </span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">processPoseCommand</span><span class="p">(</span><span class="n">robot_state</span><span class="p">);</span>
+<a id="L-384" name="L-384"></a><span class="w">      </span><span class="p">}</span>
+<a id="L-385" name="L-385"></a><span class="w">      </span><span class="k">else</span><span class="w"> </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">new_joint_jog_msg_</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">new_twist_msg_</span><span class="w"> </span><span class="o">||</span><span class="w"> </span><span class="n">new_pose_msg_</span><span class="p">)</span>
+<a id="L-386" name="L-386"></a><span class="w">      </span><span class="p">{</span>
+<a id="L-387" name="L-387"></a><span class="w">        </span><span class="n">new_joint_jog_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">new_twist_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">new_pose_msg_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="nb">false</span><span class="p">;</span>
+<a id="L-388" name="L-388"></a><span class="w">        </span><span class="n">RCLCPP_WARN_STREAM</span><span class="p">(</span><span class="n">node_</span><span class="o">-&gt;</span><span class="n">get_logger</span><span class="p">(),</span><span class="w"> </span><span class="s">"Command type has not been set, cannot accept input"</span><span class="p">);</span>
+<a id="L-389" name="L-389"></a><span class="w">      </span><span class="p">}</span>
+<a id="L-390" name="L-390"></a>
+<a id="L-391" name="L-391"></a><span class="w">      </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">next_joint_state</span><span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span><span class="p">(</span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getStatus</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">StatusCode</span><span class="o">::</span><span class="n">INVALID</span><span class="p">)</span><span class="w"> </span><span class="o">&amp;&amp;</span>
+<a id="L-392" name="L-392"></a><span class="w">          </span><span class="p">(</span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getStatus</span><span class="p">()</span><span class="w"> </span><span class="o">!=</span><span class="w"> </span><span class="n">StatusCode</span><span class="o">::</span><span class="n">HALT_FOR_COLLISION</span><span class="p">))</span>
+<a id="L-393" name="L-393"></a><span class="w">      </span><span class="p">{</span>
+<a id="L-394" name="L-394"></a><span class="w">        </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="n">use_trajectory</span><span class="p">)</span>
+<a id="L-395" name="L-395"></a><span class="w">        </span><span class="p">{</span>
+<a id="L-396" name="L-396"></a><span class="w">          </span><span class="k">auto</span><span class="o">&amp;</span><span class="w"> </span><span class="n">next_joint_state_value</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next_joint_state</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+<a id="L-397" name="L-397"></a><span class="w">          </span><span class="n">updateSlidingWindow</span><span class="p">(</span><span class="n">next_joint_state_value</span><span class="p">,</span><span class="w"> </span><span class="n">joint_cmd_rolling_window_</span><span class="p">,</span><span class="w"> </span><span class="n">servo_params_</span><span class="p">.</span><span class="n">max_expected_latency</span><span class="p">,</span>
+<a id="L-398" name="L-398"></a><span class="w">                              </span><span class="n">cur_time</span><span class="p">);</span>
+<a id="L-399" name="L-399"></a><span class="w">          </span><span class="k">if</span><span class="w"> </span><span class="p">(</span><span class="k">const</span><span class="w"> </span><span class="k">auto</span><span class="w"> </span><span class="n">msg</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">composeTrajectoryMessage</span><span class="p">(</span><span class="n">servo_params_</span><span class="p">,</span><span class="w"> </span><span class="n">joint_cmd_rolling_window_</span><span class="p">))</span>
+<a id="L-400" name="L-400"></a><span class="w">          </span><span class="p">{</span>
+<a id="L-401" name="L-401"></a><span class="w">            </span><span class="n">trajectory_publisher_</span><span class="o">-&gt;</span><span class="n">publish</span><span class="p">(</span><span class="n">msg</span><span class="p">.</span><span class="n">value</span><span class="p">());</span>
+<a id="L-402" name="L-402"></a><span class="w">          </span><span class="p">}</span>
+<a id="L-403" name="L-403"></a><span class="w">        </span><span class="p">}</span>
+<a id="L-404" name="L-404"></a><span class="w">        </span><span class="k">else</span>
+<a id="L-405" name="L-405"></a><span class="w">        </span><span class="p">{</span>
+<a id="L-406" name="L-406"></a><span class="w">          </span><span class="n">multi_array_publisher_</span><span class="o">-&gt;</span><span class="n">publish</span><span class="p">(</span><span class="n">composeMultiArrayMessage</span><span class="p">(</span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getParams</span><span class="p">(),</span><span class="w"> </span><span class="n">next_joint_state</span><span class="p">.</span><span class="n">value</span><span class="p">()));</span>
+<a id="L-407" name="L-407"></a><span class="w">        </span><span class="p">}</span>
+<a id="L-408" name="L-408"></a><span class="w">        </span><span class="n">last_commanded_state_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">next_joint_state</span><span class="p">.</span><span class="n">value</span><span class="p">();</span>
+<a id="L-409" name="L-409"></a><span class="w">      </span><span class="p">}</span>
+<a id="L-410" name="L-410"></a><span class="w">      </span><span class="k">else</span>
+<a id="L-411" name="L-411"></a><span class="w">      </span><span class="p">{</span>
+<a id="L-412" name="L-412"></a><span class="w">        </span><span class="c1">// if no new command was created, use current robot state</span>
+<a id="L-413" name="L-413"></a><span class="w">        </span><span class="n">last_commanded_state_</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">current_state</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getCurrentRobotState</span><span class="p">(</span><span class="nb">false</span><span class="p">);</span>
+<a id="L-414" name="L-414"></a><span class="w">        </span><span class="n">updateSlidingWindow</span><span class="p">(</span><span class="n">current_state</span><span class="p">,</span><span class="w"> </span><span class="n">joint_cmd_rolling_window_</span><span class="p">,</span><span class="w"> </span><span class="n">servo_params_</span><span class="p">.</span><span class="n">max_expected_latency</span><span class="p">,</span><span class="w"> </span><span class="n">cur_time</span><span class="p">);</span>
+<a id="L-415" name="L-415"></a><span class="w">        </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">resetSmoothing</span><span class="p">(</span><span class="n">current_state</span><span class="p">);</span>
+<a id="L-416" name="L-416"></a><span class="w">      </span><span class="p">}</span>
+<a id="L-417" name="L-417"></a>
+<a id="L-418" name="L-418"></a><span class="w">      </span><span class="n">status_msg</span><span class="p">.</span><span class="n">code</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="k">static_cast</span><span class="o">&lt;</span><span class="kt">int8_t</span><span class="o">&gt;</span><span class="p">(</span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getStatus</span><span class="p">());</span>
+<a id="L-419" name="L-419"></a><span class="w">      </span><span class="n">status_msg</span><span class="p">.</span><span class="n">message</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">servo_</span><span class="o">-&gt;</span><span class="n">getStatusMessage</span><span class="p">();</span>
+<a id="L-420" name="L-420"></a><span class="w">      </span><span class="n">status_publisher_</span><span class="o">-&gt;</span><span class="n">publish</span><span class="p">(</span><span class="n">status_msg</span><span class="p">);</span>
+<a id="L-421" name="L-421"></a><span class="w">    </span><span class="p">}</span>
+<a id="L-422" name="L-422"></a>
+<a id="L-423" name="L-423"></a><span class="w">    </span><span class="n">servo_frequency</span><span class="p">.</span><span class="n">sleep</span><span class="p">();</span>
+<a id="L-424" name="L-424"></a><span class="w">  </span><span class="p">}</span>
+<a id="L-425" name="L-425"></a><span class="p">}</span>
+<a id="L-426" name="L-426"></a>
+<a id="L-427" name="L-427"></a><span class="p">}</span><span class="w">  </span><span class="c1">// namespace moveit_servo</span>
+<a id="L-428" name="L-428"></a>
+<a id="L-429" name="L-429"></a><span class="kt">int</span><span class="w"> </span><span class="n">main</span><span class="p">(</span><span class="kt">int</span><span class="w"> </span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="kt">char</span><span class="o">**</span><span class="w"> </span><span class="n">argv</span><span class="p">)</span>
+<a id="L-430" name="L-430"></a><span class="p">{</span>
+<a id="L-431" name="L-431"></a><span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">init</span><span class="p">(</span><span class="n">argc</span><span class="p">,</span><span class="w"> </span><span class="n">argv</span><span class="p">);</span>
+<a id="L-432" name="L-432"></a><span class="w">  </span><span class="k">auto</span><span class="w"> </span><span class="n">servo_node</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">std</span><span class="o">::</span><span class="n">make_shared</span><span class="o">&lt;</span><span class="n">moveit_servo</span><span class="o">::</span><span class="n">ServoNode</span><span class="o">&gt;</span><span class="p">(</span><span class="n">rclcpp</span><span class="o">::</span><span class="n">NodeOptions</span><span class="p">{});</span>
+<a id="L-433" name="L-433"></a><span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">executors</span><span class="o">::</span><span class="n">MultiThreadedExecutor</span><span class="w"> </span><span class="n">executor</span><span class="p">;</span>
+<a id="L-434" name="L-434"></a><span class="w">  </span><span class="n">executor</span><span class="p">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">servo_node</span><span class="o">-&gt;</span><span class="n">get_node_base_interface</span><span class="p">());</span>
+<a id="L-435" name="L-435"></a><span class="w">  </span><span class="n">executor</span><span class="p">.</span><span class="n">spin</span><span class="p">();</span>
+<a id="L-436" name="L-436"></a><span class="w">  </span><span class="n">rclcpp</span><span class="o">::</span><span class="n">shutdown</span><span class="p">();</span>
+<a id="L-437" name="L-437"></a><span class="w">  </span><span class="k">return</span><span class="w"> </span><span class="mi">0</span><span class="p">;</span>
+<a id="L-438" name="L-438"></a><span class="p">}</span>
+</pre></div></td></tr></table></div>
+</div></body></html>

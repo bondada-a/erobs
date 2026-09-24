@@ -1,0 +1,815 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Task JSON reference &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="ROS action contracts" href="actions.html" />
+    <link rel="prev" title="Symbol index" href="api/symbols.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="modules.html">Module map</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api/index.html">Function and method reference</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Task JSON reference</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#document-envelope">Document envelope</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#requesting-preview">Requesting preview</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#resolving-pose-names">Resolving pose names</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#task-inventory">Task inventory</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#moveto"><code class="docutils literal notranslate"><span class="pre">moveto</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#end-effector"><code class="docutils literal notranslate"><span class="pre">end_effector</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#tool-exchange"><code class="docutils literal notranslate"><span class="pre">tool_exchange</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vision-task-and-vision-presets"><code class="docutils literal notranslate"><span class="pre">vision_task</span></code> and vision presets</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#detection-fields">Detection fields</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#approach-and-execution-fields">Approach and execution fields</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#joint-6-fields">Joint-6 fields</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#preset-differences">Preset differences</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#pick-sample-and-place-sample-without-vision"><code class="docutils literal notranslate"><span class="pre">pick_sample</span></code> and <code class="docutils literal notranslate"><span class="pre">place_sample</span></code> without vision</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vision-scan"><code class="docutils literal notranslate"><span class="pre">vision_scan</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pipettor"><code class="docutils literal notranslate"><span class="pre">pipettor</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pause"><code class="docutils literal notranslate"><span class="pre">pause</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#pickup-tip-and-pickup-vial-macros"><code class="docutils literal notranslate"><span class="pre">pickup_tip</span></code> and <code class="docutils literal notranslate"><span class="pre">pickup_vial</span></code> macros</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#path-constraints">Path constraints</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Reference</a></li>
+      <li class="breadcrumb-item active">Task JSON reference</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="task-json-reference">
+<h1>Task JSON reference<a class="headerlink" href="#task-json-reference" title="Link to this heading"></a></h1>
+<p>Use this page to look up task fields, defaults, and units. The orchestrator accepts this JSON and translates it into <a class="reference internal" href="actions.html"><span class="std std-doc">ROS action messages</span></a>, resolving pose names, gripper groups, and the model revision along the way.</p>
+<p>Defaults come from the parser, goal builders, and stages that use each field. Device and planning checks occur after parsing. The examples use illustrative coordinates; replace them with calibrated values for deployment.</p>
+<p>For a complete introduction, start with <a class="reference internal" href="../operate/tasks.html"><span class="std std-doc">Write task scripts</span></a>. The <a class="reference internal" href="../start/concepts.html"><span class="std std-doc">concepts guide</span></a> explains the frames, units, and planning terms used here; <a class="reference internal" href="../operate/vision.html"><span class="std std-doc">Vision-guided tasks</span></a> introduces detectors and goal computers.</p>
+<section id="document-envelope">
+<h2>Document envelope<a class="headerlink" href="#document-envelope" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Required/default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">start_gripper</span></code></p></td>
+<td><p>Required string</p></td>
+<td><p>Key in the active beamline’s <code class="docutils literal notranslate"><span class="pre">grippers</span></code> mapping; declares the already attached tool</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tasks</span></code></p></td>
+<td><p>Required, nonempty list</p></td>
+<td><p>Ordered task objects, each with <code class="docutils literal notranslate"><span class="pre">task_type</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">poses</span></code></p></td>
+<td><p>Optional object, <code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+<td><p>Names mapped to six joint angles in degrees</p></td>
+</tr>
+</tbody>
+</table>
+<section id="requesting-preview">
+<h3>Requesting preview<a class="headerlink" href="#requesting-preview" title="Link to this heading"></a></h3>
+<p>The ROS goal carries this JSON as <code class="docutils literal notranslate"><span class="pre">full_json</span></code>. Set the goal’s separate Boolean <code class="docutils literal notranslate"><span class="pre">dry_run</span></code> field to request preview. Adding <code class="docutils literal notranslate"><span class="pre">dry_run</span></code> inside the JSON does not set that field.</p>
+<p>Preview accepts only <code class="docutils literal notranslate"><span class="pre">moveto</span></code> and <code class="docutils literal notranslate"><span class="pre">end_effector</span></code> after macro expansion.</p>
+<p>With batching disabled, preview plans each row from live <code class="docutils literal notranslate"><span class="pre">CurrentState</span></code> without propagating prior preview endpoints. It does not validate a continuous multi-row path; see <a class="reference internal" href="../architecture/batching.html#preview-start-states"><span class="std std-ref">preview start states</span></a>.</p>
+</section>
+<section id="resolving-pose-names">
+<h3>Resolving pose names<a class="headerlink" href="#resolving-pose-names" title="Link to this heading"></a></h3>
+<p>Inline <code class="docutils literal notranslate"><span class="pre">poses</span></code> override registry entries with the same name. For missing names, the parser checks the registry for these fields:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">target</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scan_positions</span></code> and <code class="docutils literal notranslate"><span class="pre">scan_pose</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code> and <code class="docutils literal notranslate"><span class="pre">target_pose</span></code></p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">place_pose</span></code> and <code class="docutils literal notranslate"><span class="pre">pickup_pose</span></code></p></li>
+</ul>
+<p>This lookup does not automatically load an explicit <code class="docutils literal notranslate"><span class="pre">retreat_pose</span></code> or a name supplied only by a preset default. Include those poses in <code class="docutils literal notranslate"><span class="pre">poses</span></code> when required.</p>
+</section>
+</section>
+<section id="task-inventory">
+<h2>Task inventory<a class="headerlink" href="#task-inventory" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Type</p></th>
+<th class="head"><p>Purpose</p></th>
+<th class="head"><p>Preview</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">moveto</span></code></p></td>
+<td><p>Named, relative, or Cartesian arm movement</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_effector</span></code></p></td>
+<td><p>Move a gripper group to an SRDF state</p></td>
+<td><p>Yes</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">tool_exchange</span></code></p></td>
+<td><p>Dock or load a tool</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_task</span></code></p></td>
+<td><p>Explicit detector and goal-computer pipeline</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_moveto</span></code></p></td>
+<td><p>Marker/approach preset</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">vision_scan</span></code></p></td>
+<td><p>Capture and average markers across scan poses</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pick_sample</span></code></p></td>
+<td><p>Vision pick preset or hardcoded joint-pose pick</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">place_sample</span></code></p></td>
+<td><p>Vision place preset or hardcoded joint-pose place</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pick_spincoater</span></code></p></td>
+<td><p>Sample-angle detection and corrected joint target</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">place_spincoater</span></code></p></td>
+<td><p>Pocket-angle detection and corrected joint target</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pipettor</span></code></p></td>
+<td><p>Forward an operation to the pipette driver</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pause</span></code></p></td>
+<td><p>Wait for Resume or cancellation</p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">pickup_tip</span></code></p></td>
+<td><p>Macro expanded from <code class="docutils literal notranslate"><span class="pre">vision_targets.tip_rack</span></code></p></td>
+<td><p>No</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pickup_vial</span></code></p></td>
+<td><p>Macro expanded from <code class="docutils literal notranslate"><span class="pre">vision_targets.vial_rack</span></code></p></td>
+<td><p>No</p></td>
+</tr>
+</tbody>
+</table>
+<p>The first twelve are task types; the last two are parser macros. Result step counts refer to the expanded list.</p>
+</section>
+<section id="moveto">
+<h2><code class="docutils literal notranslate"><span class="pre">moveto</span></code><a class="headerlink" href="#moveto" title="Link to this heading"></a></h2>
+<figure class="architecture-figure">
+<div class="diagram-scroll" tabindex="0" role="region" aria-label="motion targets diagram"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 800" role="img" aria-labelledby="motion-targets-title motion-targets-desc">
+<title id="motion-targets-title">Choose one MoveTo target form</title>
+<desc id="motion-targets-desc">A moveto request must specify exactly one target form: a named joint pose or SRDF state, a relative direction with distance, or a Cartesian pose. Each form has its own automatic planner fallback order. The deterministic-IK PTP branch for Cartesian targets is included only when IK succeeds.</desc>
+<defs>
+<marker id="motion-targets-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#52647a"/></marker>
+<marker id="motion-targets-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+<marker id="motion-targets-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+</defs>
+<rect width="960" height="800" fill="#ffffff"/>
+<text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / TARGET SELECTION</text>
+<text x="48" y="84" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Choose one MoveTo target form</text>
+<path d="M316 240 H184 Q176 240 176 248 V360" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#motion-targets-arrow)"/>
+<path d="M480 304 V360" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#motion-targets-arrow)"/>
+<path d="M644 240 H776 Q784 240 784 248 V360" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#motion-targets-arrow)"/>
+<rect x="208" y="200" width="72" height="24" fill="#ffffff"/>
+<text x="244" y="220" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">NAME</text>
+<rect x="496" y="316" width="104" height="24" fill="#ffffff"/>
+<text x="548" y="336" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">DISPLACE</text>
+<rect x="684" y="200" width="72" height="24" fill="#ffffff"/>
+<text x="720" y="220" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">POSE</text>
+<polygon points="480,176 644,240 480,304 316,240" fill="#edf3ff" stroke="#235cb7"/>
+<text x="480" y="236" text-anchor="middle" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">What do you know</text>
+<text x="480" y="260" text-anchor="middle" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">about the destination?</text>
+<rect x="48" y="360" width="256" height="176" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="72" y="400" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Named configuration</text>
+<text x="72" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">target: "pose_name"</text>
+<text x="72" y="480" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Six joint values in degrees</text>
+<text x="72" y="504" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">or a named SRDF state</text>
+<rect x="352" y="360" width="256" height="176" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="376" y="400" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Relative movement</text>
+<text x="376" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">direction + distance</text>
+<text x="376" y="480" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Metres along the selected</text>
+<text x="376" y="504" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">IK frame's local direction</text>
+<rect x="656" y="360" width="256" height="176" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="680" y="400" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Cartesian pose</text>
+<text x="680" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">cartesian_target</text>
+<text x="680" y="480" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">XYZ metres + optional RPY°</text>
+<text x="680" y="504" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">in frame_id (base_link)</text>
+<text x="48" y="584" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">AUTOMATIC PLANNER ORDER</text>
+<text x="72" y="624" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">PTP → pipeline</text>
+<text x="72" y="656" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Pipeline uses configured</text>
+<text x="72" y="680" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">STOMP or OMPL/RRTstar.</text>
+<text x="376" y="624" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">LIN → CartesianPath</text>
+<text x="376" y="652" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">→ PTP</text>
+<text x="680" y="624" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">PTP with solved IK*</text>
+<text x="680" y="652" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">→ LIN → CartesianPath</text>
+<text x="680" y="680" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">*Skip PTP when IK fails.</text>
+<line x1="48" y1="720" x2="912" y2="720" stroke="#dbe3ee"/>
+<text x="48" y="752" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Exactly one form is required. Mixing forms, or supplying none, is rejected.</text>
+<text x="48" y="780" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">These chains cover auto / joint modes; explicit planner choices override them.</text>
+</svg></div>
+<figcaption><a href="../diagrams/motion-targets.html">Open the full-size diagram</a></figcaption>
+</figure><p>Choose exactly one target mode: nonempty <code class="docutils literal notranslate"><span class="pre">target</span></code>, <code class="docutils literal notranslate"><span class="pre">direction</span></code> plus <code class="docutils literal notranslate"><span class="pre">distance</span></code>, or <code class="docutils literal notranslate"><span class="pre">cartesian_target</span></code>.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">target</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Pose key; if absent from resolved poses, tried as an SRDF state</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Relative direction from the table below</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">distance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Metres; finite and strictly positive when relative mode is selected</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">cartesian_target</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>Exactly 3 or 6 finite values: XYZ metres, then optional roll/pitch/yaw degrees</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">frame_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;base_link&quot;</span></code></p></td>
+<td><p>Frame for the Cartesian target; an empty value also falls back to <code class="docutils literal notranslate"><span class="pre">base_link</span></code> in the stage</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">planning_type</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">auto</span></code>, and <code class="docutils literal notranslate"><span class="pre">joint</span></code> select automatic fallback planning; <code class="docutils literal notranslate"><span class="pre">cartesian</span></code> selects CartesianPath; <code class="docutils literal notranslate"><span class="pre">pilz</span></code> selects LIN; <code class="docutils literal notranslate"><span class="pre">pilz_ptp</span></code> selects PTP</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">constraints</span></code></p></td>
+<td><p>Absent</p></td>
+<td><p>Joint/orientation path constraints described below</p></td>
+</tr>
+</tbody>
+</table>
+<p>An XYZ-only target uses roll 180°, pitch 0°, and the current detected IK frame’s yaw in <code class="docutils literal notranslate"><span class="pre">base_link</span></code>, falling back to yaw 0° if TF lookup fails. Use six values when the intended orientation must be explicit.</p>
+<p>Relative directions use the stage IK frame, which defaults to <code class="docutils literal notranslate"><span class="pre">flange</span></code> on the current orchestrator MoveTo routes. Cartesian targets separately auto-detect the configured tool-tip frame. The literal direction aliases are the repository’s convention; in particular <code class="docutils literal notranslate"><span class="pre">y</span></code> is not positive local Y:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Names</p></th>
+<th class="head"><p>Local direction vector</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">forward</span></code>, <code class="docutils literal notranslate"><span class="pre">x</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[1,</span> <span class="pre">0,</span> <span class="pre">0]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">backward</span></code>, <code class="docutils literal notranslate"><span class="pre">-x</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[-1,</span> <span class="pre">0,</span> <span class="pre">0]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">right</span></code>, <code class="docutils literal notranslate"><span class="pre">y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">-1,</span> <span class="pre">0]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">left</span></code>, <code class="docutils literal notranslate"><span class="pre">-y</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1,</span> <span class="pre">0]</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">up</span></code>, <code class="docutils literal notranslate"><span class="pre">z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">1]</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">down</span></code>, <code class="docutils literal notranslate"><span class="pre">-z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">0,</span> <span class="pre">-1]</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-json notranslate"><div class="highlight"><pre><span></span><span class="p">{</span>
+<span class="w">  </span><span class="nt">"start_gripper"</span><span class="p">:</span><span class="w"> </span><span class="s2">"none"</span><span class="p">,</span>
+<span class="w">  </span><span class="nt">"tasks"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<span class="w">    </span><span class="p">{</span>
+<span class="w">      </span><span class="nt">"task_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"moveto"</span><span class="p">,</span>
+<span class="w">      </span><span class="nt">"cartesian_target"</span><span class="p">:</span><span class="w"> </span><span class="p">[</span><span class="mf">0.3</span><span class="p">,</span><span class="w"> </span><span class="mf">-0.2</span><span class="p">,</span><span class="w"> </span><span class="mf">0.25</span><span class="p">,</span><span class="w"> </span><span class="mi">180</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">,</span><span class="w"> </span><span class="mi">0</span><span class="p">],</span>
+<span class="w">      </span><span class="nt">"frame_id"</span><span class="p">:</span><span class="w"> </span><span class="s2">"base_link"</span>
+<span class="w">    </span><span class="p">}</span>
+<span class="w">  </span><span class="p">]</span>
+<span class="p">}</span>
+</pre></div>
+</div>
+<p>These coordinates illustrate the field format and have not been checked for reachability. Automatic planning depends on the target form; see <a class="reference internal" href="../architecture/execution.html"><span class="std std-doc">execution architecture</span></a>.</p>
+</section>
+<section id="end-effector">
+<h2><code class="docutils literal notranslate"><span class="pre">end_effector</span></code><a class="headerlink" href="#end-effector" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">end_effector_type</span></code></p></td>
+<td><p>Current gripper</p></td>
+<td><p>Selects the configured gripper group; does not exchange tools. If supplied, it must be a string matching a configured gripper key. Unknown names are rejected during parsing.</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">end_effector_action</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Literal SRDF state, such as <code class="docutils literal notranslate"><span class="pre">hande_open</span></code> or <code class="docutils literal notranslate"><span class="pre">vacuum_on</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>An action is required when the selected group is nonempty. An empty group returns no-op success, including the usual <code class="docutils literal notranslate"><span class="pre">none</span></code>/<code class="docutils literal notranslate"><span class="pre">pipettor</span></code> entries. Standalone <code class="docutils literal notranslate"><span class="pre">end_effector</span></code> does not translate <code class="docutils literal notranslate"><span class="pre">grasp</span></code>/<code class="docutils literal notranslate"><span class="pre">release</span></code> aliases; that translation is performed by the vision goal-computer path.</p>
+</section>
+<section id="tool-exchange">
+<h2><code class="docutils literal notranslate"><span class="pre">tool_exchange</span></code><a class="headerlink" href="#tool-exchange" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">operation</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Required valid value: <code class="docutils literal notranslate"><span class="pre">dock</span></code> or <code class="docutils literal notranslate"><span class="pre">load</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Configured tool to load; for dock, must match the attached tool</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">dock_number</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Integer identifying the physical dock; choose the deployment’s calibrated value</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Required usable joint-pose key for the approach</p></td>
+</tr>
+</tbody>
+</table>
+<p>Loading requires no tool attached. Dock spacing, reference dock, and motion sequence come from beamline configuration. There is no universal safe default dock number or generic geometry. On a changed attachment, successful physical exchange is followed by a MoveIt relaunch and a TF reset in the vision-task server.</p>
+</section>
+<section id="vision-task-and-vision-presets">
+<h2><code class="docutils literal notranslate"><span class="pre">vision_task</span></code> and vision presets<a class="headerlink" href="#vision-task-and-vision-presets" title="Link to this heading"></a></h2>
+<p>The canonical task defaults to <code class="docutils literal notranslate"><span class="pre">detector:</span> <span class="pre">&quot;marker&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">goal_computer:</span> <span class="pre">&quot;approach_pose&quot;</span></code>. These fields also apply to the vision preset names below, subject to their preset overrides.</p>
+<section id="detection-fields">
+<h3>Detection fields<a class="headerlink" href="#detection-fields" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">detector</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker</span></code>, <code class="docutils literal notranslate"><span class="pre">sample_roi</span></code>, <code class="docutils literal notranslate"><span class="pre">spincoater_pocket</span></code>, or <code class="docutils literal notranslate"><span class="pre">spincoater_sample</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">detection_type</span></code></p></td>
+<td><p>Absent</p></td>
+<td><p>Legacy selector used only when the task does not explicitly provide <code class="docutils literal notranslate"><span class="pre">detector</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">goal_computer</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code> for pose detections; <code class="docutils literal notranslate"><span class="pre">j6_snap</span></code> for angle detections</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">tag_id</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>ArUco marker or sample-ROI anchor ID</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">sample_index</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1</span></code></p></td>
+<td><p>Forwarded reserved field; not used by the current unified detector</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">10.0</span></code></p></td>
+<td><p>Seconds per detection attempt. Detection makes up to 4 attempts (0.5 s apart), repeated at each scan position. The whole vision action must still finish within the orchestrator’s <code class="docutils literal notranslate"><span class="pre">vision_task</span></code> limit (60 s by default, ROS parameter <code class="docutils literal notranslate"><span class="pre">timeout.vision_task</span></code>); exceeding it faults the orchestrator</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">strategy</span></code></p></td>
+<td><p>Empty → <code class="docutils literal notranslate"><span class="pre">farthest_edge</span></code></p></td>
+<td><p>Sample ROI: <code class="docutils literal notranslate"><span class="pre">center</span></code>, <code class="docutils literal notranslate"><span class="pre">farthest_edge</span></code>, <code class="docutils literal notranslate"><span class="pre">nearest_edge</span></code>, <code class="docutils literal notranslate"><span class="pre">farthest_corner</span></code>, <code class="docutils literal notranslate"><span class="pre">nearest_corner</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">edge_inset_mm</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Finite nonnegative sample-ROI inset in millimetres</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scan_positions</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">[]</span></code></p></td>
+<td><p>Named six-joint poses for marker multi-position detection; flattened internally in radians. At least 2 positions must detect the marker for the averaged pose</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">settle_time</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">1.0</span></code></p></td>
+<td><p>Orchestrator delay before dispatch, capped at 10 s; nonpositive values skip this delay</p></td>
+</tr>
+</tbody>
+</table>
+<p>The vision stage also waits 0.3 s before detection by default. Spincoater capture has a separate 15 s timeout for 2D capture.</p>
+<p>Unknown detector or goal-computer names produce a pipeline error. The lookup happens <strong>after the optional pre-scan move</strong>, so an invalid name can still result in motion before the error is reported.</p>
+</section>
+<section id="approach-and-execution-fields">
+<h3>Approach and execution fields<a class="headerlink" href="#approach-and-execution-fields" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">z_offset</span></code></p></td>
+<td><p>Current gripper’s offset</p></td>
+<td><p>Base-frame Z displacement, metres; zero is interpreted by geometry code as use-gripper-default</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">marker_offset_x/y/z</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code> each</p></td>
+<td><p>Marker-frame offsets, metres</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">offset_direction</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Direction for an additional flange-frame offset</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">offset_distance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Metres; finite and positive when a direction is set</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scan_pose</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Optional named pre-detection joint move</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pre_open</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>Open the configured gripper before that scan move; no effect when <code class="docutils literal notranslate"><span class="pre">scan_pose</span></code> is empty or the gripper has no <code class="docutils literal notranslate"><span class="pre">release</span></code> state</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">terminal_action</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">grasp</span></code>/<code class="docutils literal notranslate"><span class="pre">release</span></code> mapping key or literal SRDF state after approach</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">retreat_pose</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Named joint-pose retreat appended to the Cartesian-target task when applicable; include its pose data explicitly</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">retreat_from_scan</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p>If true, use <code class="docutils literal notranslate"><span class="pre">scan_pose</span></code> as retreat and ignore explicit <code class="docutils literal notranslate"><span class="pre">retreat_pose</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">gripper</span></code></p></td>
+<td><p>Current gripper</p></td>
+<td><p>Selects gripper group/state mapping; IK frame and default Z offset still come from the current gripper</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">detect_only</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">false</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">approach_pose</span></code> returns its computed pose instead of executing the target; earlier scans/pre-opening remain possible</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">constraints</span></code></p></td>
+<td><p>Absent</p></td>
+<td><p>Applied to named pre-scan motion, Cartesian approach/retreat, corrected joint motion, and optional forward contact; not applied to <code class="docutils literal notranslate"><span class="pre">scan_positions</span></code> movements</p></td>
+</tr>
+</tbody>
+</table>
+<p><code class="docutils literal notranslate"><span class="pre">j6_snap</span></code> ignores <code class="docutils literal notranslate"><span class="pre">detect_only</span></code>: it still executes the corrected joint target and any configured contact/gripper actions. For <code class="docutils literal notranslate"><span class="pre">approach_pose</span></code>, detection-only skips the computed target but can still perform earlier scan and pre-open actions.</p>
+</section>
+<section id="joint-6-fields">
+<h3>Joint-6 fields<a class="headerlink" href="#joint-6-fields" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">target_pose</span></code></p></td>
+<td><p>Empty</p></td>
+<td><p>Base joint-pose key for correction</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">place_pose</span></code>, <code class="docutils literal notranslate"><span class="pre">pickup_pose</span></code></p></td>
+<td><p>Empty</p></td>
+<td><p>Legacy alternatives, tried after <code class="docutils literal notranslate"><span class="pre">target_pose</span></code> in that order</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">default_target_pose</span></code></p></td>
+<td><p>Empty</p></td>
+<td><p>Last fallback name; spincoater presets set <code class="docutils literal notranslate"><span class="pre">spincoater_place</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">k_offset</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Calibration angle added before modulo-90 correction, degrees</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">forward_distance</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Optional forward contact movement, metres; only positive values add the move</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="preset-differences">
+<h3>Preset differences<a class="headerlink" href="#preset-differences" title="Link to this heading"></a></h3>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Task</p></th>
+<th class="head"><p>Defaults layered over the canonical fields</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">vision_moveto</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker</span></code> → <code class="docutils literal notranslate"><span class="pre">approach_pose</span></code>; no terminal action</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pick_sample</span></code> with vision</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker</span></code> → <code class="docutils literal notranslate"><span class="pre">approach_pose</span></code>; terminal <code class="docutils literal notranslate"><span class="pre">grasp</span></code>, <code class="docutils literal notranslate"><span class="pre">pre_open:</span> <span class="pre">true</span></code>, <code class="docutils literal notranslate"><span class="pre">retreat_from_scan:</span> <span class="pre">true</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">place_sample</span></code> with vision</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">marker</span></code> → <code class="docutils literal notranslate"><span class="pre">approach_pose</span></code>; terminal <code class="docutils literal notranslate"><span class="pre">release</span></code>, <code class="docutils literal notranslate"><span class="pre">retreat_from_scan:</span> <span class="pre">true</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pick_spincoater</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">spincoater_sample</span></code> → <code class="docutils literal notranslate"><span class="pre">j6_snap</span></code>; <code class="docutils literal notranslate"><span class="pre">scan_pose:</span> <span class="pre">spincoater_scan</span></code>, default target <code class="docutils literal notranslate"><span class="pre">spincoater_place</span></code>, terminal <code class="docutils literal notranslate"><span class="pre">vacuum_on</span></code>, forward 0.003 m</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">place_spincoater</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">spincoater_pocket</span></code> → <code class="docutils literal notranslate"><span class="pre">j6_snap</span></code>; same scan/target defaults, terminal <code class="docutils literal notranslate"><span class="pre">vacuum_off</span></code>, forward 0.003 m</p></td>
+</tr>
+</tbody>
+</table>
+<p>Explicit task fields override these defaults. Put preset-only scan/target pose names in inline <code class="docutils literal notranslate"><span class="pre">poses</span></code> or explicitly reference them through fields the parser resolves. Do not assume a spincoater pose in the registry is loaded merely because the preset names it internally.</p>
+</section>
+</section>
+<section id="pick-sample-and-place-sample-without-vision">
+<h2><code class="docutils literal notranslate"><span class="pre">pick_sample</span></code> and <code class="docutils literal notranslate"><span class="pre">place_sample</span></code> without vision<a class="headerlink" href="#pick-sample-and-place-sample-without-vision" title="Link to this heading"></a></h2>
+<p>Set <code class="docutils literal notranslate"><span class="pre">use_vision:</span> <span class="pre">false</span></code> to route to the retained sample action server. <code class="docutils literal notranslate"><span class="pre">use_vision</span></code> defaults to true for these tasks.</p>
+<p>The non-vision route uses <code class="docutils literal notranslate"><span class="pre">approach_pose</span></code> and <code class="docutils literal notranslate"><span class="pre">target_pose</span></code> (both default empty), optional <code class="docutils literal notranslate"><span class="pre">gripper</span></code> (current gripper), and <code class="docutils literal notranslate"><span class="pre">constraints</span></code>. It constructs a joint-pose sequence with the configured gripper states. Vision-specific fields are not forwarded through this route.</p>
+<p>Bringup starts the sample server only when <code class="docutils literal notranslate"><span class="pre">enable_vision</span></code> is true, so turning vision off at launch also removes the non-vision sample-action route.</p>
+</section>
+<section id="vision-scan">
+<h2><code class="docutils literal notranslate"><span class="pre">vision_scan</span></code><a class="headerlink" href="#vision-scan" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">scan_positions</span></code></p></td>
+<td><p>Empty; must resolve at least one pose</p></td>
+<td><p>Named joint positions to visit</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">scans_per_position</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">3</span></code></p></td>
+<td><p>Captures at each position; nonpositive wire values also fall back to 3</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">timeout</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">10.0</span></code></p></td>
+<td><p>Capture timeout in seconds; nonpositive wire values fall back to 10</p></td>
+</tr>
+</tbody>
+</table>
+<p>Missing pose names are skipped with a warning; no usable poses is an error. The scan server succeeds when at least one tag is detected. Its tag cache stays in the scan-server process and is not shared with the unified vision server.</p>
+</section>
+<section id="pipettor">
+<h2><code class="docutils literal notranslate"><span class="pre">pipettor</span></code><a class="headerlink" href="#pipettor" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">operation</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">&quot;&quot;</span></code></p></td>
+<td><p>Device operation: <code class="docutils literal notranslate"><span class="pre">SUCK</span></code>, <code class="docutils literal notranslate"><span class="pre">EXPEL</span></code>, <code class="docutils literal notranslate"><span class="pre">EJECT_TIP</span></code>, or <code class="docutils literal notranslate"><span class="pre">SET_LED</span></code></p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">volume_pct</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.0</span></code></p></td>
+<td><p>Fraction of device range, conventionally 0–1; forwarded by EROBS but ignored by the imported pipette driver</p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">led_color</span></code></p></td>
+<td><p>Absent</p></td>
+<td><p>Object with <code class="docutils literal notranslate"><span class="pre">r</span></code>, <code class="docutils literal notranslate"><span class="pre">g</span></code>, <code class="docutils literal notranslate"><span class="pre">b</span></code> floats, each defaulting to 0 when supplied; alpha is set to 1</p></td>
+</tr>
+</tbody>
+</table>
+<p>The wrapper forwards these values to the external pipette action without enforcing the full operation or range contract.</p>
+<p>The imported pipette driver uses fixed SUCK/EXPEL sequences and ignores <code class="docutils literal notranslate"><span class="pre">volume_pct</span></code>. This field does not specify microlitres or control volume in that driver version. A pipettor task can actuate the attached device even though it performs no arm planning.</p>
+</section>
+<section id="pause">
+<h2><code class="docutils literal notranslate"><span class="pre">pause</span></code><a class="headerlink" href="#pause" title="Link to this heading"></a></h2>
+<p>No additional fields are consumed. The task waits for Resume or cancellation and has no timer. See <a class="reference internal" href="../operate/controls.html"><span class="std std-doc">execution controls</span></a> for service behavior and batch boundaries.</p>
+</section>
+<section id="pickup-tip-and-pickup-vial-macros">
+<h2><code class="docutils literal notranslate"><span class="pre">pickup_tip</span></code> and <code class="docutils literal notranslate"><span class="pre">pickup_vial</span></code> macros<a class="headerlink" href="#pickup-tip-and-pickup-vial-macros" title="Link to this heading"></a></h2>
+<p>Both require a configured grid target (<code class="docutils literal notranslate"><span class="pre">tip_rack</span></code> or <code class="docutils literal notranslate"><span class="pre">vial_rack</span></code>) with <code class="docutils literal notranslate"><span class="pre">mode:</span> <span class="pre">grid</span></code>, a non-negative integer <code class="docutils literal notranslate"><span class="pre">marker_id</span></code>, positive <code class="docutils literal notranslate"><span class="pre">grid.rows</span></code> and <code class="docutils literal notranslate"><span class="pre">grid.cols</span></code>, and a non-empty <code class="docutils literal notranslate"><span class="pre">moves</span></code> list. Offsets are optional.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Field</p></th>
+<th class="head"><p>Default</p></th>
+<th class="head"><p>Meaning</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">element_index</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0</span></code></p></td>
+<td><p>Zero-based row-major element index</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">row</span></code>, <code class="docutils literal notranslate"><span class="pre">col</span></code></p></td>
+<td><p>Absent</p></td>
+<td><p>Zero-based coordinates; supply both; take precedence over <code class="docutils literal notranslate"><span class="pre">element_index</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">config</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">{}</span></code></p></td>
+<td><p>Override selected vision-target settings; its <code class="docutils literal notranslate"><span class="pre">grid</span></code> mapping merges with configured grid fields</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">pipettor_operation</span></code></p></td>
+<td><p>Absent</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">pickup_vial</span></code> only: <code class="docutils literal notranslate"><span class="pre">SUCK</span></code>, <code class="docutils literal notranslate"><span class="pre">EXPEL</span></code>, or <code class="docutils literal notranslate"><span class="pre">RINSE</span></code></p></td>
+</tr>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">volume_pct</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">0.5</span></code></p></td>
+<td><p>Fraction for inserted vial operations; parser checks finite numeric input</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">rinse_count</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">2</span></code></p></td>
+<td><p>Positive integer for <code class="docutils literal notranslate"><span class="pre">RINSE</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Expansion emits an optional move to the configured scan pose, a <code class="docutils literal notranslate"><span class="pre">vision_moveto</span></code> for the marker, and configured relative moves. Grid <code class="docutils literal notranslate"><span class="pre">column_offset</span></code>/<code class="docutils literal notranslate"><span class="pre">row_offset</span></code> placeholders become Cartesian relative steps; offsets no larger than 1 μm are omitted. Addresses must lie inside the configured grid.</p>
+<p><code class="docutils literal notranslate"><span class="pre">RINSE</span></code> expands to <code class="docutils literal notranslate"><span class="pre">SUCK,</span> <span class="pre">EXPEL</span></code> repeated <code class="docutils literal notranslate"><span class="pre">rinse_count</span></code> times, followed by one final <code class="docutils literal notranslate"><span class="pre">SUCK</span></code>. Inserted pipettor operations occur before the final retreat move. The configuration must end with a move object for that insertion to be accepted.</p>
+<p>Parser macros and the MCP <code class="docutils literal notranslate"><span class="pre">pickup_tip</span></code>/<code class="docutils literal notranslate"><span class="pre">vision_target</span></code> tools use the same grid-expansion helper. They remain separate interfaces: macros are submitted inside a task document; MCP tools return generated JSON for a later submission.</p>
+</section>
+<section id="path-constraints">
+<h2>Path constraints<a class="headerlink" href="#path-constraints" title="Link to this heading"></a></h2>
+<p><code class="docutils literal notranslate"><span class="pre">constraints</span></code> can contain lists named <code class="docutils literal notranslate"><span class="pre">joint_constraints</span></code> and <code class="docutils literal notranslate"><span class="pre">orientation_constraints</span></code>. Angles use degrees and are converted internally.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Constraint list</p></th>
+<th class="head"><p>Required fields</p></th>
+<th class="head"><p>Defaults</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><code class="docutils literal notranslate"><span class="pre">joint_constraints</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">joint_name</span></code>, <code class="docutils literal notranslate"><span class="pre">position</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">tolerance_above</span></code>: 1°; <code class="docutils literal notranslate"><span class="pre">tolerance_below</span></code>: 1°; <code class="docutils literal notranslate"><span class="pre">weight</span></code>: 1</p></td>
+</tr>
+<tr class="row-odd"><td><p><code class="docutils literal notranslate"><span class="pre">orientation_constraints</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">link_name</span></code>, three-element RPY <code class="docutils literal notranslate"><span class="pre">orientation</span></code></p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">frame_id</span></code>: <code class="docutils literal notranslate"><span class="pre">base_link</span></code>; XYZ <code class="docutils literal notranslate"><span class="pre">tolerance</span></code>: <code class="docutils literal notranslate"><span class="pre">[5,</span> <span class="pre">5,</span> <span class="pre">5]</span></code> degrees; <code class="docutils literal notranslate"><span class="pre">weight</span></code>: 1; <code class="docutils literal notranslate"><span class="pre">parameterization</span></code>: <code class="docutils literal notranslate"><span class="pre">rotation_vector</span></code></p></td>
+</tr>
+</tbody>
+</table>
+<p>Orientation constraints also accept <code class="docutils literal notranslate"><span class="pre">parameterization:</span> <span class="pre">euler_xyz</span></code>.</p>
+<p>Constraints apply only where the consuming stage attaches them. They do not change a relative move’s coordinate frame, provide automatic obstacle sensing, or constrain the multi-position scan moves supplied through <code class="docutils literal notranslate"><span class="pre">scan_positions</span></code>.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="api/symbols.html" class="btn btn-neutral float-left" title="Symbol index" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="actions.html" class="btn btn-neutral float-right" title="ROS action contracts" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

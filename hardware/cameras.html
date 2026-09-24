@@ -1,0 +1,262 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cameras and detection &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Calibration and planning scenes" href="calibration-scenes.html" />
+    <link rel="prev" title="End effectors" href="end-effectors.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="index.html">Hardware and perception</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="robot-models.html">Robot models and controllers</a></li>
+<li class="toctree-l2"><a class="reference internal" href="end-effectors.html">End effectors</a></li>
+<li class="toctree-l2 current"><a class="current reference internal" href="#">Cameras and detection</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#camera-setup">Camera setup</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#zivid-capture-and-detection">Zivid capture and detection</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#capture-settings">Capture settings</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#capture-time-and-coordinates">Capture time and coordinates</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#zed-limitations">ZED limitations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#recorded-camera-check">Recorded camera check</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="calibration-scenes.html">Calibration and planning scenes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="survey.html">Survey mapping</a></li>
+<li class="toctree-l2"><a class="reference internal" href="index.html#hardware-guides">Hardware guides</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../reference/index.html">Reference</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="index.html">Hardware and perception</a></li>
+      <li class="breadcrumb-item active">Cameras and detection</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="cameras-and-detection">
+<h1>Cameras and detection<a class="headerlink" href="#cameras-and-detection" title="Link to this heading"></a></h1>
+<p>EROBS uses camera measurements to locate markers, select sample pickup points, and align the tool with a spincoater. <strong>Zivid is the integrated CMS camera.</strong> A ZED adapter is also present, with the limitations described below.</p>
+<p>For task settings and a detection-only example, see <a class="reference internal" href="../operate/vision.html"><span class="std std-doc">Vision-guided tasks</span></a>. <a class="reference internal" href="../architecture/perception.html"><span class="std std-doc">Perception architecture</span></a> explains how a measurement becomes a motion target.</p>
+<section id="camera-setup">
+<h2>Camera setup<a class="headerlink" href="#camera-setup" title="Link to this heading"></a></h2>
+<p>Complete the <a class="reference internal" href="../start/setup.html#optional-zivid-camera"><span class="std std-ref">optional Zivid installation</span></a> and check the <a class="reference internal" href="calibration-scenes.html#arm-and-camera-calibration"><span class="std std-ref">camera calibration</span></a>. The vendor SDK is a separate host dependency; the ROS drivers are imported through <code class="docutils literal notranslate"><span class="pre">src/vision/vision.repos</span></code>.</p>
+<p>The beamline’s <code class="docutils literal notranslate"><span class="pre">camera</span></code> block selects the adapter, coordinate frame, and marker dictionary. CMS uses <code class="docutils literal notranslate"><span class="pre">type:</span> <span class="pre">zivid</span></code>, <code class="docutils literal notranslate"><span class="pre">frame:</span> <span class="pre">zivid_optical_frame</span></code>, and <code class="docutils literal notranslate"><span class="pre">marker_dictionary:</span> <span class="pre">aruco4x4_50</span></code>.</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Camera</p></th>
+<th class="head"><p>EROBS integration</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Zivid</p></td>
+<td><p>Main bringup starts the camera and vision servers with <code class="docutils literal notranslate"><span class="pre">enable_vision:=true</span></code>. Vision is disabled by default.</p></td>
+</tr>
+<tr class="row-odd"><td><p>ZED</p></td>
+<td><p>The adapter reads streamed images and point clouds. Main bringup does not start a ZED driver; changing <code class="docutils literal notranslate"><span class="pre">camera.type</span></code> alone does not configure one.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Mock UR hardware does not simulate camera measurements. The CMS robot model also requires <code class="docutils literal notranslate"><span class="pre">zivid_description</span></code> for camera geometry when live vision is disabled.</p>
+<p>For vendor settings and service details, use the official <a class="reference external" href="https://github.com/zivid/zivid-ros#readme">Zivid ROS driver documentation</a>.</p>
+</section>
+<section id="zivid-capture-and-detection">
+<h2>Zivid capture and detection<a class="headerlink" href="#zivid-capture-and-detection" title="Link to this heading"></a></h2>
+<p>The adapter in <code class="docutils literal notranslate"><span class="pre">src/beambot/beambot/vision/camera/zivid.py</span></code> requests captures when needed. Different tasks use different measurements:</p>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Task or workflow</p></th>
+<th class="head"><p>Camera data and processing</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p>Marker detection</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/capture_and_detect_markers</span></code> returns native 3D marker poses.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Sample region (<code class="docutils literal notranslate"><span class="pre">sample_roi</span></code>)</p></td>
+<td><p>The same capture supplies a marker pose and image. Image processing selects a pickup pixel, then projects it onto the marker plane with the configured sample thickness. It does not read sample depth from the point cloud.</p></td>
+</tr>
+<tr class="row-even"><td><p>Spincoater alignment</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/capture_2d</span></code> publishes a flash-lit image on <code class="docutils literal notranslate"><span class="pre">/color/image_color</span></code>. Pocket detection uses image geometry; sample detection uses a segmentation model.</p></td>
+</tr>
+<tr class="row-odd"><td><p>Survey mapping</p></td>
+<td><p><code class="docutils literal notranslate"><span class="pre">/capture</span></code> publishes a point cloud on <code class="docutils literal notranslate"><span class="pre">/points/xyzrgba</span></code>. The survey waits for a new cloud after capture; see <a class="reference internal" href="survey.html"><span class="std std-doc">Survey mapping</span></a>.</p></td>
+</tr>
+</tbody>
+</table>
+<p>Spincoater sample detection requires Ultralytics and <code class="docutils literal notranslate"><span class="pre">models/spincoater_sample_seg.pt</span></code> in the installed <code class="docutils literal notranslate"><span class="pre">beambot</span></code> share directory. Native marker detection and pocket detection do not use that learned model.</p>
+<p>The 2D helper subscribes before triggering capture, discards an older frame, and waits for both the service result and an image within one timeout. Temporary subscriptions and clients are cleaned up on success or failure. These waits require a running ROS executor to deliver callbacks; see the <a class="reference internal" href="../reference/api/subsystems/perception.html"><span class="std std-doc">vision function reference</span></a> when using the helpers directly.</p>
+</section>
+<section id="capture-settings">
+<h2>Capture settings<a class="headerlink" href="#capture-settings" title="Link to this heading"></a></h2>
+<p>The files are in <strong><code class="docutils literal notranslate"><span class="pre">src/beambot/config/zivid/</span></code></strong> and are installed with <code class="docutils literal notranslate"><span class="pre">beambot</span></code>:</p>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">zivid_settings.yml</span></code> — main bringup’s 2D capture settings.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">scene_capture_noproj.yml</span></code> — main bringup’s 3D capture settings.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">manufacturing_specular.yml</span></code> — survey capture’s default preset for reflective surfaces.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">manufacturing_specular_fullres.yml</span></code> — a full-resolution variant for explicit selection; neither main bringup nor the survey selects it by default.</p></li>
+</ul>
+<p>Despite its name, <code class="docutils literal notranslate"><span class="pre">scene_capture_noproj.yml</span></code> uses nonzero projector brightness for 3D acquisition. Its color acquisition uses zero brightness.</p>
+<p>The manufacturing presets were serialized for Zivid SDK 2.17.1 and the CMS camera model. Check compatibility when changing the camera or SDK.</p>
+</section>
+<section id="capture-time-and-coordinates">
+<h2>Capture time and coordinates<a class="headerlink" href="#capture-time-and-coordinates" title="Link to this heading"></a></h2>
+<p>A camera measurement is not yet a tool target. EROBS transforms it into <code class="docutils literal notranslate"><span class="pre">base_link</span></code>, then applies the task’s offsets and tool settings.</p>
+<p>For Zivid, the adapter records a timestamp immediately before requesting capture. This approximates capture time; it is not the hardware exposure timestamp. <code class="docutils literal notranslate"><span class="pre">VisionEngine</span></code> uses it to look up the camera-to-base transform. An unavailable transform fails the detection.</p>
+<p>This matters because the camera moves with the wrist. Using a later arm position could shift the calculated target. See <a class="reference internal" href="../architecture/perception.html#capture-time-and-coordinates"><span class="std std-ref">capture time and coordinates</span></a> for the transform behavior.</p>
+</section>
+<section id="zed-limitations">
+<h2>ZED limitations<a class="headerlink" href="#zed-limitations" title="Link to this heading"></a></h2>
+<p>The adapter in <code class="docutils literal notranslate"><span class="pre">vision/camera/zed.py</span></code>, relative to <code class="docutils literal notranslate"><span class="pre">src/beambot/beambot/</span></code>, reads images and registered point clouds under <code class="docutils literal notranslate"><span class="pre">/zed/zed_node/</span></code>. It uses the shared OpenCV ArUco helper to find markers and looks up their positions in the cloud.</p>
+<p>This path is not verified end to end:</p>
+<ul class="simple">
+<li><p>Marker orientation is not estimated; the adapter returns an identity quaternion.</p></li>
+<li><p>Missing or invalid depth can leave a detected marker at the default zero position instead of rejecting it.</p></li>
+<li><p>Image and cloud messages are collected independently, without timestamp synchronization.</p></li>
+<li><p>The adapter has no <code class="docutils literal notranslate"><span class="pre">sample_roi</span></code> implementation, and spincoater detection explicitly uses Zivid capture.</p></li>
+</ul>
+<p>These limits prevent treating ZED as a drop-in replacement for CMS vision tasks.</p>
+</section>
+<section id="recorded-camera-check">
+<h2>Recorded camera check<a class="headerlink" href="#recorded-camera-check" title="Link to this heading"></a></h2>
+<p>A detection-only task returns the approach target, including the tool offset, not the raw marker center. Physical calibration accuracy and vision-guided grasping have not been validated.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="end-effectors.html" class="btn btn-neutral float-left" title="End effectors" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="calibration-scenes.html" class="btn btn-neutral float-right" title="Calibration and planning scenes" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

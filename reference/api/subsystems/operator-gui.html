@@ -1,0 +1,302 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Operator GUI &mdash; EROBS</title>
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=b86133f3" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=9edc463e" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/copybutton.css?v=76b2166b" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/rtd.css?v=352c6c88" />
+
+  
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=196c9fba"></script>
+      <script src="../../../_static/doctools.js?v=fd6eb6e6"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=6ffebe34"></script>
+      <script src="../../../_static/clipboard.min.js?v=a7894cd8"></script>
+      <script src="../../../_static/copybutton.js?v=a5fa425f"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+    <link rel="next" title="GUI startup" href="../modules/src-mtc_gui-mtc_gui-main-py.html" />
+    <link rel="prev" title="Survey point-cloud merger" href="../modules/scripts-survey_mapping-merge_survey_bag-py.html" /> 
+</head>
+
+<body class="wy-body-for-nav"><a class="skip-link" href="#main-content">Skip to main content</a>
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search"  style="background: #235cb7" >
+
+          
+          
+          <a href="../../../index.html" class="icon icon-home">
+            EROBS
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="../../../start/index.html">Start here</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../operate/index.html">Operate EROBS</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../architecture/index.html">Architecture</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../hardware/index.html">Hardware and perception</a></li>
+<li class="toctree-l1 current"><a class="reference internal" href="../../index.html">Reference</a><ul class="current">
+<li class="toctree-l2"><a class="reference internal" href="../../modules.html">Module map</a></li>
+<li class="toctree-l2 current"><a class="reference internal" href="../index.html">Function and method reference</a><ul class="current">
+<li class="toctree-l3"><a class="reference internal" href="task-execution.html">Task execution</a></li>
+<li class="toctree-l3"><a class="reference internal" href="motion-planning.html">Motion planning</a></li>
+<li class="toctree-l3"><a class="reference internal" href="tools-end-effectors.html">Tools and end effectors</a></li>
+<li class="toctree-l3"><a class="reference internal" href="perception.html">Perception and mapping</a></li>
+<li class="toctree-l3 current"><a class="current reference internal" href="#">Operator GUI</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-main-py.html">GUI startup</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-main_window-py.html">Operator window</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-task_forms-py.html">Task editor forms</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-step_list_panel-py.html">Task queue display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-ros2_bridge-py.html">ROS and GUI bridge</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-poses_panel-py.html">Pose browser and registry</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-pose_dialogs-py.html">Pose editing dialogs</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-pose_io-py.html">Pose registry files</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-camera_panel-py.html">Camera display</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-visualization_panel-py.html">Robot and trajectory viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-resources-viewer-html.html">Embedded robot viewer</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-chat_panel-py.html">Chat interface</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-agent_bridge-py.html">Chat agent connection</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-agent_modes-py.html">Chat agent modes</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-theme-py.html">GUI appearance</a></li>
+<li class="toctree-l4"><a class="reference internal" href="../modules/src-mtc_gui-launch-mtc_gui_client-launch-py.html">Operator GUI launch</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#start-here">Start here</a></li>
+<li class="toctree-l4"><a class="reference internal" href="#modules">Modules</a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="clients-integrations.html">Clients and integrations</a></li>
+<li class="toctree-l3"><a class="reference internal" href="setup-deployment.html">Setup and deployment</a></li>
+<li class="toctree-l3"><a class="reference internal" href="examples-demos.html">Examples and demos</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../symbols.html">Symbol index</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#browse-by-subsystem">Browse by subsystem</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#reading-an-entry">Reading an entry</a></li>
+<li class="toctree-l3"><a class="reference internal" href="../index.html#source-links">Source links</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="../../tasks.html">Task JSON reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../actions.html">ROS action contracts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../mcp.html">MCP tool reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../launch.html">Launch arguments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration.html">Beamline configuration</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../configuration-values.html">CMS configuration values</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../commands.html">Commands and startup scripts</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../packages.html">Package index</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../source.html">Source browser</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../coverage.html">Documentation coverage</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#choose-a-reference">Choose a reference</a></li>
+<li class="toctree-l2"><a class="reference internal" href="../../index.html#task-fields-and-client-interfaces">Task fields and client interfaces</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="../../../integrations/index.html">Integrations and deployment</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../maintenance/index.html">Troubleshooting and maintenance</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../diagrams/index.html">Diagram library</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu"  style="background: #235cb7" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">EROBS</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../../index.html">Reference</a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Function and method reference</a></li>
+      <li class="breadcrumb-item active">Operator GUI</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article"><span id="main-content" tabindex="-1"></span><div class="wip-banner" role="note"><span aria-hidden="true">🚧</span> <strong>Work in progress:</strong> this documentation is still being written and reviewed. Check details against the source code.</div>
+           <div itemprop="articleBody">
+             
+  <section id="operator-gui">
+<h1>Operator GUI<a class="headerlink" href="#operator-gui" title="Link to this heading"></a></h1>
+<p>Task editing, pose storage, execution controls, chat, and robot visualization. The ROS bridge connects the Qt interface to topics, actions, and services.</p>
+<p><a class="reference internal" href="../../../operate/gui.html"><span class="std std-doc">Read the guide</span></a> · <a class="reference internal" href="../index.html"><span class="std std-doc">All subsystems</span></a> · <a class="reference internal" href="../symbols.html"><span class="std std-doc">Symbol index</span></a></p>
+<div class="toctree-wrapper compound">
+</div>
+<section id="start-here">
+<h2>Start here<a class="headerlink" href="#start-here" title="Link to this heading"></a></h2>
+<ul class="simple">
+<li><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-task_forms-py.html#api-1e874a358e709f90"><span class="std std-ref">open_task_form</span></a> — Locate the editor selected for a task type and see how accepted edits return to the queue.</p></li>
+<li><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-main_window-py.html#api-a0cbbf8e2158c6de"><span class="std std-ref">MTCMainWindow._execute</span></a> — Follow queue validation, preview selection, and document submission from the main window.</p></li>
+<li><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-ros2_bridge-py.html#api-f7e2917e74665d5b"><span class="std std-ref">ROS2Bridge.execute_task</span></a> — Trace the GUI request across the ROS action boundary and back through feedback and result signals.</p></li>
+<li><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-visualization_panel-py.html#api-87230e983ac3f175"><span class="std std-ref">VisualizationPanel.preview_pose</span></a> — See how an edited joint pose updates the viewer without submitting a robot-motion command.</p></li>
+</ul>
+</section>
+<section id="modules">
+<h2>Modules<a class="headerlink" href="#modules" title="Link to this heading"></a></h2>
+<table class="docutils align-default">
+<thead>
+<tr class="row-odd"><th class="head"><p>Module</p></th>
+<th class="head"><p>Responsibility</p></th>
+<th class="head text-right"><p>Entries</p></th>
+</tr>
+</thead>
+<tbody>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-main-py.html"><span class="std std-doc">GUI startup</span></a></p></td>
+<td><p>Start the operator GUI and manage the Qt application’s lifetime.</p></td>
+<td class="text-right"><p>1</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-main_window-py.html"><span class="std std-doc">Operator window</span></a></p></td>
+<td><p>Coordinate task editing, saved runs, pose management, chat, and execution controls.</p></td>
+<td class="text-right"><p>57</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-task_forms-py.html"><span class="std std-doc">Task editor forms</span></a></p></td>
+<td><p>Edit task dictionaries through a modal form selected by <code class="docutils literal notranslate"><span class="pre">task_type</span></code>.</p></td>
+<td class="text-right"><p>68</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-step_list_panel-py.html"><span class="std std-doc">Task queue display</span></a></p></td>
+<td><p>Show editable task rows, selection, and execution progress.</p></td>
+<td class="text-right"><p>35</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-ros2_bridge-py.html"><span class="std std-doc">ROS and GUI bridge</span></a></p></td>
+<td><p>Translate ROS messages, action results, and service responses into Qt signals.</p></td>
+<td class="text-right"><p>25</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-poses_panel-py.html"><span class="std std-doc">Pose browser and registry</span></a></p></td>
+<td><p>Load, browse, and update the GUI’s shared pose registry.</p></td>
+<td class="text-right"><p>16</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-pose_dialogs-py.html"><span class="std std-doc">Pose editing dialogs</span></a></p></td>
+<td><p>Edit joint poses and choose where to save them.</p></td>
+<td class="text-right"><p>13</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-pose_io-py.html"><span class="std std-doc">Pose registry files</span></a></p></td>
+<td><p>Read and atomically replace YAML registries of six-joint poses.</p></td>
+<td class="text-right"><p>2</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-camera_panel-py.html"><span class="std std-doc">Camera display</span></a></p></td>
+<td><p>Display camera images and marker detections in the operator GUI.</p></td>
+<td class="text-right"><p>4</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-visualization_panel-py.html"><span class="std std-doc">Robot and trajectory viewer</span></a></p></td>
+<td><p>Display the robot, task previews, and configured obstacles in an embedded 3D viewer.</p></td>
+<td class="text-right"><p>34</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-resources-viewer-html.html"><span class="std std-doc">Embedded robot viewer</span></a></p></td>
+<td><p>Render the robot model and obstacle preview inside the operator GUI. These JavaScript functions change the display; they do not send robot commands or update the MoveIt planning scene.</p></td>
+<td class="text-right"><p>13</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-chat_panel-py.html"><span class="std std-doc">Chat interface</span></a></p></td>
+<td><p>Present messages, tool calls, execution outcomes, and Plan/Run controls.</p></td>
+<td class="text-right"><p>23</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-agent_bridge-py.html"><span class="std std-doc">Chat agent connection</span></a></p></td>
+<td><p>Connect the Qt chat interface to <code class="docutils literal notranslate"><span class="pre">RobotAgent</span></code> on a background asyncio thread.</p></td>
+<td class="text-right"><p>15</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-agent_modes-py.html"><span class="std std-doc">Chat agent modes</span></a></p></td>
+<td><p>Select the prompts, local tools, and MCP filters for the GUI’s Plan and Run modes.</p></td>
+<td class="text-right"><p>4</p></td>
+</tr>
+<tr class="row-even"><td><p><a class="reference internal" href="../modules/src-mtc_gui-mtc_gui-theme-py.html"><span class="std std-doc">GUI appearance</span></a></p></td>
+<td><p>Apply the shared colors, fonts, icons, and widget styles.</p></td>
+<td class="text-right"><p>6</p></td>
+</tr>
+<tr class="row-odd"><td><p><a class="reference internal" href="../modules/src-mtc_gui-launch-mtc_gui_client-launch-py.html"><span class="std std-doc">Operator GUI launch</span></a></p></td>
+<td><p>Launch wrapper for the mtc_gui_client executable. Beamline/robot configuration comes from BEAMBOT_BEAMLINE_CONFIG in the process environment, with no declared launch arguments.</p></td>
+<td class="text-right"><p>1</p></td>
+</tr>
+</tbody>
+</table>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="../modules/scripts-survey_mapping-merge_survey_bag-py.html" class="btn btn-neutral float-left" title="Survey point-cloud merger" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="../modules/src-mtc_gui-mtc_gui-main-py.html" class="btn btn-neutral float-right" title="GUI startup" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p></p>
+  </div>
+
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+<script>
+  // RTD's navigation reset scrolls the current sidebar entry into view, which moves Chrome's
+  // Tab starting point into the sidebar. Put it back at the top so Tab reaches the skip link first.
+  (() => {
+    const nav = window.SphinxRtdTheme && SphinxRtdTheme.Navigation;
+    if (!nav) return;
+    const reset = nav.reset;
+    nav.reset = function () {
+      reset.apply(this, arguments);
+      if (location.hash || document.activeElement !== document.body) return;
+      const marker = document.createElement("span");
+      marker.tabIndex = -1;
+      document.body.prepend(marker);
+      marker.focus({preventScroll: true});
+      marker.remove();
+    };
+  })();
+
+  // RTD's phone menu toggle is a bare <i> icon: give it a button role, a name and keyboard support.
+  (() => {
+    const toggle = document.querySelector("[data-toggle='wy-nav-top']");
+    const side = document.querySelector(".wy-nav-side");
+    if (!toggle || !side) return;
+    const isOpen = () => side.classList.contains("shift");
+    const sync = () => toggle.setAttribute("aria-expanded", String(isOpen()));
+    toggle.setAttribute("role", "button");
+    toggle.setAttribute("aria-label", "Toggle navigation menu");
+    toggle.tabIndex = 0;
+    toggle.addEventListener("keydown", event => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        toggle.click();
+      }
+    });
+    // theme.js toggles the menu in a delegated click handler; read the state after it runs.
+    document.addEventListener("click", () => setTimeout(sync));
+    document.addEventListener("keydown", event => {
+      if (event.key === "Escape" && isOpen()) {
+        toggle.click();
+        toggle.focus();
+      }
+    });
+    sync();
+  })();
+</script>
+
+</body>
+</html>

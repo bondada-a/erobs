@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Choose one MoveTo target form — EROBS</title>
+<!-- Diagram Design, Cathryn Lavery, MIT; upstream 8d8b2993ee2256ee7dfc0eeb3b5713aba3b60792. -->
+<style>html,body{margin:0;background:#ffffff;color:#18283b;font-family:system-ui, sans-serif}main{min-width:960px;max-width:960px;margin:0 auto}svg{display:block;width:100%;height:auto}</style></head>
+<body><main><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 800" role="img" aria-labelledby="motion-targets-title motion-targets-desc">
+<title id="motion-targets-title">Choose one MoveTo target form</title>
+<desc id="motion-targets-desc">A moveto request must specify exactly one target form: a named joint pose or SRDF state, a relative direction with distance, or a Cartesian pose. Each form has its own automatic planner fallback order. The deterministic-IK PTP branch for Cartesian targets is included only when IK succeeds.</desc>
+<defs>
+<marker id="motion-targets-arrow" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#52647a"/></marker>
+<marker id="motion-targets-arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+<marker id="motion-targets-arrow-link" markerWidth="8" markerHeight="8" refX="7" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#235cb7"/></marker>
+</defs>
+<rect width="960" height="800" fill="#ffffff"/>
+<text x="48" y="40" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">EROBS / TARGET SELECTION</text>
+<text x="48" y="84" font-size="28" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Choose one MoveTo target form</text>
+<path d="M316 240 H184 Q176 240 176 248 V360" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#motion-targets-arrow)"/>
+<path d="M480 304 V360" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#motion-targets-arrow)"/>
+<path d="M644 240 H776 Q784 240 784 248 V360" fill="none" stroke="#52647a" stroke-width="1.5" marker-end="url(#motion-targets-arrow)"/>
+<rect x="208" y="200" width="72" height="24" fill="#ffffff"/>
+<text x="244" y="220" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">NAME</text>
+<rect x="496" y="316" width="104" height="24" fill="#ffffff"/>
+<text x="548" y="336" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">DISPLACE</text>
+<rect x="684" y="200" width="72" height="24" fill="#ffffff"/>
+<text x="720" y="220" text-anchor="middle" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">POSE</text>
+<polygon points="480,176 644,240 480,304 316,240" fill="#edf3ff" stroke="#235cb7"/>
+<text x="480" y="236" text-anchor="middle" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">What do you know</text>
+<text x="480" y="260" text-anchor="middle" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">about the destination?</text>
+<rect x="48" y="360" width="256" height="176" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="72" y="400" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Named configuration</text>
+<text x="72" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">target: "pose_name"</text>
+<text x="72" y="480" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Six joint values in degrees</text>
+<text x="72" y="504" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">or a named SRDF state</text>
+<rect x="352" y="360" width="256" height="176" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="376" y="400" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Relative movement</text>
+<text x="376" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">direction + distance</text>
+<text x="376" y="480" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Metres along the selected</text>
+<text x="376" y="504" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">IK frame's local direction</text>
+<rect x="656" y="360" width="256" height="176" rx="8" fill="#ffffff" stroke="#52647a"/>
+<text x="680" y="400" font-size="20" font-weight="600" font-family="system-ui, sans-serif" fill="#18283b">Cartesian pose</text>
+<text x="680" y="440" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">cartesian_target</text>
+<text x="680" y="480" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">XYZ metres + optional RPY°</text>
+<text x="680" y="504" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">in frame_id (base_link)</text>
+<text x="48" y="584" font-size="16" font-family="ui-monospace, monospace" fill="#52647a">AUTOMATIC PLANNER ORDER</text>
+<text x="72" y="624" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">PTP → pipeline</text>
+<text x="72" y="656" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Pipeline uses configured</text>
+<text x="72" y="680" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">STOMP or OMPL/RRTstar.</text>
+<text x="376" y="624" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">LIN → CartesianPath</text>
+<text x="376" y="652" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">→ PTP</text>
+<text x="680" y="624" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">PTP with solved IK*</text>
+<text x="680" y="652" font-size="20" font-family="system-ui, sans-serif" fill="#18283b">→ LIN → CartesianPath</text>
+<text x="680" y="680" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">*Skip PTP when IK fails.</text>
+<line x1="48" y1="720" x2="912" y2="720" stroke="#dbe3ee"/>
+<text x="48" y="752" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">Exactly one form is required. Mixing forms, or supplying none, is rejected.</text>
+<text x="48" y="780" font-size="16" font-family="system-ui, sans-serif" fill="#52647a">These chains cover auto / joint modes; explicit planner choices override them.</text>
+</svg></main></body></html>
