@@ -6,7 +6,7 @@ import threading
 from std_srvs.srv import Trigger
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
-from beambot.stages.vision_task_stages import VisionTaskStages
+from beambot.motion.vision_task import VisionTask
 from beambot_interfaces.action import VisionTaskAction
 
 
@@ -31,7 +31,7 @@ class VisionTaskActionServer(BaseActionServer):
         def _warmup():
             try:
                 import numpy as np
-                from beambot.vision.detection.spincoater_detection import _get_sample_model
+                from beambot.vision.perception.spincoater_detection import _get_sample_model
 
                 self.get_logger().info(
                     "Warming up spincoater sample model (background)..."
@@ -46,8 +46,8 @@ class VisionTaskActionServer(BaseActionServer):
 
         threading.Thread(target=_warmup, daemon=True).start()
 
-    def create_stages(self):
-        """Create stages from the beamline camera settings."""
+    def create_task(self):
+        """Create the vision task from the beamline camera settings."""
         from beambot.config_loader import load_beamline_config
 
         config, _ = load_beamline_config()
@@ -56,7 +56,7 @@ class VisionTaskActionServer(BaseActionServer):
             f"Camera config: type={camera_config.get('type')}, "
             f"frame={camera_config.get('frame')}"
         )
-        return VisionTaskStages(
+        return VisionTask(
             self,
             camera_type=camera_config.get("type"),
             camera_frame=camera_config.get("frame"),
@@ -66,7 +66,7 @@ class VisionTaskActionServer(BaseActionServer):
     def _execute(self, goal_handle):
         """Run the task and populate the action result."""
         goal = goal_handle.request
-        error = self._stages.run(goal)
+        error = self._task.run(goal)
 
         result = VisionTaskAction.Result()
         if error is not None:
@@ -75,12 +75,12 @@ class VisionTaskActionServer(BaseActionServer):
             return result
 
         result.success = True
-        result.vacuum_ok = self._stages.vacuum_ok
+        result.vacuum_ok = self._task.vacuum_ok
         result.motion_kind = (
-            "NONE" if self._stages.last_detected_pose else "CARTESIAN_POSE"
+            "NONE" if self._task.last_detected_pose else "CARTESIAN_POSE"
         )
-        if self._stages.last_detected_pose is not None:
-            pose = self._stages.last_detected_pose.pose
+        if self._task.last_detected_pose is not None:
+            pose = self._task.last_detected_pose.pose
             result.detected_position = [
                 pose.position.x,
                 pose.position.y,
@@ -95,7 +95,7 @@ class VisionTaskActionServer(BaseActionServer):
         return result
 
     def _reset_tf_callback(self, request, response):
-        self._stages.reset_tf()
+        self._task.reset_tf()
         response.success = True
         response.message = "TF buffer cleared and listener re-created"
         return response

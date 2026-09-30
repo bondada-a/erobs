@@ -135,7 +135,7 @@
     },
     {
       "task_type": "vision_moveto",
-      "detection_type": "marker",
+      "vision_method": "marker",
       "tag_id": 0,
       "timeout": 10.0,
       "z_offset": 0.0,

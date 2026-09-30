@@ -10,7 +10,7 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  "action/MTCExecution.action"
+  "action/BeambotExecution.action"
   "action/MoveToAction.action"
   "action/EndEffectorAction.action"
   "action/PickSampleAction.action"

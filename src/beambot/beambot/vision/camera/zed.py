@@ -8,8 +8,8 @@ from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy, DurabilityPo
 from sensor_msgs.msg import Image, PointCloud2
 
 from beambot.vision.camera import DetectionResult
-from beambot.vision.detection import get_3d_position
-from beambot.vision.detection.image_detection import detect_aruco_markers
+from beambot.vision.perception import get_3d_position
+from beambot.vision.perception.image_detection import detect_aruco_markers
 
 
 IMAGE_TOPIC = "/zed/zed_node/rgb/color/rect/image"

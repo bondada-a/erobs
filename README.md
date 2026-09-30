@@ -35,7 +35,7 @@ architecture, and the function reference. The docs are still being written and r
 
 Four entry points — honest labels:
 
-1. **PyQt6 GUI** — *primary manual interface.* `ros2 run mtc_gui mtc_gui_client`.
+1. **PyQt6 GUI** — *primary manual interface.* `ros2 run beambot_gui beambot_gui_client`.
    Per-task dialogs, camera overlays, pose editor, experiment runner. Also hosts an
    **experimental** chat panel backed by the `beambot.agent` module.
 2. **MCP + Claude Code** — *LLM-assisted operation.* `./utils/start_mcp.sh` launches
@@ -53,9 +53,9 @@ Four entry points — honest labels:
 
 | Path | What it contains |
 |------|------------------|
-| [`src/beambot`](./src/beambot) | Orchestrator, per-task action servers, MTC stages, MCP server, beambot.agent, detection algorithms, batch planner |
-| [`src/beambot_interfaces`](./src/beambot_interfaces) | 9 ROS 2 action definitions (MTCExecution, MoveTo, EndEffector, PickSample, PlaceSample, ToolExchange, VisionTask, VisionScan, Pipettor) |
-| [`src/mtc_gui`](./src/mtc_gui) | PyQt6 operator GUI (see its [README](./src/mtc_gui/README.md)) |
+| [`src/beambot`](./src/beambot) | Orchestrator, per-task action servers, MTC task builders, MCP server, beambot.agent, detection algorithms, batch planner |
+| [`src/beambot_interfaces`](./src/beambot_interfaces) | 9 ROS 2 action definitions (BeambotExecution, MoveTo, EndEffector, PickSample, PlaceSample, ToolExchange, VisionTask, VisionScan, Pipettor) |
+| [`src/beambot_gui`](./src/beambot_gui) | PyQt6 operator GUI (see its [README](./src/beambot_gui/README.md)) |
 | [`src/custom-ur-descriptions`](./src/custom-ur-descriptions) | UR5e URDF/xacro and MoveIt configs (one generic config that branches per gripper) |
 | [`src/end_effectors`](./src/end_effectors) | Gripper drivers + `epick_config` overlay ([README](./src/end_effectors/README.md)) |
 | [`src/vision`](./src/vision) | External vision repos (Zivid; ZED listed but not currently launched) |
@@ -109,7 +109,7 @@ ros2 launch beambot beambot_bringup.launch.py \
 ros2 launch beambot beambot_bringup.launch.py enable_vision:=false enable_pipettor:=false
 
 # Primary operator GUI
-ros2 run mtc_gui mtc_gui_client
+ros2 run beambot_gui beambot_gui_client
 
 # MCP stack (rosbridge on :9090 + beambot_bringup + rosbag recording)
 ./utils/start_mcp.sh

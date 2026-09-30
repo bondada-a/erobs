@@ -18,8 +18,8 @@ import bluesky.plan_stubs as bps
 
 RE = RunEngine({})
 
-from bluesky_ros.mtc_ophyd_device_async import MTCExecutionDeviceAsync
-robot = MTCExecutionDeviceAsync(name="ur5e_robot")
+from bluesky_ros.beambot_ophyd_device_async import BeambotExecutionDeviceAsync
+robot = BeambotExecutionDeviceAsync(name="ur5e_robot")
 
 # Execute a task (blocking — waits for robot to finish)
 RE(bps.abs_set(robot, "task_sequences/complete_sequence.json", wait=True))

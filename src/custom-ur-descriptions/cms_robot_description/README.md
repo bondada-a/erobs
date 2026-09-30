@@ -164,7 +164,7 @@ Due to rotations in the chain, local axes don't always point where you'd expect:
 
 - **tool_block's -Y axis** = stacking direction (away from robot, toward gripper)
 - **epick_base_link's Z axis** = stacking direction (back to normal after the rotation)
-- **Direction vectors in motion planning** are in the `flange` frame (see `base_stages.py`)
+- **Direction vectors in motion planning** are in the `flange` frame (see `task_builder.py`)
 
 ### Regenerating Baked URDFs
 

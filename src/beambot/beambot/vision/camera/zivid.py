@@ -19,7 +19,7 @@ from std_srvs.srv import Trigger
 from zivid_interfaces.srv import CaptureAndDetectMarkers
 
 from beambot.vision.camera import DetectionResult
-from beambot.vision.detection import (
+from beambot.vision.perception import (
     SampleRoiDetectionParams,
     detect_sample_in_roi,
     sample_roi_pickup_camera_xyz,

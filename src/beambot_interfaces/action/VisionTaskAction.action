@@ -1,6 +1,6 @@
 # Goal
-string detector             # marker (default), sample_roi, spincoater_pocket, spincoater_sample.
-string goal_computer        # approach_pose (default) or j6_snap.
+string vision_method             # marker (default), sample_roi, spincoater_pocket, spincoater_sample.
+string approach_strategy        # approach_pose (default) or j6_snap.
 
 # Detection
 int32 tag_id                # ArUco ID or sample_roi anchor.

@@ -31,12 +31,12 @@ def plan_capture_steps(run: dict, capture_prefix: str):
 
 
 def _send_goal(node, action_client, full_json: str):
-    """Wait for one MTCExecution goal; return (success, message)."""
+    """Wait for one BeambotExecution goal; return (success, message)."""
     import rclpy
     from action_msgs.msg import GoalStatus
-    from beambot_interfaces.action import MTCExecution
+    from beambot_interfaces.action import BeambotExecution
 
-    goal = MTCExecution.Goal()
+    goal = BeambotExecution.Goal()
     goal.full_json = full_json
     send_future = action_client.send_goal_async(goal)
     rclpy.spin_until_future_complete(node, send_future)
@@ -85,7 +85,7 @@ def run(args) -> int:
     from rclpy.node import Node
     from rclpy.action import ActionClient
     from std_srvs.srv import Trigger
-    from beambot_interfaces.action import MTCExecution
+    from beambot_interfaces.action import BeambotExecution
 
     with open(args.run_json) as f:
         run_data = json.load(f)
@@ -98,7 +98,7 @@ def run(args) -> int:
     node = None
     try:
         node = Node("capture_run")
-        action_client = ActionClient(node, MTCExecution, "beambot_execution")
+        action_client = ActionClient(node, BeambotExecution, "beambot_execution")
         trigger_client = node.create_client(Trigger, args.capture_service)
 
         if not action_client.wait_for_server(timeout_sec=15.0):

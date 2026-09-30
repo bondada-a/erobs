@@ -21,7 +21,7 @@ class BaseActionServer(Node):
         self._action_type = action_type
         self._robot_model_revision = ""
 
-        self._stages = self.create_stages()
+        self._task = self.create_task()
 
         # Cancellation defaults to rejection; the orchestrator cancels between tasks.
         self._action_server = ActionServer(
@@ -34,9 +34,9 @@ class BaseActionServer(Node):
 
         self.get_logger().info(f"{node_name} started on '{action_name}'")
 
-    def create_stages(self):
-        """Return operation stages; subclasses must implement this method."""
-        raise NotImplementedError("Subclass must implement create_stages()")
+    def create_task(self):
+        """Return the task builder; subclasses must implement this method."""
+        raise NotImplementedError("Subclass must implement create_task()")
 
     def _goal_callback(self, goal_request) -> GoalResponse:
         """Reserve an idle server and record the goal's model revision."""
@@ -78,8 +78,8 @@ class BaseActionServer(Node):
             self._executing = False
 
     def _execute(self, goal_handle: ServerGoalHandle):
-        """Run stages: None means success; a string becomes the result error."""
-        error = self._stages.run(goal_handle.request)
+        """Run the task: None means success; a string becomes the result error."""
+        error = self._task.run(goal_handle.request)
         if error is not None:
             return self._action_type.Result(success=False, error_message=error)
         return self._action_type.Result(success=True)

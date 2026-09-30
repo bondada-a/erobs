@@ -23,12 +23,12 @@ import yaml
 import numpy as np
 from mcp.server.fastmcp import FastMCP
 
-from beambot.vision.detection import (
+from beambot.vision.perception import (
     get_3d_position,
     YoloDetectionParams,
-    get_yolo_detector,
+    get_yolo_model,
 )
-from beambot.vision.detection.image_detection import detect_aruco_markers
+from beambot.vision.perception.image_detection import detect_aruco_markers
 
 import rclpy
 from rclpy.node import Node
@@ -57,8 +57,8 @@ except ImportError:
     ObjectDetectionStatus = None
     _EPICK_MSGS_AVAILABLE = False
 
-from beambot.stages.base_stages import wait_for_future
-from beambot.core.task_script import expand_grid_target
+from beambot.motion.task_builder import wait_for_future
+from beambot.utils.task_parser import expand_grid_target
 
 logger = logging.getLogger("beambot-mcp")
 
@@ -950,15 +950,15 @@ async def detect_objects(
             confidence=yolo_confidence,
             classes=class_ids,
         )
-        detector = get_yolo_detector(yolo_model)
+        yolo = get_yolo_model(yolo_model)
         bgr = cv2.cvtColor(rgb, cv2.COLOR_RGB2BGR)
-        raw = detector.detect(bgr, params)
+        raw = yolo.detect(bgr, params)
 
         if class_filter_names:
             raw = [d for d in raw if d[0].lower() in class_filter_names]
 
         if raw:
-            annotated_yolo = detector.annotate(bgr, raw)
+            annotated_yolo = yolo.annotate(bgr, raw)
             Path(save_path).parent.mkdir(parents=True, exist_ok=True)
             cv2.imwrite(save_path, annotated_yolo)
 
@@ -1127,13 +1127,13 @@ async def _confirm_point_via_gui(
 
 
 # Sample model loaded on first use.
-_yolo_model = None
+_sample_yolo_model = None
 
 
-def _get_yolo_model():
+def _get_sample_yolo_model():
     """Load and cache the sample detector weights."""
-    global _yolo_model
-    if _yolo_model is None:
+    global _sample_yolo_model
+    if _sample_yolo_model is None:
         from ultralytics import YOLO
         model_path = Path(__file__).parents[1] / "models" / "sample_detector.pt"
         if not model_path.exists():
@@ -1141,9 +1141,9 @@ def _get_yolo_model():
                 f"YOLO model not found at {model_path}. "
                 "Provide a trained model at that path."
             )
-        _yolo_model = YOLO(str(model_path))
+        _sample_yolo_model = YOLO(str(model_path))
         logger.info(f"YOLO model loaded from {model_path}")
-    return _yolo_model
+    return _sample_yolo_model
 
 
 @mcp.tool()
@@ -1173,7 +1173,7 @@ async def detect_sample_yolo(
         })
 
     try:
-        model = _get_yolo_model()
+        model = _get_sample_yolo_model()
     except FileNotFoundError as e:
         return json.dumps({"error": str(e)})
 

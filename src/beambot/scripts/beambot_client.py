@@ -15,13 +15,13 @@ from rclpy.node import Node
 from rclpy.action import ActionClient
 from action_msgs.msg import GoalStatus
 
-from beambot_interfaces.action import MTCExecution
+from beambot_interfaces.action import BeambotExecution
 
 
 class TaskGoalSender(Node):
     def __init__(self):
         super().__init__('task_goal_sender')
-        self._client = ActionClient(self, MTCExecution, 'beambot_execution')
+        self._client = ActionClient(self, BeambotExecution, 'beambot_execution')
         self._goal_handle = None
 
     def send_goal(self, json_content: str) -> bool:
@@ -32,7 +32,7 @@ class TaskGoalSender(Node):
             self.get_logger().error('Action server not available!')
             return False
 
-        goal = MTCExecution.Goal()
+        goal = BeambotExecution.Goal()
         goal.full_json = json_content
 
         self.get_logger().info('Sending task goal...')

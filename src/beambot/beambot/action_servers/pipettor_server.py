@@ -2,7 +2,7 @@
 """PipettorAction server - handles pipettor operations."""
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
-from beambot.stages.pipettor_stages import PipettorStages
+from beambot.motion.pipettor_task import PipettorTask
 from beambot_interfaces.action import PipettorAction
 
 
@@ -24,8 +24,8 @@ class PipettorActionServer(BaseActionServer):
             action_type=PipettorAction,
         )
 
-    def create_stages(self):
-        return PipettorStages(self)
+    def create_task(self):
+        return PipettorTask(self)
 
 
 def main(args=None):

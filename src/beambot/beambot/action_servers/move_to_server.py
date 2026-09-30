@@ -2,7 +2,7 @@
 """Serve MoveTo actions through MoveIt Task Constructor."""
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
-from beambot.stages.move_to_stages import MoveToStages
+from beambot.motion.move_to_task import MoveToTask
 from beambot_interfaces.action import MoveToAction
 
 
@@ -16,8 +16,8 @@ class MoveToActionServer(BaseActionServer):
             action_type=MoveToAction,
         )
 
-    def create_stages(self):
-        return MoveToStages(self)
+    def create_task(self):
+        return MoveToTask(self)
 
 
 def main(args=None):

@@ -83,7 +83,7 @@ constructing goals or diagnosing failures.
 ## 2. Task JSON format
 
 Send this JSON as a serialized string in the `full_json` field of an
-`MTCExecution` goal on `/beambot_execution`:
+`BeambotExecution` goal on `/beambot_execution`:
 
 ```json
 {
@@ -103,7 +103,7 @@ Send via MCP:
 ```python
 send_action_goal(
   action_name="/beambot_execution",
-  action_type="beambot_interfaces/action/MTCExecution",
+  action_type="beambot_interfaces/action/BeambotExecution",
   goal={"full_json": "<serialized JSON string>"}
 )
 ```
@@ -135,8 +135,8 @@ Unknown `task_type` returns `"Unknown task type: '<name>'"`.
 over one `vision_task` pipeline (detect → compute goal → execute → terminal).
 Keep using the named task types below exactly as documented — they still work
 unchanged. Power users can instead send `{"task_type": "vision_task", ...}`
-directly and set the pipeline pieces by name: `detector`
-(`marker`|`sample_roi`|`spincoater_pocket`|`spincoater_sample`), `goal_computer`
+directly and set the pipeline pieces by name: `vision_method`
+(`marker`|`sample_roi`|`spincoater_pocket`|`spincoater_sample`), `approach_strategy`
 (`approach_pose`|`j6_snap`), `terminal_action`, `scan_pose`, `retreat_pose`,
 `forward_distance`. The named presets are the recommended interface; reach for
 raw `vision_task` only for a combination no preset covers.
@@ -191,7 +191,7 @@ currently attached one.
  "z_offset": -0.001}
 
 // Vision-guided (sample_roi — detects sample contour in ROI near tag)
-{"task_type": "pick_sample", "use_vision": true, "detection_type": "sample_roi",
+{"task_type": "pick_sample", "use_vision": true, "vision_method": "sample_roi",
  "tag_id": 5, "scan_pose": "sample_scan", "strategy": "farthest_edge",
  "edge_inset_mm": 4.0, "z_offset": -0.001}
 
@@ -204,7 +204,7 @@ currently attached one.
   → close → retreat → vacuum check`.
 - `use_vision: false` → `open → approach → target → close → retreat`.
 - `tag_id` — ArUco marker ID.
-- `detection_type` — `"marker"` (default) or `"sample_roi"`. `"sample_roi"`
+- `vision_method` — `"marker"` (default) or `"sample_roi"`. `"sample_roi"`
   uses ArUco tag-anchored ROI detection with configurable pickup strategy:
   `strategy` (default `"farthest_edge"`) and `edge_inset_mm` (default `4.0`).
 - `scan_pose` — pose key. Also used as the retreat target.
@@ -215,8 +215,8 @@ currently attached one.
 - `settle_time` — seconds to wait for robot vibrations before capture
   (default 1.0, capped 10.0).
 - Result includes `vacuum_ok` and `detected_position`.
-- For off-center contour picks: use the `sample_roi` vision detector
-  (`detector="sample_roi"`, `strategy=…`), which locates the sample in an
+- For off-center contour picks: use the `sample_roi` vision vision_method
+  (`vision_method="sample_roi"`, `strategy=…`), which locates the sample in an
   ROI anchored to the tag and projects the pickup onto the marker plane. A
   single `pick_sample` call handles detect → approach → vacuum → retreat.
 
@@ -275,7 +275,7 @@ Supports `"marker"` (default) or `"sample_roi"` detection as described in
   flange offsets; use `offset_direction`/`offset_distance` or
   `marker_offset_*` instead.
 - `scan_positions` — optional list of pose keys for multi-position averaging.
-- `detection_type` and `settle_time` as in `pick_sample` (§3.3).
+- `vision_method` and `settle_time` as in `pick_sample` (§3.3).
 
 ### 3.7 `vision_scan` — batch-scan markers into cache
 
@@ -487,7 +487,7 @@ fields in §3 are unchanged — the unification (issue #88) is internal routing.
 
 | Topic | Type |
 |---|---|
-| `/beambot_execution` | `beambot_interfaces/action/MTCExecution` (**primary — use this**) |
+| `/beambot_execution` | `beambot_interfaces/action/BeambotExecution` (**primary — use this**) |
 | `/beambot_moveto` | `beambot_interfaces/action/MoveToAction` |
 | `/beambot_endeffector` | `beambot_interfaces/action/EndEffectorAction` |
 | `/beambot_vision_task` | `beambot_interfaces/action/VisionTaskAction` (unified: vision_moveto, vision-mode pick/place, pick/place_spincoater) |

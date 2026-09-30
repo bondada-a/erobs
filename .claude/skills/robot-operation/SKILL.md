@@ -1,7 +1,7 @@
 ---
 name: robot-operation
 description: Operate the UR5e robot at the active beamline — send motion, pick/place, tool exchange, pipettor, and vision goals through the beambot orchestrator. Use when the user asks the robot to move, pick or place a sample, swap a gripper, run the pipettor, capture or detect an image, or when diagnosing a /beambot_execution failure.
-when_to_use: Trigger on prompts about moving the arm, picking/placing samples, tool exchange, pipettor operations (SUCK/EXPEL/EJECT_TIP), ArUco/vision capture, or interpreting an error_message from /beambot_execution. Also trigger on references to beambot, MTCExecution, task JSON, ePick vacuum, HandE gripper, 2fg7, scan poses, safe_tool_exchange, and tag IDs.
+when_to_use: Trigger on prompts about moving the arm, picking/placing samples, tool exchange, pipettor operations (SUCK/EXPEL/EJECT_TIP), ArUco/vision capture, or interpreting an error_message from /beambot_execution. Also trigger on references to beambot, BeambotExecution, task JSON, ePick vacuum, HandE gripper, 2fg7, scan poses, safe_tool_exchange, and tag IDs.
 ---
 
 The content below is the full robot-operation reference — rules, task JSON schema,

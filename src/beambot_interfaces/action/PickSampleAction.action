@@ -2,7 +2,7 @@
 bool use_vision                 # False uses named joint poses.
 
 # Vision (use_vision=true)
-string detection_type           # marker (default) or sample_roi.
+string vision_method           # marker (default) or sample_roi.
 int32 tag_id                    # ArUco ID.
 int32 sample_index              # Reserved; unused.
 float64 z_offset                # base_link Z offset (m); 0 = gripper default.

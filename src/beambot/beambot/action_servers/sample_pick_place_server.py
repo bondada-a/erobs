@@ -5,8 +5,8 @@ from rclpy.action import ActionServer
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
 from beambot.config_loader import load_beamline_config
-from beambot.stages.pick_sample_stages import PickSampleStages
-from beambot.stages.place_sample_stages import PlaceSampleStages
+from beambot.motion.pick_sample_task import PickSampleTask
+from beambot.motion.place_sample_task import PlaceSampleTask
 from beambot_interfaces.action import PickSampleAction, PlaceSampleAction
 
 
@@ -32,8 +32,8 @@ class SampleActionServer(BaseActionServer):
             "PlaceSample action server started: beambot_place_sample"
         )
 
-    def create_stages(self):
-        """Create pick and place stages with shared camera settings."""
+    def create_task(self):
+        """Create pick and place tasks with shared camera settings."""
         config, _ = load_beamline_config()
         camera_config = config.get("camera", {})
         self.get_logger().info(
@@ -47,13 +47,13 @@ class SampleActionServer(BaseActionServer):
             marker_dictionary=camera_config.get("marker_dictionary"),
         )
 
-        self._place_stages = PlaceSampleStages(self, **cam_kwargs)
-        return PickSampleStages(self, **cam_kwargs)
+        self._place_task = PlaceSampleTask(self, **cam_kwargs)
+        return PickSampleTask(self, **cam_kwargs)
 
     def _execute(self, goal_handle):
-        """Run pick stages."""
+        """Run the pick task."""
         goal = goal_handle.request
-        error = self._stages.run(goal)
+        error = self._task.run(goal)
 
         result = PickSampleAction.Result()
         if error is not None:
@@ -61,10 +61,10 @@ class SampleActionServer(BaseActionServer):
             result.error_message = error
         else:
             result.success = True
-            result.vacuum_ok = self._stages.vacuum_ok
+            result.vacuum_ok = self._task.vacuum_ok
 
-            if self._stages.last_detected_pose is not None:
-                pose = self._stages.last_detected_pose.pose
+            if self._task.last_detected_pose is not None:
+                pose = self._task.last_detected_pose.pose
                 result.detected_position = [
                     pose.position.x,
                     pose.position.y,
@@ -80,10 +80,10 @@ class SampleActionServer(BaseActionServer):
         return result
 
     def _execute_place(self, goal_handle):
-        """Run place stages and finalize its directly registered goal."""
+        """Run the place task and finalize its directly registered goal."""
         try:
             goal = goal_handle.request
-            error = self._place_stages.run(goal)
+            error = self._place_task.run(goal)
 
             result = PlaceSampleAction.Result()
             if error is not None:
@@ -93,8 +93,8 @@ class SampleActionServer(BaseActionServer):
             else:
                 result.success = True
 
-                if self._place_stages.last_detected_pose is not None:
-                    pose = self._place_stages.last_detected_pose.pose
+                if self._place_task.last_detected_pose is not None:
+                    pose = self._place_task.last_detected_pose.pose
                     result.detected_position = [
                         pose.position.x,
                         pose.position.y,

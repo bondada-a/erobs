@@ -14,7 +14,7 @@ from rclpy.qos import QoSProfile, DurabilityPolicy, ReliabilityPolicy
 
 from beambot.action_servers.base_action_server import run_server
 from beambot_interfaces.action import (
-    MTCExecution,
+    BeambotExecution,
     MoveToAction,
     EndEffectorAction,
     PickSampleAction,
@@ -26,16 +26,16 @@ from beambot_interfaces.action import (
 from std_srvs.srv import Trigger
 from std_msgs.msg import String
 
-from beambot.core.moveit_lifecycle_manager import MoveItLifecycleManager
-# from beambot.core.vacuum_monitor import VacuumMonitor
-from beambot.core.plan_cache import PlanCache
-from beambot.core.tool_exchange_manager import ToolExchangeManager
-from beambot.stages.move_to_stages import MoveToStages
-from beambot.stages.end_effector_stages import EndEffectorStages
-from beambot.core.task_batching import group_into_batches
-from beambot.stages.base_stages import wait_for_future
-from beambot.core.task_script import parse_task_script
-from beambot.core.vision_goals import (
+from beambot.utils.moveit_lifecycle_manager import MoveItLifecycleManager
+# from beambot.utils.vacuum_monitor import VacuumMonitor
+from beambot.utils.trajectory_cache import TrajectoryCache
+from beambot.utils.tool_exchange_manager import ToolExchangeManager
+from beambot.motion.move_to_task import MoveToTask
+from beambot.motion.end_effector_task import EndEffectorTask
+from beambot.utils.task_batching import group_into_batches
+from beambot.motion.task_builder import wait_for_future
+from beambot.utils.task_parser import parse_task_script
+from beambot.utils.vision_goals import (
     VISION_TASK_TYPES,
     build_vision_goal,
     flatten_scan_positions,
@@ -44,7 +44,7 @@ from beambot.core.vision_goals import (
 from beambot.config_loader import load_beamline_config, resolve_beamline_path
 
 
-class MTCOrchestratorServer(Node):
+class BeambotOrchestratorServer(Node):
     """Coordinate and execute multi-step robot tasks."""
 
     # Defaults are overridable through timeout.<action> ROS parameters.
@@ -82,7 +82,7 @@ class MTCOrchestratorServer(Node):
         self._last_detected_orientation = None  # [x, y, z, w] from detect_only vision
 
         # Cache serialized plans by start state, goal, gripper, and model revision.
-        self._plan_cache = PlanCache(self.get_logger())
+        self._trajectory_cache = TrajectoryCache(self.get_logger())
         # Live MTC Tasks become invalid after MoveIt relaunches.
         self._last_planned_sol_msg = None
 
@@ -139,7 +139,7 @@ class MTCOrchestratorServer(Node):
         # Action server and child-action clients.
         self._action_server = ActionServer(
             self,
-            MTCExecution,
+            BeambotExecution,
             "beambot_execution",
             execute_callback=self._execute_callback,
             goal_callback=self._goal_callback,
@@ -315,7 +315,7 @@ class MTCOrchestratorServer(Node):
 
     def _handle_pause(
         self,
-        feedback: MTCExecution.Feedback,
+        feedback: BeambotExecution.Feedback,
         goal_handle: ServerGoalHandle,
         completed_steps: int,
         total_steps: int,
@@ -375,7 +375,7 @@ class MTCOrchestratorServer(Node):
                     self._executing = False
             self._publish_state("FAULTED" if self._faulted else "IDLE")
 
-    def _execute(self, goal_handle: ServerGoalHandle) -> MTCExecution.Result:
+    def _execute(self, goal_handle: ServerGoalHandle) -> BeambotExecution.Result:
         """Main execution logic."""
         self.get_logger().info("Executing orchestration goal")
 
@@ -383,8 +383,8 @@ class MTCOrchestratorServer(Node):
         self._last_detected_position = None
         self._last_detected_orientation = None
 
-        result = MTCExecution.Result()
-        feedback = MTCExecution.Feedback()
+        result = BeambotExecution.Result()
+        feedback = BeambotExecution.Feedback()
 
         dry_run = bool(getattr(goal_handle.request, "dry_run", False))
         try:
@@ -411,7 +411,7 @@ class MTCOrchestratorServer(Node):
                 f"without moving the robot"
             )
 
-        cached_plan_for_replay = None  # Serialized MTC solution, or None.
+        cached_trajectory_for_replay = None  # Serialized MTC solution, or None.
 
         self._set_current_gripper(start_gripper)
 
@@ -431,7 +431,7 @@ class MTCOrchestratorServer(Node):
             return result
 
         # Pose edits must invalidate cached trajectories.
-        goal_key = PlanCache.compute_key(
+        goal_key = TrajectoryCache.compute_key(
             json.dumps({"tasks": tasks, "poses": json.loads(poses_json)}),
             self._moveit_manager.model_revision,
             self._moveit_manager.current_arm_joints(),
@@ -451,8 +451,8 @@ class MTCOrchestratorServer(Node):
         # Cache only one-batch goals; one key cannot represent multiple starts.
         cache_eligible = len(batches) == 1 and batches[0][0] == "batched"
         if cache_eligible and not dry_run:
-            cached_plan_for_replay = self._plan_cache.get(goal_key)
-            if cached_plan_for_replay is not None:
+            cached_trajectory_for_replay = self._trajectory_cache.get(goal_key)
+            if cached_trajectory_for_replay is not None:
                 self.get_logger().info(
                     "Trajectory cache hit — replaying stored plan without re-planning"
                 )
@@ -522,7 +522,7 @@ class MTCOrchestratorServer(Node):
                     batch_tasks,
                     poses_json,
                     dry_run=dry_run,
-                    cached_plan=cached_plan_for_replay,
+                    cached_trajectory=cached_trajectory_for_replay,
                 )
 
                 if not ok:
@@ -537,7 +537,7 @@ class MTCOrchestratorServer(Node):
 
                 # Cache eligible fresh plans; replays produce no new solution.
                 if cache_eligible and self._last_planned_sol_msg is not None:
-                    self._plan_cache.store(
+                    self._trajectory_cache.store(
                         goal_key, self._last_planned_sol_msg
                     )
                     self.get_logger().info("Trajectory cached for replay")
@@ -697,7 +697,7 @@ class MTCOrchestratorServer(Node):
         batch_tasks: list[dict[str, Any]],
         poses_json: str,
         dry_run: bool = False,
-        cached_plan=None,  # Serialized MTC solution to replay, or None.
+        cached_trajectory=None,  # Serialized MTC solution to replay, or None.
     ) -> bool:
         """Plan or execute one batch; cached plans bypass planning."""
         if not batch_tasks:
@@ -705,20 +705,20 @@ class MTCOrchestratorServer(Node):
 
         task_types = [t.get("task_type", "?") for t in batch_tasks]
         self.get_logger().info(
-            f"{'Replaying cached plan for' if cached_plan else 'Executing'} "
+            f"{'Replaying cached plan for' if cached_trajectory else 'Executing'} "
             f"batch of {len(batch_tasks)} tasks: {task_types}"
         )
 
-        # Stages share the module-level MTC node.
-        moveto_stage = MoveToStages(self, self._arm_group)
+        # Task builders share the module-level MTC node.
+        moveto_task = MoveToTask(self, self._arm_group)
         try:
-            endeffector_stage = EndEffectorStages(self, self._arm_group)
+            endeffector_task = EndEffectorTask(self, self._arm_group)
 
             # Replan after terminal replay failures. A timeout may leave motion active,
             # so never dispatch a second trajectory after REPLAY_TIMEOUT.
-            if cached_plan is not None:
-                error = moveto_stage.execute_solution_msg(
-                    cached_plan, is_replay=True
+            if cached_trajectory is not None:
+                error = moveto_task.execute_solution_msg(
+                    cached_trajectory, is_replay=True
                 )
                 if error is None:
                     return True
@@ -728,7 +728,7 @@ class MTCOrchestratorServer(Node):
                 self.get_logger().warning(
                     f"Cached replay failed ({error}); re-planning fresh"
                 )
-            task = moveto_stage.create_task_template(f"Batch ({len(batch_tasks)} tasks)")
+            task = moveto_task.create_task_template(f"Batch ({len(batch_tasks)} tasks)")
 
             for i, batch_task in enumerate(batch_tasks):
                 task_type = batch_task.get("task_type", "")
@@ -736,11 +736,11 @@ class MTCOrchestratorServer(Node):
 
                 if task_type == "moveto":
                     goal = self._create_moveto_goal(batch_task, poses_json)
-                    error = moveto_stage.add_to_task(task, goal)
+                    error = moveto_task.add_to_task(task, goal)
 
                 elif task_type == "end_effector":
                     goal = self._create_endeffector_goal(batch_task)
-                    error = endeffector_stage.add_to_task(task, goal)
+                    error = endeffector_task.add_to_task(task, goal)
 
                 else:
                     self._last_error = f"Unknown batchable type: {task_type}"
@@ -753,23 +753,23 @@ class MTCOrchestratorServer(Node):
                     return False
 
             if dry_run:
-                error = moveto_stage.init_and_plan(task, dry_run=True)
+                error = moveto_task.init_and_plan(task, dry_run=True)
                 if error is not None:
                     self._last_error = error
                     return False
                 # Cache the serialized solution; live Tasks cannot survive relaunches.
-                self._last_planned_sol_msg = moveto_stage.last_sol_msg
+                self._last_planned_sol_msg = moveto_task.last_sol_msg
                 return True
 
-            error = moveto_stage.load_plan_execute(task)
+            error = moveto_task.load_plan_execute(task)
             if error is not None:
                 self._last_error = error
                 return False
             # Save the fresh solution for later replay.
-            self._last_planned_sol_msg = moveto_stage.last_sol_msg
+            self._last_planned_sol_msg = moveto_task.last_sol_msg
             return True
         finally:
-            moveto_stage.close()
+            moveto_task.close()
 
     def _create_moveto_goal(
         self, step: dict[str, Any], poses_json: str
@@ -1068,7 +1068,7 @@ class MTCOrchestratorServer(Node):
 
     def _update_feedback(
         self,
-        feedback: MTCExecution.Feedback,
+        feedback: BeambotExecution.Feedback,
         goal_handle: ServerGoalHandle,
         current_step: int,
         total_steps: int,
@@ -1090,7 +1090,7 @@ class MTCOrchestratorServer(Node):
 
 def main(args=None):
     """Run the MTC Orchestrator server."""
-    run_server(MTCOrchestratorServer, args)
+    run_server(BeambotOrchestratorServer, args)
 
 
 if __name__ == "__main__":

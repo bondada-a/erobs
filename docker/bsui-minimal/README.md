@@ -19,13 +19,13 @@ docker run -it --rm \
 
 ```python
 import rclpy
-from bluesky_ros.mtc_ophyd_device import MTCExecutionDevice
+from bluesky_ros.beambot_ophyd_device import BeambotExecutionDevice
 
 # Initialize ROS2
 rclpy.init()
 
 # Create the Ophyd device (connects to beambot_execution action server)
-mtc = MTCExecutionDevice()
+mtc = BeambotExecutionDevice()
 
 # Use with Bluesky RunEngine
 from bluesky import RunEngine
@@ -60,9 +60,9 @@ This container provides a client for the `beambot_execution` action server:
 
 | Action | Type | Description |
 |--------|------|-------------|
-| `/beambot_execution` | `beambot_interfaces/MTCExecution` | Main task execution interface |
+| `/beambot_execution` | `beambot_interfaces/BeambotExecution` | Main task execution interface |
 
-### MTCExecution.action
+### BeambotExecution.action
 
 ```
 # Goal

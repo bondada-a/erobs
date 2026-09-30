@@ -2,7 +2,7 @@
 """ToolExchangeAction server - handles tool load/dock via MTC."""
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
-from beambot.stages.tool_exchange_stages import ToolExchangeStages
+from beambot.motion.tool_exchange_task import ToolExchangeTask
 from beambot_interfaces.action import ToolExchangeAction
 
 
@@ -22,8 +22,8 @@ class ToolExchangeActionServer(BaseActionServer):
             action_type=ToolExchangeAction,
         )
 
-    def create_stages(self):
-        return ToolExchangeStages(self)
+    def create_task(self):
+        return ToolExchangeTask(self)
 
 
 def main(args=None):

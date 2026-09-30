@@ -2,7 +2,7 @@
 """Serve multi-position marker scans with a server-local pose cache."""
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
-from beambot.vision.vision_engine import VisionEngine
+from beambot.vision.target_localizer import TargetLocalizer
 from beambot_interfaces.action import VisionScanAction
 
 
@@ -14,7 +14,7 @@ class VisionActionServer(BaseActionServer):
             action_type=VisionScanAction,
         )
 
-    def create_stages(self):
+    def create_task(self):
         """Create the vision engine from the beamline camera settings."""
         from beambot.config_loader import load_beamline_config
 
@@ -25,7 +25,7 @@ class VisionActionServer(BaseActionServer):
             f"frame={camera_config.get('frame')}"
         )
 
-        return VisionEngine(
+        return TargetLocalizer(
             self,
             camera_type=camera_config.get("type"),
             camera_frame=camera_config.get("frame"),
@@ -62,7 +62,7 @@ class VisionActionServer(BaseActionServer):
             f"VisionScan: {num_positions} positions × {scans_per_position} scans"
         )
 
-        tags_detected = self._stages.scan_all_tags(
+        tags_detected = self._task.scan_all_tags(
             scan_positions=scan_positions,
             scans_per_position=scans_per_position,
             timeout=timeout,

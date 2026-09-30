@@ -2,7 +2,7 @@
 """EndEffectorAction server - handles gripper commands via MTC."""
 
 from beambot.action_servers.base_action_server import BaseActionServer, run_server
-from beambot.stages.end_effector_stages import EndEffectorStages
+from beambot.motion.end_effector_task import EndEffectorTask
 from beambot_interfaces.action import EndEffectorAction
 
 
@@ -20,8 +20,8 @@ class EndEffectorActionServer(BaseActionServer):
             action_type=EndEffectorAction,
         )
 
-    def create_stages(self):
-        return EndEffectorStages(self)
+    def create_task(self):
+        return EndEffectorTask(self)
 
 
 def main(args=None):
