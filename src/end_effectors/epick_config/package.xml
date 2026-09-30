@@ -10,11 +10,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
   <exec_depend>ros2_control</exec_depend>
   <exec_depend>xacro</exec_depend>
-  <exec_depend>ros2launch</exec_depend>
-  <exec_depend>ros2run</exec_depend>
-  <exec_depend>ros2param</exec_depend>
-  <exec_depend>rclcpp</exec_depend>
-
+  <exec_depend>launch_ros</exec_depend>
 
   <export>
     <build_type>ament_cmake</build_type>
