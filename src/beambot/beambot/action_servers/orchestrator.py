@@ -2,7 +2,6 @@
 """Coordinate task scripts across MoveIt action servers."""
 
 import json
-import math
 import threading
 import time
 from typing import Any
@@ -36,6 +35,12 @@ from beambot.stages.end_effector_stages import EndEffectorStages
 from beambot.core.task_batching import group_into_batches
 from beambot.stages.base_stages import wait_for_future
 from beambot.core.task_script import parse_task_script
+from beambot.core.vision_goals import (
+    VISION_TASK_TYPES,
+    build_vision_goal,
+    flatten_scan_positions,
+    resolve_vision_step,
+)
 from beambot.config_loader import load_beamline_config, resolve_beamline_path
 
 
@@ -674,7 +679,7 @@ class MTCOrchestratorServer(Node):
             return self._call_endeffector(step, poses_json)
         elif task_type == "tool_exchange":
             return self._handle_tool_exchange(step, poses_json)
-        elif task_type in self._VISION_TASK_TYPES:
+        elif task_type in VISION_TASK_TYPES:
             return self._call_vision_task(task_type, step, poses_json)
         elif task_type == "vision_scan":
             return self._call_vision_scan(step, poses_json)
@@ -897,46 +902,6 @@ class MTCOrchestratorServer(Node):
 
     # Vision and sample handlers.
 
-    # Legacy task names map to VisionTask defaults; explicit fields override them.
-    # Vacuum watchdog bookkeeping is disabled.
-    _VISION_PRESETS = {
-        "vision_moveto": {"detector": "marker", "goal_computer": "approach_pose"},
-        "pick_sample": {
-            "detector": "marker",
-            "goal_computer": "approach_pose",
-            "terminal_action": "grasp",
-            "pre_open": True,
-            "retreat_from_scan": True,
-            # "watchdog": "arm",
-        },
-        "place_sample": {
-            "detector": "marker",
-            "goal_computer": "approach_pose",
-            "terminal_action": "release",
-            "retreat_from_scan": True,
-            # "watchdog": "disarm",
-        },
-        "pick_spincoater": {
-            "detector": "spincoater_sample",
-            "goal_computer": "j6_snap",
-            "terminal_action": "vacuum_on",
-            "scan_pose": "spincoater_scan",
-            "default_target_pose": "spincoater_place",
-            "forward_distance": 0.003,
-        },
-        "place_spincoater": {
-            "detector": "spincoater_pocket",
-            "goal_computer": "j6_snap",
-            "terminal_action": "vacuum_off",
-            "scan_pose": "spincoater_scan",
-            "default_target_pose": "spincoater_place",
-            "forward_distance": 0.003,
-        },
-    }
-
-    # Route canonical and preset names through VisionTask.
-    _VISION_TASK_TYPES = frozenset({"vision_task", *_VISION_PRESETS})
-
     def _call_vision_scan(self, step: dict[str, Any], poses_json: str) -> bool:
         """Scan configured poses and cache detected marker poses."""
         goal = VisionScanAction.Goal()
@@ -950,21 +915,9 @@ class MTCOrchestratorServer(Node):
             self.get_logger().error(self._last_error)
             return False
 
-        poses = json.loads(poses_json)
-        scan_positions_flat = []
-        valid_positions = 0
-
-        for key in scan_position_keys:
-            if key in poses:
-                # Pose files store joint angles in degrees.
-                joints_deg = poses[key]
-                joints_rad = [math.radians(j) for j in joints_deg]
-                scan_positions_flat.extend(joints_rad)
-                valid_positions += 1
-            else:
-                self.get_logger().warning(
-                    f"Scan position '{key}' not found in poses, skipping"
-                )
+        scan_positions_flat, valid_positions = flatten_scan_positions(
+            json.loads(poses_json), scan_position_keys, self.get_logger().warning
+        )
 
         if valid_positions == 0:
             self._last_error = "No valid scan positions found"
@@ -987,8 +940,6 @@ class MTCOrchestratorServer(Node):
         self, task_type: str, step: dict[str, Any], poses_json: str
     ) -> bool:
         """Dispatch vision tasks and retain detected poses."""
-        preset = self._VISION_PRESETS.get(task_type, {})
-
         # Non-vision pick/place stays on the sample server.
         if task_type in ("pick_sample", "place_sample") and not step.get(
             "use_vision", True
@@ -999,11 +950,7 @@ class MTCOrchestratorServer(Node):
                 else self._call_place_sample_hardcoded
             )(step, poses_json)
 
-        # Explicit fields override preset defaults.
-        cfg = {**preset, **step}
-        # Canonical detector overrides legacy detection_type.
-        if "detector" not in step and "detection_type" in step:
-            cfg["detector"] = step["detection_type"]
+        cfg = resolve_vision_step(task_type, step)
 
         # Cap pre-motion settling at 10 seconds.
         settle_time = min(float(cfg.get("settle_time", 1.0)), 10.0)
@@ -1011,7 +958,15 @@ class MTCOrchestratorServer(Node):
             self.get_logger().info(f"Waiting {settle_time:.1f}s for robot to settle...")
             time.sleep(settle_time)
 
-        goal = self._build_vision_goal(cfg, poses_json)
+        goal = build_vision_goal(
+            cfg,
+            poses_json,
+            grippers=self._grippers,
+            current_gripper=self._current_gripper,
+            ik_frame=self._gripper_ik_frame(),
+            on_info=self.get_logger().info,
+            on_warning=self.get_logger().warning,
+        )
         success = self._send_and_wait(
             self._vision_task_client, goal, task_type, self._timeouts["vision_task"]
         )
@@ -1027,7 +982,7 @@ class MTCOrchestratorServer(Node):
                 )
 
         # Vacuum watchdog bookkeeping is disabled.
-        # watchdog = preset.get("watchdog", "")
+        # watchdog = VISION_PRESETS.get(task_type, {}).get("watchdog", "")
         # if success and watchdog and self._current_gripper == "epick":
         #     if watchdog == "arm" and getattr(self._last_result, "vacuum_ok", True):
         #         self._vacuum.armed = True
@@ -1038,86 +993,11 @@ class MTCOrchestratorServer(Node):
 
         return success
 
-    def _build_vision_goal(self, cfg: dict[str, Any], poses_json: str):
-        """Build a VisionTask goal from merged preset and task fields."""
-        gripper_config = self._grippers.get(
-            cfg.get("gripper", self._current_gripper), {}
-        )
-
-        goal = VisionTaskAction.Goal()
-        # Selectors. Legacy "detection_type" still maps onto "detector".
-        goal.detector = cfg.get("detector", cfg.get("detection_type", "marker"))
-        goal.goal_computer = cfg.get("goal_computer", "approach_pose")
-        # Detection inputs.
-        goal.tag_id = int(cfg.get("tag_id", 0))
-        goal.sample_index = int(cfg.get("sample_index", 1))
-        goal.timeout = float(cfg.get("timeout", 10.0))
-        goal.strategy = cfg.get("strategy", "")
-        goal.edge_inset_mm = float(cfg.get("edge_inset_mm", 0.0))
-        # Goal-computation inputs.
-        goal.z_offset = float(cfg.get("z_offset", self._gripper_z_offset()))
-        goal.marker_offset_x = float(cfg.get("marker_offset_x", 0.0))
-        goal.marker_offset_y = float(cfg.get("marker_offset_y", 0.0))
-        goal.marker_offset_z = float(cfg.get("marker_offset_z", 0.0))
-        goal.offset_direction = cfg.get("offset_direction", "")
-        goal.offset_distance = float(cfg.get("offset_distance", 0.0))
-        # Preserve legacy spincoater target fields.
-        goal.target_pose = (
-            cfg.get("target_pose")
-            or cfg.get("place_pose")
-            or cfg.get("pickup_pose")
-            or cfg.get("default_target_pose", "")
-        )
-        goal.k_offset = float(cfg.get("k_offset", 0.0))
-        goal.forward_distance = float(cfg.get("forward_distance", 0.0))
-        # Execution tail.
-        goal.scan_pose = cfg.get("scan_pose", "")
-        goal.terminal_action = cfg.get("terminal_action", "")
-        goal.pre_open = bool(cfg.get("pre_open", False))
-        # Pick/place may retreat to the scan pose.
-        if cfg.get("retreat_from_scan"):
-            goal.retreat_pose = cfg.get("scan_pose", "")
-        else:
-            goal.retreat_pose = cfg.get("retreat_pose", "")
-        goal.gripper_group = gripper_config.get("gripper_group", "")
-        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
-        # Common.
-        goal.ik_frame = self._gripper_ik_frame()
-        goal.detect_only = bool(cfg.get("detect_only", False))
-        goal.poses_json = poses_json
-        goal.constraints_json = (
-            json.dumps(cfg["constraints"]) if "constraints" in cfg else ""
-        )
-
-        # Flatten multi-position joint poses in radians.
-        scan_keys = cfg.get("scan_positions", [])
-        if scan_keys:
-            poses = json.loads(poses_json) if poses_json else {}
-            flat, n = [], 0
-            for key in scan_keys:
-                if key in poses:
-                    flat.extend(math.radians(j) for j in poses[key])
-                    n += 1
-                else:
-                    self.get_logger().warning(
-                        f"Scan position '{key}' not found, skipping"
-                    )
-            if n > 0:
-                goal.scan_positions_flat = flat
-                goal.num_scan_positions = n
-                self.get_logger().info(f"Multi-position mode: {n} scan positions")
-
-        return goal
-
     def _gripper_ik_frame(self) -> str:
         """Return configured IK tip frame for the current gripper."""
         from beambot.config_loader import gripper_tip_frame
 
         return gripper_tip_frame(self._current_gripper, default="flange")
-
-    def _gripper_z_offset(self) -> float:
-        """Default Z offset for the currently attached gripper (meters)."""
-        return float(self._grippers.get(self._current_gripper, {}).get("z_offset", 0.0))
 
     def _call_pick_sample_hardcoded(
         self, step: dict[str, Any], poses_json: str

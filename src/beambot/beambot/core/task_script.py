@@ -8,6 +8,7 @@ from typing import Any
 import yaml
 
 from beambot.config_loader import is_finite_number
+from beambot.core.vision_goals import VISION_TASK_TYPES
 
 
 DRY_RUN_SUPPORTED_TYPES = {"moveto", "end_effector"}
@@ -16,15 +17,10 @@ SUPPORTED_TASK_TYPES = {
     "moveto",
     "end_effector",
     "tool_exchange",
-    "vision_task",
-    "vision_moveto",
     "vision_scan",
-    "pick_sample",
-    "place_sample",
-    "pick_spincoater",
-    "place_spincoater",
     "pipettor",
     "pause",
+    *VISION_TASK_TYPES,
 }
 MOVETO_DIRECTIONS = (
     "forward",
