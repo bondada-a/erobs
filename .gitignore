@@ -3,6 +3,7 @@ install
 log
 site
 erobs.code-workspace
+.claude/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
