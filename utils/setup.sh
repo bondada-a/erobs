@@ -1,8 +1,10 @@
 #!/bin/bash
 set -e
 
-vcs import < src/ros2.repos src
 sudo apt-get update
+command -v vcs >/dev/null 2>&1 || sudo apt-get install -y python3-vcstool
+
+vcs import src/end_effectors < src/end_effectors/end_effectors.repos
+# vcs import src/vision < src/vision/vision.repos #Zivid needs SDK installation
 rosdep update
-rosdep install --from-paths src --ignore-src -y --skip-keys "zivid_description"
-rosdep update
+rosdep install --from-paths src --ignore-src -y
