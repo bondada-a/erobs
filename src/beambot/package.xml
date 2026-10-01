@@ -1,0 +1,57 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd"
+            schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>beambot</name>
+  <version>0.1.0</version>
+  <description>Beambot: robotic sample handling framework for synchrotron beamlines</description>
+  <maintainer email="abondada@bnl.gov">abondada</maintainer>
+  <license>BSD-3-Clause</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+
+  <!-- Action interfaces -->
+  <depend>beambot_interfaces</depend>
+
+  <!-- ROS 2 core -->
+  <depend>rclpy</depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+
+  <!-- MoveIt Task Constructor -->
+  <depend>moveit_task_constructor_core</depend>
+
+  <!-- Coordinate transforms -->
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <exec_depend>tf_transformations</exec_depend>
+
+
+  <!-- ROS WebSocket bridge for MCP -->
+  <exec_depend>rosbridge_server</exec_depend>
+
+  <!-- Octomap generation and planning-scene integration -->
+  <exec_depend>octomap_server</exec_depend>
+  <exec_depend>octomap_msgs</exec_depend>
+
+  <!-- ROS tracing and analysis -->
+  <exec_depend>tracetools_launch</exec_depend>
+  <exec_depend>tracetools_analysis</exec_depend>
+
+  <!-- ROS messages and services -->
+  <depend>geometry_msgs</depend>
+  <depend>shape_msgs</depend>
+  <depend>moveit_msgs</depend>
+  <depend>std_srvs</depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>sensor_msgs_py</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+  <exec_depend>ur_msgs</exec_depend>
+
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
