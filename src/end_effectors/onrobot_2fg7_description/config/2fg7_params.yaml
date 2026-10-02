@@ -1,0 +1,24 @@
+# OnRobot 2FG7 gripper parameters
+gripper:
+  # Modbus RTU communication
+  slave_id: 65          # 0x41
+  serial_port: /tmp/ttyUR
+  baud_rate: 1000000
+  parity: "E"           # Even parity
+
+  # Grip ranges (from datasheet, external grip with fingers inwards)
+  min_external_width_mm: 1.0
+  max_external_width_mm: 73.0
+  total_stroke_mm: 38.0
+
+  # Force
+  min_force_n: 20
+  max_force_n: 140
+
+  # Speed
+  min_speed_pct: 10
+  max_speed_pct: 100
+  max_speed_mm_s: 450
+
+  # Weight
+  gripper_mass_kg: 0.78
