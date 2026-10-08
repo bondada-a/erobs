@@ -47,7 +47,7 @@ def _base_packages() -> list[str]:
         from beambot.config_loader import description_package
         return ["ur_description", description_package()]
     except Exception:
-        return ["ur_description", "cms_robot_description"]
+        return ["ur_description"]
 
 
 _BASE_PACKAGES = _base_packages()
@@ -57,7 +57,7 @@ _BASE_PACKAGES = _base_packages()
 # that go unreferenced are simply skipped.
 _KNOWN_DESCRIPTION_PACKAGES = (
     "ur_description",
-    _BASE_PACKAGES[1] if len(_BASE_PACKAGES) > 1 else "cms_robot_description",
+    *_BASE_PACKAGES[1:],
     "zivid_description",
     "epick_description",
     "robotiq_hande_description",
@@ -124,22 +124,24 @@ def _resolve_packages(required: set[str] | None = None):
     workspace_roots = _find_workspace_roots()
 
     # Fill in anything ament_index didn't find
-    desc_pkg = _BASE_PACKAGES[1] if len(_BASE_PACKAGES) > 1 else "cms_robot_description"
+    desc_pkg = _BASE_PACKAGES[1] if len(_BASE_PACKAGES) > 1 else None
     candidates_per_pkg = {
         "ur_description": [Path("/opt/ros/jazzy/share/ur_description")],
-        desc_pkg: [],
         "zivid_description": [Path("/opt/ros/jazzy/share/zivid_description")],
         "epick_description": [],
         "robotiq_hande_description": [],
         "pipette_description": [],
     }
+    if desc_pkg:
+        candidates_per_pkg[desc_pkg] = []
 
     # Add workspace-relative paths for each root
     for ws in workspace_roots:
-        candidates_per_pkg[desc_pkg].extend([
-            ws / "install" / desc_pkg / "share" / desc_pkg,
-            ws / "src" / "custom-ur-descriptions" / desc_pkg,
-        ])
+        if desc_pkg:
+            candidates_per_pkg[desc_pkg].extend([
+                ws / "install" / desc_pkg / "share" / desc_pkg,
+                ws / "src" / "custom-ur-descriptions" / desc_pkg,
+            ])
         candidates_per_pkg["zivid_description"].insert(0,
             ws / "install" / "zivid_description" / "share" / "zivid_description")
         # Source-tree fallback (thin clients don't build zivid_description; its
@@ -208,6 +210,8 @@ class _MeshRequestHandler(SimpleHTTPRequestHandler):
 
         # URDF files
         if path.startswith("/__urdf__/"):
+            if self.urdf_dir is None:
+                return str(Path(self.resources_dir) / ".beambot-path-denied")
             rel = path[len("/__urdf__/"):]
             return self._resolve_under(self.urdf_dir, rel)
 
@@ -286,15 +290,16 @@ class VisualizationPanel(QWidget):
             from beambot.config_loader import description_package
             desc_pkg = description_package()
         except Exception:
-            desc_pkg = "cms_robot_description"
+            desc_pkg = None
         self._urdf_dir = None
-        for ws in _find_workspace_roots():
-            candidate = ws / "src" / "custom-ur-descriptions" / desc_pkg / "urdf"
-            if candidate.is_dir():
-                self._urdf_dir = candidate
-                break
-        if self._urdf_dir is None:
-            self._urdf_dir = Path(__file__).resolve().parents[2] / "custom-ur-descriptions" / desc_pkg / "urdf"
+        if desc_pkg:
+            for ws in _find_workspace_roots():
+                candidate = ws / "src" / "custom-ur-descriptions" / desc_pkg / "urdf"
+                if candidate.is_dir():
+                    self._urdf_dir = candidate
+                    break
+            if self._urdf_dir is None:
+                self._urdf_dir = Path(__file__).resolve().parents[2] / "custom-ur-descriptions" / desc_pkg / "urdf"
 
         # Limit description-package lookup to the packages actually referenced
         # by the URDFs the active beamline's grippers declare. A beamline that

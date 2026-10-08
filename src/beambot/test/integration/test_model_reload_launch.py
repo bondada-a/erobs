@@ -58,9 +58,20 @@ def _probe():
     with tempfile.TemporaryDirectory(prefix="beambot-model-test-") as directory:
         config = Path(directory) / "beamline.yaml"
         config.write_text(yaml.safe_dump({
-            "robot": {"moveit_config_package": "cms_moveit_config", "arm_joints": ["hinge"]},
+            "beamline": "test",
+            "robot": {
+                "ip": "192.0.2.1",
+                "moveit_config_package": "cms_moveit_config",
+                "description_package": "cms_robot_description",
+                "arm_joints": ["hinge"],
+            },
             "grippers": {
-                tool: {"gripper_group": f"{tool}_gripper", "tip_frame": f"{tool}_tip"}
+                tool: {
+                    "gripper_group": f"{tool}_gripper",
+                    "tip_frame": f"{tool}_tip",
+                    "payload_mass": 1.0,
+                    "payload_cog": {"x": 0.0, "y": 0.0, "z": 0.0},
+                }
                 for tool in ("alpha", "beta")
             },
         }))

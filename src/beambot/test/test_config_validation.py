@@ -10,6 +10,15 @@ from beambot.config_loader import BeamlineConfigError, validate_beamline_config
 
 CONFIG_DIR = Path(__file__).resolve().parents[1] / "config"
 
+REQUIRED = {
+    "beamline": "test",
+    "robot": {
+        "ip": "192.0.2.1",
+        "moveit_config_package": "test_moveit_config",
+        "description_package": "test_robot_description",
+    },
+}
+
 VALID_GRIPPER = {
     "tool_voltage": 24,
     "payload_mass": 1.5,
@@ -19,7 +28,7 @@ VALID_GRIPPER = {
 
 def _errors(**gripper_overrides):
     gripper = {**VALID_GRIPPER, **gripper_overrides}
-    return validate_beamline_config({"grippers": {"hande": gripper}})
+    return validate_beamline_config({**REQUIRED, "grippers": {"hande": gripper}})
 
 
 @pytest.fixture(autouse=True)
@@ -49,9 +58,9 @@ def test_beamline_configs_are_valid(config_name):
 
 def test_valid_gripper_and_absent_sections_pass():
     assert _errors() == []
-    assert validate_beamline_config({}) == []
+    assert validate_beamline_config({**REQUIRED, "grippers": {}}) == []
     # Omitted tool_voltage means 0 V.
-    assert validate_beamline_config({"grippers": {"none": {
+    assert validate_beamline_config({**REQUIRED, "grippers": {"none": {
         "payload_mass": 1.0, "payload_cog": {"x": 0, "y": 0, "z": 0},
     }}}) == []
 
@@ -81,15 +90,25 @@ def test_invalid_gripper_values_are_reported(overrides, field):
     assert errors[0].startswith(f"grippers.hande.{field}:")
 
 
+def test_required_sections_are_reported():
+    assert validate_beamline_config({}) == [
+        "beamline: required",
+        "robot.ip: required",
+        "robot.moveit_config_package: required",
+        "robot.description_package: required",
+        "grippers: expected a mapping, got None",
+    ]
+
+
 def test_non_mapping_gripper_is_reported():
-    assert validate_beamline_config({"grippers": {"hande": 24}}) == [
+    assert validate_beamline_config({**REQUIRED, "grippers": {"hande": 24}}) == [
         "grippers.hande: expected a mapping"
     ]
 
 
 def test_load_reports_every_error_and_is_not_cached(tmp_path, monkeypatch):
     config = tmp_path / "beamline.yaml"
-    config.write_text(yaml.safe_dump({"grippers": {
+    config.write_text(yaml.safe_dump({**REQUIRED, "grippers": {
         "hande": {**VALID_GRIPPER, "payload_mass": 0},
         "epick": {**VALID_GRIPPER, "tool_voltage": 48},
     }}))
@@ -101,5 +120,5 @@ def test_load_reports_every_error_and_is_not_cached(tmp_path, monkeypatch):
     assert "grippers.epick.tool_voltage" in str(raised.value)
 
     # Fixing the file lets the next load succeed without a restart.
-    config.write_text(yaml.safe_dump({"grippers": {"hande": VALID_GRIPPER}}))
+    config.write_text(yaml.safe_dump({**REQUIRED, "grippers": {"hande": VALID_GRIPPER}}))
     assert config_loader.load_beamline_config()[0]["grippers"]["hande"] == VALID_GRIPPER

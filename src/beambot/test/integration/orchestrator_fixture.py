@@ -15,8 +15,16 @@ def main():
         config_path = Path(directory) / "beamline.json"
         config_path.write_text(json.dumps({
             "beamline": "action_transport_test",
-            "robot": {"ip": "127.0.0.1", "arm_group": "ur_arm"},
-            "grippers": {"test": {}},
+            "robot": {
+                "ip": "127.0.0.1",
+                "arm_group": "ur_arm",
+                "moveit_config_package": "cms_moveit_config",
+                "description_package": "cms_robot_description",
+            },
+            "grippers": {"test": {
+                "payload_mass": 1.0,
+                "payload_cog": {"x": 0.0, "y": 0.0, "z": 0.0},
+            }},
             "vision_targets": {},
         }))
         os.environ["BEAMBOT_BEAMLINE_CONFIG"] = str(config_path)

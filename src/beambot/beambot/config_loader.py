@@ -35,8 +35,7 @@ def get_beamline_config_path() -> str:
             f"{_ENV_VAR} environment variable is not set.\n"
             f"Set it to the absolute path of your beamline's YAML config, e.g.:\n"
             f"    export {_ENV_VAR}=/path/to/your_beamline.yaml\n"
-            f"For CMS:\n"
-            f"    export {_ENV_VAR}=$(realpath src/beambot/config/cms_beamline.yaml)"
+            f"Start from the template: src/beambot/config/cms_drylab.yaml"
         )
 
     # Preserve unknown '~user' handling and normalize '..' without following symlinks.
@@ -91,11 +90,25 @@ def is_finite_number(value) -> bool:
 def validate_beamline_config(config: dict) -> list[str]:
     """Return every problem found in a parsed beamline config; empty when valid.
 
-    Sections a beamline does not use are absent and skipped. Checks run once per
-    process at load, so a bad value stops the stack before it moves the robot.
+    beamline, robot.ip, robot.moveit_config_package, robot.description_package and
+    grippers are required; other sections a beamline does not use are absent and
+    skipped. Checks run once per process at load, so a bad value stops the stack
+    before it moves the robot.
     """
     errors = []
-    for name, gripper in (config.get("grippers") or {}).items():
+    if "beamline" not in config:
+        errors.append("beamline: required")
+    robot = config.get("robot")
+    if not isinstance(robot, dict):
+        robot = {}
+    for key in ("ip", "moveit_config_package", "description_package"):
+        if not robot.get(key):
+            errors.append(f"robot.{key}: required")
+    grippers = config.get("grippers")
+    if not isinstance(grippers, dict):
+        errors.append(f"grippers: expected a mapping, got {grippers!r}")
+        grippers = {}
+    for name, gripper in grippers.items():
         prefix = f"grippers.{name}"
         if not isinstance(gripper, dict):
             errors.append(f"{prefix}: expected a mapping")
@@ -190,22 +203,16 @@ def configured_tip_frames() -> list[str]:
         return []
 
 
-def moveit_config_package(default: str = "cms_moveit_config") -> str:
-    """Return the MoveIt config package, or default on missing keys or read errors."""
-    try:
-        config, _ = load_beamline_config()
-        return config.get("robot", {}).get("moveit_config_package", default)
-    except Exception:
-        return default
+def moveit_config_package() -> str:
+    """Return the beamline's MoveIt config package (robot.moveit_config_package)."""
+    config, _ = load_beamline_config()
+    return config["robot"]["moveit_config_package"]
 
 
-def description_package(default: str = "cms_robot_description") -> str:
-    """Return the GUI's description package, or default if configuration is unavailable."""
-    try:
-        config, _ = load_beamline_config()
-        return config.get("robot", {}).get("description_package", default)
-    except Exception:
-        return default
+def description_package() -> str:
+    """Return the beamline's robot description package (robot.description_package)."""
+    config, _ = load_beamline_config()
+    return config["robot"]["description_package"]
 
 
 def gripper_urdf_file(gripper: str, default: str = "ur_standalone.urdf") -> str:

@@ -205,7 +205,13 @@ class TestConfigLoaderContract:
     "beamline, pipelines",
     [
         ("cms", {"ompl", "pilz_industrial_motion_planner", "stomp"}),
-        ("lix", {"ompl", "pilz_industrial_motion_planner"}),
+        pytest.param(
+            "lix",
+            {"ompl", "pilz_industrial_motion_planner"},
+            marks=pytest.mark.xfail(
+                strict=True, reason="LIX hande payload_mass/payload_cog not yet measured"
+            ),
+        ),
     ],
 )
 def test_pipeline_params_match_beamline_planners(beamline, pipelines, monkeypatch):
@@ -249,6 +255,17 @@ def test_missing_required_pipeline_config_fails(missing, tmp_path):
         config_loader.build_pipeline_param_args()
 
 
+_CONFIG_TEMPLATE = """\
+beamline: test
+robot:
+  ip: 192.0.2.1
+  moveit_config_package: test_moveit_config
+  description_package: test_robot_description
+  arm_joints: {joints}
+grippers: {{}}
+"""
+
+
 class TestBeamlineConfigCaching:
     """load_beamline_config() must parse the YAML at most once per process, no
     matter how many callers (or how high-frequency a callback) read it. This is
@@ -263,7 +280,7 @@ class TestBeamlineConfigCaching:
         independent of any particular beamline's content.
         """
         cfg = tmp_path / "beamline.yaml"
-        cfg.write_text("beamline: test\nrobot:\n  arm_joints: [a, b, c]\n")
+        cfg.write_text(_CONFIG_TEMPLATE.format(joints="[a, b, c]"))
         monkeypatch.setenv("BEAMBOT_BEAMLINE_CONFIG", str(cfg))
         return cfg
 
@@ -298,7 +315,7 @@ class TestBeamlineConfigCaching:
         # re-reads (e.g. a test pointing the env var at a different beamline).
         config = self._write_config(tmp_path, monkeypatch)
         assert config_loader.load_beamline_config()[0]["robot"]["arm_joints"] == ["a", "b", "c"]
-        config.write_text("robot:\n  arm_joints: [replacement]\n")
+        config.write_text(_CONFIG_TEMPLATE.format(joints="[replacement]"))
         config_loader.reset_beamline_config_cache()
         assert config_loader.load_beamline_config()[0]["robot"]["arm_joints"] == ["replacement"]
 
