@@ -8,10 +8,10 @@
   <license>BSD-3-Clause</license>
 
   <!-- ROS 2 dependencies -->
-  <depend>rclpy</depend>
-  <depend>sensor_msgs</depend>
-  <depend>std_srvs</depend>
-  <depend>cv_bridge</depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
+  <exec_depend>cv_bridge</exec_depend>
   <exec_depend>action_msgs</exec_depend>
   <exec_depend>std_msgs</exec_depend>
   <exec_depend>moveit_msgs</exec_depend>
@@ -26,12 +26,13 @@
   <exec_depend>python3-opencv</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
 
-  <!-- Beambot action interfaces -->
-  <depend>beambot_interfaces</depend>
+  <!-- Beambot framework and action interfaces -->
+  <exec_depend>beambot</exec_depend>
+  <exec_depend>beambot_interfaces</exec_depend>
 
-  <test_depend>ament_copyright</test_depend>
-  <test_depend>ament_flake8</test_depend>
-  <test_depend>ament_pep257</test_depend>
+  <!-- 3D viewer always serves the UR arm meshes -->
+  <exec_depend>ur_description</exec_depend>
+
   <test_depend>python3-pytest</test_depend>
 
   <export>

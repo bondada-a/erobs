@@ -12,21 +12,39 @@
   <buildtool_depend>ament_cmake_python</buildtool_depend>
 
   <!-- Action interfaces -->
-  <depend>beambot_interfaces</depend>
+  <exec_depend>beambot_interfaces</exec_depend>
 
   <!-- ROS 2 core -->
-  <depend>rclpy</depend>
+  <exec_depend>rclpy</exec_depend>
   <exec_depend>ament_index_python</exec_depend>
   <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <!-- ros2 launch / ros2 param CLIs used by the MoveIt lifecycle manager and MCP server -->
+  <exec_depend>ros2launch</exec_depend>
+  <exec_depend>ros2param</exec_depend>
 
-  <!-- MoveIt Task Constructor -->
-  <depend>moveit_task_constructor_core</depend>
+  <!-- MoveIt Task Constructor and the planners its pipelines load -->
+  <exec_depend>moveit_task_constructor_core</exec_depend>
+  <exec_depend>moveit_task_constructor_msgs</exec_depend>
+  <exec_depend>py_binding_tools</exec_depend>
+  <exec_depend>moveit_planners_ompl</exec_depend>
+  <exec_depend>pilz_industrial_motion_planner</exec_depend>
 
   <!-- Coordinate transforms -->
-  <depend>tf2_ros</depend>
-  <depend>tf2_geometry_msgs</depend>
+  <exec_depend>tf2_ros_py</exec_depend>
+  <exec_depend>tf2_geometry_msgs</exec_depend>
   <exec_depend>tf_transformations</exec_depend>
 
+  <!-- Image handling (camera backends, perception, MCP server) -->
+  <exec_depend>cv_bridge</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+  <exec_depend>python3-numpy</exec_depend>
+
+  <!-- MCP point-selector GUI -->
+  <exec_depend>python3-pil</exec_depend>
+  <exec_depend>python3-pil-imagetk</exec_depend>
+  <exec_depend>python3-tk</exec_depend>
 
   <!-- ROS WebSocket bridge for MCP -->
   <exec_depend>rosbridge_server</exec_depend>
@@ -40,10 +58,12 @@
   <exec_depend>tracetools_analysis</exec_depend>
 
   <!-- ROS messages and services -->
-  <depend>geometry_msgs</depend>
-  <depend>shape_msgs</depend>
-  <depend>moveit_msgs</depend>
-  <depend>std_srvs</depend>
+  <exec_depend>action_msgs</exec_depend>
+  <exec_depend>builtin_interfaces</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>shape_msgs</exec_depend>
+  <exec_depend>moveit_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend>
   <exec_depend>sensor_msgs</exec_depend>
   <exec_depend>sensor_msgs_py</exec_depend>
   <exec_depend>std_msgs</exec_depend>
@@ -54,9 +74,6 @@
   <test_depend>ament_cmake_ros</test_depend>
   <test_depend>launch_testing_ament_cmake</test_depend>
   <test_depend>launch_testing</test_depend>
-  <test_depend>python3-numpy</test_depend>
-  <test_depend>python3-opencv</test_depend>
-  <test_depend>cv_bridge</test_depend>
   <test_depend>cms_moveit_config</test_depend>
   <test_depend>zivid_interfaces</test_depend>
   <test_depend>pipette_driver</test_depend>

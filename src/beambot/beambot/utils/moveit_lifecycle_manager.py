@@ -279,8 +279,11 @@ class MoveItLifecycleManager:
                 cmd.append(f"cup_profile:={cup_profile}")
 
             self._logger.info(f"Executing: {' '.join(cmd)}")
+            # opencv-python sets this on import; inherited, it crashes RViz.
+            env = os.environ.copy()
+            env.pop("QT_QPA_PLATFORM_PLUGIN_PATH", None)
             # Give launch its own process group for killpg() during shutdown.
-            self._moveit_process = subprocess.Popen(cmd, start_new_session=True)
+            self._moveit_process = subprocess.Popen(cmd, start_new_session=True, env=env)
         except Exception as e:
             self._logger.error(f"Failed to launch MoveIt process: {e}")
             return False

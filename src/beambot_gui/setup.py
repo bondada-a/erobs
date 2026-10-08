@@ -13,12 +13,11 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', ['launch/beambot_gui_client.launch.py']),
     ],
-    install_requires=['pyyaml'],
+    install_requires=['setuptools'],
     maintainer='abondada',
     maintainer_email='abondada@bnl.gov',
     description='Graphical User Interface for beambot pipeline',
     license='BSD-3-Clause',
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
             'beambot_gui_client = beambot_gui.main:main',
