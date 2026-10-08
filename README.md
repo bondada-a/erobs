@@ -117,14 +117,38 @@ ros2 run beambot_gui beambot_gui_client
 
 `beambot_bringup.launch.py` starts all action servers and the Zivid camera
 (conditionally); the orchestrator launches MoveIt lazily on the first goal based on the
-attached gripper. See
+attached gripper. See [`CLAUDE.md`](./CLAUDE.md) for development architecture and
 [`robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md) for task and
 robot-side troubleshooting details.
+
+## Tests
+
+```bash
+./test.sh              # Hardware-free unit tests, including the offscreen GUI
+./test.sh pure         # Parser, batching, cache and geometry; no ROS required
+./test.sh integration  # Isolated ROS actions, model reload and process cleanup
+./test.sh all          # Unit and integration suites
+```
+
+Unit tests block ROS startup, subprocesses and external connections. Integration
+tests use private localhost-only ROS domains, synthetic models and inert action
+task builders; they never launch the robot or camera drivers. They do not validate
+physical clearance, calibration, controller timing or hardware reliability.
+Use the prepared Jazzy workspace for the full suite; `pure` needs pytest,
+PyYAML, NumPy and OpenCV with ArUco support. Results are written under `log/tests`.
+The deferred shutdown-child bug is exercised and reported as a known-issue skip,
+not a pass; fixture or cleanup failures still fail the suite.
+
+After building with `BUILD_TESTING=ON`, `colcon test --packages-select beambot
+beambot_gui` also discovers these tests. Do not run workspace-wide test discovery on
+a hardware host: external driver packages have their own test requirements.
 
 ## Further reading
 
 - [EROBS documentation](https://bondada-a.github.io/erobs/) — full guides and
   function reference (work in progress)
+- [`CLAUDE.md`](./CLAUDE.md) — development brief auto-loaded by Claude Code
+  (repo layout, build/test commands, invariants)
 - [`src/beambot/beambot/agent/robot_operation.md`](./src/beambot/beambot/agent/robot_operation.md)
   — authoritative robot-operation reference: task JSON schema, MCP tool inventory,
   error taxonomy, gotchas (also loaded by the `robot-operation` skill)
