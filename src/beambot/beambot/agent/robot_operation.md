@@ -270,10 +270,10 @@ Supports `"marker"` (default) or `"sample_roi"` detection as described in
 - `offset_direction` + `offset_distance` — additional offset in the gripper's
   **ik_frame**, applied on top of the marker offset.
 - `detect_only: true` — no motion. Position and orientation return in result.
-  ⚠ **`detected_orientation` is in the `ik_frame`**, not flange — ~90°
-  rotation (`tool_block` joint) between them. Do not use it to hand-compute
-  flange offsets; use `offset_direction`/`offset_distance` or
-  `marker_offset_*` instead.
+  ⚠ **`detected_orientation` is in the `ik_frame`**, not flange — 120°
+  rotation between them (the ik_frame is oriented like `tool0`). Do not use
+  it to hand-compute flange offsets; use `offset_direction`/`offset_distance`
+  or `marker_offset_*` instead.
 - `scan_positions` — optional list of pose keys for multi-position averaging.
 - `vision_method` and `settle_time` as in `pick_sample` (§3.3).
 
