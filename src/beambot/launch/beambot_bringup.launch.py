@@ -1,4 +1,4 @@
-"""Launch beambot servers, the orchestrator and optional Zivid capture/tracing.
+"""Launch beambot servers, the orchestrator and optional Zivid capture.
 
 BEAMBOT_BEAMLINE_CONFIG selects the beamline. Vision and pipettor are opt-in;
 mock hardware applies only to the robot.
@@ -12,7 +12,6 @@ from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
-from tracetools_launch.action import Trace
 
 from beambot.config_loader import build_pipeline_param_args, moveit_config_package
 
@@ -52,20 +51,6 @@ def generate_launch_description():
         description="Enable MTC stage batching (false = each task via action server)",
     )
 
-    declare_enable_tracing = DeclareLaunchArgument(
-        "enable_tracing",
-        default_value="false",
-        description="Enable ros2_tracing (LTTng). Writes CTF trace to "
-        "~/.ros/tracing/<trace_session_name>-<timestamp>/. "
-        "Analyze with: ros2 run tracetools_analysis auto <path>",
-    )
-
-    declare_trace_session_name = DeclareLaunchArgument(
-        "trace_session_name",
-        default_value="beambot",
-        description="LTTng session name (timestamp is appended automatically)",
-    )
-
     declare_orchestrator_log_level = DeclareLaunchArgument(
         "orchestrator_log_level",
         default_value="info",
@@ -77,17 +62,7 @@ def generate_launch_description():
     use_mock_hardware = LaunchConfiguration("use_mock_hardware")
     enable_joystick = LaunchConfiguration("enable_joystick")
     enable_batching = LaunchConfiguration("enable_batching")
-    enable_tracing = LaunchConfiguration("enable_tracing")
-    trace_session_name = LaunchConfiguration("trace_session_name")
     orchestrator_log_level = LaunchConfiguration("orchestrator_log_level")
-
-    # Userspace tracing only; kernel events require LTTng kernel modules.
-    trace_action = Trace(
-        session_name=trace_session_name,
-        append_timestamp=True,
-        events_kernel=[],
-        condition=IfCondition(enable_tracing),
-    )
 
     # Share MoveIt's IK solver settings under RobotModelLoader's parameter key.
     _kinematics_path = (
@@ -216,11 +191,7 @@ def generate_launch_description():
             declare_use_mock_hardware,
             declare_enable_joystick,
             declare_enable_batching,
-            declare_enable_tracing,
-            declare_trace_session_name,
             declare_orchestrator_log_level,
-            # Start tracing before nodes to capture startup events.
-            trace_action,
             move_to_server,
             end_effector_server,
             tool_exchange_server,

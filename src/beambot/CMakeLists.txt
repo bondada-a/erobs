@@ -39,9 +39,6 @@ install(PROGRAMS
   beambot/mapping/octomap_to_planning_scene.py
   # Client utilities
   scripts/beambot_client.py
-  # Perf / tracing utilities (ros2_tracing wrapper + report)
-  scripts/perf_trace_run.sh
-  scripts/perf_trace_summarize.py
   # Octomap capture run: move through scan poses + capture to build a map
   scripts/capture_octomap.py
   DESTINATION lib/${PROJECT_NAME}

@@ -53,10 +53,6 @@
   <exec_depend>octomap_server</exec_depend>
   <exec_depend>octomap_msgs</exec_depend>
 
-  <!-- ROS tracing and analysis -->
-  <exec_depend>tracetools_launch</exec_depend>
-  <exec_depend>tracetools_analysis</exec_depend>
-
   <!-- ROS messages and services -->
   <exec_depend>action_msgs</exec_depend>
   <exec_depend>builtin_interfaces</exec_depend>
