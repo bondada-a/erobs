@@ -4,6 +4,7 @@
 import json
 import threading
 import time
+from dataclasses import dataclass
 from typing import Any
 
 from rclpy.node import Node
@@ -24,7 +25,7 @@ from beambot_interfaces.action import (
     PipettorAction,
 )
 from std_srvs.srv import Trigger
-from std_msgs.msg import String
+from std_msgs.msg import ColorRGBA, String
 
 from beambot.utils.moveit_lifecycle_manager import MoveItLifecycleManager
 # from beambot.utils.vacuum_monitor import VacuumMonitor
@@ -41,7 +42,27 @@ from beambot.utils.vision_goals import (
     flatten_scan_positions,
     resolve_vision_step,
 )
-from beambot.config_loader import load_beamline_config, resolve_beamline_path
+from beambot.config_loader import (
+    gripper_tip_frame,
+    load_beamline_config,
+    resolve_beamline_path,
+)
+
+
+@dataclass
+class _GoalRun:
+    """Per-goal state shared by the batch helpers."""
+
+    handle: ServerGoalHandle
+    result: BeambotExecution.Result
+    feedback: BeambotExecution.Feedback
+    total: int
+    poses_json: str
+    dry_run: bool
+    goal_key: str
+    cache_eligible: bool
+    cached_trajectory: Any = None  # Serialized MTC solution, or None.
+    completed: int = 0
 
 
 class BeambotOrchestratorServer(Node):
@@ -66,6 +87,7 @@ class BeambotOrchestratorServer(Node):
         # Execution state.
         self._executing = False
         self._faulted = False
+        # Lock guards check-and-set; single-writer flags are read lock-free.
         self._lock = threading.Lock()
         self._current_gripper = "unknown"
 
@@ -104,7 +126,7 @@ class BeambotOrchestratorServer(Node):
         self._grippers = config["grippers"]
         self._vision_targets = config.get("vision_targets", {})
         self._robot_ip = config["robot"]["ip"]
-        self._arm_group = config.get("robot", {}).get("arm_group", "ur_arm")
+        self._arm_group = config["robot"].get("arm_group", "ur_arm")
         self.get_logger().info(
             f"Loaded beamline: {config['beamline']} (robot: {self._robot_ip})"
         )
@@ -147,45 +169,28 @@ class BeambotOrchestratorServer(Node):
             callback_group=self._callback_group,
         )
 
-        self._moveto_client = ActionClient(
-            self, MoveToAction, "beambot_moveto", callback_group=self._callback_group
+        def make_action_client(action_type, name):
+            return ActionClient(
+                self, action_type, name, callback_group=self._callback_group
+            )
+
+        self._moveto_client = make_action_client(MoveToAction, "beambot_moveto")
+        self._endeffector_client = make_action_client(
+            EndEffectorAction, "beambot_endeffector"
         )
-        self._endeffector_client = ActionClient(
-            self,
-            EndEffectorAction,
-            "beambot_endeffector",
-            callback_group=self._callback_group,
+        self._vision_task_client = make_action_client(
+            VisionTaskAction, "beambot_vision_task"
         )
-        self._vision_task_client = ActionClient(
-            self,
-            VisionTaskAction,
-            "beambot_vision_task",
-            callback_group=self._callback_group,
+        self._vision_scan_client = make_action_client(
+            VisionScanAction, "beambot_vision_scan"
         )
-        self._vision_scan_client = ActionClient(
-            self,
-            VisionScanAction,
-            "beambot_vision_scan",
-            callback_group=self._callback_group,
+        self._pick_sample_client = make_action_client(
+            PickSampleAction, "beambot_pick_sample"
         )
-        self._pick_sample_client = ActionClient(
-            self,
-            PickSampleAction,
-            "beambot_pick_sample",
-            callback_group=self._callback_group,
+        self._place_sample_client = make_action_client(
+            PlaceSampleAction, "beambot_place_sample"
         )
-        self._place_sample_client = ActionClient(
-            self,
-            PlaceSampleAction,
-            "beambot_place_sample",
-            callback_group=self._callback_group,
-        )
-        self._pipettor_client = ActionClient(
-            self,
-            PipettorAction,
-            "beambot_pipettor",
-            callback_group=self._callback_group,
-        )
+        self._pipettor_client = make_action_client(PipettorAction, "beambot_pipettor")
 
         # Tool exchange.
         self._tool_exchange_manager = ToolExchangeManager(
@@ -268,7 +273,7 @@ class BeambotOrchestratorServer(Node):
         return CancelResponse.ACCEPT
 
     def _pause_callback(self, request, response):
-        """Request a pause after the active execution unit."""
+        """Request a pause after the active batch."""
         with self._lock:
             if not self._executing:
                 response.success = False
@@ -386,7 +391,7 @@ class BeambotOrchestratorServer(Node):
         result = BeambotExecution.Result()
         feedback = BeambotExecution.Feedback()
 
-        dry_run = bool(getattr(goal_handle.request, "dry_run", False))
+        dry_run = goal_handle.request.dry_run
         try:
             parsed = parse_task_script(
                 goal_handle.request.full_json,
@@ -410,8 +415,6 @@ class BeambotOrchestratorServer(Node):
                 f"DRY-RUN preview enabled — planning {task_count} step(s) "
                 f"without moving the robot"
             )
-
-        cached_trajectory_for_replay = None  # Serialized MTC solution, or None.
 
         self._set_current_gripper(start_gripper)
 
@@ -439,7 +442,7 @@ class BeambotOrchestratorServer(Node):
 
         self._publish_state("RUNNING")
 
-        # Group tasks into execution units; previews use the same boundaries.
+        # Group tasks into batches; previews use the same boundaries.
         batches = group_into_batches(
             tasks,
             enabled=self._enable_batching,
@@ -448,207 +451,43 @@ class BeambotOrchestratorServer(Node):
             f"Grouped {task_count} tasks into {len(batches)} batches"
         )
 
-        # Cache only one-batch goals; one key cannot represent multiple starts.
-        cache_eligible = len(batches) == 1 and batches[0][0] == "batched"
-        if cache_eligible and not dry_run:
-            cached_trajectory_for_replay = self._trajectory_cache.get(goal_key)
-            if cached_trajectory_for_replay is not None:
+        run = _GoalRun(
+            handle=goal_handle,
+            result=result,
+            feedback=feedback,
+            total=task_count,
+            poses_json=poses_json,
+            dry_run=dry_run,
+            goal_key=goal_key,
+            # Cache only one-batch goals; one key cannot represent multiple starts.
+            cache_eligible=len(batches) == 1 and batches[0][0] == "batched",
+        )
+        if run.cache_eligible and not dry_run:
+            run.cached_trajectory = self._trajectory_cache.get(goal_key)
+            if run.cached_trajectory is not None:
                 self.get_logger().info(
                     "Trajectory cache hit — replaying stored plan without re-planning"
                 )
 
-        completed_tasks = 0
-
         for batch_type, batch_tasks in batches:
-            batch_size = len(batch_tasks)
-
-            # Handle cancellation and pause before dispatch.
-            if goal_handle.is_cancel_requested:
-                self.get_logger().warning(
-                    f"Task cancelled after step {completed_tasks}/{task_count}"
+            stop = self._check_before_batch(run)
+            if stop is None:
+                stop = (
+                    self._run_mtc_batch(run, batch_tasks)
+                    if batch_type == "batched"
+                    else self._run_single_task(run, batch_tasks[0])
                 )
-                result.error_message = "Task was canceled"
-                result.completed_steps = completed_tasks
-                goal_handle.canceled()
-                return result
-
-            if self._pause_requested:
-                self._handle_pause(feedback, goal_handle, completed_tasks, task_count)
-
-                if goal_handle.is_cancel_requested:
-                    self.get_logger().warning(
-                        f"Task cancelled while paused at step {completed_tasks}/{task_count}"
-                    )
-                    result.error_message = "Task was cancelled while paused"
-                    result.completed_steps = completed_tasks
-                    goal_handle.canceled()
-                    return result
-
-            # Vacuum-loss abort checks remain disabled.
-            # if not dry_run:
-            #     vacuum_error = self._vacuum.check_lost()
-            #     if vacuum_error:
-            #         result.error_message = f"Step {completed_tasks + 1} aborted: {vacuum_error}"
-            #         result.completed_steps = completed_tasks
-            #         goal_handle.abort()
-            #         self._publish_state("IDLE")
-            #         return result
-
-            # Verify MoveIt before dispatch.
-            if not self._moveit_manager.is_moveit_alive():
-                exit_info = self._moveit_manager.get_moveit_exit_info()
-                result.error_message = (
-                    f"MoveIt crashed before step {completed_tasks + 1}: {exit_info}"
-                )
-                self.get_logger().error(result.error_message)
-                result.completed_steps = completed_tasks
-                goal_handle.abort()
-                return result
-
-            if batch_type == "batched":
-                # Report batch progress.
-                batch_desc = ", ".join(t.get("task_type", "?") for t in batch_tasks)
-                self._update_feedback(
-                    feedback,
-                    goal_handle,
-                    completed_tasks + 1,
-                    task_count,
-                    f"batch[{batch_size}]: {batch_desc}",
-                )
-
-                # Execute or preview the batch; launch owns controller activation.
-                self._last_planned_sol_msg = None
-                ok = self._execute_batch(
-                    batch_tasks,
-                    poses_json,
-                    dry_run=dry_run,
-                    cached_trajectory=cached_trajectory_for_replay,
-                )
-
-                if not ok:
-                    if goal_handle.is_cancel_requested or self._last_error.startswith(
-                        ("TIMEOUT:", "REPLAY_TIMEOUT:")
-                    ):
-                        self._faulted = True
-                    result.error_message = f"Batch failed at step {completed_tasks + 1}: {self._last_error}"
-                    result.completed_steps = completed_tasks
-                    goal_handle.abort()
-                    return result
-
-                # Cache eligible fresh plans; replays produce no new solution.
-                if cache_eligible and self._last_planned_sol_msg is not None:
-                    self._trajectory_cache.store(
-                        goal_key, self._last_planned_sol_msg
-                    )
-                    self.get_logger().info("Trajectory cached for replay")
-                    self._last_planned_sol_msg = None
-
-                # Vacuum bookkeeping is disabled.
-                # if not dry_run:
-                #     self._vacuum.update_after_tasks(batch_tasks, self._current_gripper)
-                completed_tasks += batch_size
-
-            else:
-                task = batch_tasks[0]
-                task_type = task.get("task_type", "")
-
-                if not task_type:
-                    result.error_message = (
-                        f"Step {completed_tasks} missing 'task_type' field"
-                    )
-                    result.completed_steps = completed_tasks
-                    goal_handle.abort()
-                    return result
-
-                self._update_feedback(
-                    feedback, goal_handle, completed_tasks + 1, task_count, task_type
-                )
-
-                # With batching disabled, route dry runs through planning to avoid
-                # hardware motion. Single-task dry runs are not cached.
-                if dry_run:
-                    self._last_planned_sol_msg = None
-                    if not self._execute_batch([task], poses_json, dry_run=True):
-                        result.error_message = (
-                            f"{task_type} preview failed: {self._last_error}"
-                        )
-                        result.completed_steps = completed_tasks
-                        goal_handle.abort()
-                        return result
-                    completed_tasks += 1
-                    result.completed_steps = completed_tasks
-                    if goal_handle.is_cancel_requested:
-                        result.error_message = "Task was canceled"
-                        goal_handle.canceled()
-                        return result
-                    continue
-
-                if task_type == "pause":
-                    self.get_logger().info(
-                        f"Pause step {completed_tasks + 1}/{task_count}: entering paused state"
-                    )
-                    self._handle_pause(
-                        feedback,
-                        goal_handle,
-                        completed_tasks,
-                        task_count,
-                        active_step=completed_tasks + 1,
-                    )
-
-                    if goal_handle.is_cancel_requested:
-                        self.get_logger().warning(
-                            f"Task cancelled while paused at step {completed_tasks + 1}/{task_count}"
-                        )
-                        result.error_message = "Task was cancelled while paused"
-                        result.completed_steps = completed_tasks
-                        goal_handle.canceled()
-                        return result
-
-                    completed_tasks += 1
-                    result.completed_steps = completed_tasks
-                    if completed_tasks < task_count:
-                        self.get_logger().info(
-                            f"Resumed from pause, continuing with step "
-                            f"{completed_tasks + 1}/{task_count}"
-                        )
-                    else:
-                        self.get_logger().info(
-                            f"Resumed from final pause step {completed_tasks}/{task_count}"
-                        )
-                    continue
-
-                if not self._execute_step(task_type, task, poses_json):
-                    if (
-                        goal_handle.is_cancel_requested
-                        or self._faulted
-                        or self._last_error.startswith(("TIMEOUT:", "REPLAY_TIMEOUT:"))
-                    ):
-                        self._faulted = True
-                    result.error_message = f"{task_type} failed: {self._last_error}"
-                    result.completed_steps = completed_tasks
-                    goal_handle.abort()
-                    return result
-
-                # self._vacuum.update_after_tasks([task], self._current_gripper)
-                completed_tasks += 1
-
-            result.completed_steps = completed_tasks
-
-            # Catch cancellation during the final execution unit.
-            if goal_handle.is_cancel_requested:
-                self.get_logger().warning(
-                    f"Task cancelled after step {completed_tasks}/{task_count}"
-                )
-                result.error_message = "Task was canceled"
-                goal_handle.canceled()
-                return result
+            if stop is not None:
+                return stop
+            run.completed += len(batch_tasks)
+            result.completed_steps = run.completed
 
         # Final vacuum-loss check remains disabled.
         # if not dry_run:
         #     vacuum_error = self._vacuum.check_lost()
         #     if vacuum_error:
         #         result.error_message = f"Final step aborted: {vacuum_error}"
-        #         result.completed_steps = completed_tasks
+        #         result.completed_steps = run.completed
         #         goal_handle.abort()
         #         self._publish_state("IDLE")
         #         return result
@@ -665,6 +504,165 @@ class BeambotOrchestratorServer(Node):
         self.get_logger().info("Orchestration goal completed successfully")
         return result
 
+    # Batch execution. Each returns a terminal Result to stop, or None to continue.
+
+    def _check_before_batch(self, run: _GoalRun) -> BeambotExecution.Result | None:
+        """Handle cancel, pause, and MoveIt liveness before dispatch."""
+        if (stop := self._stop_if_cancel_requested(run)) is not None:
+            return stop
+
+        if self._pause_requested:
+            self._handle_pause(run.feedback, run.handle, run.completed, run.total)
+            if run.handle.is_cancel_requested:
+                self.get_logger().warning(
+                    f"Task cancelled while paused at step {run.completed}/{run.total}"
+                )
+                return self._finish_canceled(run, "Task was cancelled while paused")
+
+        # Vacuum-loss abort checks remain disabled.
+        # if not run.dry_run:
+        #     vacuum_error = self._vacuum.check_lost()
+        #     if vacuum_error:
+        #         self._publish_state("IDLE")
+        #         return self._finish_aborted(
+        #             run, f"Step {run.completed + 1} aborted: {vacuum_error}"
+        #         )
+
+        if not self._moveit_manager.is_moveit_alive():
+            exit_info = self._moveit_manager.get_moveit_exit_info()
+            message = f"MoveIt crashed before step {run.completed + 1}: {exit_info}"
+            self.get_logger().error(message)
+            return self._finish_aborted(run, message)
+        return None
+
+    def _run_mtc_batch(
+        self, run: _GoalRun, batch_tasks: list[dict[str, Any]]
+    ) -> BeambotExecution.Result | None:
+        """Execute or preview one batch; launch owns controller activation."""
+        step = run.completed + 1
+        batch_desc = ", ".join(t.get("task_type", "?") for t in batch_tasks)
+        self._update_feedback(
+            run.feedback,
+            run.handle,
+            step,
+            run.total,
+            f"batch[{len(batch_tasks)}]: {batch_desc}",
+        )
+
+        self._last_planned_sol_msg = None
+        ok = self._execute_batch(
+            batch_tasks,
+            run.poses_json,
+            dry_run=run.dry_run,
+            cached_trajectory=run.cached_trajectory,
+        )
+        if not ok:
+            self._mark_faulted_if_unsafe(run)
+            return self._finish_aborted(run, f"Batch failed at step {step}: {self._last_error}")
+
+        # Cache eligible fresh plans; replays produce no new solution.
+        if run.cache_eligible and self._last_planned_sol_msg is not None:
+            self._trajectory_cache.store(run.goal_key, self._last_planned_sol_msg)
+            self.get_logger().info("Trajectory cached for replay")
+            self._last_planned_sol_msg = None
+
+        # Vacuum bookkeeping is disabled.
+        # if not run.dry_run:
+        #     self._vacuum.update_after_tasks(batch_tasks, self._current_gripper)
+        return self._stop_if_cancel_requested(run, finished=len(batch_tasks))
+
+    def _run_single_task(
+        self, run: _GoalRun, task: dict[str, Any]
+    ) -> BeambotExecution.Result | None:
+        """Dispatch one non-batched task to its action server."""
+        task_type = task["task_type"]  # parse_task_script validates task_type.
+        self._update_feedback(
+            run.feedback, run.handle, run.completed + 1, run.total, task_type
+        )
+
+        # With batching disabled, route dry runs through planning to avoid
+        # hardware motion. Single-task dry runs are not cached.
+        if run.dry_run:
+            self._last_planned_sol_msg = None
+            if not self._execute_batch([task], run.poses_json, dry_run=True):
+                return self._finish_aborted(
+                    run, f"{task_type} preview failed: {self._last_error}"
+                )
+            if run.handle.is_cancel_requested:
+                return self._finish_canceled(run, "Task was canceled", run.completed + 1)
+            return None
+
+        if task_type == "pause":
+            return self._run_pause_task(run)
+
+        if not self._execute_step(task_type, task, run.poses_json):
+            self._mark_faulted_if_unsafe(run)
+            return self._finish_aborted(run, f"{task_type} failed: {self._last_error}")
+
+        # self._vacuum.update_after_tasks([task], self._current_gripper)
+        return self._stop_if_cancel_requested(run, finished=1)
+
+    def _run_pause_task(self, run: _GoalRun) -> BeambotExecution.Result | None:
+        """Hold at a scripted pause step until resume or cancel."""
+        step = run.completed + 1
+        self.get_logger().info(
+            f"Pause step {step}/{run.total}: entering paused state"
+        )
+        self._handle_pause(
+            run.feedback, run.handle, run.completed, run.total, active_step=step
+        )
+
+        if run.handle.is_cancel_requested:
+            self.get_logger().warning(
+                f"Task cancelled while paused at step {step}/{run.total}"
+            )
+            return self._finish_canceled(run, "Task was cancelled while paused")
+
+        if step < run.total:
+            self.get_logger().info(
+                f"Resumed from pause, continuing with step {step + 1}/{run.total}"
+            )
+        else:
+            self.get_logger().info(
+                f"Resumed from final pause step {step}/{run.total}"
+            )
+        return None
+
+    # Goal termination helpers.
+
+    def _finish_aborted(
+        self, run: _GoalRun, message: str, completed: int | None = None
+    ) -> BeambotExecution.Result:
+        run.result.error_message = message
+        run.result.completed_steps = run.completed if completed is None else completed
+        run.handle.abort()
+        return run.result
+
+    def _finish_canceled(
+        self, run: _GoalRun, message: str, completed: int | None = None
+    ) -> BeambotExecution.Result:
+        run.result.error_message = message
+        run.result.completed_steps = run.completed if completed is None else completed
+        run.handle.canceled()
+        return run.result
+
+    def _stop_if_cancel_requested(
+        self, run: _GoalRun, finished: int = 0
+    ) -> BeambotExecution.Result | None:
+        """Cancel after `finished` more steps if the client requested it."""
+        if not run.handle.is_cancel_requested:
+            return None
+        done = run.completed + finished
+        self.get_logger().warning(f"Task cancelled after step {done}/{run.total}")
+        return self._finish_canceled(run, "Task was canceled", done)
+
+    def _mark_faulted_if_unsafe(self, run: _GoalRun):
+        """Fault when a failed batch may have left motion active."""
+        if run.handle.is_cancel_requested or self._last_error.startswith(
+            ("TIMEOUT:", "REPLAY_TIMEOUT:")
+        ):
+            self._faulted = True
+
     def _execute_step(
         self, task_type: str, step: dict[str, Any], poses_json: str
     ) -> bool:
@@ -673,22 +671,22 @@ class BeambotOrchestratorServer(Node):
 
         self.get_logger().info(f"Executing step: {task_type}")
 
-        if task_type == "moveto":
-            return self._call_moveto(step, poses_json)
-        elif task_type == "end_effector":
-            return self._call_endeffector(step, poses_json)
-        elif task_type == "tool_exchange":
-            return self._handle_tool_exchange(step, poses_json)
-        elif task_type in VISION_TASK_TYPES:
+        if task_type in VISION_TASK_TYPES:
             return self._call_vision_task(task_type, step, poses_json)
-        elif task_type == "vision_scan":
-            return self._call_vision_scan(step, poses_json)
-        elif task_type == "pipettor":
-            return self._call_pipettor(step, poses_json)
-        else:
+
+        call_by_task_type = {
+            "moveto": self._call_moveto,
+            "end_effector": self._call_endeffector,
+            "tool_exchange": self._handle_tool_exchange,
+            "vision_scan": self._call_vision_scan,
+            "pipettor": self._call_pipettor,
+        }
+        call = call_by_task_type.get(task_type)
+        if call is None:
             self._last_error = f"Unknown task type: '{task_type}'"
             self.get_logger().error(self._last_error)
             return False
+        return call(step, poses_json)
 
     # Batch planning and shared goal builders.
 
@@ -881,8 +879,6 @@ class BeambotOrchestratorServer(Node):
 
     def _call_pipettor(self, step: dict[str, Any], poses_json: str) -> bool:
         """Call the Pipettor action server."""
-        from std_msgs.msg import ColorRGBA
-
         goal = PipettorAction.Goal()
         goal.operation = step.get("operation", "")
         goal.volume_pct = float(step.get("volume_pct", 0.0))
@@ -944,11 +940,7 @@ class BeambotOrchestratorServer(Node):
         if task_type in ("pick_sample", "place_sample") and not step.get(
             "use_vision", True
         ):
-            return (
-                self._call_pick_sample_hardcoded
-                if task_type == "pick_sample"
-                else self._call_place_sample_hardcoded
-            )(step, poses_json)
+            return self._call_sample_hardcoded(task_type, step, poses_json)
 
         cfg = resolve_vision_step(task_type, step)
 
@@ -995,39 +987,21 @@ class BeambotOrchestratorServer(Node):
 
     def _gripper_ik_frame(self) -> str:
         """Return configured IK tip frame for the current gripper."""
-        from beambot.config_loader import gripper_tip_frame
-
         return gripper_tip_frame(self._current_gripper, default="flange")
 
-    def _call_pick_sample_hardcoded(
-        self, step: dict[str, Any], poses_json: str
+    def _call_sample_hardcoded(
+        self, task_type: str, step: dict[str, Any], poses_json: str
     ) -> bool:
-        """Non-vision pick: legacy PickSample server, joint-pose sequence."""
-        gripper_config = self._grippers.get(
-            step.get("gripper", self._current_gripper), {}
-        )
-        goal = PickSampleAction.Goal()
-        goal.use_vision = False
-        goal.approach_pose = step.get("approach_pose", "")
-        goal.target_pose = step.get("target_pose", "")
-        goal.gripper_group = gripper_config.get("gripper_group", "")
-        goal.gripper_states_json = json.dumps(gripper_config.get("states", {}))
-        goal.poses_json = poses_json
-        goal.constraints_json = (
-            json.dumps(step["constraints"]) if "constraints" in step else ""
-        )
-        return self._send_and_wait(
-            self._pick_sample_client, goal, "pick_sample", self._timeouts["pick_sample"]
-        )
+        """Non-vision pick/place sample servers, joint-pose sequence."""
+        if task_type == "pick_sample":
+            action_type, client = PickSampleAction, self._pick_sample_client
+        else:
+            action_type, client = PlaceSampleAction, self._place_sample_client
 
-    def _call_place_sample_hardcoded(
-        self, step: dict[str, Any], poses_json: str
-    ) -> bool:
-        """Non-vision place: legacy PlaceSample server, joint-pose sequence."""
         gripper_config = self._grippers.get(
             step.get("gripper", self._current_gripper), {}
         )
-        goal = PlaceSampleAction.Goal()
+        goal = action_type.Goal()
         goal.use_vision = False
         goal.approach_pose = step.get("approach_pose", "")
         goal.target_pose = step.get("target_pose", "")
@@ -1038,12 +1012,9 @@ class BeambotOrchestratorServer(Node):
             json.dumps(step["constraints"]) if "constraints" in step else ""
         )
         success = self._send_and_wait(
-            self._place_sample_client,
-            goal,
-            "place_sample",
-            self._timeouts["place_sample"],
+            client, goal, task_type, self._timeouts[task_type]
         )
-        # if success and self._current_gripper == "epick":
+        # if success and task_type == "place_sample" and self._current_gripper == "epick":
         #     self._vacuum.armed = False
         #     self._vacuum.lost = False
         return success
