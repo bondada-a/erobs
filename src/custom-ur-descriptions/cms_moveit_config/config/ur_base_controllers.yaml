@@ -37,6 +37,14 @@
       friction_model_controller:
         type: ur_controllers/FrictionModelController
 
+      # Required since ur_robot_driver 3.9.0: gravity_update_controller is spawned
+      # active, twist_controller inactive. Undeclared -> spawners die early.
+      gravity_update_controller:
+        type: ur_controllers/GravityUpdateController
+
+      twist_controller:
+        type: ur_controllers/TwistController
+
       freedrive_mode_controller:
         type: ur_controllers/FreedriveModeController
 
@@ -199,6 +207,14 @@
       tf_prefix: "$(var tf_prefix)"
 
   friction_model_controller:
+    ros__parameters:
+      tf_prefix: "$(var tf_prefix)"
+
+  gravity_update_controller:
+    ros__parameters:
+      tf_prefix: "$(var tf_prefix)"
+
+  twist_controller:
     ros__parameters:
       tf_prefix: "$(var tf_prefix)"
 
