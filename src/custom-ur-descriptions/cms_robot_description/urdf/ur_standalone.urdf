@@ -506,12 +506,16 @@
       <state_interface name="tool_analog_input_1"/>
       <state_interface name="tool_analog_input_type_0"/>
       <state_interface name="tool_analog_input_type_1"/>
-      <state_interface name="robot_mode"/>
+      <state_interface name="robot_mode">
+        <param name="initial_value">7</param>
+      </state_interface>
       <state_interface name="robot_status_bit_0"/>
       <state_interface name="robot_status_bit_1"/>
       <state_interface name="robot_status_bit_2"/>
       <state_interface name="robot_status_bit_3"/>
-      <state_interface name="safety_mode"/>
+      <state_interface name="safety_mode">
+        <param name="initial_value">1</param>
+      </state_interface>
       <state_interface name="safety_status_bit_0"/>
       <state_interface name="safety_status_bit_1"/>
       <state_interface name="safety_status_bit_2"/>
@@ -523,14 +527,39 @@
       <state_interface name="safety_status_bit_8"/>
       <state_interface name="safety_status_bit_9"/>
       <state_interface name="safety_status_bit_10"/>
-      <state_interface name="program_running"/>
+      <state_interface name="program_running">
+        <param name="initial_value">1</param>
+      </state_interface>
     </gpio>
     <gpio name="payload">
       <command_interface name="mass"/>
       <command_interface name="cog.x"/>
       <command_interface name="cog.y"/>
       <command_interface name="cog.z"/>
+      <command_interface name="inertia.ixx"/>
+      <command_interface name="inertia.iyy"/>
+      <command_interface name="inertia.izz"/>
+      <command_interface name="inertia.ixy"/>
+      <command_interface name="inertia.ixz"/>
+      <command_interface name="inertia.iyz"/>
+      <command_interface name="transition_time"/>
       <command_interface name="payload_async_success"/>
+      <state_interface name="mass"/>
+      <state_interface name="cog.x"/>
+      <state_interface name="cog.y"/>
+      <state_interface name="cog.z"/>
+      <state_interface name="inertia.ixx"/>
+      <state_interface name="inertia.iyy"/>
+      <state_interface name="inertia.izz"/>
+      <state_interface name="inertia.ixy"/>
+      <state_interface name="inertia.ixz"/>
+      <state_interface name="inertia.iyz"/>
+    </gpio>
+    <gpio name="gravity">
+      <command_interface name="x"/>
+      <command_interface name="y"/>
+      <command_interface name="z"/>
+      <command_interface name="gravity_async_success"/>
     </gpio>
     <gpio name="friction_model">
       <command_interface name="viscous_0"/>
@@ -627,6 +656,14 @@
       <command_interface name="abort"/>
       <command_interface name="trajectory_size"/>
     </gpio>
+    <gpio name="twist">
+      <command_interface name="linear_velocity_x"/>
+      <command_interface name="linear_velocity_y"/>
+      <command_interface name="linear_velocity_z"/>
+      <command_interface name="angular_velocity_x"/>
+      <command_interface name="angular_velocity_y"/>
+      <command_interface name="angular_velocity_z"/>
+    </gpio>
     <gpio name="get_robot_software_version">
       <state_interface name="get_version_major">
         <param name="initial_value">1</param>
@@ -661,7 +698,7 @@
   <joint name="wrist_extension_joint" type="fixed">
     <parent link="tool0"/>
     <child link="wrist_extension"/>
-    <origin rpy="1.5708 0 3.14159" xyz="0 0 0.016"/>
+    <origin rpy="1.5708 0 3.14159" xyz="0 0 0.0125"/>
   </joint>
   <link name="te_robotside">
     <visual>
@@ -688,7 +725,7 @@
   <joint name="te_robotside_joint" type="fixed">
     <parent link="wrist_extension"/>
     <child link="te_robotside"/>
-    <origin rpy="3.14159 0 0" xyz="0 0.047 0"/>
+    <origin rpy="3.14159 0 0" xyz="0 0.046745 0"/>
   </joint>
   <!-- ============================================================ -->
   <!-- CALIBRATED OPTICAL FRAME (for point cloud data)              -->
@@ -701,8 +738,13 @@
     <child link="zivid_optical_frame"/>
     <!-- Hand-eye calibration: tool0 -> optical_frame -->
     <!-- Rotation: Euler XYZ extrinsic, radians | Translation: meters -->
-    <!-- Calibration (2026-07-22): Zivid Studio GUI hand-eye recalibration (4x4 in hand_eye_calibration.yaml). Pending touch-test verification. -->
-    <origin rpy="-0.03511 0.05081 3.13360" xyz="0.05594 0.10469 0.05890"/>
+    <!-- Calibration (2026-11-02): 18 poses, board flat, 382-496 mm camera distance (matches the scan poses).
+           Residuals avg 0.27 mm / 0.11 deg. Pointer touch test (2026-11-03): ~0.4 mm x/y, vs ~1.1 mm for 2026-07-22.
+           4x4 in hand_eye_calibration.yaml. -->
+    <origin rpy="-0.03517 0.05062 3.13125" xyz="0.05567 0.10390 0.05859"/>
+    <!-- Calibration (2026-07-22): Zivid Studio GUI hand-eye recalibration. ~1.1 mm x/y off in the 2026-11-03 touch test.
+      <origin xyz="0.05594 0.10469 0.05890"
+              rpy="-0.03511 0.05081 3.13360"/> -->
     <!-- Calibration (2026-03-27): 12 poses (pose 4 excluded as outlier). Residuals: rot < 0.33°, trans < 1.53mm
       <origin xyz="0.05635 0.10228 0.06025"
               rpy="-0.03622 0.05218 3.13437"/> -->
@@ -754,7 +796,7 @@
   <joint name="zivid_arm_mount_joint" type="fixed">
     <parent link="tool0"/>
     <child link="zivid_arm_mount"/>
-    <origin rpy="0 0 0" xyz="0 0 0.005"/>
+    <origin rpy="0 0 0" xyz="0 0 0.001"/>
   </joint>
   <!-- ============================================================ -->
   <!-- CAMERA VISUAL MESH (for RViz visualization)                  -->
