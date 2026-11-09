@@ -160,6 +160,18 @@ def launch_setup(context, *args, **kwargs):
         ))
     actions.append(run_move_group_node)
     actions.append(rviz_node)
+    # Hide RT-loop overrun warnings (level 40 = ERROR); the call waits for the service.
+    actions.append(ExecuteProcess(
+        cmd=[
+            FindExecutable(name="ros2"),
+            "service", "call",
+            "/controller_manager/set_logger_levels",
+            "rcl_interfaces/srv/SetLoggerLevels",
+            "{levels: [{name: controller_manager, level: 40},"
+            " {name: speed_scaling_state_broadcaster, level: 40}]}",
+        ],
+        output="log",
+    ))
 
     # Optional gamepad Cartesian teleop via MoveIt Servo.
     joystick_enabled = IfCondition(LaunchConfiguration("enable_joystick"))
