@@ -69,9 +69,7 @@ grippers:
     tool_voltage: 24
     gripper_group: "epick_gripper"
     cup_profile: "3mm_dia_external_air"
-    # Compensates the ~7 mm over-counted W-010-B coupling in epick_tip.
-    # Keep until te_coupling in ur_with_zivid_epick.xacro is corrected.
-    z_offset: -0.007
+    z_offset: 0.0
     states:
       grasp: "vacuum_on"
       release: "vacuum_off"

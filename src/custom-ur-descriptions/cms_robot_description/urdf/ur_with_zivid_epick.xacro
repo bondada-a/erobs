@@ -116,26 +116,26 @@
   <!-- Using tool0 instead of flange - Zivid calibration uses tool0 frame -->
   <xacro:zivid_camera_mount
     parent_link="$(arg tf_prefix)tool0"
-    xyz="0 0 0.005"
+    xyz="0 0 0.001"
     rpy="0 0 0"
     zivid_model="ZIVID_2_PLUS_MR60"/>
 
-  <!-- Wrist extension (EX-50-35): bolts to flange, extends 35mm along tool-Z -->
+  <!-- Wrist extension (EX-50-35): bolts on the 12.5 mm Zivid adapter, extends 35mm along tool-Z -->
   <xacro:wrist_extension
     parent_link="$(arg tf_prefix)tool0"
-    xyz="0 0 0.016"
+    xyz="0 0 0.0125"
     rpy="1.5708 0 3.14159"/>
 
   <!-- Tool exchanger robot-side plate (Wingman WM1) at the tip of the extension -->
   <xacro:te_robotside
     parent_link="wrist_extension"
-    xyz="0 0.047 0"
+    xyz="0 0.046745 0"
     rpy="3.14159 0 0"/>
 
   <!-- Tool exchanger tool-side plate (Wingman WM1) — comes with each gripper -->
   <xacro:te_toolside
     parent_link="te_robotside"
-    xyz="0 -0.011 0"
+    xyz="0 -0.011332 0"
     rpy="0 0 0"/>
 
   <!-- Cup dimensions come from suction_cups.yaml; launch forwards the profile via the environment. -->
@@ -146,19 +146,20 @@
   <xacro:property name="cup" value="${cups_config['cups'][cup_profile_name]}"/>
 
   <!-- Tool-changer coupling (W-010-B, 16.9mm axial) on the tool-side plate.
-       Mounts on te_toolside's outward (-Y) face; coupling axis (mesh Z) aligned
-       to te_toolside -Y via the rpy below. -->
+       Its 3 mm back pocket sits over the WM1 tool boss, so the mesh centre is
+       4 mm past the tool face (te_toolside -Y 6.923). Coupling axis (mesh Z)
+       aligned to te_toolside -Y via the rpy below. -->
   <xacro:te_coupling
     parent_link="te_toolside"
-    xyz="0 -0.012 0"
+    xyz="0 -0.010923 0"
     rpy="1.5708 0 0"/>
 
-  <!-- Epick Gripper — mounted on the coupling far face.
+  <!-- Epick Gripper — its Ø71 spigot seats on the floor of the coupling's 2.9 mm pocket.
        origin_rpy yaw=pi: the cylindrical coupling/spacer hid a 180 deg yaw flip
        of epick_tip vs the validated pre-coupling frame; this restores it so the
        IK target matches and wrist_3 doesn't swing the camera into wrist_1. -->
   <xacro:epick_overlay use_mock_hardware="$(arg use_mock_hardware)" parent="te_coupling"
-                  origin_xyz="0 0 0.0099"
+                  origin_xyz="0 0 0.0070"
                   origin_rpy="0 0 3.14159"
                   extension_length="${cup['extension_length']}"
                   extension_radius="${cup['extension_radius']}"

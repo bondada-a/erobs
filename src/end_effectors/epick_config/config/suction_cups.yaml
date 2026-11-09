@@ -25,10 +25,10 @@ cups:
     suction_cup_radius: 0.0035
 
   3mm_dia:
-    description: "3mm diameter cup with short extension (small samples)"
-    extension_length: 0.013
+    description: "Festo NPFC-R-G14-M5-MF nipple + Schmalz FSG 3 bellows cup (small samples)"
+    extension_length: 0.005      # nipple hex past the G1/4 boss (13 overall - 8 stud)
     extension_radius: 0.004
-    suction_cup_height: 0.003
+    suction_cup_height: 0.0102   # Schmalz 10.01.06.03716 height H
     suction_cup_radius: 0.0015
 
   3mm_dia_external_air:
