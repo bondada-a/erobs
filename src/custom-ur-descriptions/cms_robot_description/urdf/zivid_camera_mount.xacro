@@ -27,9 +27,14 @@
       <child link="zivid_optical_frame"/>
       <!-- Hand-eye calibration: tool0 -> optical_frame -->
       <!-- Rotation: Euler XYZ extrinsic, radians | Translation: meters -->
-      <!-- Calibration (2026-07-22): Zivid Studio GUI hand-eye recalibration (4x4 in hand_eye_calibration.yaml). Pending touch-test verification. -->
+      <!-- Calibration (2026-11-02): 18 poses, board flat, 382-496 mm camera distance (matches the scan poses).
+           Residuals avg 0.27 mm / 0.11 deg. Pointer touch test (2026-11-03): ~0.4 mm x/y, vs ~1.1 mm for 2026-07-22.
+           4x4 in hand_eye_calibration.yaml. -->
+      <origin xyz="0.05567 0.10390 0.05859"
+              rpy="-0.03517 0.05062 3.13125"/>
+      <!-- Calibration (2026-07-22): Zivid Studio GUI hand-eye recalibration. ~1.1 mm x/y off in the 2026-11-03 touch test.
       <origin xyz="0.05594 0.10469 0.05890"
-              rpy="-0.03511 0.05081 3.13360"/>
+              rpy="-0.03511 0.05081 3.13360"/> -->
       <!-- Calibration (2026-03-27): 12 poses (pose 4 excluded as outlier). Residuals: rot < 0.33°, trans < 1.53mm
       <origin xyz="0.05635 0.10228 0.06025"
               rpy="-0.03622 0.05218 3.13437"/> -->
